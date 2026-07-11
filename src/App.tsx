@@ -3803,6 +3803,32 @@ function OfflineBadge() {
   );
 }
 
+/** Vědomé sdílení: snímek počítá aplikace sama a jen z toho, co klient zapnul.
+ *  Návyky = posledních 30 dní zaškrtnutí, cíle = názvy a stavy. Nic víc neodchází. */
+function buildShareSnapshot(coll, edits) {
+  const share = (coll && coll.share) || {};
+  if (!share.habits && !share.goals) return null;
+  const out = { at: Date.now() };
+  if (share.habits) {
+    const defs = ((coll.habitDefs || HABIT_DEFAULTS) || []).filter((x) => !x.archived).map((x) => ({ slot: x.slot, icon: x.icon, name: x.name }));
+    const days = {};
+    const now = Date.now();
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(now - i * 86400000).toISOString().slice(0, 10);
+      const e = edits && edits[d];
+      if (e && e.h) days[d] = e.h;
+    }
+    out.habits = { defs, days };
+  }
+  if (share.goals) {
+    out.goals = (coll.userGoals || []).map((g) => ({
+      name: g.name, area: g.area || "",
+      status: ((coll.goals || {})[g.name] != null ? (coll.goals || {})[g.name] : g.status) || "",
+    }));
+  }
+  return out;
+}
+
 /** Vstupní brána — nový příchozí zadá slovo od Tanyho. Jednou provždy. */
 function InviteGate() {
   const [word, setWord] = useState("");
@@ -3856,8 +3882,21 @@ function InviteGate() {
 
 /** Výběr modulů — první spuštění (welcome) i pozdější správa (＋ Moduly).
  *  Notion-templates princip: klient si skládá workspace, my nic nevnucujeme. */
-function ModulePicker({ t, firstRun, current, onConfirm, onClose }) {
+function ModulePicker({ t, firstRun, current, initialName, initialShare, onConfirm, onClose }) {
   const [sel, setSel] = useState(() => current || CORE_MODULES.slice());
+  const [name, setName] = useState(initialName || "");
+  const [share, setShare] = useState(() => ({ habits: false, goals: false, ...(initialShare || {}) }));
+  const shareRow = (key, labelCs, labelEn, descCs, descEn) => (
+    <button onClick={() => setShare((s) => ({ ...s, [key]: !s[key] }))} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "11px 14px", borderRadius: 10, cursor: "pointer", textAlign: "left", background: share[key] ? "rgba(184,115,51,0.10)" : "rgba(46,61,53,0.28)", border: `1px solid ${share[key] ? "#B87333" : "rgba(124,140,110,0.18)"}`, marginBottom: 8 }}>
+      <span style={{ minWidth: 0, flex: 1 }}>
+        <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, color: "#F4F0EB" }}>{L(labelCs, labelEn)}</span>
+        <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 11.5, color: "#8C7B6E", marginTop: 2 }}>{L(descCs, descEn)}</span>
+      </span>
+      <span style={{ flexShrink: 0, width: 34, height: 20, borderRadius: 100, position: "relative", background: share[key] ? "#B87333" : "rgba(124,140,110,0.3)", transition: "background .25s" }}>
+        <span style={{ position: "absolute", top: 3, left: share[key] ? 17 : 3, width: 14, height: 14, borderRadius: "50%", background: "#F4F0EB", transition: "left .25s" }} />
+      </span>
+    </button>
+  );
   const toggle = (key) => setSel((s) => (s.indexOf(key) !== -1 ? s.filter((k) => k !== key) : [...s, key]));
   const ordered = MODULES.map((m) => m.key).filter((k) => sel.indexOf(k) !== -1);
   return (
@@ -3876,6 +3915,17 @@ function ModulePicker({ t, firstRun, current, onConfirm, onClose }) {
             : L("Zapni jen to, co teď žiješ. Data vypnutých modulů zůstávají uložená.",
                 "Keep only what you live right now. Data of hidden modules stays saved.")}
         </div>
+        <div style={{ textAlign: "left", marginBottom: 18 }}>
+          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 10.5, color: "#8C7B6E", marginBottom: 8 }}>
+            {firstRun ? L("Jak ti mám říkat?", "What should I call you?") : L("Tvoje jméno", "Your name")}
+          </div>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={L("jméno", "name")}
+            style={{ width: "100%", boxSizing: "border-box", background: "#24221D", border: "1px solid rgba(124,140,110,0.3)", borderRadius: 10, padding: "12px 16px", color: "#F4F0EB", fontFamily: FONT_BODY, fontSize: 15, outline: "none" }}
+          />
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10, textAlign: "left" }}>
           {MODULES.map((m) => {
             const on = sel.indexOf(m.key) !== -1;
@@ -3891,8 +3941,24 @@ function ModulePicker({ t, firstRun, current, onConfirm, onClose }) {
             );
           })}
         </div>
+        <div style={{ textAlign: "left", marginTop: 24 }}>
+          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 10.5, color: "#8C7B6E", marginBottom: 4 }}>
+            {L("Vědomé sdílení s Tanym", "Conscious sharing with Tanmay")}
+          </div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: "#8C7B6E", lineHeight: 1.55, marginBottom: 12 }}>
+            {L("Uvidí jen to, co tady zapneš — a kdykoli to vypneš. Deník a zápisník zůstávají vždy jen tvoje.",
+               "He sees only what you turn on here — and you can turn it off anytime. Journal and notebook always remain yours alone.")}
+          </div>
+          {sel.indexOf("habit") !== -1 && shareRow("habits", "Návyky", "Habits", "Posledních 30 dní zaškrtnutí, bez poznámek.", "Last 30 days of checkmarks, no notes.")}
+          {sel.indexOf("divine") !== -1 && shareRow("goals", "Cíle", "Goals", "Názvy cílů a jejich stav.", "Goal names and their status.")}
+          {sel.indexOf("habit") === -1 && sel.indexOf("divine") === -1 && (
+            <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: "#8C7B6E" }}>
+              {L("Sdílet jde návyky a cíle — zapni si nejdřív ty moduly.", "Habits and goals can be shared — enable those modules first.")}
+            </div>
+          )}
+        </div>
         <div style={{ marginTop: 28, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => onConfirm(ordered.length ? ordered : CORE_MODULES.slice())} style={{ background: "#B87333", color: "#1C1C1A", border: "none", borderRadius: 100, padding: "13px 38px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12.5 }}>
+          <button onClick={() => onConfirm(ordered.length ? ordered : CORE_MODULES.slice(), name, { habits: !!share.habits && ordered.indexOf("habit") !== -1, goals: !!share.goals && ordered.indexOf("divine") !== -1 })} style={{ background: "#B87333", color: "#1C1C1A", border: "none", borderRadius: 100, padding: "13px 38px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12.5 }}>
             {firstRun ? L("Vstoupit", "Enter") : L("Uložit", "Save")}
           </button>
           {!firstRun && (
@@ -3917,12 +3983,19 @@ export default function App() {
   const [page, setPage] = useState("habit");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [member, setMember] = useState(null); // null = zjišťuje se / offline, false = ukáže bránu
+  const [memberName, setMemberName] = useState("");
   React.useEffect(() => {
     fetch("/api/me", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((b) => { if (b && typeof b.member === "boolean") setMember(b.member); })
+      .then((b) => { if (b && typeof b.member === "boolean") { setMember(b.member); setMemberName(b.name || ""); } })
       .catch(() => {}); // offline -> necháme null, brána se nezobrazí, data zůstanou lokální
   }, []);
+  const saveName = (name) => {
+    const v = String(name || "").trim();
+    if (v === memberName) return;
+    setMemberName(v);
+    fetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: v }) }).catch(() => {});
+  };
   const [menuOpen, setMenuOpen] = useState(false);
   const [sideHidden, setSideHidden] = useState(() => { try { return localStorage.getItem("tm-side-hidden") === "1"; } catch (e) { return false; } });
   const toggleSide = () => setSideHidden((h) => { const n = !h; try { localStorage.setItem("tm-side-hidden", n ? "1" : "0"); } catch (e) {} return n; });
@@ -4010,7 +4083,7 @@ export default function App() {
             await fetch("/api/state", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ doc: { coll: _collRef.current, edits: _editsRef.current } }),
+              body: JSON.stringify({ doc: { coll: _collRef.current, edits: _editsRef.current }, share: buildShareSnapshot(_collRef.current, _editsRef.current) }),
             });
           }
           _lastSynced.current = _serializeDoc(_collRef.current, _editsRef.current);
@@ -4037,7 +4110,7 @@ export default function App() {
       fetch("/api/state", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doc: { coll, edits } }),
+        body: JSON.stringify({ doc: { coll, edits }, share: buildShareSnapshot(coll, edits) }),
       }).then((r) => { if (r.ok) _lastSynced.current = cur; }).catch(() => {});
     }, 1500);
     return () => clearTimeout(h);
@@ -4443,7 +4516,9 @@ export default function App() {
             t={t}
             firstRun={!enabledModules}
             current={enabledModules}
-            onConfirm={(list) => { setModules(list); setPickerOpen(false); if (list.indexOf(page) === -1 && page !== "trash") setPage(list[0] || "habit"); }}
+            initialName={memberName}
+            initialShare={coll.share}
+            onConfirm={(list, name, share) => { persistColl((c) => ({ ...c, modules: list, share })); saveName(name); setPickerOpen(false); if (list.indexOf(page) === -1 && page !== "trash") setPage(list[0] || "habit"); }}
             onClose={() => setPickerOpen(false)}
           />
         )}
