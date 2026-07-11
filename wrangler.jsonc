@@ -18,7 +18,11 @@
     {
       "binding": "DB",
       "database_name": "tanmay-data-klient",
-      "database_id": "DOPLN-PO-VYTVOReNI-D1-DATABAZE"
+      "database_id": ""d1_databases": [{
+    "binding": "DB",
+    "database_name": "tanmay-data-klient",
+    "database_id": "239662d8-eab6-4ab0-ac24-24a5296bf9b2"
+ }]"
     }
   ]
 }
