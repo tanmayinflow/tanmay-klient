@@ -39,9 +39,13 @@ async function ensureSchema(env) {
     `CREATE TABLE IF NOT EXISTS members (
        user_id   TEXT PRIMARY KEY,
        email     TEXT NOT NULL,
-       joined_at INTEGER NOT NULL
+       joined_at INTEGER NOT NULL,
+       name      TEXT
      )`
   ).run();
+  // migrace starší tabulky bez sloupce name — bezpečně, jen jednou selže naprázdno
+  try { await env.DB.prepare("ALTER TABLE members ADD COLUMN name TEXT").run(); } catch (e) {}
+  try { await env.DB.prepare("ALTER TABLE members ADD COLUMN share TEXT").run(); } catch (e) {}
 }
 
 // ---- Membership: Access pouští dovnitř kohokoli (policy Everyone),
@@ -55,7 +59,9 @@ async function isMember(env, userId) {
 }
 
 async function handleMe(env, userId) {
-  return Response.json({ member: await isMember(env, userId) });
+  await ensureSchema(env);
+  const row = await env.DB.prepare("SELECT name FROM members WHERE user_id = ?").bind(userId).first();
+  return Response.json({ member: !!row, name: (row && row.name) || "" });
 }
 
 async function handleJoin(request, env, userId) {
@@ -102,6 +108,15 @@ async function handleState(request, env, userId) {
       return Response.json({ ok: false, error: "invalid JSON body" }, { status: 400 });
     }
     const docStr = JSON.stringify(body && "doc" in body ? body.doc : null);
+    // Vědomé sdílení: klientská aplikace přibaluje snímek (nebo null = vypnuto).
+    if (body && "share" in body) {
+      let s = null;
+      if (body.share != null) {
+        const raw = JSON.stringify(body.share);
+        if (raw.length <= 100000) s = raw; // pojistka velikosti
+      }
+      await env.DB.prepare("UPDATE members SET share = ? WHERE user_id = ?").bind(s, userId).run();
+    }
     const now = Date.now();
     await env.DB
       .prepare(
@@ -221,6 +236,18 @@ export default {
       // do D1 ani plnit R2, dokud nezadá vstupní slovo.
       if (!(await isMember(env, userId))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
+      }
+
+      // Jméno člena — zobrazí se jemu i Tanymu v přehledu klientů.
+      if (url.pathname === "/api/profile") {
+        if (request.method !== "POST") {
+          return Response.json({ ok: false, error: "method not allowed" }, { status: 405 });
+        }
+        let body;
+        try { body = await request.json(); } catch { body = {}; }
+        const name = String(body.name || "").trim().slice(0, 80);
+        await env.DB.prepare("UPDATE members SET name = ? WHERE user_id = ?").bind(name, userId).run();
+        return Response.json({ ok: true, name });
       }
 
       if (url.pathname === "/api/state") {
