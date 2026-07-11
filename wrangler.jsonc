@@ -1,5 +1,5 @@
 {
-  "name": "tanmay-web",
+  "name": "tanmay-klient",
   "compatibility_date": "2026-07-04",
   "workers_dev": false,
   "main": "./worker/index.js",
@@ -9,16 +9,16 @@
     "binding": "ASSETS"
   },
   "routes": [
-    { "pattern": "app.tanmaypractice.com", "custom_domain": true }
+    { "pattern": "klient.tanmaypractice.com", "custom_domain": true }
   ],
   "r2_buckets": [
-    { "binding": "FILES", "bucket_name": "tanmay-files" }
+    { "binding": "FILES", "bucket_name": "tanmay-files-klient" }
   ],
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "tanmay-data",
-      "database_id": "f9930346-938f-42af-82cb-7bdbae69bd22"
+      "database_name": "tanmay-data-klient",
+      "database_id": "DOPLN-PO-VYTVOReNI-D1-DATABAZE"
     }
   ]
 }
