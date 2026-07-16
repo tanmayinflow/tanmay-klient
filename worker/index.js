@@ -43,9 +43,31 @@ async function ensureSchema(env) {
        name      TEXT
      )`
   ).run();
+  // Plán od Tanyho · píše do ní kokpit přes KLIENT_DB, klient ji jen čte.
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS plans (
+       user_id    TEXT PRIMARY KEY,
+       doc        TEXT NOT NULL,
+       updated_at INTEGER NOT NULL
+     )`
+  ).run();
   // migrace starší tabulky bez sloupce name — bezpečně, jen jednou selže naprázdno
   try { await env.DB.prepare("ALTER TABLE members ADD COLUMN name TEXT").run(); } catch (e) {}
   try { await env.DB.prepare("ALTER TABLE members ADD COLUMN share TEXT").run(); } catch (e) {}
+}
+
+// ---- Plán od Tanyho · jen ke čtení ----------------------------------------
+// Klient plán neupravuje. Co s ním udělal, se vrací kanálem share, ne sem.
+async function handlePlan(request, env, userId) {
+  if (request.method !== "GET") {
+    return Response.json({ ok: false, error: "method not allowed" }, { status: 405 });
+  }
+  await ensureSchema(env);
+  const row = await env.DB.prepare("SELECT doc, updated_at FROM plans WHERE user_id = ?").bind(userId).first();
+  if (!row) return Response.json({ doc: null, updated_at: null });
+  let doc = null;
+  try { doc = JSON.parse(row.doc); } catch (e) {}
+  return Response.json({ doc, updated_at: row.updated_at });
 }
 
 // ---- Membership: Access pouští dovnitř kohokoli (policy Everyone),
@@ -252,6 +274,9 @@ export default {
 
       if (url.pathname === "/api/state") {
         return handleState(request, env, userId);
+      }
+      if (url.pathname === "/api/plan") {
+        return handlePlan(request, env, userId);
       }
       if (url.pathname === "/api/files") {
         return handleFilesList(request, env, userId);
