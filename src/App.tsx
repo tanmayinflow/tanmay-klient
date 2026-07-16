@@ -3984,12 +3984,11 @@ function TrSetRow({ i, row, val, rx, onCommit }) {
   );
 }
 
-function TrRunner({ plan, session, wo, exById, rx, logged, onLog, onClose }) {
+function TrRunner({ plan, session, wo, exById, rx, logged, onLog, onOpenEx, onClose }) {
   const { t } = useT();
   const rows = (wo && wo.rows) || [];
   const [i, setI] = useState(0);
   const [rest, setRest] = useState(false);
-  const [detail, setDetail] = useState(null);
   const row = rows[i];
   const ex = row ? exById[row.ex] : null;
   const sets = Number(row && row.sets) || 1;
@@ -4009,7 +4008,7 @@ function TrRunner({ plan, session, wo, exById, rx, logged, onLog, onClose }) {
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 10px" }}>
-        <button onClick={() => setDetail(ex)} style={{ background: "transparent", border: "none", cursor: ex ? "pointer" : "default", padding: 0 }}>
+        <button onClick={() => ex && onOpenEx(ex)} style={{ background: "transparent", border: "none", cursor: ex ? "pointer" : "default", padding: 0 }}>
           <TExArt ex={ex} size={140} />
         </button>
       </div>
@@ -4018,7 +4017,7 @@ function TrRunner({ plan, session, wo, exById, rx, logged, onLog, onClose }) {
         {row.sets}× {row.reps}{trUnit(row.unit)}{rrx && rrx.kg ? " · " + L("předepsáno ", "prescribed ") + rrx.kg + " kg" : ""}
       </div>
       {trNote(row) && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textSec, textAlign: "center", marginBottom: 6 }}>{trNote(row)}</div>}
-      {ex && <button onClick={() => setDetail(ex)} style={{ display: "block", margin: "0 auto 14px", background: "transparent", border: "none", cursor: "pointer", color: t.sage, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5 }}>{L("Jak na to", "How to")}</button>}
+      {ex && <button onClick={() => onOpenEx(ex)} style={{ display: "block", margin: "0 auto 14px", background: "transparent", border: "none", cursor: "pointer", color: t.sage, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5 }}>{L("Jak na to", "How to")}</button>}
 
       <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "6px 14px 12px", marginBottom: 14 }}>
         {Array.from({ length: sets }).map((_, k) => (
@@ -4036,12 +4035,11 @@ function TrRunner({ plan, session, wo, exById, rx, logged, onLog, onClose }) {
           <button onClick={onClose} style={{ background: "#B87333", color: "#FAF5E9", border: "none", borderRadius: 100, padding: "10px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Hotovo", "Done")}</button>
         )}
       </div>
-      {detail && <TrExDetail ex={detail} onClose={() => setDetail(null)} />}
     </Drawer>
   );
 }
 
-function TrSession({ s, wo, exById, done, rx, logged, onToggle, onRun, onOpenEx }) {
+function TrSession({ s, wo, exById, done, date, rx, logged, onToggle, onDate, onRun, onOpenEx }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const rows = (wo && wo.rows) || [];
@@ -4055,7 +4053,7 @@ function TrSession({ s, wo, exById, done, rx, logged, onToggle, onRun, onOpenEx 
         <button onClick={() => setOpen(!open)} style={{ background: "transparent", border: "none", cursor: "pointer", textAlign: "left", flex: 1, padding: 0 }}>
           <span style={{ display: "block", fontFamily: FONT_DISPLAY, fontSize: 17, color: t.heading }}>{wo ? trName(wo) : L("Trénink", "Workout")}</span>
           <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 2 }}>
-            {L("Týden", "Week")} {s.w || 1}{s.date ? " · " + s.date : ""}{rows.length ? " · " + rows.length + " " + L("cviků", "exercises") : ""}{logCount ? " · " + L("zapsáno " + logCount, logCount + " logged") : ""}
+            {L("Týden", "Week")} {s.w || 1}{date ? " · " + trFmt(date) : ""}{rows.length ? " · " + rows.length + " " + L("cviků", "exercises") : ""}{logCount ? " · " + L("zapsáno " + logCount, logCount + " logged") : ""}
           </span>
         </button>
         <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted, flexShrink: 0 }}>{open ? "−" : "+"}</span>
@@ -4084,13 +4082,236 @@ function TrSession({ s, wo, exById, done, rx, logged, onToggle, onRun, onOpenEx 
           })}
           {!rows.length && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("Tenhle trénink zatím nemá cviky.", "This workout has no exercises yet.")}</div>}
           {rows.length > 0 && (
-            <button onClick={onRun} style={{ display: "block", width: "100%", marginTop: 12, background: "#B87333", color: "#FAF5E9", border: "none", borderRadius: 100, padding: "11px 20px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 11.5 }}>
-              {L("Začít", "Begin")}
-            </button>
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10, color: t.sage }}>{L("Kdy", "When")}</span>
+                <input type="date" value={date || ""} onChange={(e) => onDate(e.target.value)}
+                  style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 13, padding: "5px 9px", outline: "none" }} />
+                {date && <button onClick={() => onDate("")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 12 }}>✕</button>}
+              </div>
+              <button onClick={onRun} style={{ display: "block", width: "100%", marginTop: 12, background: "#B87333", color: "#FAF5E9", border: "none", borderRadius: 100, padding: "11px 20px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 11.5 }}>
+                {L("Začít", "Begin")}
+              </button>
+            </>
           )}
         </div>
       )}
     </div>
+  );
+}
+
+// ---- Plán v čase · co, v jakém pořadí píše Tany · kdy rozhoduješ ty --------
+const TR_DAYS = ["po", "út", "st", "čt", "pá", "so", "ne"];
+const TR_DAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const TR_MON = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec"];
+const TR_MON_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+// pondělí = 0
+const trDow = (iso) => { const d = new Date(iso + "T00:00:00"); return (d.getDay() + 6) % 7; };
+const trMonday = (iso) => shiftISO(iso, -trDow(iso));
+const trFmt = (iso) => { const d = new Date(iso + "T00:00:00"); return d.getDate() + "." + (d.getMonth() + 1) + "."; };
+
+// Odhad minut · stejný výpočet jako u Tanyho, aby čísla nemluvila jinak
+function tpMinutes(rows, byId) {
+  const s = (rows || []).reduce((n, r) => {
+    const ex = byId[r.ex];
+    const work = ex && ex.mode === "sec" ? (Number(r.reps) || 30) : (Number(r.reps) || 8) * 4;
+    return n + (Number(r.sets) || 1) * (work + (Number(r.rest) || 0));
+  }, 0);
+  return Math.max(10, Math.round(s / 60));
+}
+
+// Rozvržení sezení do týdnů · stejné rozestupy jako v kokpitu
+function trSchedule(sessions, from) {
+  const start = from || todayISO();
+  const byWeek = {};
+  (sessions || []).forEach((s) => { const w = s.w || 1; (byWeek[w] = byWeek[w] || []).push(s); });
+  const OFF = { 1: [0], 2: [0, 3], 3: [0, 2, 4], 4: [0, 2, 4, 6], 5: [0, 1, 3, 4, 6], 6: [0, 1, 2, 3, 4, 5] };
+  const weeks = Object.keys(byWeek).map(Number).sort((a, b) => a - b);
+  const out = {};
+  (sessions || []).forEach((s) => {
+    const w = s.w || 1;
+    const idx = byWeek[w].indexOf(s);
+    const offs = OFF[Math.min(byWeek[w].length, 6)] || [0];
+    const wi = weeks.indexOf(w);
+    out[s.id] = shiftISO(start, wi * 7 + (offs[idx] != null ? offs[idx] : idx));
+  });
+  return out;
+}
+
+// Všechna naplánovaná sezení napříč plány, seřazená v čase
+function trAgenda(ctx, sched, done) {
+  const out = [];
+  (ctx.plans || []).forEach((pl) => (pl.sessions || []).forEach((s) => {
+    const date = ((sched || {})[pl.id] || {})[s.id] || s.date || "";
+    if (!date) return;
+    const rec = ((done || {})[pl.id] || {})[s.id] || null;
+    out.push({ pl, s, date, wo: ctx.woById[s.wid], done: !!(rec && rec.done), rec });
+  }));
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function TrHeroCard({ item, ctx, onRun }) {
+  const { t } = useT();
+  const mins = item.wo ? tpMinutes(item.wo.rows || [], ctx.exById) : 0;
+  const rows = (item.wo && item.wo.rows) || [];
+  return (
+    <div style={{ border: `1px solid ${t.borderSoft}`, borderRadius: 16, padding: "26px 20px", textAlign: "center", marginBottom: 22, background: t.card }}>
+      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 10.5, color: t.accent, marginBottom: 8 }}>{trName(item.pl)}</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, lineHeight: 1.15, color: t.heading, marginBottom: 6 }}>{item.wo ? trName(item.wo) : L("Trénink", "Workout")}</div>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginBottom: 18 }}>
+        {mins ? "~" + mins + " min · " : ""}{rows.length} {L("cviků", "exercises")} · {L("Týden", "Week")} {item.s.w || 1}
+      </div>
+      <button onClick={() => onRun(item)} className="tm-cta" style={{ background: "#B87333", color: "#FAF5E9", border: "none", borderRadius: 12, padding: "13px 34px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 15 }}>
+        ▸ {L("Začít", "Begin")}
+      </button>
+    </div>
+  );
+}
+
+function TrDayRow({ item, onRun }) {
+  const { t } = useT();
+  const logged = Object.keys((item.rec && item.rec.sets) || {}).length;
+  return (
+    <button onClick={() => onRun(item)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "transparent", border: "none", textAlign: "left", cursor: "pointer", padding: "5px 0" }}>
+      <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: item.done ? t.accent : "transparent", border: item.done ? "none" : `1px solid ${t.sage}` }} />
+      <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: item.done ? t.textMuted : t.text, flex: 1, textDecoration: item.done ? "line-through" : "none" }}>
+        {item.wo ? trName(item.wo) : L("Trénink", "Workout")}
+      </span>
+      {logged > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.sage }}>{logged}×</span>}
+      <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>{trName(item.pl)}</span>
+    </button>
+  );
+}
+
+function TrWeekTab({ agenda, onRun }) {
+  const { t } = useT();
+  const [mon, setMon] = useState(trMonday(todayISO()));
+  const days = Array.from({ length: 7 }).map((_, i) => shiftISO(mon, i));
+  const nav = { background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, width: 26, height: 26, cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12 };
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <button onClick={() => setMon(shiftISO(mon, -7))} style={nav}>‹</button>
+        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 19, color: t.heading }}>{L("Týden od ", "Week of ") + trFmt(mon)}</span>
+        <button onClick={() => setMon(shiftISO(mon, 7))} style={nav}>›</button>
+      </div>
+      {days.map((d, i) => {
+        const items = agenda.filter((x) => x.date === d);
+        const isToday = d === todayISO();
+        return (
+          <div key={d} style={{ display: "flex", gap: 14, padding: "9px 12px", marginBottom: 6, borderRadius: 10, background: isToday ? t.callout : "transparent", border: `1px solid ${isToday ? t.border : "transparent"}` }}>
+            <div style={{ minWidth: 46, flexShrink: 0 }}>
+              <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10, color: t.sage }}>{L(TR_DAYS[i], TR_DAYS_EN[i])}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted }}>{trFmt(d)}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {items.length === 0
+                ? <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, fontStyle: "italic", padding: "5px 0" }}>{L("volno", "free")}</div>
+                : items.map((x) => <TrDayRow key={x.pl.id + x.s.id} item={x} onRun={onRun} />)}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+function TrCalTab({ agenda, onRun }) {
+  const { t } = useT();
+  const today = todayISO();
+  const [ym, setYm] = useState(today.slice(0, 7));
+  const [sel, setSel] = useState(today);
+  const [y, m] = ym.split("-").map(Number);
+  const first = ym + "-01";
+  const lead = trDow(first);
+  const dim = new Date(y, m, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < lead; i++) cells.push(null);
+  for (let d = 1; d <= dim; d++) cells.push(ym + "-" + String(d).padStart(2, "0"));
+  const shift = (n) => { const dt = new Date(y, m - 1 + n, 1); setYm(dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0")); };
+  const nav = { background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, width: 26, height: 26, cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12 };
+  const selItems = agenda.filter((x) => x.date === sel);
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <button onClick={() => shift(-1)} style={nav}>‹</button>
+        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 19, color: t.heading, flex: 1 }}>{L(TR_MON[m - 1], TR_MON_EN[m - 1])} {y}</span>
+        <button onClick={() => shift(1)} style={nav}>›</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, marginBottom: 6 }}>
+        {TR_DAYS.map((d, i) => <div key={d} style={{ textAlign: "center", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 9.5, color: t.sage, paddingBottom: 4 }}>{L(d, TR_DAYS_EN[i])}</div>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, marginBottom: 16 }}>
+        {cells.map((d, i) => {
+          if (!d) return <div key={"e" + i} />;
+          const items = agenda.filter((x) => x.date === d);
+          const anyDone = items.some((x) => x.done);
+          const isToday = d === today;
+          const isSel = d === sel;
+          return (
+            <button key={d} onClick={() => setSel(d)} style={{ aspectRatio: "1", background: isSel ? t.callout : "transparent", border: `1px solid ${isSel ? t.accent : isToday ? t.border : "transparent"}`, borderRadius: 8, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: 0 }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: isToday ? t.accent : t.textSec }}>{Number(d.slice(-2))}</span>
+              <span style={{ display: "flex", gap: 2, height: 5 }}>
+                {items.slice(0, 3).map((x, k) => <span key={k} style={{ width: 4, height: 4, borderRadius: "50%", background: x.done ? t.accent : t.sage, opacity: x.done ? 1 : 0.6 }} />)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ borderTop: `1px solid ${t.borderSoft}`, paddingTop: 12 }}>
+        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.sage, marginBottom: 6 }}>{trFmt(sel)}</div>
+        {selItems.length === 0
+          ? <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, fontStyle: "italic" }}>{L("Volno.", "Free.")}</div>
+          : selItems.map((x) => <TrDayRow key={x.pl.id + x.s.id} item={x} onRun={onRun} />)}
+      </div>
+    </>
+  );
+}
+
+function TrStatsTab({ agenda }) {
+  const { t } = useT();
+  const today = todayISO();
+  const weeks = [];
+  for (let i = 7; i >= 0; i--) {
+    const mon = shiftISO(trMonday(today), -i * 7);
+    const end = shiftISO(mon, 6);
+    const inW = agenda.filter((x) => x.date >= mon && x.date <= end);
+    weeks.push({ mon, done: inW.filter((x) => x.done).length, plan: inW.length });
+  }
+  const max = Math.max(1, ...weeks.map((w) => Math.max(w.plan, w.done)));
+  const doneAll = agenda.filter((x) => x.done).length;
+  const setsAll = agenda.reduce((n, x) => n + Object.values((x.rec && x.rec.sets) || {}).reduce((k, arr) => k + (arr || []).filter(Boolean).length, 0), 0);
+  const volume = agenda.reduce((n, x) => n + Object.values((x.rec && x.rec.sets) || {}).reduce((k, arr) => k + (arr || []).filter(Boolean).reduce((v, s) => v + (Number(s.kg) || 0) * (Number(s.reps) || 0), 0), 0), 0);
+  const stat = (label, value) => (
+    <div style={{ minWidth: 96 }}>
+      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10, color: t.sage, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{value}</div>
+    </div>
+  );
+  return (
+    <>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 26, marginBottom: 26 }}>
+        {stat(L("Odcvičeno", "Trained"), doneAll)}
+        {stat(L("Sérií", "Sets"), setsAll)}
+        {stat(L("Objem", "Volume"), volume ? Math.round(volume).toLocaleString("cs-CZ") + " kg" : "—")}
+      </div>
+      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.sage, marginBottom: 10 }}>{L("Osm týdnů zpátky", "Eight weeks back")}</div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 110, marginBottom: 8 }}>
+        {weeks.map((w) => (
+          <div key={w.mon} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+            <div style={{ width: "100%", display: "flex", alignItems: "flex-end", justifyContent: "center", height: 84 }}>
+              <div style={{ width: "62%", height: Math.max(2, (w.done / max) * 84), background: t.accent, borderRadius: "3px 3px 0 0", opacity: w.done ? 0.9 : 0.25 }} />
+              <div style={{ width: "62%", height: Math.max(2, (w.plan / max) * 84), background: t.sage, borderRadius: "3px 3px 0 0", opacity: 0.28, marginLeft: 2 }} />
+            </div>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 10, color: t.textMuted }}>{trFmt(w.mon).replace(/\.$/, "")}</span>
+          </div>
+        ))}
+      </div>
+      <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, fontStyle: "italic", lineHeight: 1.7 }}>
+        {L("Měď je odcvičeno, šedá naplánováno. Čísla neříkají, jestli to bylo dobré. To ví tělo.",
+           "Copper is trained, grey is scheduled. The numbers do not say whether it was good. The body knows that.")}
+      </p>
+    </>
   );
 }
 
@@ -4099,6 +4320,9 @@ function PageTraining() {
   const st = useStore();
   const [bundle, setBundle] = useState(undefined); // undefined = načítá, null = nic
   const [at, setAt] = useState(null);
+  const [tab, setTab] = useState("dnes");
+  const [run, setRun] = useState(null); // { plan, session, wo }
+  const [exOpen, setExOpen] = useState(null);
   const share = (st.coll.share || {}).training;
 
   React.useEffect(() => {
@@ -4109,15 +4333,10 @@ function PageTraining() {
   }, []);
 
   const done = st.coll.trDone || {};
+  const sched = st.coll.trSched || {};
   const isDone = (pid, sid) => !!((done[pid] || {})[sid] || {}).done;
   const logOf = (pid, sid) => ((done[pid] || {})[sid] || {}).sets || {};
-  const toggle = (pid, sid) => {
-    const cur = isDone(pid, sid);
-    st.setTrDone(pid, sid, cur ? { done: false, date: "" } : { done: true, date: todayISO() });
-  };
-  const [run, setRun] = useState(null); // { plan, session, wo }
-  const [exOpen, setExOpen] = useState(null);
-  // Zápis série · uloží se k tobě. Tanymu se ukáže, jen když sdílení zapneš.
+  const toggle = (pid, sid) => st.setTrDone(pid, sid, isDone(pid, sid) ? { done: false, date: "" } : { done: true, date: todayISO() });
   const logSet = (pid, sid, rowId, idx, val) => st.setTrSet(pid, sid, rowId, idx, val);
 
   if (bundle === undefined) {
@@ -4129,40 +4348,106 @@ function PageTraining() {
     );
   }
 
-  const plans = (bundle && bundle.plans) || [];
-  const woById = Object.fromEntries(((bundle && bundle.workouts) || []).map((w) => [w.id, w]));
-  const exById = Object.fromEntries(((bundle && bundle.exercises) || []).map((e) => [e.id, e]));
+  const ctx = {
+    plans: (bundle && bundle.plans) || [],
+    woById: Object.fromEntries(((bundle && bundle.workouts) || []).map((w) => [w.id, w])),
+    exById: Object.fromEntries(((bundle && bundle.exercises) || []).map((e) => [e.id, e])),
+  };
+  const agenda = trAgenda(ctx, sched, done);
+  const openRun = (item) => setRun({ plan: item.pl, session: item.s, wo: item.wo || ctx.woById[item.s.wid] });
+
+  if (!ctx.plans.length) {
+    return (
+      <>
+        <PageTitle icon="△" kicker={L("Plán od Tanyho", "The plan from Tanmay")}>{L("Trénink", "Training")}</PageTitle>
+        <p style={pProse(t)}>{L("Zatím tu není žádný plán. Až ti ho Tany pošle, objeví se tady.", "There is no plan here yet. When Tanmay sends one, it appears here.")}</p>
+      </>
+    );
+  }
+
+  const today = todayISO();
+  const todays = agenda.filter((x) => x.date === today && !x.done);
+  const next = agenda.filter((x) => !x.done && x.date > today)[0] || null;
+  const tabs = [
+    { k: "dnes", cz: "Dnes", en: "Today" },
+    { k: "tyden", cz: "Týden", en: "Week" },
+    { k: "kalendar", cz: "Kalendář", en: "Calendar" },
+    { k: "plany", cz: "Plány", en: "Plans" },
+    { k: "statistiky", cz: "Statistiky", en: "Stats" },
+  ];
 
   return (
     <>
       <PageTitle icon="△" kicker={L("Plán od Tanyho", "The plan from Tanmay")}>{L("Trénink", "Training")}</PageTitle>
-      {plans.length === 0 ? (
+
+      <div style={{ display: "flex", gap: 4, borderBottom: `1px solid ${t.border}`, marginBottom: 20, overflowX: "auto" }}>
+        {tabs.map((x) => (
+          <button key={x.k} onClick={() => setTab(x.k)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "8px 12px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 11, whiteSpace: "nowrap", color: tab === x.k ? t.accent : t.textMuted, borderBottom: `2px solid ${tab === x.k ? t.accent : "transparent"}`, marginBottom: -1 }}>
+            {L(x.cz, x.en)}
+          </button>
+        ))}
+      </div>
+
+      {tab === "dnes" && (
         <>
-          <p style={pProse(t)}>{L("Zatím tu není žádný plán. Až ti ho Tany pošle, objeví se tady.", "There is no plan here yet. When Tanmay sends one, it appears here.")}</p>
+          {todays.length > 0 ? (
+            todays.map((x) => <TrHeroCard key={x.pl.id + x.s.id} item={x} ctx={ctx} onRun={openRun} />)
+          ) : (
+            <div style={{ border: `1px dashed ${t.border}`, borderRadius: 16, padding: "30px 20px", textAlign: "center", marginBottom: 22 }}>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading, marginBottom: 6 }}>{L("Dnes nic naplánovaného.", "Nothing scheduled today.")}</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>
+                {next
+                  ? L("Další je " + trFmt(next.date) + ". Volno je taky součást plánu.", "Next is " + trFmt(next.date) + ". Rest is part of the plan too.")
+                  : L("Naplánuj si plán v záložce Plány.", "Schedule your plan in the Plans tab.")}
+              </div>
+            </div>
+          )}
+          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.sage, marginBottom: 8 }}>{L("Co je před tebou", "What is ahead")}</div>
+          {agenda.filter((x) => !x.done && x.date >= today).slice(0, 5).map((x) => (
+            <div key={x.pl.id + x.s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, minWidth: 54 }}>{trFmt(x.date)}</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, flex: 1 }}>{x.wo ? trName(x.wo) : L("Trénink", "Workout")}</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.sage }}>{trName(x.pl)}</span>
+            </div>
+          ))}
+          {agenda.filter((x) => !x.done && x.date >= today).length === 0 && (
+            <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("Nic naplánovaného. Plány čekají v záložce Plány.", "Nothing scheduled. The plans wait in the Plans tab.")}</div>
+          )}
         </>
-      ) : (
+      )}
+
+      {tab === "tyden" && <TrWeekTab agenda={agenda} onRun={openRun} />}
+      {tab === "kalendar" && <TrCalTab agenda={agenda} onRun={openRun} />}
+      {tab === "statistiky" && <TrStatsTab agenda={agenda} />}
+
+      {tab === "plany" && (
         <>
           <p style={pProse(t)}>
-            {L("Plán píše Tany. Ty tu odškrtáváš, co jsi odcvičil. Nic víc tahle stránka nechce.",
-               "Tanmay writes the plan. You tick off what you have trained. This page wants nothing more.")}
+            {L("Plán píše Tany. Kdy ho odcvičíš, rozhoduješ ty.", "Tanmay writes the plan. When you train it is your call.")}
           </p>
-          {plans.map((pl) => {
+          {ctx.plans.map((pl) => {
             const ss = pl.sessions || [];
             const cnt = ss.filter((s) => isDone(pl.id, s.id)).length;
+            const planned = Object.keys(sched[pl.id] || {}).length;
             return (
               <div key={pl.id} style={{ marginBottom: 30 }}>
                 <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 26, lineHeight: 1.15, color: t.heading, margin: "0 0 6px" }}>{trName(pl)}</h2>
                 {(pl.goals || []).length > 0 && <div style={{ marginBottom: 8 }}>{pl.goals.map((g) => <Tag key={g} label={g} color="orange" />)}</div>}
                 {trIntro(pl) && <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec, lineHeight: 1.7, margin: "0 0 12px" }}>{trIntro(pl)}</p>}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                   <div style={{ flex: 1 }}><ProgressBar value={ss.length ? cnt / ss.length : 0} /></div>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>{cnt} / {ss.length}</span>
                 </div>
+                <button onClick={() => st.setTrSched(pl.id, trSchedule(ss, todayISO()))} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 100, padding: "6px 14px", cursor: "pointer", color: t.textSec, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10, marginBottom: 12 }}>
+                  {planned ? L("Přeplánovat od dneška", "Reschedule from today") : L("Naplánovat od dneška", "Schedule from today")}
+                </button>
                 {ss.map((s) => (
-                  <TrSession key={s.id} s={s} wo={woById[s.wid]} exById={exById} done={isDone(pl.id, s.id)}
+                  <TrSession key={s.id} s={s} wo={ctx.woById[s.wid]} exById={ctx.exById} done={isDone(pl.id, s.id)}
+                    date={(sched[pl.id] || {})[s.id] || s.date || ""}
                     rx={(pl.rx || {})[s.id] || {}} logged={logOf(pl.id, s.id)}
                     onToggle={() => toggle(pl.id, s.id)}
-                    onRun={() => setRun({ plan: pl, session: s, wo: woById[s.wid] })}
+                    onDate={(d) => st.setTrSchedOne(pl.id, s.id, d)}
+                    onRun={() => setRun({ plan: pl, session: s, wo: ctx.woById[s.wid] })}
                     onOpenEx={(ex) => setExOpen(ex)} />
                 ))}
               </div>
@@ -4170,16 +4455,19 @@ function PageTraining() {
           })}
         </>
       )}
+
       <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, fontStyle: "italic", marginTop: 18, lineHeight: 1.7 }}>
         {at ? L("Plán poslán " + new Date(at).toLocaleDateString("cs-CZ") + ". ", "Plan sent " + new Date(at).toLocaleDateString("en-GB") + ". ") : ""}
         {share
-          ? L("Tany vidí, co máš odškrtnuté a kdy. Vypnout to jde ve výběru modulů.", "Tanmay sees what you ticked and when. You can turn it off in the module picker.")
-          : L("Tany zatím nevidí nic. Sdílení plnění si můžeš zapnout ve výběru modulů.", "Tanmay sees nothing yet. You can turn on sharing in the module picker.")}
+          ? L("Tany vidí, co máš odškrtnuté, kdy a co sis zapsal. Vypnout to jde ve výběru modulů.", "Tanmay sees what you ticked, when, and what you logged. You can turn it off in the module picker.")
+          : L("Tany zatím nevidí nic. Sdílení si můžeš zapnout ve výběru modulů.", "Tanmay sees nothing yet. You can turn on sharing in the module picker.")}
       </p>
-      {run && (
-        <TrRunner plan={run.plan} session={run.session} wo={run.wo} exById={exById}
+
+      {run && !exOpen && (
+        <TrRunner plan={run.plan} session={run.session} wo={run.wo} exById={ctx.exById}
           rx={(run.plan.rx || {})[run.session.id] || {}} logged={logOf(run.plan.id, run.session.id)}
           onLog={(rowId, idx, val) => logSet(run.plan.id, run.session.id, rowId, idx, val)}
+          onOpenEx={(ex) => setExOpen(ex)}
           onClose={() => setRun(null)} />
       )}
       {exOpen && <TrExDetail ex={exOpen} onClose={() => setExOpen(null)} />}
@@ -4298,7 +4586,7 @@ function buildShareSnapshot(coll, edits) {
   }
   if (share.training) {
     // Jen splněno a kdy. Žádné poznámky, žádná váha, žádný pocit.
-    out.training = { plans: coll.trDone || {} };
+    out.training = { plans: coll.trDone || {}, sched: coll.trSched || {} };
   }
   return out;
 }
@@ -4605,6 +4893,17 @@ export default function App() {
   const addEntry = (kind, entry) => persistColl((c) => ({ ...c, [kind]: [entry, ...(c[kind] || [])] }));
   const setFinCfg = (patch) => persistColl((c) => ({ ...c, finCfg: { ...(c.finCfg || {}), ...patch } }));
   // Plnění plánu · patří klientovi, leží v jeho stavu. Plán sám se odsud nikdy nemění.
+  // Kdy · termín patří klientovi. Plán od Tanyho zůstává jen ke čtení.
+  const setTrSched = (planId, map) => persistColl((c) => ({ ...c, trSched: { ...(c.trSched || {}), [planId]: map } }));
+  const setTrSchedOne = (planId, sessionId, date) => persistColl((c) => {
+    const all = { ...(c.trSched || {}) };
+    const one = { ...(all[planId] || {}) };
+    if (!date) delete one[sessionId];
+    else one[sessionId] = date;
+    if (Object.keys(one).length) all[planId] = one;
+    else delete all[planId];
+    return { ...c, trSched: all };
+  });
   // Zapsaná série · { plán: { sezení: { done, date, sets: { řádek: [ {reps,kg} ] } } } }
   const setTrSet = (planId, sessionId, rowId, idx, value) => persistColl((c) => {
     const all = { ...(c.trDone || {}) };
@@ -4990,7 +5289,7 @@ export default function App() {
   const purgeAllTrash = () => { (coll.trash || []).forEach(purgeIdbOf); persistColl({ ...coll, trash: [] }); };
   const setMandala = (name, text) => persistColl({ ...coll, mandala: { ...(coll.mandala || {}), [name]: text } });
   const mandalaText = (m) => (coll.mandala && coll.mandala[m.name] != null ? coll.mandala[m.name] : m.quality);
-  const store = { selDate, setSelDate, getDay, updateDay, has, edits, coll, setTrDone, setTrSet, setGoalStatus, goalStatus, addEntry, updateEntry, removeEntry, moveEntry, reorderEntry, orderedGoals, moveGoal, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, listAreas, addArea, removeArea, nbTags, addNbTag, renameNbTag, moveNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, setMandala, mandalaText, editMode, setEditMode, ask, setFinCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta };
+  const store = { selDate, setSelDate, getDay, updateDay, has, edits, coll, setTrDone, setTrSet, setTrSched, setTrSchedOne, setGoalStatus, goalStatus, addEntry, updateEntry, removeEntry, moveEntry, reorderEntry, orderedGoals, moveGoal, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, listAreas, addArea, removeArea, nbTags, addNbTag, renameNbTag, moveNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, setMandala, mandalaText, editMode, setEditMode, ask, setFinCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta };
 
   const go = (k) => { setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
 
