@@ -3718,6 +3718,133 @@ function AddAreaForm({ onDone }) {
   );
 }
 
+// ---- Trénink · plán od Tanyho ----------------------------------------------
+// Plán se sem posílá z kokpitu a je jen ke čtení. Tvoje je jedno: co jsi odcvičil.
+// To se ukládá k tobě a Tanymu se ukáže jen tehdy, když sdílení sám zapneš.
+const trName = (x) => (x ? (LANG === "cs" ? x.cz : x.en) || x.cz || "" : "");
+const trIntro = (x) => { const i = x && x.int; return i ? (LANG === "cs" ? i[0] : i[1]) || i[0] || "" : ""; };
+const trNote = (r) => { const n = r && r.note; return n ? (LANG === "cs" ? n[0] : n[1]) || "" : ""; };
+const trUnit = (u) => (u === "s" ? "s" : u === "m" ? "m" : "×");
+
+function TrSession({ s, wo, exById, done, onToggle }) {
+  const { t } = useT();
+  const [open, setOpen] = useState(false);
+  const rows = (wo && wo.rows) || [];
+  return (
+    <div style={{ background: t.card, border: `1px solid ${done ? "rgba(184,115,51,0.45)" : t.borderSoft}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button onClick={onToggle} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, flexShrink: 0 }} title={L("hotovo", "done")}>
+          <Check done={done} />
+        </button>
+        <button onClick={() => setOpen(!open)} style={{ background: "transparent", border: "none", cursor: "pointer", textAlign: "left", flex: 1, padding: 0 }}>
+          <span style={{ display: "block", fontFamily: FONT_DISPLAY, fontSize: 17, color: t.heading }}>{wo ? trName(wo) : L("Trénink", "Workout")}</span>
+          <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 2 }}>
+            {L("Týden", "Week")} {s.w || 1}{s.date ? " · " + s.date : ""}{rows.length ? " · " + rows.length + " " + L("cviků", "exercises") : ""}
+          </span>
+        </button>
+        <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted, flexShrink: 0 }}>{open ? "−" : "+"}</span>
+      </div>
+      {open && (
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${t.borderSoft}` }}>
+          {trIntro(wo) && <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec, lineHeight: 1.7, margin: "0 0 10px" }}>{trIntro(wo)}</p>}
+          {rows.map((r) => {
+            const ex = exById[r.ex];
+            return (
+              <div key={r.id} style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "6px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, flex: 1 }}>
+                  {ex ? trName(ex) : r.ex}
+                  {trNote(r) && <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 2 }}>{trNote(r)}</span>}
+                </span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, whiteSpace: "nowrap" }}>
+                  {r.sets}× {r.reps}{trUnit(r.unit)}
+                </span>
+              </div>
+            );
+          })}
+          {!rows.length && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("Tenhle trénink zatím nemá cviky.", "This workout has no exercises yet.")}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PageTraining() {
+  const { t } = useT();
+  const st = useStore();
+  const [bundle, setBundle] = useState(undefined); // undefined = načítá, null = nic
+  const [at, setAt] = useState(null);
+  const share = (st.coll.share || {}).training;
+
+  React.useEffect(() => {
+    fetch("/api/plan", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((b) => { setBundle((b && b.doc) || null); setAt((b && b.updated_at) || null); })
+      .catch(() => setBundle(null));
+  }, []);
+
+  const done = st.coll.trDone || {};
+  const isDone = (pid, sid) => !!((done[pid] || {})[sid] || {}).done;
+  const toggle = (pid, sid) => {
+    const cur = isDone(pid, sid);
+    st.setTrDone(pid, sid, cur ? null : { done: true, date: todayISO() });
+  };
+
+  if (bundle === undefined) {
+    return (
+      <>
+        <PageTitle icon="△" kicker={L("Plán od Tanyho", "The plan from Tanmay")}>{L("Trénink", "Training")}</PageTitle>
+        <div style={{ padding: "40px 0", textAlign: "center", fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 14, color: t.textMuted }}>{L("Načítám…", "Loading…")}</div>
+      </>
+    );
+  }
+
+  const plans = (bundle && bundle.plans) || [];
+  const woById = Object.fromEntries(((bundle && bundle.workouts) || []).map((w) => [w.id, w]));
+  const exById = Object.fromEntries(((bundle && bundle.exercises) || []).map((e) => [e.id, e]));
+
+  return (
+    <>
+      <PageTitle icon="△" kicker={L("Plán od Tanyho", "The plan from Tanmay")}>{L("Trénink", "Training")}</PageTitle>
+      {plans.length === 0 ? (
+        <>
+          <p style={pProse(t)}>{L("Zatím tu není žádný plán. Až ti ho Tany pošle, objeví se tady.", "There is no plan here yet. When Tanmay sends one, it appears here.")}</p>
+        </>
+      ) : (
+        <>
+          <p style={pProse(t)}>
+            {L("Plán píše Tany. Ty tu odškrtáváš, co jsi odcvičil. Nic víc tahle stránka nechce.",
+               "Tanmay writes the plan. You tick off what you have trained. This page wants nothing more.")}
+          </p>
+          {plans.map((pl) => {
+            const ss = pl.sessions || [];
+            const cnt = ss.filter((s) => isDone(pl.id, s.id)).length;
+            return (
+              <div key={pl.id} style={{ marginBottom: 30 }}>
+                <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 26, lineHeight: 1.15, color: t.heading, margin: "0 0 6px" }}>{trName(pl)}</h2>
+                {(pl.goals || []).length > 0 && <div style={{ marginBottom: 8 }}>{pl.goals.map((g) => <Tag key={g} label={g} color="orange" />)}</div>}
+                {trIntro(pl) && <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec, lineHeight: 1.7, margin: "0 0 12px" }}>{trIntro(pl)}</p>}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                  <div style={{ flex: 1 }}><ProgressBar value={ss.length ? cnt / ss.length : 0} /></div>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>{cnt} / {ss.length}</span>
+                </div>
+                {ss.map((s) => (
+                  <TrSession key={s.id} s={s} wo={woById[s.wid]} exById={exById} done={isDone(pl.id, s.id)} onToggle={() => toggle(pl.id, s.id)} />
+                ))}
+              </div>
+            );
+          })}
+        </>
+      )}
+      <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, fontStyle: "italic", marginTop: 18, lineHeight: 1.7 }}>
+        {at ? L("Plán poslán " + new Date(at).toLocaleDateString("cs-CZ") + ". ", "Plan sent " + new Date(at).toLocaleDateString("en-GB") + ". ") : ""}
+        {share
+          ? L("Tany vidí, co máš odškrtnuté a kdy. Vypnout to jde ve výběru modulů.", "Tanmay sees what you ticked and when. You can turn it off in the module picker.")
+          : L("Tany zatím nevidí nic. Sdílení plnění si můžeš zapnout ve výběru modulů.", "Tanmay sees nothing yet. You can turn on sharing in the module picker.")}
+      </p>
+    </>
+  );
+}
+
 function PageTrash() {
   const { t } = useT();
   const st = useStore();
@@ -3775,6 +3902,7 @@ const MODULES = [
   { key: "divine",   icon: "🎲", label: "Divine game of life", lcs: "Divine game",    dcs: "Oblasti života, cíle, den jako hra.",       den: "Life areas, goals, the day as a game.",    core: false },
   { key: "finances", icon: "🫙", label: "Finances",            lcs: "Finance",        dcs: "Šest džbánů. Klidný přehled o penězích.",   den: "Six jars. A calm view of money.",          core: false },
   { key: "content",  icon: "▤",  label: "Library",             lcs: "Knihovna",       dcs: "Knihy, filmy, podcasty a co ti daly.",      den: "Books, films, podcasts and their gifts.",  core: false },
+  { key: "training", icon: "△",  label: "Training",            lcs: "Trénink",        dcs: "Plán od Tanyho. Odškrtáváš, co jsi odcvičil.", den: "The plan from Tanmay. Tick off what you trained.", core: false },
 ];
 const CORE_MODULES = MODULES.filter((m) => m.core).map((m) => m.key);
 const FAVORITES = MODULES.map(({ key, icon, label }) => ({ key, icon, label }));
@@ -3807,7 +3935,7 @@ function OfflineBadge() {
  *  Návyky = posledních 30 dní zaškrtnutí, cíle = názvy a stavy. Nic víc neodchází. */
 function buildShareSnapshot(coll, edits) {
   const share = (coll && coll.share) || {};
-  if (!share.habits && !share.goals) return null;
+  if (!share.habits && !share.goals && !share.training) return null;
   const out = { at: Date.now() };
   if (share.habits) {
     const defs = ((coll.habitDefs || HABIT_DEFAULTS) || []).filter((x) => !x.archived).map((x) => ({ slot: x.slot, icon: x.icon, name: x.name }));
@@ -3825,6 +3953,10 @@ function buildShareSnapshot(coll, edits) {
       name: g.name, area: g.area || "",
       status: ((coll.goals || {})[g.name] != null ? (coll.goals || {})[g.name] : g.status) || "",
     }));
+  }
+  if (share.training) {
+    // Jen splněno a kdy. Žádné poznámky, žádná váha, žádný pocit.
+    out.training = { plans: coll.trDone || {} };
   }
   return out;
 }
@@ -3885,7 +4017,7 @@ function InviteGate() {
 function ModulePicker({ t, firstRun, current, initialName, initialShare, onConfirm, onClose }) {
   const [sel, setSel] = useState(() => current || CORE_MODULES.slice());
   const [name, setName] = useState(initialName || "");
-  const [share, setShare] = useState(() => ({ habits: false, goals: false, ...(initialShare || {}) }));
+  const [share, setShare] = useState(() => ({ habits: false, goals: false, training: false, ...(initialShare || {}) }));
   const shareRow = (key, labelCs, labelEn, descCs, descEn) => (
     <button onClick={() => setShare((s) => ({ ...s, [key]: !s[key] }))} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "11px 14px", borderRadius: 10, cursor: "pointer", textAlign: "left", background: share[key] ? "rgba(184,115,51,0.10)" : "rgba(46,61,53,0.28)", border: `1px solid ${share[key] ? "#B87333" : "rgba(124,140,110,0.18)"}`, marginBottom: 8 }}>
       <span style={{ minWidth: 0, flex: 1 }}>
@@ -3951,14 +4083,15 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, onConfi
           </div>
           {sel.indexOf("habit") !== -1 && shareRow("habits", "Návyky", "Habits", "Posledních 30 dní zaškrtnutí, bez poznámek.", "Last 30 days of checkmarks, no notes.")}
           {sel.indexOf("divine") !== -1 && shareRow("goals", "Cíle", "Goals", "Názvy cílů a jejich stav.", "Goal names and their status.")}
-          {sel.indexOf("habit") === -1 && sel.indexOf("divine") === -1 && (
+          {sel.indexOf("training") !== -1 && shareRow("training", "Trénink", "Training", "Co jsi z plánu odcvičil a kdy. Nic víc.", "What you trained from the plan and when. Nothing more.")}
+          {sel.indexOf("habit") === -1 && sel.indexOf("divine") === -1 && sel.indexOf("training") === -1 && (
             <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: "#8C7B6E" }}>
-              {L("Sdílet jde návyky a cíle — zapni si nejdřív ty moduly.", "Habits and goals can be shared — enable those modules first.")}
+              {L("Sdílet jde návyky, cíle a trénink — zapni si nejdřív ty moduly.", "Habits, goals and training can be shared — enable those modules first.")}
             </div>
           )}
         </div>
         <div style={{ marginTop: 28, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => onConfirm(ordered.length ? ordered : CORE_MODULES.slice(), name, { habits: !!share.habits && ordered.indexOf("habit") !== -1, goals: !!share.goals && ordered.indexOf("divine") !== -1 })} style={{ background: "#B87333", color: "#1C1C1A", border: "none", borderRadius: 100, padding: "13px 38px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12.5 }}>
+          <button onClick={() => onConfirm(ordered.length ? ordered : CORE_MODULES.slice(), name, { habits: !!share.habits && ordered.indexOf("habit") !== -1, goals: !!share.goals && ordered.indexOf("divine") !== -1, training: !!share.training && ordered.indexOf("training") !== -1 })} style={{ background: "#B87333", color: "#1C1C1A", border: "none", borderRadius: 100, padding: "13px 38px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12.5 }}>
             {firstRun ? L("Vstoupit", "Enter") : L("Uložit", "Save")}
           </button>
           {!firstRun && (
@@ -4129,6 +4262,16 @@ export default function App() {
   const goalStatus = (g) => (coll.goals[g.name] != null ? coll.goals[g.name] : g.status);
   const addEntry = (kind, entry) => persistColl((c) => ({ ...c, [kind]: [entry, ...(c[kind] || [])] }));
   const setFinCfg = (patch) => persistColl((c) => ({ ...c, finCfg: { ...(c.finCfg || {}), ...patch } }));
+  // Plnění plánu · patří klientovi, leží v jeho stavu. Plán sám se odsud nikdy nemění.
+  const setTrDone = (planId, sessionId, value) => persistColl((c) => {
+    const all = { ...(c.trDone || {}) };
+    const one = { ...(all[planId] || {}) };
+    if (value == null) delete one[sessionId];
+    else one[sessionId] = value;
+    if (Object.keys(one).length) all[planId] = one;
+    else delete all[planId];
+    return { ...c, trDone: all };
+  });
   const updateEntry = (kind, id, patch) => persistColl((c) => ({ ...c, [kind]: (c[kind] || []).map((e) => (e.id === id ? { ...e, ...patch } : e)) }));
   const trashAdd = (draft, item) => ({ ...draft, trash: [{ ...item, trashedAt: Date.now() }, ...((draft.trash) || [])] });
   const removeEntry = (kind, id) => persistColl((c) => {
@@ -4486,7 +4629,7 @@ export default function App() {
   const purgeAllTrash = () => { (coll.trash || []).forEach(purgeIdbOf); persistColl({ ...coll, trash: [] }); };
   const setMandala = (name, text) => persistColl({ ...coll, mandala: { ...(coll.mandala || {}), [name]: text } });
   const mandalaText = (m) => (coll.mandala && coll.mandala[m.name] != null ? coll.mandala[m.name] : m.quality);
-  const store = { selDate, setSelDate, getDay, updateDay, has, edits, coll, setGoalStatus, goalStatus, addEntry, updateEntry, removeEntry, moveEntry, reorderEntry, orderedGoals, moveGoal, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, listAreas, addArea, removeArea, nbTags, addNbTag, renameNbTag, moveNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, setMandala, mandalaText, editMode, setEditMode, ask, setFinCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta };
+  const store = { selDate, setSelDate, getDay, updateDay, has, edits, coll, setTrDone, setGoalStatus, goalStatus, addEntry, updateEntry, removeEntry, moveEntry, reorderEntry, orderedGoals, moveGoal, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, listAreas, addArea, removeArea, nbTags, addNbTag, renameNbTag, moveNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, setMandala, mandalaText, editMode, setEditMode, ask, setFinCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta };
 
   const go = (k) => { setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
 
@@ -4501,6 +4644,7 @@ export default function App() {
       case "content": return <PageContent />;
       case "finances": return <PageFinances />;
       case "journal": return <PageJournal />;
+      case "training": return <PageTraining />;
       case "trash": return <PageTrash />;
       default: return <PageDivine go={go} />;
     }
