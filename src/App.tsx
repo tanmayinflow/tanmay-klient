@@ -3726,10 +3726,326 @@ const trIntro = (x) => { const i = x && x.int; return i ? (LANG === "cs" ? i[0] 
 const trNote = (r) => { const n = r && r.note; return n ? (LANG === "cs" ? n[0] : n[1]) || "" : ""; };
 const trUnit = (u) => (u === "s" ? "s" : u === "m" ? "m" : "×");
 
-function TrSession({ s, wo, exById, done, onToggle }) {
+const T_PATTERNS = [
+  { k: "drep", cz: "Dřep", en: "Squat" },
+  { k: "ohyb", cz: "Ohyb", en: "Hinge" },
+  { k: "tlak", cz: "Tlak", en: "Push" },
+  { k: "tah", cz: "Tah", en: "Pull" },
+  { k: "stred", cz: "Střed", en: "Core" },
+  { k: "obrat", cz: "Obrat", en: "Invert" },
+  { k: "prenos", cz: "Přenos", en: "Locomotion" },
+  { k: "mobilita", cz: "Mobilita", en: "Mobility" },
+  { k: "krk", cz: "Krk", en: "Neck" },
+  { k: "dech", cz: "Dech", en: "Breath" },
+];
+const T_PAT = Object.fromEntries(T_PATTERNS.map((p) => [p.k, p]));
+
+function TPatArt({ pat, size = 120, stroke, dot, dotColor }) {
+  const sw = 2.6;
+  const c = stroke;
+  const P = {
+    // squat: figure at depth, chest tall, arms forward, heel rooted
+    drep: (
+      <g>
+        <circle cx="47" cy="34" r="8" />
+        <path d="M49 42 C52 52 52 60 47 68" />
+        <path d="M50 48 L74 52" />
+        <path d="M47 68 C44 74 38 78 33 86 L33 100" />
+        <path d="M47 68 C56 72 62 78 63 86 L64 100" />
+        <path d="M26 100 L40 100" />
+        <path d="M57 100 L72 100" />
+      </g>
+    ),
+    // hinge: flat back fold, hips travelling behind
+    ohyb: (
+      <g>
+        <circle cx="83" cy="46" r="8" />
+        <path d="M76 50 L44 62" />
+        <path d="M44 62 C38 64 34 70 34 78 L34 100" />
+        <path d="M44 62 L58 70 L58 100" />
+        <path d="M27 100 L41 100" />
+        <path d="M51 100 L66 100" />
+        <path d="M70 54 L64 76" />
+      </g>
+    ),
+    // push: push-up mid-line, one long body line
+    tlak: (
+      <g>
+        <circle cx="24" cy="56" r="8" />
+        <path d="M31 60 L92 76" />
+        <path d="M92 76 L104 82" />
+        <path d="M38 64 L38 88" />
+        <path d="M32 88 L45 88" />
+        <path d="M98 88 L110 88" />
+      </g>
+    ),
+    // pull: hang under the bar, chest rising
+    tah: (
+      <g>
+        <path d="M22 20 L98 20" />
+        <path d="M44 20 L46 40" />
+        <path d="M76 20 L74 40" />
+        <circle cx="60" cy="42" r="8" />
+        <path d="M60 50 C60 62 58 70 60 78" />
+        <path d="M60 78 L52 96" />
+        <path d="M60 78 L70 94" />
+      </g>
+    ),
+    // core: hollow body, one taut curve
+    stred: (
+      <g>
+        <circle cx="30" cy="58" r="8" />
+        <path d="M36 63 C48 72 66 72 84 62" />
+        <path d="M84 62 L102 50" />
+        <path d="M36 50 L48 40" />
+        <path d="M20 84 L100 84" strokeDasharray="2 6" />
+      </g>
+    ),
+    // invert: handstand, stacked line
+    obrat: (
+      <g>
+        <circle cx="58" cy="96" r="8" />
+        <path d="M58 88 C58 74 59 60 58 44" />
+        <path d="M58 44 L52 22" />
+        <path d="M58 44 L66 23" />
+        <path d="M48 106 L58 88 L70 106" />
+        <path d="M40 110 L80 110" strokeDasharray="2 6" />
+      </g>
+    ),
+    // locomotion: sprint drive, full extension
+    prenos: (
+      <g>
+        <circle cx="72" cy="30" r="8" />
+        <path d="M70 38 C64 48 60 54 56 62" />
+        <path d="M62 46 L84 54" />
+        <path d="M66 44 L44 40" />
+        <path d="M56 62 L32 74 L26 92" />
+        <path d="M56 62 C64 70 70 80 82 84" />
+        <path d="M18 98 L36 98 M46 98 L60 98 M70 98 L82 98" strokeDasharray="none" />
+      </g>
+    ),
+    // neck: the head held against a hand · nothing else in the body moves
+    krk: (
+      <g>
+        <circle cx="52" cy="38" r="10" />
+        <path d="M52 48 L52 62" />
+        <path d="M36 62 L68 62" />
+        <path d="M52 62 L52 92" />
+        <path d="M40 92 L52 78 L64 92" />
+        <path d="M68 34 L78 34" />
+        <path d="M74 30 L74 42" />
+        <path d="M62 38 L70 38" strokeDasharray="3 3" />
+      </g>
+    ),
+    // breath: a seated figure and the ribs widening — the only thing that moves
+    dech: (
+      <g>
+        <circle cx="60" cy="30" r="9" />
+        <path d="M60 39 L60 74" />
+        <path d="M44 52 C50 44 70 44 76 52" />
+        <path d="M42 74 L78 74" />
+        <path d="M42 74 C34 82 32 90 33 96" />
+        <path d="M78 74 C86 82 88 90 87 96" />
+        <path d="M34 58 C28 56 24 56 20 58" strokeDasharray="3 4" opacity="0.7" />
+        <path d="M86 58 C92 56 96 56 100 58" strokeDasharray="3 4" opacity="0.7" />
+      </g>
+    ),
+    // mobility: deep fold, soft round line
+    mobilita: (
+      <g>
+        <circle cx="44" cy="40" r="8" />
+        <path d="M48 47 C58 54 64 64 62 76" />
+        <path d="M62 76 C56 84 44 86 34 84" />
+        <path d="M52 58 L34 68" />
+        <path d="M62 76 L84 84" />
+        <path d="M22 96 L96 96" strokeDasharray="2 6" />
+      </g>
+    ),
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+      {P[pat] || P.drep}
+      {dot && <circle cx={dot[0]} cy={dot[1]} r="4.5" fill={dotColor} stroke="none" />}
+      {dot && <circle cx={dot[0]} cy={dot[1]} r="9" fill="none" stroke={dotColor} strokeWidth="1.2" opacity="0.55" />}
+    </svg>
+  );
+}
+
+// per-exercise figure · falls back to the pattern pictogram for custom exercises
+function TExArt({ ex, size = 120, stroke, dotColor, showDot = true, fluid = false }) {
+  const { t } = useT();
+  const fig = ex && ex.fig; // figura přijela v balíku · knihovna cviků je u Tanyho
+  if (!fig) return <TPatArt pat={(ex && ex.pat) || "drep"} size={size} stroke={stroke || t.text} dot={showDot && ex ? ex.dot : null} dotColor={dotColor || t.accent} />;
+  const sw = size <= 30 ? 7 : 2.6;
+  const groundOn = fig.g !== false;
+  const dims = fluid ? { width: "100%", height: "auto" } : { width: size, height: size };
+  const silh = t.mode === "dark" ? "#3B3B37" : "#D9D0BE";
+  const vol = fluid || size > 30; // volume silhouette under the line (approved variant D)
+  return (
+    <svg {...dims} viewBox="0 0 200 200" fill="none" style={{ display: "block" }}>
+      {groundOn && !fig.gDash && <line x1="28" y1="172" x2="180" y2="172" stroke={t.sage} strokeWidth={size <= 30 ? 3 : 1} opacity="0.5" />}
+      {groundOn && fig.gDash && <line x1="28" y1="172" x2="180" y2="172" stroke={t.sage} strokeWidth={size <= 30 ? 3 : 1} opacity="0.5" strokeDasharray="10 8" />}
+      {(fig.e || []).map((d, i) => <path key={"e" + i} d={d} stroke={t.sage} strokeWidth={size <= 30 ? 4 : 1.6} opacity="0.75" strokeLinecap="round" fill="none" />)}
+      {vol && (
+        <g stroke={silh} strokeLinecap="round" strokeLinejoin="round" fill="none">
+          {fig.b.map((d, i) => <path key={"v" + i} d={d} strokeWidth={(fig.w && fig.w[i]) || 8.5} />)}
+          {fig.n && <path d={`M${fig.n[0]} ${fig.n[1]} L${fig.n[2]} ${fig.n[3]}`} strokeWidth="7.5" />}
+        </g>
+      )}
+      {vol && <circle cx={fig.h[0]} cy={fig.h[1]} r="10" fill={silh} />}
+      <g stroke={stroke || t.text} strokeWidth={vol ? 2 : sw} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={vol ? 0.88 : 1}>
+        {fig.b.map((d, i) => <path key={i} d={d} />)}
+        {fig.n && <path d={`M${fig.n[0]} ${fig.n[1]} L${fig.n[2]} ${fig.n[3]}`} strokeWidth={(vol ? 2 : sw) * 0.85} />}
+      </g>
+      <circle cx={fig.h[0]} cy={fig.h[1]} r="9" stroke={stroke || t.text} strokeWidth={vol ? 2 : sw} fill="none" opacity={vol ? 0.88 : 1} />
+      {showDot && fig.d && (
+        <g>
+          <circle cx={fig.d[0]} cy={fig.d[1]} r={size <= 30 ? 7 : 4} fill={dotColor || t.accent} />
+          {size > 30 && <circle cx={fig.d[0]} cy={fig.d[1]} r="8.5" fill="none" stroke={dotColor || t.accent} strokeWidth="1" opacity="0.45" />}
+        </g>
+      )}
+    </svg>
+  );
+}
+
+// ---- Detail cviku · to, co Tany poslal, nic navíc --------------------------
+function TrExDetail({ ex, onClose }) {
+  const { t } = useT();
+  if (!ex) return null;
+  const sec = (label, arr) => {
+    const v = arr ? (LANG === "cs" ? arr[0] : arr[1]) || arr[0] : "";
+    if (!v) return null;
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.sage, marginBottom: 4 }}>{label}</div>
+        <div style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.7, color: t.textSec }}>{v}</div>
+      </div>
+    );
+  };
+  const pat = T_PAT[ex.pat];
+  return (
+    <Drawer open onClose={onClose}>
+      <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 14px" }}>
+        <TExArt ex={ex} size={150} />
+      </div>
+      <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 28, lineHeight: 1.15, color: t.heading, margin: "0 0 8px", textAlign: "center" }}>{trName(ex)}</h2>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginBottom: 20 }}>
+        {pat && <Tag label={L(pat.cz, pat.en)} color="orange" />}
+        {(ex.eq || []).map((e) => <Tag key={e} label={e} />)}
+      </div>
+      {sec(L("Zaměření", "Focus"), ex.foc)}
+      {sec(L("Pozice", "Position"), ex.pos)}
+      {sec(L("Provedení", "Execution"), ex.exe)}
+      {sec(L("Na co dávat pozor", "What to watch"), ex.wat)}
+      {sec(L("Progrese", "Progression"), ex.pro)}
+      <button onClick={onClose} style={{ width: "100%", background: "transparent", color: t.textMuted, border: `1px solid ${t.border}`, borderRadius: 100, padding: "11px 20px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, marginTop: 8 }}>{L("Zavřít", "Close")}</button>
+    </Drawer>
+  );
+}
+
+// ---- Běžec · jeden cvik, série pod sebou, pauza --------------------------
+// Bez metronomu a hlasu. Tohle není závod, jen místo, kam zapsat, co bylo.
+function TrRest({ sec, onDone }) {
+  const { t } = useT();
+  const [left, setLeft] = useState(sec);
+  React.useEffect(() => {
+    if (left <= 0) { onDone(); return; }
+    const id = setTimeout(() => setLeft((x) => x - 1), 1000);
+    return () => clearTimeout(id);
+  }, [left]);
+  const mm = Math.floor(left / 60), ss = left % 60;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(184,115,51,0.10)", border: "1px solid rgba(184,115,51,0.35)", borderRadius: 10, padding: "9px 13px", marginTop: 8 }}>
+      <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.accent, minWidth: 54 }}>{mm}:{String(ss).padStart(2, "0")}</span>
+      <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, flex: 1 }}>{L("Pauza. Dech se srovná.", "Rest. Let the breath settle.")}</span>
+      <button onClick={onDone} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5 }}>{L("Přeskočit", "Skip")}</button>
+    </div>
+  );
+}
+
+function TrSetRow({ i, row, val, rx, onCommit }) {
+  const { t } = useT();
+  const done = !!val;
+  const inp = { background: "transparent", border: "none", borderBottom: `1px dashed ${t.borderSoft}`, color: t.text, fontFamily: FONT_BODY, fontSize: 14, width: 46, textAlign: "center", outline: "none", padding: "2px 0" };
+  const [reps, setReps] = useState(val ? String(val.reps) : String(row.reps || ""));
+  const [kg, setKg] = useState(val ? String(val.kg || "") : (rx && rx.kg ? String(rx.kg) : ""));
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderTop: `1px solid ${t.borderSoft}` }}>
+      <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted, minWidth: 22 }}>{i + 1}.</span>
+      <input value={reps} onChange={(e) => setReps(e.target.value)} inputMode="numeric" style={inp} />
+      <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{trUnit(row.unit)}</span>
+      <input value={kg} onChange={(e) => setKg(e.target.value)} inputMode="decimal" placeholder="—" style={{ ...inp, width: 54 }} />
+      <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>kg</span>
+      <span style={{ flex: 1 }} />
+      <button onClick={() => onCommit(done ? null : { reps: Number(reps) || 0, kg: Number(kg) || 0 })} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
+        <Check done={done} />
+      </button>
+    </div>
+  );
+}
+
+function TrRunner({ plan, session, wo, exById, rx, logged, onLog, onClose }) {
+  const { t } = useT();
+  const rows = (wo && wo.rows) || [];
+  const [i, setI] = useState(0);
+  const [rest, setRest] = useState(false);
+  const [detail, setDetail] = useState(null);
+  const row = rows[i];
+  const ex = row ? exById[row.ex] : null;
+  const sets = Number(row && row.sets) || 1;
+  const mine = (logged && logged[row && row.id]) || [];
+  const rrx = (rx && rx[row && row.id]) || null;
+  const doneCount = rows.filter((r) => ((logged || {})[r.id] || []).some(Boolean)).length;
+
+  if (!row) return null;
+  return (
+    <Drawer open onClose={onClose}>
+      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>
+        {trName(wo)} · {i + 1} / {rows.length}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <div style={{ flex: 1 }}><ProgressBar value={rows.length ? doneCount / rows.length : 0} /></div>
+        <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{doneCount} / {rows.length}</span>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 10px" }}>
+        <button onClick={() => setDetail(ex)} style={{ background: "transparent", border: "none", cursor: ex ? "pointer" : "default", padding: 0 }}>
+          <TExArt ex={ex} size={140} />
+        </button>
+      </div>
+      <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 26, lineHeight: 1.15, color: t.heading, margin: "0 0 4px", textAlign: "center" }}>{ex ? trName(ex) : row.ex}</h2>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, textAlign: "center", marginBottom: 4 }}>
+        {row.sets}× {row.reps}{trUnit(row.unit)}{rrx && rrx.kg ? " · " + L("předepsáno ", "prescribed ") + rrx.kg + " kg" : ""}
+      </div>
+      {trNote(row) && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textSec, textAlign: "center", marginBottom: 6 }}>{trNote(row)}</div>}
+      {ex && <button onClick={() => setDetail(ex)} style={{ display: "block", margin: "0 auto 14px", background: "transparent", border: "none", cursor: "pointer", color: t.sage, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5 }}>{L("Jak na to", "How to")}</button>}
+
+      <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "6px 14px 12px", marginBottom: 14 }}>
+        {Array.from({ length: sets }).map((_, k) => (
+          <TrSetRow key={row.id + "_" + k + "_" + (mine[k] ? "d" : "e")} i={k} row={row} rx={rrx} val={mine[k] || null}
+            onCommit={(v) => { onLog(row.id, k, v); if (v && row.rest) setRest(true); }} />
+        ))}
+        {rest && <TrRest sec={Number(row.rest) || 60} onDone={() => setRest(false)} />}
+      </div>
+
+      <div style={{ display: "flex", gap: 10, justifyContent: "space-between" }}>
+        <button onClick={() => { setRest(false); setI(Math.max(0, i - 1)); }} disabled={i === 0} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 100, padding: "10px 18px", cursor: i === 0 ? "default" : "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13, opacity: i === 0 ? 0.4 : 1 }}>‹ {L("Zpět", "Back")}</button>
+        {i < rows.length - 1 ? (
+          <button onClick={() => { setRest(false); setI(i + 1); }} style={{ background: "#B87333", color: "#FAF5E9", border: "none", borderRadius: 100, padding: "10px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Další cvik", "Next")} ›</button>
+        ) : (
+          <button onClick={onClose} style={{ background: "#B87333", color: "#FAF5E9", border: "none", borderRadius: 100, padding: "10px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Hotovo", "Done")}</button>
+        )}
+      </div>
+      {detail && <TrExDetail ex={detail} onClose={() => setDetail(null)} />}
+    </Drawer>
+  );
+}
+
+function TrSession({ s, wo, exById, done, rx, logged, onToggle, onRun, onOpenEx }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const rows = (wo && wo.rows) || [];
+  const logCount = rows.filter((r) => ((logged || {})[r.id] || []).some(Boolean)).length;
   return (
     <div style={{ background: t.card, border: `1px solid ${done ? "rgba(184,115,51,0.45)" : t.borderSoft}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -3739,7 +4055,7 @@ function TrSession({ s, wo, exById, done, onToggle }) {
         <button onClick={() => setOpen(!open)} style={{ background: "transparent", border: "none", cursor: "pointer", textAlign: "left", flex: 1, padding: 0 }}>
           <span style={{ display: "block", fontFamily: FONT_DISPLAY, fontSize: 17, color: t.heading }}>{wo ? trName(wo) : L("Trénink", "Workout")}</span>
           <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 2 }}>
-            {L("Týden", "Week")} {s.w || 1}{s.date ? " · " + s.date : ""}{rows.length ? " · " + rows.length + " " + L("cviků", "exercises") : ""}
+            {L("Týden", "Week")} {s.w || 1}{s.date ? " · " + s.date : ""}{rows.length ? " · " + rows.length + " " + L("cviků", "exercises") : ""}{logCount ? " · " + L("zapsáno " + logCount, logCount + " logged") : ""}
           </span>
         </button>
         <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted, flexShrink: 0 }}>{open ? "−" : "+"}</span>
@@ -3749,19 +4065,29 @@ function TrSession({ s, wo, exById, done, onToggle }) {
           {trIntro(wo) && <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec, lineHeight: 1.7, margin: "0 0 10px" }}>{trIntro(wo)}</p>}
           {rows.map((r) => {
             const ex = exById[r.ex];
+            const rrx = (rx || {})[r.id];
+            const mine = (logged || {})[r.id] || [];
             return (
-              <div key={r.id} style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "6px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, flex: 1 }}>
-                  {ex ? trName(ex) : r.ex}
+              <button key={r.id} onClick={() => ex && onOpenEx(ex)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: `1px solid ${t.borderSoft}`, background: "transparent", border: "none", width: "100%", textAlign: "left", cursor: ex ? "pointer" : "default" }}>
+                <span style={{ flexShrink: 0, opacity: 0.9 }}><TExArt ex={ex} size={30} /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 13.5, color: t.text }}>{ex ? trName(ex) : r.ex}</span>
                   {trNote(r) && <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 2 }}>{trNote(r)}</span>}
                 </span>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, whiteSpace: "nowrap" }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, whiteSpace: "nowrap", textAlign: "right" }}>
                   {r.sets}× {r.reps}{trUnit(r.unit)}
+                  {rrx && rrx.kg ? <span style={{ display: "block", fontSize: 12, color: t.sage }}>{rrx.kg} kg</span> : null}
+                  {mine.some(Boolean) ? <span style={{ display: "block", fontSize: 11, color: t.accent }}>{mine.filter(Boolean).length}×</span> : null}
                 </span>
-              </div>
+              </button>
             );
           })}
           {!rows.length && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("Tenhle trénink zatím nemá cviky.", "This workout has no exercises yet.")}</div>}
+          {rows.length > 0 && (
+            <button onClick={onRun} style={{ display: "block", width: "100%", marginTop: 12, background: "#B87333", color: "#FAF5E9", border: "none", borderRadius: 100, padding: "11px 20px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 11.5 }}>
+              {L("Začít", "Begin")}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -3784,10 +4110,15 @@ function PageTraining() {
 
   const done = st.coll.trDone || {};
   const isDone = (pid, sid) => !!((done[pid] || {})[sid] || {}).done;
+  const logOf = (pid, sid) => ((done[pid] || {})[sid] || {}).sets || {};
   const toggle = (pid, sid) => {
     const cur = isDone(pid, sid);
-    st.setTrDone(pid, sid, cur ? null : { done: true, date: todayISO() });
+    st.setTrDone(pid, sid, cur ? { done: false, date: "" } : { done: true, date: todayISO() });
   };
+  const [run, setRun] = useState(null); // { plan, session, wo }
+  const [exOpen, setExOpen] = useState(null);
+  // Zápis série · uloží se k tobě. Tanymu se ukáže, jen když sdílení zapneš.
+  const logSet = (pid, sid, rowId, idx, val) => st.setTrSet(pid, sid, rowId, idx, val);
 
   if (bundle === undefined) {
     return (
@@ -3828,7 +4159,11 @@ function PageTraining() {
                   <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>{cnt} / {ss.length}</span>
                 </div>
                 {ss.map((s) => (
-                  <TrSession key={s.id} s={s} wo={woById[s.wid]} exById={exById} done={isDone(pl.id, s.id)} onToggle={() => toggle(pl.id, s.id)} />
+                  <TrSession key={s.id} s={s} wo={woById[s.wid]} exById={exById} done={isDone(pl.id, s.id)}
+                    rx={(pl.rx || {})[s.id] || {}} logged={logOf(pl.id, s.id)}
+                    onToggle={() => toggle(pl.id, s.id)}
+                    onRun={() => setRun({ plan: pl, session: s, wo: woById[s.wid] })}
+                    onOpenEx={(ex) => setExOpen(ex)} />
                 ))}
               </div>
             );
@@ -3841,6 +4176,13 @@ function PageTraining() {
           ? L("Tany vidí, co máš odškrtnuté a kdy. Vypnout to jde ve výběru modulů.", "Tanmay sees what you ticked and when. You can turn it off in the module picker.")
           : L("Tany zatím nevidí nic. Sdílení plnění si můžeš zapnout ve výběru modulů.", "Tanmay sees nothing yet. You can turn on sharing in the module picker.")}
       </p>
+      {run && (
+        <TrRunner plan={run.plan} session={run.session} wo={run.wo} exById={exById}
+          rx={(run.plan.rx || {})[run.session.id] || {}} logged={logOf(run.plan.id, run.session.id)}
+          onLog={(rowId, idx, val) => logSet(run.plan.id, run.session.id, rowId, idx, val)}
+          onClose={() => setRun(null)} />
+      )}
+      {exOpen && <TrExDetail ex={exOpen} onClose={() => setExOpen(null)} />}
     </>
   );
 }
@@ -4263,12 +4605,31 @@ export default function App() {
   const addEntry = (kind, entry) => persistColl((c) => ({ ...c, [kind]: [entry, ...(c[kind] || [])] }));
   const setFinCfg = (patch) => persistColl((c) => ({ ...c, finCfg: { ...(c.finCfg || {}), ...patch } }));
   // Plnění plánu · patří klientovi, leží v jeho stavu. Plán sám se odsud nikdy nemění.
-  const setTrDone = (planId, sessionId, value) => persistColl((c) => {
+  // Zapsaná série · { plán: { sezení: { done, date, sets: { řádek: [ {reps,kg} ] } } } }
+  const setTrSet = (planId, sessionId, rowId, idx, value) => persistColl((c) => {
     const all = { ...(c.trDone || {}) };
-    const one = { ...(all[planId] || {}) };
-    if (value == null) delete one[sessionId];
-    else one[sessionId] = value;
-    if (Object.keys(one).length) all[planId] = one;
+    const plan = { ...(all[planId] || {}) };
+    const ses = { ...(plan[sessionId] || {}) };
+    const sets = { ...(ses.sets || {}) };
+    const arr = (sets[rowId] || []).slice();
+    while (arr.length <= idx) arr.push(null);
+    arr[idx] = value;
+    if (arr.some(Boolean)) sets[rowId] = arr; else delete sets[rowId];
+    ses.sets = sets;
+    if (!ses.date && value) ses.date = todayISO();
+    plan[sessionId] = ses;
+    all[planId] = plan;
+    return { ...c, trDone: all };
+  });
+  const setTrDone = (planId, sessionId, patch) => persistColl((c) => {
+    const all = { ...(c.trDone || {}) };
+    const plan = { ...(all[planId] || {}) };
+    // slučuje · odškrtnutí hotovo nesmí smazat, co je zapsané
+    const ses = { ...(plan[sessionId] || {}), ...(patch || {}) };
+    const empty = !ses.done && !Object.keys(ses.sets || {}).length;
+    if (empty) delete plan[sessionId];
+    else plan[sessionId] = ses;
+    if (Object.keys(plan).length) all[planId] = plan;
     else delete all[planId];
     return { ...c, trDone: all };
   });
@@ -4629,7 +4990,7 @@ export default function App() {
   const purgeAllTrash = () => { (coll.trash || []).forEach(purgeIdbOf); persistColl({ ...coll, trash: [] }); };
   const setMandala = (name, text) => persistColl({ ...coll, mandala: { ...(coll.mandala || {}), [name]: text } });
   const mandalaText = (m) => (coll.mandala && coll.mandala[m.name] != null ? coll.mandala[m.name] : m.quality);
-  const store = { selDate, setSelDate, getDay, updateDay, has, edits, coll, setTrDone, setGoalStatus, goalStatus, addEntry, updateEntry, removeEntry, moveEntry, reorderEntry, orderedGoals, moveGoal, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, listAreas, addArea, removeArea, nbTags, addNbTag, renameNbTag, moveNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, setMandala, mandalaText, editMode, setEditMode, ask, setFinCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta };
+  const store = { selDate, setSelDate, getDay, updateDay, has, edits, coll, setTrDone, setTrSet, setGoalStatus, goalStatus, addEntry, updateEntry, removeEntry, moveEntry, reorderEntry, orderedGoals, moveGoal, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, listAreas, addArea, removeArea, nbTags, addNbTag, renameNbTag, moveNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, setMandala, mandalaText, editMode, setEditMode, ask, setFinCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta };
 
   const go = (k) => { setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
 
