@@ -1,4 +1,5 @@
 import React, { useState, useContext, createContext } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * tanmay — practice space · CLIENT EDITION
@@ -37,96 +38,100 @@ const FONT_TAG = "'Barlow Condensed', sans-serif";
 // THEME
 // ----------------------------------------------------------------------
 function makeTheme(mode) {
+  // Jantar a slonovina · sladěno s hlavní aplikací: povrchy téměř neutrální,
+  // teplo žije v jantarovém heru, terakotovém akcentu a espresso inkoustu.
   if (mode === "light") {
     return {
       mode,
-      // Light · paper discipline: surfaces are one warm-neutral family (no green
-      // washes — sage dissolved in beige turns khaki). Green lives as PIGMENT:
-      // Deep Moss headings, saturated sage labels/marks. Copper is the one accent.
-      bg: "#EDE7DC", // warm sand ground
-      bgSidebar: "#E4DCCB", // deeper warm paper · hierarchy without hue shift
-      text: "#1C1C1A", // Forest Night
-      heading: "#2E3D35", // Deep Moss · green as ink
-      textSec: "#3a3a34",
-      textMuted: "#8C7B6E", // Taupe
-      accent: "#B87333", // Copper
-      sage: "#57684A", // deeper, saturated · pigment for labels, dots, icon strokes
-      sand: "#9a8763",
-      border: "rgba(88,72,52,0.26)", // the paper's own shadow line · neutral warm
-      borderSoft: "rgba(88,72,52,0.15)",
-      card: "#F7F2E9", // warm ivory sheet
-      cardHover: "#FAF5EC",
-      callout: "#F5EFE3", // warm paper layer · same family as ground
-      tableHead: "#E7DFCF",
-      sheet: "#F9F5EB", // the sheet of paper · lightest surface, reserved for writing
-      sheetHover: "#FBF8F0",
-      activeNav: "rgba(184,115,51,0.16)",
-      overlay: "rgba(28,28,26,0.35)",
-      shadow: "0 1px 2px rgba(74,60,40,0.05), 0 5px 16px rgba(74,60,40,0.07)",
-      hero: "linear-gradient(135deg, #D8B48C 0%, #DFCBAE 38%, #E8DFCF 72%, #EDE7DC 100%)", // soft warm sand with a copper breath, settles into the page
-      heroInk: "#5A4A38", // warm ink · readable on the light hero
-      heroInkSoft: "rgba(90,74,56,0.78)",
-      heroLine: "rgba(90,74,56,0.28)",
+      bg: "#F6F3ED", // teplá slonovina · téměř bílá
+      bgSidebar: "#ECE7DE",
+      text: "#211D19",
+      heading: "#302921", // espresso inkoust
+      textSec: "#4C463F",
+      textMuted: "#8A8076",
+      accent: "#B4551D", // terakotová měď
+      sage: "#6E6644", // olivově-zlaté štítky
+      sand: "#96825C",
+      border: "rgba(60,50,40,0.15)",
+      borderSoft: "rgba(60,50,40,0.085)",
+      card: "#FFFEFA",
+      cardHover: "#FFFFFC",
+      callout: "#F3EEE5",
+      tableHead: "#EAE4D9",
+      sheet: "#FFFFFC",
+      sheetHover: "#FFFFFE",
+      activeNav: "rgba(180,85,29,0.10)",
+      overlay: "rgba(25,21,17,0.38)",
+      shadow: "0 0 0 1px rgba(60,50,40,0.04), 0 1px 2px rgba(50,40,30,0.05), 0 10px 26px -14px rgba(50,40,30,0.18)",
+      shadowLift: "0 0 0 1px rgba(60,50,40,0.05), 0 2px 5px rgba(50,40,30,0.06), 0 18px 40px -18px rgba(50,40,30,0.24)",
+      hero: "linear-gradient(135deg, #E9C29A 0%, #F1DCC2 45%, #F5EADC 78%, #F6F3ED 100%)",
+      heroInk: "#6B4C2A",
+      heroInkSoft: "rgba(107,76,42,0.8)",
+      heroLine: "rgba(107,76,42,0.3)",
     };
   }
   return {
     mode: "dark",
-    bg: "#1C1C1A", // Forest Night
-    bgSidebar: "#1A1612", // Ink
-    text: "#F4F0EB", // Linen
-    heading: "#F4F0EB",
-    textSec: "#BFB0A3", // Stone
-    textMuted: "#8C7B6E", // Taupe
-    accent: "#B87333", // Copper
-    sage: "#7C8C6E",
-    sand: "#C5B49A",
-    border: "rgba(124,140,110,0.18)",
-    borderSoft: "rgba(124,140,110,0.10)",
-    card: "rgba(46,61,53,0.28)",
-    cardHover: "rgba(46,61,53,0.5)",
-    callout: "rgba(46,61,53,0.35)",
-    sheet: "#24221D", // warm paper in the dark · writing surface
-    sheetHover: "#2A2721",
-    tableHead: "rgba(46,61,53,0.4)",
-    activeNav: "rgba(184,115,51,0.14)",
-    overlay: "rgba(0,0,0,0.5)",
-    shadow: "0 2px 10px rgba(0,0,0,0.22)",
-    hero: "linear-gradient(135deg, #2E3D35 0%, #1A1612 78%)", // original moss -> Ink sidebar
-    heroInk: "#F4F0EB",
-    heroInkSoft: "rgba(244,240,235,0.78)",
-    heroLine: "rgba(197,180,154,0.35)",
+    // teplý uhel se sytostí staženou k nule · elegantní tma, ne hněď
+    bg: "#171412",
+    bgSidebar: "#0F0D0B",
+    text: "#F4F0E9",
+    heading: "#FBF7EF",
+    textSec: "#C6BCAD",
+    textMuted: "#8E8578",
+    accent: "#E09E5A", // zářivá jantarová měď
+    sage: "#B3A77E",
+    sand: "#D2BE97",
+    border: "rgba(228,214,192,0.14)",
+    borderSoft: "rgba(228,214,192,0.08)",
+    card: "#221F1B",
+    cardHover: "#282420",
+    callout: "#1B1815",
+    tableHead: "#262218",
+    sheet: "#2D2921",
+    sheetHover: "#342F26",
+    activeNav: "rgba(224,158,90,0.13)",
+    overlay: "rgba(6,5,4,0.6)",
+    shadow: "0 1px 2px rgba(0,0,0,0.45), 0 4px 10px -4px rgba(0,0,0,0.4), 0 18px 40px -20px rgba(0,0,0,0.65), inset 0 1px 0 rgba(244,240,233,0.05)",
+    shadowLift: "0 2px 4px rgba(0,0,0,0.5), 0 8px 18px -8px rgba(0,0,0,0.5), 0 28px 56px -22px rgba(0,0,0,0.72), inset 0 1px 0 rgba(244,240,233,0.07)",
+    hero: "linear-gradient(140deg, #57391D 0%, #2E2214 45%, #131010 100%)",
+    heroInk: "#F4F0E9",
+    heroInkSoft: "rgba(244,240,233,0.8)",
+    heroLine: "rgba(224,158,90,0.45)",
   };
 }
 
 function makeTags(mode) {
+  // Štítky přeladěné k jantaru a slonovině — šeptají, nekřičí.
   if (mode === "light") {
     return {
-      yellow: { bg: "#efe6c8", fg: "#7a6a2a" },
-      purple: { bg: "#e6e0ef", fg: "#5a4a7a" },
-      blue: { bg: "#d8e6ef", fg: "#3a5a6e" },
-      red: { bg: "#efdcdc", fg: "#8a4a4a" },
-      green: { bg: "#dcecdf", fg: "#3a6a45" },
-      orange: { bg: "#efe2cc", fg: "#8a6a3a" },
-      gray: { bg: "#e4e2dc", fg: "#5a5a52" },
-      pink: { bg: "#efdce8", fg: "#8a4a76" },
-      brown: { bg: "#e8ddcf", fg: "#6a5238" },
-      default: { bg: "#e4e2dc", fg: "#5a5a52" },
+      yellow: { bg: "#EFE6D2", fg: "#7A6540" },
+      purple: { bg: "#EAE1E8", fg: "#64485E" },
+      blue: { bg: "#E0E7E9", fg: "#405963" },
+      red: { bg: "#F0DEDA", fg: "#7A4038" },
+      green: { bg: "#E4E8DC", fg: "#45573F" },
+      orange: { bg: "#F1E3CC", fg: "#8A6224" },
+      gray: { bg: "#EAE7DF", fg: "#625D51" },
+      pink: { bg: "#F1E1E0", fg: "#86545A" },
+      brown: { bg: "#ECE4D8", fg: "#6E5C46" },
+      default: { bg: "#EAE7DF", fg: "#625D51" },
     };
   }
   return {
-    yellow: { bg: "#3a3320", fg: "#d8c48a" },
-    purple: { bg: "#2e2838", fg: "#b9a7d6" },
-    blue: { bg: "#1f2e38", fg: "#8fb6cc" },
-    red: { bg: "#3a2424", fg: "#cc9090" },
-    green: { bg: "#243a2b", fg: "#8fcc9b" },
-    orange: { bg: "#3a2e1f", fg: "#cca878" },
-    gray: { bg: "#2a2a28", fg: "#a8a8a0" },
-    pink: { bg: "#382833", fg: "#cc8fb6" },
-    brown: { bg: "#332a24", fg: "#b89a78" },
-    default: { bg: "#2a2a28", fg: "#bfb0a3" },
+    yellow: { bg: "#322B1D", fg: "#D3BE93" },
+    purple: { bg: "#2E2730", fg: "#BCA1B6" },
+    blue: { bg: "#222E31", fg: "#93ADB4" },
+    red: { bg: "#342423", fg: "#CD9A95" },
+    green: { bg: "#232B21", fg: "#A8BC9E" },
+    orange: { bg: "#362D1B", fg: "#D8AC6B" },
+    gray: { bg: "#2A2823", fg: "#B8B0A1" },
+    pink: { bg: "#332628", fg: "#CFA0A5" },
+    brown: { bg: "#2F2921", fg: "#C2AC8D" },
+    default: { bg: "#2A2823", fg: "#B8B0A1" },
   };
 }
 
+// ---- Interactive store (browse history + edit + persist) ----
 const ThemeCtx = createContext(null);
 const useT = () => useContext(ThemeCtx);
 
@@ -2804,7 +2809,7 @@ function ContentRow({ e, cols, last, onOpen, noDrag }) {
       onDragStart={!noDrag ? (ev) => { ev.dataTransfer.setData("text/plain", "cid:" + e.id); ev.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragOver={(ev) => ev.preventDefault()}
       onDrop={(ev) => { ev.preventDefault(); const d = (ev.dataTransfer.getData("text/plain") || "").split(":"); if (d[0] === "cid" && d[1] && d[1] !== e.id) st.reorderEntry("content", d[1], e.id); }}
-      className="tm-nav-item"
+      className="tm-nav-item tm-crow"
       onClick={() => onOpen(e.id)}
       style={{ display: "grid", gridTemplateColumns: cols, alignItems: "center", borderBottom: last ? "none" : `1px solid ${t.borderSoft}`, cursor: "pointer", background: dragging ? hexA("#B87333", 0.08) : "transparent", boxShadow: dragging ? "0 8px 22px rgba(0,0,0,0.26)" : "none", transform: dragging ? "scale(1.008)" : "none", transition: "transform .12s ease, box-shadow .12s ease", userSelect: dragging ? "none" : "auto" }}
     >
@@ -2841,6 +2846,12 @@ function PageContent() {
   const [adding, setAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newType, setNewType] = useState("Book");
+  React.useEffect(() => {
+    if (!sel) return;
+    const h = (e) => { if (e.key === "Escape") setSel(null); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [sel]);
 
   const TABS = ["Vše", ...C_TYPES, "Archiv"];
   const live = all.filter((e) => !e.archive);
@@ -2906,8 +2917,8 @@ function PageContent() {
       )}
 
       <div style={{ maxHeight: "min(620px, 62vh)", overflow: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, background: t.sheet }}>
-        <div style={{ minWidth: 640 }}>
-          <div style={{ display: "grid", gridTemplateColumns: cols }}>
+        <div className="tm-cwrap" style={{ minWidth: 640 }}>
+          <div className="tm-chead" style={{ display: "grid", gridTemplateColumns: cols }}>
             <div style={th}>Name</div><div style={th}>Progress</div><div style={th}>Category</div><div style={{ ...th, textAlign: "right" }}>/10</div><div style={th}>Author</div>
           </div>
           {shown.map((e, i) => (
@@ -2917,9 +2928,18 @@ function PageContent() {
         </div>
       </div>
 
-      <Drawer open={!!sel} onClose={() => setSel(null)}>
-        {sel && <ContentDetail id={sel} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
-      </Drawer>
+      {sel && createPortal(
+        <div onClick={() => setSel(null)} style={{ position: "fixed", inset: 0, zIndex: 300, background: t.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: "4vh 16px" }}>
+          <div onClick={(ev) => ev.stopPropagation()} style={{ width: "min(680px, 96vw)", maxHeight: "min(88vh, 900px)", overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 18, boxShadow: t.shadowLift, padding: "20px clamp(16px, 3vw, 28px) 28px", animation: "tmfade .3s ease both" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{((all.find((x) => x.id === sel) || {}).title) || L("Titul", "Title")}</span>
+              <button onClick={() => setSel(null)} title="Esc" style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 30, height: 30, flexShrink: 0, cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1 }}>×</button>
+            </div>
+            <ContentDetail id={sel} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }
@@ -4642,6 +4662,211 @@ function InviteGate() {
   );
 }
 
+function TmIcPruvodce({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8.8 8.6a3.2 3.2 0 1 1 5 2.7c-1.1.8-1.8 1.4-1.8 2.7v.6" />
+      <circle cx="12" cy="19" r="0.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+// ---- PRŮVODCE · klientská edice. Otevře se sám hned po prvním sestavení domu
+// (po potvrzení modulů), pak kdykoli přes ? v levém sloupci. Kroky se skládají
+// jen z místností, které si klient zapnul.
+function TmGuide({ enabled, name, onClose }) {
+  const { t } = useT();
+  const [gi, setGi] = useState(0);
+  const isM = typeof window !== "undefined" && (window.matchMedia ? window.matchMedia("(max-width: 820px)").matches : window.innerWidth <= 820);
+  const has = (k) => !enabled || enabled.length === 0 || enabled.indexOf(k) !== -1;
+
+  const bx = (extra) => ({ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 8, boxShadow: t.shadow, ...extra });
+  const VisRooms = (
+    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", justifyContent: "center" }}>
+      <div style={bx({ width: 44, height: 34 })} />
+      <div style={bx({ width: 52, height: 44, boxShadow: t.shadowLift, borderColor: hexA(t.accent, 0.5) })} />
+      <div style={bx({ width: 44, height: 34 })} />
+    </div>
+  );
+  const VisCal = (
+    <div style={{ display: "flex", gap: 5, justifyContent: "center" }}>
+      {[0.9, 0, 0.5, 1, 0, 0.35, 0].map((o, i) => (
+        <div key={i} style={bx({ width: 26, height: 26, boxShadow: "none", border: i === 3 ? `1.5px solid ${t.accent}` : `1px solid ${t.borderSoft}`, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 4 })}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: o ? hexA(t.accent, 0.35 + o * 0.65) : "transparent" }} />
+        </div>
+      ))}
+    </div>
+  );
+  const VisCards = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "center" }}>
+      <div style={bx({ width: 150, height: 18, boxShadow: "none" })} />
+      <div style={bx({ width: 160, height: 24, boxShadow: t.shadowLift, borderColor: hexA(t.accent, 0.45) })} />
+      <div style={bx({ width: 150, height: 18, boxShadow: "none", opacity: 0.65 })} />
+    </div>
+  );
+  const VisCompass = (
+    <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+      {[t.sage, t.sand, hexA(t.accent, 0.8)].map((c, i) => (
+        <div key={i} style={bx({ borderRadius: 999, padding: "4px 12px", boxShadow: "none", display: "flex", alignItems: "center", gap: 6 })}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: c }} />
+          <span style={{ width: 26 + i * 8, height: 5, borderRadius: 3, background: t.borderSoft }} />
+        </div>
+      ))}
+    </div>
+  );
+  const VisStrip = (
+    <div style={{ display: "flex", gap: 5, justifyContent: "center", alignItems: "center" }}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div key={i} style={bx({ width: i === 2 ? 34 : 28, height: i === 2 ? 40 : 34, boxShadow: i === 2 ? t.shadowLift : "none", border: i === 2 ? `1.5px solid ${t.accent}` : `1px solid ${t.borderSoft}`, background: i === 2 ? t.activeNav : t.card, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 4 })}>
+          <span style={{ width: 4, height: 4, borderRadius: "50%", background: i % 2 ? t.sage : hexA(t.accent, 0.8) }} />
+        </div>
+      ))}
+    </div>
+  );
+  const VisJars = (
+    <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "flex-end" }}>
+      {[16, 24, 12, 20].map((h, i) => <span key={i} style={{ width: 12, height: h, borderRadius: "3px 3px 5px 5px", background: i === 1 ? hexA(t.accent, 0.7) : t.borderSoft, border: `1px solid ${t.borderSoft}` }} />)}
+    </div>
+  );
+  const VisBook = (
+    <div style={bx({ width: 170, height: 24, boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 10px" })}>
+      <span style={{ width: 60, height: 5, borderRadius: 3, background: t.borderSoft }} />
+      <span style={{ fontFamily: FONT_TAG, fontSize: 9, letterSpacing: "0.1em", color: t.sage }}>8/10</span>
+    </div>
+  );
+  const VisShare = (
+    <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center" }}>
+      <span style={{ width: 34, height: 20, borderRadius: 100, position: "relative", background: hexA(t.accent, 0.8), display: "inline-block" }}><span style={{ position: "absolute", top: 3, left: 17, width: 14, height: 14, borderRadius: "50%", background: t.bg }} /></span>
+      <span style={{ width: 34, height: 20, borderRadius: 100, position: "relative", background: t.borderSoft, display: "inline-block" }}><span style={{ position: "absolute", top: 3, left: 3, width: 14, height: 14, borderRadius: "50%", background: t.bg }} /></span>
+    </div>
+  );
+  const VisLock = (
+    <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+      <div style={bx({ borderRadius: 999, padding: "4px 12px", boxShadow: "none", display: "flex", gap: 6, alignItems: "center" })}><span style={{ fontSize: 9, color: t.textMuted }}>●</span><span style={{ width: 34, height: 5, borderRadius: 3, background: t.borderSoft }} /></div>
+      <div style={bx({ borderRadius: 999, padding: "4px 12px", boxShadow: "none", borderColor: t.accent, background: t.activeNav, display: "flex", gap: 6, alignItems: "center" })}><span style={{ fontSize: 10, color: t.accent }}>✎</span><span style={{ width: 34, height: 5, borderRadius: 3, background: hexA(t.accent, 0.4) }} /></div>
+    </div>
+  );
+
+  const steps = [
+    {
+      vis: VisRooms, kicker: L("Vítej", "Welcome"),
+      title: L("Dům stojí. Vejdi.", "The house is built. Come in."),
+      body: (name ? name + ", " : "") + L("místnosti, které sis vybral, jsou připravené. Projdeme je spolu — krátce, jen co potřebuješ k prvnímu kroku.", "the rooms you chose are ready. Let's walk through them — briefly, just what you need for the first step."),
+      tips: [L("Vše zůstává ve tvém zařízení a funguje i offline.", "Everything stays on your device and works offline.")],
+    },
+    ...(has("habit") ? [{
+      emoji: "🔥", kicker: L("Návyky", "Habits"), vis: VisCal,
+      title: L("Ráno záměr · přes den návyky · večer ohlédnutí", "Morning intent · habits · evening review"),
+      body: L("Jedna stránka, jeden den.", "One page, one day."),
+      tips: [L("Tečka pod dnem v kalendáři = zaznamenáno; její sytost = kolik návyků drželo.", "A dot under a day = recorded; its depth = how many habits held.")],
+    }] : []),
+    ...(has("journal") || has("notebook") ? [{
+      emoji: "✎", kicker: L("Paměť", "Memory"), vis: VisCards,
+      title: L("Deník a Zápisník", "Journal and Notebook"),
+      body: L("Deník se píše z cesty, ne z vrcholu. Zápisník je jeden prostor pro cokoli — poznámky, texty, myšlenky.", "The journal is written from the path, not the summit. The notebook is one space for anything — notes, texts, thoughts."),
+      tips: [L("Obojí zůstává vždy jen tvoje — nesdílí se nikdy.", "Both remain yours alone — they are never shared.")],
+    }] : []),
+    ...(has("divine") ? [{
+      emoji: "🎲", kicker: "Divine game", vis: VisCompass,
+      title: L("Oblasti života a cíle v pohybu", "Life areas and goals in motion"),
+      body: L("Den jako hra: krajina oblastí, cíle a jejich termíny. Detail cíle se otevírá vedle stránky.", "The day as a game: a landscape of areas, goals and their dates. A goal's detail opens beside the page."),
+      tips: [],
+    }] : []),
+    ...(has("training") ? [{
+      emoji: "△", kicker: L("Trénink", "Training"), vis: VisStrip,
+      title: L("Plán od Tanyho, krok za krokem", "The plan from Tanmay, step by step"),
+      body: L("Odškrtáváš, co jsi odcvičil. Plán se odsud nemění — o úpravu si řekni Tanymu.", "Tick off what you trained. The plan doesn't change from here — ask Tanmay for adjustments."),
+      tips: [],
+    }] : []),
+    ...(has("finances") ? [{
+      emoji: "🫙", kicker: L("Finance", "Finances"), vis: VisJars,
+      title: L("Šest džbánů", "Six jars"),
+      body: L("Klidný přehled o penězích. Výdaj zapíšeš dvěma doteky.", "A calm view of money. An expense takes two taps."),
+      tips: [],
+    }] : []),
+    ...(has("content") ? [{
+      emoji: "▤", kicker: L("Knihovna", "Library"), vis: VisBook,
+      title: L("Co neseš dál", "What you carry on"),
+      body: L("Knihy, filmy a podcasty — postup, hodnocení a co ti daly.", "Books, films and podcasts — progress, a score, and what they gave you."),
+      tips: [],
+    }] : []),
+    {
+      vis: VisShare, kicker: L("Důvěra", "Trust"),
+      title: L("Vědomé sdílení", "Conscious sharing"),
+      body: L("Tany vidí jen to, co sám zapneš — a kdykoli to vypneš. Přepínače najdeš v ＋ Moduly.", "Tanmay sees only what you turn on — and you can turn it off anytime. The switches live in ＋ Modules."),
+      tips: [L("Deník a zápisník se nesdílejí nikdy.", "The journal and notebook are never shared.")],
+    },
+    {
+      vis: VisLock, kicker: L("Ovládání", "Controls"),
+      title: L("Zámek, jazyk, světlo", "The lock, the language, the light"),
+      body: L("● Zamčeno je pro praxi, ✎ Editace odemyká mazání a správu. CZ·EN a ☾/☀ přepínají jazyk a téma.", "● Locked is for practising, ✎ Editing unlocks deleting and managing. CZ·EN and ☾/☀ switch language and theme."),
+      tips: [
+        isM ? L("Menu domu je pod ☰ vlevo nahoře.", "The house menu lives under ☰ top-left.") : L("Levý sloupec je mapa domu.", "The left column is the map of the house."),
+        L("＋ Moduly kdykoli přestaví dům — přidají i zavřou místnosti.", "＋ Modules rebuilds the house any time — rooms can be added or closed."),
+      ],
+    },
+    {
+      vis: <Bindu size={10} />, kicker: L("Na cestu", "For the road"),
+      title: L("Drž svou praxi", "Hold the practice"),
+      body: L("Důvěřuj tělu. Naslouchej divočině.", "Trust the body. Listen to the wild."),
+      tips: [L("Průvodce je kdykoli pod ? dole v levém sloupci.", "This guide lives under the ? at the bottom of the left column.")],
+    },
+  ];
+
+  const n = steps.length;
+  const st0 = steps[Math.max(0, Math.min(gi, n - 1))];
+  const close = () => { try { if (typeof localStorage !== "undefined") localStorage.setItem("tmGuideSeen", "1"); } catch (e) {} onClose(); };
+  React.useEffect(() => {
+    const h = (e) => {
+      if (e.key === "Escape") close();
+      else if (e.key === "ArrowRight") setGi((x) => Math.min(x + 1, n - 1));
+      else if (e.key === "ArrowLeft") setGi((x) => Math.max(x - 1, 0));
+    };
+    window.addEventListener("keydown", h);
+    const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", h); document.body.style.overflow = prev; };
+  }, []);
+  return createPortal(
+    <div onClick={close} style={{ position: "fixed", inset: 0, zIndex: 320, background: t.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: "4vh 16px" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(560px, 96vw)", maxHeight: "min(86vh, 680px)", overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 18, boxShadow: t.shadowLift, padding: "22px clamp(18px, 3vw, 30px) 22px", display: "flex", flexDirection: "column", animation: "tmfade .35s ease both" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent }}>{L("Průvodce", "Guide")} · {gi + 1} / {n}</span>
+          <button onClick={close} title="Esc" style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 30, height: 30, cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1 }}>×</button>
+        </div>
+        <div key={gi} style={{ flex: 1, minHeight: 230, animation: "tmfade .3s ease both" }}>
+          {st0.emoji && <div style={{ textAlign: "center", fontSize: 26, marginBottom: 8 }}>{st0.emoji}</div>}
+          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.sage, textAlign: "center", marginBottom: 5 }}>{st0.kicker}</div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 400, fontSize: 24, lineHeight: 1.22, color: t.heading, textAlign: "center", marginBottom: 12 }}>{st0.title}</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 58, marginBottom: 12 }}>{st0.vis}</div>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: t.textSec, textAlign: "center", margin: "0 auto 12px", maxWidth: 420 }}>{st0.body}</p>
+          {st0.tips.length > 0 && (
+            <div style={{ maxWidth: 420, margin: "0 auto" }}>
+              {st0.tips.map((tip, i) => (
+                <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "3px 0" }}>
+                  <span style={{ marginTop: 7 }}><Bindu size={4} /></span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.55, color: t.textMuted }}>{tip}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 16 }}>
+          <button onClick={() => setGi((x) => Math.max(x - 1, 0))} disabled={gi === 0} style={{ background: "transparent", border: `1px solid ${gi === 0 ? t.borderSoft : t.border}`, borderRadius: 20, padding: "7px 16px", cursor: gi === 0 ? "default" : "pointer", color: gi === 0 ? t.textMuted : t.text, fontFamily: FONT_BODY, fontSize: 13, opacity: gi === 0 ? 0.5 : 1 }}>{L("‹ Zpět", "‹ Back")}</button>
+          <span style={{ flex: 1, display: "flex", justifyContent: "center", gap: 6 }}>
+            {steps.map((_, i) => (
+              <button key={i} onClick={() => setGi(i)} title={String(i + 1)} style={{ width: 7, height: 7, padding: 0, borderRadius: "50%", border: "none", cursor: "pointer", background: i === gi ? t.accent : t.border, transition: "background .2s ease, transform .2s ease", transform: i === gi ? "scale(1.3)" : "none" }} />
+            ))}
+          </span>
+          {gi < n - 1
+            ? <button onClick={() => setGi((x) => Math.min(x + 1, n - 1))} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 20, padding: "8px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5 }}>{L("Další ›", "Next ›")}</button>
+            : <button onClick={close} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 20, padding: "8px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5 }}>{L("Vejít do domu", "Enter the house")}</button>}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /** Výběr modulů — první spuštění (welcome) i pozdější správa (＋ Moduly).
  *  Notion-templates princip: klient si skládá workspace, my nic nevnucujeme. */
 function ModulePicker({ t, firstRun, current, initialName, initialShare, onConfirm, onClose }) {
@@ -4672,8 +4897,8 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, onConfi
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: "#BFB0A3", lineHeight: 1.7, maxWidth: "34em", margin: "14px auto 26px" }}>
           {firstRun
-            ? L("Vyber si moduly své praxe. Nic není napořád — kdykoli později přidáš další nebo ubereš.",
-                "Choose the modules of your practice. Nothing is forever — add or remove them anytime.")
+            ? L("Stojíš na prahu tichého domu — místa, kde tvé tělo, praxe a směr bydlí pod jednou střechou. Postav si ho z místností, které právě žiješ: dveře se dají kdykoli otevřít i zavřít, nic tady není napořád. A co do domu vložíš, zůstává tvoje — stojí ve tvém zařízení a svítí i bez signálu.",
+                "You are standing at the threshold of a quiet house — a place where your body, your practice and your direction live under one roof. Build it from the rooms you are living right now: doors can be opened or closed at any time, nothing here is forever. And whatever you bring inside stays yours — the house stands on your device and keeps its light even without signal.")
             : L("Zapni jen to, co teď žiješ. Data vypnutých modulů zůstávají uložená.",
                 "Keep only what you live right now. Data of hidden modules stays saved.")}
         </div>
@@ -4745,6 +4970,7 @@ export default function App() {
   const toggleLang = () => setLang((l) => { const n = l === "cs" ? "en" : "cs"; try { localStorage.setItem("tm-lang", n); } catch (e) {} return n; });
   const [page, setPage] = useState("habit");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [member, setMember] = useState(null); // null = zjišťuje se / offline, false = ukáže bránu
   const [memberName, setMemberName] = useState("");
   React.useEffect(() => {
@@ -5322,10 +5548,11 @@ export default function App() {
             current={enabledModules}
             initialName={memberName}
             initialShare={coll.share}
-            onConfirm={(list, name, share) => { persistColl((c) => ({ ...c, modules: list, share })); saveName(name); setPickerOpen(false); if (list.indexOf(page) === -1 && page !== "trash") setPage(list[0] || "habit"); }}
+            onConfirm={(list, name, share) => { const firstBuild = !enabledModules; persistColl((c) => ({ ...c, modules: list, share })); saveName(name); setPickerOpen(false); if (list.indexOf(page) === -1 && page !== "trash") setPage(list[0] || "habit"); if (firstBuild) setGuideOpen(true); }}
             onClose={() => setPickerOpen(false)}
           />
         )}
+        {guideOpen && <TmGuide enabled={enabledModules || []} name={memberName} onClose={() => setGuideOpen(false)} />}
       <div style={{ minHeight: "100vh", background: t.bg, color: t.text, display: "flex", position: "relative" }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:wght@400;500;700&family=Barlow+Condensed:wght@400;500&display=swap');
@@ -5361,6 +5588,15 @@ export default function App() {
             .tm-sidebar.collapsed { margin-left: 0; }
             .tm-sidebar.open { transform: translateX(0); }
             .tm-burger { display: flex !important; }
+            /* PRAMENY · tabulka se na telefonu skládá do karet jako Zápisník */
+            .tm-cwrap { min-width: 0 !important; }
+            .tm-chead { display: none !important; }
+            .tm-crow { grid-template-columns: minmax(0,1fr) auto !important; row-gap: 2px; padding: 6px 2px !important; margin: 6px 4px; border: 1px solid ${t.borderSoft}; border-radius: 10px; background: ${t.card}; }
+            .tm-crow > *:nth-child(1) { grid-column: 1 / -1; grid-row: 1; }
+            .tm-crow > *:nth-child(2) { grid-column: 1; grid-row: 2; }
+            .tm-crow > *:nth-child(3) { grid-column: 1; grid-row: 3; }
+            .tm-crow > *:nth-child(4) { grid-column: 2; grid-row: 2; justify-self: end; }
+            .tm-crow > *:nth-child(5) { grid-column: 2; grid-row: 3; justify-self: end; max-width: 44vw; }
             .tm-sidetoggle { display: none !important; }
           }
         `}</style>
@@ -5397,6 +5633,9 @@ export default function App() {
           })}
           <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", marginTop: 6, borderRadius: 7, border: `1px dashed ${t.border}`, cursor: "pointer", background: "transparent", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
             <span style={{ fontSize: 15, width: 20, textAlign: "center", color: t.accent }}>＋</span>{L("Moduly", "Modules")}
+          </button>
+          <button onClick={() => setGuideOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
+            <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.sand }}><TmIcPruvodce size={15} /></span>{L("Průvodce", "Guide")}
           </button>
           <div style={{ marginTop: 28, padding: "0 8px" }}>
             <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5, color: t.textMuted, lineHeight: 1.6 }}>Trust the body. Hold the practice. Listen to the wild.</div>
