@@ -43,14 +43,14 @@ function makeTheme(mode) {
   if (mode === "light") {
     return {
       mode,
-      bg: "#F6F3ED", // teplá slonovina · téměř bílá
+      bg: "#F6F3ED",
       bgSidebar: "#ECE7DE",
       text: "#211D19",
-      heading: "#302921", // espresso inkoust
+      heading: "#302921",
       textSec: "#4C463F",
       textMuted: "#8A8076",
-      accent: "#B4551D", // terakotová měď
-      sage: "#6E6644", // olivově-zlaté štítky
+      accent: "#B4551D",
+      sage: "#6E6644",
       sand: "#96825C",
       border: "rgba(60,50,40,0.15)",
       borderSoft: "rgba(60,50,40,0.085)",
@@ -72,14 +72,13 @@ function makeTheme(mode) {
   }
   return {
     mode: "dark",
-    // teplý uhel se sytostí staženou k nule · elegantní tma, ne hněď
     bg: "#171412",
     bgSidebar: "#0F0D0B",
     text: "#F4F0E9",
     heading: "#FBF7EF",
     textSec: "#C6BCAD",
     textMuted: "#8E8578",
-    accent: "#E09E5A", // zářivá jantarová měď
+    accent: "#E09E5A",
     sage: "#B3A77E",
     sand: "#D2BE97",
     border: "rgba(228,214,192,0.14)",
@@ -131,7 +130,6 @@ function makeTags(mode) {
   };
 }
 
-// ---- Interactive store (browse history + edit + persist) ----
 const ThemeCtx = createContext(null);
 const useT = () => useContext(ThemeCtx);
 
@@ -2809,25 +2807,27 @@ function ContentRow({ e, cols, last, onOpen, noDrag }) {
       onDragStart={!noDrag ? (ev) => { ev.dataTransfer.setData("text/plain", "cid:" + e.id); ev.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragOver={(ev) => ev.preventDefault()}
       onDrop={(ev) => { ev.preventDefault(); const d = (ev.dataTransfer.getData("text/plain") || "").split(":"); if (d[0] === "cid" && d[1] && d[1] !== e.id) st.reorderEntry("content", d[1], e.id); }}
-      className="tm-nav-item tm-crow"
+      className="tm-nav-item"
       onClick={() => onOpen(e.id)}
-      style={{ display: "grid", gridTemplateColumns: cols, alignItems: "center", borderBottom: last ? "none" : `1px solid ${t.borderSoft}`, cursor: "pointer", background: dragging ? hexA("#B87333", 0.08) : "transparent", boxShadow: dragging ? "0 8px 22px rgba(0,0,0,0.26)" : "none", transform: dragging ? "scale(1.008)" : "none", transition: "transform .12s ease, box-shadow .12s ease", userSelect: dragging ? "none" : "auto" }}
+      style={{ display: "flex", alignItems: "center", gap: 12, border: `1px solid ${dragging ? t.accent : t.borderSoft}`, borderRadius: 10, margin: "8px 0", padding: "10px 12px", cursor: "pointer", background: dragging ? hexA(t.accent, 0.08) : t.card, boxShadow: dragging ? t.shadowLift : t.shadow, transform: dragging ? "scale(1.008)" : "none", transition: "transform .12s ease, box-shadow .12s ease", userSelect: dragging ? "none" : "auto" }}
     >
-      <div style={{ padding: "8px 10px", display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-        {e.icon
-          ? <img src={imgSrc(e.icon)} alt="" style={{ width: 26, height: 34, objectFit: "cover", borderRadius: 4, flexShrink: 0, border: `1px solid ${t.borderSoft}` }} />
-          : <span style={{ width: 26, textAlign: "center", fontSize: 15, flexShrink: 0 }}>{C_TYPE_FALLBACK_ICON[e.type] || "📕"}</span>}
-        <span style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 500, color: t.heading, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</span>
-        <PinDot id={e.id} />
-      </div>
-      <div style={{ padding: "8px 10px" }} onClick={(ev) => ev.stopPropagation()}>
-        <button onClick={() => st.updateEntry("content", e.id, { progress: C_PROGRESS[(C_PROGRESS.indexOf(e.progress) + 1) % C_PROGRESS.length] })} title={L("Klikni a přepínej", "Click to cycle")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
-          <Tag label={e.progress || "—"} color={C_PROG_COLOR[e.progress] || "default"} />
-        </button>
-      </div>
-      <div style={{ padding: "8px 10px" }}>{e.category && <Tag label={e.category} color={C_CAT_COLOR[e.category] || "default"} />}</div>
-      <div style={{ padding: "8px 10px", textAlign: "right", fontFamily: FONT_BODY, fontSize: 14, color: e.score ? t.text : t.textMuted }}>{e.score || "—"}</div>
-      <div style={{ padding: "8px 10px", fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.author}</div>
+      {e.icon
+        ? <img src={imgSrc(e.icon)} alt="" style={{ width: 30, height: 40, objectFit: "cover", borderRadius: 5, flexShrink: 0, border: `1px solid ${t.borderSoft}` }} />
+        : <span style={{ width: 30, textAlign: "center", fontSize: 17, flexShrink: 0 }}>{C_TYPE_FALLBACK_ICON[e.type] || "📕"}</span>}
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <span style={{ fontFamily: FONT_DISPLAY, fontSize: 17.5, color: t.heading, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</span>
+          <PinDot id={e.id} />
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4, flexWrap: "wrap" }} onClick={(ev) => ev.stopPropagation()}>
+          <button onClick={() => st.updateEntry("content", e.id, { progress: C_PROGRESS[(C_PROGRESS.indexOf(e.progress) + 1) % C_PROGRESS.length] })} title={L("Klikni a přepínej", "Click to cycle")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
+            <Tag label={e.progress || "—"} color={C_PROG_COLOR[e.progress] || "default"} />
+          </button>
+          {e.category ? <Tag label={e.category} color="default" /> : null}
+          {e.author ? <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180 }}>{e.author}</span> : null}
+        </span>
+      </span>
+      <span title="/10" style={{ flexShrink: 0, fontFamily: FONT_DISPLAY, fontSize: 16.5, color: e.score ? t.sand : t.textMuted }}>{e.score || "—"}</span>
     </div>
   );
 }
@@ -2916,11 +2916,8 @@ function PageContent() {
         <button onClick={() => setAdding(true)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, width: "100%", textAlign: "left", marginBottom: 12 }}>＋ {L("Nový titul", "New title")}</button>
       )}
 
-      <div style={{ maxHeight: "min(620px, 62vh)", overflow: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, background: t.sheet }}>
-        <div className="tm-cwrap" style={{ minWidth: 640 }}>
-          <div className="tm-chead" style={{ display: "grid", gridTemplateColumns: cols }}>
-            <div style={th}>Name</div><div style={th}>Progress</div><div style={th}>Category</div><div style={{ ...th, textAlign: "right" }}>/10</div><div style={th}>Author</div>
-          </div>
+      <div style={{ marginTop: 6, maxHeight: "min(620px, 62vh)", overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "4px 10px 10px" }}>
+        <div>
           {shown.map((e, i) => (
             <ContentRow key={e.id} e={e} cols={cols} last={i === shown.length - 1} onOpen={setSel} noDrag={sortBy !== "manual" || view !== "Vše" || fProg !== "Vše"} />
           ))}
@@ -4671,15 +4668,23 @@ function TmIcPruvodce({ size = 15 }) {
   );
 }
 
-// ---- PRŮVODCE · klientská edice. Otevře se sám hned po prvním sestavení domu
-// (po potvrzení modulů), pak kdykoli přes ? v levém sloupci. Kroky se skládají
-// jen z místností, které si klient zapnul.
+function TmIcSdileni({ size = 15 }) {
+  // dva kruhy, které se protínají · sdílí se jen průnik, který sám zapneš
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9.2" cy="12" r="5.6" />
+      <circle cx="14.8" cy="12" r="5.6" />
+    </svg>
+  );
+}
+
+// ---- PRŮVODCE · klientská edice. Otevře se sám hned po prvním sestavení domu,
+// pak kdykoli přes ? v levém sloupci. Kroky se skládají jen ze zapnutých modulů.
 function TmGuide({ enabled, name, onClose }) {
   const { t } = useT();
   const [gi, setGi] = useState(0);
   const isM = typeof window !== "undefined" && (window.matchMedia ? window.matchMedia("(max-width: 820px)").matches : window.innerWidth <= 820);
   const has = (k) => !enabled || enabled.length === 0 || enabled.indexOf(k) !== -1;
-
   const bx = (extra) => ({ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 8, boxShadow: t.shadow, ...extra });
   const VisRooms = (
     <div style={{ display: "flex", gap: 8, alignItems: "flex-end", justifyContent: "center" }}>
@@ -4793,13 +4798,13 @@ function TmGuide({ enabled, name, onClose }) {
     {
       vis: VisShare, kicker: L("Důvěra", "Trust"),
       title: L("Vědomé sdílení", "Conscious sharing"),
-      body: L("Tany vidí jen to, co sám zapneš — a kdykoli to vypneš. Přepínače najdeš v ＋ Moduly.", "Tanmay sees only what you turn on — and you can turn it off anytime. The switches live in ＋ Modules."),
-      tips: [L("Deník a zápisník se nesdílejí nikdy.", "The journal and notebook are never shared.")],
+      body: L("Tany vidí jen to, co sám zapneš — a kdykoli to vypneš. Přesný rozsah je u každého přepínače v Sdílení (levý sloupec) nebo v ＋ Moduly.", "Tanmay sees only what you turn on — and you can turn it off anytime. The exact scope sits next to each switch in Sharing (left column) or ＋ Modules."),
+      tips: [L("Deník, zápisník, poznámky a finance se nesdílejí nikdy.", "Journal, notebook, notes and finances are never shared.")],
     },
     {
       vis: VisLock, kicker: L("Ovládání", "Controls"),
       title: L("Zámek, jazyk, světlo", "The lock, the language, the light"),
-      body: L("● Zamčeno je pro praxi, ✎ Editace odemyká mazání a správu. CZ·EN a ☾/☀ přepínají jazyk a téma.", "● Locked is for practising, ✎ Editing unlocks deleting and managing. CZ·EN and ☾/☀ switch language and theme."),
+      body: L("🔒 Zamčeno je pro praxi, ✎ Editace odemyká mazání a správu. CZ·EN a ☾/☀ přepínají jazyk a téma.", "🔒 Locked is for practising, ✎ Editing unlocks deleting and managing. CZ·EN and ☾/☀ switch language and theme."),
       tips: [
         isM ? L("Menu domu je pod ☰ vlevo nahoře.", "The house menu lives under ☰ top-left.") : L("Levý sloupec je mapa domu.", "The left column is the map of the house."),
         L("＋ Moduly kdykoli přestaví dům — přidají i zavřou místnosti.", "＋ Modules rebuilds the house any time — rooms can be added or closed."),
@@ -4897,8 +4902,8 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, onConfi
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: "#BFB0A3", lineHeight: 1.7, maxWidth: "34em", margin: "14px auto 26px" }}>
           {firstRun
-            ? L("Stojíš na prahu tichého domu — místa, kde tvé tělo, praxe a směr bydlí pod jednou střechou. Postav si ho z místností, které právě žiješ: dveře se dají kdykoli otevřít i zavřít, nic tady není napořád. A co do domu vložíš, zůstává tvoje — stojí ve tvém zařízení a svítí i bez signálu.",
-                "You are standing at the threshold of a quiet house — a place where your body, your practice and your direction live under one roof. Build it from the rooms you are living right now: doors can be opened or closed at any time, nothing here is forever. And whatever you bring inside stays yours — the house stands on your device and keeps its light even without signal.")
+            ? L("Tichý dům pro tvé tělo, praxi a směr. Postav si ho z místností, které právě žiješ — nic není napořád a vše zůstává u tebe.",
+                "A quiet house for your body, practice and direction. Build it from the rooms you live right now — nothing is forever, and everything stays with you.")
             : L("Zapni jen to, co teď žiješ. Data vypnutých modulů zůstávají uložená.",
                 "Keep only what you live right now. Data of hidden modules stays saved.")}
         </div>
@@ -4933,8 +4938,12 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, onConfi
             {L("Vědomé sdílení s Tanym", "Conscious sharing with Tanmay")}
           </div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: "#8C7B6E", lineHeight: 1.55, marginBottom: 12 }}>
-            {L("Uvidí jen to, co tady zapneš — a kdykoli to vypneš. Deník a zápisník zůstávají vždy jen tvoje.",
-               "He sees only what you turn on here — and you can turn it off anytime. Journal and notebook always remain yours alone.")}
+            {L("Tany uvidí jen to, co tady sám zapneš — přesný rozsah je popsaný u každého přepínače. Vypnuto = nevidí nic. Kdykoli to změníš tady v nastavení (＋ Moduly, nebo Sdílení v levém sloupci).",
+               "Tanmay sees only what you turn on here — the exact scope is written next to each switch. Off = he sees nothing. Change it any time right here (＋ Modules, or Sharing in the left column).")}
+          </div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: "#8C7B6E", lineHeight: 1.55, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B87333", flexShrink: 0 }} />
+            {L("Deník, zápisník, poznámky a finance se nesdílejí nikdy.", "Journal, notebook, notes and finances are never shared.")}
           </div>
           {sel.indexOf("habit") !== -1 && shareRow("habits", "Návyky", "Habits", "Posledních 30 dní zaškrtnutí, bez poznámek.", "Last 30 days of checkmarks, no notes.")}
           {sel.indexOf("divine") !== -1 && shareRow("goals", "Cíle", "Goals", "Názvy cílů a jejich stav.", "Goal names and their status.")}
@@ -5556,10 +5565,9 @@ export default function App() {
       <div style={{ minHeight: "100vh", background: t.bg, color: t.text, display: "flex", position: "relative" }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:wght@400;500;700&family=Barlow+Condensed:wght@400;500&display=swap');
-          * { box-sizing: border-box; }
+          * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
           body { margin: 0; }
           ::selection { background: ${t.accent}; color: ${t.bg}; }
-          .tm-nav-item:hover { background: ${t.cardHover} !important; }
           input, textarea { caret-color: #B87333; }
           .tm-rich { font-family: ${FONT_BODY}; font-size: 14.5px; line-height: 1.78; color: ${t.textSec}; outline: none; min-height: 26px; caret-color: #B87333; white-space: pre-wrap; overflow-wrap: break-word; max-width: 700px; }
           .tm-rich h1 { font-family: ${FONT_DISPLAY}; font-weight: 500; font-size: 20px; line-height: 1.3; color: ${t.heading}; margin: 14px 0 3px; }
@@ -5574,7 +5582,6 @@ export default function App() {
           * { scrollbar-width: thin; scrollbar-color: ${t.border} transparent; }
           *::-webkit-scrollbar { width: 6px; height: 6px; }
           *::-webkit-scrollbar-thumb { background: ${t.border}; border-radius: 3px; border: 1px solid transparent; background-clip: content-box; }
-          *::-webkit-scrollbar-thumb:hover { background: ${t.textMuted}; background-clip: content-box; }
           *::-webkit-scrollbar-track { background: transparent; }
           *::-webkit-scrollbar-corner { background: transparent; }
           @keyframes tmfade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -5588,18 +5595,14 @@ export default function App() {
             .tm-sidebar.collapsed { margin-left: 0; }
             .tm-sidebar.open { transform: translateX(0); }
             .tm-burger { display: flex !important; }
-            /* PRAMENY · tabulka se na telefonu skládá do karet jako Zápisník */
-            .tm-cwrap { min-width: 0 !important; }
-            .tm-chead { display: none !important; }
-            .tm-crow { grid-template-columns: minmax(0,1fr) auto !important; row-gap: 2px; padding: 6px 2px !important; margin: 6px 4px; border: 1px solid ${t.borderSoft}; border-radius: 10px; background: ${t.card}; }
-            .tm-crow > *:nth-child(1) { grid-column: 1 / -1; grid-row: 1; }
-            .tm-crow > *:nth-child(2) { grid-column: 1; grid-row: 2; }
-            .tm-crow > *:nth-child(3) { grid-column: 1; grid-row: 3; }
-            .tm-crow > *:nth-child(4) { grid-column: 2; grid-row: 2; justify-self: end; }
-            .tm-crow > *:nth-child(5) { grid-column: 2; grid-row: 3; justify-self: end; max-width: 44vw; }
             .tm-sidetoggle { display: none !important; }
           }
-        `}</style>
+                  /* HOVER · choreografie kurzoru žije jen tam, kde kurzor je */
+          @media (hover: hover) {
+            .tm-nav-item:hover { background: ${t.cardHover} !important; }
+            *::-webkit-scrollbar-thumb:hover { background: ${t.textMuted}; background-clip: content-box; }
+          }
+`}</style>
 
         <aside className={`tm-sidebar${menuOpen ? " open" : ""}${sideHidden ? " collapsed" : ""}`} style={{ width: 268, flexShrink: 0, background: t.bgSidebar, borderRight: `1px solid ${t.border}`, padding: "26px 16px", overflowY: "auto" }}>
           <div style={{ padding: "0 8px 22px" }}>
@@ -5633,6 +5636,9 @@ export default function App() {
           })}
           <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", marginTop: 6, borderRadius: 7, border: `1px dashed ${t.border}`, cursor: "pointer", background: "transparent", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
             <span style={{ fontSize: 15, width: 20, textAlign: "center", color: t.accent }}>＋</span>{L("Moduly", "Modules")}
+          </button>
+          <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
+            <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.sand }}><TmIcSdileni size={15} /></span>{L("Sdílení", "Sharing")}
           </button>
           <button onClick={() => setGuideOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
             <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.sand }}><TmIcPruvodce size={15} /></span>{L("Průvodce", "Guide")}
