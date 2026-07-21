@@ -38,95 +38,49 @@ const FONT_TAG = "'Barlow Condensed', sans-serif";
 // THEME
 // ----------------------------------------------------------------------
 function makeTheme(mode) {
-  // Jantar a slonovina · sladěno s hlavní aplikací: povrchy téměř neutrální,
-  // teplo žije v jantarovém heru, terakotovém akcentu a espresso inkoustu.
+  // Jantar a slonovina · sladěno s hlavní aplikací.
   if (mode === "light") {
     return {
-      mode,
-      bg: "#F6F3ED",
-      bgSidebar: "#ECE7DE",
-      text: "#211D19",
-      heading: "#302921",
-      textSec: "#4C463F",
-      textMuted: "#8A8076",
-      accent: "#B4551D",
-      sage: "#6E6644",
-      sand: "#96825C",
-      border: "rgba(60,50,40,0.15)",
-      borderSoft: "rgba(60,50,40,0.085)",
-      card: "#FFFEFA",
-      cardHover: "#FFFFFC",
-      callout: "#F3EEE5",
-      tableHead: "#EAE4D9",
-      sheet: "#FFFFFC",
-      sheetHover: "#FFFFFE",
-      activeNav: "rgba(180,85,29,0.10)",
-      overlay: "rgba(25,21,17,0.38)",
+      mode, bg: "#F6F3ED", bgSidebar: "#ECE7DE", text: "#211D19", heading: "#302921",
+      textSec: "#4C463F", textMuted: "#8A8076", accent: "#B4551D", sage: "#6E6644", sand: "#96825C",
+      border: "rgba(60,50,40,0.15)", borderSoft: "rgba(60,50,40,0.085)",
+      card: "#FFFEFA", cardHover: "#FFFFFC", callout: "#F3EEE5", tableHead: "#EAE4D9",
+      sheet: "#FFFFFC", sheetHover: "#FFFFFE", activeNav: "rgba(180,85,29,0.10)", overlay: "rgba(25,21,17,0.38)",
       shadow: "0 0 0 1px rgba(60,50,40,0.04), 0 1px 2px rgba(50,40,30,0.05), 0 10px 26px -14px rgba(50,40,30,0.18)",
       shadowLift: "0 0 0 1px rgba(60,50,40,0.05), 0 2px 5px rgba(50,40,30,0.06), 0 18px 40px -18px rgba(50,40,30,0.24)",
       hero: "linear-gradient(135deg, #E9C29A 0%, #F1DCC2 45%, #F5EADC 78%, #F6F3ED 100%)",
-      heroInk: "#6B4C2A",
-      heroInkSoft: "rgba(107,76,42,0.8)",
-      heroLine: "rgba(107,76,42,0.3)",
+      heroInk: "#6B4C2A", heroInkSoft: "rgba(107,76,42,0.8)", heroLine: "rgba(107,76,42,0.3)",
     };
   }
   return {
-    mode: "dark",
-    bg: "#171412",
-    bgSidebar: "#0F0D0B",
-    text: "#F4F0E9",
-    heading: "#FBF7EF",
-    textSec: "#C6BCAD",
-    textMuted: "#8E8578",
-    accent: "#E09E5A",
-    sage: "#B3A77E",
-    sand: "#D2BE97",
-    border: "rgba(228,214,192,0.14)",
-    borderSoft: "rgba(228,214,192,0.08)",
-    card: "#221F1B",
-    cardHover: "#282420",
-    callout: "#1B1815",
-    tableHead: "#262218",
-    sheet: "#2D2921",
-    sheetHover: "#342F26",
-    activeNav: "rgba(224,158,90,0.13)",
-    overlay: "rgba(6,5,4,0.6)",
+    mode: "dark", bg: "#171412", bgSidebar: "#0F0D0B", text: "#F4F0E9", heading: "#FBF7EF",
+    textSec: "#C6BCAD", textMuted: "#8E8578", accent: "#E09E5A", sage: "#B3A77E", sand: "#D2BE97",
+    border: "rgba(228,214,192,0.14)", borderSoft: "rgba(228,214,192,0.08)",
+    card: "#221F1B", cardHover: "#282420", callout: "#1B1815", tableHead: "#262218",
+    sheet: "#2D2921", sheetHover: "#342F26", activeNav: "rgba(224,158,90,0.13)", overlay: "rgba(6,5,4,0.6)",
     shadow: "0 1px 2px rgba(0,0,0,0.45), 0 4px 10px -4px rgba(0,0,0,0.4), 0 18px 40px -20px rgba(0,0,0,0.65), inset 0 1px 0 rgba(244,240,233,0.05)",
     shadowLift: "0 2px 4px rgba(0,0,0,0.5), 0 8px 18px -8px rgba(0,0,0,0.5), 0 28px 56px -22px rgba(0,0,0,0.72), inset 0 1px 0 rgba(244,240,233,0.07)",
     hero: "linear-gradient(140deg, #57391D 0%, #2E2214 45%, #131010 100%)",
-    heroInk: "#F4F0E9",
-    heroInkSoft: "rgba(244,240,233,0.8)",
-    heroLine: "rgba(224,158,90,0.45)",
+    heroInk: "#F4F0E9", heroInkSoft: "rgba(244,240,233,0.8)", heroLine: "rgba(224,158,90,0.45)",
   };
 }
 
 function makeTags(mode) {
-  // Štítky přeladěné k jantaru a slonovině — šeptají, nekřičí.
   if (mode === "light") {
     return {
-      yellow: { bg: "#EFE6D2", fg: "#7A6540" },
-      purple: { bg: "#EAE1E8", fg: "#64485E" },
-      blue: { bg: "#E0E7E9", fg: "#405963" },
-      red: { bg: "#F0DEDA", fg: "#7A4038" },
-      green: { bg: "#E4E8DC", fg: "#45573F" },
-      orange: { bg: "#F1E3CC", fg: "#8A6224" },
-      gray: { bg: "#EAE7DF", fg: "#625D51" },
-      pink: { bg: "#F1E1E0", fg: "#86545A" },
-      brown: { bg: "#ECE4D8", fg: "#6E5C46" },
-      default: { bg: "#EAE7DF", fg: "#625D51" },
+      yellow: { bg: "#EFE6D2", fg: "#7A6540" }, purple: { bg: "#EAE1E8", fg: "#64485E" },
+      blue: { bg: "#E0E7E9", fg: "#405963" }, red: { bg: "#F0DEDA", fg: "#7A4038" },
+      green: { bg: "#E4E8DC", fg: "#45573F" }, orange: { bg: "#F1E3CC", fg: "#8A6224" },
+      gray: { bg: "#EAE7DF", fg: "#625D51" }, pink: { bg: "#F1E1E0", fg: "#86545A" },
+      brown: { bg: "#ECE4D8", fg: "#6E5C46" }, default: { bg: "#EAE7DF", fg: "#625D51" },
     };
   }
   return {
-    yellow: { bg: "#322B1D", fg: "#D3BE93" },
-    purple: { bg: "#2E2730", fg: "#BCA1B6" },
-    blue: { bg: "#222E31", fg: "#93ADB4" },
-    red: { bg: "#342423", fg: "#CD9A95" },
-    green: { bg: "#232B21", fg: "#A8BC9E" },
-    orange: { bg: "#362D1B", fg: "#D8AC6B" },
-    gray: { bg: "#2A2823", fg: "#B8B0A1" },
-    pink: { bg: "#332628", fg: "#CFA0A5" },
-    brown: { bg: "#2F2921", fg: "#C2AC8D" },
-    default: { bg: "#2A2823", fg: "#B8B0A1" },
+    yellow: { bg: "#322B1D", fg: "#D3BE93" }, purple: { bg: "#2E2730", fg: "#BCA1B6" },
+    blue: { bg: "#222E31", fg: "#93ADB4" }, red: { bg: "#342423", fg: "#CD9A95" },
+    green: { bg: "#232B21", fg: "#A8BC9E" }, orange: { bg: "#362D1B", fg: "#D8AC6B" },
+    gray: { bg: "#2A2823", fg: "#B8B0A1" }, pink: { bg: "#332628", fg: "#CFA0A5" },
+    brown: { bg: "#2F2921", fg: "#C2AC8D" }, default: { bg: "#2A2823", fg: "#B8B0A1" },
   };
 }
 
@@ -805,7 +759,7 @@ function PageDivine({ go }) {
           <LinkPill icon="🔥" label={L("Dnešní —Flow— · Habit Tracker", "Today's —Flow— · Habit Tracker")} onClick={() => go("habit")} />
         </div>
         <div>
-          <div style={subLabel(t)}>{L("Pomodoro · soustředění", "Pomodoro · focus")}</div>
+          <Eyebrow>Pomodoro</Eyebrow>
           <PomodoroTimer />
         </div>
       </div>
@@ -1170,7 +1124,8 @@ function HabitCalendar() {
   const MN = L(["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec"], ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]);
   const pick = (iso) => { st.setSelDate(iso); if (typeof document !== "undefined") { const el = document.getElementById("dayview"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); } };
   return (
-    <div style={{ border: `1px solid ${t.border}`, borderRadius: 12, padding: 16, background: t.card }}>
+    <div className="tm-calwrap" style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: 12, marginTop: 14 }}>
+    <div className="tm-calcard" style={{ border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 16, background: t.card, boxShadow: t.shadow }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{MN[Mo - 1]} {Y}</span>
         <div style={{ display: "flex", gap: 6 }}>
@@ -1199,6 +1154,7 @@ function HabitCalendar() {
         {[0.18, 0.45, 0.7, 1].map((o, i) => <span key={i} style={{ width: 14, height: 14, borderRadius: 4, background: hexA(t.accent, o) }} />)}
         <span style={{ ...subLabel(t), marginBottom: 0 }}>9/9</span>
       </div>
+    </div>
     </div>
   );
 }
@@ -1430,12 +1386,12 @@ function PageHabit({ go }) {
 
       <Divider />
 
-      <div style={{ ...twoCol, alignItems: "start" }}>
-        <div>
+      <div className="tm-praxegrid" style={{ ...twoCol, alignItems: "start" }}>
+        <div className="tm-po-flow" style={{ minWidth: 0 }}>
           <Eyebrow>{L("Dnešní —Flow—", "Today's —Flow—")}</Eyebrow>
           <DayView go={go} />
         </div>
-        <div>
+        <div className="tm-po-cal" style={{ minWidth: 0 }}>
           <Eyebrow>{L("Habit Tracker · kalendář", "Habit Tracker · calendar")}</Eyebrow>
           <HabitCalendar />
         </div>
@@ -1559,7 +1515,7 @@ function Select({ value, onChange, options, placeholder, style, small, ghost }) 
         <span style={{ color: t.textMuted, fontSize: 10, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
       </button>
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: "100%", maxHeight: 280, overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 24px rgba(0,0,0,0.18)", zIndex: 60, padding: 4 }}>
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: "100%", maxWidth: "min(320px, 86vw)", maxHeight: 280, overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 24px rgba(0,0,0,0.18)", zIndex: 60, padding: 4 }}>
           {opts.map((o) => (
             <button key={o.v} type="button" onClick={() => { onChange(o.v); setOpen(false); }} className="tm-nav-item" style={{ display: "block", width: "100%", textAlign: "left", background: o.v === value ? t.card : "transparent", border: "none", cursor: "pointer", color: t.text, fontFamily: FONT_BODY, fontSize: small ? 12.5 : 14, padding: "7px 10px", borderRadius: 6, whiteSpace: "nowrap" }}>{o.label}</button>
           ))}
@@ -2261,103 +2217,363 @@ function PageCover({ cover, icon }) {
 }
 
 // ---- Pomodoro ----
-function pomoChime() {
+// Pomodoro · kategorie soustředění. Univerzální pětice: Práce, Studium,
+// Tvorba (umění i řemeslo), Meditace, Ostatní — pokrývá pracovní den,
+// učení, tvorbu i praxi, a Ostatní chytá zbytek bez přemýšlení.
+const POMO_CATS = [
+  { k: "prace", cz: "Práce", en: "Work" },
+  { k: "studium", cz: "Studium", en: "Study" },
+  { k: "tvorba", cz: "Tvorba", en: "Creation" },
+  { k: "meditace", cz: "Meditace", en: "Meditation" },
+  { k: "ostatni", cz: "Ostatní", en: "Other" },
+];
+const pomoCatLabel = (k) => { const c = POMO_CATS.find((x) => x.k === k); return c ? L(c.cz, c.en) : k; };
+const pomoCatColor = (t, tags, k) => ({ prace: t.accent, studium: (tags.slate || tags.blue).fg, tvorba: (tags.plum || tags.purple).fg, meditace: (tags.moss || tags.green).fg, ostatni: (tags.stone || tags.gray).fg }[k] || t.sand);
+
+function pomoChime(extCtx) {
+  // Déšť · závoj tiše filtrovaného šumu, do kterého spadnou tři měkké kapky
+  // (G4 · C5 · E5) s pomalým náběhem — příroda, ne budík.
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    const t0 = ctx.currentTime;
-    [0, 0.55].forEach((dt) => {
-      const t = t0 + dt;
+    if (!Ctx && !extCtx) return;
+    const ctx = extCtx || new Ctx();
+    const t0 = ctx.currentTime + 0.02;
+    const dur = 2.8;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i2 = 0; i2 < ch.length; i2++) ch[i2] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 850; lp.Q.value = 0.4;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.0001, t0);
+    ng.gain.exponentialRampToValueAtTime(0.045, t0 + 0.6);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(lp); lp.connect(ng); ng.connect(ctx.destination);
+    src.start(t0); src.stop(t0 + dur);
+    [[392.0, 0.2], [523.25, 0.85], [659.25, 1.5]].forEach(([f, dt]) => {
       const o = ctx.createOscillator(); const g = ctx.createGain();
-      const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
-      o.type = "sine"; o.frequency.value = 587;   // D5 — soft gong
-      o2.type = "sine"; o2.frequency.value = 1174; // octave shimmer
-      o.connect(g).connect(ctx.destination);
-      o2.connect(g2).connect(ctx.destination);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
-      g2.gain.setValueAtTime(0.0001, t); g2.gain.exponentialRampToValueAtTime(0.04, t + 0.02); g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
-      o.start(t); o.stop(t + 1.5); o2.start(t); o2.stop(t + 1);
+      o.type = "sine"; o.frequency.value = f;
+      o.connect(g); g.connect(ctx.destination);
+      const ts = t0 + dt;
+      g.gain.setValueAtTime(0.0001, ts);
+      g.gain.exponentialRampToValueAtTime(0.05, ts + 0.1);
+      g.gain.exponentialRampToValueAtTime(0.0001, ts + 1.7);
+      o.start(ts); o.stop(ts + 1.8);
     });
   } catch (e) {}
 }
 
+// ---- Pomodoro · běžec na úrovni modulu. Časovač nepatří stránce, ale domu:
+// přežije přepnutí karty i zavření aplikace (stav žije v localStorage,
+// dokončené bloky čekají ve frontě, než si je Kompas vyzvedne do záznamů).
+let POMO_KEEP = null;
+function pomoKeep(on) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (on) {
+      if (!POMO_KEEP) {
+        const ctx = new Ctx();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = "sine"; o.frequency.value = 30; g.gain.value = 0.001;
+        o.connect(g); g.connect(ctx.destination); o.start();
+        POMO_KEEP = { ctx, o, g };
+      }
+      POMO_KEEP.ctx.resume && POMO_KEEP.ctx.resume();
+    } else if (POMO_KEEP) {
+      try { POMO_KEEP.o.stop(); POMO_KEEP.ctx.close(); } catch (e) {}
+      POMO_KEEP = null;
+    }
+  } catch (e) {}
+}
+const pomoRunLoad = () => { try { return JSON.parse(localStorage.getItem("tmPomoRun") || "null"); } catch (e) { return null; } };
+const pomoRunSave = (rt) => { try { if (rt) localStorage.setItem("tmPomoRun", JSON.stringify(rt)); else localStorage.removeItem("tmPomoRun"); } catch (e) {} };
+const pomoQueueLoad = () => { try { return JSON.parse(localStorage.getItem("tmPomoQueue") || "[]"); } catch (e) { return []; } };
+const pomoQueueSave = (q) => { try { localStorage.setItem("tmPomoQueue", JSON.stringify(q)); } catch (e) {} };
+const pomoIsoOf = (ts) => { const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const POMO_LS = new Set();
+function pomoAdvance() {
+  let rt = pomoRunLoad();
+  if (!rt || !rt.running || !rt.endAt) return;
+  const c = rt.cfg || {};
+  const durMin = (m) => ((m === "focus" ? c.focus : m === "custom" ? (c.custom || 45) : m === "short" ? c.short : c.long) || 25);
+  let guard = 0, chimed = false, changed = false;
+  while (rt.running && rt.endAt && Date.now() >= rt.endAt && guard++ < 60) {
+    changed = true;
+    const focusType = rt.mode === "focus" || rt.mode === "custom";
+    if (!chimed) {
+      chimed = true;
+      try { if (c.sound !== false) pomoChime(POMO_KEEP && POMO_KEEP.ctx); } catch (e) {}
+      try { if (typeof document !== "undefined" && document.hidden && "Notification" in window && Notification.permission === "granted") new Notification("tanmay", { body: focusType ? L("Blok soustředění dokončen.", "Focus block finished.") : L("Pauza skončila.", "The break is over.") }); } catch (e) {}
+    }
+    if (focusType) {
+      const q = pomoQueueLoad();
+      q.unshift({ id: uid(), d: pomoIsoOf(rt.endAt), ts: rt.endAt, min: durMin(rt.mode), cat: rt.cat || "ostatni", note: rt.note || "" });
+      pomoQueueSave(q);
+      const cyc = (rt.cycle || 0) + 1;
+      const nextMode = cyc % (c.every || 4) === 0 ? "long" : "short";
+      rt = { ...rt, cycle: cyc, mode: nextMode, endAt: rt.endAt + durMin(nextMode) * 60000, running: true };
+    } else {
+      rt = { ...rt, mode: "focus", running: false, endAt: null, remaining: durMin("focus") * 60 };
+      pomoKeep(false);
+    }
+  }
+  if (changed) pomoRunSave(rt);
+}
+let POMO_IV = null;
+function pomoEnsureTicker() {
+  if (POMO_IV || typeof window === "undefined") return;
+  POMO_IV = setInterval(() => {
+    pomoAdvance();
+    POMO_LS.forEach((f) => { try { f(); } catch (e) {} });
+    const rt = pomoRunLoad();
+    if ((!rt || !rt.running) && pomoQueueLoad().length === 0) { clearInterval(POMO_IV); POMO_IV = null; }
+  }, 500);
+}
+if (typeof window !== "undefined") { try { const r0 = pomoRunLoad(); if (r0 && r0.running) pomoEnsureTicker(); } catch (e) {} }
+
+// Přehledy soustředění · kolik, kdy a v čem. Čte pomoLog (kategorie, minuty,
+// časy) a skládá donut, čísla, měsíční kalendář a poslední bloky.
+function PomoOverview() {
+  const { t, tags } = useT();
+  const st = useStore();
+  const [per, setPer] = useState("tyden"); // den | tyden | mesic
+  const log = st.coll.pomoLog || [];
+  const today = todayISO();
+  const startISO = (() => {
+    if (per === "den") return today;
+    const d = new Date(today + "T12:00:00");
+    if (per === "tyden") { const w = (d.getDay() + 6) % 7; d.setDate(d.getDate() - w); }
+    else d.setDate(1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const inPer = log.filter((e) => (e.d || "") >= startISO);
+  const total = inPer.reduce((a, e) => a + (e.min || 0), 0);
+  const byCat = POMO_CATS.map((c) => ({ ...c, min: inPer.filter((e) => e.cat === c.k).reduce((a, e) => a + (e.min || 0), 0) })).filter((c) => c.min > 0);
+  const byCatAll = POMO_CATS.map((c) => ({ ...c, min: log.filter((e) => e.cat === c.k).reduce((a, e) => a + (e.min || 0), 0) })).filter((c) => c.min > 0).sort((a, b) => b.min - a.min);
+  const fmtH = (m) => (m >= 60 ? `${Math.floor(m / 60)} h ${m % 60 ? (m % 60) + " m" : ""}`.trim() : `${m} m`);
+  const hhmm = (ts) => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+
+  // donut
+  const R = 46, C = 2 * Math.PI * R;
+  let acc = 0;
+  const segs = byCat.map((c) => { const f = total ? c.min / total : 0; const seg = { c, off: acc, f }; acc += f; return seg; });
+
+  // měsíční kalendář · minuty po dnech
+  const [y, mo] = [Number(today.slice(0, 4)), Number(today.slice(5, 7))];
+  const first = new Date(y, mo - 1, 1);
+  const startW = (first.getDay() + 6) % 7;
+  const ndays = new Date(y, mo, 0).getDate();
+  const dayMin = {};
+  log.forEach((e) => { if ((e.d || "").slice(0, 7) === today.slice(0, 7)) dayMin[e.d] = (dayMin[e.d] || 0) + (e.min || 0); });
+  const cells = []; for (let i = 0; i < startW; i++) cells.push(null); for (let d = 1; d <= ndays; d++) cells.push(d);
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {[["den", L("Dnes", "Today")], ["tyden", L("Týden", "Week")], ["mesic", L("Měsíc", "Month")]].map(([k, lbl]) => (
+          <button key={k} onClick={() => setPer(k)} style={{ background: per === k ? t.card : "transparent", border: `1px solid ${per === k ? t.border : "transparent"}`, borderRadius: 20, padding: "5px 14px", cursor: "pointer", color: per === k ? t.heading : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11, boxShadow: per === k ? t.shadow : "none" }}>{lbl}</button>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap", marginBottom: 18 }}>
+        <svg width="120" height="120" viewBox="0 0 120 120" style={{ flexShrink: 0, transform: "rotate(-90deg)" }}>
+          <circle cx="60" cy="60" r={R} fill="none" stroke={t.borderSoft} strokeWidth="11" />
+          {segs.map((sg, i) => (
+            <circle key={i} cx="60" cy="60" r={R} fill="none" stroke={pomoCatColor(t, tags, sg.c.k)} strokeWidth="11" strokeLinecap="butt"
+              strokeDasharray={`${Math.max(0.001, sg.f) * C} ${C}`} strokeDashoffset={-sg.off * C} style={{ transition: "stroke-dasharray .5s ease" }} />
+          ))}
+        </svg>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, color: t.heading, marginBottom: 8 }}>{fmtH(total)}<span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, marginLeft: 8 }}>{inPer.length} {L("bloků", "blocks")}</span></div>
+          {byCat.length === 0 && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("V tomto období zatím žádné soustředění.", "No focus in this period yet.")}</div>}
+          {byCat.sort((a, b) => b.min - a.min).map((c) => (
+            <div key={c.k} style={{ display: "flex", alignItems: "center", gap: 9, padding: "3px 0" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: pomoCatColor(t, tags, c.k), flexShrink: 0 }} />
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, flex: 1 }}>{L(c.cz, c.en)}</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textSec }}>{fmtH(c.min)}</span>
+              <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.08em", color: t.textMuted, width: 38, textAlign: "right" }}>{total ? Math.round((c.min / total) * 100) : 0} %</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Eyebrow>{L("Tento měsíc", "This month")}</Eyebrow>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, maxWidth: 380, marginBottom: 6 }}>
+        {L(["Po", "Út", "St", "Čt", "Pá", "So", "Ne"], ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]).map((w) => (
+          <div key={w} style={{ textAlign: "center", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 10, color: t.textMuted }}>{w}</div>
+        ))}
+        {cells.map((d, i) => {
+          if (!d) return <div key={i} />;
+          const iso = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+          const m = dayMin[iso] || 0;
+          const o = m ? Math.min(1, 0.3 + m / 120) : 0;
+          return (
+            <div key={i} title={m ? `${iso} · ${fmtH(m)}` : iso} style={{ aspectRatio: "1", borderRadius: 7, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, fontFamily: FONT_BODY, fontSize: 10.5, color: iso === today ? t.heading : t.textMuted, border: iso === today ? `1px solid ${hexA(t.accent, 0.55)}` : `1px solid transparent`, background: t.mode === "light" ? "rgba(0,0,0,0.025)" : "rgba(255,255,255,0.03)" }}>
+              <span>{d}</span>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: m ? hexA(t.accent, o) : "transparent" }} />
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ height: 14 }} />
+      <Eyebrow>{per === "den" ? L("Dnešní bloky", "Today's blocks") : per === "tyden" ? L("Bloky tohoto týdne", "This week's blocks") : L("Bloky tohoto měsíce", "This month's blocks")}</Eyebrow>
+      {inPer.length === 0 && <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("Zatím prázdno — první blok to změní.", "Empty so far — the first block will change that.")}</p>}
+      {(() => {
+        const byTs = [...inPer].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+        const out = []; let lastD = null;
+        byTs.forEach((e) => {
+          if (e.d !== lastD) {
+            lastD = e.d;
+            const dm = byTs.filter((x) => x.d === e.d).reduce((a, x) => a + (x.min || 0), 0);
+            out.push(
+              <div key={"d" + e.d} style={{ display: "flex", alignItems: "center", gap: 10, margin: "12px 0 4px" }}>
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 15.5, color: t.textSec }}>{e.d === today ? L("Dnes", "Today") : (e.d || "").slice(8) + ". " + (e.d || "").slice(5, 7) + "."}</span>
+                <span style={{ flex: 1, height: 1, background: t.borderSoft }} />
+                <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 10, color: t.textMuted }}>{fmtH(dm)}</span>
+              </div>
+            );
+          }
+          out.push(
+            <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "4px 0" }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, width: 42, flexShrink: 0 }}>{e.ts ? hhmm(e.ts) : ""}</span>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: pomoCatColor(t, tags, e.cat), flexShrink: 0 }} />
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text, flexShrink: 0 }}>{pomoCatLabel(e.cat)}</span>
+              {e.note ? <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textSec, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {e.note}</span> : <span style={{ flex: 1 }} />}
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.sand, flexShrink: 0 }}>{e.min} m</span>
+            </div>
+          );
+        });
+        return out;
+      })()}
+
+      <div style={{ height: 18 }} />
+      <Eyebrow>{L("Celkem · od začátku", "All time · in numbers")}</Eyebrow>
+      {(() => {
+        const allMin = log.reduce((a, e) => a + (e.min || 0), 0);
+        const days = new Set(log.map((e) => e.d)).size;
+        return (
+          <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, boxShadow: t.shadow, padding: "12px 14px" }}>
+            <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginBottom: byCatAll.length ? 10 : 0 }}>
+              <span><span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{fmtH(allMin)}</span> <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>{L("soustředění", "of focus")}</span></span>
+              <span><span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{log.length}</span> <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>{L("bloků", "blocks")}</span></span>
+              <span><span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{days}</span> <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>{L("dní", "days")}</span></span>
+            </div>
+            {byCatAll.map((c) => (
+              <div key={c.k} style={{ display: "flex", alignItems: "center", gap: 9, padding: "2px 0" }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: pomoCatColor(t, tags, c.k), flexShrink: 0 }} />
+                <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text, flex: 1 }}>{L(c.cz, c.en)}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textSec }}>{fmtH(c.min)}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 function PomodoroTimer() {
-  const { t } = useT();
+  const { t, tags } = useT();
   const st = useStore();
   const cfg = st.pomoSettings();
-  const stats = st.pomoStats();
-  const [mode, setMode] = useState("focus");      // focus | short | long
-  const [running, setRunning] = useState(false);
-  const [endAt, setEndAt] = useState(null);       // timestamp
-  const [remaining, setRemaining] = useState(cfg.focus * 60); // seconds (when paused)
-  const [cycle, setCycle] = useState(0);          // completed focus sessions in current cycle
+  const [rtv, setRtv] = useState(() => (typeof window !== "undefined" ? pomoRunLoad() : null));
   const [cfgOpen, setCfgOpen] = useState(false);
-  const [, forceTick] = useState(0);
+  const [pickOpen, setPickOpen] = useState(false); // výběr kategorie před startem
+  const [ovOpen, setOvOpen] = useState(false);     // přehledy
+  const [fs, setFs] = useState(false);             // celá obrazovka
 
-  const durOf = (m) => (m === "focus" ? cfg.focus : m === "short" ? cfg.short : cfg.long) * 60;
-  const secsLeft = running && endAt ? Math.max(0, Math.round((endAt - Date.now()) / 1000)) : remaining;
+  const isFocusMode = (m) => m === "focus" || m === "custom";
+  const durOf = (m) => (m === "focus" ? cfg.focus : m === "custom" ? (cfg.custom || 45) : m === "short" ? cfg.short : cfg.long) * 60;
+  const snap = () => ({ focus: cfg.focus, short: cfg.short, long: cfg.long, custom: cfg.custom || 45, every: cfg.every, sound: cfg.sound });
+  const defRt = () => ({ mode: "focus", running: false, endAt: null, remaining: durOf("focus"), cycle: 0, cat: null, note: "", cfg: snap() });
+  const rt = rtv || defRt();
+  const mode = rt.mode || "focus";
+  const running = !!rt.running;
+  const cycle = rt.cycle || 0;
+  const cat = rt.cat || null;
+  const note = rt.note || "";
+  const patchRt = (px) => { const nx = { ...(pomoRunLoad() || defRt()), ...px }; pomoRunSave(nx); setRtv(nx); };
+  const setNote = (v) => patchRt({ note: v });
+
+  const secsLeft = running && rt.endAt ? Math.max(0, Math.round((rt.endAt - Date.now()) / 1000)) : (rt.remaining != null ? rt.remaining : durOf(mode));
   const total = durOf(mode);
-  const p = 1 - secsLeft / total;
+  const p = 1 - secsLeft / Math.max(1, total);
 
+  // Dům běží i bez této stránky — komponenta jen poslouchá modulového běžce.
   React.useEffect(() => {
-    if (!running) return;
-    const iv = setInterval(() => {
-      const left = Math.max(0, Math.round((endAt - Date.now()) / 1000));
-      if (left <= 0) {
-        clearInterval(iv);
-        if (cfg.sound) pomoChime();
-        if (mode === "focus") {
-          st.addPomoTree();
-          const nextCycle = cycle + 1;
-          setCycle(nextCycle);
-          const nextMode = nextCycle % cfg.every === 0 ? "long" : "short";
-          setMode(nextMode);
-          setEndAt(Date.now() + durOf(nextMode) * 1000);
-          setRunning(true); // break starts automatically
-        } else {
-          setMode("focus");
-          setRemaining(cfg.focus * 60);
-          setRunning(false); // next focus starts by hand
-          setEndAt(null);
-        }
-      } else {
-        forceTick((x) => x + 1);
-      }
-    }, 500);
-    return () => clearInterval(iv);
-  }, [running, endAt, mode, cycle, cfg.sound, cfg.every, cfg.focus, cfg.short, cfg.long]);
+    const f = () => setRtv(pomoRunLoad());
+    POMO_LS.add(f);
+    pomoEnsureTicker();
+    const vis = () => { pomoAdvance(); setRtv(pomoRunLoad()); };
+    document.addEventListener("visibilitychange", vis);
+    return () => { POMO_LS.delete(f); document.removeEventListener("visibilitychange", vis); };
+  }, []);
+  // Dokončené bloky z fronty běžce → do záznamů (i ty dokončené jinde/po zavření).
+  React.useEffect(() => {
+    const q = pomoQueueLoad();
+    if (!q.length) return;
+    pomoQueueSave([]);
+    q.reverse().forEach((e) => { st.addEntry("pomoLog", e); st.addPomoTree(); });
+  });
 
-  const start = () => { setEndAt(Date.now() + secsLeft * 1000); setRunning(true); };
-  const pause = () => { setRemaining(secsLeft); setRunning(false); setEndAt(null); };
-  const reset = (m) => { const mm = m || mode; setMode(mm); setRunning(false); setEndAt(null); setRemaining(durOf(mm)); };
+  const beginRun = (extra) => {
+    pomoKeep(true);
+    try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {}); } catch (e) {}
+    patchRt({ ...(extra || {}), running: true, endAt: Date.now() + secsLeft * 1000, cfg: snap() });
+    pomoEnsureTicker();
+  };
+  const start = () => { if (isFocusMode(mode) && !cat) { setPickOpen(true); return; } beginRun(); };
+  const pickCat = (k) => { setPickOpen(false); beginRun({ cat: k }); };
+  const pause = () => { patchRt({ running: false, remaining: secsLeft, endAt: null }); pomoKeep(false); };
+  const reset = (m) => { const mmx = m || mode; patchRt({ mode: mmx, running: false, endAt: null, remaining: durOf(mmx) }); pomoKeep(false); };
   const giveUp = () => st.ask(L("Přerušit soustředění? Tento blok se nezapočítá.", "Interrupt focus? This block won't count."), () => reset("focus"));
 
   const mm = String(Math.floor(secsLeft / 60)).padStart(2, "0");
   const ss = String(secsLeft % 60).padStart(2, "0");
   const bg = cfg.bg || POMO_BG;
-  const MODES = [["focus", "Focus"], ["short", "Short"], ["long", "Long"]];
-  const todayN = (stats.days || {})[todayISO()] || 0;
+  const MODES = [["focus", "Focus"], ["short", "Short"], ["long", "Long"], ["custom", L("Vlastní", "Custom")]];
 
   const onPickPhoto = async (file) => {
     if (!file) return;
     if (file.size > 1.5 * 1024 * 1024) { st.ask(L(`Fotka je moc velká (${fmtSize(file.size)}). Limit 1,5 MB — localStorage.`, `The photo is too large (${fmtSize(file.size)}). Limit 1.5 MB — localStorage.`), null); return; }
     try { const att = await readFileAsAtt(file); st.setPomoSettings({ bg: attUrl(att) }); } catch (e) {}
   };
-  const numField = (label, key, min, max) => (
+  const numField = (label, key, min, max) => { const val = cfg[key] != null ? cfg[key] : (key === "custom" ? 45 : 0); return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "7px 0" }}>
       <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec }}>{label}</span>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-        <button onClick={() => st.setPomoSettings({ [key]: Math.max(min, cfg[key] - (key === "every" ? 1 : 5)) })} style={{ ...iconBtn(t), width: 24, height: 24 }}>−</button>
-        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading, minWidth: 44, textAlign: "center" }}>{cfg[key]}{key === "every" ? "×" : " m"}</span>
-        <button onClick={() => st.setPomoSettings({ [key]: Math.min(max, cfg[key] + (key === "every" ? 1 : 5)) })} style={{ ...iconBtn(t), width: 24, height: 24 }}>＋</button>
+        <button onClick={() => st.setPomoSettings({ [key]: Math.max(min, val - (key === "every" ? 1 : 5)) })} style={{ ...iconBtn(t), width: 24, height: 24 }}>−</button>
+        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading, minWidth: 44, textAlign: "center" }}>{val}{key === "every" ? "×" : " m"}</span>
+        <button onClick={() => st.setPomoSettings({ [key]: Math.min(max, val + (key === "every" ? 1 : 5)) })} style={{ ...iconBtn(t), width: 24, height: 24 }}>＋</button>
       </span>
+    </div>
+  ); };
+
+  // Výběr kategorie · překryje ciferník, klepnutí na kategorii rovnou spouští
+  const renderPicker = () => (
+    <div style={{ position: "absolute", inset: 0, zIndex: 5, background: "rgba(16,14,12,0.86)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 18, animation: "tmDim .2s ease both" }} onClick={() => setPickOpen(false)}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, textAlign: "center" }}>
+        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 11, color: "rgba(244,240,235,0.7)", marginBottom: 10 }}>{L("Na co se soustředíš?", "What are you focusing on?")}</div>
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={L("konkrétně… (nepovinné)", "specifically… (optional)")} style={{ width: "100%", boxSizing: "border-box", background: "rgba(244,240,235,0.08)", border: "1px solid rgba(244,240,235,0.25)", borderRadius: 10, padding: "9px 12px", color: "#F4F0EB", fontFamily: FONT_BODY, fontSize: 13.5, outline: "none", textAlign: "center", marginBottom: 12 }} />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+          {POMO_CATS.map((c) => (
+            <button key={c.k} onClick={() => pickCat(c.k)} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: cat === c.k ? "rgba(244,240,235,0.16)" : "rgba(244,240,235,0.07)", border: `1px solid ${cat === c.k ? "rgba(244,240,235,0.6)" : "rgba(244,240,235,0.28)"}`, borderRadius: 999, padding: "9px 16px", cursor: "pointer", color: "#F4F0EB", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11.5 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: pomoCatColor(t, tags, c.k) }} />
+              {L(c.cz, c.en)}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => setPickOpen(false)} style={{ marginTop: 14, background: "transparent", border: "none", cursor: "pointer", color: "rgba(244,240,235,0.55)", fontFamily: FONT_BODY, fontSize: 12.5 }}>{L("zpět", "back")}</button>
+      </div>
     </div>
   );
 
   return (
     <div>
       <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", border: `1px solid ${t.border}` }}>
+        {pickOpen && !fs && renderPicker()}
         <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(20,22,18,0.35) 0%, rgba(20,22,18,0.72) 100%)" }} />
         <div style={{ position: "relative", padding: "18px 18px 14px", textAlign: "center" }}>
@@ -2367,23 +2583,32 @@ function PomodoroTimer() {
                 <button key={k} onClick={() => reset(k)} style={{ background: mode === k ? "rgba(244,240,235,0.14)" : "transparent", border: "none", borderRadius: 12, padding: "3px 10px", cursor: "pointer", color: mode === k ? "#F4F0EB" : "rgba(244,240,235,0.55)", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5 }}>{label}</button>
               ))}
             </div>
-            <button title={L("Nastavení", "Settings")} onClick={() => setCfgOpen(true)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(244,240,235,0.7)", fontSize: 15, padding: 2 }}>⚙</button>
+            <span style={{ display: "inline-flex", gap: 10, alignItems: "center" }}>
+              <button title={L("Na celou obrazovku", "Fullscreen")} onClick={() => setFs(true)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(244,240,235,0.75)", padding: 2, display: "inline-flex" }}><ArrowOutIcon size={15} /></button>
+              <button title={L("Nastavení", "Settings")} onClick={() => setCfgOpen(true)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(244,240,235,0.75)", padding: 2, display: "inline-flex" }}><TmIcNastaveni size={16} /></button>
+            </span>
           </div>
           <div style={{ padding: "10px 0 4px" }}>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 58, fontWeight: 300, color: "#F4F0EB", lineHeight: 1, letterSpacing: "0.02em" }}>{mm}:{ss}</div>
             <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10, color: "rgba(244,240,235,0.6)", marginTop: 8 }}>
-              {mode === "focus" ? L("Soustředění", "Focus") : mode === "short" ? L("Krátká pauza", "Short break") : L("Dlouhá pauza", "Long break")} · {cycle % cfg.every}/{cfg.every}
+              {mode === "focus" || mode === "custom" ? L("Soustředění", "Focus") : mode === "short" ? L("Krátká pauza", "Short break") : L("Dlouhá pauza", "Long break")} · {cycle % cfg.every}/{cfg.every}
             </div>
           </div>
+          {isFocusMode(mode) && cat && (
+            <button onClick={() => setPickOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(20,22,18,0.4)", border: "1px solid rgba(244,240,235,0.28)", borderRadius: 999, padding: "3px 11px", cursor: "pointer", color: "#F4F0EB", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, marginTop: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: pomoCatColor(t, tags, cat) }} />
+              {pomoCatLabel(cat)}{note.trim() ? " · " + note.trim() : ""}
+            </button>
+          )}
           <div style={{ height: 3, background: "rgba(244,240,235,0.15)", borderRadius: 2, margin: "12px 0", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.round(p * 100)}%`, background: "#B87333", transition: "width .5s linear" }} />
+            <div style={{ height: "100%", width: `${Math.round(p * 100)}%`, background: "var(--tm-accent, #B87333)", transition: "width .5s linear" }} />
           </div>
           <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
             {!running ? (
-              <button onClick={start} style={{ background: "#B87333", color: "#1C1C1A", border: "none", borderRadius: 20, padding: "8px 26px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12 }}>▶ Start</button>
+              <button onClick={start} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", color: "#F4F0EB", border: "1px solid rgba(244,240,235,0.5)", borderRadius: 20, padding: "8px 24px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12 }}><span style={{ fontSize: 11, lineHeight: 1 }}>▶</span> Start</button>
             ) : (
               <>
-                <button onClick={pause} style={{ background: "rgba(244,240,235,0.14)", color: "#F4F0EB", border: "none", borderRadius: 20, padding: "8px 22px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12 }}>‖ Pauza</button>
+                <button onClick={pause} style={{ background: "transparent", color: "#F4F0EB", border: "1px solid rgba(244,240,235,0.4)", borderRadius: 20, padding: "8px 22px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12 }}>‖ Pauza</button>
                 {mode === "focus" && <button onClick={giveUp} style={{ background: "transparent", color: "rgba(244,240,235,0.55)", border: "1px solid rgba(244,240,235,0.25)", borderRadius: 20, padding: "8px 16px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12 }}>{L("Vzdát", "Give up")}</button>}
               </>
             )}
@@ -2391,18 +2616,63 @@ function PomodoroTimer() {
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage }}>{L("Dokončené bloky", "Completed blocks")}</span>
+      <button onClick={() => setOvOpen(true)} style={{ ...subLabel(t), marginBottom: 0, marginTop: 12, display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
         <span style={{ width: 5, height: 5, borderRadius: "50%", background: t.accent, display: "inline-block" }} />
-        <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textSec }}>dnes {todayN}</span>
-        <span style={{ marginLeft: "auto", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>celkem {stats.total || 0}</span>
-      </div>
+        {L("Přehledy", "Overview")}
+      </button>
+
+      {fs && createPortal(
+        <div style={{ position: "fixed", inset: 0, zIndex: 120, background: "#100E0C" }}>
+          <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(20,22,18,0.4) 0%, rgba(20,22,18,0.78) 100%)" }} />
+          {pickOpen && renderPicker()}
+          <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "calc(20px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom))", textAlign: "center" }}>
+            <button onClick={() => setFs(false)} title="Esc" style={{ position: "absolute", top: "calc(16px + env(safe-area-inset-top))", right: 18, background: "rgba(244,240,235,0.1)", border: "1px solid rgba(244,240,235,0.3)", borderRadius: 999, width: 34, height: 34, cursor: "pointer", color: "#F4F0EB", fontSize: 16, lineHeight: 1 }}>×</button>
+            <div style={{ display: "flex", gap: 6, marginBottom: 26 }}>
+              {MODES.map(([k, label]) => (
+                <button key={k} onClick={() => reset(k)} style={{ background: mode === k ? "rgba(244,240,235,0.14)" : "transparent", border: "none", borderRadius: 12, padding: "4px 12px", cursor: "pointer", color: mode === k ? "#F4F0EB" : "rgba(244,240,235,0.55)", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11.5 }}>{label}</button>
+              ))}
+            </div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: "clamp(88px, 24vw, 150px)", color: "#F4F0EB", lineHeight: 1, letterSpacing: "0.02em" }}>{mm}:{ss}</div>
+            <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 11.5, color: "rgba(244,240,235,0.65)", marginTop: 14 }}>
+              {mode === "focus" || mode === "custom" ? L("Soustředění", "Focus") : mode === "short" ? L("Krátká pauza", "Short break") : L("Dlouhá pauza", "Long break")} · {cycle % cfg.every}/{cfg.every}
+            </div>
+            {isFocusMode(mode) && cat && (
+              <button onClick={() => setPickOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(20,22,18,0.4)", border: "1px solid rgba(244,240,235,0.28)", borderRadius: 999, padding: "4px 13px", cursor: "pointer", color: "#F4F0EB", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, marginTop: 12 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: pomoCatColor(t, tags, cat) }} />
+                {pomoCatLabel(cat)}{note.trim() ? " · " + note.trim() : ""}
+              </button>
+            )}
+            <div style={{ width: "min(420px, 78vw)", height: 3, background: "rgba(244,240,235,0.15)", borderRadius: 2, margin: "26px 0", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.round(p * 100)}%`, background: "var(--tm-accent, #B87333)", transition: "width .5s linear" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 12 }}>
+              {!running ? (
+                <button onClick={start} style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "transparent", color: "#F4F0EB", border: "1px solid rgba(244,240,235,0.5)", borderRadius: 22, padding: "11px 32px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 13 }}><span style={{ fontSize: 12, lineHeight: 1 }}>▶</span> Start</button>
+              ) : (
+                <>
+                  <button onClick={pause} style={{ background: "transparent", color: "#F4F0EB", border: "1px solid rgba(244,240,235,0.4)", borderRadius: 22, padding: "11px 28px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 13 }}>‖ Pauza</button>
+                  {isFocusMode(mode) && <button onClick={giveUp} style={{ background: "transparent", color: "rgba(244,240,235,0.55)", border: "1px solid rgba(244,240,235,0.25)", borderRadius: 22, padding: "11px 20px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 13 }}>{L("Vzdát", "Give up")}</button>}
+                </>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {ovOpen && (
+        <CenterSheet center title={L("Soustředění · přehledy", "Focus · overview")} onClose={() => setOvOpen(false)}>
+          <PomoOverview />
+        </CenterSheet>
+      )}
 
       <Drawer open={cfgOpen} onClose={() => setCfgOpen(false)}>
         <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 500, color: t.heading, margin: "0 0 14px" }}>{L("Pomodoro · nastavení", "Pomodoro · settings")}</h2>
         {numField(L("Soustředění", "Focus"), "focus", 5, 120)}
         {numField(L("Krátká pauza", "Short break"), "short", 5, 30)}
         {numField(L("Dlouhá pauza", "Long break"), "long", 10, 60)}
+        {numField(L("Vlastní blok", "Custom block"), "custom", 15, 180)}
         {numField(L("Dlouhá pauza po", "Long break after"), "every", 2, 8)}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderTop: `1px solid ${t.borderSoft}`, marginTop: 8 }}>
           <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec }}>{L("Zvukové upozornění", "Sound alert")}</span>
@@ -2425,7 +2695,6 @@ function PomodoroTimer() {
   );
 }
 
-// buffered name field — rename migration runs on commit, not per keystroke
 function AreaTileName({ name, onCommit }) {
   const { t } = useT();
   const [v, setV] = useState(name);
@@ -2801,8 +3070,7 @@ function ContentRow({ e, cols, last, onOpen, noDrag }) {
   const dragging = useHoldReorder(rootRef, e.id, "data-cid", onOverRef, disRef);
   return (
     <div
-      ref={rootRef}
-      data-cid={e.id}
+      ref={rootRef} data-cid={e.id}
       draggable={!noDrag}
       onDragStart={!noDrag ? (ev) => { ev.dataTransfer.setData("text/plain", "cid:" + e.id); ev.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragOver={(ev) => ev.preventDefault()}
@@ -2846,6 +3114,9 @@ function PageContent() {
   const [adding, setAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newType, setNewType] = useState("Book");
+  const [q, setQ] = useState("");
+  const [qOpen, setQOpen] = useState(false);
+  const [fOpen, setFOpen] = useState(false);
   React.useEffect(() => {
     if (!sel) return;
     const h = (e) => { if (e.key === "Escape") setSel(null); };
@@ -2853,7 +3124,7 @@ function PageContent() {
     return () => window.removeEventListener("keydown", h);
   }, [sel]);
 
-  const TABS = ["Vše", ...C_TYPES, "Archiv"];
+  const TABS = ["Vše", ...C_TYPES];
   const live = all.filter((e) => !e.archive);
   let shown = view === "Archiv" ? all.filter((e) => e.archive) : view === "Vše" ? live : live.filter((e) => e.type === view);
   if (fProg !== "Vše") shown = shown.filter((e) => e.progress === fProg);
@@ -2864,6 +3135,7 @@ function PageContent() {
     cat: (a, b) => (a.category || "").localeCompare(b.category || "") || (+(b.score || -1)) - (+(a.score || -1)),
   };
   if (sortBy !== "manual") shown = [...shown].sort(sorters[sortBy] || sorters.score);
+  if (q.trim()) { const needle = q.trim().toLowerCase(); shown = shown.filter((e) => ((e.title || "") + " " + (e.author || "")).toLowerCase().includes(needle)); }
   if (offlineOnly) shown = shown.filter((e) => isEntryPinned(e.id));
   const counts = { "Vše": live.length, "Archiv": all.length - live.length };
   C_TYPES.forEach((x) => { counts[x] = live.filter((e) => e.type === x).length; });
@@ -2893,16 +3165,28 @@ function PageContent() {
       <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><BookIcon size={34} /></span>} pageKey="content" kicker="What to remember">Content insides list</PageTitle>
       <p style={pProse(t)}>{all.length} {L("titulů · knihy, filmy, podcasty.", "titles · books, films, podcasts.")}{st.editMode && <span style={{ color: t.textMuted }}>{L(" Klik otevře detail · podrž a přetáhni ve vlastním pořadí · progress přepneš přímo v řádku.", " Click opens the detail · hold and drag in custom order · toggle progress right in the row.")}</span>}</p>
 
-      <div style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
+      <div className="tm-typerow" style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
         {TABS.map((v) => (
           <button key={v} onClick={() => setView(v)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "8px 10px 9px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 11.5, color: view === v ? t.accent : t.textMuted, borderBottom: view === v ? `2px solid ${t.accent}` : "2px solid transparent", marginBottom: -1 }}>
             {LV(v)}<span style={{ marginLeft: 5, opacity: 0.6, fontSize: 10 }}>{counts[v] || 0}</span>
           </button>
         ))}
         <span style={{ flex: 1 }} />
+        <span className="tm-deskonly" style={{ display: "inline-flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${q ? t.accent : t.borderSoft}`, marginRight: 4, flexShrink: 0 }}><span style={{ color: t.textMuted, display: "inline-flex" }}><TmIcLupa size={13} /></span><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13, outline: "none", padding: "4px 2px", width: 120 }} /></span>
+        <button className="tm-monly" onClick={() => setQOpen((x) => !x)} title={L("Hledat", "Search")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: qOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: qOpen ? t.accent : t.textMuted }}><TmIcLupa size={15} /></button>
+        <button className="tm-monly" onClick={() => setFOpen((x) => !x)} title={L("Filtry a řazení", "Filters and sorting")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: fOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: fOpen ? t.accent : t.textMuted, fontSize: 13 }}>▾</button>
+      </div>
+      {qOpen && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${q ? t.accent : t.borderSoft}`, margin: "0 0 12px", paddingBottom: 6 }}>
+          <span style={{ color: t.textMuted, display: "inline-flex" }}><TmIcLupa size={13} /></span>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat v knihovně…", "Search the library…")} style={{ flex: 1, background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, outline: "none", padding: "4px 2px" }} />
+        </div>
+      )}
+      <div className={"tm-cfilters" + (fOpen ? " open" : "")} style={{ display: "flex", gap: 8, alignItems: "center", margin: "0 0 12px", flexWrap: "wrap" }}>
         <Select ghost value={fProg} onChange={setFProg} style={{ width: "auto" }} options={[{ v: "Vše", label: L("progress: vše", "progress: all") }, ...C_PROGRESS.map((p) => ({ v: p, label: p.toLowerCase() }))]} />
-        <button onClick={() => setOfflineOnly((x) => !x)} title={L("Zobrazit jen offline uložené", "Show only offline-saved")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: offlineOnly ? hexA("#B87333", 0.12) : "transparent", border: `1px solid ${offlineOnly ? t.accent : "transparent"}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: offlineOnly ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: offlineOnly ? t.accent : t.textMuted, flexShrink: 0 }} />offline</button>
         <Select ghost value={sortBy} onChange={setSortBy} style={{ width: "auto" }} options={[{ v: "manual", label: L("vlastní pořadí", "custom order") }, { v: "score", label: L("skóre", "score") }, { v: "dateDesc", label: L("nejnovější", "newest") }, { v: "cat", label: L("žánr", "genre") }, { v: "name", label: "A–Z" }]} />
+        <button onClick={() => setOfflineOnly((x) => !x)} title={L("Zobrazit jen offline uložené", "Show only offline-saved")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: offlineOnly ? hexA("#B87333", 0.12) : "transparent", border: `1px solid ${offlineOnly ? t.accent : "transparent"}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: offlineOnly ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: offlineOnly ? t.accent : t.textMuted, flexShrink: 0 }} />offline</button>
+        <button onClick={() => setView(view === "Archiv" ? "Vše" : "Archiv")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: view === "Archiv" ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${view === "Archiv" ? t.accent : "transparent"}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: view === "Archiv" ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}>{LV("Archiv")} {counts["Archiv"] || 0}</button>
       </div>
 
       {adding ? (
@@ -3113,8 +3397,12 @@ function PageNotebook() {
   const [offlineOnly, setOfflineOnly] = useState(false);
   const [sortBy, setSortBy] = useState("manual");
   const [full, setFull] = useState(null);
+  const [q, setQ] = useState("");
+  const [qOpen, setQOpen] = useState(false);
+  const [fOpen, setFOpen] = useState(false);
 
   let shown = view === "Vše" ? all : all.filter((e) => e.tag === view);
+  if (q.trim()) { const needle = q.trim().toLowerCase(); shown = shown.filter((e) => ((e.title || "") + " " + (e.text || "")).toLowerCase().includes(needle)); }
   if (sortBy === "dateDesc") shown = [...shown].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   if (sortBy === "dateAsc") shown = [...shown].sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999"));
   shown = [...shown.filter((e) => e.star), ...shown.filter((e) => !e.star)];
@@ -3155,18 +3443,36 @@ function PageNotebook() {
         {quick.trim() && <button onClick={saveQuick} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "5px 13px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12.5 }}>{L("Uložit", "Save")}</button>}
       </div>
 
-      <div style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
+      <div className="tm-typerow" style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
         {["Vše", ...tags.map(([n]) => n)].map((v) => (
           <button key={v} onClick={() => setView(v)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "8px 10px 9px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 11.5, color: view === v ? t.accent : t.textMuted, borderBottom: view === v ? `2px solid ${t.accent}` : "2px solid transparent", marginBottom: -1 }}>
             {LV(v)}<span style={{ marginLeft: 5, opacity: 0.6, fontSize: 10 }}>{counts[v] || 0}</span>
           </button>
         ))}
         <span style={{ flex: 1 }} />
+        <button className="tm-monly" onClick={() => setQOpen((x) => !x)} title={L("Hledat", "Search")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: qOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: qOpen ? t.accent : t.textMuted }}><TmIcLupa size={15} /></button>
+        <button className="tm-monly" onClick={() => setFOpen((x) => !x)} title={L("Filtry a řazení", "Filters and sorting")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: fOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: fOpen ? t.accent : t.textMuted, fontSize: 13 }}>▾</button>
+        <span className="tm-deskonly" style={{ display: "contents" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${q ? t.accent : t.borderSoft}`, marginRight: 4 }}><span style={{ color: t.textMuted, display: "inline-flex" }}><TmIcLupa size={13} /></span><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13, outline: "none", padding: "4px 2px", width: 110 }} /></span>
         <button onClick={() => setOfflineOnly((x) => !x)} title={L("Zobrazit jen offline uložené", "Show only offline-saved")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: offlineOnly ? hexA("#B87333", 0.12) : "transparent", border: `1px solid ${offlineOnly ? t.accent : "transparent"}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: offlineOnly ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: offlineOnly ? t.accent : t.textMuted, flexShrink: 0 }} />offline</button>
         <Select ghost value={sortBy} onChange={setSortBy} style={{ width: "auto" }} options={[{ v: "manual", label: L("vlastní pořadí", "custom order") }, { v: "dateDesc", label: L("nejnovější", "newest") }, { v: "dateAsc", label: L("nejstarší", "oldest") }]} />
+        </span>
         <button title="Spravovat kategorie" onClick={() => setManaging((x) => !x)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 14, padding: "4px 8px" }}>⋯</button>
         {st.editMode && <button onClick={() => selecting ? exitSelect() : setSelecting(true)} style={{ background: selecting ? t.activeNav : "transparent", border: `1px solid ${selecting ? t.accent : t.border}`, borderRadius: 14, padding: "3px 12px", cursor: "pointer", color: selecting ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, marginLeft: 6 }}>{selecting ? L("Zrušit výběr", "Cancel selection") : L("☑ Vybrat", "☑ Select")}</button>}
       </div>
+
+      {qOpen && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${q ? t.accent : t.borderSoft}`, margin: "0 0 12px", paddingBottom: 6 }}>
+          <span style={{ color: t.textMuted, display: "inline-flex" }}><TmIcLupa size={13} /></span>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat v zápisníku…", "Search the notebook…")} style={{ flex: 1, background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, outline: "none", padding: "4px 2px" }} />
+        </div>
+      )}
+      {fOpen && (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, margin: "0 0 12px" }}>
+          <button onClick={() => setOfflineOnly((x) => !x)} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: offlineOnly ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${offlineOnly ? t.accent : t.borderSoft}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: offlineOnly ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: offlineOnly ? t.accent : t.textMuted, flexShrink: 0 }} />offline</button>
+          <Select ghost value={sortBy} onChange={setSortBy} style={{ width: "auto" }} options={[{ v: "manual", label: L("vlastní pořadí", "custom order") }, { v: "dateDesc", label: L("nejnovější", "newest") }, { v: "dateAsc", label: L("nejstarší", "oldest") }]} />
+        </div>
+      )}
 
       {managing && <NbTagManager onDone={() => setManaging(false)} ops={{ list: tags, add: st.addNbTag, rename: st.renameNbTag, reorder: st.reorderNbTag, remove: st.removeNbTag, protectedName: "Notes", attr: "data-nbtag" }} />}
       {!selecting && <AddEntry kind="notebook" tags={tags} label={L("Nová poznámka", "New note")} />}
@@ -4659,6 +4965,72 @@ function InviteGate() {
   );
 }
 
+function TmIcLupa({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="m15.2 15.2 4.8 4.8" />
+    </svg>
+  );
+}
+
+function TmIcSlunce({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4.1" />
+      <path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6" />
+    </svg>
+  );
+}
+
+function TmIcMesic({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 14.6A8.6 8.6 0 0 1 9.4 4a8.6 8.6 0 1 0 10.6 10.6Z" />
+    </svg>
+  );
+}
+
+function TmIcNastaveni({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 8h4.3M12.7 8H20" /><circle cx="10.5" cy="8" r="2.2" />
+      <path d="M4 16h7.3M15.7 16H20" /><circle cx="13.5" cy="16" r="2.2" />
+    </svg>
+  );
+}
+
+function CenterSheet({ title, onClose, children, center }) {
+  const { t } = useT();
+  React.useEffect(() => {
+    const h = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", h); document.body.style.overflow = prev; };
+  }, [onClose]);
+  return createPortal(
+    <div onClick={onClose} className={center ? undefined : "tm-cs-veil"} style={{ position: "fixed", inset: 0, zIndex: 300, background: t.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: "4vh 16px", animation: "tmfade .25s ease both" }}>
+      <div onClick={(e) => e.stopPropagation()} className={center ? undefined : "tm-centersheet"} style={{ width: "min(680px, 96vw)", maxHeight: "min(88vh, 900px)", overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 18, boxShadow: t.shadowLift, padding: "20px clamp(16px, 3vw, 28px) 28px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
+          <button onClick={onClose} title="Esc" style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 30, height: 30, flexShrink: 0, cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1 }}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function TmIcSdileni({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9.2" cy="12" r="5.6" />
+      <circle cx="14.8" cy="12" r="5.6" />
+    </svg>
+  );
+}
+
 function TmIcPruvodce({ size = 15 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -4668,165 +5040,40 @@ function TmIcPruvodce({ size = 15 }) {
   );
 }
 
-function TmIcSdileni({ size = 15 }) {
-  // dva kruhy, které se protínají · sdílí se jen průnik, který sám zapneš
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="9.2" cy="12" r="5.6" />
-      <circle cx="14.8" cy="12" r="5.6" />
-    </svg>
-  );
-}
-
-// ---- PRŮVODCE · klientská edice. Otevře se sám hned po prvním sestavení domu,
-// pak kdykoli přes ? v levém sloupci. Kroky se skládají jen ze zapnutých modulů.
 function TmGuide({ enabled, name, onClose }) {
   const { t } = useT();
   const [gi, setGi] = useState(0);
   const isM = typeof window !== "undefined" && (window.matchMedia ? window.matchMedia("(max-width: 820px)").matches : window.innerWidth <= 820);
   const has = (k) => !enabled || enabled.length === 0 || enabled.indexOf(k) !== -1;
   const bx = (extra) => ({ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 8, boxShadow: t.shadow, ...extra });
-  const VisRooms = (
-    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", justifyContent: "center" }}>
-      <div style={bx({ width: 44, height: 34 })} />
-      <div style={bx({ width: 52, height: 44, boxShadow: t.shadowLift, borderColor: hexA(t.accent, 0.5) })} />
-      <div style={bx({ width: 44, height: 34 })} />
-    </div>
-  );
-  const VisCal = (
-    <div style={{ display: "flex", gap: 5, justifyContent: "center" }}>
-      {[0.9, 0, 0.5, 1, 0, 0.35, 0].map((o, i) => (
-        <div key={i} style={bx({ width: 26, height: 26, boxShadow: "none", border: i === 3 ? `1.5px solid ${t.accent}` : `1px solid ${t.borderSoft}`, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 4 })}>
-          <span style={{ width: 5, height: 5, borderRadius: "50%", background: o ? hexA(t.accent, 0.35 + o * 0.65) : "transparent" }} />
-        </div>
-      ))}
-    </div>
-  );
-  const VisCards = (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "center" }}>
-      <div style={bx({ width: 150, height: 18, boxShadow: "none" })} />
-      <div style={bx({ width: 160, height: 24, boxShadow: t.shadowLift, borderColor: hexA(t.accent, 0.45) })} />
-      <div style={bx({ width: 150, height: 18, boxShadow: "none", opacity: 0.65 })} />
-    </div>
-  );
-  const VisCompass = (
-    <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
-      {[t.sage, t.sand, hexA(t.accent, 0.8)].map((c, i) => (
-        <div key={i} style={bx({ borderRadius: 999, padding: "4px 12px", boxShadow: "none", display: "flex", alignItems: "center", gap: 6 })}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: c }} />
-          <span style={{ width: 26 + i * 8, height: 5, borderRadius: 3, background: t.borderSoft }} />
-        </div>
-      ))}
-    </div>
-  );
-  const VisStrip = (
-    <div style={{ display: "flex", gap: 5, justifyContent: "center", alignItems: "center" }}>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <div key={i} style={bx({ width: i === 2 ? 34 : 28, height: i === 2 ? 40 : 34, boxShadow: i === 2 ? t.shadowLift : "none", border: i === 2 ? `1.5px solid ${t.accent}` : `1px solid ${t.borderSoft}`, background: i === 2 ? t.activeNav : t.card, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 4 })}>
-          <span style={{ width: 4, height: 4, borderRadius: "50%", background: i % 2 ? t.sage : hexA(t.accent, 0.8) }} />
-        </div>
-      ))}
-    </div>
-  );
-  const VisJars = (
-    <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "flex-end" }}>
-      {[16, 24, 12, 20].map((h, i) => <span key={i} style={{ width: 12, height: h, borderRadius: "3px 3px 5px 5px", background: i === 1 ? hexA(t.accent, 0.7) : t.borderSoft, border: `1px solid ${t.borderSoft}` }} />)}
-    </div>
-  );
-  const VisBook = (
-    <div style={bx({ width: 170, height: 24, boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 10px" })}>
-      <span style={{ width: 60, height: 5, borderRadius: 3, background: t.borderSoft }} />
-      <span style={{ fontFamily: FONT_TAG, fontSize: 9, letterSpacing: "0.1em", color: t.sage }}>8/10</span>
-    </div>
-  );
-  const VisShare = (
-    <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center" }}>
-      <span style={{ width: 34, height: 20, borderRadius: 100, position: "relative", background: hexA(t.accent, 0.8), display: "inline-block" }}><span style={{ position: "absolute", top: 3, left: 17, width: 14, height: 14, borderRadius: "50%", background: t.bg }} /></span>
-      <span style={{ width: 34, height: 20, borderRadius: 100, position: "relative", background: t.borderSoft, display: "inline-block" }}><span style={{ position: "absolute", top: 3, left: 3, width: 14, height: 14, borderRadius: "50%", background: t.bg }} /></span>
-    </div>
-  );
-  const VisLock = (
-    <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-      <div style={bx({ borderRadius: 999, padding: "4px 12px", boxShadow: "none", display: "flex", gap: 6, alignItems: "center" })}><span style={{ fontSize: 9, color: t.textMuted }}>●</span><span style={{ width: 34, height: 5, borderRadius: 3, background: t.borderSoft }} /></div>
-      <div style={bx({ borderRadius: 999, padding: "4px 12px", boxShadow: "none", borderColor: t.accent, background: t.activeNav, display: "flex", gap: 6, alignItems: "center" })}><span style={{ fontSize: 10, color: t.accent }}>✎</span><span style={{ width: 34, height: 5, borderRadius: 3, background: hexA(t.accent, 0.4) }} /></div>
-    </div>
-  );
+  const VisRooms = (<div style={{ display:"flex", gap:8, alignItems:"flex-end", justifyContent:"center" }}><div style={bx({ width:44, height:34 })}/><div style={bx({ width:52, height:44, boxShadow:t.shadowLift, borderColor:hexA(t.accent,0.5) })}/><div style={bx({ width:44, height:34 })}/></div>);
+  const VisCal = (<div style={{ display:"flex", gap:5, justifyContent:"center" }}>{[0.9,0,0.5,1,0,0.35,0].map((o,i)=>(<div key={i} style={bx({ width:26, height:26, boxShadow:"none", border:i===3?`1.5px solid ${t.accent}`:`1px solid ${t.borderSoft}`, display:"flex", alignItems:"flex-end", justifyContent:"center", paddingBottom:4 })}><span style={{ width:5, height:5, borderRadius:"50%", background:o?hexA(t.accent,0.35+o*0.65):"transparent" }}/></div>))}</div>);
+  const VisCards = (<div style={{ display:"flex", flexDirection:"column", gap:5, alignItems:"center" }}><div style={bx({ width:150, height:18, boxShadow:"none" })}/><div style={bx({ width:160, height:24, boxShadow:t.shadowLift, borderColor:hexA(t.accent,0.45) })}/><div style={bx({ width:150, height:18, boxShadow:"none", opacity:0.65 })}/></div>);
+  const VisCompass = (<div style={{ display:"flex", gap:6, justifyContent:"center", alignItems:"center", flexWrap:"wrap" }}>{[t.sage,t.sand,hexA(t.accent,0.8)].map((c,i)=>(<div key={i} style={bx({ borderRadius:999, padding:"4px 12px", boxShadow:"none", display:"flex", alignItems:"center", gap:6 })}><span style={{ width:6, height:6, borderRadius:"50%", background:c }}/><span style={{ width:26+i*8, height:5, borderRadius:3, background:t.borderSoft }}/></div>))}</div>);
+  const VisStrip = (<div style={{ display:"flex", gap:5, justifyContent:"center", alignItems:"center" }}>{[0,1,2,3,4].map((i)=>(<div key={i} style={bx({ width:i===2?34:28, height:i===2?40:34, boxShadow:i===2?t.shadowLift:"none", border:i===2?`1.5px solid ${t.accent}`:`1px solid ${t.borderSoft}`, background:i===2?t.activeNav:t.card, display:"flex", alignItems:"flex-end", justifyContent:"center", paddingBottom:4 })}><span style={{ width:4, height:4, borderRadius:"50%", background:i%2?t.sage:hexA(t.accent,0.8) }}/></div>))}</div>);
+  const VisJars = (<div style={{ display:"flex", gap:6, justifyContent:"center", alignItems:"flex-end" }}>{[16,24,12,20].map((h,i)=><span key={i} style={{ width:12, height:h, borderRadius:"3px 3px 5px 5px", background:i===1?hexA(t.accent,0.7):t.borderSoft, border:`1px solid ${t.borderSoft}` }}/>)}</div>);
+  const VisBook = (<div style={bx({ width:170, height:24, boxShadow:"none", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 10px" })}><span style={{ width:60, height:5, borderRadius:3, background:t.borderSoft }}/><span style={{ fontFamily:FONT_TAG, fontSize:9, letterSpacing:"0.1em", color:t.sage }}>8/10</span></div>);
+  const VisShare = (<div style={{ display:"flex", gap:10, justifyContent:"center", alignItems:"center" }}><span style={{ width:34, height:20, borderRadius:100, position:"relative", background:hexA(t.accent,0.8), display:"inline-block" }}><span style={{ position:"absolute", top:3, left:17, width:14, height:14, borderRadius:"50%", background:t.bg }}/></span><span style={{ width:34, height:20, borderRadius:100, position:"relative", background:t.borderSoft, display:"inline-block" }}><span style={{ position:"absolute", top:3, left:3, width:14, height:14, borderRadius:"50%", background:t.bg }}/></span></div>);
+  const VisLock = (<div style={{ display:"flex", gap:8, justifyContent:"center" }}><div style={bx({ borderRadius:999, padding:"4px 12px", boxShadow:"none", display:"flex", gap:6, alignItems:"center" })}><span style={{ fontSize:9, color:t.textMuted }}>●</span><span style={{ width:34, height:5, borderRadius:3, background:t.borderSoft }}/></div><div style={bx({ borderRadius:999, padding:"4px 12px", boxShadow:"none", borderColor:t.accent, background:t.activeNav, display:"flex", gap:6, alignItems:"center" })}><span style={{ fontSize:10, color:t.accent }}>✎</span><span style={{ width:34, height:5, borderRadius:3, background:hexA(t.accent,0.4) }}/></div></div>);
 
   const steps = [
-    {
-      vis: VisRooms, kicker: L("Vítej", "Welcome"),
-      title: L("Dům stojí. Vejdi.", "The house is built. Come in."),
-      body: (name ? name + ", " : "") + L("místnosti, které sis vybral, jsou připravené. Projdeme je spolu — krátce, jen co potřebuješ k prvnímu kroku.", "the rooms you chose are ready. Let's walk through them — briefly, just what you need for the first step."),
-      tips: [L("Vše zůstává ve tvém zařízení a funguje i offline.", "Everything stays on your device and works offline.")],
-    },
-    ...(has("habit") ? [{
-      emoji: "🔥", kicker: L("Návyky", "Habits"), vis: VisCal,
-      title: L("Ráno záměr · přes den návyky · večer ohlédnutí", "Morning intent · habits · evening review"),
-      body: L("Jedna stránka, jeden den.", "One page, one day."),
-      tips: [L("Tečka pod dnem v kalendáři = zaznamenáno; její sytost = kolik návyků drželo.", "A dot under a day = recorded; its depth = how many habits held.")],
-    }] : []),
-    ...(has("journal") || has("notebook") ? [{
-      emoji: "✎", kicker: L("Paměť", "Memory"), vis: VisCards,
-      title: L("Deník a Zápisník", "Journal and Notebook"),
-      body: L("Deník se píše z cesty, ne z vrcholu. Zápisník je jeden prostor pro cokoli — poznámky, texty, myšlenky.", "The journal is written from the path, not the summit. The notebook is one space for anything — notes, texts, thoughts."),
-      tips: [L("Obojí zůstává vždy jen tvoje — nesdílí se nikdy.", "Both remain yours alone — they are never shared.")],
-    }] : []),
-    ...(has("divine") ? [{
-      emoji: "🎲", kicker: "Divine game", vis: VisCompass,
-      title: L("Oblasti života a cíle v pohybu", "Life areas and goals in motion"),
-      body: L("Den jako hra: krajina oblastí, cíle a jejich termíny. Detail cíle se otevírá vedle stránky.", "The day as a game: a landscape of areas, goals and their dates. A goal's detail opens beside the page."),
-      tips: [],
-    }] : []),
-    ...(has("training") ? [{
-      emoji: "△", kicker: L("Trénink", "Training"), vis: VisStrip,
-      title: L("Plán od Tanyho, krok za krokem", "The plan from Tanmay, step by step"),
-      body: L("Odškrtáváš, co jsi odcvičil. Plán se odsud nemění — o úpravu si řekni Tanymu.", "Tick off what you trained. The plan doesn't change from here — ask Tanmay for adjustments."),
-      tips: [],
-    }] : []),
-    ...(has("finances") ? [{
-      emoji: "🫙", kicker: L("Finance", "Finances"), vis: VisJars,
-      title: L("Šest džbánů", "Six jars"),
-      body: L("Klidný přehled o penězích. Výdaj zapíšeš dvěma doteky.", "A calm view of money. An expense takes two taps."),
-      tips: [],
-    }] : []),
-    ...(has("content") ? [{
-      emoji: "▤", kicker: L("Knihovna", "Library"), vis: VisBook,
-      title: L("Co neseš dál", "What you carry on"),
-      body: L("Knihy, filmy a podcasty — postup, hodnocení a co ti daly.", "Books, films and podcasts — progress, a score, and what they gave you."),
-      tips: [],
-    }] : []),
-    {
-      vis: VisShare, kicker: L("Důvěra", "Trust"),
-      title: L("Vědomé sdílení", "Conscious sharing"),
-      body: L("Tany vidí jen to, co sám zapneš — a kdykoli to vypneš. Přesný rozsah je u každého přepínače v Sdílení (levý sloupec) nebo v ＋ Moduly.", "Tanmay sees only what you turn on — and you can turn it off anytime. The exact scope sits next to each switch in Sharing (left column) or ＋ Modules."),
-      tips: [L("Deník, zápisník, poznámky a finance se nesdílejí nikdy.", "Journal, notebook, notes and finances are never shared.")],
-    },
-    {
-      vis: VisLock, kicker: L("Ovládání", "Controls"),
-      title: L("Zámek, jazyk, světlo", "The lock, the language, the light"),
-      body: L("🔒 Zamčeno je pro praxi, ✎ Editace odemyká mazání a správu. CZ·EN a ☾/☀ přepínají jazyk a téma.", "🔒 Locked is for practising, ✎ Editing unlocks deleting and managing. CZ·EN and ☾/☀ switch language and theme."),
-      tips: [
-        isM ? L("Menu domu je pod ☰ vlevo nahoře.", "The house menu lives under ☰ top-left.") : L("Levý sloupec je mapa domu.", "The left column is the map of the house."),
-        L("＋ Moduly kdykoli přestaví dům — přidají i zavřou místnosti.", "＋ Modules rebuilds the house any time — rooms can be added or closed."),
-      ],
-    },
-    {
-      vis: <Bindu size={10} />, kicker: L("Na cestu", "For the road"),
-      title: L("Drž svou praxi", "Hold the practice"),
-      body: L("Důvěřuj tělu. Naslouchej divočině.", "Trust the body. Listen to the wild."),
-      tips: [L("Průvodce je kdykoli pod ? dole v levém sloupci.", "This guide lives under the ? at the bottom of the left column.")],
-    },
+    { vis: VisRooms, kicker: L("Vítej","Welcome"), title: L("Dům stojí. Vejdi.","The house is built. Come in."), body: (name?name+", ":"")+L("místnosti, které sis vybral, jsou připravené. Projdeme je spolu — krátce, jen co potřebuješ k prvnímu kroku.","the rooms you chose are ready. Let's walk through them — briefly, just what you need for the first step."), tips: [L("Vše zůstává ve tvém zařízení a funguje i offline.","Everything stays on your device and works offline.")] },
+    ...(has("habit") ? [{ emoji:"🔥", kicker: L("Návyky","Habits"), vis: VisCal, title: L("Ráno záměr · přes den návyky · večer ohlédnutí","Morning intent · habits · evening review"), body: L("Jedna stránka, jeden den.","One page, one day."), tips: [L("Tečka pod dnem v kalendáři = zaznamenáno; její sytost = kolik návyků drželo.","A dot under a day = recorded; its depth = how many habits held.")] }] : []),
+    ...(has("journal") || has("notebook") ? [{ emoji:"✎", kicker: L("Paměť","Memory"), vis: VisCards, title: L("Deník a Zápisník","Journal and Notebook"), body: L("Deník se píše z cesty, ne z vrcholu. Zápisník je jeden prostor pro cokoli — poznámky, texty, myšlenky.","The journal is written from the path, not the summit. The notebook is one space for anything — notes, texts, thoughts."), tips: [L("Obojí zůstává vždy jen tvoje — nesdílí se nikdy.","Both remain yours alone — they are never shared.")] }] : []),
+    ...(has("divine") ? [{ emoji:"🎲", kicker:"Divine game", vis: VisCompass, title: L("Oblasti života a cíle v pohybu","Life areas and goals in motion"), body: L("Den jako hra: krajina oblastí, cíle a jejich termíny.","The day as a game: a landscape of areas, goals and their dates."), tips: [] }] : []),
+    ...(has("training") ? [{ emoji:"△", kicker: L("Trénink","Training"), vis: VisStrip, title: L("Plán od Tanyho, krok za krokem","The plan from Tanmay, step by step"), body: L("Odškrtáváš, co jsi odcvičil. Plán se odsud nemění — o úpravu si řekni Tanymu.","Tick off what you trained. The plan doesn't change from here — ask Tanmay for adjustments."), tips: [] }] : []),
+    ...(has("finances") ? [{ emoji:"🫙", kicker: L("Finance","Finances"), vis: VisJars, title: L("Šest džbánů","Six jars"), body: L("Klidný přehled o penězích. Výdaj zapíšeš dvěma doteky.","A calm view of money. An expense takes two taps."), tips: [] }] : []),
+    ...(has("content") ? [{ emoji:"▤", kicker: L("Knihovna","Library"), vis: VisBook, title: L("Co neseš dál","What you carry on"), body: L("Knihy, filmy a podcasty — postup, hodnocení a co ti daly.","Books, films and podcasts — progress, a score, and what they gave you."), tips: [] }] : []),
+    { vis: VisShare, kicker: L("Důvěra","Trust"), title: L("Vědomé sdílení","Conscious sharing"), body: L("Tany vidí jen to, co sám zapneš — a kdykoli to vypneš. Přesný rozsah je u každého přepínače v Sdílení (levý sloupec) nebo v ＋ Moduly.","Tanmay sees only what you turn on — and you can turn it off anytime. The exact scope sits next to each switch in Sharing (left column) or ＋ Modules."), tips: [L("Deník, zápisník, poznámky a finance se nesdílejí nikdy.","Journal, notebook, notes and finances are never shared.")] },
+    { vis: VisLock, kicker: L("Ovládání","Controls"), title: L("Zámek, jazyk, světlo","The lock, the language, the light"), body: L("🔒 Zamčeno je pro praxi, ✎ Editace odemyká mazání a správu. CZ·EN a ☾/☀ přepínají jazyk a téma.","🔒 Locked is for practising, ✎ Editing unlocks deleting and managing. CZ·EN and ☾/☀ switch language and theme."), tips: [isM ? L("Tahem doleva/doprava střídáš místnosti; dok dole se točí dokola a ☰ otevře celý dům.","Drag left/right to move between rooms; the dock loops endlessly and ☰ opens the whole house.") : L("Levý sloupec je mapa domu.","The left column is the map of the house."), L("＋ Moduly kdykoli přestaví dům — přidají i zavřou místnosti.","＋ Modules rebuilds the house any time — rooms can be added or closed.")] },
+    { vis: <Bindu size={10} />, kicker: L("Na cestu","For the road"), title: L("Drž svou praxi","Hold the practice"), body: L("Důvěřuj tělu. Naslouchej divočině.","Trust the body. Listen to the wild."), tips: [L("Průvodce je kdykoli pod ? dole v levém sloupci.","This guide lives under the ? at the bottom of the left column.")] },
   ];
 
   const n = steps.length;
   const st0 = steps[Math.max(0, Math.min(gi, n - 1))];
   const close = () => { try { if (typeof localStorage !== "undefined") localStorage.setItem("tmGuideSeen", "1"); } catch (e) {} onClose(); };
   React.useEffect(() => {
-    const h = (e) => {
-      if (e.key === "Escape") close();
-      else if (e.key === "ArrowRight") setGi((x) => Math.min(x + 1, n - 1));
-      else if (e.key === "ArrowLeft") setGi((x) => Math.max(x - 1, 0));
-    };
+    const h = (e) => { if (e.key === "Escape") close(); else if (e.key === "ArrowRight") setGi((x) => Math.min(x + 1, n - 1)); else if (e.key === "ArrowLeft") setGi((x) => Math.max(x - 1, 0)); };
     window.addEventListener("keydown", h);
     const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
     return () => { window.removeEventListener("keydown", h); document.body.style.overflow = prev; };
@@ -4845,26 +5092,13 @@ function TmGuide({ enabled, name, onClose }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 58, marginBottom: 12 }}>{st0.vis}</div>
           <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: t.textSec, textAlign: "center", margin: "0 auto 12px", maxWidth: 420 }}>{st0.body}</p>
           {st0.tips.length > 0 && (
-            <div style={{ maxWidth: 420, margin: "0 auto" }}>
-              {st0.tips.map((tip, i) => (
-                <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "3px 0" }}>
-                  <span style={{ marginTop: 7 }}><Bindu size={4} /></span>
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.55, color: t.textMuted }}>{tip}</span>
-                </div>
-              ))}
-            </div>
+            <div style={{ maxWidth: 420, margin: "0 auto" }}>{st0.tips.map((tip, i) => (<div key={i} style={{ display:"flex", gap:9, alignItems:"flex-start", padding:"3px 0" }}><span style={{ display:"inline-flex", alignItems:"center", height:"1.55em", fontSize:13, flexShrink:0 }}><Bindu size={4} /></span><span style={{ fontFamily:FONT_BODY, fontSize:13, lineHeight:1.55, color:t.textMuted }}>{tip}</span></div>))}</div>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 16 }}>
           <button onClick={() => setGi((x) => Math.max(x - 1, 0))} disabled={gi === 0} style={{ background: "transparent", border: `1px solid ${gi === 0 ? t.borderSoft : t.border}`, borderRadius: 20, padding: "7px 16px", cursor: gi === 0 ? "default" : "pointer", color: gi === 0 ? t.textMuted : t.text, fontFamily: FONT_BODY, fontSize: 13, opacity: gi === 0 ? 0.5 : 1 }}>{L("‹ Zpět", "‹ Back")}</button>
-          <span style={{ flex: 1, display: "flex", justifyContent: "center", gap: 6 }}>
-            {steps.map((_, i) => (
-              <button key={i} onClick={() => setGi(i)} title={String(i + 1)} style={{ width: 7, height: 7, padding: 0, borderRadius: "50%", border: "none", cursor: "pointer", background: i === gi ? t.accent : t.border, transition: "background .2s ease, transform .2s ease", transform: i === gi ? "scale(1.3)" : "none" }} />
-            ))}
-          </span>
-          {gi < n - 1
-            ? <button onClick={() => setGi((x) => Math.min(x + 1, n - 1))} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 20, padding: "8px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5 }}>{L("Další ›", "Next ›")}</button>
-            : <button onClick={close} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 20, padding: "8px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5 }}>{L("Vejít do domu", "Enter the house")}</button>}
+          <span style={{ flex: 1, display: "flex", justifyContent: "center", gap: 6 }}>{steps.map((_, i) => (<button key={i} onClick={() => setGi(i)} title={String(i + 1)} style={{ width: 7, height: 7, padding: 0, borderRadius: "50%", border: "none", cursor: "pointer", background: i === gi ? t.accent : t.border, transition: "background .2s ease, transform .2s ease", transform: i === gi ? "scale(1.3)" : "none" }} />))}</span>
+          {gi < n - 1 ? <button onClick={() => setGi((x) => Math.min(x + 1, n - 1))} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 20, padding: "8px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5 }}>{L("Další ›", "Next ›")}</button> : <button onClick={close} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 20, padding: "8px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5 }}>{L("Vejít do domu", "Enter the house")}</button>}
         </div>
       </div>
     </div>,
@@ -4980,6 +5214,12 @@ export default function App() {
   const [page, setPage] = useState("habit");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [setsOpen, setSetsOpen] = useState(false);
+  const [slideDir, setSlideDir] = useState(null);
+  const pswipeRef = React.useRef(null);
+  const tabScrollRef = React.useRef(null);
+  const tabFirstRef = React.useRef(true);
+  const dockAnimRef = React.useRef(false);
   const [member, setMember] = useState(null); // null = zjišťuje se / offline, false = ukáže bránu
   const [memberName, setMemberName] = useState("");
   React.useEffect(() => {
@@ -5526,7 +5766,52 @@ export default function App() {
   const mandalaText = (m) => (coll.mandala && coll.mandala[m.name] != null ? coll.mandala[m.name] : m.quality);
   const store = { selDate, setSelDate, getDay, updateDay, has, edits, coll, setTrDone, setTrSet, setTrSched, setTrSchedOne, setGoalStatus, goalStatus, addEntry, updateEntry, removeEntry, moveEntry, reorderEntry, orderedGoals, moveGoal, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, listAreas, addArea, removeArea, nbTags, addNbTag, renameNbTag, moveNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, setMandala, mandalaText, editMode, setEditMode, ask, setFinCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta };
 
-  const go = (k) => { setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
+  const go = (k) => { setSlideDir(null); setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
+  // ikona stránky pro dok — zrcadlí sidebar (nahrané ikony, obrázky, glyfy)
+  const navGlyph = (key, size) => {
+    const ci = ((coll.pageMeta || {})[key] || {}).icon;
+    if (ci) return <img src={imgSrc(ci)} alt="" style={{ width: size, height: size, borderRadius: 5, objectFit: "cover" }} />;
+    if (key === "divine") return <img src={DIVINE_ICON} alt="" style={{ width: size, height: size, borderRadius: 5, objectFit: "cover" }} />;
+    if (key === "habit") return <img src={HABIT_ICON} alt="" style={{ width: size, height: size, borderRadius: 5, objectFit: "cover" }} />;
+    if (key === "notebook") return <img src={NB_ICON} alt="" style={{ width: size, height: size, borderRadius: 5, objectFit: "cover" }} />;
+    if (key === "journal") return <PenIcon size={size - 4} />;
+    if (key === "content") return <BookIcon size={size - 4} />;
+    if (key === "finances") return <JarIcon size={size - 4} />;
+    const m = MODULES.find((x) => x.key === key);
+    return <span style={{ fontSize: size - 3 }}>{m ? m.icon : "•"}</span>;
+  };
+  // vlastník stránky pro zvýraznění v doku (subpáge -> modul)
+  const ownerKey = (pg) => (pg === "atomic" || pg === "day") ? "habit" : (pg === "areas" || pg === "goals") ? "divine" : pg;
+  // Dok plyne se směrem: ze tří kopií aktivní ikony vybere tu nejbližší,
+  // plynule dojede a po dojezdu se neviditelně srovná do prostřední kopie.
+  React.useEffect(() => {
+    const el = tabScrollRef.current; if (!el) return;
+    const mods = FAVORITES.filter((f) => isEnabled(f.key)).map((f) => f.key);
+    if (mods.length <= 3) return;
+    const idx = mods.indexOf(ownerKey(page));
+    if (idx < 0) return;
+    const N = mods.length;
+    const slot = el.scrollWidth / (3 * N);
+    if (slot) {
+      let target = null, best = Infinity;
+      for (let c = 0; c < 3; c++) {
+        const cand = (c * N + idx + 0.5) * slot - el.clientWidth / 2;
+        const d = Math.abs(cand - el.scrollLeft);
+        if (d < best) { best = d; target = cand; }
+      }
+      target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target));
+      dockAnimRef.current = true;
+      el.scrollTo({ left: target, behavior: tabFirstRef.current ? "auto" : "smooth" });
+      tabFirstRef.current = false;
+    }
+    const h = setTimeout(() => {
+      dockAnimRef.current = false;
+      const sW = el.scrollWidth / 3;
+      if (el.scrollLeft < sW * 0.6) el.scrollLeft += sW;
+      else if (el.scrollLeft > sW * 1.6) el.scrollLeft -= sW;
+    }, 620);
+    return () => clearTimeout(h);
+  }, [page]);
 
   const render = () => {
     switch (page) {
@@ -5586,29 +5871,57 @@ export default function App() {
           *::-webkit-scrollbar-corner { background: transparent; }
           @keyframes tmfade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
           .tm-page { animation: tmfade .35s ease both; }
+          @keyframes tmDim { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes tmSlideL { from { opacity: 0; transform: translateX(64px); } to { opacity: 1; transform: none; } }
+          @keyframes tmSlideR { from { opacity: 0; transform: translateX(-64px); } to { opacity: 1; transform: none; } }
+          .tm-slide-left { animation: tmSlideL .3s cubic-bezier(.23,.62,.22,.99) backwards; }
+          .tm-slide-right { animation: tmSlideR .3s cubic-bezier(.23,.62,.22,.99) backwards; }
+          .tm-tabscroll { scrollbar-width: none; }
+          .tm-tabscroll::-webkit-scrollbar { display: none; }
+          .tm-monly { display: none; }
           button:focus-visible, a:focus-visible { outline: 2px solid ${t.accent}; outline-offset: 2px; border-radius: 4px; }
           @media (prefers-reduced-motion: reduce) { .tm-page { animation: none; } }
           .tm-sidebar { transition: margin-left .25s ease; }
           .tm-sidebar.collapsed { margin-left: -269px; }
           @media (max-width: 820px) {
-            .tm-sidebar { position: fixed !important; z-index: 50; height: 100%; transform: translateX(-100%); transition: transform .25s ease; }
+            .tm-sidebar { position: fixed !important; z-index: 60; top: calc(12px + env(safe-area-inset-top)); left: 12px; bottom: auto; height: auto; max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); transform: translateX(-110%); transition: transform .25s ease, box-shadow .25s ease; width: min(300px, 84vw) !important; border: 1px solid ${t.borderSoft} !important; border-radius: 24px; padding: 18px 16px !important; box-shadow: none; }
             .tm-sidebar.collapsed { margin-left: 0; }
-            .tm-sidebar.open { transform: translateX(0); }
-            .tm-burger { display: flex !important; }
+            .tm-sidebar.open { transform: translateX(0); box-shadow: 24px 0 60px rgba(0,0,0,0.35); }
+            /* horní lišta mizí, žije v ⚙ u loga; dole plovoucí dok */
+            .tm-topbar { display: none !important; }
+            .tm-gear { display: inline-flex !important; }
+            .tm-burger { display: none !important; }
+            .tm-page { padding: calc(16px + env(safe-area-inset-top)) 16px calc(104px + env(safe-area-inset-bottom)) !important; }
+            .tm-tabbar { display: flex !important; left: 20px !important; right: 20px !important; bottom: calc(10px + env(safe-area-inset-bottom)) !important; padding: 6px 8px !important; border: 1px solid ${t.borderSoft}; border-radius: 24px; box-shadow: ${t.shadowLift}; overflow: hidden; }
+            .tm-cs-veil { padding: 0 !important; align-items: flex-end !important; }
+            .tm-centersheet { width: 100% !important; max-height: calc(100dvh - 40px - env(safe-area-inset-top)) !important; border-radius: 18px 18px 0 0 !important; padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important; }
+            /* filtry Pramenů a Zápisníku · schované za ▾ */
+            .tm-monly { display: inline-flex !important; }
+            .tm-deskonly { display: none !important; }
+            .tm-typerow { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; }
+            .tm-typerow::-webkit-scrollbar { display: none; }
+            .tm-typerow button { white-space: nowrap; flex-shrink: 0; }
+            .tm-typerow button { white-space: nowrap; flex-shrink: 0; }
+            .tm-cfilters { display: none !important; }
+            .tm-cfilters.open { display: flex !important; flex-wrap: wrap; gap: 8px; margin: 0 0 12px !important; }
+            /* Praxe · kalendář stejná pasparta a plná šířka sloupce */
+            .tm-po-cal { width: 100% !important; display: flex; justify-content: center; }
+            .tm-calwrap { width: 100% !important; max-width: 100% !important; margin: 14px auto 0 !important; padding: 14px 16px !important; box-sizing: border-box; }
+            .tm-calcard { width: 100% !important; max-width: none !important; margin: 0 auto; padding: 16px !important; }
             .tm-sidetoggle { display: none !important; }
           }
-                  /* HOVER · choreografie kurzoru žije jen tam, kde kurzor je */
-          @media (hover: hover) {
+                  @media (hover: hover) {
             .tm-nav-item:hover { background: ${t.cardHover} !important; }
             *::-webkit-scrollbar-thumb:hover { background: ${t.textMuted}; background-clip: content-box; }
           }
 `}</style>
 
-        <aside className={`tm-sidebar${menuOpen ? " open" : ""}${sideHidden ? " collapsed" : ""}`} style={{ width: 268, flexShrink: 0, background: t.bgSidebar, borderRight: `1px solid ${t.border}`, padding: "26px 16px", overflowY: "auto" }}>
-          <div style={{ padding: "0 8px 22px" }}>
+        <aside className={`tm-sidebar${menuOpen ? " open" : ""}${sideHidden ? " collapsed" : ""}`} style={{ position: "relative", width: 268, flexShrink: 0, background: t.bgSidebar, borderRight: `1px solid ${t.border}`, padding: "26px 16px", overflowY: "auto" }}>
+          <div style={{ padding: "0 8px 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, color: t.heading, letterSpacing: "0.04em" }}>
               t<span style={{ position: "relative" }}>a<Bindu size={5} style={{ position: "absolute", top: 4, left: 3.5 }} /></span>nmay
             </span>
+            <button className="tm-gear" onClick={() => setSetsOpen(true)} title={L("Nastavení", "Settings")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, marginTop: -8, background: "transparent", border: "none", borderRadius: 10, color: t.sand, cursor: "pointer", flexShrink: 0 }}><TmIcNastaveni size={19} /></button>
           </div>
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 11, color: t.sage, padding: "0 8px 10px" }}>{L("Oblíbené", "Favorites")}</div>
           {FAVORITES.filter((f) => isEnabled(f.key)).concat([{ key: "trash", icon: "🗑", label: L("Koš", "Trash") }]).map((f) => {
@@ -5650,8 +5963,11 @@ export default function App() {
 
         {menuOpen && <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, background: t.overlay, zIndex: 40 }} />}
 
-        <main style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderBottom: `1px solid ${t.borderSoft}` }}>
+        <main
+          onTouchStart={(e) => { const p0 = e.touches[0]; let n = e.target, hs = false; while (n && n !== document.body) { if (n.scrollWidth - n.clientWidth > 8) { const o = getComputedStyle(n).overflowX; if (o === "auto" || o === "scroll") { hs = true; break; } } n = n.parentElement; } pswipeRef.current = { x: p0.clientX, y: p0.clientY, blocked: p0.clientX < 28 || hs }; }}
+          onTouchEnd={(e) => { const st0 = pswipeRef.current; pswipeRef.current = null; if (!st0 || st0.blocked) return; const p1 = e.changedTouches[0]; const dx = p1.clientX - st0.x, dy = Math.abs(p1.clientY - st0.y); if (Math.abs(dx) < 64 || Math.abs(dx) < dy * 1.4) return; const TABS = FAVORITES.filter((f) => isEnabled(f.key)).map((f) => f.key); if (TABS.length < 2) return; const cur = TABS.indexOf(ownerKey(page)); if (cur === -1) return; const nx = (cur + (dx < 0 ? 1 : -1) + TABS.length) % TABS.length; setSlideDir(dx < 0 ? "left" : "right"); setPage(TABS[nx]); if (typeof window !== "undefined") window.scrollTo(0, 0); }}
+          style={{ flex: 1, minWidth: 0, position: "relative" }}>
+          <div className="tm-topbar" style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderBottom: `1px solid ${t.borderSoft}` }}>
             <button className="tm-sidetoggle" onClick={toggleSide} title={sideHidden ? L("Zobrazit panel", "Show panel") : L("Schovat panel", "Hide panel")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.textMuted, cursor: "pointer", padding: "6px 10px", fontSize: 13, lineHeight: 1 }}>{sideHidden ? "»" : "«"}</button>
             <button className="tm-burger" onClick={() => setMenuOpen(true)} style={{ display: "none", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.text, cursor: "pointer", padding: "6px 10px", fontSize: 16 }}>☰</button>
             <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.textMuted, flex: 1 }}>tanmay · workspace</div>
@@ -5666,11 +5982,69 @@ export default function App() {
               <span style={{ color: t.accent }}>{lang === "cs" ? "CZ" : "EN"}</span>{lang === "cs" ? "· EN" : "· CZ"}
             </button>
             <button onClick={() => setMode((m) => (m === "dark" ? "light" : "dark"))} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 20, color: t.text, cursor: "pointer", padding: "5px 14px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}>
-              <span>{mode === "dark" ? "☾" : "☀"}</span>{mode === "dark" ? "Linen" : "Forest"}
+              <span style={{ display: "inline-flex", alignItems: "center" }}>{mode === "dark" ? <TmIcMesic size={13} /> : <TmIcSlunce size={13} />}</span>{mode === "dark" ? "Linen" : "Forest"}
             </button>
           </div>
-          <div key={page} className="tm-page" style={{ padding: "48px clamp(28px, 4vw, 72px) 120px" }}>{render()}</div>
+          <div key={page} className={"tm-page" + (slideDir ? " tm-slide-" + slideDir : "")} style={{ padding: "48px clamp(28px, 4vw, 72px) 120px" }}>{render()}</div>
         </main>
+
+        {/* MOBIL · plovoucí dok: zapnuté moduly + ☰ pro celý dům. Tři ikony
+            viditelné, nekonečná smyčka, směrový dojezd bez viditelných přeskoků. */}
+        {(() => {
+          const mods = FAVORITES.filter((f) => isEnabled(f.key));
+          const N = Math.max(1, mods.length);
+          const loop = mods.length > 3;
+          const dockBtn = (f, key) => {
+            const act = ownerKey(page) === f.key;
+            return (
+              <button key={key} onClick={() => go(f.key)} style={{ flex: loop ? `0 0 calc(100% / ${3 * N})` : 1, minWidth: 0, scrollSnapAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "transparent", border: "none", cursor: "pointer", padding: "4px 2px", minHeight: 48, color: act ? t.accent : t.textMuted, transition: "color .25s ease", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 9.5 }}>
+                <span style={{ display: "inline-flex", height: 22, alignItems: "center", transform: act ? "scale(1.16) translateY(-1px)" : "none", transition: "transform .28s cubic-bezier(.23,.62,.22,.99)" }}>{navGlyph(f.key, 21)}</span>
+                <span style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{((coll.pageMeta || {})[f.key] || {}).title || f.label}</span>
+              </button>
+            );
+          };
+          return (
+            <nav className="tm-tabbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50, display: "none", alignItems: "stretch", gap: 2, padding: "7px 8px calc(7px + env(safe-area-inset-bottom))", background: hexA(t.bg, 0.9), borderTop: `1px solid ${t.borderSoft}`, backdropFilter: "blur(16px) saturate(1.1)", WebkitBackdropFilter: "blur(16px) saturate(1.1)" }}>
+              {loop ? (
+                <div className="tm-tabscroll" ref={tabScrollRef} onScroll={(e) => { if (dockAnimRef.current) return; const el = e.currentTarget; const setW = el.scrollWidth / 3; if (setW <= 0) return; if (el.scrollLeft < setW * 0.45) el.scrollLeft += setW; else if (el.scrollLeft > setW * 1.95) el.scrollLeft -= setW; }} style={{ flex: "1 1 auto", minWidth: 0, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollSnapType: "x proximity" }}>
+                  <div style={{ display: "flex", width: `${N * 100}%` }}>
+                    {[0, 1, 2].map((c) => mods.map((f) => dockBtn(f, c + "-" + f.key)))}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ flex: "1 1 auto", minWidth: 0, display: "flex" }}>{mods.map((f) => dockBtn(f, f.key))}</div>
+              )}
+              <button onClick={() => setMenuOpen(true)} style={{ flex: "0 0 58px", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "transparent", border: "none", borderLeft: `1px solid ${t.borderSoft}`, cursor: "pointer", padding: "4px 2px", minHeight: 48, color: menuOpen ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 9.5 }}>
+                <span style={{ fontSize: 17, height: 22, display: "inline-flex", alignItems: "center" }}>☰</span>
+                {L("Vše", "All")}
+              </button>
+            </nav>
+          );
+        })()}
+
+        {setsOpen && createPortal(
+          <div onClick={() => setSetsOpen(false)} className="tm-cs-veil" style={{ position: "fixed", inset: 0, zIndex: 320, background: t.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: "4vh 16px" }}>
+            <div onClick={(e) => e.stopPropagation()} className="tm-centersheet" style={{ width: "min(520px, 96vw)", maxHeight: "min(86vh, 640px)", overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 18, boxShadow: t.shadowLift, padding: "22px clamp(18px, 3vw, 28px) 24px", animation: "tmfade .3s ease both" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent }}>{L("Nastavení", "Settings")}</span>
+                <button onClick={() => setSetsOpen(false)} title="Esc" style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 30, height: 30, cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1 }}>×</button>
+              </div>
+              {[
+                { ic: editMode ? "✎" : "🔒", lbl: editMode ? L("Editace zapnuta — klepni pro zamčení", "Editing on — tap to lock") : L("Zamčeno — klepni pro editaci", "Locked — tap to edit"), act: editMode, on: () => setEditMode((x) => !x) },
+                { ic: lang === "cs" ? "CZ" : "EN", lbl: L("Jazyk · čeština / angličtina", "Language · Czech / English"), on: toggleLang },
+                { icn: mode === "dark" ? TmIcMesic : TmIcSlunce, lbl: L("Téma · Linen / Forest", "Theme · Linen / Forest"), on: () => setMode((m) => (m === "dark" ? "light" : "dark")) },
+                { icn: TmIcSdileni, lbl: L("Moduly a sdílení", "Modules and sharing"), on: () => { setSetsOpen(false); setPickerOpen(true); } },
+                { icn: TmIcPruvodce, lbl: L("Průvodce aplikací", "App guide"), on: () => { setSetsOpen(false); setGuideOpen(true); } },
+              ].map((r, i) => (
+                <button key={i} className="tm-nav-item" onClick={r.on} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: r.act ? t.activeNav : "transparent", border: `1px solid ${r.act ? t.accent : "transparent"}`, borderRadius: 10, padding: "13px 12px", cursor: "pointer", color: r.act ? t.accent : t.text, fontFamily: FONT_BODY, fontSize: 14.5 }}>
+                  <span style={{ width: 26, display: "inline-flex", justifyContent: "center", color: r.act ? t.accent : t.sand, fontFamily: FONT_TAG, fontSize: 13 }}>{r.icn ? React.createElement(r.icn, { size: 16 }) : r.ic}</span>
+                  {r.lbl}
+                </button>
+              ))}
+            </div>
+          </div>,
+          document.body
+        )}
 
         {confirmBox && (
           <>
