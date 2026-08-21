@@ -117,3 +117,10 @@ test("zmenšení obrázku vždycky doběhne", () => {
 test("html dokumentu sleduje zvolený jazyk", () => {
   assert.match(app, /document\.documentElement\.lang = lang === "cs"/);
 });
+
+test("nasazená verze se člověku nabídne", () => {
+  // Instalovaná aplikace jinak drží svůj balík, dokud ji něco nenačte znovu.
+  assert.match(app, /function TmNovaVerze\(\)/);
+  assert.match(app, /<TmNovaVerze \/>/);
+  assert.doesNotMatch(app, /setNova\(true\);[\s\S]{0,80}location\.reload\(\)/, "nesmí načítat samo");
+});

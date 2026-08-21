@@ -16878,6 +16878,62 @@ const MODULES = [
 const CORE_MODULES = MODULES.filter((m) => m.core).map((m) => m.key);
 const MOD_KEYS = MODULES.map((m) => m.key);
 
+// ————————————————————————————————————————————————————————————
+// NOVÁ VERZE JE NASAZENÁ — TO JEŠTĚ NEZNAMENÁ, ŽE JI NĚKDO VIDÍ
+// Instalovaná aplikace drží svůj balík, dokud ji něco nenačte znovu, a iOS ji
+// místo zavření uspí. Nasazená verze tak může zůstat neviděná libovolně dlouho.
+// Porovnáváme běžící balík s tím, co je na serveru, a nabídneme načtení.
+//
+// Nikdy nereloaduje samo. Rozepsaná věta má přednost před novou verzí,
+// a nedá se zvenčí spolehlivě poznat, jestli zrovna něco nepíše.
+const TM_BEZICI_BUNDLE = (() => {
+  try {
+    const s = document.querySelector('script[type="module"][src*="/assets/"]');
+    if (s && s.src) return new URL(s.src, location.href).pathname;
+  } catch (e) {}
+  try { return new URL(import.meta.url).pathname; } catch (e) {}
+  return null;
+})();
+
+function TmNovaVerze() {
+  const { t } = useT();
+  const [nova, setNova] = useState(false);
+  React.useEffect(() => {
+    // Ve vývoji se bundle nehashuje a porovnávat není co.
+    if (!TM_BEZICI_BUNDLE || TM_BEZICI_BUNDLE.indexOf("/assets/") !== 0) return;
+    let zivy = true;
+    const zkus = async () => {
+      if (!zivy || nova) return;
+      if (document.visibilityState !== "visible") return;
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+      try {
+        const res = await fetch("/index.html", { cache: "no-store", credentials: "same-origin" });
+        if (!res.ok) return;
+        const ct = res.headers.get("content-type") || "";
+        if (ct.indexOf("text/html") < 0) return;
+        const html = await res.text();
+        const m = html.match(/\/assets\/[A-Za-z0-9._-]+\.js/);
+        // Bez rozpoznatelného bundlu radši mlč, než abys hlásil planý poplach.
+        if (zivy && m && m[0] !== TM_BEZICI_BUNDLE) setNova(true);
+      } catch (e) { /* offline nebo Access — zkusí se příště */ }
+    };
+    const prvni = setTimeout(zkus, 5000);
+    const kolo = setInterval(zkus, 30 * 60 * 1000);
+    document.addEventListener("visibilitychange", zkus);
+    return () => { zivy = false; clearTimeout(prvni); clearInterval(kolo); document.removeEventListener("visibilitychange", zkus); };
+  }, [nova]);
+
+  if (!nova) return null;
+  return (
+    <div style={{ position: "fixed", left: 16, bottom: "calc(16px + env(safe-area-inset-bottom))", zIndex: 9999, display: "inline-flex", alignItems: "center", gap: 10, background: t.card, border: `1px solid ${hexA(t.accent, 0.45)}`, borderRadius: 999, padding: "6px 8px 6px 13px", boxShadow: "0 6px 20px rgba(0,0,0,0.28)" }}>
+      <span style={{ width: 7, height: 7, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
+      <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.textMuted }}>{L("Nová verze", "New version")}</span>
+      <button onClick={() => location.reload()} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 999, padding: "4px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}>{L("Načíst", "Reload")}</button>
+      <button onClick={() => setNova(false)} title={L("Skrýt do příště", "Hide until next time")} aria-label={L("Skrýt", "Hide")} style={{ background: "transparent", color: t.textMuted, border: "none", borderRadius: 999, width: 24, height: 24, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
+    </div>
+  );
+}
+
 function InviteGate() {
   const [word, setWord] = useState("");
   const [busy, setBusy] = useState(false);
@@ -18740,6 +18796,7 @@ export default function App() {
           }
 `}</style>
 
+        <TmNovaVerze />
         {member === false && <InviteGate />}
         {saveErr && (
           <div role="status" aria-live="polite" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 400, background: t.accent, color: t.onAccent || t.bg, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
