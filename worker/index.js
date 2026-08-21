@@ -11,17 +11,46 @@
 
 // Derive a stable, filesystem-safe user id from the Access email.
 // "jan.novak@gmail.com" -> "jan-novak-gmail-com"
+function accessEmail(request) {
+  return (request.headers.get("cf-access-authenticated-user-email") || "").trim().toLowerCase();
+}
 function userIdFrom(request) {
-  const email = (request.headers.get("cf-access-authenticated-user-email") || "").trim().toLowerCase();
+  const email = accessEmail(request);
   if (!email) return null;
   const id = email.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   return id || null;
+}
+
+// SRÁŽKA IDENTIT · očištění adresy není prosté zobrazení. "jan.novak@gmail.com",
+// "jan+novak@gmail.com" i "jan_novak@gmail.com" spadnou na totéž id — a u
+// plus-adres je druhá schránka opravdu dosažitelná někomu jinému. Kdo přijde
+// jako druhý, nesmí dostat prostor prvního. Odvození neměníme (to by osiřela
+// data, která už v D1 leží); místo toho hlídáme, že id patří téže adrese.
+async function identityConflict(env, userId, email) {
+  const row = await env.DB.prepare("SELECT email FROM members WHERE user_id = ?").bind(userId).first();
+  return !!(row && row.email && row.email !== email);
+}
+
+// OTISK VLASTNÍKA · prohlížeč si potřebuje pamatovat, komu místní úložiště
+// patří, aby ho po přihlášení jiného člověka neotevřel. Adresu mu k tomu
+// nedáváme — jen neobrátitelný otisk, který stačí na porovnání.
+const OWNER_SALT = "tanmay-klient/owner/v1";
+async function ownerTag(userId) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(OWNER_SALT + ":" + userId));
+  return Array.from(new Uint8Array(buf).slice(0, 8)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function unauthorized() {
   return Response.json(
     { ok: false, error: "no authenticated identity (Cloudflare Access header missing)" },
     { status: 401 }
+  );
+}
+
+function identityConflictResponse() {
+  return Response.json(
+    { ok: false, error: "identity conflict: this space belongs to a different address" },
+    { status: 409 }
   );
 }
 
@@ -83,7 +112,7 @@ async function isMember(env, userId) {
 async function handleMe(env, userId) {
   await ensureSchema(env);
   const row = await env.DB.prepare("SELECT name FROM members WHERE user_id = ?").bind(userId).first();
-  return Response.json({ member: !!row, name: (row && row.name) || "" });
+  return Response.json({ member: !!row, name: (row && row.name) || "", owner: await ownerTag(userId) });
 }
 
 async function handleJoin(request, env, userId) {
@@ -99,7 +128,10 @@ async function handleJoin(request, env, userId) {
   if (normWord(body.word) !== expected) {
     return Response.json({ ok: false, error: "wrong word" }, { status: 403 });
   }
-  const email = (request.headers.get("cf-access-authenticated-user-email") || "").trim().toLowerCase();
+  const email = accessEmail(request);
+  // Vstupní slovo nesmí být cesta do cizího prostoru: když id už drží jiná
+  // adresa, členství nevzniká.
+  if (await identityConflict(env, userId, email)) return identityConflictResponse();
   await env.DB.prepare(
     "INSERT INTO members (user_id, email, joined_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO NOTHING"
   ).bind(userId, email, Date.now()).run();
@@ -161,8 +193,52 @@ async function handleState(request, env, userId) {
   return Response.json({ ok: false, error: "method not allowed" }, { status: 405 });
 }
 
+// ---- Hlavičky ------------------------------------------------------------
+// Doména neposílala žádnou bezpečnostní hlavičku. Tohle je nejpřísnější
+// podoba, která tuhle aplikaci nerozbíjí: skripty jen naše, rámování žádné,
+// odkazy ven bez adresy stránky. Styly zůstávají povolené vloženě — celá
+// aplikace je psaná inline styly a hodnotami motivu, takže „unsafe-inline"
+// v style-src tu není nedbalost, ale popis skutečnosti.
+const CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "img-src 'self' data: blob:",
+  "media-src 'self' data: blob:",
+  "connect-src 'self'",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+].join("; ");
+
+function withSecurityHeaders(res) {
+  const h = new Headers(res.headers);
+  h.set("Content-Security-Policy", CSP);
+  h.set("X-Content-Type-Options", "nosniff");
+  h.set("Referrer-Policy", "no-referrer");
+  h.set("X-Frame-Options", "DENY");
+  h.set("Permissions-Policy", "geolocation=(), camera=(), payment=(), usb=(), interest-cohort=()");
+  h.set("Cross-Origin-Opener-Policy", "same-origin");
+  h.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
+}
+
 // ---- R2 files ---------------------------------------------------------------
 const ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+
+// Typ obsahu si u nahrávání určuje ten, kdo nahrává. Kdyby se takový soubor
+// podal zpět jako text/html, běžel by cizí kód na naší doméně a viděl by na
+// všechno, co tu člověk má. Vlastní médium podáváme, jak přišlo; cokoli
+// jiného odchází jako stažení a nikdy se nevykresluje.
+const INLINE_OK = /^(image\/|audio\/|video\/|application\/pdf$|text\/plain)/i;
+// SVG a text jsou obrázek i dokument zároveň — pískoviště je odřízne od
+// naší domény, aniž by přestaly být obrázkem v <img>.
+const NEEDS_SANDBOX = /^(image\/svg|text\/)/i;
 
 function fileKey(userId, id) {
   return `files/${userId}/${id}`;
@@ -192,6 +268,15 @@ async function handleFiles(request, env, userId, id) {
     if (!object) return new Response("Not found", { status: 404 });
     const headers = new Headers();
     object.writeHttpMetadata(headers);
+    const ct = headers.get("Content-Type") || "application/octet-stream";
+    if (!INLINE_OK.test(ct)) {
+      headers.set("Content-Type", "application/octet-stream");
+      headers.set("Content-Disposition", "attachment");
+    }
+    if (!INLINE_OK.test(ct) || NEEDS_SANDBOX.test(ct)) {
+      headers.set("Content-Security-Policy", "default-src 'none'; sandbox");
+    }
+    headers.set("X-Content-Type-Options", "nosniff");
     headers.set("ETag", object.httpEtag);
     headers.set("Cache-Control", "private, max-age=604800, immutable");
     return new Response(object.body, { headers });
@@ -247,6 +332,10 @@ export default {
       const userId = userIdFrom(request);
       if (!userId) return unauthorized();
 
+      // Než cokoli jiného: sedí id na tuhle adresu?
+      await ensureSchema(env);
+      if (await identityConflict(env, userId, accessEmail(request))) return identityConflictResponse();
+
       if (url.pathname === "/api/me") {
         return handleMe(env, userId);
       }
@@ -288,6 +377,6 @@ export default {
       return Response.json({ ok: false, error: "not found" }, { status: 404 });
     }
 
-    return env.ASSETS.fetch(request);
+    return withSecurityHeaders(await env.ASSETS.fetch(request));
   },
 };

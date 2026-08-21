@@ -2,7 +2,7 @@
 // index.html: network-first (always fresh online, cached fallback offline).
 // hashed assets + fonts: cache-first (immutable). /api/*: never cached.
 // Only caches real app responses (200, same-origin, not an Access redirect).
-const VERSION = "tanmay-v2";
+const VERSION = "tanmay-v3";
 const SHELL = "shell-" + VERSION;
 const ASSETS = "assets-" + VERSION;
 
@@ -11,6 +11,9 @@ self.addEventListener("install", () => { self.skipWaiting(); });
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
+    // "pinned" drží připnutá média přihlášeného člověka. Nesmaže ho výměna
+    // verze (offline přílohy by zmizely), ale při střídání účtu na jednom
+    // zařízení ho ruší aplikace sama — viz ownerQuarantine v App.tsx.
     await Promise.all(keys.filter((k) => !k.endsWith(VERSION) && k !== "pinned").map((k) => caches.delete(k)));
     await self.clients.claim();
   })());
@@ -18,6 +21,12 @@ self.addEventListener("activate", (event) => {
 
 function cacheable(res) { return res && res.ok && res.status === 200 && !res.redirected; }
 function isHtml(res) { return (res.headers.get("content-type") || "").includes("text/html"); }
+
+// Chybějící soubor se na tomhle hostingu nevrací jako 404 — SPA fallback
+// pošle index.html se stavem 200. Kdyby se takový dokument uložil pod URL
+// obrázku, zůstal by tam i po nasazení opravy a obrázek by byl rozbitý
+// natrvalo. Do mezipaměti souborů proto nikdy nepatří HTML.
+function ulozitelne(res) { return cacheable(res) && !isHtml(res); }
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
@@ -78,12 +87,12 @@ async function cacheFirst(req, cacheName) {
   const cache = await caches.open(cacheName);
   const hit = await cache.match(req);
   if (hit) {
-    fetch(req).then((res) => { if (cacheable(res)) cache.put(req, res.clone()); }).catch(() => {});
+    fetch(req).then((res) => { if (ulozitelne(res)) cache.put(req, res.clone()); }).catch(() => {});
     return hit;
   }
   try {
     const res = await fetch(req);
-    if (cacheable(res)) cache.put(req, res.clone());
+    if (ulozitelne(res)) cache.put(req, res.clone());
     return res;
   } catch (e) {
     return hit || Response.error();

@@ -1,13 +1,18 @@
 {
-  "name": "tanmay-web",
+  "name": "tanmay-klient",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "lint": "oxlint src worker tests",
+    "preview": "vite preview",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "test:security": "node --test \"tests/worker.test.js\"",
+    "test:source": "node --test \"tests/source-invariants.test.js\"",
+    "test:browser": "node tests/browser/account-switch.mjs",
+    "check": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "react": "^19.2.7",
