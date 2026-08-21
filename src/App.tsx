@@ -2,27 +2,23 @@ import React, { useState, useContext, createContext } from "react";
 import { createPortal } from "react-dom";
 
 /**
- * tanmay — Notion mirror (v0.2)
+ * Tanmay Practice · Client App
  * --------------------------------------------------
- * Faithful reproduction of Kryštof's Notion "favorites" tree,
- * styled with the Tanmay brand identity (dark · organic · ancient).
+ * Soukromý klientský prostor: praxe, plány, trénink, termíny, záznamy
+ * a kontakt s trenérem.
  *
- * v0.2 adds:
- *  - CLIENT EDITION · odvozeno 1:1 z osobní verze (vzhled, ikony, rozložení)
- *  - Light (linen / paper) + Dark (forest night) themes with a toggle
- *  - REAL data in Divine game of life + Habit Tracker
- *    (live areas, goals, daily habits pulled from Notion)
+ * Private client space for practice, plans, training, appointments,
+ * records and contact.
  *
- * v0.3 adds:
- *  - EDIT-LOCK mode: global lock toggle in the topbar. Locked (default)
- *    = clean reading mode, no add/edit/delete/reorder UI anywhere.
- *    Unlocked = full editing.
- *  - Drag-to-reorder for user entries (Journal, Notebook) + ↑/↓
- *    buttons as touch fallback. Goals reorder via ↑/↓.
- *  - File & image attachments on entries (stored as base64 in
- *    localStorage; per-file limit ~2.5 MB to stay within quota).
+ * CLIENT EDITION · vzhled, ikony a rozložení jsou odvozené z osobní verze,
+ * data ale nikdy. Do osobního Deníku, Zápisníku, Hospodaření, Tvorby
+ * obsahu, Mandaly ani k jiným klientům odsud nevede žádná cesta.
  *
- * Freely editable. Single file. No external state.
+ * Aktivní produkt se udržuje v tomhle zdroji. Data importovaná z dřívějška
+ * zůstávají čitelná, ale Notion už není produktový model ani zdroj pravdy.
+ * The active product is maintained in this source. Legacy imported data
+ * remains readable, but Notion is no longer the product model or the source
+ * of truth.
  */
 
 // ----------------------------------------------------------------------
@@ -44,8 +40,8 @@ const L = (cs, en) => (LANG === "cs" ? cs : en);
 // Display-only translation of internal filter tokens (values stay Czech in state/logic)
 const LV = (x) => ({ "Vše": L("Vše", "All"), Status: L("Stav", "Status"), Area: L("Oblast", "Area"), Priority: L("Priorita", "Priority"), Completed: L("Hotové", "Completed"), Archiv: L("Archiv", "Archive") }[x] || x);
 // goal vocabulary · display layer only — stored keys stay English, nothing migrates
-const GS = (x) => ({ "Not started": L("Nezačato", "Not started"), "In progress": L("V pohybu", "In progress"), "On Hold": L("Odloženo", "On hold"), "Completed": L("Hotovo", "Completed") }[x] || x);
-const PL = (x) => ({ High: L("Vysoká", "High"), Normal: L("Střední", "Normal"), Moderate: L("Mírná", "Moderate") }[x] || x);
+const GS = (x) => ({ "Not started": L("Čeká", "Waiting"), "In progress": L("V pohybu", "In progress"), "On Hold": L("Odloženo", "On hold"), "Completed": L("Hotovo", "Completed") }[x] || x);
+const PL = (x) => ({ High: L("Vysoká", "High"), Normal: L("Střední", "Medium"), Moderate: L("Nízká", "Low") }[x] || x);
 
 // Display serif is language-aware (Brand §6): Czech display = EB Garamond Regular 400
 // (same Garamond family, calmer diacritics), English display = Cormorant Garamond.
@@ -497,7 +493,7 @@ const AREA_CZ = {
   "holistic body control": "Tělo", "Body": "Tělo", "General health": "Zdraví", "Blood Family wellfear": "Rodina",
   "Brotherhood / Sisterhood": "Přátelství", "Financial freedom": "Finance", "Finances": "Finance",
   "Tanamy flow": "Podnikání", "Business": "Podnikání", "Adventure life": "Dobrodružství",
-  "Soul embodyment": "Životní poslání", "Life mission": "Životní poslání", "Soul embodyment 📿🔥": "Životní poslání", "Life mission 📿🔥": "Životní poslání",
+  "Soul embodyment": "Smysl a směr", "Life mission": "Smysl a směr", "Soul embodyment 📿🔥": "Smysl a směr", "Life mission 📿🔥": "Životní poslání",
 };
 const AREA_EN = {
   "Brotherhood / Sisterhood": "Friendship", "Adventure life": "Adventure", "Financial freedom": "Finances",
@@ -520,7 +516,12 @@ const GOALS=[];
 
 // výchozí praxe · bilingual defaults [icon, cz, en] — resolved at render via L,
 // custom renames (with .name) always win; history binds to slots, never names
-const HABIT_DEFS=[["🌊","Ztišení a příprava","Reflect and prepare"],["🌾","Rozvoj značky","Growing the brand"],["🎸","Tvorba","Making art"],["💪","Trénink těla","Training the body"],["💾","Limit obrazovek","Screen time limit"],["📚","Hluboké studium","Deep study"],["📿","Jóga a protažení","Yoga and stretch"],["🔥","Meditace","Meditation"],["🥑","Poctivá strava","Honest food"]];
+/* PŘÍKLADY, NE PŘEDPIS.
+   V klientské aplikaci to není povinná sada. Je to nabídka, ze které si
+   klient může vzít, co mu dává smysl — a stejně tak si může založit svůj
+   vlastní návyk. Historie se váže na slot, ne na jméno, takže přejmenování
+   nic nepřepíše a vlastní jméno vždycky vyhraje nad výchozím. */
+const HABIT_DEFS=[["🌊","Ztišení a příprava","Settle and prepare"],["🌾","Práce na značce","Brand work"],["🎸","Tvorba","Create"],["💪","Trénink","Training"],["💾","Čas bez obrazovek","Time away from screens"],["📚","Soustředěné studium","Focused study"],["📿","Jóga a mobilita","Yoga and mobility"],["🔥","Meditace","Meditation"],["🥑","Jíst s pozorností","Eat with attention"]];
 const HABIT_DEFAULTS = HABIT_DEFS.map(([icon, cz, en], i) => ({ slot: i, icon, cz, en }));
 const FLOW=[];
 const FLOW_BY = Object.fromEntries(FLOW.map((e) => [e.d, e]));
@@ -909,7 +910,7 @@ function PageDivine({ go }) {
   return (
     <>
       <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcKompas size={40} /></span>} pageKey="kompas" kicker={L("Orientace", "Orientation")}>{L("Kompas", "Compass")}</PageTitle>
-      <p style={pProse(t)}>{L("Zvedni hlavu ode dne. Krajina, směr, dnešní krok.", "Lift your head from the day. The landscape, the direction, today's step.")}</p>
+      <p style={pProse(t)}>{L("Dnešní krok. Širší směr. Celá krajina.", "Today's step. The wider direction. The whole landscape.")}</p>
       <Divider />
       <Eyebrow>{L("Krajina", "The landscape")}</Eyebrow>
       {addingArea && <AddAreaForm onDone={() => setAddingArea(false)} />}
@@ -945,7 +946,7 @@ function PageDivine({ go }) {
             <DayTasks date={todayISO()} />
           </div>
           <div style={{ height: 10 }} />
-          <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPraxe size={13} /></span>} label={L("Dnešní —Flow— · Praxe", "Today's —Flow— · Practice")} onClick={() => go("praxe")} />
+          <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPraxe size={13} /></span>} label={L("Dnešní praxe", "Today's practice")} onClick={() => go("praxe")} />
         </div>
         <div>
           <Eyebrow>Pomodoro</Eyebrow>
@@ -959,7 +960,7 @@ function PageDivine({ go }) {
         <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcCile size={13} /></span>} label={L("Otevřít dílnu", "Open the workshop")} onClick={() => setDilna(true)} />
       </div>
       {dilna && (
-        <CenterSheet title={L("Dílna · cíle a oblasti", "Workshop · goals and areas")} onClose={() => setDilna(false)}>
+        <CenterSheet title={L("Dílna · cíle a krajiny", "Workshop · goals and landscapes")} onClose={() => setDilna(false)}>
           <GoalWorkspace withAreas />
         </CenterSheet>
       )}
@@ -1530,7 +1531,22 @@ function HabitInlineEditor() {
     st.setHabitDefs([...order, ...defs.filter((x) => x.archived)]);
     setDragSlot(null); setOverSlot(null);
   };
-  const addHabit = () => st.setHabitDefs([...defs, { slot: defs.reduce((m, d) => Math.max(m, d.slot), -1) + 1, icon: "○", name: L("Nový návyk", "New habit") }]);
+  /* DVĚ CESTY, ŽÁDNÝ PŘEDPIS.
+     Výchozí sada je nabídka, ne povinnost. Klient si může vzít příklad,
+     nebo si založit vlastní návyk — obojí je jeho a obojí se dá kdykoli
+     přejmenovat, odložit nebo archivovat. Nic z toho nesahá na trenérem
+     řízený plán ani na předepsaný trénink; tohle je jen jeho vlastní
+     denní praxe. Nový slot se počítá z maxima, takže se historie žádného
+     dřívějšího návyku nepřepíše. */
+  const dalsiSlot = () => defs.reduce((m, d) => Math.max(m, d.slot), -1) + 1;
+  const addHabit = () => st.setHabitDefs([...defs, { slot: dalsiSlot(), icon: "○", name: L("Nový návyk", "New habit") }]);
+  const [priklady, setPriklady] = useState(false);
+  const maJmeno = (jm) => defs.some((d) => (d.name || "").trim().toLowerCase() === jm.trim().toLowerCase());
+  const pridejPriklad = (icon, jm) => { if (maJmeno(jm)) return; st.setHabitDefs([...defs, { slot: dalsiSlot(), icon, name: jm }]); };
+  /* Obě cesty jsou vidět vždycky, i když má člověk zrovna všechny příklady
+     u sebe. Co už má, se ukáže jako převzaté a nedá se přidat podruhé —
+     nabídka tím zůstane úplná a nic se nezdvojí. */
+  const vsePriklady = HABIT_DEFS.map(([icon, cz, en]) => [icon, L(cz, en)]);
   const archived = defs.filter((x) => x.archived);
   return (
     <div>
@@ -1556,8 +1572,28 @@ function HabitInlineEditor() {
             <button title={L("Archivovat — historie zůstane", "Archive — history stays")} onClick={() => st.ask(L(`Archivovat návyk „${d.name}"?`, `Archive habit "${d.name}"?`), () => upd(d.slot, { archived: true }))} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 11, border: "none", color: t.textMuted }}>✕</button>
           </div>
         ))}
-        <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13.5 }}>＋ {L("návyk", "habit")}</button>
+        <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13.5 }}>＋ {L("Vytvořit vlastní", "Create your own")}</button>
+        <button onClick={() => setPriklady((x) => !x)} aria-expanded={priklady} aria-controls="tm-priklady" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13.5 }}>＋ {L("Přidat z příkladů", "Add from examples")}</button>
       </div>
+      {/* PŘÍKLADY · nabídka, ne předpis. Klepnutím se přidá jako vlastní návyk
+          klienta; s trenérem řízeným plánem to nemá nic společného. */}
+      {priklady && (
+        <div id="tm-priklady" style={{ marginTop: 10 }}>
+          <div style={{ ...subLabel(t), marginBottom: 6 }}>{L("Příklady · vezmi si jen to, co dává smysl tobě", "Examples · take only what makes sense for you")}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {vsePriklady.map(([icon, jm]) => {
+              const uz = maJmeno(jm);
+              return (
+                <button key={jm} onClick={() => pridejPriklad(icon, jm)} disabled={uz}
+                  title={uz ? L("Tenhle návyk už máš", "You already have this one") : L("Přidat mezi své návyky", "Add to your habits")}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, minHeight: 36, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 999, padding: "5px 13px", cursor: uz ? "default" : "pointer", color: uz ? t.textMuted : t.textSec, opacity: uz ? 0.45 : 1, fontFamily: FONT_BODY, fontSize: 13 }}>
+                  <span aria-hidden="true">{icon}</span>{jm}{uz ? " ✓" : ""}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {archived.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
           <span style={{ ...subLabel(t), marginBottom: 0 }}>{L("Archivované:", "Archived:")}</span>
@@ -1585,8 +1621,8 @@ function DayView({ go }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={() => st.setSelDate(shiftISO(date, -1))} style={calBtn(t, false)}>‹</button>
           <div>
-            <div onClick={() => go && go("memento")} role="button" title="memento mori" style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: t.heading, cursor: "pointer" }}>{fmtCZ(date)}</div>
-            <div style={{ ...subLabel(t), marginBottom: 0 }}>—Flow— {tracked ? L("zaznamenáno", "recorded") : L("nový den", "new day")}</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: t.heading }}>{fmtCZ(date)}</div>
+            <div style={{ ...subLabel(t), marginBottom: 0 }}>{tracked ? L("Praxe zaznamenána", "Practice recorded") : L("Nový den", "A new day")}</div>
           </div>
           <button onClick={() => st.setSelDate(shiftISO(date, 1))} style={calBtn(t, false)}>›</button>
         </div>
@@ -2258,7 +2294,7 @@ function PageHabit({ go }) {
       <div style={{ height: 6 }} />
       <div className="tm-praxegrid" style={{ display: "grid", gridTemplateColumns: "minmax(260px, 1fr) minmax(260px, 1fr)", gap: 24, alignItems: "start" }}>
         <div className="tm-po-flow" style={{ gridColumn: 1, gridRow: "1 / span 2", minWidth: 0 }}>
-          <Eyebrow>{L("Dnešní —Flow—", "Today's —Flow—")}</Eyebrow>
+          <Eyebrow>{L("Dnešní praxe", "Today's practice")}</Eyebrow>
           <DayView go={go} />
         </div>
         <div className="tm-po-cal" style={{ gridColumn: 2, gridRow: 1, minWidth: 0 }}>
@@ -2282,15 +2318,14 @@ function PageHabit({ go }) {
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "stretch", margin: "4px 0 8px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "14px 18px" }}>
           <Ring value={HABIT_STATS.avg / 100} label={HABIT_STATS.avg + "%"} />
-          <div><div style={subLabel(t)}>{L("Průměrná", "Average")}<br/>{L("úspěšnost", "success")}</div></div>
+          <div><div style={subLabel(t)}>{L("Podíl splněných", "Share of habits")}<br/>{L("návyků", "kept")}</div></div>
         </div>
-        <StatCard value={HABIT_STATS.days} label={L("Zaznamenaných dní", "Days recorded")} />
+        <StatCard value={HABIT_STATS.days} label={L("Dní se záznamem", "Days with a record")} />
         <StatCard value={HABIT_STATS.perfect} label={L("Dní 9/9", "9/9 days")} />
-        <StatCard value={Math.max(...HABIT_STATS.streaks)} label={L("Nejdelší řada", "Longest run")} />
       </div>
 
       <div style={{ height: 22 }} />
-      <Eyebrow>{L("—Flow— podle dní", "—Flow— by day")}</Eyebrow>
+      <Eyebrow>{L("Praxe podle dní", "Practice by day")}</Eyebrow>
       <HabitMatrix />
 
       <div style={{ height: 22 }} />
@@ -3180,7 +3215,7 @@ function GoalWorkspace({ withAreas }) {
         <Board onOpen={openGoal} onMove={applyMove((v) => ({ status: v }))} groups={GOAL_STATUSES.map((sx) => [GS(sx), GSTATUS_COLOR[sx], nonArch.filter((g) => g.status === sx), sx])} />
       )}
       {view === "Area" && (
-        <Board onOpen={openGoal} onMove={applyMove((v) => ({ area: v, areas: v ? [v] : [] }))} groups={[...areaNames, ""].map((n) => [n || "Bez oblasti", n ? (AREA_COLOR[n] || "default") : "default", nonArch.filter((g) => (g.area || "") === n), n]).filter(([, , items]) => items.length > 0)} />
+        <Board onOpen={openGoal} onMove={applyMove((v) => ({ area: v, areas: v ? [v] : [] }))} groups={[...areaNames, ""].map((n) => [n || L("Bez krajiny", "No landscape"), n ? (AREA_COLOR[n] || "default") : "default", nonArch.filter((g) => (g.area || "") === n), n]).filter(([, , items]) => items.length > 0)} />
       )}
       {view === "Priority" && (
         <Board onOpen={openGoal} onMove={applyMove((v) => ({ prio: v }))} groups={PRIOS.map((p) => [PL(p), PRIO_COLOR[p], nonArch.filter((g) => g.prio === p), p])} />
@@ -3788,7 +3823,7 @@ function AreaChips({ onOpen, onAdd }) {
           </button>
         );
       })}
-      {onAdd && <button onClick={onAdd} title={L("Nová oblast", "New area")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 18, padding: "6px 12px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13 }}>＋ {L("nová", "new")}</button>}
+      {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 18, padding: "6px 12px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13 }}>＋ {L("nová", "new")}</button>}
     </div>
   );
 }
@@ -4566,7 +4601,7 @@ function PageNotebook() {
           <NotebookCard entry={fullEntry} tags={tags} full />
         </CenterSheet>
       )}
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcZapisnik size={38} /></span>} pageKey="zapisnik" kicker={L("Jeden prostor pro cokoliv", "One space for anything")}>{L("Zápisník", "Notebook")}</PageTitle>
+      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcZapisnik size={38} /></span>} pageKey="zapisnik" kicker={L("Poznámky, nápady a souvislosti.", "Notes, ideas and connections.")}>{L("Zápisník", "Notebook")}</PageTitle>
       {st.editMode && <p style={pProse(t)}><span style={{ color: t.textMuted }}>{L("Klik otevře a rovnou píšeš · podrž a přetáhni · výběrem označíš víc najednou.", "Click opens and you write right away · hold and drag · select to mark several at once.")}</span></p>}
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
@@ -5238,7 +5273,7 @@ const KL_STATUS = [
   { v: "aktivni", cz: "Aktivní", en: "Active", c: "orange" },
   { v: "pauza", cz: "Pauza", en: "Paused", c: "blue" },
   { v: "ukonceno", cz: "Ukončeno", en: "Ended", c: "gray" },
-  { v: "alumni", cz: "Alumni", en: "Alumni", c: "green" },
+  { v: "alumni", cz: "Po spolupráci", en: "After working together", c: "green" },
 ];
 const KL_SRC = [
   { v: "doporuceni", cz: "Doporučení", en: "Referral" },
@@ -5274,7 +5309,7 @@ const KL_GUIDE = [
 const KL_CAT_MAP = { C: { trAge: "novice" }, B: { trAge: "intermediate" }, A: { trAge: "advanced" }, Ap: { trAge: "advanced", moveQ: "free" } };
 const KL_TYPES = [
   { v: "venku", cz: "Venku", en: "Outdoors", i: "◭" },
-  { v: "gym", cz: "Gym", en: "Gym", i: "▣" },
+  { v: "gym", cz: "Studio", en: "Studio", i: "▣" },
   { v: "online", cz: "Online", en: "Online", i: "◌" },
 ];
 const KL_SSTATUS = [
@@ -6468,7 +6503,7 @@ function PageKlienti() {
 
   return (
     <>
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcKlienti size={38} /></span>} kicker={L("Kokpit trenéra", "Coach cockpit")}>{L("Klienti", "Clients")}</PageTitle>
+      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcKlienti size={38} /></span>} kicker={L("Vztah, plán, další krok.", "Relationship, plan, next step.")}>{L("Klienti", "Clients")}</PageTitle>
       <p style={pProse(t)}>
         {L("Kdo s tebou pracuje, kdy se vidíte, co je otevřené. Obsah jejich zápisů sem nepatří — deník klienta je jeho.",
            "Who works with you, when you meet, what is open. The content of their entries does not belong here — a client's journal is their own.")}
@@ -6565,12 +6600,12 @@ function PageTrash() {
 // ---- movement patterns · the first axis of the library ----
 const T_PATTERNS = [
   { k: "drep", cz: "Dřep", en: "Squat" },
-  { k: "ohyb", cz: "Ohyb", en: "Hinge" },
+  { k: "ohyb", cz: "Kyčelní ohyb", en: "Hinge" },
   { k: "tlak", cz: "Tlak", en: "Push" },
   { k: "tah", cz: "Tah", en: "Pull" },
   { k: "stred", cz: "Střed", en: "Core" },
-  { k: "obrat", cz: "Obrat", en: "Invert" },
-  { k: "prenos", cz: "Přenos", en: "Locomotion" },
+  { k: "obrat", cz: "Obrácené polohy", en: "Inversions" },
+  { k: "prenos", cz: "Pohyb v prostoru", en: "Locomotion" },
   { k: "mobilita", cz: "Mobilita", en: "Mobility" },
   { k: "krk", cz: "Krk", en: "Neck" },
   { k: "dech", cz: "Dech", en: "Breath" },
@@ -6604,32 +6639,32 @@ const T_PAT_INFO = {
 // T_LEVELS is what the ATHLETE declares about themselves: four rungs, and it is an
 // input to the generator and nothing else.
 const T_LEVELS = [
-  { v: 1, cz: "Základ", en: "Foundation" },
-  { v: 2, cz: "Střed", en: "Middle" },
-  { v: 3, cz: "Pokročilý", en: "Advanced" },
-  { v: 4, cz: "Elitní", en: "Elite" },
+  { v: 1, cz: "Základní", en: "Foundation" },
+  { v: 2, cz: "Středně pokročilá", en: "Intermediate" },
+  { v: 3, cz: "Pokročilá", en: "Advanced" },
+  { v: 4, cz: "Velmi pokročilá", en: "Highly advanced" },
 ];
 // T_DEMANDS is what an EXERCISE demands: five rungs, stored as `S`, and it is the only
 // number any decision in this app reads. A wall push-up is a 1. A planche is a 5.
 const T_DEMANDS = [
-  { v: 1, cz: "Nic nestojí", en: "Costs nothing" },
-  { v: 2, cz: "Základ", en: "Foundation" },
-  { v: 3, cz: "Střed", en: "Middle" },
-  { v: 4, cz: "Těžké", en: "Hard" },
-  { v: 5, cz: "Na hraně", en: "At the edge" },
+  { v: 1, cz: "Velmi nízká", en: "Very low" },
+  { v: 2, cz: "Nízká", en: "Low" },
+  { v: 3, cz: "Střední", en: "Medium" },
+  { v: 4, cz: "Vysoká", en: "High" },
+  { v: 5, cz: "Velmi vysoká", en: "Very high" },
 ];
 const T_DEMAND = (v) => T_DEMANDS.find((x) => x.v === v) || T_DEMANDS[0];
 // The one bridge between them: what an athlete of a given level is allowed to be handed.
 // This is the gate. There is no other.
 const TP_CEIL = { 1: 2, 2: 3, 3: 4, 4: 5 };
 const T_POPS = [
-  { v: 3, cz: "základ kánonu", en: "world staple" },
-  { v: 2, cz: "rozšířený", en: "widely used" },
-  { v: 1, cz: "specialita", en: "specialist" },
+  { v: 3, cz: "Základní", en: "Core" },
+  { v: 2, cz: "Běžně používaný", en: "Widely used" },
+  { v: 1, cz: "Specializovaný", en: "Specialist" },
 ];
 const T_POP = (v) => T_POPS.find((x) => x.v === v) || T_POPS[1];
 const T_EQUIP = [
-  { k: "telo", cz: "tělo", en: "bodyweight" },
+  { k: "telo", cz: "vlastní váha", en: "bodyweight" },
   { k: "hrazda", cz: "hrazda", en: "bar" },
   { k: "bradla", cz: "bradla", en: "parallel bars" },
   { k: "kruhy", cz: "kruhy", en: "rings" },
@@ -15847,14 +15882,14 @@ function PageTrenink() {
     { k: "cviky", cz: "Cviky", en: "Exercises" },
     { k: "treninky", cz: "Tréninky", en: "Workouts" },
     { k: "plany", cz: "Plány", en: "Plans" },
-    { k: "progres", cz: "Progres", en: "Progress" },
-    { k: "knowledge", cz: "Knowledge", en: "Knowledge" },
+    { k: "progres", cz: "Vývoj", en: "Progress" },
+    { k: "knowledge", cz: "Znalosti", en: "Knowledge" },
   ];
   const inpStyle = { background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, padding: "7px 11px", outline: "none" };
 
   return (
     <>
-      <PageTitle pageKey="trenink" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcTrenink size={40} /></span>} kicker={L("Tělo je první učitel", "The body is the first teacher")}>
+      <PageTitle pageKey="trenink" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcTrenink size={40} /></span>} kicker={L("Plán, provedení, záznam.", "Plan, execution, record.")}>
         {L("Trénink", "Training")}
       </PageTitle>
       {view === "dnes" && (
@@ -15905,7 +15940,7 @@ function PageTrenink() {
             <TMultiSel label={L("Náročnost", "Demand")} values={fLvls} onChange={setFLvls} options={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
             <TMultiSel label={L("Svaly", "Muscles")} values={fMus} onChange={setFMus} options={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))} />
             <TMultiSel label={L("Vybavení", "Equipment")} values={fEq} onChange={setFEq} options={T_EQUIP.map((e) => ({ v: e.k, label: L(e.cz, e.en) }))} />
-            <TMultiSel label={L("Význam", "Significance")} values={fPops} onChange={setFPops} options={T_POPS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
+            <TMultiSel label={L("Rozšířenost", "How common")} values={fPops} onChange={setFPops} options={T_POPS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
             <Select small value={sortBy} onChange={setSortBy} options={[{ v: "vzor", label: L("Řadit: vzor · úroveň", "Sort: pattern · level") }, { v: "vyznam", label: L("Řadit: světový význam", "Sort: world significance") }, { v: "vlastni", label: L("Řadit: vlastní — táhni myší", "Sort: your own — drag them") }]} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ ...inpStyle, width: 150 }} />
             {anyFilter ? <button onClick={() => { setFPats([]); setFLvls([]); setFMus([]); setFEq([]); setFPops([]); setQ(""); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 11.5, textDecoration: "underline", padding: 0 }}>{L("vyčistit", "clear")}</button> : null}
@@ -16448,7 +16483,23 @@ function OfflineBadge() {
 // ---- PRŮVODCE · one quiet tour, four faces: owner / client × desktop / phone.
 // Client builds: TM_GUIDE_VARIANT = "client" (+ TM_GUIDE_AUTOSHOW = true → opens
 // once on first launch, remembers via localStorage "tmGuideSeen").
-const TM_GUIDE_AUTOSHOW = false;
+/* PRŮVODCE MÁ VERZI, NE JEN VLAJKU.
+   Nová významná verze se smí ukázat i tomu, kdo starou už viděl. Starý
+   `tmGuideSeen` se čte jako verze 1 a nikdy se nemaže; nic jiného
+   v nastavení se tím nedotkne. */
+const TM_GUIDE_VERZE = 2;
+const tmGuideVidel = () => {
+  try {
+    const v = parseInt(localStorage.getItem("tmGuideVersion") || "", 10);
+    if (!isNaN(v)) return v;
+    return localStorage.getItem("tmGuideSeen") ? 1 : 0;
+  } catch (e) { return 0; }
+};
+const tmGuideOznac = () => { try { localStorage.setItem("tmGuideVersion", String(TM_GUIDE_VERZE)); } catch (e) {} };
+
+// Průvodce se v klientské aplikaci smí otevřít jednou při prvním spuštění
+// a pak už jen tehdy, když přijde významně nová verze.
+const TM_GUIDE_AUTOSHOW = true;
 const TM_GUIDE_VARIANT = "client"; // "owner" | "client"
 
 function TmGuide({ onClose }) {
@@ -16534,81 +16585,124 @@ function TmGuide({ onClose }) {
   );
 
   // ---- kroky · stručně, bez balastu ----
+  /* PATNÁCT KROKŮ · shodných s Main App, jen tam, kde se svět klienta liší,
+     mluví jeho jazykem: plán připravuje trenér, Memento mori je vypnuté,
+     dokud si ho sám nezapne. Ilustrace zůstávají tam, kde skutečně něco
+     ukazují; jinde by byly jen ozdoba. */
   const steps = [
     {
-      vis: VisRooms, kicker: L("Vítej", "Welcome"),
-      title: L("Jeden dům, několik místností", "One house, a few rooms"),
-      body: client
-        ? L("Tvůj prostor pro tělo, praxi a směr. Vše zůstává ve tvém zařízení a funguje offline.", "Your space for body, practice and direction. Everything stays on your device and works offline.")
-        : L("Tělo, praxe a směr na jednom místě. Vše zůstává v zařízení a funguje offline.", "Body, practice and direction in one place. Everything stays on the device and works offline."),
-      tips: [isM
-        ? L("Tahem doleva/doprava střídáš místnosti; dok dole se točí dokola.", "Drag left/right to move between rooms; the dock loops endlessly.")
-        : L("Levý sloupec je mapa domu.", "The left column is the map of the house.")],
-    },
-    {
-      ic: "praxe", kicker: L("Praxe", "Practice"), vis: VisCal,
-      title: L("Ráno záměr · přes den návyky · večer ohlédnutí", "Morning intent · habits · evening review"),
-      body: L("Jedna stránka, jeden den.", "One page, one day."),
-      tips: [
-        L("Tečka pod dnem = zaznamenáno; její sytost = kolik návyků drželo.", "A dot under a day = recorded; its depth = how many habits held."),
-        L("Přehled otevře statistiky, Tělo hlídá spánek, náladu a energii.", "Overview opens the stats; Body tracks sleep, mood and energy."),
-      ],
-    },
-    {
-      ic: "trenink", kicker: L("Trénink", "Training"), vis: VisStrip,
-      title: L("Dny jsou pás, kterým listuješ", "Days are a strip you flick through"),
-      body: L("Tečky pod dnem říkají, co je zapsané nebo v plánu. Začít spustí připravený trénink i s časovačem.", "The dots under a day tell what's logged or planned. Begin starts the prepared session, timer included."),
-      tips: client
-        ? [L("V knihovně najdeš cviky i celé tréninky s postupy.", "The library holds exercises and full sessions with how-tos.")]
-        : [L("Z knihovny přetáhneš cvik nebo trénink rovnou do dne.", "Drag an exercise or session from the library straight into a day.")],
-    },
-    {
-      ic: "denik", kicker: L("Deník", "Journal"), vis: VisCards,
-      title: L("Dnešek se píše nahoře", "Today is written at the top"),
-      body: L("Starší zápisky se otevírají v okně nad stránkou. Vidíš poslední měsíc; starší rozbalíš řádkem měsíce.", "Older entries open in a window above the page. You see the last month; unfold older ones by their month row."),
-      tips: [L("Špendlík podrží média zápisku offline.", "The pin keeps an entry's media offline.")],
-    },
-    {
-      ic: "kompas", kicker: L("Kompas", "Compass"), vis: VisCompass,
-      title: L("Krajina a dnešní krok", "The landscape and today's step"),
-      body: L("Oblasti života, cíle v pohybu a jejich termíny. Dílna slouží k přestavbě cílů i oblastí.", "Life areas, goals in motion and their dates. The workshop is where goals and areas get rebuilt."),
-      tips: [L("Cíl jde poslat do dnešního dne jako úkol ◎.", "A goal can be sent into today as a ◎ task.")],
-    },
-    {
-      ic: "zapisnik", kicker: L("Paměť", "Memory"), vis: VisNotes,
-      title: L("Zápisník a Prameny", "Notebook and Sources"),
-      body: L("Rychlá poznámka Enterem. Knihy, filmy a podcasty s postupem a hodnocením.", "A quick note with Enter. Books, films and podcasts with progress and a score."),
-      tips: [L("Obálku nahraješ i najdeš přímo v jejím rámečku.", "Upload or find a cover right inside its frame.")],
-    },
-    ...(client ? [] : [{
-      ic: "klienti", kicker: L("Svět", "World"), vis: VisWorld,
-      title: L("Klienti a Hospodaření", "Clients and Stewardship"),
-      body: L("Sezení, balíčky a platby; sklenice a rychlý výdaj dneška.", "Sessions, packs and payments; the jars and today's quick expense."),
+      vis: VisRooms, kicker: L("Než začneš", "Before you start"),
+      title: L("Praxe, která drží", "A practice that holds"),
+      body: L("Tahle aplikace tě nemá řídit ani hodnotit. Drží jedno místo pro záměr, skutečný průběh a návrat. Smysl nevzniká z toho, že všechno splníš. Vzniká z toho, že se k praxi můžeš znovu vrátit.",
+              "This app is not here to run you or to grade you. It holds one place for the intention, for what actually happened, and for coming back. Meaning does not come from completing everything. It comes from being able to return."),
       tips: [],
-    }]),
-    {
-      vis: isM ? VisDock : VisLock, kicker: L("Ovládání", "Controls"),
-      title: isM ? (<span>{L("Dok, gesta a ", "The dock, gestures and ")}<span style={{ display: "inline-flex", verticalAlign: "-3px", color: t.sand }}><TmIcNastaveni size={19} /></span></span>) : L("Zámek, jazyk, světlo", "The lock, the language, the light"),
-      body: isM
-        ? (<span><span style={{ display: "inline-flex", verticalAlign: "-3px", color: t.sand }}><TmIcNastaveni size={16} /></span> {L("u loga drží zámek, jazyk, téma i tohoto průvodce. Klepnutí na datum otevře memento mori.", "next to the logo holds the lock, language, theme and this guide. Tapping the date opens memento mori.")}</span>)
-        : L("● Zamčeno je pro praxi, ✎ Editace odemyká mazání a správu. CZ·EN a ☾/☀ přepínají jazyk a téma.", "● Locked is for practising, ✎ Editing unlocks deleting and managing. CZ·EN and ☾/☀ switch language and theme."),
-      tips: isM
-        ? [L("● Zamčeno je pro praxi; ✎ Editace odemyká mazání a správu.", "● Locked is for practising; ✎ Editing unlocks deleting and managing.")]
-        : [L("Esc zavírá okna; klik na datum nahoře otevře memento mori.", "Esc closes windows; clicking the date on top opens memento mori.")],
     },
     {
-      vis: <Bindu size={10} />, kicker: L("Na cestu", "For the road"),
+      ic: "praxe", vis: VisCal, kicker: L("Praxe", "Practice"),
+      title: L("Jeden den. Jeden rytmus.", "One day. One rhythm."),
+      body: L("Ráno pojmenuješ, co chceš nést. Přes den zaznamenáš, co se skutečně stalo. Večer uznáš den, vezmeš si z něj podstatné a připravíš první krok. Jedna karta drží celý rytmus.",
+              "In the morning you name what you want to carry. Through the day you record what actually happened. In the evening you acknowledge the day, take what matters from it and set up the first step. One card holds the whole rhythm."),
+      tips: [],
+    },
+    {
+      kicker: L("Ráno", "Morning"),
+      title: L("Dnes jsem", "Today I am"),
+      body: L("Není to úkol ani afirmace. Krátce si připomeneš charakter a příběhy, které chceš dnes držet. Pojmenuj jen to, co je dnes skutečně tvoje.",
+              "This is not a task and not an affirmation. You briefly recall the character and the stories you want to carry today. Name only what is actually yours today."),
+      tips: [],
+    },
+    {
+      kicker: L("Přes den", "Through the day"),
+      title: L("Záznam, ne rozsudek", "A record, not a verdict"),
+      body: L("U návyku zaznamenáš jen to, zda se stal, nebo byl vědomě odložen. Nehodnotíš jeho dokonalost. Jedno vynechání nic neruší. Důležitý je návrat a obraz, který vzniká v čase.",
+              "For a habit you record only whether it happened or was deliberately set aside. You are not grading how well it went. One miss cancels nothing. What matters is the return, and the picture that builds over time."),
+      tips: [L("Návyky jsou tvoje. Vezmi si z příkladů, nebo si založ vlastní.", "The habits are yours. Take from the examples or create your own.")],
+    },
+    {
+      vis: <Bindu size={9} />, kicker: L("Praxe", "Practice"),
+      title: L("Den držen", "The day held"),
+      body: L("Když se podaří držet celou zvolenou praxi, objeví se tichá pečeť. Je to uznání tohoto konkrétního dne. Není to známka tvé hodnoty ani požadavek na zítřek.",
+              "When the whole chosen practice is held, a quiet seal appears. It acknowledges this particular day. It is not a mark of your worth and not a demand on tomorrow."),
+      tips: [L("Nepočítá se z toho žádná nepřerušená řada. Zítra se začíná znovu.", "No unbroken run is counted from it. Tomorrow starts again.")],
+    },
+    {
+      kicker: L("Tělo", "Body"),
+      title: L("Čtyři údaje. Čtyři různé věci.", "Four readings. Four different things."),
+      body: L("Spánek popisuje podmínky, ve kterých den začal. Nálada jeho emoční tón. Energie kapacitu, kterou máš právě k dispozici. Potenciál dne je tvůj odhad, kolik dnes můžeš nést bez zbytečného přetlačování.",
+              "Sleep describes the conditions the day began in. Mood is its emotional tone. Energy is the capacity available to you right now. Day potential is your estimate of how much you can carry today without pushing needlessly."),
+      tips: [L("Jedno číslo nic nedokazuje. Smysl vzniká až v opakujících se souvislostech.", "One number proves nothing. Meaning appears in repeating patterns.")],
+    },
+    {
+      kicker: L("Tělo", "Body"),
+      title: L("Tři znamení", "Three marks"),
+      body: L("Miska znamená vděčnost. Diamant bódhičittu, tedy záměr nebo čin, který zahrnoval i dobro druhých. Kruh znamená praxi ve světě, která se promítla do vztahů nebo jednání.",
+              "The bowl means gratitude. The diamond means bodhicitta, an intention or an act that included the good of others. The circle means practice in the world, reaching into relationships or action."),
+      tips: [L("Nejsou to úkoly ani skóre. Jen tiché značky, že se to dnes stalo.", "They are not tasks and not scores. Just quiet marks that it happened today.")],
+    },
+    {
+      kicker: L("Tělo", "Body"),
+      title: L("Motiv dne", "The day's motif"),
+      body: L("Jedna krátká věta může dát dni jméno, aniž ho uzavře do hodnocení. Až se k záznamům vrátíš, začnou být vidět motivy, které se opakují.",
+              "One short line can give the day a name without closing it into a judgement. When you come back to the records, the motifs that repeat start to show."),
+      tips: [],
+    },
+    {
+      ic: "kompas", vis: VisCompass, kicker: L("Kompas", "Compass"),
+      title: L("Krajina, cíl, dnešní krok", "Landscape, goal, today's step"),
+      body: L("Krajina je dlouhodobý směr. Cíl je konkrétní místo, ke kterému se dá dojít. Dnešní krok přenese cíl do skutečného dne. Kompas ukazuje směr, ale nerozhoduje za tebe.",
+              "A landscape is a long-term direction. A goal is a concrete place you can reach. Today's step carries the goal into an actual day. The compass shows direction. It does not decide for you."),
+      tips: [],
+    },
+    {
+      ic: "trenink", vis: VisStrip, kicker: L("Trénink", "Training"),
+      title: L("Plán a skutečnost", "The plan and what happened"),
+      body: L("Plán připravuje trenér. Ty zapisuješ skutečný průběh. Záznam plán nepřepisuje, ale dává trenérovi podklad pro další rozhodnutí.",
+              "Your trainer prepares the plan. You record what actually happened. The record does not overwrite the plan. It gives your trainer something real to decide from."),
+      tips: [],
+    },
+    {
+      kicker: L("Večer", "Evening"),
+      title: L("Ohlédnutí otevírá zítřek", "The review opens tomorrow"),
+      body: L("Nejdřív uznáš, co dnes stálo za povšimnutí. Potom si vezmeš to, co nechceš ztratit. Nakonec pojmenuješ jeden konkrétní první krok pro zítřek.",
+              "First you acknowledge what was worth noticing today. Then you take what you do not want to lose. Last you name one concrete first step for tomorrow."),
+      tips: [L("Jít hlouběji je možnost, ne povinnost.", "Going deeper is an option, not a duty.")],
+    },
+    {
+      ic: "prameny", vis: VisNotes, kicker: L("Prameny", "Sources"),
+      title: L("Co si nést dál", "What to carry forward"),
+      body: L("Kniha, film nebo rozhovor nejsou cenné počtem dokončených kusů. Pramen drží jednu větu, zkušenost nebo poznání, které má smysl přenést do vlastní praxe.",
+              "A book, a film or a conversation is not valuable for the number of items finished. A source holds one sentence, experience or insight worth carrying into your own practice."),
+      tips: [],
+    },
+    {
+      kicker: L("Volitelně", "Optional"),
+      title: L("Memento mori", "Memento mori"),
+      body: L("Memento mori je prostor pro vědomé připomenutí konečnosti a toho, na čem záleží. Není povinné a nic neslibuje.",
+              "Memento mori is a space for a deliberate reminder of finitude and of what matters. It is not required and it promises nothing."),
+      tips: [L("Zůstává vypnuté, dokud si ho sám nezapneš v Nastavení. Připomínky mají vlastní souhlas.", "It stays off until you switch it on yourself in Settings. Reminders have their own separate consent.")],
+    },
+    {
+      vis: isM ? VisDock : VisLock, kicker: L("Ovládání", "Getting around"),
+      title: L("Struktura má uvolnit pozornost", "Structure is there to free attention"),
+      body: isM
+        ? L("Na telefonu drží hlavní místnosti spodní dok. Obsah se mění, ale hlavní místa zůstávají stejná, aby ses nemusel pokaždé znovu orientovat.",
+            "On a phone the main rooms live in the bottom dock. The content changes, but the main places stay where they are, so you do not have to find your bearings every time.")
+        : L("Na počítači vidíš hlavní místnosti v boční navigaci. Obsah se mění, ale hlavní místa zůstávají stejná, aby ses nemusel pokaždé znovu orientovat.",
+            "On a computer you see the main rooms in the side navigation. The content changes, but the main places stay where they are, so you do not have to find your bearings every time."),
+      tips: [L("Esc zavírá okna.", "Esc closes windows.")],
+    },
+    {
+      vis: <Bindu size={10} />, kicker: L("Konec", "The end"),
       title: L("Drž svou praxi", "Hold the practice"),
-      body: L("Důvěřuj tělu. Naslouchej divočině.", "Trust the body. Listen to the wild."),
-      tips: [isM
-        ? (<span>{L("Průvodce najdeš kdykoli v ", "You'll find this guide any time in ")}<span style={{ display: "inline-flex", verticalAlign: "-3px", color: t.sand }}><TmIcNastaveni size={15} /></span> {L("Nastavení.", "Settings.")}</span>)
-        : L("Průvodce je kdykoli pod ? dole v levém sloupci.", "This guide lives under the ? at the bottom of the left column.")],
+      body: L("Důvěřuj tělu. Drž svou praxi. Naslouchej divočině. Zbytek se ukáže v opakování.",
+              "Trust the body. Hold the practice. Listen to the wild. The rest shows up in the repetition."),
+      tips: [L("Průvodce je kdykoli v Nastavení.", "This guide is always in Settings.")],
     },
   ];
 
   const n = steps.length;
   const st0 = steps[Math.max(0, Math.min(gi, n - 1))];
-  const close = () => { try { if (typeof localStorage !== "undefined") localStorage.setItem("tmGuideSeen", "1"); } catch (e) {} onClose(); };
+  const close = () => { tmGuideOznac(); onClose(); };
   React.useEffect(() => {
     const h = (e) => {
       if (e.key === "Escape") close();
@@ -16936,7 +17030,7 @@ export default function App() {
     return () => clearTimeout(h);
   }, [page]);
   React.useEffect(() => {
-    try { if (TM_GUIDE_AUTOSHOW && typeof localStorage !== "undefined" && !localStorage.getItem("tmGuideSeen")) setGuideOpen(true); } catch (e) {}
+    try { if (TM_GUIDE_AUTOSHOW && typeof localStorage !== "undefined" && tmGuideVidel() < TM_GUIDE_VERZE) setGuideOpen(true); } catch (e) {}
   }, []);
   const [sideHidden, setSideHidden] = useState(() => { try { return localStorage.getItem("tm-side-hidden") === "1"; } catch (e) { return false; } });
   const toggleSide = () => setSideHidden((h) => { const n = !h; try { localStorage.setItem("tm-side-hidden", n ? "1" : "0"); } catch (e) {} return n; });
@@ -18100,9 +18194,16 @@ export default function App() {
     tSetDone, tItemPatch, tOpenDayItem, tPlanSessionDone, tProgAccept, setSore, unsetSore, soreNow, tSaidBump };
 
   const go = (k) => { setSlideDir(null); setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
-  // MODULY · dům si klient skládá sám; negatované klíče (memento, mandala, koš…) jsou vždy otevřené
+  // MODULY · dům si klient skládá sám; negatované klíče (mandala, koš…) jsou vždy otevřené
   const enabledModules = coll.modules || null; // null = první spuštění → uvítání s výběrem
-  const isEnabled = (key) => !MOD_KEYS.includes(key) || !enabledModules || enabledModules.indexOf(key) !== -1;
+  /* MEMENTO MORI · vypnuté, dokud si ho člověk vědomě nezapne.
+     Není to modul jako ostatní: nevybírá se v uvítání a nedá se na něj
+     narazit omylem. Zapíná se jedním přepínačem v Nastavení a nikde jinde.
+     Samotné zapnutí místnosti nezapíná žádné připomínky — ty mají vlastní
+     souhlas, a ten se tímhle nedotkne. */
+  const mementoZap = !!(coll.memento || {}).zapnuto;
+  const setMementoZap = (v) => setMemento({ zapnuto: !!v });
+  const isEnabled = (key) => (key === "memento" ? mementoZap : (!MOD_KEYS.includes(key) || !enabledModules || enabledModules.indexOf(key) !== -1));
   const dockTabs = ["praxe", "trenink", "denik", "kompas", "zapisnik", "prameny"].filter(isEnabled);
   React.useEffect(() => {
     const owner = page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page;
@@ -18141,7 +18242,7 @@ export default function App() {
       case "denik": return <PageJournal />;
       case "klienti": return <PageKlienti />;
       case "kos": return <PageTrash />;
-      case "memento": return <PageMemento go={go} />;
+      case "memento": return mementoZap ? <PageMemento go={go} /> : <PagePraxe go={go} />;
       case "mandala": return <PageMandala go={go} />;
       default: return <PageHabit go={go} />;
     }
@@ -18465,7 +18566,7 @@ export default function App() {
             <button className="tm-sidetoggle" onClick={toggleSide} title={sideHidden ? L("Zobrazit panel", "Show panel") : L("Schovat panel", "Hide panel")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.textMuted, cursor: "pointer", padding: "6px 10px", fontSize: 13, lineHeight: 1 }}>{sideHidden ? "»" : "«"}</button>
             <button className="tm-burger" onClick={() => setMenuOpen(true)} style={{ display: "none", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.text, cursor: "pointer", padding: "6px 10px", fontSize: 16 }}>☰</button>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div onClick={() => go("memento")} role="button" title="memento mori" style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.textMuted, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(() => { const d = new Date(); return `${d.toLocaleDateString(LANG === "cs" ? "cs-CZ" : "en-GB", { weekday: "long" })} · ${d.getDate()}. ${d.getMonth() + 1}.`; })()}</div>
+              <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.textMuted, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(() => { const d = new Date(); return `${d.toLocaleDateString(LANG === "cs" ? "cs-CZ" : "en-GB", { weekday: "long" })} · ${d.getDate()}. ${d.getMonth() + 1}.`; })()}</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 10.5, color: t.textMuted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>☾ {moonName(moonPhaseOf(todayISO()))}{(() => { const su = sunsetOf(todayISO()); return su ? ` · ${L("západ", "sunset")} ${su}` : ""; })()}</div>
             </div>
             <button
@@ -18513,7 +18614,7 @@ export default function App() {
 
         {setsOpen && (
           <CenterSheet title={L("Nastavení", "Settings")} onClose={() => setSetsOpen(false)}>
-            <button onClick={() => { setSetsOpen(false); go("memento"); }} title="memento mori" style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: 0, fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginBottom: 16 }}>
+            <button onClick={() => { if (!mementoZap) return; setSetsOpen(false); go("memento"); }} title={mementoZap ? "memento mori" : undefined} style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: mementoZap ? "pointer" : "default", padding: 0, fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginBottom: 16 }}>
               {fmtCZ(todayISO())} · ☾ {moonName(moonPhaseOf(todayISO()))}{(() => { const su = sunsetOf(todayISO()); return su ? ` · ${L("západ", "sunset")} ${su}` : ""; })()}
             </button>
             {[
@@ -18521,6 +18622,11 @@ export default function App() {
               { ic: lang === "cs" ? "CZ" : "EN", lbl: L("Jazyk · čeština / angličtina", "Language · Czech / English"), on: toggleLang },
               { icn: mode === "dark" ? TmIcMesic : TmIcSlunce, lbl: L("Téma · Linen / Forest", "Theme · Linen / Forest"), on: () => setMode((m) => (m === "dark" ? "light" : "dark")) },
               { icn: TmIcSdileni, lbl: L("Moduly a sdílení", "Modules and sharing"), on: () => { setSetsOpen(false); setPickerOpen(true); } },
+              { ic: mementoZap ? "◉" : "○", act: mementoZap,
+                lbl: mementoZap
+                  ? L("Memento mori · zapnuto, klepni pro vypnutí", "Memento mori · on, tap to turn off")
+                  : L("Memento mori · volitelný prostor, klepni pro zapnutí", "Memento mori · an optional space, tap to turn on"),
+                on: () => setMementoZap(!mementoZap) },
               { ic: "?", lbl: L("Průvodce aplikací", "App guide"), on: () => { setSetsOpen(false); setGuideOpen(true); } },
             ].map((r, i) => (
               <button key={i} className="tm-nav-item" onClick={r.on} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: r.act ? t.activeNav : "transparent", border: `1px solid ${r.act ? t.accent : "transparent"}`, borderRadius: 10, padding: "13px 12px", cursor: "pointer", color: r.act ? t.accent : t.text, fontFamily: FONT_BODY, fontSize: 14.5 }}>
