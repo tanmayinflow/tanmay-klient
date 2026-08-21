@@ -272,14 +272,58 @@ const StoreCtx = createContext(null);
 const useStore = () => useContext(StoreCtx);
 const LS_KEY = "tanmay_edits_v1";
 const EMPTY_H = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+// ---- HLASITÉ SELHÁNÍ ZÁPISU ----------------------------------------------
+// Tiché selhání je jediná chyba, kterou si software nesmí dovolit: text zůstane
+// na obrazovce (drží ho React), ale po zavření záložky je pryč. Prohlížeč zápis
+// odmítne hlavně při vyčerpané kvótě — od téhle vlny to aplikace řekne nahlas.
+let TM_ON_SAVE_FAIL = null;
+const tmSaveFailed = (where) => { try { TM_ON_SAVE_FAIL && TM_ON_SAVE_FAIL(where); } catch (e) {} };
 function loadEdits() { try { const r = window.localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : {}; } catch (e) { return {}; } }
-function saveEdits(e) { try { window.localStorage.setItem(LS_KEY, JSON.stringify(e)); } catch (err) {} }
+function saveEdits(e) { try { window.localStorage.setItem(LS_KEY, JSON.stringify(e)); return true; } catch (err) { tmSaveFailed("edits"); return false; } }
 function shiftISO(iso, delta) { const [y, m, d] = iso.split("-").map(Number); const dt = new Date(y, m - 1, d); dt.setDate(dt.getDate() + delta); return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); }
 const LS_COLL = "tanmay_coll_v1";
 
 
 function loadColl() { try { const r = window.localStorage.getItem(LS_COLL); return r ? JSON.parse(r) : { goals: {}, journal: [], notebook: [] }; } catch (e) { return { goals: {}, journal: [], notebook: [] }; } }
-function saveColl(c) { try { window.localStorage.setItem(LS_COLL, JSON.stringify(c)); } catch (err) {} }
+function saveColl(c) { try { window.localStorage.setItem(LS_COLL, JSON.stringify(c)); return true; } catch (err) { tmSaveFailed("coll"); return false; } }
+const COLL_EMPTY = () => ({ goals: {}, journal: [], notebook: [] });
+
+// ————————————————————————————————————————————————————————————
+// KOMU ÚLOŽIŠTĚ PATŘÍ
+// Jedno zařízení může vystřídat víc lidí. Místní úložiště ale nemělo jméno
+// vlastníka, takže druhý přihlášený otevřel aplikaci nad cizím dokumentem —
+// a při prvním spojení ho odeslal na server pod svou vlastní identitu.
+// Server posílá v /api/me neobrátitelný otisk vlastníka; když se neshoduje
+// s tím uloženým, cizí obsah se odloží stranou. Nemaže se: leží pod klíčem
+// s otiskem předchozího vlastníka a dá se odtud kdykoli vzít zpět.
+// ————————————————————————————————————————————————————————————
+const LS_OWNER = "tm_owner_v1";
+function ownerLoad() { try { return window.localStorage.getItem(LS_OWNER) || ""; } catch (e) { return ""; } }
+function ownerSave(tag) { try { window.localStorage.setItem(LS_OWNER, tag); } catch (e) {} }
+function ownerQuarantine(prevTag) {
+  const suffix = "__owner_" + (prevTag || "neznamy");
+  [LS_COLL, LS_KEY, "tm_pinned", LS_SYNCED].forEach((k) => {
+    try {
+      const v = window.localStorage.getItem(k);
+      if (v != null) { window.localStorage.setItem(k + suffix, v); window.localStorage.removeItem(k); }
+    } catch (e) {}
+  });
+  // Připnutá média i místní přílohy patřily předchozímu člověku — z mezipaměti
+  // ven, jinak by je servisní pracovník podal komukoli dalšímu.
+  try { if (typeof caches !== "undefined") caches.delete("pinned"); } catch (e) {}
+  try { indexedDB.deleteDatabase("tanmay_files"); } catch (e) {}
+}
+
+// ————————————————————————————————————————————————————————————
+// ZNÁMKA SYNCHRONIZACE
+// Bez ní aplikace při startu vzala serverový dokument i tehdy, když v úložišti
+// ležela práce, která se nahoru nikdy nedostala (psaní offline). Otisk toho,
+// co naposledy prošlo na server, rozliší „nemáme nic nového" od „máme".
+// ————————————————————————————————————————————————————————————
+const LS_SYNCED = "tm_synced_v1";
+function tmDocSig(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return s.length + ":" + h.toString(36); }
+function syncMarkLoad() { try { const r = window.localStorage.getItem(LS_SYNCED); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+function syncMarkSave(v, sig) { try { window.localStorage.setItem(LS_SYNCED, JSON.stringify({ v: v || 0, sig })); } catch (e) {} }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function todayISO() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 function fmtSize(n) { if (!n && n !== 0) return ""; if (n < 1024) return n + " B"; if (n < 1048576) return Math.round(n / 1024) + " kB"; return (n / 1048576).toFixed(1) + " MB"; }
@@ -3546,12 +3590,22 @@ function PomodoroTimer() {
     return () => { POMO_LS.delete(f); document.removeEventListener("visibilitychange", vis); };
   }, []);
   // Dokončené bloky z fronty běžce → do záznamů (i ty dokončené jinde/po zavření).
+  // Efekt běžel po KAŽDÉM vykreslení a frontu četl a mazal ve dvou krocích:
+  // dvě otevřené karty stihly vzít tentýž blok a zapsat ho dvakrát, a blok
+  // dokončený mezi čtením a mazáním zmizel. Teď se fronta vybírá jednou,
+  // zbytek se vrací zpět a zápis se řídí identifikátorem bloku.
+  const pomoDrained = React.useRef(new Set());
   React.useEffect(() => {
     const q = pomoQueueLoad();
     if (!q.length) return;
-    pomoQueueSave([]);
-    q.reverse().forEach((e) => { st.addEntry("pomoLog", e); st.addPomoTree(); });
-  });
+    const brane = q.filter((e) => e && e.id && !pomoDrained.current.has(e.id));
+    // co jsme si vzali, hned odepíšeme; cokoli mezitím přibylo, zůstane
+    const ids = new Set(q.map((e) => e && e.id));
+    pomoQueueSave(pomoQueueLoad().filter((e) => !(e && ids.has(e.id))));
+    brane.forEach((e) => pomoDrained.current.add(e.id));
+    const jiz = new Set(((st.coll.pomoLog) || []).map((e) => e && e.id));
+    brane.reverse().forEach((e) => { if (jiz.has(e.id)) return; st.addEntry("pomoLog", e); st.addPomoTree(); });
+  }, [st.coll.pomoLog]);
 
   const beginRun = (extra) => {
     pomoKeep(true);
@@ -5920,7 +5974,7 @@ function KlTabTrenink({ p, acc }) {
 
   React.useEffect(() => {
     if (!acc) return;
-    fetch("/api/klienti/" + encodeURIComponent(acc.user_id) + "/plan", { cache: "no-store" })
+    klFetch("/api/klienti/" + encodeURIComponent(acc.user_id) + "/plan", { cache: "no-store" })
       .then((r) => r.json()).then((b) => setPushedAt(b && b.updated_at ? b.updated_at : null)).catch(() => {});
   }, [acc && acc.user_id]);
 
@@ -5930,7 +5984,7 @@ function KlTabTrenink({ p, acc }) {
   const sendPlans = () => {
     if (!acc) return;
     setPush({ state: "run", msg: "" });
-    fetch("/api/klienti/" + encodeURIComponent(acc.user_id) + "/plan", {
+    klFetch("/api/klienti/" + encodeURIComponent(acc.user_id) + "/plan", {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ doc: mine.length ? klBundle(st, mine, { pro: sendPro }) : null }),
     }).then((r) => r.json()).then((b) => {
@@ -6254,10 +6308,10 @@ function KlTabAplikace({ p, acc, orphans, onReload }) {
   }
   const rename = (name) => {
     st.updateEntry("klProfiles", p.id, { name });
-    fetch("/api/klienti/" + encodeURIComponent(acc.user_id), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }).then(onReload).catch(() => {});
+    klFetch("/api/klienti/" + encodeURIComponent(acc.user_id), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }).then(onReload).catch(() => {});
   };
   const remove = () => {
-    fetch("/api/klienti/" + encodeURIComponent(acc.user_id), { method: "DELETE" }).then(onReload).catch(() => {});
+    klFetch("/api/klienti/" + encodeURIComponent(acc.user_id), { method: "DELETE" }).then(onReload).catch(() => {});
   };
   return (
     <>
@@ -6392,8 +6446,8 @@ function KlCard({ p, acc, orphans, onBack, onReload }) {
   const send = (tpl) => {
     const text = tpl.make(p, next);
     setTplOpen(false);
-    if (p.phone) window.open(klWaUrl(p.phone, text), "_blank");
-    else if (p.email) window.open(klMailUrl(p.email, L("tanmay practice", "tanmay practice"), text), "_blank");
+    if (p.phone) window.open(klWaUrl(p.phone, text), "_blank", "noopener,noreferrer");
+    else if (p.email) window.open(klMailUrl(p.email, L("tanmay practice", "tanmay practice"), text), "_blank", "noopener,noreferrer");
     else return;
     st.addEntry("klComms", { id: uid(), cid: p.id, date: todayISO(), channel: p.phone ? "whatsapp" : "email", dir: "out", text: L(tpl.cz, tpl.en) });
     if (tpl.v === "reference") patch({ refStatus: "pozadan" });
@@ -6417,7 +6471,7 @@ function KlCard({ p, acc, orphans, onBack, onReload }) {
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18, position: "relative" }}>
         <button onClick={() => setBrief(true)} style={klBtn(t, true)}>{L("Brief", "Brief")}</button>
         <button onClick={() => setTplOpen(!tplOpen)} disabled={!p.phone && !p.email} style={{ ...klBtn(t), opacity: p.phone || p.email ? 1 : 0.45 }}>{p.phone ? "WhatsApp" : L("E-mail", "Email")} ▾</button>
-        {p.email && <button onClick={() => window.open(klMailUrl(p.email, "tanmay practice", ""), "_blank")} style={klBtn(t)}>{L("Napsat", "Write")}</button>}
+        {p.email && <button onClick={() => window.open(klMailUrl(p.email, "tanmay practice", ""), "_blank", "noopener,noreferrer")} style={klBtn(t)}>{L("Napsat", "Write")}</button>}
         <button onClick={exportIcs} style={klBtn(t)}>{L("Do kalendáře", "To calendar")} ↓</button>
         {tplOpen && (
           <div style={{ position: "absolute", top: 40, left: 0, zIndex: 40, background: t.sheet, border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: t.shadowLift, padding: 6, minWidth: 220 }}>
@@ -6480,7 +6534,7 @@ function PageKlienti() {
   const [openId, setOpenId] = useState(null);
 
   const load = () => {
-    fetch("/api/klienti", { cache: "no-store" })
+    klFetch("/api/klienti", { cache: "no-store" })
       .then((r) => r.json())
       .then((b) => { if (b && b.klienti) { setAccounts(b.klienti); setErr(""); } else { setAccounts([]); setErr((b && b.error) || ""); } })
       .catch(() => { setAccounts([]); setErr(L("Účty se nepodařilo načíst. Karty klientů fungují dál.", "Could not load accounts. Client cards keep working.")); });
@@ -9702,14 +9756,20 @@ function tAskDeleteMany(st, kind, ids, after) {
   );
 }
 
+// KLIENTSKÁ APLIKACE NEMÁ KLIENTY.
+// Tenhle háček sem přišel s odvozením z osobní verze a z každého otevření
+// Tréninku posílal dotaz na /api/klienti — na seznam všech ostatních lidí.
+// Klientský Worker takovou cestu nemá, takže dotaz končil naprázdno; přesto
+// z klientského sestavení odchází požadavek, který tam nepatří. Prázdný
+// seznam je tu jediná pravdivá odpověď.
 function useKlienti() {
-  const [rows, setRows] = useState([]);
-  React.useEffect(() => {
-    let dead = false;
-    fetch("/api/klienti", { cache: "no-store" }).then((r) => r.json()).then((b) => { if (!dead && b && b.klienti) setRows(b.klienti); }).catch(() => {});
-    return () => { dead = true; };
-  }, []);
-  return rows;
+  return React.useMemo(() => [], []);
+}
+// Plot okolo trenérských cest. Místnost trenéra se do klientského sestavení
+// dostala odvozením z osobní verze; klientský Worker takové cesty nemá, ale
+// spoléhat na to, co Worker (ne)umí, není hranice. Tohle je hranice.
+function klFetch() {
+  return Promise.reject(new Error("coach endpoints are not part of the client app"));
 }
 
 // Five dots, and they are the demand — the same number the engine gates on. There is no
@@ -16894,7 +16954,7 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, onConfi
           </div>
           {sel.indexOf("praxe") !== -1 && shareRow("habits", "Návyky", "Habits", "Posledních 30 dní zaškrtnutí, bez poznámek.", "Last 30 days of checkmarks, no notes.")}
           {sel.indexOf("kompas") !== -1 && shareRow("goals", "Cíle", "Goals", "Názvy cílů a jejich stav.", "Goal names and their status.")}
-          {sel.indexOf("trenink") !== -1 && shareRow("trenink", "Trénink", "Training", "Co jsi z plánu odcvičil a kdy. Nic víc.", "What you trained from the plan and when. Nothing more.")}
+          {sel.indexOf("trenink") !== -1 && shareRow("training", "Trénink", "Training", "Co jsi z plánu odcvičil a kdy. Nic víc.", "What you trained from the plan and when. Nothing more.")}
           {sel.indexOf("praxe") === -1 && sel.indexOf("kompas") === -1 && sel.indexOf("trenink") === -1 && (
             <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: "#8C7B6E" }}>
               {L("Sdílet jde návyky, cíle a trénink — zapni si nejdřív ty moduly.", "Habits, goals and training can be shared — enable those modules first.")}
@@ -16948,11 +17008,33 @@ export default function App() {
       ensure("manifest", "/manifest.webmanifest");
     } catch (e) {}
   }, []);
+  // Identita padá dřív, než se cokoli odešle. `null` = ještě nevíme,
+  // `""` = offline nebo starší Worker bez otisku, jinak otisk vlastníka.
+  const [ownerId, setOwnerId] = useState(null);
+  const [ownerSwitched, setOwnerSwitched] = useState(false);
   React.useEffect(() => {
+    let dead = false;
     fetch("/api/me", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((b) => { if (b && typeof b.member === "boolean") { setMember(b.member); setMemberName(b.name || ""); } })
-      .catch(() => {});
+      .then((b) => {
+        if (dead) return;
+        if (b && typeof b.member === "boolean") { setMember(b.member); setMemberName(b.name || ""); }
+        const tag = (b && b.owner) || "";
+        if (tag) {
+          const prev = ownerLoad();
+          if (prev && prev !== tag) {
+            // U klávesnice sedí někdo jiný než minule. Cizí dokument stranou.
+            ownerQuarantine(prev);
+            setColl(COLL_EMPTY());
+            setEdits({});
+            setOwnerSwitched(true);
+          }
+          ownerSave(tag);
+        }
+        setOwnerId(tag);
+      })
+      .catch(() => { if (!dead) setOwnerId(""); });
+    return () => { dead = true; };
   }, []);
   const saveName = (name) => {
     const v = String(name || "").trim();
@@ -17067,14 +17149,17 @@ export default function App() {
   const updateDay = (date, patch) => setEdits((prev) => { const next = { ...prev, [date]: { ...(prev[date] || {}), ...patch } }; saveEdits(next); return next; });
   const habitDefs = () => (coll.habitDefs || HABIT_DEFAULTS).map((x) => (x.name ? x : { ...x, name: L(x.cz || "", x.en || "") }));
   const activeHabits = () => habitDefs().filter((x) => !x.archived);
-  const setHabitDefs = (list) => persistColl({ ...coll, habitDefs: list });
+  const setHabitDefs = (list) => persistColl((c) => ({ ...c, habitDefs: list }));
   const dayStatusLabels = () => coll.dayStatusLabels || {};
-  const setDayStatusLabel = (key, label) => persistColl({ ...coll, dayStatusLabels: { ...(coll.dayStatusLabels || {}), [key]: label } });
+  const setDayStatusLabel = (key, label) => persistColl((c) => ({ ...c, dayStatusLabels: { ...(c.dayStatusLabels || {}), [key]: label } }));
   const getDay = (date) => { const base = FLOW_BY[date] || { d: date, s: "", h: EMPTY_H }; const e = edits[date] || {}; const h = e.h || base.h || EMPTY_H; const sVal = e.s != null ? e.s : (base.s || ""); const actSlots = ((coll.habitDefs || HABIT_DEFAULTS).filter((x) => !x.archived)).map((x) => x.slot); const c = actSlots.reduce((a, sl) => a + (h[sl] ? 1 : 0), 0); return { d: date, h, s: sVal, c, p: Math.round((c / Math.max(1, actSlots.length)) * 100), sched: e.sched || {}, note: e.note || "", plan: e.plan || {}, tasks: e.tasks || [], wb: e.wb || null }; };
   const has = (date) => !!(FLOW_BY[date] || edits[date]);
   const [coll, setColl] = useState(() => (typeof window !== "undefined" ? loadColl() : { goals: {}, journal: [], notebook: [] }));
   const [editMode, setEditMode] = useState(false);
   const [confirmBox, setConfirmBox] = useState(null); // { msg, onYes } — onYes=null means info-only
+  // hlasité selhání zápisu · jeden příznak pro celou relaci
+  const [saveErr, setSaveErr] = useState(false);
+  React.useEffect(() => { TM_ON_SAVE_FAIL = () => setSaveErr(true); return () => { TM_ON_SAVE_FAIL = null; }; }, []);
   // ask(msg, onYes) · Zrušit + Potvrdit
   // ask(msg, onYes, { yes, alt: { label, onClick } }) · Zrušit + [alt] + [yes] — the third
   // button is what lets a delete dialog offer "just this one" next to "delete all".
@@ -17090,8 +17175,17 @@ export default function App() {
   const [undoToast, setUndoToast] = useState("");
   const toastT = React.useRef(null);
   const flashUndo = (m) => { setUndoToast(m); window.clearTimeout(toastT.current); toastT.current = window.setTimeout(() => setUndoToast(""), 1600); };
+  /* JEN AKTUALIZACE, NE HOTOVÝ OBJEKT · předat sem rozprostřený `coll` vypadá
+     nevinně, ale `coll` je snímek z renderu, ve kterém ta funkce vznikla.
+     Dva takové zápisy v jednom kole Reactu se přepíšou: druhý vrátí všechno
+     ostatní na stav před prvním. Objektový tvar se kvůli starším voláním
+     pořád přijme, ale ohlásí se — a test hlídá, že ve zdroji žádné takové
+     volání není. */
   const persistColl = (updater) => setColl((prev) => {
-    const next = typeof updater === "function" ? updater(prev) : updater;
+    if (typeof updater !== "function" && typeof console !== "undefined") {
+      try { console.error("persistColl dostal hotový objekt místo aktualizace — hrozí přepsání cizího zápisu", updater); } catch (e) {}
+    }
+    const next = typeof updater === "function" ? updater(prev) : { ...prev, ...updater };
     if (next === prev) return prev;
     const h = histRef.current;
     const now = Date.now();
@@ -17184,43 +17278,65 @@ export default function App() {
   const _dirty = React.useRef(false); // local changed since load -> never let a late server read clobber it
   const _serializeDoc = (c, e) => JSON.stringify({ coll: c, edits: e });
   React.useEffect(() => {
+    // Dokud nevíme, komu úložiště patří, neodesíláme nic a nic nepřijímáme.
+    if (ownerId === null) return;
     let dead = false;
-    (async () => {
+    let gc = null;
+    const syncOnce = async () => {
+      if (dead || _syncReady.current) return;
       try {
         const r = await fetch("/api/state", { cache: "no-store" });
         if (!r.ok) throw new Error("state GET " + r.status);
         const body = await r.json();
         const sdoc = body && body.doc;
+        const sver = (body && body.version) || 0;
         if (dead) return;
-        if (sdoc && typeof sdoc === "object" && sdoc.coll && !_dirty.current) {
-          // server holds a real document AND we have no local changes -> adopt it
-          const se = sdoc.edits || {};
+        // Máme v úložišti práci, která se nahoru nikdy nedostala? Známka
+        // synchronizace to pozná. Bez známky (první spuštění po této vlně)
+        // se chováme jako dřív, aby se stará relace nepřepsala prázdnem.
+        const mark = syncMarkLoad();
+        const mine = _serializeDoc(_collRef.current, _editsRef.current);
+        const nepreneseno = !!mark && mark.sig !== tmDocSig(mine);
+        if (sdoc && typeof sdoc === "object" && sdoc.coll && !_dirty.current && !nepreneseno) {
+          // server holds a real document AND we have no unsynced local work -> adopt it
+          // Chybějící `edits` na serveru neznamená „smaž denní záznamy".
+          const se = (sdoc.edits && typeof sdoc.edits === "object") ? sdoc.edits : _editsRef.current;
           setColl(sdoc.coll); saveColl(sdoc.coll);
           setEdits(se); saveEdits(se);
-          _lastSynced.current = _serializeDoc(sdoc.coll, se);
+          const cur = _serializeDoc(sdoc.coll, se);
+          _lastSynced.current = cur;
+          syncMarkSave(sver, tmDocSig(cur));
         } else {
-          // no valid server document yet, OR we already have local changes ->
-          // keep local and push it (local wins; never clobber the user's writes)
-          if (_dirty.current || (JSON.stringify(_collRef.current) || "").length > 1000) {
-            await fetch("/api/state", {
+          // no valid server document yet, OR we hold local work the server has
+          // not seen -> keep local and push it (never clobber the user's writes)
+          if (_dirty.current || nepreneseno || (JSON.stringify(_collRef.current) || "").length > 1000) {
+            const pr = await fetch("/api/state", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ doc: { coll: _collRef.current, edits: _editsRef.current } }),
             });
+            if (!pr.ok) throw new Error("state PUT " + pr.status);
+            let pv = 0; try { pv = ((await pr.json()) || {}).version || 0; } catch (e) {}
+            syncMarkSave(pv, tmDocSig(mine));
           }
-          _lastSynced.current = _serializeDoc(_collRef.current, _editsRef.current);
+          _lastSynced.current = mine;
         }
         _syncReady.current = true;
         // Safety-net garbage collection, once per load, in the background.
         // Respects the 24h age guard, so freshly-uploaded files are never touched.
-        setTimeout(() => { try { window.tmGcFiles && window.tmGcFiles(false); } catch (e) {} }, 8000);
+        gc = setTimeout(() => { try { window.tmGcFiles && window.tmGcFiles(false); } catch (e) {} }, 8000);
       } catch (e) {
-        // offline / unreadable -> stay purely local this session, do not push
+        // offline / unreadable -> stay purely local, and try again when the
+        // network comes back. Bez tohohle se relace zahájená offline
+        // nesynchronizovala až do dalšího načtení stránky.
         _syncReady.current = false;
       }
-    })();
-    return () => { dead = true; };
-  }, []);
+    };
+    syncOnce();
+    const onOnline = () => { syncOnce(); };
+    window.addEventListener("online", onOnline);
+    return () => { dead = true; window.removeEventListener("online", onOnline); if (gc) clearTimeout(gc); };
+  }, [ownerId]);
   // Debounced push of local changes to the server (only once sync is ready).
   React.useEffect(() => {
     const cur = _serializeDoc(coll, edits);
@@ -17233,7 +17349,12 @@ export default function App() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ doc: { coll, edits } }),
-      }).then((r) => { if (r.ok) _lastSynced.current = cur; }).catch(() => {});
+      }).then(async (r) => {
+        if (!r.ok) return;
+        _lastSynced.current = cur;
+        let pv = 0; try { pv = ((await r.json()) || {}).version || 0; } catch (e) {}
+        syncMarkSave(pv, tmDocSig(cur));
+      }).catch(() => {});
     }, 1500);
     return () => clearTimeout(h);
   }, [coll, edits]);
@@ -17266,11 +17387,11 @@ export default function App() {
     if (from < 0 || to < 0 || from === to) return;
     const [moved] = arr.splice(from, 1);
     arr.splice(to, 0, moved);
-    persistColl({ ...coll, [kind]: arr });
+    persistColl((c) => ({ ...c, [kind]: arr }));
   };
   // ---- Goal system: Notion-shaped (status · priority · target · achievability · archive) ----
   const goalPatchOf = (name) => (coll.goalEdits || {})[name] || {};
-  const editGoal = (name, patch) => persistColl({ ...coll, goalEdits: { ...(coll.goalEdits || {}), [name]: { ...goalPatchOf(name), ...patch } } });
+  const editGoal = (name, patch) => persistColl((c) => ({ ...c, goalEdits: { ...(c.goalEdits || {}), [name]: { ...((c.goalEdits || {})[name] || {}), ...patch } } }));
   const listAreas = () => {
     const removed = new Set(coll.removedAreas || []);
     const edits = coll.areaEdits || {};
@@ -17287,8 +17408,8 @@ export default function App() {
   const setAreaIcon = (name, icon) => {
     const a = listAreas().find((x) => x.name === name);
     if (!a) return;
-    if (a.user) persistColl({ ...coll, customAreas: (coll.customAreas || []).map((x) => (x.name === name ? { ...x, icon } : x)) });
-    else persistColl({ ...coll, areaEdits: { ...(coll.areaEdits || {}), [name]: { ...((coll.areaEdits || {})[name] || {}), icon } } });
+    if (a.user) persistColl((c) => ({ ...c, customAreas: (c.customAreas || []).map((x) => (x.name === name ? { ...x, icon } : x)) }));
+    else persistColl((c) => ({ ...c, areaEdits: { ...(c.areaEdits || {}), [name]: { ...((c.areaEdits || {})[name] || {}), icon } } }));
   };
   const reorderArea = (drag, over) => {
     let names = listAreas().map((a) => a.name);
@@ -17299,7 +17420,7 @@ export default function App() {
     let to = names.indexOf(over);
     if (from < to0) to = to + 1;
     names.splice(to, 0, drag);
-    persistColl({ ...coll, areaOrder: names });
+    persistColl((c) => ({ ...c, areaOrder: names }));
   };
   // rename migrates every reference keyed by name: goals, meta, months, order
   const renameArea = (old, nw) => {
@@ -17327,7 +17448,7 @@ export default function App() {
     if (coll.areaOrder) next.areaOrder = coll.areaOrder.map((n) => (n === old ? nw : n));
     persistColl(next);
   };
-  const addArea = ({ name, icon }) => persistColl({ ...coll, customAreas: [...(coll.customAreas || []), { name, icon: icon || "▦" }] });
+  const addArea = ({ name, icon }) => persistColl((c) => ({ ...c, customAreas: [...(c.customAreas || []), { name, icon: icon || "▦" }] }));
   const removeArea = (name) => {
     const area = listAreas().find((a) => a.name === name);
     if (!area) return;
@@ -17374,7 +17495,7 @@ export default function App() {
     if (patch) next = { ...next, goalEdits: { ...(next.goalEdits || {}), [drag]: { ...((next.goalEdits || {})[drag] || {}), ...patch } } };
     persistColl(next);
   };
-  const addGoal = (g) => persistColl({ ...coll, userGoals: [...(coll.userGoals || []), g] });
+  const addGoal = (g) => persistColl((c) => ({ ...c, userGoals: [...(c.userGoals || []), g] }));
   const removeUserGoal = (id) => {
     const list = coll.userGoals || [];
     const idx = list.findIndex((g) => g.id === id);
@@ -17404,15 +17525,15 @@ export default function App() {
     updateDay(d, { tasks: [...tasks, { id: uid(), text: name, done: false, goal: true }] });
   };
   const monthsOf = (a) => { const seed = {}; if (a.rating != null && a.ratingMonth) seed[a.ratingMonth] = a.rating; return { ...seed, ...((coll.areaMonths || {})[a.name] || {}) }; };
-  const setAreaMonth = (name, rom, v) => persistColl({ ...coll, areaMonths: { ...(coll.areaMonths || {}), [name]: { ...((coll.areaMonths || {})[name] || {}), [rom]: v } } });
+  const setAreaMonth = (name, rom, v) => persistColl((c) => ({ ...c, areaMonths: { ...(c.areaMonths || {}), [name]: { ...((c.areaMonths || {})[name] || {}), [rom]: v } } }));
   const goalMetaOf = (name) => (coll.goalMeta || {})[name] || {};
-  const setGoalMeta = (name, patch) => persistColl({ ...coll, goalMeta: { ...(coll.goalMeta || {}), [name]: { ...((coll.goalMeta || {})[name] || {}), ...patch } } });
+  const setGoalMeta = (name, patch) => persistColl((c) => ({ ...c, goalMeta: { ...(c.goalMeta || {}), [name]: { ...((c.goalMeta || {})[name] || {}), ...patch } } }));
   const pageMetaOf = (key) => (coll.pageMeta || {})[key] || (coll.pageMeta || {})[PAGEKEY_LEGACY[key]] || {};
-  const setPageMeta = (key, patch) => persistColl({ ...coll, pageMeta: { ...(coll.pageMeta || {}), [key]: { ...((coll.pageMeta || {})[key] || {}), ...patch } } });
+  const setPageMeta = (key, patch) => persistColl((c) => ({ ...c, pageMeta: { ...(c.pageMeta || {}), [key]: { ...((c.pageMeta || {})[key] || {}), ...patch } } }));
   const areaMetaOf = (name) => (coll.areaMeta || {})[name] || {};
-  const setAreaMeta = (name, patch) => persistColl({ ...coll, areaMeta: { ...(coll.areaMeta || {}), [name]: { ...((coll.areaMeta || {})[name] || {}), ...patch } } });
+  const setAreaMeta = (name, patch) => persistColl((c) => ({ ...c, areaMeta: { ...(c.areaMeta || {}), [name]: { ...((c.areaMeta || {})[name] || {}), ...patch } } }));
   const goalNotes = (name) => (coll.goalNotes || {})[name] || [];
-  const addGoalNote = (name, text) => persistColl({ ...coll, goalNotes: { ...(coll.goalNotes || {}), [name]: [...goalNotes(name), { id: uid(), date: todayISO(), text }] } });
+  const addGoalNote = (name, text) => persistColl((c) => ({ ...c, goalNotes: { ...(c.goalNotes || {}), [name]: [...((c.goalNotes || {})[name] || []), { id: uid(), date: todayISO(), text }] } }));
   const removeGoalNote = (name, id) => {
     const list = goalNotes(name);
     const n = list.find((x) => x.id === id);
@@ -17423,19 +17544,19 @@ export default function App() {
   };
   const POMO_DEFAULTS = { focus: 25, short: 5, long: 15, every: 4, sound: true, bg: null };
   const pomoSettings = () => ({ ...POMO_DEFAULTS, ...(coll.pomoSet || {}) });
-  const setPomoSettings = (patch) => persistColl({ ...coll, pomoSet: { ...(coll.pomoSet || {}), ...patch } });
+  const setPomoSettings = (patch) => persistColl((c) => ({ ...c, pomoSet: { ...(c.pomoSet || {}), ...patch } }));
   const pomoStats = () => coll.pomoStats || { total: 0, days: {} };
   const addPomoTree = () => {
     const st0 = pomoStats();
     const d = todayISO();
-    persistColl({ ...coll, pomoStats: { total: (st0.total || 0) + 1, days: { ...(st0.days || {}), [d]: ((st0.days || {})[d] || 0) + 1 } } });
+    persistColl((c) => { const s = c.pomoStats || {}; return { ...c, pomoStats: { total: (s.total || 0) + 1, days: { ...(s.days || {}), [d]: ((s.days || {})[d] || 0) + 1 } } }; });
   };
   const nbTags = () => coll.nbTags || NB_DEFAULT_TAGS;
-  const addNbTag = (name, color) => { if (nbTags().some(([n]) => n.toLowerCase() === name.toLowerCase())) return false; persistColl({ ...coll, nbTags: [...nbTags(), [name, color || "default"]] }); return true; };
+  const addNbTag = (name, color) => { if (nbTags().some(([n]) => n.toLowerCase() === name.toLowerCase())) return false; persistColl((c) => ({ ...c, nbTags: [...(c.nbTags || NB_DEFAULT_TAGS), [name, color || "default"]] })); return true; };
   const renameNbTag = (oldName, newName) => {
     const tags2 = nbTags().map(([n, c]) => [n === oldName ? newName : n, c]);
     const nb = (coll.notebook || []).map((e) => { const et = entryTags(e); if (!et.includes(oldName)) return e; const fin = et.map((x) => x === oldName ? newName : x); return { ...e, tags: fin, tag: fin[0] }; });
-    persistColl({ ...coll, nbTags: tags2, notebook: nb });
+    persistColl((c) => ({ ...c, nbTags: tags2, notebook: nb }));
   };
   const reorderNbTag = (dragName, overName) => {
     const arr = [...nbTags()];
@@ -17444,20 +17565,20 @@ export default function App() {
     if (from < 0 || to < 0 || from === to) return;
     const [m] = arr.splice(from, 1);
     arr.splice(to, 0, m);
-    persistColl({ ...coll, nbTags: arr });
+    persistColl((c) => ({ ...c, nbTags: arr }));
   };
   const removeNbTag = (name) => {
     if (name === "Poznámky") return;
     const tags2 = nbTags().filter(([n]) => n !== name);
     const nb = (coll.notebook || []).map((e) => { const et = entryTags(e); if (!et.includes(name)) return e; const rest = et.filter((x) => x !== name); const fin = rest.length ? rest : ["Poznámky"]; return { ...e, tags: fin, tag: fin[0] }; });
-    persistColl({ ...coll, nbTags: tags2, notebook: nb });
+    persistColl((c) => ({ ...c, nbTags: tags2, notebook: nb }));
   };
   const jTags = () => coll.jTags || J_DEFAULT_TAGS;
-  const addJTag = (name, color) => { if (jTags().some(([n]) => n.toLowerCase() === name.toLowerCase())) return false; persistColl({ ...coll, jTags: [...jTags(), [name, color || "default"]] }); return true; };
+  const addJTag = (name, color) => { if (jTags().some(([n]) => n.toLowerCase() === name.toLowerCase())) return false; persistColl((c) => ({ ...c, jTags: [...(c.jTags || J_DEFAULT_TAGS), [name, color || "default"]] })); return true; };
   const renameJTag = (oldName, newName) => {
     const tags2 = jTags().map(([n, c]) => [n === oldName ? newName : n, c]);
     const jl = (coll.journal || []).map((e) => { const et = entryTags(e); if (!et.includes(oldName)) return e; const fin = et.map((x) => x === oldName ? newName : x); return { ...e, tags: fin, tag: fin[0] }; });
-    persistColl({ ...coll, jTags: tags2, journal: jl });
+    persistColl((c) => ({ ...c, jTags: tags2, journal: jl }));
   };
   const reorderJTag = (dragName, overName) => {
     const arr = [...jTags()];
@@ -17466,13 +17587,13 @@ export default function App() {
     if (from < 0 || to < 0 || from === to) return;
     const [m] = arr.splice(from, 1);
     arr.splice(to, 0, m);
-    persistColl({ ...coll, jTags: arr });
+    persistColl((c) => ({ ...c, jTags: arr }));
   };
   const removeJTag = (name) => {
     if (name === "Den") return;
     const tags2 = jTags().filter(([n]) => n !== name);
     const jl = (coll.journal || []).map((e) => { const et = entryTags(e); if (!et.includes(name)) return e; const rest = et.filter((x) => x !== name); const fin = rest.length ? rest : ["Den"]; return { ...e, tags: fin, tag: fin[0] }; });
-    persistColl({ ...coll, jTags: tags2, journal: jl });
+    persistColl((c) => ({ ...c, jTags: tags2, journal: jl }));
   };
   // ---- česká vrstva · převod Notion-éry názvů kategorií, idempotentní ----
   // Běží při každém otevření stránky; zapíše jen když je co převádět.
@@ -17495,7 +17616,7 @@ export default function App() {
     const extra = [];
     list2.forEach((e) => { if (e.tag && !known.has(e.tag)) { known.add(e.tag); extra.push([e.tag, defColor[e.tag] || "stone"]); } });
     const finalTags = tags2 ? [...tags2, ...extra] : (extra.length ? [...defaults, ...extra] : null);
-    persistColl({ ...coll, [kind]: list2, ...(finalTags ? { [tagsKey]: finalTags } : {}) });
+    persistColl((c) => ({ ...c, [kind]: list2, ...(finalTags ? { [tagsKey]: finalTags } : {}) }));
   };
   const migrateCzJournal = () => migrateCzKind("journal", "jTags", { ...J_TAG_MIGRATE, "Important": "Den" }, J_DEFAULT_TAGS, "Important");
   const migrateCzNotebook = () => migrateCzKind("notebook", "nbTags", NB_TAG_MIGRATE, NB_DEFAULT_TAGS, null);
@@ -17503,7 +17624,7 @@ export default function App() {
     if (coll.jImported) return;
     const meaningful = JOURNAL_FULL.filter((e) => (e.b && e.b.trim()) || (e.n && e.n !== "Untitled"));
     const imported = meaningful.map((e, i) => ({ id: uid() + i.toString(36), date: e.d || "", title: e.n && e.n !== "Untitled" ? e.n : (e.d || "Zápisek"), tag: jCanonTag((e.t || [])[0]), text: e.b || "" }));
-    persistColl({ ...coll, jImported: true, journal: [...(coll.journal || []), ...imported] });
+    persistColl((c) => ({ ...c, jImported: true, journal: [...(c.journal || []), ...imported] }));
   };
   const importContent = () => {
     if (coll.cImported) return;
@@ -17515,7 +17636,7 @@ export default function App() {
       category: C_MIGRATE_GENRE[b.type] || "Self-help",
       dateFinished: b.date || "", text: b.b || "", icon: null,
     }));
-    persistColl({ ...coll, cImported: true, cSchema2: true, content: [...(coll.content || []), ...imported] });
+    persistColl((c) => ({ ...c, cImported: true, cSchema2: true, content: [...(c.content || []), ...imported] }));
   };
   const migrateContentSchema = () => {
     if (!coll.cImported || coll.cSchema2) return;
@@ -17525,18 +17646,18 @@ export default function App() {
       category: C_MIGRATE_GENRE[e.type] || (C_CATS.includes(e.category) ? e.category : "Self-help"),
       progress: C_MIGRATE_PROG[e.progress] || (C_PROGRESS.includes(e.progress) ? e.progress : "Ready to start"),
     }));
-    persistColl({ ...coll, cSchema2: true, content: next });
+    persistColl((c) => ({ ...c, cSchema2: true, content: next }));
   };
   const importNotebook = () => {
     if (coll.nbImported) return;
     const imported = NOTEBOOK_FULL.map((n) => ({ id: uid() + Math.random().toString(36).slice(2, 5), date: "", title: n.n, tag: nbCanonTag((n.t || [])[0]), text: n.b || "" }));
-    persistColl({ ...coll, nbImported: true, notebook: [...(coll.notebook || []), ...imported] });
+    persistColl((c) => ({ ...c, nbImported: true, notebook: [...(c.notebook || []), ...imported] }));
   };
   const importPractices = () => {
     if (coll.practicesSeeded) return;
     const tags2 = nbTags().some(([n]) => n.toLowerCase() === "praxe") ? nbTags() : [...nbTags(), ["Praxe", "moss"]];
     const entries = PRACTICES_SEED.map((p) => ({ id: uid() + Math.random().toString(36).slice(2, 5), date: "", title: p.n, tag: "Praxe", text: p.b }));
-    persistColl({ ...coll, practicesSeeded: true, nbTags: tags2, notebook: [...(coll.notebook || []), ...entries] });
+    persistColl((c) => ({ ...c, practicesSeeded: true, nbTags: tags2, notebook: [...(c.notebook || []), ...entries] }));
   };
   const removeEntries = (kind, ids) => {
     const idSet = new Set(ids);
@@ -17547,11 +17668,11 @@ export default function App() {
       if (idSet.has(e.id)) trash = [{ tid: uid() + i, kind: "entry", entryKind: kind, index: i, data: e, label: entryLabel(kind, e), trashedAt: Date.now() }, ...trash];
       else kept.push(e);
     });
-    persistColl({ ...coll, [kind]: kept, trash });
+    persistColl((c) => ({ ...c, [kind]: kept, trash }));
   };
   const setEntriesTag = (kind, ids, tag) => {
     const idSet = new Set(ids);
-    persistColl({ ...coll, [kind]: (coll[kind] || []).map((e) => (idSet.has(e.id) ? { ...e, tag, tags: [tag] } : e)) });
+    persistColl((c) => ({ ...c, [kind]: (c[kind] || []).map((e) => (idSet.has(e.id) ? { ...e, tag, tags: [tag] } : e)) }));
   };
   // ---- trash labels ------------------------------------------------------
   // Training entities carry cz/en, not title — without this the Koš only ever said "záznam".
@@ -17633,8 +17754,8 @@ export default function App() {
     persistColl(next);
   };
   const purgeIdbOf = (item) => { const att = item && item.data && (item.data.att || (item.data.g && item.data.g.att)); (att || []).forEach((a) => { if (a.idb) idbDel(a.id); if (a.r2) r2Del(a.id); }); };
-  const purgeTrash = (tid) => { const item = (coll.trash || []).find((x) => x.tid === tid); if (item) purgeIdbOf(item); persistColl({ ...coll, trash: (coll.trash || []).filter((x) => x.tid !== tid) }); };
-  const purgeAllTrash = () => { (coll.trash || []).forEach(purgeIdbOf); persistColl({ ...coll, trash: [] }); };
+  const purgeTrash = (tid) => { const item = (coll.trash || []).find((x) => x.tid === tid); if (item) purgeIdbOf(item); persistColl((c) => ({ ...c, trash: (c.trash || []).filter((x) => x.tid !== tid) })); };
+  const purgeAllTrash = () => { (coll.trash || []).forEach(purgeIdbOf); persistColl((c) => ({ ...c, trash: [] })); };
   const seedTraining = () => persistColl((c) => {
     if (!c.tSeeded) return { ...c, tSeeded: true, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] };
     let next = c;
@@ -18240,9 +18361,11 @@ export default function App() {
       case "prameny": return <PageContent />;
       case "hospodareni": return <PageFinances />;
       case "denik": return <PageJournal />;
-      case "klienti": return <PageKlienti />;
+      // „klienti" je místnost trenéra, ne klienta — v klientské aplikaci
+      // na ni nevede žádná cesta a nesmí vést ani oklikou přes stav.
+      case "klienti": return null;
       case "kos": return <PageTrash />;
-      case "memento": return mementoZap ? <PageMemento go={go} /> : <PagePraxe go={go} />;
+      case "memento": return mementoZap ? <PageMemento go={go} /> : <PageHabit go={go} />;
       case "mandala": return <PageMandala go={go} />;
       default: return <PageHabit go={go} />;
     }
@@ -18506,6 +18629,18 @@ export default function App() {
 `}</style>
 
         {member === false && <InviteGate />}
+        {saveErr && (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 400, background: t.accent, color: t.onAccent || t.bg, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
+            <span style={{ flex: 1, minWidth: 200 }}>{L("Uložení selhalo — místní úložiště je plné. Co vidíš na obrazovce, zatím není uložené.", "Saving failed — local storage is full. What you see is not saved yet.")}</span>
+            <button onClick={() => setSaveErr(false)} style={{ background: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
+          </div>
+        )}
+        {ownerSwitched && (
+          <div style={{ position: "fixed", top: saveErr ? 44 : 0, left: 0, right: 0, zIndex: 399, background: t.card, color: t.text, borderBottom: `1px solid ${t.border}`, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
+            <span style={{ flex: 1, minWidth: 200 }}>{L("Tohle zařízení naposledy použil někdo jiný. Jeho obsah je odložený stranou, tvůj prostor je prázdný.", "Someone else used this device last. Their content is set aside; your space starts empty.")}</span>
+            <button onClick={() => setOwnerSwitched(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
+          </div>
+        )}
         {member !== false && (pickerOpen || !enabledModules) && (
           <ModulePicker
             t={t}
