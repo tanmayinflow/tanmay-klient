@@ -6793,34 +6793,28 @@ const T_EQ = Object.fromEntries(T_EQUIP.map((e) => [e.k, e]));
 //   rec — what it costs to recover from, 1–3. This is the number that stops a program
 //         from hitting the same tissue two days running. We do not need an MRV; we need
 //         to know what can be done daily and what cannot.
+// `cat` is the SHELF a person sees. It is not routing — routing reads goalRole and
+// sessionBlock, which the audit set per row.
 const tCatOf = (ex) => {
   if (!ex) return "sila";
   if (ex.cat) return ex.cat;                       // whatever the exercise says, wins
-  if (ex.pat === "dech") return "dech";
-  if (ex.pat === "krk") return "neck";
-  if (ex.pat === "mobilita") return "mob";
+  const role = tRoleOf(ex);
+  if (role === "breath") return "dech";
+  if (role === "mobility") return "mob";
+  if (role === "conditioning") return "kond";
+  if (role === "support") return ex.pat === "krk" ? "neck" : "rehab";
+  if (role === "coordination_skill") return "skill";
   if (ex.pat === "stred") return "core";
-  if (ex.pat === "prenos") return "kond";
-  if (ex.pat === "obrat") return "skill";
-  // A skill has exactly one definition in this app, and this is it: tIsSkill. It used to
-  // have two — a lift held for seconds at level 3+ was filed as a "skill", which meant a
-  // full planche was classified as daily practice. It is not. In a planche the elbow
-  // fails, not the nervous system. That contradiction is gone.
-  if (tIsSkill(ex)) return "skill";
+  if (role === "strength_skill") return "skill";
   return "sila";
 };
 // 1 = can be done daily · 2 = every other day · 3 = needs 72 h
-const tRecOf = (ex) => {
-  if (!ex) return 2;
-  if (ex.rec) return ex.rec;
-  const c = tCatOf(ex);
-  if (["mob", "flex", "dech", "neck", "reg", "bal", "rehab"].includes(c)) return 1;
-  if (c === "skill") return 1;                     // skill is done fresh and small, daily
-  const s = tSOf(ex);
-  if (s >= 4) return 3;
-  if (s >= 2) return 2;
-  return 1;
-};
+//
+// This is the TISSUE clock and nothing else. It used to return 1 for anything filed
+// as a skill, which is how a German hang became daily practice: a tendon does not
+// care that the task is coordinative. How often the SKILL may be rehearsed is a
+// separate number — tSkillFreqOf — and it is allowed to disagree.
+const tRecOf = (ex) => (ex ? tTissueRecOf(ex) : 2);
 
 
 // ======================================================================
@@ -6854,8 +6848,11 @@ const T_JOINTS = [
   { k: "kyc", cz: "kyčel", en: "hip" },
   { k: "pat", cz: "páteř", en: "spine" },
   { k: "kot", cz: "kotník", en: "ankle" },
+  // Head-DOWN is a precaution. Carrying weight THROUGH the neck is a joint cost.
+  // They are not the same thing, and only one of them belongs in this vector.
+  { k: "krk", cz: "krk", en: "neck" },
 ];
-const T_J0 = { zap: 0, lok: 0, ram: 0, kol: 0, kyc: 0, pat: 0, kot: 0 };
+const T_J0 = { zap: 0, lok: 0, ram: 0, kol: 0, kyc: 0, pat: 0, kot: 0, krk: 0 };
 
 // Straight-arm work is its own animal (Phase 3, §1.1): the load goes into the passive
 // structures, not the muscle. In a planche your muscle does not fail — your elbow does.
@@ -6871,7 +6868,9 @@ const T_STRAIGHTARM = [
   //                the shoulder, not a lever prying the elbow into extension.
   // Both are hard. Neither is the thing that tears a distal biceps.
 ];
-const tIsStraightArm = (ex) => !!ex && T_STRAIGHTARM.includes(ex.id);
+// tIsStraightArm now reads armMode + tendonLoad — see the resolvers below. This
+// list survives as the fallback for a row the audit never saw, and as the record
+// of why three obvious candidates are deliberately absent.
 
 // ---- J · the joint demand vector -------------------------------------------
 // What each joint pays, 0–3. It is a property of the exercise, written down on the
@@ -6960,7 +6959,8 @@ const tLvlOf = (ex) => Math.max(1, Math.min(5, Math.max(tSOf(ex), tCOf(ex) - 1))
 // A skill is a nervous-system task. Its performance swings 300 % day to day, and that is
 // NOT fatigue — so the plateau machinery and the deload machinery must never touch it.
 // (Phase 5, F3: the two-machine fork reached the DOSE and never reached the DIRECTION.)
-const tIsSkill = (ex) => tCOf(ex) >= 4 && tSOf(ex) <= 3;
+// What "a skill" IS now lives in tSkillClassOf below: this one line used to answer
+// four questions and got at least two of them wrong for half the library.
 
 // ---- limiter · what gives out first -----------------------------------------
 const T_LIMITERS = [
@@ -7045,8 +7045,490 @@ const T_MUSCLES = [
   { k: "bic", cz: "biceps", en: "biceps", side: "f" },
   { k: "tri", cz: "triceps", en: "triceps", side: "b" },
   { k: "fore", cz: "předloktí", en: "forearms", side: "f" },
+  // Five tissues the library was asked to name and could not, so it reached for the
+  // nearest big group instead. A wrong tag is worse than a missing one.
+  { k: "add", cz: "adduktory", en: "adductors", side: "f" },
+  { k: "hipflex", cz: "flexory kyčle", en: "hip flexors", side: "f" },
+  { k: "rcuff", cz: "rotátorová manžeta", en: "rotator cuff", side: "b" },
+  { k: "serr", cz: "serratus anterior", en: "serratus anterior", side: "f" },
+  { k: "neck", cz: "krční svaly", en: "neck", side: "b" },
 ];
 const T_MUS = Object.fromEntries(T_MUSCLES.map((m) => [m.k, m]));
+
+// ======================================================================
+// KNIHOVNA CVIKŮ · AUDITNÍ VRSTVA
+// ----------------------------------------------------------------------
+// The same 485-row audit as the Main App, for the 271 rows this app carries.
+// Same shelves, same roles, same safety, same aliases, same display names — so a
+// client and a coach are never looking at two different libraries.
+//
+// What is deliberately NOT here: provenance and evidence-confidence codes, and the
+// coach's own notes about a record. Those belong on the coach's side.
+//
+// Legend · see the Main App for the long form.
+//   t tier · s status · g generator rule · r goalRole · b sessionBlock
+//   sk skillClass · tr tissueRecovery · sf skillFrequency
+//   am armMode · tl tendonLoad · f family · ctx context
+//   al aliasOf · ag aliasGroup · co requiresCoach · pc precautions
+//   dcz/den display name · pj prepJoints
+// ======================================================================
+
+const TEX_TIERS = ["core", "extended", "specialist", "program_only", "yoga", "catalog", "breath", "archived"];
+const TEX_STATUSES = ["active", "alias", "review", "blocked"];
+const TEX_GOAL_ROLES = ["strength", "hypertrophy", "power", "coordination_skill", "strength_skill", "conditioning", "mobility", "support", "breath"];
+const TEX_SESSION_BLOCKS = ["prep", "coordination_skill", "strength", "accessory", "conditioning", "mobility", "breath"];
+const TEX_GEN_RULES = ["generic", "goal_eq", "cond", "explicit", "canon_target", "never", "breath_optin", "source_plan", "yoga_planner"];
+const TEX_GEN_GENERIC = ["generic", "goal_eq", "cond"];
+
+const TEX_PRECAUTIONS = {
+  impact: ["Nárazová práce. Nacvič dopad a přidávej výšku i objem postupně.", "Impact work. Rehearse the landing, then add height and volume gradually."],
+  kneeflex: ["Hluboká flexe kolena. Rozsah i zátěž zvyšuj postupně a podle tolerance.", "Deep knee flexion. Build range and load gradually, by tolerance."],
+  spine: ["Zatížená páteř. Rozsah i dávku řiď podle tolerance.", "A loaded spine. Govern range and dose by tolerance."],
+  straightarm: ["Vysoké zatížení s nataženou paží. Nikdy do selhání.", "High straight-arm tissue load. Never to failure."],
+  shoulderend: ["Krajní poloha ramene. Rozsah drž tam, kde zůstává bez bolesti.", "Shoulder end range. Keep the range where it stays pain-free."],
+  headdown: ["Poloha hlavou dolů. Při očních potížích, glaukomu nebo závratích se poraď s odborníkem.", "A head-down position. With eye conditions, glaucoma or dizziness, ask a professional first."],
+  neckload: ["Zatížený krk. Váhu drž v předloktích a ramenou. Nezařazuj při potížích s krkem.", "A loaded neck. Keep the weight in the forearms and shoulders. Leave it out with neck trouble."],
+  fall: ["Riziko pádu. Připrav si volný prostor a bezpečný výstup.", "Fall risk. Clear the space and prepare a way out."],
+  coach: ["Pokročilá práce. Nech si ji ukázat trenérem.", "Advanced work. Have a coach show you."],
+  barbell: ["Technika s velkou činkou. Zajisti si dopomoc nebo stojany.", "Barbell technique. Arrange a spotter or safety bars."],
+  breathhold: ["Zádrž dechu. Jen vsedě nebo vleže, nikdy ve stoji a nikdy ve vodě. Zařazuje se jen výslovnou volbou.", "A breath hold. Seated or lying only, never standing and never in water. Entered only by an explicit choice."],
+  blocked: ["Archivovaný cvik. Zůstává čitelný v historii, ale knihovna ani generátor ho nenabízejí.", "An archived exercise. It stays readable in your history; the library and the generator no longer offer it."],
+};
+
+const TEX_TIER_LABEL = {
+  core: ["Základ", "Foundation"],
+  extended: ["Rozšíření", "Extended"],
+  specialist: ["Specializované", "Specialist"],
+  program_only: ["Programový cvik", "Programme exercise"],
+  yoga: ["Jóga", "Yoga"],
+  catalog: ["Katalog", "Catalogue"],
+  breath: ["Dech", "Breath"],
+  archived: ["Archiv", "Archive"],
+};
+const TEX_TIERS_DEFAULT = ["core", "extended", "yoga", "breath"];
+const TEX_TIERS_ADVANCED = ["specialist", "program_only", "catalog", "archived"];
+const TEX_ARCHIVED_NOTE = ["Archivovaný cvik", "An archived exercise"];
+const TEX_ARCHIVED_ALT = {
+  benchdips: ["pushup", "diamond", "dbtriext", "banddip"],
+  bosuoahs: ["hsshift", "fingerhs", "onearmhs"],
+};
+const TEX_ALIAS_GROUP_LABEL = {
+  sissy_squat: ["Sissy dřep", "Sissy squat"],
+};
+
+const TEX_META = {
+  drep: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "squat_bilateral" },
+  wallsit: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1, f: "squat_bilateral" },
+  lunge: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "squat_unilateral" },
+  calfraise: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "calf" },
+  jumpsquat: { t: "core", g: "cond", r: "conditioning", b: "conditioning", tr: 2, f: "squat_bilateral", pc: ["impact"] },
+  archersq: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "squat_bilateral" },
+  boxpistol: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "squat_unilateral", pc: ["kneeflex"] },
+  shrimp: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 2, sf: 3, f: "squat_unilateral", pc: ["kneeflex"] },
+  pistol: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 2, sf: 3, f: "squat_unilateral", pc: ["kneeflex"] },
+  glutebridge: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "hip_extension", dcz: "Hýžďový most" },
+  slbridge: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "hip_extension" },
+  slrdl: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "hinge", pc: ["spine"] },
+  superman: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1 },
+  nordic: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "hinge" },
+  inclpush: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1, f: "press_horizontal" },
+  pushup: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
+  diamond: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
+  pseudo: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 2, f: "straightarm_planche", pc: ["straightarm"] },
+  dips: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "press_dip", pc: ["shoulderend"] },
+  pike: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "press_vertical" },
+  wallhspu: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "press_vertical", ctx: "inversion" },
+  hang: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1, am: "straight", f: "grip_carry" },
+  scap: { t: "extended", g: "goal_eq", r: "strength", b: "prep", tr: 1, am: "straight", f: "pull_horizontal", pj: ["ram"] },
+  bodyrow: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "pull_horizontal" },
+  chinup: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "pull_vertical" },
+  pullup: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "pull_vertical" },
+  archpull: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "pull_vertical" },
+  deadbug: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1 },
+  plank: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "core_plank", dcz: "Prkno na předloktích", den: "Forearm Plank" },
+  sideplank: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "core_plank", dcz: "Boční prkno na předloktí", den: "Forearm Side Plank" },
+  hollow: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  legraise: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1 },
+  kneeraise: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  t2b: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  crow: { t: "specialist", g: "canon_target", r: "coordination_skill", b: "coordination_skill", sk: "coordination", tr: 2, sf: 1, am: "straight", f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  wallhs: { t: "specialist", g: "explicit", r: "coordination_skill", b: "coordination_skill", sk: "coordination", tr: 2, sf: 1, am: "straight", f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  handstand: { t: "specialist", g: "canon_target", r: "coordination_skill", b: "coordination_skill", sk: "coordination", tr: 2, sf: 1, am: "straight", f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  sprint: { t: "core", g: "cond", r: "conditioning", b: "conditioning", tr: 2, pc: ["impact"] },
+  skater: { t: "extended", g: "cond", r: "conditioning", b: "conditioning", tr: 2, f: "squat_unilateral", pc: ["impact"] },
+  broadjump: { t: "extended", g: "cond", r: "conditioning", b: "conditioning", tr: 2, pc: ["impact"] },
+  tuckjump: { t: "extended", g: "cond", r: "conditioning", b: "conditioning", tr: 2, pc: ["impact"] },
+  boxjump: { t: "core", g: "cond", r: "conditioning", b: "conditioning", tr: 2, pc: ["impact", "fall"] },
+  bearcrawl: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1 },
+  mtclimb: { t: "core", g: "cond", r: "conditioning", b: "conditioning", tr: 1 },
+  burpee: { t: "core", g: "cond", r: "conditioning", b: "conditioning", tr: 2, pc: ["impact"] },
+  anklemob: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, pj: ["kot"] },
+  deepsquat: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, f: "squat_bilateral", pj: ["kyc", "kol", "kot"] },
+  couch: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, pj: ["kyc"] },
+  disloc: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, pj: ["ram"] },
+  wrists: { t: "specialist", g: "explicit", r: "mobility", b: "prep", tr: 1, f: "wrist", pj: ["zap"] },
+  stepup: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "squat_unilateral" },
+  bulgsplit: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "squat_unilateral" },
+  cossack: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "squat_unilateral" },
+  goblet: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "squat_bilateral" },
+  hipthrust: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "hip_extension" },
+  dbrdl: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "hinge", pc: ["spine"] },
+  swing: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "hinge" },
+  kneepush: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "press_horizontal" },
+  declpush: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
+  archpush: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
+  benchdips: { t: "archived", s: "blocked", g: "never", r: "strength", b: "strength", tr: 1, f: "press_dip", pc: ["blocked"] },
+  dbpress: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "press_vertical" },
+  dbfloor: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
+  ringsupport: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, am: "straight" },
+  negpull: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "pull_vertical" },
+  dbrow: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "pull_horizontal" },
+  facepull: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "pull_horizontal" },
+  birddog: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1 },
+  pallof: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
+  lsit: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, am: "straight" },
+  copenhagen: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "core_plank" },
+  dragonflag: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "straightarm_lever" },
+  headstand: { t: "extended", g: "canon_target", r: "strength_skill", b: "strength", tr: 1, am: "straight", f: "inversion_head", ctx: "inversion", co: true, pc: ["neckload", "headdown", "coach", "fall"] },
+  wallwalk: { t: "specialist", g: "explicit", r: "coordination_skill", b: "coordination_skill", sk: "mixed", tr: 2, sf: 2, am: "straight", f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  farmer: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "grip_carry" },
+  hip9090: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, pj: ["kyc"] },
+  jefferson: { t: "specialist", g: "explicit", r: "mobility", b: "mobility", tr: 1, f: "curl_biceps", pc: ["spine"] },
+  cat: { t: "core", g: "generic", r: "mobility", b: "prep", tr: 1, pj: ["pat"] },
+  sumo: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "squat_bilateral" },
+  latlunge: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "squat_unilateral" },
+  sissy: { t: "extended", s: "alias", g: "never", r: "strength", b: "strength", tr: 2, f: "squat_unilateral", al: "sissysquat", ag: "sissy_squat", pc: ["kneeflex"] },
+  goodmorning: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "hinge", pc: ["spine"] },
+  donkeykick: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1 },
+  clamshell: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1 },
+  sideleg: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1 },
+  wallpush: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1, f: "press_horizontal" },
+  scapush: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1, f: "press_horizontal" },
+  dbtriext: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "triceps_ext" },
+  lateralraise: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2 },
+  ringdips: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "press_dip", pc: ["shoulderend"] },
+  dbcurl: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "curl_biceps" },
+  pullapart: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1 },
+  revfly: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  renegade: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 3, f: "pull_horizontal", co: true, pc: ["coach"] },
+  crunch: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1 },
+  situp: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1 },
+  bicycle: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2 },
+  russtwist: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2 },
+  vup: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  flutter: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1 },
+  jacks: { t: "core", g: "cond", r: "conditioning", b: "conditioning", tr: 1, pc: ["impact"] },
+  highknees: { t: "extended", g: "cond", r: "conditioning", b: "conditioning", tr: 1, pc: ["impact"] },
+  jumprope: { t: "core", g: "cond", r: "conditioning", b: "conditioning", tr: 1, pc: ["impact"] },
+  downdog: { t: "core", g: "canon_target", r: "mobility", b: "mobility", tr: 1 },
+  cobra: { t: "core", g: "canon_target", r: "mobility", b: "mobility", tr: 1 },
+  childpose: { t: "core", g: "canon_target", r: "mobility", b: "mobility", tr: 1 },
+  wgs: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1 },
+  pigeon: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1, dcz: "Holub · přípravné protažení", den: "Pigeon Stretch" },
+  bbsquat: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 3, f: "squat_bilateral", pc: ["barbell"] },
+  frontsquat: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 3, f: "squat_bilateral", pc: ["barbell"] },
+  deadlift: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 3, f: "hinge", pc: ["spine", "barbell"] },
+  bench: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 3, f: "press_horizontal", pc: ["barbell"] },
+  ohp: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "press_vertical", pc: ["barbell"] },
+  bbrow: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "pull_horizontal", pc: ["barbell"] },
+  powerclean: { t: "specialist", g: "cond", r: "conditioning", b: "conditioning", tr: 3, pc: ["impact", "barbell"] },
+  latpull: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "pull_vertical" },
+  cablerow: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "pull_horizontal" },
+  pushdown: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "triceps_ext" },
+  cablefly: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "pull_vertical" },
+  woodchop: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  pullthrough: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  legpress: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2, f: "squat_bilateral" },
+  legcurl: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "curl_biceps" },
+  tucklever: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  frontlever: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  tuckback: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 2, f: "straightarm_lever", pc: ["straightarm", "shoulderend"] },
+  backlever: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm", "shoulderend"] },
+  planchelean: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 2, f: "straightarm_planche", pc: ["straightarm"] },
+  tuckplanche: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_planche", pc: ["straightarm"] },
+  planche: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_planche", pc: ["straightarm"] },
+  freehspu: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, f: "press_vertical", ctx: "inversion", pc: ["headdown", "fall"] },
+  hspu90: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, f: "press_vertical", ctx: "inversion", pc: ["headdown", "fall"] },
+  presshs: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", f: "press_horizontal", ctx: "inversion", pc: ["headdown", "fall"] },
+  muscleup: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, f: "pull_vertical", co: true, pc: ["coach"] },
+  oap: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 3, f: "pull_vertical", co: true, pc: ["coach"] },
+  oapush: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, f: "press_horizontal", co: true, pc: ["coach"] },
+  vsit: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", co: true, pc: ["coach"] },
+  humanflag: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  typewriter: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "pull_vertical" },
+  commando: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "pull_vertical" },
+  lsitpullup: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "pull_vertical" },
+  skinthecat: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 2, f: "straightarm_lever", pc: ["straightarm", "shoulderend"] },
+  germanhang: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 2, f: "straightarm_lever", pc: ["straightarm", "shoulderend"] },
+  icecream: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 2, f: "straightarm_lever", pc: ["straightarm"] },
+  flraise: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 2, f: "straightarm_lever", pc: ["straightarm"] },
+  flrow: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  pelican: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 2, f: "straightarm_lever", pc: ["straightarm", "shoulderend"] },
+  straddlefl: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  ironcross: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm", "shoulderend"] },
+  clappush: { t: "extended", g: "cond", r: "conditioning", b: "conditioning", tr: 2, f: "press_horizontal", pc: ["impact"] },
+  russiandip: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "press_dip", pc: ["shoulderend"] },
+  bulgariandip: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "press_dip", pc: ["shoulderend"] },
+  elbowlever: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 2, sf: 3, am: "straight", f: "straightarm_lever", ctx: "inversion", pc: ["headdown", "fall"] },
+  straddleplanche: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_planche", pc: ["straightarm"] },
+  onearmhs: { t: "specialist", g: "explicit", r: "coordination_skill", b: "coordination_skill", sk: "mixed", tr: 3, sf: 2, am: "straight", f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  maltese: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_planche", pc: ["straightarm", "shoulderend"] },
+  handstandwalk: { t: "specialist", g: "explicit", r: "coordination_skill", b: "coordination_skill", sk: "coordination", tr: 2, sf: 1, am: "straight", f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  sissysquat: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "squat_unilateral", ag: "sissy_squat", pc: ["kneeflex"], dcz: "Sissy dřep" },
+  dragonsquat: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, f: "squat_unilateral", pc: ["kneeflex"] },
+  atgsplit: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "squat_unilateral", pc: ["kneeflex"] },
+  tibraise: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1 },
+  revnordic: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "hinge", pc: ["kneeflex"] },
+  wipers: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  compression: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
+  bridge: { t: "core", g: "generic", r: "mobility", b: "mobility", tr: 1, f: "hip_extension" },
+  pancake: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1 },
+  pikefold: { t: "core", g: "generic", r: "mobility", b: "mobility", tr: 1, f: "press_vertical" },
+  elephantwalk: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1 },
+  frontsplit: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1, f: "squat_unilateral" },
+  middlesplit: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1, f: "squat_unilateral" },
+  shouldercars: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, pj: ["ram"] },
+  wallext: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, pj: ["ram"] },
+  bandpull: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "pull_vertical" },
+  banddip: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1, f: "press_dip", pc: ["shoulderend"] },
+  eccham: { t: "core", g: "generic", r: "support", b: "accessory", tr: 1, f: "hinge" },
+  hinge: { t: "core", g: "generic", r: "mobility", b: "mobility", tr: 1, f: "hinge" },
+  revhyper: { t: "extended", g: "goal_eq", r: "support", b: "accessory", tr: 1, f: "hip_extension" },
+  wallpike: { t: "core", g: "generic", r: "strength_skill", b: "strength", tr: 2, f: "press_vertical", ctx: "inversion", pc: ["headdown", "fall"] },
+  abwheel: { t: "core", g: "generic", r: "strength", b: "strength", tr: 2 },
+  suitcase: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "grip_carry" },
+  neckiso: { t: "extended", g: "goal_eq", r: "support", b: "accessory", tr: 1, f: "neck" },
+  neckcars: { t: "extended", g: "goal_eq", r: "support", b: "prep", tr: 1, f: "neck", pj: ["krk"] },
+  diaphragm: { t: "breath", g: "breath_optin", r: "breath", b: "breath", tr: 1 },
+  boxbreath: { t: "breath", g: "breath_optin", r: "breath", b: "breath", tr: 1 },
+  co2: { t: "breath", g: "breath_optin", r: "breath", b: "breath", tr: 1, pc: ["breathhold"] },
+  towelhang: { t: "extended", g: "goal_eq", r: "support", b: "accessory", tr: 2, am: "straight", f: "grip_carry" },
+  wristcurl: { t: "core", g: "generic", r: "support", b: "accessory", tr: 2, f: "wrist" },
+  slbalance: { t: "extended", g: "goal_eq", r: "support", b: "accessory", sk: "coordination", tr: 1, sf: 1, f: "inversion_balance" },
+  extrot: { t: "core", g: "generic", r: "support", b: "accessory", tr: 1 },
+  ytw: { t: "extended", g: "goal_eq", r: "support", b: "accessory", tr: 1, f: "pull_horizontal" },
+  ecccalf: { t: "extended", g: "goal_eq", r: "support", b: "accessory", tr: 1, f: "calf" },
+  sled: { t: "extended", g: "cond", r: "conditioning", b: "conditioning", tr: 2 },
+  zone2: { t: "core", g: "cond", r: "conditioning", b: "conditioning", tr: 1 },
+  ringpush: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
+  ropeclimb: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "grip_carry" },
+  advtuckplanche: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_planche", pc: ["straightarm"] },
+  zenetti: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 2, sf: 3, f: "press_horizontal", co: true, pc: ["coach"] },
+  planchepress: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_planche", pc: ["straightarm"] },
+  planchepush: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_planche", pc: ["straightarm"] },
+  pikeliftoff: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "press_vertical" },
+  ctwhspu: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 3, f: "press_vertical", ctx: "inversion", co: true, pc: ["coach"] },
+  hspuhold: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 2, sf: 3, f: "press_vertical", ctx: "inversion", pc: ["headdown", "fall"] },
+  hspuneg: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 2, sf: 3, f: "press_vertical", ctx: "inversion", pc: ["headdown", "fall"] },
+  advtucklever: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  onelegfl: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  halflayfl: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  flneg: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  fltouch: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  flpullup: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "mixed", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  exppull: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, am: "mixed", tl: 2, f: "pull_vertical", pc: ["straightarm"] },
+  wpullup: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, am: "mixed", tl: 2, f: "pull_vertical", pc: ["straightarm"] },
+  ctwhs: { t: "specialist", g: "explicit", r: "coordination_skill", b: "coordination_skill", sk: "coordination", tr: 2, sf: 1, am: "straight", f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  bail: { t: "specialist", g: "explicit", r: "coordination_skill", b: "coordination_skill", sk: "coordination", tr: 1, sf: 1, f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  hsshift: { t: "specialist", g: "explicit", r: "coordination_skill", b: "coordination_skill", sk: "coordination", tr: 2, sf: 1, am: "straight", f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  fingerhs: { t: "specialist", g: "explicit", r: "coordination_skill", b: "coordination_skill", sk: "coordination", tr: 2, sf: 1, am: "straight", f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  planchenneg: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_planche", pc: ["straightarm"] },
+  hold90: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, ctx: "inversion", pc: ["straightarm"] },
+  hspu90neg: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "mixed", tl: 3, f: "press_vertical", ctx: "inversion", pc: ["straightarm", "headdown", "fall"] },
+  maltlean: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_planche", pc: ["straightarm", "shoulderend"] },
+  maltpress: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, f: "straightarm_planche", pc: ["shoulderend"] },
+  deadpull: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "mixed", tl: 3, f: "pull_vertical", pc: ["straightarm"] },
+  latiso: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2 },
+  bosuoahs: { t: "archived", s: "blocked", g: "never", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, f: "inversion_balance", ctx: "inversion", pc: ["blocked"] },
+  oafl: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", sk: "strength_skill", tr: 3, sf: 3, am: "straight", tl: 3, f: "straightarm_lever", pc: ["straightarm"] },
+  support: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1 },
+  inclrow: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1, f: "pull_horizontal" },
+  pikestand: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", tr: 1, f: "press_vertical", ctx: "inversion", pc: ["headdown", "fall"] },
+  jumplunge: { t: "extended", g: "cond", r: "conditioning", b: "conditioning", tr: 2, f: "squat_unilateral", pc: ["impact"] },
+  archrow: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "pull_horizontal" },
+  openbook: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, pj: ["ram", "pat"] },
+  hipcars: { t: "specialist", g: "explicit", r: "mobility", b: "prep", tr: 1, pj: ["kyc"] },
+  frog: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1 },
+  butterfly: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1 },
+  toetouch: { t: "extended", g: "canon_target", r: "mobility", b: "mobility", tr: 1 },
+  kneewall: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, pj: ["kot", "kol"] },
+  thoracicext: { t: "specialist", g: "explicit", r: "mobility", b: "prep", tr: 1, pj: ["pat"] },
+  squatpry: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, f: "squat_bilateral", pj: ["kyc", "kot"] },
+  wristcars: { t: "specialist", g: "explicit", r: "mobility", b: "prep", tr: 1, f: "wrist", pj: ["zap"] },
+  sidebend: { t: "specialist", g: "explicit", r: "mobility", b: "mobility", tr: 1 },
+  threadneedle: { t: "extended", g: "goal_eq", r: "mobility", b: "prep", tr: 1, pj: ["ram", "pat"] },
+  scorpion: { t: "specialist", g: "explicit", r: "mobility", b: "mobility", tr: 1 },
+  shinbox: { t: "specialist", g: "explicit", r: "mobility", b: "prep", tr: 1, pj: ["kyc"] },
+  revplank: { t: "specialist", g: "explicit", r: "mobility", b: "mobility", tr: 1, f: "core_plank" },
+  activehang: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1, f: "grip_carry" },
+  lizard: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1, f: "squat_unilateral" },
+  tbridge: { t: "specialist", g: "explicit", r: "mobility", b: "mobility", tr: 1, f: "hip_extension" },
+  tuckl: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  hlr: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  archhold: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1 },
+  scapdip: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 1, f: "press_dip" },
+  ringrow: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "pull_horizontal" },
+  sphinx: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
+  bwcurl: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2, f: "curl_biceps" },
+  pullover: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
+  bentarmhs: { t: "specialist", g: "explicit", r: "strength_skill", b: "strength", tr: 2, f: "inversion_balance", ctx: "inversion", pc: ["headdown", "fall"] },
+  straddlesit: { t: "specialist", g: "explicit", r: "strength", b: "strength", tr: 2 },
+  elbowcars: { t: "specialist", g: "explicit", r: "mobility", b: "prep", tr: 1, pj: ["lok"] },
+  kneecars: { t: "specialist", g: "explicit", r: "mobility", b: "prep", tr: 1, pj: ["kol"] },
+  vi_hss3m: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 1 },
+  vi_hss6m: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 2 },
+  vi_scap: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 1 },
+  vi_squat: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 2, f: "squat_bilateral" },
+  vi_hinge: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 2, f: "hinge", pc: ["spine", "barbell"] },
+  vi_lunge: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 2, f: "squat_unilateral" },
+  vi_hipthrust: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 2, f: "hip_extension" },
+  vi_press: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
+  vi_row: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 2, f: "pull_horizontal" },
+  vi_ohp: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 2, f: "press_vertical" },
+  vi_biceps: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 1, f: "curl_biceps" },
+  vi_triceps: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 1, f: "triceps_ext" },
+  vi_calf: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 1, f: "calf" },
+};
+
+// ---- the resolvers · the row wins, then the audit, then a derived default -----
+// Three sources in a fixed order, and only ever these three. A person's own edit
+// on their own row is never overwritten by the table; a row the audit never saw
+// still answers every question, conservatively.
+const tMetaOf = (ex) => (ex && ex.id ? TEX_META[ex.id] || null : null);
+
+// A custom exercise nobody audited. It is the person's own row, so it stays
+// visible and usable by hand — but a generator may only reach for it once the row
+// says enough about itself to be placed safely.
+const tExCustomReady = (ex) => !!ex && !!T_PAT[ex.pat] && (ex.eq || []).length > 0
+  && (ex.eq || []).every((k) => !!T_EQ[k]);
+
+// Each of these validates against the schema list rather than trusting what it
+// finds. A row carrying a value nobody defined answers with the safe default.
+const tPick = (v, allowed, fallback) => (allowed.includes(v) ? v : fallback);
+const tTierOf = (ex) => tPick((ex && ex.tier) || (tMetaOf(ex) || {}).t, TEX_TIERS, "extended");
+const tStatusOf = (ex) => tPick((ex && ex.status) || (tMetaOf(ex) || {}).s, TEX_STATUSES, "active");
+const tGenRuleOf = (ex) => tPick((ex && ex.genRule) || (tMetaOf(ex) || {}).g, TEX_GEN_RULES,
+  tExCustomReady(ex) ? "goal_eq" : "never");
+
+// What it is FOR. Derived from the pattern only where the audit is silent.
+const tRoleOf = (ex) => {
+  const own = (ex && ex.goalRole) || (tMetaOf(ex) || {}).r;
+  if (own) return tPick(own, TEX_GOAL_ROLES, "strength");
+  if (!ex) return "strength";
+  if (ex.pat === "dech") return "breath";
+  if (ex.pat === "mobilita") return "mobility";
+  if (ex.pat === "prenos") return "conditioning";
+  if (ex.pat === "krk") return "support";
+  if (tCOf(ex) >= 4) return "strength_skill";
+  return "strength";
+};
+// Where in a session it belongs.
+const tBlockOf = (ex) => {
+  const own = (ex && ex.sessionBlock) || (tMetaOf(ex) || {}).b;
+  if (own) return tPick(own, TEX_SESSION_BLOCKS, "strength");
+  const r = tRoleOf(ex);
+  if (r === "breath") return "breath";
+  if (r === "mobility") return "mobility";
+  if (r === "support") return "accessory";
+  if (r === "conditioning") return "conditioning";
+  if (r === "coordination_skill") return "coordination_skill";
+  return "strength";
+};
+const tPrepJointsOf = (ex) => (tMetaOf(ex) || {}).pj || [];
+
+// ---- skill · a class, not a boolean (§12) ------------------------------------
+// The old rule was one line — C ≥ 4 and S ≤ 3 — and it answered four different
+// questions at once: is this a skill, may it be trained daily, does it belong in
+// the skill block, is it exempt from fatigue logic. A pistol and a pelican curl
+// both passed it. In a pistol the knee pays; in a pelican the elbow pays. Neither
+// is a nervous-system task you repeat every morning.
+const tSkillClassOf = (ex) => {
+  if (ex && ex.skillClass) return ex.skillClass;
+  const m = tMetaOf(ex);
+  if (m && m.sk) return m.sk;
+  return tCOf(ex) >= 4 ? (tSOf(ex) <= 2 ? "coordination" : "strength_skill") : "none";
+};
+// Kept: block ORDER. A skill goes first in a session, fresh. Lost: everything else
+// it used to imply — those now have their own fields.
+const tIsSkill = (ex) => tSkillClassOf(ex) !== "none";
+const tIsCoordSkill = (ex) => tSkillClassOf(ex) === "coordination";
+
+// ---- straight-arm · metadata, not a hand-kept list (§18) ---------------------
+// The frozen T_STRAIGHTARM list is still here, and it is still correct — but it is
+// now only the fallback for a row the audit never saw. Every audited row answers
+// from its own armMode and tendonLoad, so a planche negative added last week is
+// caught by the same rule as a planche.
+const tArmModeOf = (ex) => (ex && ex.armMode) || (tMetaOf(ex) || {}).am
+  || (ex && T_STRAIGHTARM.includes(ex.id) ? "straight" : "bent");
+const tTendonOf = (ex) => (ex && ex.tendonLoad) || (tMetaOf(ex) || {}).tl
+  || (ex && T_STRAIGHTARM.includes(ex.id) ? 3 : 1);
+// A locked arm is not the point. A locked arm the load PRIES ON is. An L-sit and a
+// dead hang have straight arms and pay nothing for it; a planche pays everything.
+const tIsStraightArm = (ex) => !!ex && tArmModeOf(ex) !== "bent" && tTendonOf(ex) >= 2;
+
+// ---- recovery · two clocks, because tissue and skill run at different speeds --
+const tTissueRecOf = (ex) => {
+  if (ex && ex.tissueRecovery) return ex.tissueRecovery;
+  const m = tMetaOf(ex);
+  if (m && m.tr) return m.tr;
+  if (ex && ex.rec) return ex.rec;             // legacy row · still honoured
+  const s = tSOf(ex);
+  if (tTendonOf(ex) >= 3 || s >= 4) return 3;
+  if (s >= 2) return 2;
+  return 1;
+};
+const tSkillFreqOf = (ex) => (ex && ex.skillFrequency) || (tMetaOf(ex) || {}).sf
+  || ({ coordination: 1, mixed: 2, strength_skill: 3 })[tSkillClassOf(ex)] || null;
+
+// ---- identity · alias, family, group -----------------------------------------
+const tAliasOf = (ex) => (ex && ex.aliasOf) || (tMetaOf(ex) || {}).al || null;
+const tCanonIdOf = (ex) => (ex ? (tAliasOf(ex) || ex.id) : null);
+const tAliasGroupOf = (ex) => (ex && ex.aliasGroup) || (tMetaOf(ex) || {}).ag || null;
+// A row with no family is its own family, so an unclassified exercise never
+// crowds anything else out of a session.
+const tFamilyOf = (ex) => (ex && ex.family) || (tMetaOf(ex) || {}).f || ("id:" + (ex ? ex.id : ""));
+const tCtxOf = (ex) => (tMetaOf(ex) || {}).ctx || null;
+
+// ---- what a careful person would want to know before choosing ----------------
+const tRequiresCoach = (ex) => (ex && ex.requiresCoach) || !!(tMetaOf(ex) || {}).co;
+const tPrecautionsOf = (ex) => (ex && ex.precautions) || (tMetaOf(ex) || {}).pc || [];
+const tHasPrecaution = (ex, code) => tPrecautionsOf(ex).includes(code);
+
+const tIsCatalog = (ex) => tTierOf(ex) === "catalog" || !!(ex && ex.jg && ex.jg.katalog);
+const tIsArchived = (ex) => tTierOf(ex) === "archived" || tStatusOf(ex) === "blocked";
+const tIsProgramOnly = (ex) => tTierOf(ex) === "program_only";
+
+// THE gate. Everything a generic plan may reach for passes exactly this, and
+// nothing reaches into the library around it.
+const tGenericEligible = (ex) => !!ex && tStatusOf(ex) === "active"
+  && TEX_GEN_GENERIC.includes(tGenRuleOf(ex));
+// …and this is the wider door: a specialist row a person has explicitly chosen,
+// or a skill ladder they named as a target.
+const tTargetEligible = (ex) => !!ex && tStatusOf(ex) === "active"
+  && !tIsCatalog(ex) && !tIsArchived(ex)
+  && ["generic", "goal_eq", "cond", "explicit", "canon_target"].includes(tGenRuleOf(ex));
+
+// ---- the display name · ONE override, resolved in ONE place ------------------
+// The audit renamed twenty-one records, and `cz` / `en` are not where that happens:
+// the Movement Atlas keys its production documents on those two strings in the Main
+// App, and the two libraries must not drift apart. So the same override, resolved
+// the same way, and no second system of names anywhere.
+const tExNameCz = (ex) => (ex ? ((tMetaOf(ex) || {}).dcz || ex.cz || "") : "");
+const tExNameEn = (ex) => (ex ? ((tMetaOf(ex) || {}).den || ex.en || ex.cz || "") : "");
+// Every string a search must match: both display names, both catalogue names, the
+// Sanskrit, and the legacy id itself.
+const tExSearchText = (ex) => {
+  if (!ex) return "";
+  const jg = ex.jg || {};
+  return [ex.id, ex.cz, ex.en, tExNameCz(ex), tExNameEn(ex), jg.sa, jg.dev].filter(Boolean).join(" ");
+};
+
+// The quiet default shelf; everything else is one chip away and nothing is lost.
+const tExOnDefaultShelf = (ex) => TEX_TIERS_DEFAULT.includes(tTierOf(ex))
+  && tStatusOf(ex) === "active" && !tIsCatalog(ex);
+const tExOnShelf = (ex, extra) => tExOnDefaultShelf(ex)
+  || ((extra || []).includes(tTierOf(ex)) && (tTierOf(ex) !== "catalog" || (extra || []).includes("catalog")))
+  || ((extra || []).includes("archived") && tStatusOf(ex) !== "active");
 
 // ---- pattern pictograms · one hand-drawn line figure per movement ----
 // viewBox 0 0 120 120 · thin line on the page ground · copper dot = focus
@@ -7228,6 +7710,12 @@ const T_MUSCLE_SHAPES = {
     obl: (o) => <g opacity={o}><ellipse cx="47" cy="72" rx="3.4" ry="12" fill="var(--tm-accent, #B87333)" /><ellipse cx="73" cy="72" rx="3.4" ry="12" fill="var(--tm-accent, #B87333)" /></g>,
     qua: (o) => <g opacity={o}><ellipse cx="52.5" cy="118" rx="6.2" ry="19" fill="var(--tm-accent, #B87333)" /><ellipse cx="67.5" cy="118" rx="6.2" ry="19" fill="var(--tm-accent, #B87333)" /></g>,
     cal: (o) => <g opacity={o * 0.55}><ellipse cx="54" cy="154" rx="4" ry="12" fill="var(--tm-accent, #B87333)" /><ellipse cx="66" cy="154" rx="4" ry="12" fill="var(--tm-accent, #B87333)" /></g>,
+    add: (o) => <g opacity={o}><ellipse cx="57" cy="112" rx="2.8" ry="15" fill="var(--tm-accent, #B87333)" /><ellipse cx="63" cy="112" rx="2.8" ry="15" fill="var(--tm-accent, #B87333)" /></g>,
+    hipflex: (o) => <g opacity={o}><ellipse cx="53.5" cy="93" rx="3.4" ry="7" fill="var(--tm-accent, #B87333)" /><ellipse cx="66.5" cy="93" rx="3.4" ry="7" fill="var(--tm-accent, #B87333)" /></g>,
+    serr: (o) => <g opacity={o}><ellipse cx="48" cy="58" rx="3" ry="7" fill="var(--tm-accent, #B87333)" /><ellipse cx="72" cy="58" rx="3" ry="7" fill="var(--tm-accent, #B87333)" /></g>,
+    neck: (o) => <rect x="55.5" y="24" width="9" height="8" rx="4" fill="var(--tm-accent, #B87333)" opacity={o} />,
+    // rcuff · the cuff sits UNDER the deltoid; there is nowhere on this silhouette to
+    // draw it that is not a lie about where it is. It stays a tag.
   },
   back: {
     tra: (o) => <path d="M60,29 L70,35 L60,48 L50,35 Z" fill="var(--tm-accent, #B87333)" opacity={o} />,
@@ -7239,7 +7727,9 @@ const T_MUSCLE_SHAPES = {
     glu: (o) => <g opacity={o}><path d="M46,90 C46,85 50,83 53,84 C57,85 58,89 57.5,94 C57,99 53,102 49.5,101 C46.5,100 45.8,95 46,90 Z" fill="var(--tm-accent, #B87333)" /><path d="M74,90 C74,85 70,83 67,84 C63,85 62,89 62.5,94 C63,99 67,102 70.5,101 C73.5,100 74.2,95 74,90 Z" fill="var(--tm-accent, #B87333)" /></g>,
     ham: (o) => <g opacity={o}><ellipse cx="52.5" cy="122" rx="5.6" ry="16" fill="var(--tm-accent, #B87333)" /><ellipse cx="67.5" cy="122" rx="5.6" ry="16" fill="var(--tm-accent, #B87333)" /></g>,
     cal: (o) => <g opacity={o}><ellipse cx="54" cy="154" rx="4.2" ry="12" fill="var(--tm-accent, #B87333)" /><ellipse cx="66" cy="154" rx="4.2" ry="12" fill="var(--tm-accent, #B87333)" /></g>,
+    neck: (o) => <rect x="55.5" y="24" width="9" height="8" rx="4" fill="var(--tm-accent, #B87333)" opacity={o} />,
     abs: () => null, obl: () => null, che: () => null, bic: () => null, qua: () => null,
+    add: () => null, hipflex: () => null, serr: () => null, rcuff: () => null,
   },
 };
 function TMuscleMap({ mp = [], ms = [], size = 150, fluid = false }) {
@@ -7688,26 +8178,26 @@ const TEX_SEED_2 = [
     exe: ["Zvedni ramena a nohy nízko nad zem, bedra do země. Drž tvar banánu.", "Lift shoulders and legs just off the ground, back pressed down. Hold the shallow dish."],
     wat: ["Když se bedra zvednou, pokrč kolena nebo zvedni nohy výš. Tvar před časem.", "If the back lifts, bend the knees or raise the legs. Shape before time."],
     pro: ["Nohy níž, paže dál. Základ stoje na rukou i švihů.", "Legs lower, arms further. The floor of handstands and swings."] },
-  { id: "legraise", cz: "Přednosy vleže", en: "Lying Leg Raises", pat: "stred", S: 1, C: 1, J: { pat: 1 }, pop: 3, eq: ["telo"], mode: "reps", mp: ["abs"], ms: ["obl"], dot: [60, 70], ez: null, hd: "kneeraise",
+  { id: "legraise", cz: "Přednosy vleže", en: "Lying Leg Raises", pat: "stred", S: 1, C: 1, J: { pat: 1 }, pop: 3, eq: ["telo"], mode: "reps", mp: ["abs", "hipflex"], ms: ["obl"], dot: [60, 70], ez: null, hd: "kneeraise",
     foc: ["Dolů pomalu. Tam se sílí.", "Slow on the way down. That's where the strength is built."],
     pos: ["Leh na zádech, dlaně pod hýžděmi, nohy natažené.", "On your back, hands under the hips, legs long."],
     exe: ["Nohy nahoru ke kolmici, pomalu dolů těsně nad zem. Bedra drží zem.", "Legs up to vertical, then slowly down to just above the floor. The back holds the ground."],
     wat: ["Bedra se nesmí prohnout. Krátší dráha je poctivější než prohnutá.", "The back must not arch. A shorter range is more honest than an arched one."],
     pro: ["Pak zvedání kolen ve visu.", "Then the hanging knee raise."] },
-  { id: "kneeraise", cz: "Zvedání kolen ve visu", en: "Hanging Knee Raise", pat: "stred", S: 2, C: 2, J: { pat: 1 }, pop: 2, eq: ["hrazda"], mode: "reps", mp: ["abs"], ms: ["obl", "fore"], dot: [60, 20], ez: "legraise", hd: "t2b",
+  { id: "kneeraise", cz: "Zvedání kolen ve visu", en: "Hanging Knee Raise", pat: "stred", S: 2, C: 2, J: { pat: 1 }, pop: 2, eq: ["hrazda"], mode: "reps", mp: ["abs"], ms: ["hipflex", "obl", "fore"], dot: [60, 20], ez: "legraise", hd: "t2b",
     foc: ["Pánev se podsazuje. Kolena jen jedou s ní.", "The pelvis tucks. The knees just come along."],
     pos: ["Vis nadhmatem, tělo klidné, ramena lehce stažená.", "Overhand hang, body quiet, shoulders lightly packed."],
     exe: ["Kolena k hrudníku s podsazením pánve. Krátce, pomalu dolů bez houpání.", "Knees to the chest with a pelvic tuck. Pause, lower slowly without swing."],
     wat: ["Švih krade práci. Mezi opakováními klid.", "Swing steals the work. Stillness between reps."],
     pro: ["Natažené nohy — špičky k hrazdě.", "Straighten the legs — toes to the bar."] },
-  { id: "t2b", cz: "Špičky k hrazdě", en: "Toes-to-Bar", pat: "stred", S: 3, C: 3, J: { pat: 1 }, pop: 2, eq: ["hrazda"], mode: "reps", mp: ["abs"], ms: ["obl", "fore", "upb"], dot: [60, 20], ez: "kneeraise", hd: "tucklever",
+  { id: "t2b", cz: "Špičky k hrazdě", en: "Toes-to-Bar", pat: "stred", S: 3, C: 3, J: { pat: 1 }, pop: 2, eq: ["hrazda"], mode: "reps", mp: ["abs"], ms: ["hipflex", "obl", "fore", "upb"], dot: [60, 20], ez: "kneeraise", hd: "tucklever",
     foc: ["Nohy zvedá břicho a podsazení, ne švih boků.", "The belly and the tuck lift the legs, not a hip swing."],
     pos: ["Vis nadhmatem, paže propnuté, tělo zpevněné.", "Overhand hang, arms straight, body tight."],
     exe: ["Natažené nohy obloukem ke hrazdě, špičky se dotknou. Pomalu a rovně dolů.", "Straight legs arc to the bar, toes touch. Lower slowly and straight."],
     wat: ["Kontrolovaný návrat — bez rozhoupání. Když se švih vkrádá, zpět na kolena.", "A controlled return — no pendulum. When swing creeps in, go back to knees."],
     pro: ["Pomalejší tempo, pak přednos do L-sedu.", "Slow the tempo, then the L-sit."] },
   // ---------------- OBRAT · INVERT ----------------
-  { id: "crow", cz: "Vrána", en: "Crow Pose", pat: "obrat", S: 2, C: 4, J: { zap: 3 }, pop: 2, eq: ["telo"], mode: "sec", mp: ["sho", "fore"], ms: ["abs"], dot: [58, 106], ez: "wallpike", hd: "wallhs",
+  { id: "crow", cz: "Vrána", en: "Crow Pose", pat: "obrat", S: 2, C: 4, J: { zap: 3, ram: 2, lok: 2 }, pop: 2, eq: ["telo"], mode: "sec", mp: ["sho", "fore"], ms: ["abs"], dot: [58, 106], ez: "wallpike", hd: "wallhs",
     foc: ["Prsty jsou kořeny. Rovnováha se drží v dlaních.", "The fingers are roots. Balance lives in the palms."],
     pos: ["Podřep, dlaně na zem na šířku ramen, kolena na triceps.", "Deep squat, palms down shoulder-width, knees onto the triceps."],
     exe: ["Váhu pomalu vpřed, nohy odlehčí a zvednou se. Pohled mírně vpřed, drž.", "Weight slowly forward, the feet lighten and lift. Gaze slightly ahead, hold."],
@@ -7827,7 +8317,7 @@ const TEX_SEED_4 = [
     exe: ["Rovně dolů, zadní koleno k zemi. Krátce, přes přední patu nahoru.", "Straight down, back knee toward the ground. Pause, drive up through the front heel."],
     wat: ["Trup zůstává vzpřímený. Přední koleno sleduje špičku.", "Torso stays upright. The front knee tracks the toes."],
     pro: ["Zpomal sestup, přidej závaží do rukou.", "Slow the descent, add weight in the hands."] },
-  { id: "cossack", cz: "Kozácký dřep", en: "Cossack Squat", pat: "drep", S: 2, C: 3, J: { kol: 1, kot: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["qua", "glu"], ms: ["ham", "cal"], dot: [52, 168], ez: "drep", hd: "archersq",
+  { id: "cossack", cz: "Kozácký dřep", en: "Cossack Squat", pat: "drep", S: 2, C: 3, J: { kol: 1, kot: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["qua", "glu"], ms: ["add", "ham", "cal"], dot: [52, 168], ez: "drep", hd: "archersq",
     foc: ["Pata pokrčené nohy drží zem. Hloubku určuje kyčel, ne spěch.", "The bent-leg heel holds the ground. The hip sets the depth, not haste."],
     pos: ["Široký stoj. Jedna noha se pokrčí, druhá zůstává natažená, špička k nebi.", "Wide stance. One leg bends, the other stays straight, toes to the sky."],
     exe: ["Sedni si nad patu pokrčené nohy co nejhlouběji. Přes patu zpět a přenes na druhou stranu.", "Sit over the bent heel as deep as you can. Drive back up and shift across."],
@@ -7878,11 +8368,11 @@ const TEX_SEED_4 = [
     wat: ["Boky rovně, žádná rotace. Rozsah roste postupně.", "Hips square, no rotation. Range grows gradually."],
     pro: ["Zužuj pomoc natažené paže — cesta ke kliku na jedné ruce.", "Lean less on the straight arm — the road to the one-arm push-up."] },
   { id: "benchdips", cz: "Kliky za tělem", en: "Bench Dips", pat: "tlak", S: 1, C: 1, J: { ram: 3 }, pop: 3, eq: ["lavice"], mode: "reps", mp: ["tri"], ms: ["che", "sho"], dot: [74, 120], ez: null, hd: "banddip",
-    foc: ["Ramena stažená dolů, daleko od uší. Záda kloužou podél lavice.", "Shoulders pulled down, far from the ears. The back glides close along the box."],
+    foc: ["Zatížená extenze ramene za tělem. Tato varianta není výchozí volba pro triceps.", "A loaded shoulder extension behind the body. This is not the default choice for triceps."],
     pos: ["Dlaně na hraně lavice za tebou, nohy natažené vpřed, boky u lavice.", "Hands on the edge behind you, legs extended, hips close to the box."],
     exe: ["Lokty vzad do pravého úhlu, silně nahoru do propnutí.", "Elbows travel back to ninety degrees, press strongly to lockout."],
-    wat: ["Boky se nevzdalují od lavice. Bolest vpředu ramene znamená menší hloubku.", "Hips stay near the box. Front-shoulder pain means less depth."],
-    pro: ["Nohy na druhou lavici, pak bradla.", "Feet on a second box, then the parallel bars."] },
+    wat: ["Velký rozsah za tělem může dráždit přední část ramene. Upřednostni kliky, tricepsové extenze nebo dopomocný dip.", "A large range behind the body can irritate the front of the shoulder. Prefer push-ups, triceps extensions or an assisted dip."],
+    pro: ["Přejdi na dopomocný dip na bradlech jen tehdy, pokud rameno toleruje rozsah.", "Move to an assisted dip on the bars only if the shoulder tolerates the range."]},
   { id: "dbpress", cz: "Tlak s činkami nad hlavu", en: "Dumbbell Overhead Press", pat: "tlak", S: 3, C: 2, J: { lok: 1, ram: 1 }, pop: 3, eq: ["zavazi"], mode: "reps", mp: ["sho", "tri"], ms: ["tra", "abs"], dot: [100, 106], ez: null, hd: "ohp",
     foc: ["Žebra dole, hýždě zpevněné. Tlačí ramena, ne bedra.", "Ribs down, glutes tight. The shoulders press, not the lower back."],
     pos: ["Stoj na šířku boků, činky u ramen, dlaně mírně k sobě.", "Hip-width stance, dumbbells at the shoulders, palms turned slightly in."],
@@ -7917,7 +8407,7 @@ const TEX_SEED_4B = [
     exe: ["Táhni činku k boku, lopatka jde první. Krátce, pomalu dolů do protažení.", "Row the bell to the hip, the shoulder blade leading. Pause, lower slowly into the stretch."],
     wat: ["Záda drží rovinu celou sérii. Žádný švih trupem.", "The back holds its line for the whole set. No body swing."],
     pro: ["Těžší činka, pomalejší spouštění.", "A heavier bell, slower lowering."] },
-  { id: "facepull", cz: "Stažení gumy k obličeji", en: "Band Face Pull", pat: "tah", S: 2, C: 1, J: { ram: 1 }, pop: 2, eq: ["guma", "kladka"], mode: "reps", mp: ["upb", "sho"], ms: ["tra"], dot: [90, 100], ez: null, hd: null,
+  { id: "facepull", cz: "Stažení gumy k obličeji", en: "Band Face Pull", pat: "tah", S: 2, C: 1, J: { ram: 1 }, pop: 2, eq: ["guma", "kladka"], mode: "reps", mp: ["upb", "rcuff"], ms: ["sho", "tra"], dot: [90, 100], ez: null, hd: null,
     foc: ["Lokty končí vedle uší, lopatky stažené k sobě a dolů.", "Elbows finish beside the ears, shoulder blades drawn together and down."],
     pos: ["Guma ukotvená ve výšce obličeje, úchop obouruč, paže natažené.", "Band anchored at face height, both hands gripping, arms extended."],
     exe: ["Táhni k obličeji, lokty vysoko a ven. Krátce podrž, pomalu zpět.", "Pull toward the face, elbows high and wide. Hold briefly, return slowly."],
@@ -7936,13 +8426,13 @@ const TEX_SEED_4B = [
     exe: ["Propni paže před tělo a drž proti tahu. Pomalu zpět k hrudníku.", "Press the arms straight out and hold against the pull. Return slowly to the chest."],
     wat: ["Boky a ramena míří stále vpřed. Dýchej i pod napětím.", "Hips and shoulders keep facing forward. Keep breathing under tension."],
     pro: ["Dál od kotvy, pevnější guma, výdrž v propnutí.", "Further from the anchor, a stronger band, holds at extension."] },
-  { id: "lsit", cz: "L-sed", en: "L-Sit", pat: "stred", S: 3, C: 3, J: { pat: 1 }, pop: 1, eq: ["telo", "bradla"], mode: "sec", mp: ["abs"], ms: ["tri", "sho", "qua"], dot: [108, 148], ez: "hollow", hd: "vsit",
+  { id: "lsit", cz: "L-sed", en: "L-Sit", pat: "stred", S: 3, C: 3, J: { pat: 1 }, pop: 1, eq: ["telo", "bradla"], mode: "sec", mp: ["abs", "hipflex"], ms: ["tri", "sho", "qua"], dot: [108, 148], ez: "hollow", hd: "vsit",
     foc: ["Ramena tlačí zem pryč, nohy zvedá střed.", "The shoulders push the ground away; the centre lifts the legs."],
     pos: ["Sed, dlaně na zemi vedle boků, prsty vpřed.", "Seated, palms beside the hips, fingers forward."],
     exe: ["Zatlač do dlaní, zvedni boky i natažené nohy nad zem. Drž.", "Press into the palms, lift the hips and straight legs off the ground. Hold."],
     wat: ["Začni s pokrčenými koleny — poctivá výdrž s ohnutou nohou je víc než třes s nataženou.", "Start with bent knees — an honest tucked hold beats a shaking straight one."],
     pro: ["Natahuj nohy, prodlužuj čas. Na bradlech je snadnější začátek.", "Straighten the legs, extend the time. Parallel bars make the start easier."] },
-  { id: "copenhagen", cz: "Copenhagen plank", en: "Copenhagen Plank", pat: "stred", S: 3, C: 3, J: { pat: 1 }, pop: 1, eq: ["lavice"], mode: "sec", mp: ["obl"], ms: ["abs", "qua"], dot: [128, 148], ez: "sideplank", hd: null,
+  { id: "copenhagen", cz: "Copenhagen plank", en: "Copenhagen Plank", pat: "stred", S: 3, C: 3, J: { pat: 1 }, pop: 1, eq: ["lavice"], mode: "sec", mp: ["add"], ms: ["obl", "abs", "qua"], dot: [128, 148], ez: "sideplank", hd: null,
     foc: ["Drží tě vnitřní stehno horní nohy. Vzácně trénované, často zraněné.", "The top leg's inner thigh holds you. Rarely trained, often injured."],
     pos: ["Boční prkno, vnitřní strana horního chodidla na lavici, spodní noha volně.", "Side plank, inside of the top foot on the box, bottom leg free."],
     exe: ["Zvedni boky do jedné linie a drž. Obě strany stejně.", "Lift the hips into one line and hold. Both sides, equal time."],
@@ -7955,7 +8445,7 @@ const TEX_SEED_4B = [
     wat: ["Bedra neprohýbat — když se tělo láme, zkrať dráhu nebo pokrč nohy.", "No arching — if the line breaks, shorten the path or tuck the legs."],
     pro: ["Nejdřív jen brzda dolů, pak i cesta nahoru.", "First only the lowering, then the way back up."] },
   // ---------------- OBRAT · INVERT ----------------
-  { id: "headstand", cz: "Stoj na hlavě", en: "Headstand", pat: "obrat", S: 1, C: 3, J: { zap: 1, ram: 2 }, pop: 2, eq: ["telo"], mode: "sec", mp: ["sho"], ms: ["abs", "fore", "tra"], dot: [86, 164], ez: null, hd: "wallhs",
+  { id: "headstand", cz: "Stoj na hlavě", en: "Headstand", pat: "obrat", S: 2, C: 4, J: { krk: 3, ram: 2, zap: 1 }, pop: 2, eq: ["telo"], mode: "sec", mp: ["sho", "abs"], ms: ["upb", "neck"], dot: [86, 164], ez: null, hd: "wallhs",
     foc: ["Váhu nesou předloktí. Hlava se země jen dotýká.", "The forearms carry the weight. The head only touches the ground."],
     pos: ["Předloktí na zemi, prsty spletené za hlavou — temeno v trojúhelníku.", "Forearms down, fingers laced behind the head — crown inside the triangle."],
     exe: ["Kolena na lokty, najdi rovnováhu, pak pomalu natáhni nohy vzhůru.", "Knees onto the elbows, find balance, then extend the legs slowly upward."],
@@ -8000,13 +8490,13 @@ const TEX_SEED_4B = [
 // essential is missing · pop: 3 = world staple, 2 = widely used, 1 = specialist
 const TEX_SEED_5 = [
   // ---------------- DŘEP · SQUAT ----------------
-  { id: "sumo", cz: "Sumo dřep", en: "Sumo Squat", pat: "drep", S: 1, C: 1, J: { kot: 1 }, pop: 3, eq: ["telo", "zavazi"], mode: "reps", mp: ["qua", "glu"], ms: ["ham", "cal"], dot: [62, 168], ez: "drep", hd: null,
+  { id: "sumo", cz: "Sumo dřep", en: "Sumo Squat", pat: "drep", S: 1, C: 1, J: { kot: 1 }, pop: 3, eq: ["telo", "zavazi"], mode: "reps", mp: ["qua", "glu"], ms: ["add", "ham", "cal"], dot: [62, 168], ez: "drep", hd: null,
     foc: ["Kolena tlačí ven nad špičky po celou dráhu.", "The knees press out over the toes the whole way."],
     pos: ["Široký stoj, špičky ven zhruba 30°. Trup vysoký.", "Wide stance, toes out around thirty degrees. Torso tall."],
     exe: ["Rovně dolů mezi kolena, do hloubky, kterou udrží paty. Přes chodidla nahoru.", "Straight down between the knees, as deep as the heels allow. Drive up through the feet."],
     wat: ["Kolena nepadají dovnitř. Trup se nepředklání — sedáš mezi nohy.", "Knees never cave in. No leaning forward — you sit between the legs."],
     pro: ["Závaží obouruč před tělem, pomalejší tempo.", "A weight held in front, a slower tempo."] },
-  { id: "latlunge", cz: "Boční výpad", en: "Lateral Lunge", pat: "drep", S: 2, C: 2, J: { kol: 1, kot: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["qua", "glu"], ms: ["ham"], dot: [52, 168], ez: "lunge", hd: "cossack",
+  { id: "latlunge", cz: "Boční výpad", en: "Lateral Lunge", pat: "drep", S: 2, C: 2, J: { kol: 1, kot: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["qua", "glu"], ms: ["add", "ham"], dot: [52, 168], ez: "lunge", hd: "cossack",
     foc: ["Sedáš dozadu nad patu kročné nohy. Druhá noha zůstává propnutá.", "You sit back over the stepping heel. The other leg stays straight."],
     pos: ["Stoj, dlouhý krok do strany. Obě špičky vpřed.", "Standing, one long step to the side. Both feet pointing forward."],
     exe: ["Boky vzad a dolů nad kročnou nohu, hrudník vztyčený. Odrazem zpět do stoje.", "Hips back and down over the stepping leg, chest tall. Push back to standing."],
@@ -8050,7 +8540,7 @@ const TEX_SEED_5 = [
     exe: ["Hrudník ke zdi, lokty zhruba 45°. Silně zpět do propnutí.", "Chest to the wall, elbows near 45 degrees. Press back to straight arms."],
     wat: ["Boky se nelámou, paty mohou ze země. První cvik po zranění i první cvik vůbec.", "Hips never fold; heels may lift. The first exercise after injury — and often the first ever."],
     pro: ["Dál od zdi, pak klik na kolenou.", "Step further from the wall, then the knee push-up."] },
-  { id: "scapush", cz: "Lopatkový klik", en: "Scapula Push-Up", pat: "tlak", S: 1, C: 1, J: { zap: 1, ram: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["sho"], ms: ["tra", "abs"], dot: [86, 140], ez: null, hd: "pushup",
+  { id: "scapush", cz: "Lopatkový klik", en: "Scapula Push-Up", pat: "tlak", S: 1, C: 1, J: { zap: 1, ram: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["serr"], ms: ["sho", "tra", "abs"], dot: [86, 140], ez: null, hd: "pushup",
     foc: ["Lokty propnuté. Pohyb dělají jen lopatky.", "Elbows locked. Only the shoulder blades move."],
     pos: ["Vzpor na rukou, tělo jedna linie, paže propnuté.", "Straight-arm plank, body in one line, arms locked."],
     exe: ["Hrudník klesá mezi lopatky, pak zatlač zem pryč a lopatky roztáhni. Malý, pomalý pohyb.", "The chest sinks between the blades, then push the ground away and spread them. Small, slow movement."],
@@ -8159,19 +8649,19 @@ const TEX_SEED_5B = [
     wat: ["Kolena pruží, paty jen líznou zem. Rytmus před rychlostí.", "Knees spring, heels barely kiss the ground. Rhythm before speed."],
     pro: ["Delší intervaly, běh se švihadlem, dvojswingy.", "Longer intervals, running skips, double-unders."] },
   // ---------------- MOBILITA · MOBILITY ----------------
-  { id: "downdog", cz: "Pes hlavou dolů", en: "Downward Dog", pat: "mobilita", S: 1, C: 1, pop: 3, eq: ["telo"], mode: "sec", mp: ["ham", "cal"], ms: ["sho", "low"], dot: [108, 98], ez: null, hd: "pike",
+  { id: "downdog", cz: "Pes hlavou dolů", en: "Downward Dog", pat: "mobilita", S: 1, C: 2, J: { ram: 2 }, pop: 3, eq: ["telo"], mode: "sec", mp: ["ham", "sho"], ms: ["cal", "upb"], dot: [108, 98], ez: null, hd: "pike",
     foc: ["Dlouhá záda mají přednost před propnutými koleny.", "A long spine outranks straight knees."],
     pos: ["Vzpor, dlaně na šířku ramen, boky vzhůru a vzad.", "From a plank, hands shoulder-width, hips up and back."],
     exe: ["Tlač zem od sebe, páteř se dlouží, paty klesají k zemi. Dýchej a zůstaň.", "Push the ground away, the spine lengthens, heels sink toward the floor. Breathe and stay."],
     wat: ["Kolena klidně pokrčená — záda se nekulatí. Hlava volně mezi pažemi.", "Bend the knees freely — the back never rounds. Head loose between the arms."],
     pro: ["Paty blíž k zemi, šlapání na místě, pak pike klik.", "Heels closer to the ground, pedal the feet, then the pike push-up."] },
-  { id: "cobra", cz: "Kobra", en: "Cobra", pat: "mobilita", S: 1, C: 1, pop: 3, eq: ["telo"], mode: "sec", mp: ["low"], ms: ["che", "abs"], dot: [86, 122], ez: null, hd: null,
+  { id: "cobra", cz: "Kobra", en: "Cobra", pat: "mobilita", S: 1, C: 2, J: { pat: 2 }, pop: 3, eq: ["telo"], mode: "sec", mp: ["low"], ms: ["che", "sho", "glu"], dot: [86, 122], ez: null, hd: null,
     foc: ["Záklon se rozkládá do celé páteře, ne do jednoho místa v bedrech.", "The extension spreads through the whole spine, not one spot in the lower back."],
     pos: ["Leh na břiše, dlaně pod rameny, lokty u těla.", "Face down, palms under the shoulders, elbows in."],
     exe: ["Odtlač hrudník od země, boky zůstávají dole. Ramena daleko od uší, dýchej.", "Press the chest away from the ground, hips staying down. Shoulders far from the ears, breathe."],
     wat: ["Žádná bolest v bedrech — pak výš jen na předloktí. Hýždě uvolněné.", "No lower-back pain — otherwise stay lower on the forearms. Glutes relaxed."],
     pro: ["Vyšší záklon s výdechem, pohled vzhůru.", "Higher on the exhale, gaze rising."] },
-  { id: "childpose", cz: "Pozice dítěte", en: "Child's Pose", pat: "mobilita", S: 1, C: 1, pop: 3, eq: ["telo"], mode: "sec", mp: ["low"], ms: ["sho"], dot: [96, 146], ez: null, hd: null,
+  { id: "childpose", cz: "Pozice dítěte", en: "Child's Pose", pat: "mobilita", S: 1, C: 2, J: { pat: 1, kol: 1 }, pop: 3, eq: ["telo"], mode: "sec", mp: ["low"], ms: ["glu", "sho"], dot: [96, 146], ez: null, hd: null,
     foc: ["Boky klesají k patám, paže se dlouží. Zbytek je dech.", "Hips sink to the heels, arms lengthen. The rest is breath."],
     pos: ["Klek, kolena šíř, palce nohou u sebe.", "Kneeling, knees wide, big toes together."],
     exe: ["Polož trup mezi stehna, čelo k zemi, paže natažené vpřed. Zůstaň a dýchej do zad.", "Lay the torso between the thighs, forehead down, arms reaching forward. Stay and breathe into the back."],
@@ -8321,32 +8811,32 @@ const TEX_SEED_7 = [
     wat: ["Propnuté lokty, zpevněný střed. Z pozice se odchází kontrolovaně, ne pádem.", "Locked elbows, braced centre. Leave the position with control, never by falling."],
     pro: ["Delší výdrže, pak přechody mezi levery.", "Longer holds, then transitions between the levers."] },
   // ---------------- TLAK · PLANCHE LINE ----------------
-  { id: "planchelean", cz: "Planche lean", en: "Planche Lean", pat: "tlak", S: 3, C: 5, J: { zap: 3, lok: 2, ram: 2 }, pop: 1, eq: ["telo"], mode: "sec", mp: ["sho", "fore"], ms: ["che", "abs"], dot: [88, 144], ez: "pseudo", hd: "tuckplanche",
+  { id: "planchelean", cz: "Planche lean", en: "Planche Lean", pat: "tlak", S: 3, C: 5, J: { zap: 3, lok: 2, ram: 2 }, pop: 1, eq: ["telo"], mode: "sec", mp: ["sho", "fore"], ms: ["serr", "che", "abs"], dot: [88, 144], ez: "pseudo", hd: "tuckplanche",
     foc: ["Ramena daleko před dlaněmi. Každý centimetr náklonu se počítá.", "Shoulders far past the palms. Every centimetre of lean counts."],
     pos: ["Vzpor, prsty vpřed nebo mírně ven, paže propnuté.", "Straight-arm plank, fingers forward or slightly out, elbows locked."],
     exe: ["Tlač zem pryč a nakláněj ramena vpřed, tělo jedna linie. Drž náklon.", "Push the ground away and lean the shoulders forward, body in one line. Hold the lean."],
     wat: ["Zápěstí rozehřátá vždy. Lopatky roztažené — hrudník nepropadá.", "Wrists always warmed up. Blades spread — the chest never sags."],
     pro: ["Větší náklon, zvednuté nohy, pak tuck planche.", "A deeper lean, feet raised, then the tuck planche."] },
-  { id: "tuckplanche", cz: "Tuck planche", en: "Tuck Planche", pat: "tlak", S: 4, C: 4, J: { zap: 3, lok: 3, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "sec", mp: ["sho", "fore"], ms: ["che", "abs"], dot: [100, 168], ez: "planchelean", hd: "straddleplanche",
+  { id: "tuckplanche", cz: "Tuck planche", en: "Tuck Planche", pat: "tlak", S: 4, C: 4, J: { zap: 3, lok: 3, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "sec", mp: ["sho", "fore"], ms: ["serr", "che", "abs"], dot: [100, 168], ez: "planchelean", hd: "straddleplanche",
     foc: ["Prsty svírají zem. Váha je celá před dlaněmi.", "The fingers grip the ground. All of the weight lives ahead of the palms."],
     pos: ["Dřep, dlaně na zem, ramena naklonit vpřed.", "Squat, palms down, shoulders leaning forward."],
     exe: ["Nohy odlepí zem, kolena u hrudi, boky u ramen. Drž s propnutými pažemi.", "The feet leave the ground, knees at the chest, hips by the shoulders. Hold on locked arms."],
     wat: ["Lokty propnuté — pokrčené jsou jiný cvik. Kulaté horní záda jsou tady správně.", "Elbows locked — bent is a different exercise. A rounded upper back is correct here."],
     pro: ["Otevírej tuck, pak straddle.", "Open the tuck, then the straddle."] },
-  { id: "planche", cz: "Planche", en: "Planche", pat: "tlak", S: 5, C: 5, J: { zap: 3, lok: 3, ram: 3 }, pop: 2, eq: ["telo", "bradla"], mode: "sec", mp: ["sho", "fore"], ms: ["che", "abs", "glu"], dot: [98, 168], ez: "straddleplanche", hd: null,
+  { id: "planche", cz: "Planche", en: "Planche", pat: "tlak", S: 5, C: 5, J: { zap: 3, lok: 3, ram: 3 }, pop: 2, eq: ["telo", "bradla"], mode: "sec", mp: ["sho", "fore"], ms: ["serr", "che", "abs", "glu"], dot: [98, 168], ez: "straddleplanche", hd: null,
     foc: ["Tělo letí vodorovně jen nad dlaněmi. Roky práce v jedné tiché vteřině.", "The body floats horizontal over the palms alone. Years of work in one quiet second."],
     pos: ["Vzpor s náklonem, prsty pevně v zemi.", "Leaning support, fingers rooted in the ground."],
     exe: ["Natáhni tělo do vodorovné linie, nohy propnuté za sebou. Drž.", "Extend the body into a horizontal line, legs locked behind. Hold."],
     wat: ["Bez zvládnutého tucku a straddle sem nevstupuj. Zápěstí a lokty rozhodují o kariéře.", "Don't enter without the tuck and straddle owned. Wrists and elbows decide the career."],
     pro: ["Straddle → full → kliky v planche.", "Straddle → full → planche push-ups."] },
   // ---------------- OBRAT · HANDSTAND SKILL LINE ----------------
-  { id: "freehspu", cz: "Klik ve stoji bez opory", en: "Freestanding HSPU", pat: "obrat", S: 4, C: 4, J: { zap: 3, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "reps", mp: ["sho", "tri"], ms: ["tra", "abs", "fore"], dot: [100, 168], ez: "wallhspu", hd: "hspu90",
+  { id: "freehspu", cz: "Klik ve stoji bez opory", en: "Freestanding HSPU", pat: "tlak", S: 4, C: 4, J: { zap: 3, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "reps", mp: ["sho", "tri"], ms: ["tra", "abs", "fore"], dot: [100, 168], ez: "wallhspu", hd: "hspu90",
     foc: ["Rovnováhu drží prsty i v nejnižším bodě.", "The fingers keep the balance even at the lowest point."],
     pos: ["Volný stoj na rukou, prsty roztažené, tělo jedna linie.", "A free handstand, fingers spread, body in one line."],
     exe: ["Pomalu hlavou k zemi, lokty vpřed. Lehký dotek a silně zpět do propnutí.", "Lower the head slowly, elbows tracking forward. Light touch, press strongly back to lockout."],
     wat: ["Nejdřív vlastni volný stoj na minutu. Ztráta rovnováhy = bezpečný výstup, ne boj.", "Own a minute of free balance first. Losing it means a safe exit, not a fight."],
     pro: ["Hlubší rozsah na bradlech, pak 90° klik.", "Deeper range on parallettes, then the 90-degree push-up."] },
-  { id: "hspu90", cz: "90° klik", en: "90-Degree Push-Up", pat: "obrat", S: 5, C: 5, J: { zap: 3, lok: 2, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "reps", mp: ["sho", "tri"], ms: ["che", "fore", "abs"], dot: [98, 148], ez: "freehspu", hd: null,
+  { id: "hspu90", cz: "90° klik", en: "90-Degree Push-Up", pat: "tlak", S: 5, C: 5, J: { zap: 3, lok: 2, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "reps", mp: ["sho", "tri"], ms: ["che", "fore", "abs"], dot: [98, 148], ez: "freehspu", hd: null,
     foc: ["Ve spodní pozici je tělo vodorovně — planche s pokrčenými lokty.", "At the bottom the body is horizontal — a planche on bent elbows."],
     pos: ["Stoj na rukou, připravený na hluboké spuštění.", "A handstand, ready for the deep lower."],
     exe: ["Spusť se přes 90° v loktech do vodorovna, ramena před dlaně. Tlakem zpět do stoje.", "Lower through ninety degrees into horizontal, shoulders ahead of the palms. Press back up to the handstand."],
@@ -8378,7 +8868,7 @@ const TEX_SEED_7 = [
     wat: ["Rotace = regrese na vyvýšení. Rozsah roste s lety, ne s tréninky.", "Rotation means regress to an incline. Range grows with years, not sessions."],
     pro: ["Z vyvýšení na zem, pak nohy blíž k sobě.", "From incline to floor, then feet closer together."] },
   // ---------------- STŘED & VLAJKA ----------------
-  { id: "vsit", cz: "V-sed", en: "V-Sit", pat: "stred", S: 4, C: 4, J: { pat: 1 }, pop: 1, eq: ["telo", "bradla"], mode: "sec", mp: ["abs"], ms: ["tri", "qua", "sho"], dot: [98, 132], ez: "lsit", hd: null,
+  { id: "vsit", cz: "V-sed", en: "V-Sit", pat: "stred", S: 4, C: 4, J: { pat: 1 }, pop: 1, eq: ["telo", "bradla"], mode: "sec", mp: ["abs", "hipflex"], ms: ["tri", "qua", "sho"], dot: [98, 132], ez: "lsit", hd: null,
     foc: ["Nohy stoupají k obličeji, ramena tlačí do země. Dvě síly proti sobě.", "The legs rise toward the face as the shoulders press down. Two forces against each other."],
     pos: ["L-sed na zemi nebo bradlech, plný rozsah zvládnutý.", "An owned L-sit on the floor or parallettes."],
     exe: ["Zvedej propnuté nohy výš a výš, pánev se podsazuje, trup se zaklání. Drž.", "Raise the locked legs higher and higher, pelvis curling, torso leaning back. Hold."],
@@ -8440,17 +8930,17 @@ const TEX_SEED_8 = [
     wat: ["Žádný švih z boků. Kratší dráha s linií je víc než celá bez ní.", "No hip kick. A shorter path with the line beats a full one without it."],
     pro: ["Zastavení ve vodorovné, pak front lever rows.", "A stop at horizontal, then front-lever rows."] },
   { id: "flrow", cz: "Front lever rows", en: "Front Lever Rows", pat: "tah", S: 4, C: 5, J: { lok: 3, ram: 2 }, pop: 1, eq: ["hrazda", "kruhy"], mode: "reps", mp: ["upb", "abs"], ms: ["bic", "fore"], dot: [100, 74], ez: "flraise", hd: null,
-    foc: ["Přítah v horizontále. Tělo se nesmí ani o stupeň sklopit.", "A row in the horizontal. The body must not tip a single degree."],
+    foc: ["Přitahuj v horizontále a udrž stejnou výšku těla.", "Row in the horizontal and hold the body at the same height."],
     pos: ["Front lever, paže propnuté.", "A front lever, arms straight."],
     exe: ["Přitáhni boky k hrazdě, tělo stále vodorovně. Pomalu zpět do propnutí.", "Pull the hips to the bar, body staying level. Lower slowly to straight arms."],
-    wat: ["Královská řada tahu — bez čistého leveru sem nelez. Tuck a straddle verze první.", "The royal row — don't enter without a clean lever. Tuck and straddle versions first."],
-    pro: ["Plné tělo, víc opakování.", "Full lay, more reps."] },
+    wat: ["Začni ve skrčené nebo roznožené variantě, ve které udržíš polohu bez propadu.", "Start in the tuck or straddle version you can hold without the hips dropping."],
+    pro: ["Prodlužuj páku až potom, co udržíš stejnou výšku v celé sérii.", "Lengthen the lever only once you hold the same height for a whole set."]},
   { id: "pelican", cz: "Pelican curl", en: "Pelican Curl", pat: "tah", S: 3, C: 5, J: { lok: 3, ram: 2 }, pop: 1, eq: ["kruhy"], mode: "reps", mp: ["bic"], ms: ["sho", "che", "abs"], dot: [96, 116], ez: "dbcurl", hd: null,
     foc: ["Biceps pracuje v plném natažení. Vstupuj po centimetrech.", "The biceps works at full length. Enter centimetre by centimetre."],
     pos: ["Vzpor na kruzích pod úhlem, tělo zpevněné, dlaně vpřed.", "Inclined support on the rings, body braced, palms forward."],
     exe: ["Nech paže jet vzad za tělo do natažení bicepsu, pak je stáhni zpět pod ramena.", "Let the arms travel back behind the body into the biceps stretch, then curl them back under the shoulders."],
-    wat: ["Nejchytřejší budování šlach bicepsu — a nejrychlejší zranění, když spěcháš. Malý rozsah, roky trpělivosti.", "The smartest biceps-tendon builder — and the fastest injury when rushed. Small range, patient years."],
-    pro: ["Nižší úhel těla, hlubší rozsah.", "A lower body angle, deeper range."] },
+    wat: ["Začni malým rozsahem a nízkým sklonem těla. Přestaň při bolesti v přední části lokte nebo bicepsu.", "Start with a small range and a shallow body angle. Stop on pain at the front of the elbow or in the biceps."],
+    pro: ["Postupně snižuj úhel těla nebo zvětšuj rozsah. Neměň obojí zároveň.", "Lower the body angle or widen the range, step by step. Never both at once."]},
   { id: "straddlefl", cz: "Straddle front lever", en: "Straddle Front Lever", pat: "tah", S: 5, C: 4, J: { lok: 3, ram: 3 }, pop: 1, eq: ["hrazda", "kruhy"], mode: "sec", mp: ["upb", "abs"], ms: ["fore", "glu", "low"], dot: [118, 74], ez: "tucklever", hd: "frontlever",
     foc: ["Roznožení zkracuje páku. Linie boků zůstává stejná jako u celého leveru.", "The straddle shortens the lever. The hip line stays identical to the full lay."],
     pos: ["Vis nadhmatem, nohy široce roznožené.", "Overhand hang, legs in a wide straddle."],
@@ -8491,7 +8981,7 @@ const TEX_SEED_8B = [
     exe: ["Přenes váhu vpřed a natáhni tělo do vodorovné linie. Drž a dýchej.", "Lean forward and extend the body into a horizontal line. Hold and breathe."],
     wat: ["Hlava neklesá první. Nejdostupnější vodorovný skill — a vypadá jako zázrak.", "The head doesn't drop first. The most reachable horizontal skill — and it looks like magic."],
     pro: ["Na jedné ruce, na bradlech, s roznožením i bez.", "One arm, on parallettes, straddle or full."] },
-  { id: "straddleplanche", cz: "Straddle planche", en: "Straddle Planche", pat: "tlak", S: 5, C: 5, J: { zap: 3, lok: 3, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "sec", mp: ["sho", "fore"], ms: ["che", "abs", "glu"], dot: [98, 168], ez: "tuckplanche", hd: "planche",
+  { id: "straddleplanche", cz: "Straddle planche", en: "Straddle Planche", pat: "tlak", S: 5, C: 5, J: { zap: 3, lok: 3, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "sec", mp: ["sho", "fore"], ms: ["serr", "che", "abs", "glu"], dot: [98, 168], ez: "tuckplanche", hd: "planche",
     foc: ["Roznožení odlehčí páku, náklon zůstává plný.", "The straddle lightens the lever; the lean stays full."],
     pos: ["Tuck planche zvládnutá, prsty pevně v zemi.", "An owned tuck planche, fingers rooted."],
     exe: ["Natáhni nohy do širokého roznožení, tělo vodorovně. Drž.", "Extend the legs into a wide straddle, body horizontal. Hold."],
@@ -8556,7 +9046,7 @@ const TEX_SEED_8C = [
     exe: ["Veď propnuté nohy obloukem doleva a doprava. Pomalu, s kontrolou v krajích.", "Sweep the straight legs left and right. Slow, with control at the edges."],
     wat: ["Rozsah jen tam, kde udržíš ramena klidná. Pokrčené nohy jsou poctivý začátek.", "Range only where the shoulders stay quiet. Bent legs are the honest start."],
     pro: ["Propnuté nohy, širší oblouk, pomaleji.", "Straight legs, a wider arc, slower."] },
-  { id: "compression", cz: "Komprese vsedě", en: "Compression Lifts", pat: "stred", S: 2, C: 2, J: { pat: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["abs", "qua"], ms: [], dot: [126, 152], ez: "legraise", hd: "lsit",
+  { id: "compression", cz: "Komprese vsedě", en: "Compression Lifts", pat: "stred", S: 2, C: 2, J: { pat: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["hipflex", "abs"], ms: ["qua"], dot: [126, 152], ez: "legraise", hd: "lsit",
     foc: ["Zvedáš propnuté nohy nad zem jen silou komprese. Nikdo to nevidí, všechno to nese.", "You lift straight legs off the ground by compression alone. Nobody sees it; it carries everything."],
     pos: ["Sed, nohy propnuté před tebou, dlaně na zemi vedle stehen — nebo bez nich.", "Seated pike, palms beside the thighs — or without them."],
     exe: ["Zvedni paty co nejvýš nad zem s propnutými koleny. Krátce drž, pomalu dolů.", "Raise the heels as high as they go with locked knees. Hold briefly, lower slowly."],
@@ -8593,7 +9083,7 @@ const TEX_SEED_8C = [
     exe: ["Klesej po milimetrech s výdechem, boky drž rovně. Zůstaň a dýchej.", "Sink millimetre by millimetre on the exhale, hips square. Stay and breathe."],
     wat: ["Podložky pod stehno jsou nástroj, ne ostuda. Napřed roky předklonů a výpadů.", "Blocks under the thigh are a tool, not a shame. Years of folds and lunges come first."],
     pro: ["Plný dosed, pak přední pata na vyvýšení.", "Full seat, then the front heel elevated."] },
-  { id: "middlesplit", cz: "Middle split · Rozštěp", en: "Middle Split", pat: "mobilita", S: 1, C: 1, cat: "flex", pop: 2, eq: ["telo"], mode: "sec", mp: ["glu", "ham"], ms: ["low"], dot: [100, 162], ez: "pancake", hd: null,
+  { id: "middlesplit", cz: "Middle split · Rozštěp", en: "Middle Split", pat: "mobilita", S: 1, C: 1, cat: "flex", pop: 2, eq: ["telo"], mode: "sec", mp: ["add"], ms: ["glu", "ham", "low"], dot: [100, 162], ez: "pancake", hd: null,
     foc: ["Pánev se překlápí vpřed, kolena a špičky míří vzhůru.", "The pelvis tips forward; knees and toes point up."],
     pos: ["Široký stoj, ruce na zemi před tebou.", "A wide stance, hands on the ground ahead."],
     exe: ["Rozjížděj nohy do stran s pánví překlopenou vpřed. Dýchej, klesej s výdechy.", "Slide the legs apart with the pelvis tipped forward. Breathe, sinking on the exhales."],
@@ -8634,13 +9124,13 @@ const TEX_SEED_9 = [
     foc: ["Guma ubírá váhu, ne práci. Táhni pořád ty.", "The band takes weight, not effort. You still do the pulling."],
     pos: ["Guma přes hrazdu, koleno nebo chodidlo do smyčky. Vis v plné délce, lopatky uvolněné.", "Band over the bar, knee or foot in the loop. Hang at full length, shoulders relaxed."],
     exe: ["Nejdřív stáhni lopatky dolů. Pak teprve táhni lokty k žebrům. Nahoru bradou nad hrazdu, dolů pomalu do plného visu.", "Pull the shoulder blades down first. Only then draw the elbows to the ribs. Chin over the bar, then lower slowly to a full hang."],
-    wat: ["Neškubej. Guma pomáhá nejvíc dole — právě tam, kde je to nejtěžší, a právě proto ji tam chceš.", "No kipping. The band helps most at the bottom — exactly where it is hardest, which is exactly why it is there."],
-    pro: ["Slabší guma, pak žádná. Tohle je jediná poctivá cesta k prvnímu shybu — ne negativy.", "A lighter band, then none. This is the honest road to a first pull-up — not negatives."] },
+    wat: ["Guma pomáhá nejvíc dole a mění křivku odporu. Drž plný rozsah a neodrážej se.", "The band helps most at the bottom and changes the resistance curve. Keep the full range and do not kip."],
+    pro: ["Postupně použij slabší gumu. Negativní shyby, přítahy a izometrie jsou další rovnocenné kroky podle člověka.", "Move to a lighter band. Negatives, rows and isometrics are equally good next steps, depending on the person."]},
   { id: "banddip", cz: "Dip s gumou", en: "Band-Assisted Dip", pat: "tlak", S: 1, C: 1, J: { lok: 1, ram: 2 }, pop: 2, eq: ["bradla", "guma"], mode: "reps", mp: ["che", "tri"], ms: ["sho", "abs"], dot: [60, 55], ez: "benchdips", hd: "dips", cat: "sila", rec: 2,
     foc: ["Ramena dolů od uší po celou dobu.", "Shoulders down away from the ears, the whole way."],
     pos: ["Guma napříč bradly, kolena do ní. Vzpor s napnutými pažemi, ramena zatlačená dolů.", "Band across the bars, knees into it. Support with straight arms, shoulders pressed down."],
     exe: ["Klesej, dokud rameno není v úrovni lokte. Lokty vzad, ne do stran. Zpět nahoru do plného vzporu.", "Lower until the shoulder is level with the elbow. Elbows back, not out. Press back to a full support."],
-    wat: ["Dip je pro rameno tvrdší než shyb. Nespěchej. Bolest v přední části ramene znamená stop.", "A dip is harder on the shoulder than a pull-up. Do not rush it. Pain in the front of the shoulder means stop."],
+    wat: ["Dip vyžaduje velkou extenzi ramene. Hloubku řiď tak, aby přední část ramene zůstala bez bolesti.", "A dip asks for a lot of shoulder extension. Set the depth so the front of the shoulder stays pain-free."],
     pro: ["Slabší guma, pak volný dip.", "A lighter band, then the free dip."] },
   { id: "eccham", cz: "Excentrický hamstring", en: "Eccentric Hamstring Slider", pat: "ohyb", S: 1, C: 1, pop: 3, eq: ["telo"], mode: "reps", mp: ["ham"], ms: ["glu", "low"], dot: [55, 78], ez: "glutebridge", hd: "nordic", cat: "rehab", rec: 2,
     foc: ["Brzdi. Celý cvik je o tom, co povolíš pomalu.", "Brake. The whole exercise is what you let go of slowly."],
@@ -8655,38 +9145,38 @@ const TEX_SEED_9 = [
     wat: ["Ztratíš-li kontakt v kříži, zašel jsi dál, než ti kyčel dovolí. Tam se nezůstává — tam se vrací.", "Lose the contact at the low back and you went further than your hip allows. You do not stay there — you come back."],
     pro: ["Tohle není silový cvik. Je to předpoklad. Když sedí, jde se na jednonožný mrtvý tah.", "This is not a strength exercise. It is a prerequisite. When it holds, go to the single-leg deadlift."] },
   { id: "revhyper", cz: "Reverzní hyperextenze", en: "Reverse Hyperextension", pat: "ohyb", S: 1, C: 1, pop: 2, eq: ["lavice"], mode: "reps", mp: ["glu", "ham"], ms: ["low"], dot: [55, 82], ez: null, hd: "slbridge", cat: "rehab", rec: 1,
-    foc: ["Zvedej hýžděmi, ne bedry.", "Lift with the glutes, not with the low back."],
+    foc: ["Zvedej hýžděmi a zadní stranou stehen. Rozsah končí v rovině trupu.", "Lift with the glutes and the backs of the thighs. The range ends level with the torso."],
     pos: ["Trup na lavici, boky na hraně, nohy volně dolů. Rukama se drž.", "Torso on the bench, hips at the edge, legs hanging free. Hold on with the hands."],
     exe: ["Zvedni nohy do roviny s trupem. Nahoře krátce stiskni hýždě. Pomalu dolů.", "Raise the legs to the line of the torso. Squeeze the glutes briefly at the top. Lower slowly."],
-    wat: ["Nešvihej. Nad rovinu se nejde — tam už pracují jen bedra.", "No swinging. Do not go above the line — past it only the low back is working."],
-    pro: ["Zadní řetězec s téměř nulovou kompresí páteře. Jediný ohyb, který snese i podrážděná záda.", "The posterior chain with almost no spinal compression. The one hinge a sore back will tolerate."] },
+    wat: ["Nešvihej a nechoď nad rovinu trupu. Při citlivých zádech řiď rozsah a zátěž podle tolerance.", "No swinging, and do not go above the line of the torso. With a sensitive back, set range and load by tolerance."],
+    pro: ["Přidávej rozsah nebo zátěž postupně. Cvik není univerzálně vhodný pro každá podrážděná záda.", "Add range or load gradually. This exercise is not universally right for every irritated back."]},
   { id: "wallpike", cz: "Pike u zdi", en: "Wall Pike Hold", pat: "obrat", S: 2, C: 3, J: { zap: 2, ram: 2 }, pop: 3, eq: ["zed"], mode: "sec", mp: ["sho"], ms: ["tri", "abs", "upb"], dot: [60, 40], ez: null, hd: "crow", cat: "skill", rec: 1,
     foc: ["Zatlač zem od sebe. Ramena až k uším.", "Push the floor away. Shoulders all the way to the ears."],
     pos: ["Chodidla na zdi ve výšce boků, ruce na zemi, boky nad rameny. Tělo do písmene L.", "Feet on the wall at hip height, hands on the floor, hips over the shoulders. The body makes an L."],
     exe: ["Drž. Aktivně tlač rameny nahoru, ne visení v kloubu.", "Hold. Actively push up through the shoulders — do not hang in the joint."],
     wat: ["Zápěstí musí být připravená (viz Příprava zápěstí). Bolí-li, snížíš nohy.", "The wrists must be prepared (see Wrist Prep). If they hurt, lower the feet."],
-    pro: ["Choď chodidly po zdi výš. Tohle je vstupní brána k obratu — dřív nic takového v knihovně nebylo.", "Walk the feet higher up the wall. This is the doorway into inversion — the library had none."] },
+    pro: ["Postupně zvyšuj chodidla a přibližuj boky nad ramena. Pak přejdi ke stoji u zdi.", "Walk the feet higher and bring the hips over the shoulders. Then move to the wall handstand."]},
   { id: "abwheel", cz: "Kolečko z kolen", en: "Ab Wheel from Knees", pat: "stred", S: 3, C: 2, J: { pat: 1 }, pop: 3, eq: ["zavazi"], mode: "reps", mp: ["abs"], ms: ["obl", "low", "sho", "upb"], dot: [50, 65], ez: "hollow", hd: "dragonflag", cat: "core", rec: 2,
     foc: ["Bedra se nesmí prohnout. Ani na centimetr.", "The low back must not arch. Not by a centimetre."],
     pos: ["Klek, kolečko pod rameny. Hýždě stažené, pánev podsazená, žebra dolů.", "Kneel, wheel under the shoulders. Glutes squeezed, pelvis tucked, ribs down."],
     exe: ["Jeď dopředu jen tak daleko, dokud udržíš podsazenou pánev. Tam se zastav a vrať se.", "Roll out only as far as you can keep the pelvis tucked. Stop there and pull back."],
-    wat: ["Rozsah není cíl. Cíl je nepovolit v bedrech. Kdo povolí, netrénuje břicho — trénuje bederní ploténky.", "Range is not the goal. Not giving in at the low back is the goal. Give in and you are not training abs — you are training discs."],
+    wat: ["Jakmile ztratíš kontrolu pánve a beder, zkrať rozsah. Cílem je udržet trup bez nekontrolovaného prohnutí.", "The moment you lose control of the pelvis and low back, shorten the roll. The aim is a trunk that does not arch out of control."],
     pro: ["Prodlužuj dráhu. Pak kolečko ze stoje.", "Lengthen the roll. Then the wheel from standing."] },
   { id: "suitcase", cz: "Kufrová chůze", en: "Suitcase Carry", pat: "stred", S: 2, C: 1, J: { pat: 1 }, pop: 2, eq: ["zavazi"], mode: "sec", mp: ["obl"], ms: ["abs", "tra", "fore", "glu"], dot: [50, 60], ez: null, hd: "farmer", cat: "core", rec: 1,
     foc: ["Nenech se naklonit. Ramena zůstanou v rovině.", "Do not let it tip you. The shoulders stay level."],
     pos: ["Jedna těžká činka v jedné ruce. Stůj vysoko, druhá ruka volně.", "One heavy weight in one hand. Stand tall, the other hand free."],
     exe: ["Choď pomalu a rovně. Odolávej tahu do strany. Vyměň ruce.", "Walk slowly and straight. Resist the pull sideways. Swap hands."],
     wat: ["Chůze je vedlejší. Práce je v tom, co se nestane.", "The walking is incidental. The work is in what does not happen."],
-    pro: ["Těžší nebo dál. Anti-laterální flexe — jediný nosič, který v knihovně chyběl.", "Heavier or further. Anti-lateral flexion — the one carry the library lacked."] },
+    pro: ["Přidávej zátěž nebo vzdálenost, dokud udržíš ramena i pánev v rovině.", "Add load or distance for as long as the shoulders and pelvis stay level."]},
 
   // ---------------- categories the library simply did not have ----------------
-  { id: "neckiso", cz: "Krční izometrie", en: "Neck Isometrics", pat: "krk", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "sec", mp: ["tra"], ms: [], dot: [60, 20], ez: null, hd: "neckcars", cat: "neck", rec: 1,
+  { id: "neckiso", cz: "Krční izometrie", en: "Neck Isometrics", pat: "krk", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "sec", mp: ["neck"], ms: [], dot: [60, 20], ez: null, hd: "neckcars", cat: "neck", rec: 1,
     foc: ["Tlač proti ruce a nehni se. Nic se nesmí pohnout.", "Press into the hand and do not move. Nothing may move."],
     pos: ["Dlaň na čelo, pak na spánek, pak na zátylek. Krk v neutrále.", "Palm to the forehead, then the temple, then the back of the head. Neck neutral."],
     exe: ["Tlač hlavou do dlaně asi na 30 % síly, 10 s. Čtyři směry.", "Press the head into the palm at about 30 % effort, 10 s. Four directions."],
-    wat: ["Nikdy naplno. Krk se buduje mírnou zátěží, dlouho.", "Never at full effort. A neck is built with mild loads, over a long time."],
-    pro: ["Delší výdrž, pak větší tlak. Kdo míří ke stoji na rukou a mostu, tohle nemůže vynechat.", "Longer holds, then more pressure. Anyone heading for a handstand or a bridge cannot skip this."] },
-  { id: "neckcars", cz: "Krční CARs", en: "Neck CARs", pat: "krk", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "reps", mp: ["tra"], ms: [], dot: [60, 20], ez: "neckiso", hd: null, cat: "neck", rec: 1,
+    wat: ["Tlač lehce a plynule. Přestaň při závrati, vystřelující bolesti, brnění nebo zhoršení příznaků.", "Press lightly and smoothly. Stop on dizziness, shooting pain, numbness or anything getting worse."],
+    pro: ["Přidávej čas nebo tlak postupně. Pro stoj na rukou ani most není tento cvik povinný.", "Add time or pressure gradually. Neither the handstand nor the bridge requires this exercise."]},
+  { id: "neckcars", cz: "Krční CARs", en: "Neck CARs", pat: "krk", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "reps", mp: ["neck"], ms: [], dot: [60, 20], ez: "neckiso", hd: null, cat: "neck", rec: 1,
     foc: ["Nejpomalejší kruh, jaký umíš.", "The slowest circle you can make."],
     pos: ["Sed nebo stoj, ramena dole a zafixovaná.", "Seated or standing, shoulders down and locked."],
     exe: ["Veď bradu co nejpomaleji celým možným kruhem. Jeden kruh trvá 20–30 vteřin.", "Take the chin through the largest circle you own, as slowly as possible. One circle takes 20–30 seconds."],
@@ -8720,38 +9210,38 @@ const TEX_SEED_9 = [
     foc: ["Tři vteřiny dolů. Tři nahoru. Pomalost je ta zátěž.", "Three seconds down. Three up. The slowness IS the load."],
     pos: ["Předloktí opřené o stehno, zápěstí přes koleno, lehká činka.", "Forearm on the thigh, wrist past the knee, a light weight."],
     exe: ["Pomalu spouštěj a zvedej. Dlaní nahoru (flexe), pak dlaní dolů (extenze).", "Lower and lift slowly. Palm up (flexion), then palm down (extension)."],
-    wat: ["Lehce a dlouho. Šlacha adaptuje 8–12 týdnů, sval 2–3. Tohle je pojistka proti tomu rozdílu.", "Light and long. Tendon adapts in 8–12 weeks, muscle in 2–3. This is the insurance against that gap."],
-    pro: ["Přímá prevence golfového lokte — nejčastějšího zranění v kalistenice.", "Direct prevention of golfer's elbow — the most common injury in calisthenics."] },
+    wat: ["Lehce a dlouho. Zápěstí i loket se přizpůsobují pomaleji než sval, takže se přidává po malých krocích.", "Light and long. The wrist and the elbow adapt more slowly than muscle, so it goes up in small steps."],
+    pro: ["Přidávej zátěž pomalu a sleduj toleranci zápěstí a lokte. Je to jedna z možností přípravy předloktí, ne záruka prevence.", "Add load slowly and watch what the wrist and elbow tolerate. It is one way to prepare the forearm, not a guarantee against injury."]},
   { id: "slbalance", cz: "Stoj na jedné noze", en: "Single-Leg Stand", pat: "drep", S: 1, C: 3, pop: 2, eq: ["telo"], mode: "sec", mp: ["glu"], ms: ["qua", "cal", "abs"], dot: [40, 95], ez: null, hd: "boxpistol", cat: "bal", rec: 1,
     foc: ["Chodidlo se drží země třemi body. Klid začíná tam.", "The foot grips the ground at three points. Stillness begins there."],
     pos: ["Stoj na jedné noze, druhá volně. Ruce podél těla.", "Stand on one leg, the other free. Arms at the sides."],
     exe: ["Drž 30–60 s. Pak zavři oči.", "Hold 30–60 s. Then close the eyes."],
     wat: ["Kolébání není chyba. Ztráta rovnováhy taky ne. Chyba je zadržet dech.", "Wobbling is not a fault. Losing it is not a fault. Holding your breath is."],
     pro: ["Zavřené oči, pak nerovný povrch. Vstup do pistolu.", "Eyes closed, then an uneven surface. The doorway to the pistol."] },
-  { id: "extrot", cz: "Vnější rotace s gumou", en: "Band External Rotation", pat: "tah", S: 1, C: 1, pop: 3, eq: ["guma"], mode: "reps", mp: ["sho"], ms: ["upb", "tra"], dot: [60, 35], ez: null, hd: "facepull", cat: "rehab", rec: 1,
+  { id: "extrot", cz: "Vnější rotace s gumou", en: "Band External Rotation", pat: "tah", S: 1, C: 1, pop: 3, eq: ["guma"], mode: "reps", mp: ["rcuff"], ms: ["sho", "upb", "tra"], dot: [60, 35], ez: null, hd: "facepull", cat: "rehab", rec: 1,
     foc: ["Loket zůstává u těla. Otáčí se předloktí, ne rameno.", "The elbow stays at the ribs. The forearm rotates, not the shoulder."],
     pos: ["Loket u těla v pravém úhlu, ručník pod loktem. Guma vodorovně.", "Elbow at the ribs at ninety degrees, a towel under it. The band horizontal."],
     exe: ["Otoč předloktí ven, pomalu zpět. 3 s ven, 3 s zpět.", "Rotate the forearm outward, return slowly. 3 s out, 3 s back."],
     wat: ["Lehká guma. Tohle není silový cvik.", "A light band. This is not a strength exercise."],
-    pro: ["Rameno je čep celého horního těla. Knihovna neměla jediný cvik přímo na rotátorovou manžetu.", "The shoulder is the lynchpin of the whole upper body. The library had not one exercise for the cuff."] },
-  { id: "ytw", cz: "Y-T-W na břiše", en: "Prone Y-T-W", pat: "tah", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "reps", mp: ["upb", "tra"], ms: ["sho", "low"], dot: [58, 45], ez: null, hd: "extrot", cat: "rehab", rec: 1,
+    pro: ["Přidávej odpor bez ztráty polohy lokte a lopatky. Použij jako cílenou práci zevních rotátorů.", "Add resistance without losing the position of the elbow and the shoulder blade. Use it as focused work for the external rotators."]},
+  { id: "ytw", cz: "Y-T-W na břiše", en: "Prone Y-T-W", pat: "tah", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "reps", mp: ["upb", "tra"], ms: ["rcuff", "sho", "low"], dot: [58, 45], ez: null, hd: "extrot", cat: "rehab", rec: 1,
     foc: ["Lopatky dělají práci. Ruce jsou jen ukazatel.", "The shoulder blades do the work. The hands only point."],
     pos: ["Leh na břiše, čelo na zemi.", "Lie face down, forehead on the floor."],
     exe: ["Zvedni paže do Y, pak do T, pak do W. V každé poloze 2 s výdrž.", "Lift the arms into a Y, then a T, then a W. Two seconds in each."],
     wat: ["Nezaklánět krk. Zvedají se jen paže.", "Do not crane the neck. Only the arms lift."],
-    pro: ["S malým závažím. Spodní trapéz, který u kalisteniků skoro vždy chybí.", "With a small weight. The lower traps, which almost every calisthenics athlete is missing."] },
+    pro: ["Začni bez zátěže. Přidej lehké závaží jen tehdy, když lopatky zůstávají pod kontrolou.", "Start with no weight. Add a light one only once the shoulder blades stay under control."]},
   { id: "ecccalf", cz: "Excentrický výpon", en: "Eccentric Calf Raise", pat: "drep", S: 1, C: 1, pop: 2, eq: ["lavice"], mode: "reps", mp: ["cal"], ms: [], dot: [40, 108], ez: "calfraise", hd: null, cat: "rehab", rec: 1,
     foc: ["Nahoru obě, dolů jedna. Pomalu.", "Up on two, down on one. Slowly."],
     pos: ["Špičky na hraně schodu, paty volně.", "Toes on the edge of a step, heels free."],
     exe: ["Vystup na obou. Přenes na jednu a klesej 3–5 s do plného protažení.", "Rise on both. Shift to one and lower for 3–5 s into a full stretch."],
     wat: ["Práce je jen ta cesta dolů.", "The work is only the way down."],
-    pro: ["Excentrika, ne strečink — evidence je v tomhle jednoznačná.", "Eccentric loading, not stretching — the evidence here is not ambiguous."] },
+    pro: ["Zvyšuj zátěž podle tolerance. Pomalý výpon je jedna z účinných forem progresivního zatížení, ne jediná.", "Raise the load by tolerance. A slow calf raise is one effective form of progressive loading, not the only one."]},
   { id: "sled", cz: "Chůze pozadu / sáně", en: "Backward Walk / Sled", pat: "prenos", S: 2, C: 1, J: { kot: 1 }, pop: 2, eq: ["prostor"], mode: "sec", mp: ["qua"], ms: ["cal", "glu"], dot: [40, 100], ez: null, hd: "sprint", cat: "kond", rec: 1,
-    foc: ["Skoro žádná excentrika. Proto skoro žádná bolavost. Proto lze denně.", "Almost no eccentric. So almost no soreness. So it can be done daily."],
+    foc: ["Malá excentrická složka, a proto obvykle malá bolavost. Snese se častěji než klasický dřep.", "A small eccentric component, so usually little soreness. It tolerates more frequency than an ordinary squat."],
     pos: ["Sáně se zátěží, nebo pás pozadu, nebo prostě chůze pozadu do kopce.", "A loaded sled, a treadmill in reverse, or simply walking backwards uphill."],
     exe: ["Jdi pozadu krátkými kroky, koleno se ohýbá. 3–5 minut.", "Walk backwards in short steps, letting the knee bend. Three to five minutes."],
-    wat: ["Nemá-li se koleno hojit, tohle je jediný cvik, který ho posílí bez toho, aby ho drtil.", "If a knee is not healing, this is the one exercise that will strengthen it without pounding it."],
-    pro: ["Delší nebo těžší. Jediný pilíř KOT, který knihovna neměla.", "Longer or heavier. The one KOT pillar the library was missing."] },
+    wat: ["Koleno drž ve směru špičky a dávku uprav podle tolerance. Bolest není signál k přetlačení.", "Keep the knee tracking the toes and set the dose by tolerance. Pain is not a signal to push through."],
+    pro: ["Přidávej vzdálenost nebo odpor. Chůze pozadu a sáně jsou jedna z možností zatížení nohou s malou excentrickou složkou.", "Add distance or resistance. Backwards walking and the sled are one way to load the legs with little eccentric work."]},
   { id: "zone2", cz: "Klidná vytrvalost", en: "Easy Endurance", pat: "prenos", S: 1, C: 1, pop: 3, eq: ["prostor"], mode: "sec", mp: [], ms: ["qua", "cal", "ham"], dot: [50, 100], ez: null, hd: "sprint", cat: "kond", rec: 1,
     foc: ["Tempo, ve kterém ještě udržíš větu. Když ne, jdeš moc rychle.", "The pace at which you can still hold a sentence. If you cannot, you are going too fast."],
     pos: ["Chůze, klus, kolo, plavání. Na tom nezáleží.", "Walking, jogging, cycling, swimming. It does not matter which."],
@@ -8763,13 +9253,13 @@ const TEX_SEED_9 = [
     pos: ["Kruhy těsně nad zemí, tělo v prkně.", "Rings just above the floor, body in a plank."],
     exe: ["Klik. Nahoře otoč kruhy palci ven.", "A push-up. At the top, turn the rings so the thumbs face out."],
     wat: ["Tělo zůstává prkno. Boky se nepropadají.", "The body stays a plank. The hips do not sag."],
-    pro: ["Nohy výš, pak pseudo planche klik. Nestabilita, která mezi klikem a planche chyběla.", "Feet higher, then the pseudo planche push-up. The instability that was missing between the push-up and the planche."] },
+    pro: ["Zvedni nohy nebo sniž kruhy. K planche progresím přejdi přes cílený náklon a pseudo planche kliky.", "Raise the feet or lower the rings. Go on to planche work through a deliberate lean and pseudo planche push-ups."]},
   { id: "ropeclimb", cz: "Šplh", en: "Rope Climb", pat: "tah", S: 3, C: 3, J: { lok: 2 }, pop: 2, eq: ["hrazda"], mode: "reps", mp: ["upb", "bic", "fore"], ms: ["abs", "tra"], dot: [62, 40], ez: "pullup", hd: "oap", cat: "sila", rec: 2,
     foc: ["Nohy nesou půlku váhy. Kdo šplhá jen rukama, došplhá dvakrát.", "The legs carry half the weight. Climb with the arms alone and you will climb twice."],
     pos: ["Lano mezi chodidly, kolena vysoko.", "The rope between the feet, knees high."],
     exe: ["Sáhni výš, přitáhni kolena, sevři lano nohama, natáhni se. Opakuj.", "Reach high, draw the knees up, clamp the rope with the feet, stand up on it. Repeat."],
-    wat: ["Dolů se šplhá, neskáče. Většina zranění je při sestupu.", "You climb down, you do not drop. Most injuries happen on the way down."],
-    pro: ["Bez nohou, pak jednoruční přítahy. Kánonický cvik, který v knihovně chyběl.", "No legs, then one-arm work. A canonical exercise the library did not have."] },
+    wat: ["Sestupuj kontrolovaně a neskákej. Uprav výšku a jištění podle prostoru.", "Come down under control, do not drop. Set the height and the safety to the space you have."],
+    pro: ["Bez nohou, pak jednoruční přítahy. Výšku a počet výstupů zvyšuj postupně.", "No legs, then one-arm work. Build the height and the number of climbs gradually."]},
 ];
 
 // ---- Jaguar's power · the first seeded series, rewritten in the brand voice ----
@@ -8934,13 +9424,13 @@ const TEX_SEED_SM = [
     exe: ["Nakloň hlavu vpřed, klesni šikmo dolů a šikmo vytlač zpět. Ne rovně nahoru a dolů.", "Lean the head forward, lower diagonally and press diagonally back. Not straight up and down."],
     wat: ["Protrakce a deprese. Vyhni se stoji zády ke zdi, drží tě v retrakci.", "Protraction and depression. Avoid back-to-wall, it locks you in retraction."],
     pro: ["Ubírej oporu zdi. Pak klik bez opory.", "Take the wall away. Then the freestanding push-up."] },
-  { id: "hspuhold", cz: "Spodní výdrž kliku ve stoji", en: "HSPU Bottom Hold", pat: "obrat", S: 3, C: 4, J: { zap: 3, ram: 3 }, pop: 1, eq: ["telo", "zed"], mode: "sec", mp: ["sho", "tri"], ms: ["tra", "abs"], dot: [100, 168], ez: "wallhspu", hd: "freehspu",
+  { id: "hspuhold", cz: "Spodní výdrž kliku ve stoji", en: "HSPU Bottom Hold", pat: "tlak", S: 3, C: 4, J: { zap: 3, ram: 3 }, pop: 1, eq: ["telo", "zed"], mode: "sec", mp: ["sho", "tri"], ms: ["tra", "abs"], dot: [100, 168], ez: "wallhspu", hd: "freehspu",
     foc: ["Drž spodní pozici. Odsud se tlačí.", "Hold the bottom. This is where the press begins."],
     pos: ["Spodní pozice kliku ve stoji, hlava lehce vpřed před dlaněmi.", "The bottom of the handstand push-up, head just forward of the hands."],
     exe: ["Drž stabilně. Uč tělo cítit oporu, ze které pak vystřelíš.", "Hold it steady. Teach the body the base it will fire from."],
     wat: ["Nepadej na hlavu. Ramena protrakce, prsty pracují.", "Don't collapse onto the head. Shoulders protracted, fingers working."],
     pro: ["Spoj s negativy. Pak celý klik ve stoji.", "Pair with negatives. Then the full handstand push-up."] },
-  { id: "hspuneg", cz: "Negativní klik ve stoji", en: "HSPU Negative", pat: "obrat", S: 3, C: 4, J: { zap: 3, ram: 3 }, pop: 1, eq: ["telo", "zed"], mode: "reps", mp: ["sho", "tri"], ms: ["tra", "abs", "fore"], dot: [100, 168], ez: "wallhspu", hd: "freehspu",
+  { id: "hspuneg", cz: "Negativní klik ve stoji", en: "HSPU Negative", pat: "tlak", S: 3, C: 4, J: { zap: 3, ram: 3 }, pop: 1, eq: ["telo", "zed"], mode: "reps", mp: ["sho", "tri"], ms: ["tra", "abs", "fore"], dot: [100, 168], ez: "wallhspu", hd: "freehspu",
     foc: ["Pomalu dolů. Hlava vpřed, předloktí svisle.", "Slowly down. Head forward, forearms vertical."],
     pos: ["Stoj na rukou. Prsty zatíž, pohled mezi dlaně.", "A handstand. Weight in the fingers, eyes between the hands."],
     exe: ["Nakloň hlavu vpřed a klesej co nejpomaleji do spodní pozice. Trojnožka hlava a ruce.", "Lean the head forward and lower as slowly as possible to the bottom. A tripod of head and hands."],
@@ -8993,21 +9483,21 @@ const TEX_SEED_SM = [
     foc: ["Přidej zátěž ke shybu. Základ tahové síly pro front lever.", "Add load to the pull-up. The base of pulling strength for the front lever."],
     pos: ["Zátěž na opasku nebo mezi chodidly, nadhmat.", "Weight on a belt or between the feet, overhand grip."],
     exe: ["Plný rozsah, brada nad tyč, kontrolovaně dolů do zamčení paží.", "Full range, chin over the bar, lower under control to locked arms."],
-    wat: ["Žádné kmihání. Plný sešik dole.", "No kipping. Full lockout at the bottom."],
-    pro: ["Kolem 80 % váhy navíc otevírá front lever. Pak jednoruké tahy.", "Around 80% bodyweight added opens the front lever. Then one-arm work."] },
+    wat: ["Bez kmihu. Dole kontrolovaně dopni lokty a znovu nastav lopatky.", "No kipping. At the bottom, extend the elbows under control and set the shoulder blades again."],
+    pro: ["Silnější shyb se zátěží může zvýšit tahovou rezervu pro front lever. Přenos ale závisí i na práci lopatek a síle s nataženými pažemi.", "A stronger weighted pull-up can raise the pulling reserve for the front lever. The transfer also depends on scapular work and straight-arm strength."]},
   // -------- invert · handstand / one-arm handstand line --------
   { id: "ctwhs", cz: "Stoj na rukou čelem ke zdi", en: "Chest-to-Wall Handstand", pat: "obrat", S: 2, C: 4, J: { zap: 3, ram: 2 }, pop: 1, eq: ["zed"], mode: "sec", mp: ["sho"], ms: ["tra", "abs", "fore"], dot: [58, 106], ez: "wallhs", hd: "handstand",
-    foc: ["Čelem ke zdi. Tělo se nemůže prohnout do banánu.", "Facing the wall. The body cannot arch into a banana."],
+    foc: ["Zeď omezuje přepad a usnadňuje kontrolu rovné linie.", "The wall limits the fall forward and makes a straight line easier to control."],
     pos: ["Vyjdi po zdi čelem nahoru, ruce blízko zdi, pohled mezi dlaně.", "Walk up the wall facing it, hands close to the wall, eyes between the hands."],
-    exe: ["Sundej jednu nohu, pak druhou. Tlač do země, ramena od uší.", "Take one leg off, then the other. Push into the ground, shoulders away from the ears."],
-    wat: ["Rovná linie, žádný prohnutý spodek. Pro pád se otoč stranou.", "A straight line, no arched lower back. To bail, turn to the side."],
+    exe: ["Sundej jednu nohu, pak druhou. Tlač zem od sebe a ramena aktivně vytahuj k uším.", "Take one leg off, then the other. Push the floor away and actively reach the shoulders toward the ears."],
+    wat: ["Žebra drž nad pánví a připrav si bezpečný výstup stranou. Prohnutí se může objevit i čelem ke zdi, proto ho aktivně kontroluj.", "Keep the ribs over the pelvis and have a safe way out to the side. An arch can appear facing the wall too, so control it actively."],
     pro: ["Krátké odlepení od zdi, pak volný stoj.", "Brief moments off the wall, then the freestanding hold."] },
   { id: "bail", cz: "Nácvik pádu ze stoje", en: "Handstand Bail", pat: "obrat", S: 1, C: 3, J: { zap: 2, ram: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["sho"], ms: ["obl", "abs"], dot: [58, 106], ez: null, hd: "handstand",
-    foc: ["Nauč se bezpečně spadnout. Bez strachu přijde stoj.", "Learn to fall safely. Without fear the handstand comes."],
-    pos: ["Nakopni se do stoje naplno, přebalancuj naschvál.", "Kick up hard on purpose and overbalance."],
-    exe: ["Otoč se k dominantní straně, jedna ruka pustí, nohy dopadnou vedle. Kopni, otoč, dopadni.", "Turn to the dominant side, one hand releases, the feet land beside you. Kick, twist, land."],
-    wat: ["Nepadej dopředu na obě ruce do kotoulu. Jen se otoč stranou.", "Don't fall forward onto both hands into a roll. Just turn to the side."],
-    pro: ["Pár pádů před nájezdy. Pak volný stoj bez strachu.", "A few bails before your attempts. Then the freestanding hold without fear."] },
+    foc: ["Nauč se ze stoje bezpečně vystoupit do strany.", "Learn to step safely out of a handstand, sideways."],
+    pos: ["Začni z nízkého kontrolovaného nájezdu na volné ploše, ideálně u zdi nebo s dohledem.", "Start from a low, controlled kick-up in clear space, ideally at a wall or with someone watching."],
+    exe: ["Přenes váhu na jednu ruku, druhou uvolni a vykroč nohama do strany jako z měkkého přemetu.", "Shift the weight onto one hand, release the other, and step the legs out to the side as if out of a soft cartwheel."],
+    wat: ["Neuč se pádem přes hlavu. Prostor musí být bez překážek a první pokusy patří na měkký povrch.", "Do not learn this by falling over the head. The space must be clear, and the first attempts belong on something soft."],
+    pro: ["Postupně zvyšuj výšku nájezdu, až stejný výstup použiješ z plného stoje.", "Raise the kick-up gradually until the same exit works from a full handstand."]},
   { id: "hsshift", cz: "Přenos váhy ve stoji", en: "Handstand Shift Drill", pat: "obrat", S: 3, C: 5, J: { zap: 3, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "sec", mp: ["sho", "fore"], ms: ["tra", "abs", "obl"], dot: [100, 168], ez: "handstand", hd: "fingerhs",
     foc: ["Přenášej váhu na jednu ruku. Druhá se odlehčí sama.", "Shift the weight onto one hand. The other lightens on its own."],
     pos: ["Stabilní stoj na rukou, ideálně na parallettes, ramena zabalená.", "A steady handstand, ideally on parallettes, shoulders packed."],
@@ -9033,7 +9523,7 @@ const TEX_SEED_SM = [
     exe: ["Drž. Serratus dělá stejnou práci jako v plné planche, ale rameno má míň páky. Nástroj na protrakci.", "Hold. The serratus does the same work as a full planche, but the shoulder has less leverage. A protraction tool."],
     wat: ["Nepouštěj protrakci. Lokty stabilní na 90°.", "Don't lose protraction. Elbows steady at 90°."],
     pro: ["Narovnej paže. Pak plná planche.", "Straighten the arms. Then the full planche."] },
-  { id: "hspu90neg", cz: "Negativní 90° klik", en: "90-Degree HSPU Negative", pat: "obrat", S: 5, C: 5, J: { zap: 3, lok: 2, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "reps", mp: ["sho", "tri"], ms: ["che", "fore", "abs"], dot: [98, 148], ez: "hspuneg", hd: "hspu90",
+  { id: "hspu90neg", cz: "Negativní 90° klik", en: "90-Degree HSPU Negative", pat: "tlak", S: 5, C: 5, J: { zap: 3, lok: 2, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "reps", mp: ["sho", "tri"], ms: ["che", "fore", "abs"], dot: [98, 148], ez: "hspuneg", hd: "hspu90",
     foc: ["Pomalu do 90°. Uč protrakci pod velkou zátěží.", "Slowly into 90°. Teach protraction under a heavy load."],
     pos: ["Stoj na rukou, tělo natažené, náklon vpřed.", "A handstand, body extended, leaning forward."],
     exe: ["Klesej k vodorovným pažím co nejpomaleji, tělo natažené. Drž protrakci.", "Lower toward horizontal arms as slowly as possible, body extended. Hold protraction."],
@@ -9064,11 +9554,11 @@ const TEX_SEED_SM = [
     wat: ["Paže zůstávají natažené. Cítíš zapojení širokého svalu zádového.", "Arms stay straight. Feel the lats engage."],
     pro: ["Vezmi ten pocit do front lever sérií.", "Take that feeling into your front lever sets."] },
   { id: "bosuoahs", cz: "Jednoruká na bosu", en: "One-Arm Handstand on BOSU", pat: "obrat", S: 4, C: 5, J: { zap: 3, ram: 3 }, pop: 1, eq: ["telo"], mode: "sec", mp: ["sho", "fore"], ms: ["tra", "abs", "obl"], dot: [100, 168], ez: "fingerhs", hd: "onearmhs",
-    foc: ["Jednoruká na bosu. Povrch tě navede do bodu rovnováhy.", "One-arm on a BOSU. The surface guides you into the balance point."],
+    foc: ["Nestabilní povrch je specifický balanční drill, ne automatická cesta k jednoruké na zemi.", "An unstable surface is a specific balance drill, not an automatic road to the one-arm on the floor."],
     pos: ["Stoj na rukou na bosu, přenes váhu, druhá ruka se odlehčí.", "A handstand on the BOSU, shift the weight, the other hand lightens."],
-    exe: ["Pusť druhou ruku. Zápěstí volné, rameno drží rovnováhu za tebe.", "Release the other hand. Wrist loose, the shoulder balances for you."],
-    wat: ["Nauč se důvěřovat tělu. Bosu dělá jemné korekce místo tebe.", "Learn to trust the body. The BOSU makes the fine corrections for you."],
-    pro: ["Přejdi na parallettes a zem. Pak plná jednoruká.", "Move to parallettes and the floor. Then the full one-arm."] },
+    exe: ["Použij jen jako experimentální doplněk pod dohledem. Hlavní progresi jednoruké stav na stabilním povrchu.", "Use it only as an experimental extra, supervised. Build the main one-arm progression on a stable surface."],
+    wat: ["BOSU mění úkol i korekce. Nepředpokládej přímý přenos na zem nebo bradla.", "A BOSU changes both the task and the corrections. Do not assume it transfers straight to the floor or the bars."],
+    pro: ["Pokračuj přenosem váhy, fingertip drilly a výdržemi na stabilním povrchu.", "Carry on with weight shifts, fingertip drills and holds on a stable surface."]},
   { id: "oafl", cz: "Jednoruký front lever", en: "One-Arm Front Lever", pat: "tah", S: 5, C: 5, J: { lok: 3, ram: 3 }, pop: 1, eq: ["hrazda", "kruhy"], mode: "sec", mp: ["upb", "abs"], ms: ["fore", "obl", "low"], dot: [120, 73], ez: "frontlever", hd: null,
     foc: ["Front lever na jedné ruce. Elitní meta tahu.", "A front lever on one arm. The elite peak of pulling."],
     pos: ["Plný front lever, pak postupně odlehčuj jednu ruku.", "A full front lever, then gradually unload one arm."],
@@ -9121,19 +9611,19 @@ const TEX_SEED_CM = [
     exe: ["Zvedni koleno vpřed, veď ho ven do strany, dozadu a dolů — plný kruh. Pak opačně.", "Lift the knee forward, take it out to the side, back and down — a full circle. Then reverse."],
     wat: ["Hýbe se jen kyčel, trup se nekymácí. Aktivní kontrola, ne švih.", "Only the hip moves, the trunk doesn't sway. Active control, not momentum."],
     pro: ["Větší rozsah, pomalejší tempo.", "Bigger range, slower tempo."] },
-  { id: "frog", cz: "Žabák", en: "Frog Stretch", pat: "mobilita", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "sec", mp: ["glu"], ms: ["ham", "low"], dot: [47, 72], ez: null, hd: "middlesplit",
+  { id: "frog", cz: "Žabák", en: "Frog Stretch", pat: "mobilita", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "sec", mp: ["add"], ms: ["glu", "ham", "low"], dot: [47, 72], ez: null, hd: "middlesplit",
     foc: ["Otevírá se vnitřní strana stehen a kyčle.", "The inner thighs and hips open."],
     pos: ["Klek na čtyřech, kolena široko, holeně v ose, kotníky za koleny.", "On all fours, knees wide, shins in line, ankles behind the knees."],
     exe: ["Přenes pánev pomalu vzad k patám a zpět. Dýchej do tahu.", "Shift the pelvis slowly back toward the heels and forward. Breathe into the stretch."],
     wat: ["Bez bolesti v kolenou. Bedra dlouhá, nekulať.", "No knee pain. Long lower back, don't round."],
     pro: ["Kolena širš, delší výdrž vzadu.", "Knees wider, longer hold at the back."] },
-  { id: "butterfly", cz: "Motýl", en: "Butterfly", pat: "mobilita", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "sec", mp: ["glu"], ms: ["ham"], dot: [47, 72], ez: null, hd: "frog",
+  { id: "butterfly", cz: "Motýl", en: "Butterfly", pat: "mobilita", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "sec", mp: ["add"], ms: ["glu", "ham"], dot: [47, 72], ez: null, hd: "frog",
     foc: ["Kolena klesají tíhou, ne tlakem.", "The knees drop by gravity, not by pushing."],
     pos: ["Sed, chodidla u sebe, paty blíž k tělu. Záda dlouhá.", "Seated, soles together, heels close to the body. Long spine."],
     exe: ["Sedni vzpřímeně, kolena nech klesat k zemi, lokty mohou jemně vést. Dýchej.", "Sit tall, let the knees fall toward the floor, elbows may gently guide. Breathe."],
     wat: ["Nehrb se přes chodidla. Tah v tříslech, ne v kolenou.", "Don't hunch over the feet. Stretch in the groin, not the knees."],
     pro: ["Paty blíž, mírný předklon s dlouhými zády.", "Heels closer, a slight forward fold with a long spine."] },
-  { id: "toetouch", cz: "Předklon ve stoji", en: "Standing Forward Fold", pat: "mobilita", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "sec", mp: ["ham"], ms: ["low", "cal"], dot: [40, 80], ez: null, hd: "jefferson",
+  { id: "toetouch", cz: "Předklon ve stoji", en: "Standing Forward Fold", pat: "mobilita", S: 1, C: 2, J: { pat: 2 }, pop: 2, eq: ["telo"], mode: "sec", mp: ["ham"], ms: ["low", "cal"], dot: [40, 80], ez: null, hd: "jefferson",
     foc: ["Pohyb vede kyčel, ne kulacení zad.", "The hip leads the movement, not a rounding back."],
     pos: ["Stoj spojný, kolena měkká.", "Feet together, knees soft."],
     exe: ["Boky vzad, trup klesá s dlouhými zády. Pověs se, dýchej, pak pomalu nahoru obratel po obratli.", "Hips back, torso lowers with a long spine. Hang, breathe, then rise slowly vertebra by vertebra."],
@@ -9217,7 +9707,7 @@ const TEX_SEED_CM = [
     exe: ["Zvedni skrčená kolena k hrudi a drž, boky pod rameny.", "Lift the tucked knees to the chest and hold, hips under the shoulders."],
     wat: ["Ramena dole od uší. Dech běží.", "Shoulders down from the ears. Keep breathing."],
     pro: ["Natahuj nohy k plnému L-sit.", "Extend the legs toward the full L-sit."] },
-  { id: "hlr", cz: "Zvedání nohou ve visu", en: "Hanging Leg Raise", pat: "stred", S: 3, C: 2, J: { ram: 1 }, pop: 2, eq: ["hrazda"], mode: "reps", mp: ["abs"], ms: ["obl", "fore"], dot: [50, 64], ez: "kneeraise", hd: "t2b",
+  { id: "hlr", cz: "Zvedání nohou ve visu", en: "Hanging Leg Raise", pat: "stred", S: 3, C: 2, J: { ram: 1 }, pop: 2, eq: ["hrazda"], mode: "reps", mp: ["abs"], ms: ["hipflex", "obl", "fore"], dot: [50, 64], ez: "kneeraise", hd: "t2b",
     foc: ["Zvedají tě natažené nohy silou břicha, ne švih.", "Straight legs lift by the abs, not a swing."],
     pos: ["Vis nadhmatem, ramena aktivní.", "Overhand hang, shoulders active."],
     exe: ["Zvedni natažené nohy do vodorovné a pomalu dolů. Bez houpání.", "Raise straight legs to horizontal and lower slowly. No swing."],
@@ -9523,56 +10013,56 @@ const TPL_SEED_CM = [
 // ---- Vital Institut · cviky (zásobník) ----
 const TEX_SEED_VI = [
   { id: "vi_hss3m", cz: "HSS · 3měsíční poloha", en: "Core · 3-month position", pat: "stred", S: 1, C: 2, pop: 3, eq: ["telo"], mode: "reps", mp: ["abs", "low"],
-    foc: ["Nádech do břicha, žebra dolů, nitrobřišní tlak drží po celou dobu.", "Breathe into the belly, ribs down, intra-abdominal pressure held throughout."],
-    exe: ["Vleže na zádech (nebo na břiše) drž neutrál a dýchej do válce HSS; končetiny klademe pomalu.", "Supine (or prone) hold neutral and breathe into the core cylinder; limbs move slowly."],
+    foc: ["Nádech do břicha, žebra dolů, nitrobřišní tlak drží po celou dobu.", "Breathe into the belly, ribs down, intra-abdominal pressure held throughout."], pos: ["Leh na zádech nebo na břiše, páteř v neutrálu, žebra dolů, chodidla i ruce volně.", "Lie supine or prone, spine neutral, ribs down, feet and hands loose."],
+    exe: ["Vleže na zádech (nebo na břiše) drž neutrál a dýchej do válce HSS; končetiny klademe pomalu.", "Supine (or prone) hold neutral and breathe into the core cylinder; limbs move slowly."], wat: ["Nitrobřišní tlak drž bez zadržení dechu. Když se bedra prohnou nebo se dech zastaví, uber rozsah.", "Hold the intra-abdominal pressure without holding the breath. If the low back arches or the breath stops, reduce the range."],
     pro: ["Delší výdrž tlaku, pak diagonální kladení končetin.", "Longer pressure holds, then diagonal limb placement."] },
   { id: "vi_hss6m", cz: "HSS · 6měsíční pozice", en: "Core · 6-month position", pat: "stred", S: 2, C: 2, pop: 3, eq: ["telo", "guma"], mode: "reps", mp: ["abs", "low"], ms: ["glu", "sho"],
-    foc: ["Vzpor s neutrálním trupem, žádné prohnutí v bedrech.", "Quadruped with a neutral trunk, no lumbar arch."],
-    exe: ["Zvedání a diagonální kladení končetin v 6měsíční pozici; možno ztížit expandérem nebo nadzvednutím kolen.", "Lift and place limbs diagonally in the 6-month position; harder with a band or lifted knees."],
+    foc: ["Vzpor s neutrálním trupem, žádné prohnutí v bedrech.", "Quadruped with a neutral trunk, no lumbar arch."], pos: ["Vzpor na čtyřech, ruce pod rameny, kolena pod boky, trup v neutrálu.", "Quadruped, hands under the shoulders, knees under the hips, trunk neutral."],
+    exe: ["Zvedání a diagonální kladení končetin v 6měsíční pozici; možno ztížit expandérem nebo nadzvednutím kolen.", "Lift and place limbs diagonally in the 6-month position; harder with a band or lifted knees."], wat: ["Pánev se nesmí houpat do stran. Končetiny klaď pomalu a jen do rozsahu, který udržíš.", "The pelvis must not rock side to side. Place the limbs slowly, and only as far as you can hold."],
     pro: ["Nadzvednutí kolen, přenášení váhy, otevření řetězce.", "Lift the knees, shift weight, open the chain."] },
   { id: "vi_scap", cz: "Stabilizátory lopatky", en: "Scapular stabilizers", pat: "tah", S: 1, C: 1, pop: 2, eq: ["guma", "kladka"], mode: "reps", mp: ["sho"],
-    foc: ["Pohyb vede lopatka, ne paže; ramena dolů a vzad.", "The scapula leads, not the arm; shoulders down and back."],
-    exe: ["Simulace stahování kladky vleže na břiše nebo vsedě; se zátěží u pokročilejších.", "Cable pull-down simulation prone or seated; loaded for more advanced clients."],
+    foc: ["Pohyb vede lopatka, ne paže; ramena dolů a vzad.", "The scapula leads, not the arm; shoulders down and back."], pos: ["Leh na břiše nebo sed s oporou, paže volně před tělem, ramena bez elevace.", "Prone, or seated with support, arms loose in front, shoulders not shrugged."],
+    exe: ["Simulace stahování kladky vleže na břiše nebo vsedě; se zátěží u pokročilejších.", "Cable pull-down simulation prone or seated; loaded for more advanced clients."], wat: ["Ramena netlač k uším a nezaklánej krk. Rozsah řiď podle toho, kde lopatka ještě vede pohyb.", "Do not push the shoulders toward the ears or crane the neck. Set the range by where the shoulder blade still leads."],
     pro: ["Přidat zátěž, pak přítah jednoručky v 6měsíční pozici.", "Add load, then a dumbbell row in the 6-month position."] },
-  { id: "vi_squat", cz: "Dřep", en: "Squat", pat: "drep", S: 2, C: 1, pop: 3, eq: ["cinka", "velkaosa", "telo"], mode: "reps", mp: ["glu"],
-    foc: ["Kolena ve směru špiček, střed zpevněný.", "Knees track the toes, core braced."],
-    exe: ["Goblet dřep, dřep s velkou osou, hack nebo leg-press dle vybavení a cíle.", "Goblet, barbell, hack or leg-press by equipment and goal."],
+  { id: "vi_squat", cz: "Dřep", en: "Squat", pat: "drep", S: 2, C: 1, pop: 3, eq: ["cinka", "telo"], mode: "reps", mp: ["glu"],
+    foc: ["Kolena ve směru špiček, střed zpevněný.", "Knees track the toes, core braced."], pos: ["Podle zvolené varianty: stoj na šířku boků, nebo nastavený stroj. Trup zpevněný.", "By the variant chosen: hip-width stance, or the machine set up. Trunk braced."],
+    exe: ["Goblet dřep, dřep s velkou osou, hack nebo leg-press dle vybavení a cíle.", "Goblet, barbell, hack or leg-press by equipment and goal."], wat: ["Programová šablona, ne jeden cvik — konkrétní variantu vyber podle vybavení a cíle a její technikou se řiď.", "A programme template, not a single exercise — pick the variant by equipment and goal, and follow that variant's technique."],
     pro: ["Zvyš zátěž a sniž opakování dle cíle (síla vs. objem).", "Raise load and lower reps by goal (strength vs. volume)."] },
-  { id: "vi_hinge", cz: "Mrtvý tah / hip hinge", en: "Deadlift / hip hinge", pat: "drep", S: 3, C: 1, pop: 3, eq: ["velkaosa", "cinka"], mode: "reps", mp: ["glu", "ham"], ms: ["low"],
-    foc: ["Pohyb z kyčle, záda neutrální, tah přes paty.", "Hinge from the hip, neutral back, drive through the heels."],
-    exe: ["Mrtvý tah s velkou osou nebo RDL s jednoručkami.", "Barbell deadlift or dumbbell RDL."],
+  { id: "vi_hinge", cz: "Mrtvý tah / hip hinge", en: "Deadlift / hip hinge", pat: "ohyb", S: 3, C: 1, pop: 3, eq: ["cinka"], mode: "reps", mp: ["glu", "ham"], ms: ["low"],
+    foc: ["Pohyb z kyčle, záda neutrální, tah přes paty.", "Hinge from the hip, neutral back, drive through the heels."], pos: ["Stoj na šířku boků, zátěž blízko těla, páteř v neutrálu.", "Hip-width stance, load close to the body, spine neutral."],
+    exe: ["Mrtvý tah s velkou osou nebo RDL s jednoručkami.", "Barbell deadlift or dumbbell RDL."], wat: ["Programová šablona, ne jeden cvik. Rozsah veď z kyčle a zátěž zvyšuj po malých krocích.", "A programme template, not a single exercise. Take the range from the hip and add load in small steps."],
     pro: ["Přidávej zátěž po malých krocích, forma přednost.", "Add load in small steps, form first."] },
   { id: "vi_lunge", cz: "Výpady / bulharský dřep", en: "Lunges / Bulgarian split", pat: "drep", S: 2, C: 2, pop: 2, eq: ["cinka", "telo"], mode: "reps", mp: ["glu"],
-    foc: ["Trup vzpřímený, koleno stabilní.", "Torso upright, knee stable."],
-    exe: ["Výpady vpřed/vzad nebo bulharský dřep se zátěží.", "Forward/reverse lunges or Bulgarian split squats loaded."],
+    foc: ["Trup vzpřímený, koleno stabilní.", "Torso upright, knee stable."], pos: ["Stoj na šířku boků, zátěž v rukou nebo zadní noha na lavici.", "Hip-width stance, load in the hands, or the back foot on a bench."],
+    exe: ["Výpady vpřed/vzad nebo bulharský dřep se zátěží.", "Forward/reverse lunges or Bulgarian split squats loaded."], wat: ["Programová šablona, ne jeden cvik. Přední koleno drž stabilní a rozsah zvyšuj podle tolerance.", "A programme template, not a single exercise. Keep the front knee stable and build the range by tolerance."],
     pro: ["Zvyš zátěž nebo přejdi na dynamickou variantu.", "Add load or move to a dynamic variation."] },
-  { id: "vi_hipthrust", cz: "Hip thrust / hýždě", en: "Hip thrust / glutes", pat: "drep", S: 2, C: 1, pop: 2, eq: ["velkaosa", "cinka", "telo"], mode: "reps", mp: ["glu"], ms: ["ham"],
-    foc: ["Zakonči plnou extenzí kyčle, žebra dolů.", "Finish in full hip extension, ribs down."],
-    exe: ["Hip thrust o lavici, abdukce pro klienta A vleže/na stroji.", "Bench hip thrust; abduction lying or on a machine for client A."],
+  { id: "vi_hipthrust", cz: "Hip thrust / hýždě", en: "Hip thrust / glutes", pat: "drep", S: 2, C: 1, pop: 2, eq: ["cinka", "telo"], mode: "reps", mp: ["glu"], ms: ["ham"],
+    foc: ["Zakonči plnou extenzí kyčle, žebra dolů.", "Finish in full hip extension, ribs down."], pos: ["Lopatky o lavici, chodidla na šířku boků, brada mírně přitažená.", "Shoulder blades on the bench, feet hip-width, chin lightly tucked."],
+    exe: ["Hip thrust o lavici, abdukce pro klienta A vleže/na stroji.", "Bench hip thrust; abduction lying or on a machine for client A."], wat: ["Programová šablona, ne jeden cvik. Rozsah končí v extenzi kyčle, ne v prohnutí beder.", "A programme template, not a single exercise. The range ends in hip extension, not in a lumbar arch."],
     pro: ["Přidej zátěž, pak jednonožní varianta.", "Add load, then a single-leg variation."] },
-  { id: "vi_press", cz: "Tlak na prsa", en: "Chest press", pat: "tlak", S: 2, C: 1, pop: 3, eq: ["velkaosa", "cinka", "telo", "stroj"], mode: "reps",
-    foc: ["Lopatky fixované, dráha kolmá.", "Scapulae set, a clean bar path."],
-    exe: ["Benchpress, tlaky jednoruček (i na šikmé), kliky nebo tlak na stroji / floor press pro A+.", "Bench, dumbbell press (incline too), push-ups or machine / floor press for A+."],
+  { id: "vi_press", cz: "Tlak na prsa", en: "Chest press", pat: "tlak", S: 2, C: 1, pop: 3, eq: ["cinka", "telo", "stroj"], mode: "reps",
+    foc: ["Lopatky fixované, dráha kolmá.", "Scapulae set, a clean bar path."], pos: ["Podle zvolené varianty: leh na lavici, klik na zemi, nebo nastavený stroj.", "By the variant chosen: on a bench, a push-up on the floor, or the machine set up."],
+    exe: ["Benchpress, tlaky jednoruček (i na šikmé), kliky nebo tlak na stroji / floor press pro A+.", "Bench, dumbbell press (incline too), push-ups or machine / floor press for A+."], wat: ["Programová šablona, ne jeden cvik. Lopatky drž nastavené a dráhu veď tak, jak žádá zvolená varianta.", "A programme template, not a single exercise. Keep the shoulder blades set and follow the path the chosen variant asks for."],
     pro: ["Zvyš zátěž a sniž opakování dle cíle.", "Raise load and lower reps by goal."] },
-  { id: "vi_row", cz: "Přítah / záda", en: "Row / back", pat: "tah", S: 2, C: 1, pop: 3, eq: ["cinka", "kladka", "telo", "velkaosa"], mode: "reps",
-    foc: ["Vede loket, lopatka dozadu-dolů.", "The elbow leads, scapula back and down."],
-    exe: ["Shyby, přítahy na závěsném systému, přítah jednoručky, pull-over ve stoje.", "Pull-ups, suspension rows, dumbbell rows, standing pull-overs."],
+  { id: "vi_row", cz: "Přítah / záda", en: "Row / back", pat: "tah", S: 2, C: 1, pop: 3, eq: ["cinka", "kladka", "telo"], mode: "reps",
+    foc: ["Vede loket, lopatka dozadu-dolů.", "The elbow leads, scapula back and down."], pos: ["Podle zvolené varianty: vis, opora o lavici, nebo sed u kladky. Trup zpevněný.", "By the variant chosen: a hang, support on a bench, or seated at the cable. Trunk braced."],
+    exe: ["Shyby, přítahy na závěsném systému, přítah jednoručky, pull-over ve stoje.", "Pull-ups, suspension rows, dumbbell rows, standing pull-overs."], wat: ["Programová šablona, ne jeden cvik. Pohyb veď loktem a nenech trup švihat.", "A programme template, not a single exercise. Lead with the elbow and do not let the trunk swing."],
     pro: ["Přidej zátěž nebo přejdi na shyby bez dopomoci.", "Add load or move to unassisted pull-ups."] },
-  { id: "vi_ohp", cz: "Tlak nad hlavu / ramena", en: "Overhead press / shoulders", pat: "tlak", S: 2, C: 1, pop: 2, eq: ["cinka", "velkaosa"], mode: "reps", mp: ["sho"],
-    foc: ["Žebra dolů, bez záklonu v bedrech.", "Ribs down, no lumbar lean-back."],
-    exe: ["Tlaky nad hlavu / military press, abdukce s jednoručkami, obrácený pec-dec.", "Overhead / military press, dumbbell abduction, reverse pec-dec."],
+  { id: "vi_ohp", cz: "Tlak nad hlavu / ramena", en: "Overhead press / shoulders", pat: "tlak", S: 2, C: 1, pop: 2, eq: ["cinka"], mode: "reps", mp: ["sho"],
+    foc: ["Žebra dolů, bez záklonu v bedrech.", "Ribs down, no lumbar lean-back."], pos: ["Stoj nebo sed s oporou zad, zátěž ve výši ramen, žebra dolů.", "Standing, or seated with the back supported, load at shoulder height, ribs down."],
+    exe: ["Tlaky nad hlavu / military press, abdukce s jednoručkami, obrácený pec-dec.", "Overhead / military press, dumbbell abduction, reverse pec-dec."], wat: ["Programová šablona, ne jeden cvik. Bedra se neprohýbají a rozsah řiď podle tolerance ramene.", "A programme template, not a single exercise. The low back does not arch, and the range follows what the shoulder tolerates."],
     pro: ["Zvyš zátěž nebo přidej abdukce na zadní ramena.", "Add load or rear-delt abduction."] },
-  { id: "vi_biceps", cz: "Biceps", en: "Biceps", pat: "tah", S: 1, C: 1, pop: 2, eq: ["cinka", "velkaosa", "guma"], mode: "reps",
-    foc: ["Lokty u těla, plný rozsah.", "Elbows in, full range."],
-    exe: ["Bicepsové zdvihy s velkou osou/jednoručkami, přítah na TRX (funkční varianta).", "Barbell/dumbbell curls, TRX curls (functional variant)."],
+  { id: "vi_biceps", cz: "Biceps", en: "Biceps", pat: "tah", S: 1, C: 1, pop: 2, eq: ["cinka", "guma"], mode: "reps",
+    foc: ["Lokty u těla, plný rozsah.", "Elbows in, full range."], pos: ["Stoj nebo sed, lokty u trupu, zápěstí v neutrálu.", "Standing or seated, elbows at the ribs, wrists neutral."],
+    exe: ["Bicepsové zdvihy s velkou osou/jednoručkami, přítah na TRX (funkční varianta).", "Barbell/dumbbell curls, TRX curls (functional variant)."], wat: ["Programová šablona, ne jeden cvik. Trupem neškubej a zátěž volí tak, aby loket i zápěstí zůstaly bez bolesti.", "A programme template, not a single exercise. Do not jerk with the trunk, and choose a load that leaves elbow and wrist pain-free."],
     pro: ["Zvyš zátěž, jednadvacítka nebo negativa.", "Add load, twenty-ones or negatives."] },
   { id: "vi_triceps", cz: "Triceps", en: "Triceps", pat: "tlak", S: 1, C: 1, pop: 2, eq: ["kladka", "cinka", "telo"], mode: "reps",
-    foc: ["Lokty stabilní, plná extenze.", "Elbows stable, full extension."],
-    exe: ["Kliky na bradlech, francouzský tlak, stahování kladky, kick-back v 6měsíční pozici.", "Dips, French press, cable push-down, 6-month kick-backs."],
+    foc: ["Lokty stabilní, plná extenze.", "Elbows stable, full extension."], pos: ["Podle zvolené varianty: vzpor na bradlech, leh na lavici, nebo stoj u kladky.", "By the variant chosen: support on the bars, lying on a bench, or standing at the cable."],
+    exe: ["Kliky na bradlech, francouzský tlak, stahování kladky, kick-back v 6měsíční pozici.", "Dips, French press, cable push-down, 6-month kick-backs."], wat: ["Programová šablona, ne jeden cvik. Loket drž stabilní a rozsah veď tam, kde ho toleruje.", "A programme template, not a single exercise. Keep the elbow stable and take the range to where it tolerates it."],
     pro: ["Zvyš zátěž nebo přejdi na bradla.", "Add load or move to dips."] },
   { id: "vi_calf", cz: "Lýtka", en: "Calves", pat: "drep", S: 1, C: 1, pop: 1, eq: ["telo", "stroj"], mode: "reps",
-    foc: ["Plný rozsah, krátká výdrž nahoře.", "Full range, a short hold at the top."],
-    exe: ["Výpony ve stoje a vsedě.", "Standing and seated calf raises."],
+    foc: ["Plný rozsah, krátká výdrž nahoře.", "Full range, a short hold at the top."], pos: ["Stoj nebo sed, špičky na hraně schodu nebo ve stroji, paty volně.", "Standing or seated, toes on the edge of a step or in the machine, heels free."],
+    exe: ["Výpony ve stoje a vsedě.", "Standing and seated calf raises."], wat: ["Programová šablona, ne jeden cvik. Nehoupej se a nahoře drž krátkou výdrž.", "A programme template, not a single exercise. Do not bounce, and hold briefly at the top."],
     pro: ["Přidej zátěž nebo jednonožní variantu.", "Add load or a single-leg variant."] },
 ];
 
@@ -9586,6 +10076,110 @@ const TWO_SEED_VI=[];
 const TPL_SEED_VI=[];
 
 const TEX_ALL = [...TEX_SEED, ...TEX_SEED_2, ...TEX_SEED_3, ...TEX_SEED_4, ...TEX_SEED_4B, ...TEX_SEED_5, ...TEX_SEED_5B, ...TEX_SEED_6, ...TEX_SEED_7, ...TEX_SEED_8, ...TEX_SEED_8B, ...TEX_SEED_8C, ...TEX_SEED_9, ...TEX_SEED_SM, ...TEX_SEED_CM, ...TEX_SEED_VI];
+
+// CRC-32 · the Main App has this for its ZIP export; here it exists for one job:
+// telling a field the audit looked at apart from a field the person has rewritten.
+const TM_CRC = (() => { const t = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[i] = c >>> 0; } return t; })();
+function tmCrc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = TM_CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+
+// ---- the audit reaching an installed library ----------------------------------
+// The rows above are the SEED — they reach a new install and nobody else. Everyone
+// with the app already has their own copy in their own collection. So: the CRC-32
+// of every corrected field as it stood before the audit. A field still holding that
+// exact value is replaced; a field the person has touched keeps their words.
+// Nothing is deleted, no id changes, and a second run does nothing.
+const TEX_AUDIT_FIX = {
+  legraise: { mp: "27781a1b" },
+  kneeraise: { ms: "517ebc90" },
+  t2b: { ms: "3c40057b" },
+  crow: { J: "a4d6f09a" },
+  cossack: { ms: "3ba4a3df" },
+  benchdips: { foc: "2600e7cf", wat: "f21a3e84", pro: "ce82d522" },
+  facepull: { mp: "56bd6945", ms: "c0c32268" },
+  lsit: { mp: "27781a1b" },
+  copenhagen: { mp: "8f324037", ms: "025f28c3" },
+  headstand: { S: "83dcefb7", C: "6dd28e9b", J: "1dad9bcc", mp: "47d96489", ms: "d88f1134" },
+  sumo: { ms: "3ba4a3df" },
+  latlunge: { ms: "2e6559fe" },
+  scapush: { mp: "47d96489", ms: "caea24ef" },
+  downdog: { C: "83dcefb7", J: "00000000", mp: "3ba4a3df", ms: "166c4f6f" },
+  cobra: { C: "83dcefb7", J: "00000000", ms: "2047b58a" },
+  childpose: { C: "83dcefb7", J: "00000000", ms: "47d96489" },
+  planchelean: { ms: "2047b58a" },
+  tuckplanche: { ms: "2047b58a" },
+  planche: { ms: "528b6a8b" },
+  freehspu: { pat: "c90e5a7f" },
+  hspu90: { pat: "c90e5a7f" },
+  vsit: { mp: "27781a1b" },
+  flrow: { foc: "e44b01ba", wat: "55494bfa", pro: "1032ad8a" },
+  pelican: { wat: "70297fca", pro: "ccf6d374" },
+  straddleplanche: { ms: "528b6a8b" },
+  compression: { mp: "025f28c3", ms: "0d4cbb29" },
+  middlesplit: { mp: "3ca867e6", ms: "2a8baeab" },
+  bandpull: { wat: "404dc470", pro: "c61da03d" },
+  banddip: { wat: "13375eac" },
+  revhyper: { foc: "007f0865", wat: "3ed72968", pro: "04ae1ec0" },
+  wallpike: { pro: "768432dd" },
+  abwheel: { wat: "8eb8721a" },
+  suitcase: { pro: "ceb15a3c" },
+  neckiso: { mp: "c0c32268", wat: "b90c60db", pro: "1146195e" },
+  neckcars: { mp: "c0c32268" },
+  wristcurl: { wat: "514cf865", pro: "d60989cf" },
+  extrot: { mp: "47d96489", ms: "d1a72fa4", pro: "489382e9" },
+  ytw: { ms: "166c4f6f", pro: "704e4344" },
+  ecccalf: { pro: "e60ac1f6" },
+  sled: { foc: "c3250639", wat: "68f14dd2", pro: "019161a4" },
+  ringpush: { pro: "54cf1248" },
+  ropeclimb: { wat: "86caf202", pro: "2ea94445" },
+  hspuhold: { pat: "c90e5a7f" },
+  hspuneg: { pat: "c90e5a7f" },
+  wpullup: { wat: "bd26b8dc", pro: "5975c3b7" },
+  ctwhs: { foc: "a03da1ed", exe: "3f43e07d", wat: "e9bab03e" },
+  bail: { foc: "6d1f2dec", pos: "7d309258", exe: "24645a25", wat: "58c1a6dc", pro: "5d397baa" },
+  hspu90neg: { pat: "c90e5a7f" },
+  bosuoahs: { foc: "06b8903f", exe: "836928c9", wat: "848ca7e3", pro: "888698be" },
+  frog: { mp: "4c6ae43a", ms: "49580fac" },
+  butterfly: { mp: "4c6ae43a", ms: "2e6559fe" },
+  toetouch: { C: "83dcefb7", J: "00000000" },
+  hlr: { ms: "517ebc90" },
+  vi_hss3m: { pos: "00000000", wat: "00000000" },
+  vi_hss6m: { pos: "00000000", wat: "00000000" },
+  vi_scap: { pos: "00000000", wat: "00000000" },
+  vi_squat: { eq: "ad3e3d9f", pos: "00000000", wat: "00000000" },
+  vi_hinge: { pat: "e2618ddd", eq: "3243923d", pos: "00000000", wat: "00000000" },
+  vi_lunge: { pos: "00000000", wat: "00000000" },
+  vi_hipthrust: { eq: "38ad1f89", pos: "00000000", wat: "00000000" },
+  vi_press: { eq: "8ad41a71", pos: "00000000", wat: "00000000" },
+  vi_row: { eq: "1a825162", pos: "00000000", wat: "00000000" },
+  vi_ohp: { eq: "98ee70cd", pos: "00000000", wat: "00000000" },
+  vi_biceps: { eq: "fabe9047", pos: "00000000", wat: "00000000" },
+  vi_triceps: { pos: "00000000", wat: "00000000" },
+  vi_calf: { pos: "00000000", wat: "00000000" },
+};
+const TEX_SEED_BY_ID = Object.fromEntries(TEX_ALL.map((x) => [x.id, x]));
+
+function tExAuditFix(rows) {
+  const enc = new TextEncoder();
+  const crc = (v) => {
+    const key = v === undefined ? "" : JSON.stringify(v);
+    return tmCrc32(enc.encode(key)).toString(16).padStart(8, "0");
+  };
+  let touched = 0;
+  const out = (rows || []).map((x) => {
+    const fix = TEX_AUDIT_FIX[x.id];
+    const seed = TEX_SEED_BY_ID[x.id];
+    if (!fix || !seed) return x;
+    let y = x;
+    for (const f of Object.keys(fix)) {
+      if (crc(y[f]) !== fix[f]) continue;          // the person changed it · leave it
+      y = y === x ? { ...x } : y;
+      if (seed[f] === undefined) delete y[f]; else y[f] = seed[f];
+    }
+    if (y !== x) touched += 1;
+    return y;
+  });
+  return { rows: out, touched };
+}
 
 // ---- Submax (Anton) · one series, nine complete session templates ("SM") ----
 // Rows mirror the real programs Anton shows for his clients (Colin, Tristan, Joshua):
@@ -9671,7 +10265,7 @@ const viGenPlan = (catKey, goalKey, days) => {
 const T_NOSER = "";
 const T_SER_BY = (c, id) => (c.tSer || []).find((s) => s.id === id) || null;
 const TL = (a) => (Array.isArray(a) ? (LANG === "cs" ? a[0] : a[1]) || a[0] || "" : a || "");
-const tExName = (ex) => (ex ? (LANG === "cs" ? ex.cz : ex.en) || ex.cz : "");
+const tExName = (ex) => (ex ? (LANG === "cs" ? tExNameCz(ex) : tExNameEn(ex)) || ex.cz : "");
 const tUnit = (u) => (u === "s" ? "s" : u === "m" ? "m" : "×");
 
 // ---- load · what "more" means, exercise by exercise --------------------------
@@ -10051,8 +10645,8 @@ function DragRow({ id, attr, kind, onReorder, disabled, style, className, childr
 function TSkillPick({ exs, values, onChange }) {
   const { t } = useT();
   const [q, setQ] = useState("");
-  const skills = React.useMemo(() => (exs || []).filter(tIsSkill), [exs]);
-  const match = q ? skills.filter((x) => (x.cz + " " + x.en).toLowerCase().includes(q.toLowerCase())) : skills;
+  const skills = React.useMemo(() => (exs || []).filter((x) => tIsSkill(x) && tTargetEligible(x)), [exs]);
+  const match = q ? skills.filter((x) => tExSearchText(x).toLowerCase().includes(q.toLowerCase())) : skills;
   const shown = [...new Set([...values.map((id) => skills.find((x) => x.id === id)).filter(Boolean), ...match.sort((a, b) => ((b.pop || 2) - (a.pop || 2)) || tSOf(a) - tSOf(b))])];
   const toggle = (id) => onChange(values.includes(id) ? values.filter((x) => x !== id) : [...values, id]);
   return (
@@ -10136,11 +10730,12 @@ function TExPick({ onPick, onClose, onNew }) {
   const patOrder = Object.fromEntries(T_PATTERNS.map((p, i) => [p.k, i]));
   const list = exs
     .filter((x) =>
+      tExOnDefaultShelf(x) &&
       (!fPats.length || fPats.includes(x.pat)) &&
       (!fLvls.length || fLvls.includes(tLvlOf(x))) &&
       (!fMus.length || fMus.some((m) => (x.mp || []).includes(m) || (x.ms || []).includes(m))) &&
       (!fEq.length || fEq.some((e) => (x.eq || []).includes(e))) &&
-      (!q || (x.cz + " " + x.en).toLowerCase().includes(q.toLowerCase())))
+      (!q || tExSearchText(x).toLowerCase().includes(q.toLowerCase())))
     .sort((a, b) => ((b.pop || 2) - (a.pop || 2)) || (patOrder[a.pat] - patOrder[b.pat]) || (tLvlOf(a) - tLvlOf(b)));
   const any = fPats.length || fLvls.length || fMus.length || fEq.length || q;
   return (
@@ -10239,6 +10834,107 @@ function TPickField({ label, placeholder, onOpen, ghost, style }) {
   );
 }
 
+// ---- what a careful person would want to know before choosing ------------------
+// Which shelf, whether it wants a coach, what to know before starting, and which
+// other card is the same movement under another name. Provenance and the coach's own
+// evidence notes are deliberately not here — those live on the coach's side.
+function TExShelfPanel({ ex, all, onOpen }) {
+  const { t } = useT();
+  const pc = tPrecautionsOf(ex);
+  const alias = tAliasOf(ex);
+  const canon = alias ? (all || []).find((x) => x.id === alias) : null;
+  const group = tAliasGroupOf(ex);
+  const siblings = group ? (all || []).filter((x) => x.id !== ex.id && tAliasGroupOf(x) === group) : [];
+  const alts = (TEX_ARCHIVED_ALT[ex.id] || []).map((id) => (all || []).find((x) => x.id === id)).filter(Boolean);
+  const line = { fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6, color: t.textSec, marginTop: 4 };
+  const head = { fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5, color: t.sage };
+  const link = { background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "2px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+  if (!pc.length && !alias && !siblings.length && tTierOf(ex) === "extended") return null;
+  return (
+    <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <TExShelf ex={ex} size={11} />
+        {tRequiresCoach(ex) && (
+          <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.accent, border: `1px solid ${t.accent}`, borderRadius: 10, padding: "1px 7px" }}>
+            {L("nech si ukázat", "have it shown to you")}
+          </span>
+        )}
+        {tCtxOf(ex) === "inversion" && (
+          <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.textMuted, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "1px 7px" }}>
+            {L("hlavou dolů", "upside down")}
+          </span>
+        )}
+      </div>
+      {tIsArchived(ex) && (
+        <div style={line}>
+          {L("Archivovaný cvik. Zůstává čitelný ve starých trénincích a záznamech, ale knihovna ho už nenabízí.",
+             "An archived exercise. It stays readable in your old workouts and records; the library no longer offers it.")}
+          {alts.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 7, alignItems: "center" }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{L("Místo něj:", "Instead:")}</span>
+              {alts.map((x) => <button key={x.id} onClick={() => onOpen && onOpen(x.id)} style={link}>{tExName(x)}</button>)}
+            </div>
+          )}
+        </div>
+      )}
+      {tIsProgramOnly(ex) && (
+        <div style={line}>
+          {L("Patří ke konkrétnímu programu. Uvnitř svého plánu funguje dál; do obecné knihovny nevstupuje.",
+             "This belongs to one programme. It keeps working inside its own plan; it does not enter the general library.")}
+        </div>
+      )}
+      {alias && canon && (
+        <div style={line}>
+          {L("Starší název téhož cviku.", "An older name for the same exercise.")}{" "}
+          <button onClick={() => onOpen && onOpen(canon.id)} style={{ ...link, display: "inline-block" }}>{tExName(canon)}</button>
+        </div>
+      )}
+      {pc.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <div style={head}>{L("Než začneš", "Before you start")}</div>
+          <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+            {pc.map((k) => TEX_PRECAUTIONS[k] && (
+              <li key={k} style={{ fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6, color: t.textSec }}>
+                {L(TEX_PRECAUTIONS[k][0], TEX_PRECAUTIONS[k][1])}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {siblings.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <div style={head}>{L("Stejný pohyb jinde", "The same movement elsewhere")}</div>
+          {TEX_ALIAS_GROUP_LABEL[group] && (
+            <div style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, marginTop: 2 }}>
+              {L(TEX_ALIAS_GROUP_LABEL[group][0], TEX_ALIAS_GROUP_LABEL[group][1])}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+            {siblings.map((x) => <button key={x.id} onClick={() => onOpen && onOpen(x.id)} style={link}>{tExName(x)}</button>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- the shelf, said on the card ------------------------------------------------
+// A word, in the same quiet type as everything else. Never a colour on its own.
+function TExShelf({ ex, size = 10.5 }) {
+  const { t } = useT();
+  const tier = tTierOf(ex);
+  const lab = TEX_TIER_LABEL[tier];
+  if (!lab) return null;
+  const loud = tier === "archived" || tier === "catalog";
+  return (
+    <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: size,
+                   color: loud ? t.accent : t.textMuted, border: `1px solid ${loud ? t.accent : t.borderSoft}`,
+                   borderRadius: 10, padding: "1px 7px", whiteSpace: "nowrap" }}>
+      {L(lab[0], lab[1])}
+    </span>
+  );
+}
+
 // ---- exercise card · the library grid ----
 function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag }) {
   const { t } = useT();
@@ -10269,8 +10965,15 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>{L(pat.cz, pat.en)}</span>
           <TDemandDots v={tLvlOf(ex)} />
-          <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: t.textMuted }}>{ex.mode === "sec" ? L("výdrž", "hold") : L("opakování", "reps")}</span>
+          <TExShelf ex={ex} />
         </div>
+        {(tIsCatalog(ex) || tIsArchived(ex) || tStatusOf(ex) === "alias") && (
+          <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontStyle: "italic", color: t.textMuted, marginTop: 5, lineHeight: 1.45 }}>
+            {tIsArchived(ex) ? L(TEX_ARCHIVED_NOTE[0], TEX_ARCHIVED_NOTE[1])
+              : tIsCatalog(ex) ? L("Katalogový záznam · bez návodu", "Catalogue entry · no instructions")
+              : L("Starší název · vede na kanonický cvik", "An older name · resolves to the canonical exercise")}
+          </div>
+        )}
         <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, marginTop: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {(ex.mp || []).map((k) => L((T_MUS[k]||{}).cz, (T_MUS[k]||{}).en)).filter(Boolean).join(" · ")}
         </div>
@@ -10513,6 +11216,7 @@ function TExDetail({ exId, onClose, onOpen }) {
         </>
       )}
       <TChain ex={ex} all={all} onOpen={onOpen} />
+      <TExShelfPanel ex={ex} all={all} onOpen={onOpen} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
         {(ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
         <Tag label={ex.mode === "sec" ? L("výdrž · sekundy", "hold · seconds") : L("opakování", "reps")} color="gray" />
@@ -12928,17 +13632,19 @@ function tpAdvise(ex, done, coll) {
   const met = best.reps >= gate;
   const next = ex.hd ? (coll.tEx || []).find((x) => x.id === ex.hd) : null;
 
-  // ---- 1 · pain vetoes everything. The gate measures muscle; muscle is not the
-  //          slow part. (Tendon: 8–12 weeks. Muscle: 2–3.)
+  // ---- 1 · a fresh report of pain vetoes the rung. Not a verdict on what it is —
+  //          just a reason not to add anything on top of it this week.
   const sore = tSoreAtOf(coll, ex);
   if (sore && Date.now() - sore < T_SORE_FRESH) {
     return { k: "bolest", ex, next: null, why: [
-      "Bolí to. Gate měří sval — a sval není to pomalé. Šlacha adaptuje 8–12 týdnů, sval 2–3. Držíme.",
-      "It hurts. The gate measures muscle — and muscle is not the slow part. Tendon takes 8–12 weeks; muscle 2–3. We hold." ] };
+      "Nedávno to bolelo. Nic nezvyšuju. Když potíž trvá nebo se zhoršuje, nech si ji zkontrolovat.",
+      "It hurt recently. Nothing goes up. If it lasts or gets worse, have it looked at." ] };
   }
 
-  // ---- 2 · a skill is not a lift. Its numbers swing and that is not fatigue.
-  if (tIsSkill(ex)) {
+  // ---- 2 · a COORDINATION skill is not a lift. Its numbers swing and that is not
+  //          fatigue. A high-force skill is a lift wearing a skill's name — it gets
+  //          the ordinary progression logic, because its tissue pays an ordinary bill.
+  if (tIsCoordSkill(ex)) {
     return { k: "skill", ex, next: met ? next : null, why: [
       `${tExName(ex)} je dovednost, ne zvedání. Výkon tu skáče ze dne na den a není to únava — je to prostě dovednost. Odpověď na špatný den není míň praxe, ale víc. Nic nepřidávám, nic neubírám.`,
       `${tExName(ex)} is a skill, not a lift. The numbers swing day to day and that is not fatigue, that is what a skill is. The answer to a bad day is more practice, not less. I am adding nothing and taking nothing away.` ] };
@@ -13110,8 +13816,8 @@ function TmSummary({ result, compiled, logged, prs, nextUp, name, isWorkout, exB
           </div>
           {jointsToday.some((j) => st.soreNow(j.k)) && (
             <div style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, marginTop: 7, lineHeight: 1.6 }}>
-              {L("Zapsáno. Na tomhle kloubu teď nikam nepostoupíš — a jestli se to bude opakovat, plán se sám přizpůsobí. Šlacha se hojí zátěží, jen jinou. Netrénovat není léčba.",
-                 "Noted. Nothing on that joint moves up for now — and if it keeps happening, the plan will adapt itself. A tendon heals under load, just a different one. Not training is not a treatment.")}
+              {L("Zapsáno. Na tomhle kloubu teď nic nezvyšuju — a jestli se to bude opakovat, plán s tím dál počítá. Silná náhlá bolest, brnění, ztráta síly nebo zhoršování patří k odborníkovi, ne do aplikace.",
+                 "Noted. Nothing on that joint goes up for now — and if it keeps happening, the plan keeps allowing for it. Sudden strong pain, numbness, loss of strength or things getting worse belong with a professional, not with an app.")}
             </div>
           )}
         </div>
@@ -13604,7 +14310,10 @@ function TmHome({ onRun }) {
 
 const TP_GOALS = [
   { k: "zdravi", cz: "Zdraví a forma", en: "Health and form", reps: [8, 12], rest: 90, vol: 1.0, skill: false, cond: true, mob: 2 },
-  { k: "sila", cz: "Síla", en: "Strength", reps: [4, 6], rest: 165, vol: 0.9, skill: true, cond: false, mob: 1 },
+  // skill: false. It used to be true, which meant a plain strength plan could open
+  // with a pelican curl the person never asked for. A skill block is now something
+  // you choose — the Skills goal, or a named target — never something you are given.
+  { k: "sila", cz: "Síla", en: "Strength", reps: [4, 6], rest: 165, vol: 0.9, skill: false, cond: false, mob: 1 },
   { k: "hyper", cz: "Svalová hmota", en: "Muscle", reps: [8, 12], rest: 75, vol: 1.25, skill: false, cond: false, mob: 1 },
   { k: "skill", cz: "Dovednosti", en: "Skills", reps: [5, 8], rest: 120, vol: 0.85, skill: true, cond: false, mob: 2 },
   { k: "mob", cz: "Mobilita", en: "Mobility", reps: [8, 12], rest: 60, vol: 0.5, skill: false, cond: false, mob: 5 },
@@ -13656,93 +14365,85 @@ function tpMergeGoals(keys) {
 const TP_GOAL = Object.fromEntries(TP_GOALS.map((g) => [g.k, g]));
 
 // ======================================================================
-// PAIN · the constraint that must not be a wall
+// A REPORTED LIMITATION · a constraint on the dose, and nothing more
 // ----------------------------------------------------------------------
-// This block used to be a hand-written blacklist: six injuries × ~15 exercise ids, and
-// an exercise was either banned or it wasn't. Validation (Phase 5, F1) found that this
-// contradicts our own knowledge base, and does so in the way that matters most:
+// What this block used to do, and no longer does:
 //
-//   Barbell Medicine: "Symptoms are an expected part of training. The answer is to
-//   MODIFY THE DOSE AND TYPE OF LOADING — not to stop."
-//   Heavy slow resistance (~70 % 1RM, 3-3 tempo) is the protocol with the STRONGEST
-//   evidence for tendinopathy. [D]
+//   It named a list of exercises TP_HEALS and treated them as treatment. It said,
+//   in the product, that a tendon heals under load and the exercise must not be
+//   skipped. It read a ticked joint and prescribed homework for it — a face pull
+//   for every shoulder, a wrist curl for every elbow. It applied ONE protocol to
+//   every presentation: half the load, 3-1-3, three in reserve, frequency
+//   unchanged. And it said out loud that the difference between this app and a
+//   physiotherapist is that the app can modify an exercise.
 //
-// Unloading an irritated tendon to zero is not caution. It is the wrong treatment. A
-// man with a golfer's elbow was being handed a program of legs, core and breathing —
-// while the thing that would actually heal him (slow, moderate, frequent load) was on
-// the banned list.
+// Progressive loading really is a large part of how many tendinopathies settle.
+// None of that licenses an app to infer, from the word "elbow" on a checkbox, which
+// exercise, which tempo, which frequency and which diagnosis. It cannot examine
+// anybody. It does not know what happened. So it no longer pretends.
 //
-// So a constraint now has THREE answers, not two:
+// What a reported limitation may do now:
 //
-//   ALLOW    · the joint pays little. Nothing changes.
-//   MODIFY   · the joint pays a lot, but the exercise still has healing value.
-//              → lighter, slower (3-3), further from failure, half the volume.
-//              → THE FREQUENCY STAYS. A tendon wants load often, and gently.
-//   FORBID   · there is no safe dose at all. Rare, and it should be.
+//   ALLOW · the joint barely pays. Nothing changes.
+//   EASE  · the joint pays enough to matter. Fewer sets, longer rests, further from
+//           failure, no progression while it lasts — and the person keeps the
+//           movement, because taking it away is also a decision nobody asked for.
+//   HOLD  · the cost is high and this particular exercise has no gentle version.
+//           It is left out of the PLAN. It is never removed from the library, and
+//           the person may still choose it.
 //
-// Most joint constraints are MODIFY. That is the entire difference between an app and
-// a physiotherapist. And it falls out of one number — J — which every exercise now has,
-// including every exercise added after today. The blacklist could not say that.
+// And in every case: a visible coach-review signal, and no claim about healing.
 // ======================================================================
 
 const TP_INJURIES = [
-  { k: "rameno", cz: "Rameno", en: "Shoulder", joint: "ram", add: ["extrot", "ytw", "facepull"] },
-  { k: "loket", cz: "Loket", en: "Elbow", joint: "lok", add: ["wristcurl", "extrot"] },
-  { k: "zapesti", cz: "Zápěstí", en: "Wrist", joint: "zap", add: ["wrists", "wristcurl"] },
-  { k: "koleno", cz: "Koleno", en: "Knee", joint: "kol", add: ["sled", "tibraise", "slbalance", "ecccalf"] },
-  { k: "zada", cz: "Záda", en: "Low back", joint: "pat", add: ["revhyper", "deadbug", "birddog", "pallof"] },
-  { k: "kycel", cz: "Kyčel", en: "Hip", joint: "kyc", add: ["hip9090", "clamshell", "glutebridge"] },
-  { k: "kotnik", cz: "Kotník", en: "Ankle", joint: "kot", add: ["anklemob", "ecccalf", "tibraise"] },
-  { k: "hamstring", cz: "Hamstring", en: "Hamstring", joint: "kyc", add: ["eccham", "glutebridge"],
-    // the one non-joint entry · the eccentric IS the treatment, and it is level 1 on purpose
+  { k: "rameno", cz: "Rameno", en: "Shoulder", joint: "ram" },
+  { k: "loket", cz: "Loket", en: "Elbow", joint: "lok" },
+  { k: "zapesti", cz: "Zápěstí", en: "Wrist", joint: "zap" },
+  { k: "koleno", cz: "Koleno", en: "Knee", joint: "kol" },
+  { k: "zada", cz: "Záda", en: "Low back", joint: "pat" },
+  { k: "kycel", cz: "Kyčel", en: "Hip", joint: "kyc" },
+  { k: "kotnik", cz: "Kotník", en: "Ankle", joint: "kot" },
+  { k: "krk", cz: "Krk", en: "Neck", joint: "krk" },
+  { k: "hamstring", cz: "Hamstring", en: "Hamstring", joint: "kyc",
+    // Not a treatment list — the three things a generic plan should not hand to a
+    // reported hamstring problem without somebody looking at it first.
     extraBan: ["nordic", "sprint", "broadjump"] },
 ];
 const TP_INJURY = Object.fromEntries(TP_INJURIES.map((i) => [i.k, i]));
 
-// The verdict. Not a boolean.
-//   ALLOW  J ≤ 1 · the joint barely notices
-//   MODIFY J = 2 · or J = 3 on something that heals tissue (the slow eccentrics, the
-//                  bands, the carries). Reduce and slow it — do not remove it.
-//   FORBID J = 3 on high-force work · and every straight-arm hold without exception,
-//                  because there is no such thing as a gentle planche.
-const TP_HEALS = ["extrot", "ytw", "wristcurl", "eccham", "ecccalf", "revhyper", "deadbug",
-  "birddog", "pallof", "sled", "tibraise", "slbalance", "hip9090", "clamshell", "glutebridge",
-  "facepull", "wrists", "anklemob", "hinge", "scap", "hang", "bodyrow", "zone2"];
-
+// The verdict reads ONE number — J, the joint cost the exercise itself declares —
+// and the tissue load beside it. It reads no list of ids, so an exercise added
+// tomorrow is covered on the day it is added.
 function tpVerdict(ex, injuries) {
   if (!ex || !injuries || !injuries.length) return { v: "allow" };
   const j = tJOf(ex);
   let worst = { v: "allow" };
   for (const inj of injuries) {
-    if ((inj.extraBan || []).includes(ex.id)) return { v: "forbid", why: inj, cost: 3 };
+    if ((inj.extraBan || []).includes(ex.id)) return { v: "hold", why: inj, cost: 3 };
     const cost = j[inj.joint] || 0;
     if (cost <= 1) continue;
-    // A straight-arm hold has no gentle version. There is no dose of planche that is
-    // kind to a sore elbow, so this is one of the few honest FORBIDs.
-    if (cost >= 3 && (tIsStraightArm(ex) || tSOf(ex) >= 5) && !TP_HEALS.includes(ex.id)) {
-      return { v: "forbid", why: inj, cost };
-    }
-    const v = cost >= 3 && !TP_HEALS.includes(ex.id) ? "forbid" : "modify";
-    if (v === "forbid") return { v, why: inj, cost };
-    if (worst.v === "allow") worst = { v: "modify", why: inj, cost };
+    // The highest joint cost on high-force work, and every loaded straight-arm hold:
+    // there is no gentle dose of a planche, so a generic plan does not schedule one.
+    if (cost >= 3 && (tIsStraightArm(ex) || tSOf(ex) >= 4)) return { v: "hold", why: inj, cost };
+    if (worst.v === "allow") worst = { v: "ease", why: inj, cost };
   }
   return worst;
 }
 
-// What MODIFY actually does to the prescription. The frequency is deliberately untouched:
-// heavy slow resistance is frequent, moderate and slow — that is the whole protocol. [D]
-function tpModify(row) {
+// What EASE does to the prescription. No tempo is prescribed, because a tempo is a
+// treatment decision and this is not one. Progression stops while it is on.
+function tpEase(row) {
   return {
     ...row,
-    sets: Math.max(2, Math.round((row.sets || 3) * 0.6)),   // half the volume, near enough
-    rest: Math.round((row.rest || 90) * 1.2),               // more room between efforts
-    kg: row.kg ? Math.round(row.kg * 0.5) : 0,              // half the load
-    tempo: "3-1-3",                                         // slow · the tendon's own protocol
+    sets: Math.max(2, Math.round((row.sets || 3) * 0.6)),
+    rest: Math.round((row.rest || 90) * 1.2),
+    kg: row.kg ? Math.round(row.kg * 0.6) : 0,
     rir: 3,                                                 // far from failure
-    mod: "pain",                                            // WHY it was changed · the brief reads this, not the tempo
+    hold: true,                                             // and no rung is climbed
+    mod: "pain",                                            // WHY it was changed
     note: [
-      "Upraveno kvůli bolesti: poloviční zátěž, tempo 3–1–3, tři v rezervě. Šlacha se hojí zátěží — jen jinou. Nevynechávej to.",
-      "Modified for pain: half the load, 3-1-3 tempo, three in reserve. A tendon heals under load — just a different one. Do not skip it.",
+      "Ubráno kvůli hlášenému omezení: méně sérií, delší pauza, dál od selhání, bez zvyšování. Když to i tak bolí, cvik vynech a nech si ho zkontrolovat.",
+      "Eased for a reported limitation: fewer sets, longer rests, further from failure, nothing added. If it still hurts, leave it out and have it looked at.",
     ],
   };
 }
@@ -13770,11 +14471,34 @@ const TP_KIND_PATS = {
 // ---- picking · the highest rung you own, and no higher ----------------------
 function tpRank(exs, o) {
   const ok = (exs || []).filter((x) => {
+    // ---- THE GATE · status, tier and the audited generator rule, first and always.
+    // Nothing enters a generated plan around this line. Before it existed the filter
+    // began at the movement pattern, so a Vital Institut programme template, an
+    // archived bench dip and a catalogue asana were all candidates for "a push".
+    if (o.target ? !tTargetEligible(x) : !tGenericEligible(x)) return false;
+    // ---- ROLE and BLOCK · what it is FOR and where it belongs. A wrist curl has the
+    // pull pattern and is a support exercise; it may not become the main pull.
+    if (o.roles && !o.roles.includes(tRoleOf(x))) return false;
+    if (o.block && !(Array.isArray(o.block) ? o.block : [o.block]).includes(tBlockOf(x))) return false;
+    // ---- GATED WORK is chosen, never handed out. Coach-required rows, breath holds
+    // and the head-down family stay out unless the person picked them by name.
+    if (!o.allowGated && (tRequiresCoach(x) || tHasPrecaution(x, "breathhold"))) return false;
+    // ---- REDUNDANCY · same canonical, same alias, same stimulus family (§19)
+    if (o.excludeCanon && o.excludeCanon.includes(tCanonIdOf(x))) return false;
+    if (o.excludeFamilies && o.excludeFamilies.includes(tFamilyOf(x))) return false;
+    // ---- a preparation drill is picked for the joints this session will load
+    if (o.prepFor && o.prepFor.length) {
+      const pj = tPrepJointsOf(x);
+      if (pj.length && !pj.some((k) => o.prepFor.includes(k))) return false;
+    }
     if (o.pat && x.pat !== o.pat) return false;
     if (o.cat && tCatOf(x) !== o.cat) return false;
-    // a skill has ONE definition in this app (C >= 4 and S <= 3) — the stored category
-    // is taxonomy for the shelf, never the routing
     if (o.skill && !tIsSkill(x)) return false;
+    if (o.coordOnly && !tIsCoordSkill(x)) return false;
+    // How often the SKILL may be rehearsed, which is not how fast the tissue
+    // recovers. A balance drill is a 1; a front lever raise is a 3, and a plan
+    // that was not asked for a front lever should never reach for one.
+    if (o.skillFreqMax && (tSkillFreqOf(x) || 3) > o.skillFreqMax) return false;
     if (o.pats && !o.pats.includes(x.pat)) return false;
     // THE GATE. One number, and it is the strength the exercise demands. A level is not
     // a gate — it is a declaration a person made about themselves in a form once.
@@ -13787,7 +14511,7 @@ function tpRank(exs, o) {
     // The verdict, not a blacklist. FORBID is out; MODIFY stays in — and the dose is
     // changed later. An exercise that heals a joint must not be removed because that
     // joint hurts; that is the whole point of it.
-    if (o.injuries && tpVerdict(x, o.injuries).v === "forbid") return false;
+    if (o.injuries && tpVerdict(x, o.injuries).v === "hold") return false;
     // every piece of equipment it needs must actually be there
     if (!(x.eq || []).every((k) => o.equip.includes(k))) return false;
     return true;
@@ -13802,7 +14526,7 @@ function tpRank(exs, o) {
   // quiet, and only lightens the dose where there is nowhere lower to go.
   //
   // So: an exercise the joint barely notices beats a hard one we had to water down.
-  const quiet = (x) => (o.injuries && o.injuries.length ? (tpVerdict(x, o.injuries).v === "modify" ? 1 : 0) : 0);
+  const quiet = (x) => (o.injuries && o.injuries.length ? (tpVerdict(x, o.injuries).v === "ease" ? 1 : 0) : 0);
   // A declared focus is a soft preference, never a gate: it sits between safety and
   // canon, so it can steer the choice of variation without unbalancing the patterns.
   const focus = (x) =>
@@ -13812,8 +14536,13 @@ function tpRank(exs, o) {
   // exercise (a reverse fly) beat the level-1 movement everybody actually trains (the
   // Australian row) — which is right by the number and wrong by every other measure.
   // The pattern is what is being trained. The exercise is only how.
-  if (o.prefer === "easiest") ok.sort((a, b) => quiet(a) - quiet(b) || (focus(b) - focus(a)) || (staple(b) - staple(a)) || (tSOf(a) - tSOf(b)));
-  else ok.sort((a, b) => quiet(a) - quiet(b) || (focus(b) - focus(a)) || (staple(b) - staple(a)) || (tSOf(b) - tSOf(a)));
+  // …and the shelf comes before the ladder AND before popularity. `pop` used to be the
+  // only signal of "is this a real movement", and it was carrying three meanings at
+  // once (§20). The tier says it directly: a core movement outranks an extended one,
+  // an extended one outranks a specialist one, whatever their pop.
+  const tierRank = (x) => ({ core: 0, extended: 1, specialist: 2, program_only: 3, yoga: 3, breath: 3, catalog: 4, archived: 5 })[tTierOf(x)] ?? 2;
+  if (o.prefer === "easiest") ok.sort((a, b) => quiet(a) - quiet(b) || (focus(b) - focus(a)) || (tierRank(a) - tierRank(b)) || (staple(b) - staple(a)) || (tSOf(a) - tSOf(b)));
+  else ok.sort((a, b) => quiet(a) - quiet(b) || (focus(b) - focus(a)) || (tierRank(a) - tierRank(b)) || (staple(b) - staple(a)) || (tSOf(b) - tSOf(a)));
   return ok;
 }
 function tpPick(exs, o) { return tpRank(exs, o)[0] || null; }
@@ -13828,10 +14557,11 @@ function tpChainRung(target, byId, o) {
   while (x && !seen[x.id]) {
     seen[x.id] = 1;
     const pass =
+      tTargetEligible(x) &&
       tSOf(x) <= (TP_CEIL[o.level] || 2) &&
       !(tCOf(x) >= 4 && o.level < 2) &&
       !((o.exclude || []).includes(x.id)) &&
-      !(o.injuries && o.injuries.length && tpVerdict(x, o.injuries).v === "forbid") &&
+      !(o.injuries && o.injuries.length && tpVerdict(x, o.injuries).v === "hold") &&
       (x.eq || []).every((k) => o.equip.includes(k));
     if (pass) return x;
     x = x.ez ? byId[x.ez] : null;
@@ -13842,7 +14572,7 @@ function tpChainRung(target, byId, o) {
 // never drift from the decision (P9: the engine keeps what it rejected).
 function tpWhyLost(win, lose, o) {
   if (!win || !lose) return null;
-  const quiet = (x) => (o && o.injuries && o.injuries.length ? (tpVerdict(x, o.injuries).v === "modify" ? 1 : 0) : 0);
+  const quiet = (x) => (o && o.injuries && o.injuries.length ? (tpVerdict(x, o.injuries).v === "ease" ? 1 : 0) : 0);
   if (quiet(lose) > quiet(win)) return ["kloub by platil víc", "the joint would pay more"];
   if ((win.pop || 2) > (lose.pop || 2)) return ["menší kánon", "less canonical"];
   if (tSOf(lose) < tSOf(win)) return ["nižší příčka, než jakou vlastníš", "a lower rung than the one you own"];
@@ -13865,12 +14595,12 @@ function tpGenerate(p, exs, sore, obs = {}) {
     .filter((i) => i && !declared.some((d) => d.k === i.k));
   const injuries = [...declared, ...chronic];
 
-  // An injury prescribes its own homework. It no longer caps the level bluntly — the
-  // verdict does that per exercise, which is finer and does not punish the whole body
-  // for one sore joint.
+  // A reported limitation changes the DOSE and the CHOICE. It does not prescribe
+  // homework: a joint name on a checkbox is not a diagnosis, and this app does not
+  // hand out a face pull for every shoulder or a wrist curl for every elbow. What it
+  // does do is say so, and ask for a pair of eyes.
   let level = Math.max(1, Math.min(4, Math.round(p.level || 1)));
-  const prescribed = [];
-  injuries.forEach((i) => i.add.forEach((x) => prescribed.push(x)));
+  const coachReview = injuries.length > 0;
   const recMax = injuries.length ? 2 : 3;
 
   const [volLo, volHi] = TP_VOL[level] || TP_VOL[1];
@@ -13899,17 +14629,6 @@ function tpGenerate(p, exs, sore, obs = {}) {
   // the library by id and adding the result — as the prep block and the injury
   // prescriptions used to — is how a person ends up being told to do wrist curls with
   // a dumbbell they do not own.
-  const have = (id) => {
-    const x = byId[id];
-    if (!x) return null;
-    if (tSOf(x) > (TP_CEIL[level] || 2)) return null;
-    if (tCOf(x) >= 4 && level < 2) return null;
-    if (tpVerdict(x, injuries).v === "forbid") return null;
-    if (!(x.eq || []).every((k) => equip.includes(k))) return null;
-    return x;
-  };
-  // …and where the ideal exercise is out of reach, there is a fallback that is not.
-  const firstOf = (ids) => { for (const id of ids) { const x = have(id); if (x) return x; } return null; };
 
   const workouts = [];
   const serId = "ser_" + uid();
@@ -13921,6 +14640,8 @@ function tpGenerate(p, exs, sore, obs = {}) {
   split.forEach((s, si) => {
     const rows = [];
     const used = [];
+    const usedCanon = [];       // an alias is the same exercise wearing another name
+    const usedFamilies = [];    // and so, for one session, is the same stimulus
     const dose = s.dose;
     const [rLo, rHi] = goal.reps;
     const reps = dose === "heavy" ? rLo : dose === "volume" ? rHi : Math.round((rLo + rHi) / 2);
@@ -13930,6 +14651,8 @@ function tpGenerate(p, exs, sore, obs = {}) {
     const add = (ex, o) => {
       if (!ex) return;
       used.push(ex.id);
+      usedCanon.push(tCanonIdOf(ex));
+      usedFamilies.push(tFamilyOf(ex));
       let row = {
         id: uid(), ex: ex.id,
         sets: (o && o.sets) || sets,
@@ -13938,9 +14661,9 @@ function tpGenerate(p, exs, sore, obs = {}) {
         rest: (o && o.rest) != null ? o.rest : rest,
         kg: 0, note: o && o.note ? o.note : ["", ""],
       };
-      // MODIFY · the prescription changes, the exercise stays, the frequency stays.
+      // EASE · the dose comes down and the movement stays. No tempo is prescribed.
       const verdict = tpVerdict(ex, injuries);
-      if (verdict.v === "modify") { row = tpModify(row); nModified += 1; }
+      if (verdict.v === "ease") { row = tpEase(row); nModified += 1; }
       // A straight-arm hold is never taken near failure. Not a preference — a rule.
       // In a planche the muscle does not fail; the elbow does. (Phase 2, law II.)
       if (tIsStraightArm(ex)) { row.rir = 3; row.note = row.note[0] ? row.note : ["Nikdy do selhání. Tady nepovolí sval — povolí loket.", "Never to failure. Here it is not the muscle that gives out — it is the elbow."]; }
@@ -13948,29 +14671,39 @@ function tpGenerate(p, exs, sore, obs = {}) {
       return row;
     };
 
-    // 1 · PŘIPRAV · the joints you are about to load. Three minutes. Always. Never to fatigue.
+    // 1 · PŘIPRAV · the joints you are about to load. Three minutes. Always. Never to
+    //     fatigue. And prep for THOSE joints: the block used to reach for whatever
+    //     mobility card sorted first, which is how a shoulder session opened with an
+    //     ankle drill. Every prep row declares the joints it prepares (TEX_META.pj).
     if (s.kind !== "mob") {
+      const loadJoints = { upper: ["zap", "lok", "ram"], lower: ["kyc", "kol", "kot"],
+                           full: ["zap", "ram", "kyc", "kol", "kot", "pat"] }[s.kind] || [];
       const prep = [];
-      if (["upper", "full"].includes(s.kind)) {
-        prep.push(pick({ cat: "mob", pats: ["mobilita"], prefer: "easiest" }));
-        prep.push(firstOf(["wrists", "disloc", "shouldercars"]));
+      for (let i = 0; i < 3; i++) {
+        const m = pick({ block: "prep", prepFor: loadJoints, exclude: used,
+                         excludeFamilies: usedFamilies, prefer: "easiest" });
+        if (!m) break;
+        prep.push(m);
+        add(m, { sets: 1, reps: m.mode === "sec" ? 30 : 10, rest: 15 });
       }
-      if (["lower", "full"].includes(s.kind)) prep.push(firstOf(["deepsquat", "hip9090", "anklemob", "cat"]));
-      prep.filter(Boolean).filter((e, i, a) => a.indexOf(e) === i).slice(0, 3)
-        .forEach((e) => add(e, { sets: 1, reps: e.mode === "sec" ? 30 : 10, rest: 15 }));
     }
 
     // 2 · DOVEDNOST · fresh, small, never to failure. A tired nervous system does not
     //     learn a position — it learns a worse one.
-    if (goal.skill && s.kind !== "mob" && level >= 2) {
-      // a chosen target beats the generic pick · several targets take turns by session
+    //
+    //     This block only opens when a skill was ASKED for: the Skills goal, or a named
+    //     target. And when there is no named target, the fallback is a COORDINATION
+    //     skill — a balance, an orientation drill — never a high-force one. Handing a
+    //     person a pelican curl they did not choose was the old behaviour, and it came
+    //     from one line that called both of those things "a skill".
+    if ((goal.skill || skillTargets.length) && s.kind !== "mob" && level >= 2) {
       let sk = null;
       if (skillTargets.length) {
         for (let off = 0; off < skillTargets.length && !sk; off++) {
           sk = tpChainRung(skillTargets[(si + off) % skillTargets.length], byId, { level, equip, injuries, exclude: used });
         }
       }
-      if (!sk) sk = pick({ skill: true, exclude: used });
+      if (!sk) sk = pick({ block: "coordination_skill", coordOnly: true, skillFreqMax: 1, exclude: used, excludeFamilies: usedFamilies });
       if (sk) add(sk, { sets: 3, reps: sk.mode === "sec" ? 15 : 3, rest: 90, note: ["Nikdy do selhání. Kvalita, ne únava.", "Never to failure. Quality, not fatigue."] });
     }
 
@@ -13978,7 +14711,15 @@ function tpGenerate(p, exs, sore, obs = {}) {
     const strengthRows = [];
     if (s.kind !== "mob") {
       TP_KIND_PATS[s.kind].forEach((pat) => {
-        const ranked = tpRank(exs, { level, equip, injuries, prefMus, prefJ, pat, exclude: used, recMax });
+        // roles, not just patterns. A reverse hyper and a wrist curl carry the hinge
+        // and the pull pattern, and neither of them is the main movement of a session.
+        const o = { level, equip, injuries, prefMus, prefJ, pat, exclude: used, recMax,
+                    roles: ["strength", "hypertrophy", "power"], block: "strength",
+                    excludeCanon: usedCanon, excludeFamilies: usedFamilies };
+        // A block must never come out empty for want of variety: if the family filter
+        // leaves nothing, the family filter is the thing that yields.
+        let ranked = tpRank(exs, o);
+        if (!ranked.length) ranked = tpRank(exs, { ...o, excludeFamilies: null });
         const ex = ranked[0] || null;
         const r = add(ex);
         if (r) strengthRows.push(r);
@@ -13989,35 +14730,40 @@ function tpGenerate(p, exs, sore, obs = {}) {
       });
     }
 
-    // 4 · DOPLNĚK · what the injury asked for, plus the two things nobody does
-    let given = 0;
-    prescribed.forEach((id) => {
-      if (given >= 2 || used.includes(id)) return;
-      const x = have(id);
-      if (!x) return;
-      add(x, { sets: 2, reps: x.mode === "sec" ? 30 : 12, rest: 45 });
-      given += 1;
-    });
-    if (!injuries.length && si === 0) {
-      // tendon insurance · 8–12 weeks of adaptation is not optional, it is arithmetic.
-      // With no weight in the room, the wrist mobility drill carries the same duty.
-      const t = firstOf(["wristcurl", "wrists"]);
-      if (t && !used.includes(t.id)) add(t, { sets: 2, reps: t.mode === "sec" ? 40 : 12, rest: 45, note: ["Tři vteřiny dolů, tři nahoru.", "Three seconds down, three up."] });
+    // 4 · DOPLNĚK · support work, and only where it was actually asked for.
+    //
+    //     Three things used to arrive here uninvited: an exercise per reported joint
+    //     ("homework"), a wrist curl for everyone as "tendon insurance", and neck
+    //     isometrics in every other session for everyone. Wrist preparation before
+    //     loading the wrists is sensible; loaded wrist curls for a person who never
+    //     asked are not the same thing, and neck strengthening belongs to contact
+    //     sport, to a named goal, or to a coach's plan — not to every human being.
+    //
+    //     What remains: a declared muscle or mobility focus can put its own support
+    //     work in, at most two rows, and that is the whole of it.
+    if ((prefMus.length || prefJ.length) && s.kind !== "mob") {
+      for (let i = 0; i < 2; i++) {
+        const acc = pick({ block: "accessory", exclude: used, excludeFamilies: usedFamilies });
+        if (!acc) break;
+        add(acc, { sets: 2, reps: acc.mode === "sec" ? 30 : 12, rest: 45 });
+      }
     }
-    const neck = have("neckiso");
-    if (neck && s.kind !== "mob" && si % 2 === 0 && !used.includes("neckiso")) add(neck, { sets: 1, reps: 40, rest: 30 });
 
     // 5 · KONDICE · only when the goal asks for it
     if (goal.cond && (s.kind === "full" || s.kind === "lower")) {
-      const c = pick({ cat: "kond", exclude: used, recMax: 1 });
+      const c = pick({ block: "conditioning", exclude: used, excludeFamilies: usedFamilies, recMax: 1 });
       if (c) add(c, { sets: 1, reps: 600, rest: 0, note: ["Tempo, ve kterém ještě udržíš větu.", "The pace at which you can still hold a sentence."] });
     }
 
-    // 6 · ZKLIDNI · breath and light release — the deep static work lives later in the day
+    // 6 · ZKLIDNI · breath and light release — the deep static work lives later in the
+    //     day. It draws from the mobility and breath BLOCKS, so a CO₂ tolerance table
+    //     can no longer end a session: a breath hold is entered by choosing it, and by
+    //     nothing else. (TEX_META marks it breath_optin, which is not generic-eligible.)
     const mobN = s.kind === "mob" ? 6 : goal.mob;
     const cool = [];
     for (let i = 0; i < mobN; i++) {
-      const m = pick({ pats: ["mobilita", "dech"], exclude: [...used, ...cool], prefer: i < 2 ? "easiest" : undefined });
+      const m = pick({ block: ["mobility", "breath"], exclude: [...used, ...cool],
+                       excludeFamilies: usedFamilies, prefer: i < 2 ? "easiest" : undefined });
       if (m) { cool.push(m.id); add(m, { sets: 1, reps: m.mode === "sec" ? 45 : 10, rest: 15 }); }
     }
 
@@ -14124,14 +14870,14 @@ function tpGenerate(p, exs, sore, obs = {}) {
       `Za poslední tři týdny se udělalo ${pct} % naplánovaného. Program, který se nedělá, není program — teď tě brzdí konzistence, ne síla. Proto plán nezvětšuji: objem začíná dole a roste, až když se dělá.`,
       `Over the last three weeks ${pct} % of what was planned got done. A program that does not happen is not a program — what holds you back right now is consistency, not strength. So the plan does not grow: the volume starts low and rises once the sessions happen.`];
   }
-  const forbidden = injuries.length ? (exs || []).filter((x) => tpVerdict(x, injuries).v === "forbid") : [];
+  const held = injuries.length ? (exs || []).filter((x) => tpVerdict(x, injuries).v === "hold") : [];
   {
     const riskCz = [];
     const riskEn = [];
-    if (forbidden.length) {
-      const names = forbidden.slice(0, 6);
-      riskCz.push(`Vyřazeno úplně: ${names.map((x) => x.cz).join(", ")}${forbidden.length > 6 ? ` a další ${forbidden.length - 6}` : ""} — kloub, který tě bolí, tam platí plnou cenu a bezpečná dávka neexistuje.`);
-      riskEn.push(`Left out entirely: ${names.map((x) => x.en).join(", ")}${forbidden.length > 6 ? ` and ${forbidden.length - 6} more` : ""} — the joint that hurts pays full price there, and no safe dose exists.`);
+    if (held.length) {
+      const names = held.slice(0, 6);
+      riskCz.push(`Do plánu se nedostalo: ${names.map((x) => x.cz).join(", ")}${held.length > 6 ? ` a další ${held.length - 6}` : ""} — to místo tam platí vysokou cenu a mírnější verze neexistuje. V knihovně zůstávají a vybrat si je můžeš sám.`);
+      riskEn.push(`Kept out of the plan: ${names.map((x) => x.en).join(", ")}${held.length > 6 ? ` and ${held.length - 6} more` : ""} — that area pays a high price there and there is no gentler version. They stay in the library and you can still choose them.`);
     }
     seconds.slice(0, 5).forEach(([csS, enS]) => { riskCz.push(csS); riskEn.push(enS); });
     if (riskCz.length) why.risk = [riskCz.join("\n"), riskEn.join("\n")];
@@ -14150,23 +14896,22 @@ function tpGenerate(p, exs, sore, obs = {}) {
     ];
   }
   if (injuries.length) {
-    const nAdd = [...new Set(prescribed)].length;
-    const nForbid = forbidden.length;
+    const nHeld = held.length;
     why.injury = [
-      `Bolest (${injuries.map((i) => i.cz).join(", ")}) není poznámka pod tréninkem — je to předpis jiné dávky.
+      `Zapsané omezení (${injuries.map((i) => i.cz).join(", ")}) mění dávku a výběr. Není to diagnóza a tenhle plán žádnou nestanovuje.
 
 ` +
-      `Úplně jsem vyřadil jen ${nForbid} cviků, u kterých žádná bezpečná dávka neexistuje. ${nModified} cviků jsem NEVYŘADIL — jen jsem jim ubral zátěž na polovinu, zpomalil tempo na 3–1–3 a dal tři opakování do rezervy. Frekvenci jsem nechal.
+      `Z plánu jsem vynechal ${nHeld} cviků, u kterých je zatížení toho místa vysoké a mírnější verze neexistuje. Zůstávají v knihovně a můžeš si je kdykoli vybrat sám. Dalších ${nModified} cviků jsem nechal, jen jim ubral: méně sérií, delší pauzy, dál od selhání a zatím žádné zvyšování.
 
 ` +
-      `Dělám to schválně: šlacha se nehojí odpočinkem, ale zátěží — jen jinou. Odlehčit podrážděnou šlachu do nuly není opatrnost, je to špatná léčba. A ${nAdd} cviků jsem přidal právě proto, že tě to bolí.`,
-      `Pain (${injuries.map((i) => i.en).join(", ")}) is not a note under the workout — it is a prescription for a different dose.
+      `Co tenhle plán neumí: posoudit, co se stalo, ani sestavit léčbu. Když bolest trvá, zhoršuje se, ubírá sílu nebo přidává brnění, patří to k člověku, který to může vyšetřit — a plán počká.`,
+      `A recorded limitation (${injuries.map((i) => i.en).join(", ")}) changes the dose and the choice. It is not a diagnosis, and this plan does not make one.
 
 ` +
-      `Only ${nForbid} exercises were removed outright, the ones for which no safe dose exists. ${nModified} exercises were NOT removed — their load was halved, their tempo slowed to 3-1-3, and three reps left in reserve. The frequency was left alone.
+      `${nHeld} exercises were left out of the plan — the ones that load that area hard and have no gentler version. They stay in the library and you can still choose them yourself. Another ${nModified} were kept and eased: fewer sets, longer rests, further from failure, and nothing added for now.
 
 ` +
-      `That is deliberate: a tendon does not heal by resting, it heals under load — just a different load. Unloading an irritated tendon to zero is not caution, it is the wrong treatment. And ${nAdd} exercises were added precisely because it hurts.`];
+      `What this plan cannot do is work out what happened or build a treatment. If it keeps hurting, gets worse, takes strength away or adds numbness, that belongs with someone who can examine it — and the plan will wait.`];
   }
 
   const sessions = [];
@@ -14178,6 +14923,9 @@ function tpGenerate(p, exs, sore, obs = {}) {
     // `int` stays empty on purpose: it is authored, and a generated plan already
     // carries its reasons in `why`. A stored copy of them would drift (P28).
     int: null,
+    // A reported limitation is worth a pair of eyes. The plan says so once, plainly,
+    // and does not pretend the saying of it is treatment.
+    coachReview,
     sessions, why,
   };
   // the shelf the workouts live on · an entity with an id, created WITH them
@@ -15840,14 +16588,16 @@ function PageTrenink() {
   const [q, setQ] = useState("");
   const [patInfo, setPatInfo] = useState(null);  // pattern key | null · hold or double-click a chip
   const [goalInfo, setGoalInfo] = useState(null);
-  const anyFilter = fPats.length || fLvls.length || fMus.length || fEq.length || fPops.length || q;
+  const [fShelf, setFShelf] = useState([]);      // the advanced tiers, opened by name
+  const anyFilter = fPats.length || fLvls.length || fMus.length || fEq.length || fPops.length || fShelf.length || q;
   const filtered = exs.filter((x) =>
+    tExOnShelf(x, fShelf) &&
     (!fPats.length || fPats.includes(x.pat)) &&
     (!fLvls.length || fLvls.includes(tLvlOf(x))) &&
     (!fMus.length || fMus.some((m) => (x.mp || []).includes(m) || (x.ms || []).includes(m))) &&
     (!fEq.length || fEq.some((e) => (x.eq || []).includes(e))) &&
     (!fPops.length || fPops.includes(x.pop || 2)) &&
-    (!q || (x.cz + " " + x.en).toLowerCase().includes(q.toLowerCase()))
+    (!q || tExSearchText(x).toLowerCase().includes(q.toLowerCase()))
   );
   const patOrder = Object.fromEntries(T_PATTERNS.map((p, i) => [p.k, i]));
   // "vlastní" keeps the order of the list itself — which is what drag-and-drop writes into
@@ -16054,8 +16804,16 @@ function PageTrenink() {
             <TMultiSel label={L("Rozšířenost", "How common")} values={fPops} onChange={setFPops} options={T_POPS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
             <Select small value={sortBy} onChange={setSortBy} options={[{ v: "vzor", label: L("Řadit: vzor · úroveň", "Sort: pattern · level") }, { v: "vyznam", label: L("Řadit: světový význam", "Sort: world significance") }, { v: "vlastni", label: L("Řadit: vlastní — táhni myší", "Sort: your own — drag them") }]} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ ...inpStyle, width: 150 }} />
-            {anyFilter ? <button onClick={() => { setFPats([]); setFLvls([]); setFMus([]); setFEq([]); setFPops([]); setQ(""); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 11.5, textDecoration: "underline", padding: 0 }}>{L("vyčistit", "clear")}</button> : null}
+            {anyFilter ? <button onClick={() => { setFPats([]); setFLvls([]); setFMus([]); setFEq([]); setFPops([]); setFShelf([]); setQ(""); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 11.5, textDecoration: "underline", padding: 0 }}>{L("vyčistit", "clear")}</button> : null}
             <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginLeft: "auto" }}>{sorted.length} {L("cviků", "exercises")}</span>
+          </div>
+          {/* The rest of the library. Not a default view, and not a secret either. */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
+            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5, color: t.sage, marginRight: 4 }}>{L("Ukázat i", "Also show")}</span>
+            {TEX_TIERS_ADVANCED.map((k) => (
+              <TChip key={k} label={L(TEX_TIER_LABEL[k][0], TEX_TIER_LABEL[k][1])} active={fShelf.includes(k)}
+                onClick={() => setFShelf(fShelf.includes(k) ? fShelf.filter((x) => x !== k) : [...fShelf, k])} />
+            ))}
           </div>
           {selBar("tEx", exPage)}
           <div className="tm-reveal" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(235px, 1fr))", gap: 12 }}>
@@ -17925,7 +18683,7 @@ export default function App() {
   const purgeTrash = (tid) => { const item = (coll.trash || []).find((x) => x.tid === tid); if (item) purgeIdbOf(item); persistColl((c) => ({ ...c, trash: (c.trash || []).filter((x) => x.tid !== tid) })); };
   const purgeAllTrash = () => { (coll.trash || []).forEach(purgeIdbOf); persistColl((c) => ({ ...c, trash: [] })); };
   const seedTraining = () => persistColl((c) => {
-    if (!c.tSeeded) return { ...c, tSeeded: true, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] };
+    if (!c.tSeeded) return { ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] };
     let next = c;
     const seedById = Object.fromEntries(TEX_ALL.map((x) => [x.id, x]));
     if (!next.tSeedV2) {
@@ -18216,6 +18974,15 @@ export default function App() {
       const tWoF = [...(next.tWo || []), ...addedWo].map((w) => woMeta[w.id] ? { ...w, cz: woMeta[w.id].cz, en: woMeta[w.id].en, int: woMeta[w.id].int, aims: woMeta[w.id].aims } : w);
       const tPlF = [...(next.tPl || []), ...addedPl].map((p) => plMeta[p.id] ? { ...p, cz: plMeta[p.id].cz, en: plMeta[p.id].en, int: plMeta[p.id].int, goals: plMeta[p.id].goals, rec: !!plMeta[p.id].rec, cat: "vi" } : p);
       next = { ...next, viSync: VI_SYNC_VER, tEx: [...(next.tEx || []), ...addedEx], tSer: tSerF, tWo: tWoF, tPl: tPlF };
+    }
+    // ================================================================= AUDIT · knihovna
+    // The exercise-library audit of 21 Aug 2026, reaching a library seeded before it.
+    // Corrects only fields still holding their pre-audit value — see TEX_AUDIT_FIX.
+    // Never deletes a row, never changes an id, never touches a workout or a record.
+    const EX_AUDIT_VER = 1;
+    if ((next.exAudit || 0) < EX_AUDIT_VER) {
+      const fixed = tExAuditFix(next.tEx || []);
+      next = { ...next, exAudit: EX_AUDIT_VER, exAuditN: fixed.touched, tEx: fixed.rows };
     }
     return next;
   });
