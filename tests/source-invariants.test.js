@@ -81,3 +81,39 @@ test("každá místnost ve směrovači je opravdu definovaná", () => {
   const missing = [...used].filter((n) => !new RegExp("function " + n + "\\s*\\(").test(app));
   assert.deepEqual(missing, [], "směrovač ukazuje na nedefinované komponenty");
 });
+
+test("příloha má kam spadnout, když spojení selže", () => {
+  assert.match(app, /async function attDoUloziste\(file, id\)/);
+  assert.match(app, /await idbPut\(id, file\)/);
+  assert.doesNotMatch(app, /await readFileAsAtt\(f\)\); \} catch \(e\) \{\}/, "selhání se nesmí spolknout");
+  assert.match(app, /se nepodařilo uložit/, "člověk se to musí dozvědět");
+});
+
+test("sběrač souborů má obě brzdy, které má osobní aplikace", () => {
+  const i = app.indexOf("window.tmGcFiles");
+  const blok = app.slice(i, i + 2600);
+  assert.match(blok, /if \(!stateOk\)/, "nečitelný stav ze serveru musí běh zastavit");
+  assert.match(blok, /orphans\.length > Math\.max\(5, Math\.floor\(files\.length \* 0\.3\)\)/, "chybí strop na počet osiřelých");
+});
+
+test("offline příloha se pošle nahoru, až bude signál", () => {
+  assert.match(app, /window\.tmPrilohyNahoru = async/);
+  assert.match(app, /function tmPovysPrilohy/);
+  const i = app.indexOf("window.tmPrilohyNahoru = async");
+  assert.match(app.slice(i, i + 1400), /setTimeout\(\(\) => \{ if \(ulozeno > 0\) hotove\.forEach/);
+});
+
+test("selhání odeslání na server se neztratí", () => {
+  assert.match(app, /\.catch\(\(\) => setSyncErr\(true\)\)/);
+  assert.match(app, /\{syncErr && \(/);
+});
+
+test("zmenšení obrázku vždycky doběhne", () => {
+  const i = app.indexOf("function resizeImageToBlob");
+  const blok = app.slice(i, i + 1400);
+  assert.match(blok, /\} finally \{\s*URL\.revokeObjectURL\(url\);/);
+});
+
+test("html dokumentu sleduje zvolený jazyk", () => {
+  assert.match(app, /document\.documentElement\.lang = lang === "cs"/);
+});

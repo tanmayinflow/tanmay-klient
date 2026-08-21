@@ -12,6 +12,7 @@
     "test:security": "node --test \"tests/worker.test.js\"",
     "test:source": "node --test \"tests/source-invariants.test.js\"",
     "test:browser": "node tests/browser/account-switch.mjs",
+    "test:pwa": "node tests/browser/pwa.mjs",
     "check": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {

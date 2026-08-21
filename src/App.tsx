@@ -360,6 +360,31 @@ function attUrl(a) { return a && a.r2 ? r2Url(a.id) : (a ? a.data : ""); }
 const R2_MAX = 95 * 1024 * 1024; // Worker request-body limit is 100 MB; stay under.
 // Collect every R2 file id referenced anywhere in a document subtree.
 // Used by garbage collection (and later by the offline "pin page" toggle).
+// Přílohy, které čekají v zařízení na signál, a jejich povýšení, až přijde.
+// Bez tohohle by soubor uložený offline zůstal místní navždy — a na jiném
+// zařízení by po něm nezbylo nic.
+function tmMistniPrilohy(node, out) {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) { for (const x of node) tmMistniPrilohy(x, out); return; }
+  if (node.idb === true && node.id) out.set(node.id, node.name || "");
+  for (const k of Object.keys(node)) tmMistniPrilohy(node[k], out);
+}
+function tmPovysPrilohy(node, hotove) {
+  if (!node || typeof node !== "object") return node;
+  if (Array.isArray(node)) {
+    let zmena = false;
+    const out = node.map((x) => { const y = tmPovysPrilohy(x, hotove); if (y !== x) zmena = true; return y; });
+    return zmena ? out : node;
+  }
+  if (node.idb === true && node.id && hotove.has(node.id)) {
+    const { idb, ...zbytek } = node;
+    return { ...zbytek, r2: true };
+  }
+  let zmena = false;
+  const out = {};
+  for (const k of Object.keys(node)) { const y = tmPovysPrilohy(node[k], hotove); if (y !== node[k]) zmena = true; out[k] = y; }
+  return zmena ? out : node;
+}
 function collectFileRefs(node, out) {
   if (!node) return;
   if (Array.isArray(node)) { for (const x of node) collectFileRefs(x, out); return; }
@@ -485,10 +510,24 @@ async function migrateNode(node, stats, dryRun) {
   }
   return node;
 }
+/* PŘÍLOHA MÁ KAM SPADNOUT
+   Klientská aplikace uměla jen nahrát do R2. Když spojení selhalo, výjimka
+   se dole zahodila a soubor byl pryč — bez zprávy, bez místní kopie, bez
+   stopy. Osobní aplikace tohle řeší odjakživa druhým patrem v IndexedDB;
+   sem to nikdy nedojelo. Teď dojelo. */
+async function attDoUloziste(file, id) {
+  try {
+    await r2Put(id, file, file.name);
+    return { id, name: file.name, type: file.type || "application/octet-stream", size: file.size, r2: true };
+  } catch (e) {
+    // spojení selhalo · soubor zůstane v zařízení a počká si na signál
+    await idbPut(id, file);
+    return { id, name: file.name, type: file.type || "application/octet-stream", size: file.size, idb: true };
+  }
+}
 async function makeAudioAtt(file) {
-  const id = uid() + "a";
-  await r2Put(id, file, file.name);
-  return { id, name: file.name, type: file.type || "audio/mpeg", size: file.size, r2: true };
+  const a = await attDoUloziste(file, uid() + "a");
+  return { ...a, type: file.type || "audio/mpeg" };
 }
 async function filesToAtts(fileList, askFn) {
   const out = [];
@@ -496,7 +535,12 @@ async function filesToAtts(fileList, askFn) {
     const isAudio = (f.type || "").startsWith("audio/");
     const max = R2_MAX;
     if (f.size > max) { if (askFn) askFn(`„${f.name}" je příliš velký (${fmtSize(f.size)}). Limit ${fmtSize(max)}.`, null); continue; }
-    try { out.push(isAudio ? await makeAudioAtt(f) : await readFileAsAtt(f)); } catch (e) {}
+    // Selhání obou pater se člověku řekne. Tiché „nic se nestalo" tady
+    // znamenalo ztracenou fotku bez jediného slova.
+    try { out.push(isAudio ? await makeAudioAtt(f) : await readFileAsAtt(f)); }
+    catch (e) {
+      if (askFn) askFn(L(`„${f.name}" se nepodařilo uložit. Zkus to prosím znovu, až budeš online.`, `"${f.name}" could not be saved. Please try again once you are online.`), null);
+    }
   }
   return out;
 }
@@ -505,22 +549,29 @@ function resizeImageToBlob(file, maxSide) {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const scale = Math.min(1, (maxSide || 320) / Math.max(img.width, img.height));
-      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
-      const c = document.createElement("canvas");
-      c.width = w; c.height = h;
-      c.getContext("2d").drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      c.toBlob((b) => b ? resolve(b) : reject(new Error("blob failed")), "image/jpeg", 0.82);
+      // Bez try/catch se výjimka z plátna ztratila uvnitř posluchače: slib se
+      // nikdy neuzavřel a volající čekal donekonečna.
+      try {
+        const scale = Math.min(1, (maxSide || 320) / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const ctx2d = c.getContext("2d");
+        if (!ctx2d) throw new Error("canvas 2d context unavailable");
+        ctx2d.drawImage(img, 0, 0, w, h);
+        c.toBlob((b) => b ? resolve(b) : reject(new Error("blob failed")), "image/jpeg", 0.82);
+      } catch (e) {
+        reject(e);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img load failed")); };
     img.src = url;
   });
 }
 async function readFileAsAtt(file) {
-  const id = uid();
-  await r2Put(id, file, file.name);
-  return { id, name: file.name, type: file.type || "application/octet-stream", size: file.size, r2: true };
+  return attDoUloziste(file, uid());
 }
 const iconBtn = (t) => ({ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.textMuted, cursor: "pointer", width: 26, height: 26, fontSize: 12, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" });
 const fieldStyle = (t) => ({ width: "100%", background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 14, padding: "9px 11px", outline: "none" });
@@ -1179,7 +1230,7 @@ function RanniZamer({ date, go }) {
         </span>
         <span style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 18, color: hov ? t.accent : t.sand, transition: "color .3s ease" }}>{L("Dnes jsem", "Today I am")}</span>
       </button>
-      <input value={plan.iam || ""} onChange={(e) => setP("iam", e.target.value)} placeholder={L("charakter a kvality, které držím", "the character and qualities I hold")} style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: `1px solid ${t.border}`, color: t.heading, fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 18, padding: "2px 2px 4px", outline: "none", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }} />
+      <input value={plan.iam || ""} onChange={(e) => setP("iam", e.target.value)} aria-label={L("Dnes jsem", "Today I am")} placeholder={L("charakter a kvality, které držím", "the character and qualities I hold")} style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: `1px solid ${t.border}`, color: t.heading, fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 18, padding: "2px 2px 4px", outline: "none", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }} />
     </div>
   );
 }
@@ -1337,7 +1388,7 @@ function WellbeingTracker() {
             </span>
           </div>
         </div>
-        <input value={cur.theme || ""} onChange={(e) => set({ theme: e.target.value })} placeholder={L("Motiv dne — jméno, které dnešek dostal…", "Day's motif — the name this day earned…")} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${t.border}`, color: t.sand, fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 17, padding: "3px 2px 6px", outline: "none" }} />
+        <input value={cur.theme || ""} onChange={(e) => set({ theme: e.target.value })} aria-label={L("Motiv dne", "Day's motif")} placeholder={L("Motiv dne — jméno, které dnešek dostal…", "Day's motif — the name this day earned…")} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${t.border}`, color: t.sand, fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 17, padding: "3px 2px 6px", outline: "none" }} />
       </div>
 
     </Callout>
@@ -16986,6 +17037,9 @@ export default function App() {
   LANG = lang; // keep module-level flag in sync on every render
   FONT_DISPLAY = lang === "cs" ? FONT_DISPLAY_CS : FONT_DISPLAY_EN; // CZ display = EB Garamond 400 (§6)
   const toggleLang = () => setLang((l) => { const n = l === "cs" ? "en" : "cs"; try { localStorage.setItem("tm-lang", n); } catch (e) {} return n; });
+  // Odečítač obrazovky čte podle jazyka dokumentu, ne podle jazyka textu.
+  // Bez tohohle zněla anglická verze česky vyslovená.
+  React.useEffect(() => { try { document.documentElement.lang = lang === "cs" ? "cs" : "en"; } catch (e) {} }, [lang]);
   const [page, setPage] = useState("praxe"); // the house opens into the day · Praxe is the threshold
   const [menuOpen, setMenuOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -17023,13 +17077,19 @@ export default function App() {
         if (tag) {
           const prev = ownerLoad();
           if (prev && prev !== tag) {
-            // U klávesnice sedí někdo jiný než minule. Cizí dokument stranou.
-            ownerQuarantine(prev);
-            setColl(COLL_EMPTY());
-            setEdits({});
-            setOwnerSwitched(true);
+            // U klávesnice sedí někdo jiný než minule. Cizí dokument stranou —
+            // ale jen když si nový otisk umíme zapsat. Kdyby ten zápis selhal,
+            // odkládali bychom obsah znovu při každém dalším otevření.
+            ownerSave(tag);
+            if (ownerLoad() === tag) {
+              ownerQuarantine(prev);
+              setColl(COLL_EMPTY());
+              setEdits({});
+              setOwnerSwitched(true);
+            }
+          } else {
+            ownerSave(tag);
           }
-          ownerSave(tag);
         }
         setOwnerId(tag);
       })
@@ -17243,11 +17303,36 @@ export default function App() {
       console.log("[media migration]", dryRun ? "DRY RUN — nothing changed" : "APPLIED", stats);
       return stats;
     };
+    // Přílohy uložené offline pošleme nahoru, jakmile je signál.
+    window.tmPrilohyNahoru = async () => {
+      const cekaji = new Map();
+      tmMistniPrilohy(_collRef.current, cekaji);
+      tmMistniPrilohy(_editsRef.current, cekaji);
+      if (!cekaji.size) return { cekalo: 0, nahrano: 0 };
+      const hotove = new Set();
+      for (const [id, jmeno] of cekaji) {
+        try {
+          const b = await idbGet(id);
+          if (!b) continue;
+          await r2Put(id, b, jmeno);
+          hotove.add(id);
+        } catch (e) { /* zkusí se příště */ }
+      }
+      if (hotove.size) {
+        // Místní kopie se maže až potom, co je povýšený odkaz zapsaný.
+        let ulozeno = 0;
+        setColl((prev) => { const nx = tmPovysPrilohy(prev, hotove); if (nx !== prev && saveColl(nx)) ulozeno++; return nx; });
+        setEdits((prev) => { const nx = tmPovysPrilohy(prev, hotove); if (nx !== prev && saveEdits(nx)) ulozeno++; return nx; });
+        setTimeout(() => { if (ulozeno > 0) hotove.forEach((id) => idbDel(id)); }, 0);
+      }
+      return { cekalo: cekaji.size, nahrano: hotove.size };
+    };
     window.tmGcFiles = async (dryRun = false, ignoreAge = false) => {
       const refs = new Set();
       collectFileRefs(_collRef.current, refs);
       collectFileRefs(_editsRef.current, refs);
-      try { const sr = await fetch("/api/state", { cache: "no-store" }); if (sr.ok) { const b = await sr.json(); if (b && b.doc) collectFileRefs(b.doc, refs); } } catch (e) {}
+      let stateOk = false;
+      try { const sr = await fetch("/api/state", { cache: "no-store" }); if (sr.ok) { const b = await sr.json(); if (b && b.doc) { collectFileRefs(b.doc, refs); } stateOk = true; } } catch (e) {}
       let files = [];
       try { const lr = await fetch("/api/files", { cache: "no-store" }); files = (await lr.json()).files || []; } catch (e) {}
       const cutoff = Date.now() - 24 * 60 * 60 * 1000;
@@ -17260,13 +17345,35 @@ export default function App() {
           console.warn("[file gc] aborted: 0 referenced files but " + files.length + " stored - refusing to mass-delete. Load/sync your data first.");
           return { stored: files.length, referenced: 0, orphans: orphansAll.length, deleted: 0, aborted: true };
         }
+        // Soupis referencí ze serveru se nepodařilo přečíst → místní stav může
+        // být ochuzený a smazali bychom přílohy, které někdo pořád má. Radši nic.
+        if (!stateOk) {
+          console.warn("[file gc] aborted: server state unreadable");
+          return { stored: files.length, referenced: refs.size, orphans: orphans.length, deleted: 0, aborted: true };
+        }
+        if (orphans.length > Math.max(5, Math.floor(files.length * 0.3))) {
+          console.warn("[file gc] aborted: " + orphans.length + "/" + files.length + " orphans - too many");
+          return { stored: files.length, referenced: refs.size, orphans: orphans.length, deleted: 0, aborted: true };
+        }
         for (const f of orphans) { try { await fetch("/api/files/" + encodeURIComponent(f.id), { method: "DELETE" }); } catch (e) {} }
       }
       const out = { stored: files.length, referenced: refs.size, orphans: orphansAll.length, eligible: orphans.length, tooYoung, deleted: dryRun ? 0 : orphans.length };
       console.log("[file gc]", dryRun ? "DRY RUN - nothing deleted" : "APPLIED", out);
       return out;
     };
-    return () => { try { delete window.tmMigrateMedia; delete window.tmGcFiles; } catch (e) {} };
+    return () => { try { delete window.tmMigrateMedia; delete window.tmGcFiles; delete window.tmPrilohyNahoru; } catch (e) {} };
+  }, []);
+  // Jeden běh naráz, po startu a při návratu signálu.
+  React.useEffect(() => {
+    let bezi = false;
+    const dotlac = () => {
+      if (bezi || !window.tmPrilohyNahoru) return;
+      bezi = true;
+      Promise.resolve(window.tmPrilohyNahoru()).catch(() => {}).then(() => { bezi = false; });
+    };
+    const t = setTimeout(dotlac, 4000);
+    window.addEventListener("online", dotlac);
+    return () => { clearTimeout(t); window.removeEventListener("online", dotlac); };
   }, []);
 
   // ---- Cross-device sync via D1 (/api/state) ----
@@ -17277,6 +17384,9 @@ export default function App() {
   const _lastSynced = React.useRef(null);
   const _dirty = React.useRef(false); // local changed since load -> never let a late server read clobber it
   const _serializeDoc = (c, e) => JSON.stringify({ coll: c, edits: e });
+  // Odeslání na server bylo jediná cesta, kterou práce opouští zařízení,
+  // a selhalo beze slova — síťová chyba i odpověď 401 se zahodily stejně.
+  const [syncErr, setSyncErr] = useState(false);
   React.useEffect(() => {
     // Dokud nevíme, komu úložiště patří, neodesíláme nic a nic nepřijímáme.
     if (ownerId === null) return;
@@ -17318,6 +17428,7 @@ export default function App() {
             if (!pr.ok) throw new Error("state PUT " + pr.status);
             let pv = 0; try { pv = ((await pr.json()) || {}).version || 0; } catch (e) {}
             syncMarkSave(pv, tmDocSig(mine));
+            setSyncErr(false);
           }
           _lastSynced.current = mine;
         }
@@ -17350,11 +17461,12 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ doc: { coll, edits } }),
       }).then(async (r) => {
-        if (!r.ok) return;
+        if (!r.ok) { setSyncErr(true); return; }
         _lastSynced.current = cur;
         let pv = 0; try { pv = ((await r.json()) || {}).version || 0; } catch (e) {}
         syncMarkSave(pv, tmDocSig(cur));
-      }).catch(() => {});
+        setSyncErr(false);
+      }).catch(() => setSyncErr(true));
     }, 1500);
     return () => clearTimeout(h);
   }, [coll, edits]);
@@ -18630,13 +18742,19 @@ export default function App() {
 
         {member === false && <InviteGate />}
         {saveErr && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 400, background: t.accent, color: t.onAccent || t.bg, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
+          <div role="status" aria-live="polite" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 400, background: t.accent, color: t.onAccent || t.bg, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
             <span style={{ flex: 1, minWidth: 200 }}>{L("Uložení selhalo — místní úložiště je plné. Co vidíš na obrazovce, zatím není uložené.", "Saving failed — local storage is full. What you see is not saved yet.")}</span>
             <button onClick={() => setSaveErr(false)} style={{ background: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
           </div>
         )}
+        {syncErr && (
+          <div role="status" aria-live="polite" style={{ position: "fixed", top: saveErr ? 44 : 0, left: 0, right: 0, zIndex: 398, background: t.card, color: t.text, borderBottom: `1px solid ${t.border}`, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
+            <span style={{ flex: 1, minWidth: 200 }}>{L("Změny jsou zatím jen v tomhle zařízení — na server se nedostaly.", "Your changes are on this device only — they have not reached the server.")}</span>
+            <button onClick={() => setSyncErr(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
+          </div>
+        )}
         {ownerSwitched && (
-          <div style={{ position: "fixed", top: saveErr ? 44 : 0, left: 0, right: 0, zIndex: 399, background: t.card, color: t.text, borderBottom: `1px solid ${t.border}`, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
+          <div role="status" aria-live="polite" style={{ position: "fixed", top: saveErr ? 44 : 0, left: 0, right: 0, zIndex: 399, background: t.card, color: t.text, borderBottom: `1px solid ${t.border}`, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
             <span style={{ flex: 1, minWidth: 200 }}>{L("Tohle zařízení naposledy použil někdo jiný. Jeho obsah je odložený stranou, tvůj prostor je prázdný.", "Someone else used this device last. Their content is set aside; your space starts empty.")}</span>
             <button onClick={() => setOwnerSwitched(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
           </div>
