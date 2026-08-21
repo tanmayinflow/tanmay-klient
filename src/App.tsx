@@ -1842,7 +1842,7 @@ const MANDALA_STUDY = {
       { ulCz: ["ráno se nalaď: kterou fasetu dnes den potřebuje? („Dnes jsem…“)", "přes den zachytávej převraty: kdo právě mluví — faseta, nebo subosobnost?", "večer krátce poděkuj té straně, která nesla den", "obrazy v galeriích živí fasety — vracej se k nim, obměňuj je"], ulEn: ["tune in each morning: which facet does this day need? (\"Today I am…\")", "through the day, catch the coups: who is speaking — a facet, or a subpersonality?", "each evening, briefly thank the direction that carried the day", "the gallery images feed the facets — return to them, let them change"] },
     ]},
     { tCz: "Celistvost před duší", tEn: "Wholeness before soul", body: [
-      { pCz: "Celá mandala slouží jednomu: připravit člověka na rozhovor s vlastní duší a jejím povoláním. Divoká příroda je při tom první zrcadlo — kruh se neučí v knihovně, ale v krajině.", pEn: "The whole mandala serves one thing: to ready a person for the conversation with their own soul and its calling. Wild nature is the first mirror in this — the circle is learned not in a library but on the land." },
+      { pCz: "Celá mandala slouží jednomu: připravit člověka na rozhovor s vlastní duší a jejím povoláním. Divoká příroda je při tom zrcadlem. Kruh se neučí v knihovně, ale v krajině.", pEn: "The whole mandala serves one thing: to ready a person for the conversation with their own soul and its calling. Wild nature is the mirror in that in this — the circle is learned not in a library but on the land." },
     ]},
   ],
 };
@@ -2282,8 +2282,8 @@ function PageHabit({ go }) {
           </div>
           <div style={{ width: 44, height: 1, background: t.heroLine, margin: "14px 0" }} />
           {st.editMode
-            ? <BufferedInput value={st.pageMetaOf("praxe").sub || L("Ranní záměr. Devět návyků během dne. Večer ohlédnutí. Tělo, praxe a kontakt se světem — den po dni.", "Morning intent. Nine habits through the day. Review at night. Body, practice, and contact with the world — one day at a time.")} onCommit={(v) => st.setPageMeta("praxe", { sub: v })} style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heroInkSoft, margin: 0, lineHeight: 1.65, maxWidth: 520, borderBottom: `1px dashed ${t.heroLine}` }} />
-            : <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heroInkSoft, margin: 0, lineHeight: 1.65, maxWidth: 520 }}>{st.pageMetaOf("praxe").sub || L("Ranní záměr. Devět návyků během dne. Večer ohlédnutí. Tělo, praxe a kontakt se světem — den po dni.", "Morning intent. Nine habits through the day. Review at night. Body, practice, and contact with the world — one day at a time.")}</p>}
+            ? <BufferedInput value={st.pageMetaOf("praxe").sub || L("Ráno záměr. Přes den praxe. Večer ohlédnutí. Den po dni.", "Intention in the morning. Practice through the day. Review at night. One day at a time.")} onCommit={(v) => st.setPageMeta("praxe", { sub: v })} style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heroInkSoft, margin: 0, lineHeight: 1.65, maxWidth: 520, borderBottom: `1px dashed ${t.heroLine}` }} />
+            : <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heroInkSoft, margin: 0, lineHeight: 1.65, maxWidth: 520 }}>{st.pageMetaOf("praxe").sub || L("Ráno záměr. Přes den praxe. Večer ohlédnutí. Den po dni.", "Intention in the morning. Practice through the day. Review at night. One day at a time.")}</p>}
         </div>
       </div>
 
@@ -4323,7 +4323,7 @@ function PageContent() {
 
   return (
     <>
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPrameny size={38} /></span>} pageKey="prameny" kicker={L("Co si nést dál", "What to carry on")}>{L("Prameny", "Sources")}</PageTitle>
+      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPrameny size={38} /></span>} pageKey="prameny" kicker={L("Co si nést dál", "What to carry forward")}>{L("Prameny", "Sources")}</PageTitle>
       {st.editMode && <p style={pProse(t)}><span style={{ color: t.textMuted }}>{L("Klik otevře detail · podrž a přetáhni ve vlastním pořadí · progress přepneš přímo v řádku.", "Click opens the detail · hold and drag in custom order · toggle progress right in the row.")}</span></p>}
 
       <div className="tm-typerow" style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
@@ -5021,7 +5021,7 @@ function PageFinances() {
         </div>
       </div>
 
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcHospodareni size={38} /></span>} pageKey="hospodareni" kicker="System · 6 Jars">{L("Hospodaření", "Stewardship")}</PageTitle>
+      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcHospodareni size={38} /></span>} pageKey="hospodareni" kicker={L("Co přichází, kam odchází, co zůstává.", "What comes in, where it goes, what stays.")}>{L("Hospodaření", "Stewardship")}</PageTitle>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0 4px", flexWrap: "wrap" }}>
         <button onClick={() => setMonth(finShiftMonth(month, -1))} style={calBtn(t, false)}>‹</button>
@@ -5269,7 +5269,7 @@ const KLIENT_MODULE_LABELS = { habit: "Návyky", journal: "Deník", notebook: "Z
 
 const KL_STATUS = [
   { v: "zajemce", cz: "Zájemce", en: "Lead", c: "gray" },
-  { v: "diagnostika", cz: "Diagnostika", en: "Assessment", c: "yellow" },
+  { v: "diagnostika", cz: "Vstupní posouzení", en: "Initial assessment", c: "yellow" },
   { v: "aktivni", cz: "Aktivní", en: "Active", c: "orange" },
   { v: "pauza", cz: "Pauza", en: "Paused", c: "blue" },
   { v: "ukonceno", cz: "Ukončeno", en: "Ended", c: "gray" },
@@ -5760,7 +5760,7 @@ function KlTabPrehled({ p, acc, onTab }) {
             {klVeto(p) && <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.accent, lineHeight: 1.6, margin: "0 0 12px" }}>{L("Omezení má přednost před tréninkovým věkem. Nejdřív korekce, pak zátěž.", "The restriction takes precedence over training age. Correction first, then load.")}</div>}
             <KlArea label={L("Cíle", "Goals")} value={p.goals} onCommit={(v) => patch({ goals: v })} placeholder={L("Co sem člověk nese.", "What this person brings.")} />
             <KlArea label={L("Zdraví a omezení", "Health and limits")} value={p.health} onCommit={(v) => patch({ health: v })} placeholder={L("Zranění, bolesti, léky, operace.", "Injuries, pain, medication, surgery.")} />
-            <KlArea label={L("Diagnostika", "Assessment")} value={p.diag} onCommit={(v) => patch({ diag: v })} rows={4} placeholder={L("Co ukázalo tělo při vstupu.", "What the body showed at the start.")} />
+            <KlArea label={L("Vstupní posouzení", "Initial assessment")} value={p.diag} onCommit={(v) => patch({ diag: v })} rows={4} placeholder={L("Co ukázalo tělo při vstupu.", "What the body showed at the start.")} />
           </KlSection>
 
           <KlSection label={L("Dohoda a vztah", "Agreement and relationship")}>
