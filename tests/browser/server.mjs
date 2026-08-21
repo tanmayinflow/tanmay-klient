@@ -11,7 +11,7 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css
   ".webmanifest": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml",
   ".webp": "image/webp", ".ico": "image/x-icon", ".jpg": "image/jpeg" };
 
-export const state = { me: { member: true, name: "Test", owner: "aaaaaaaaaaaaaaaa" }, doc: null, version: 0, files: new Map() };
+export const state = { me: { member: true, name: "Test", owner: "aaaaaaaaaaaaaaaa" }, doc: null, version: 0, files: new Map(), plan: null, share: null };
 
 export function createServer() {
   return http.createServer(async (req, res) => {
@@ -24,11 +24,14 @@ export function createServer() {
     if (u.pathname === "/api/state") {
       if (req.method === "GET") return send(200, JSON.stringify({ doc: state.doc, version: state.version, updated_at: Date.now() }));
       let b = ""; for await (const c of req) b += c;
-      try { state.doc = JSON.parse(b).doc; } catch (e) {}
+      // Zpětný kanál · zkouška se na něj dívá stejně jako trenérská strana.
+      try { const body = JSON.parse(b); state.doc = body.doc; if ("share" in body) state.share = body.share; } catch (e) {}
       state.version++;
       return send(200, JSON.stringify({ ok: true, version: state.version }));
     }
-    if (u.pathname === "/api/plan") return send(200, JSON.stringify({ doc: null, updated_at: null }));
+    if (u.pathname === "/__share") return send(200, JSON.stringify({ share: state.share || null }));
+    if (u.pathname === "/__plan") { let b = ""; for await (const c of req) b += c; try { state.plan = JSON.parse(b); } catch (e) {} return send(200, JSON.stringify({ ok: true })); }
+    if (u.pathname === "/api/plan") return send(200, JSON.stringify({ doc: state.plan || null, updated_at: state.plan ? Date.now() : null }));
     if (u.pathname === "/api/files") return send(200, JSON.stringify({ files: [] }));
     if (u.pathname.startsWith("/api/files/")) {
       const id = decodeURIComponent(u.pathname.slice("/api/files/".length));

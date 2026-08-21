@@ -1,5 +1,9 @@
 import React, { useState, useContext, createContext } from "react";
 import { createPortal } from "react-dom";
+// Tréninková doména je stejný modul jako v trenérské aplikaci. Ne kopie kódu —
+// stejný soubor, takže schéma série, měření a rekordů nemůže mezi oběma appkami
+// tiše rozejít. Nic z něj nezná React ani DOM.
+import * as TV from "./training/index.js";
 
 /**
  * Tanmay Practice · Client App
@@ -5484,7 +5488,9 @@ const klPairs = (profiles, accounts) => {
 };
 // Klíč, pod kterým může být plán přiřazený tomuhle člověku (historie i současnost)
 const klPlanKeys = (p, acc) => [p && p.uid, acc && acc.user_id, p && p.id].filter(Boolean);
-const klPlansOf = (st, p, acc) => { const keys = klPlanKeys(p, acc); return (st.coll.tPl || []).filter((x) => x.client && keys.includes(x.client)); };
+// Trenérská místnost v klientské aplikaci není nasměrovaná a plány trenéra tu
+// nejsou. Zůstává jako prázdný seznam, aby zbytek téhle mrtvé větve dál dával smysl.
+const klPlansOf = () => [];
 const klClientOptions = (st, accounts) => {
   const { rows, orphans } = klPairs(st.coll.klProfiles || [], accounts);
   return [
@@ -5781,39 +5787,6 @@ function KlAxis({ label, value, onChange, list }) {
   );
 }
 
-// ---- Krok B1 · balík pro klienta -------------------------------------------
-// Klientská appka tvoji knihovnu nemá. Posílá se soběstačný balík: plány, jejich
-// tréninky, jejich cviky. Nalehko — jen to, co read-only pohled skutečně vykreslí.
-// done se neposílá. Plnění patří klientovi a vrací se kanálem share.
-const klBundle = (st, plans, opts) => {
-  const wos = st.coll.tWo || [];
-  const exs = st.coll.tEx || [];
-  const withPro = !!(opts && opts.pro);
-  const wIds = new Set();
-  (plans || []).forEach((pl) => (pl.sessions || []).forEach((s) => { if (s.wid) wIds.add(s.wid); }));
-  const workouts = wos.filter((w) => wIds.has(w.id));
-  const eIds = new Set();
-  workouts.forEach((w) => (w.rows || []).forEach((r) => { if (r.ex) eIds.add(r.ex); }));
-  return {
-    at: Date.now(),
-    plans: (plans || []).map((pl) => ({
-      id: pl.id, cz: pl.cz || "", en: pl.en || "", goals: pl.goals || [], int: pl.int || null,
-      rx: pl.rx || {},
-      sessions: (pl.sessions || []).map((s) => ({ id: s.id, w: s.w || 1, wid: s.wid, eff: s.eff || 100, date: s.date || "" })),
-    })),
-    workouts: workouts.map((w) => ({
-      id: w.id, cz: w.cz || "", en: w.en || "", aims: w.aims || [], int: w.int || null,
-      rows: (w.rows || []).map((r) => ({ id: r.id, ex: r.ex, sets: r.sets, reps: r.reps, unit: r.unit, rest: r.rest, note: r.note || null })),
-    })),
-    // Figura jede s cvikem · klient knihovnu nemá. Progrese jen když ji pošleš.
-    exercises: exs.filter((e) => eIds.has(e.id)).map((e) => ({
-      id: e.id, cz: e.cz || "", en: e.en || "", pat: e.pat || "", eq: e.eq || [], mode: e.mode || "reps",
-      fig: T_FIGS[e.id] || null,
-      foc: e.foc || null, pos: e.pos || null, exe: e.exe || null, wat: e.wat || null,
-      pro: withPro ? e.pro || null : null,
-    })),
-  };
-};
 // Plnění, které se vrátilo v share snapshotu · { planId: { sessionId: {done, date, sets} } }
 const klFulfil = (acc) => ((acc && acc.share && acc.share.training) || {}).plans || null;
 // Termíny, které si klient naplánoval sám · { planId: { sessionId: "YYYY-MM-DD" } }
@@ -5919,221 +5892,6 @@ function KlTabPrehled({ p, acc, onTab }) {
   );
 }
 
-// ---- Předpis · kila od tebe, vedle nich skutečnost od klienta --------------
-// Předpis leží na klientově kopii plánu (rx[sezení][řádek]). Kopie je jeho,
-// takže knihovní trénink zůstává čistý a stejný cvik smí mít v týdnu 5 jinou zátěž.
-const klRxOf = (pl, sid, rowId) => (((pl && pl.rx) || {})[sid] || {})[rowId] || null;
-const klSetsOf = (fulfil, plId, sid, rowId) => ((((fulfil || {})[plId] || {})[sid] || {}).sets || {})[rowId] || [];
-
-function KlRxDrawer({ pl, fulfil, onClose }) {
-  const { t } = useT();
-  const st = useStore();
-  const wos = st.coll.tWo || [];
-  const exs = st.coll.tEx || [];
-  const woById = Object.fromEntries(wos.map((w) => [w.id, w]));
-  const exById = Object.fromEntries(exs.map((e) => [e.id, e]));
-  const [open, setOpen] = useState(null);
-  if (!pl) return null;
-  const ss = pl.sessions || [];
-
-  const setRx = (sid, rowId, kg) => {
-    const rx = { ...(pl.rx || {}) };
-    const ses = { ...(rx[sid] || {}) };
-    if (kg === "" || kg == null) delete ses[rowId];
-    else ses[rowId] = { kg: Number(kg) || 0 };
-    if (Object.keys(ses).length) rx[sid] = ses; else delete rx[sid];
-    st.updateEntry("tPl", pl.id, { rx });
-  };
-
-  return (
-    <Drawer open onClose={onClose}>
-      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>{L("Předpis", "Prescription")}</div>
-      <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 28, lineHeight: 1.15, color: t.heading, margin: "0 0 6px" }}>{tExName(pl)}</h2>
-      <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, lineHeight: 1.7, margin: "0 0 18px" }}>
-        {L("Kila po sezeních. Prázdné pole nechá volbu na klientovi. Co zapsal on, vidíš vedle.",
-           "Weights per session. An empty field leaves the choice to the client. What they logged sits next to it.")}
-      </p>
-
-      {ss.map((s) => {
-        const wo = woById[s.wid];
-        const rows = (wo && wo.rows) || [];
-        const isOpen = open === s.id;
-        const filled = rows.filter((r) => klRxOf(pl, s.id, r.id)).length;
-        return (
-          <div key={s.id} style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "10px 13px", marginBottom: 8 }}>
-            <button onClick={() => setOpen(isOpen ? null : s.id)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "transparent", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}>
-              <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.sage, minWidth: 52 }}>{L("Týden", "Week")} {s.w || 1}</span>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.text, flex: 1 }}>{wo ? tExName(wo) : s.wid}</span>
-              {filled > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{filled} / {rows.length}</span>}
-              <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted }}>{isOpen ? "−" : "+"}</span>
-            </button>
-            {isOpen && (
-              <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${t.borderSoft}` }}>
-                {rows.map((r) => {
-                  const ex = exById[r.ex];
-                  const rx = klRxOf(pl, s.id, r.id);
-                  const sets = klSetsOf(fulfil, pl.id, s.id, r.id).filter(Boolean);
-                  const off = rx && sets.length ? sets.some((x) => Number(x.kg || 0) !== Number(rx.kg || 0)) : false;
-                  return (
-                    <div key={r.id} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "7px 0", borderTop: `1px solid ${t.borderSoft}` }}>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, flex: "1 1 130px", minWidth: 110 }}>{ex ? tExName(ex) : r.ex}</span>
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>{r.sets}× {r.reps}{tUnit(r.unit)}</span>
-                      <BufferedInput value={rx ? String(rx.kg) : ""} onCommit={(v) => setRx(s.id, r.id, v.trim())} placeholder="—"
-                        style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text, width: 52, textAlign: "right", borderBottom: `1px dashed ${t.borderSoft}` }} />
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>kg</span>
-                      {sets.length > 0 && (
-                        <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: off ? t.accent : t.sage, whiteSpace: "nowrap" }}>
-                          → {sets.map((x) => (x.kg ? x.kg + "kg×" + x.reps : x.reps + tUnit(r.unit))).join(", ")}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-                {!rows.length && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("Trénink nemá cviky.", "The workout has no exercises.")}</div>}
-              </div>
-            )}
-          </div>
-        );
-      })}
-      {!ss.length && <KlEmpty>{L("Plán nemá sezení.", "The plan has no sessions.")}</KlEmpty>}
-
-      <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, fontStyle: "italic", margin: "14px 0 12px", lineHeight: 1.7 }}>
-        {L("Měď u čísla znamená, že klient šel jinam, než jsi předepsal. Není to chyba. Je to informace.",
-           "Copper next to a number means the client went elsewhere than prescribed. That is not an error. It is information.")}
-      </p>
-      <button onClick={onClose} style={{ ...klBtn(t), width: "100%" }}>{L("Zavřít", "Close")}</button>
-    </Drawer>
-  );
-}
-
-// ---- Karta · Trénink -------------------------------------------------------
-function KlTabTrenink({ p, acc }) {
-  const { t } = useT();
-  const st = useStore();
-  const [plId, setPlId] = useState(null);
-  const [woId, setWoId] = useState(null);
-  const [exId, setExId] = useState(null);
-  const [pick, setPick] = useState(false);
-  const [rxId, setRxId] = useState(null);
-  const [push, setPush] = useState({ state: "", msg: "" }); // "" | "run" | "ok" | "err"
-  const [pushedAt, setPushedAt] = useState(null);
-  const key = p.uid || (acc && acc.user_id) || p.id;
-  const mine = klPlansOf(st, p, acc);
-  const library = (st.coll.tPl || []).filter((x) => !x.client);
-  const fulfil = klFulfil(acc);
-  const sched = klSched(acc);
-
-  React.useEffect(() => {
-    if (!acc) return;
-    klFetch("/api/klienti/" + encodeURIComponent(acc.user_id) + "/plan", { cache: "no-store" })
-      .then((r) => r.json()).then((b) => setPushedAt(b && b.updated_at ? b.updated_at : null)).catch(() => {});
-  }, [acc && acc.user_id]);
-
-  // Progrese říkají, co přijde dál. U člověka s omezením je to pozvánka, kterou
-  // rozhoduješ ty, ne jeho chuť — proto veto vypíná předvolbu, ne tvoje právo ji zapnout.
-  const sendPro = p.sendPro != null ? !!p.sendPro : !klVeto(p);
-  const sendPlans = () => {
-    if (!acc) return;
-    setPush({ state: "run", msg: "" });
-    klFetch("/api/klienti/" + encodeURIComponent(acc.user_id) + "/plan", {
-      method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doc: mine.length ? klBundle(st, mine, { pro: sendPro }) : null }),
-    }).then((r) => r.json()).then((b) => {
-      if (b && b.ok) { setPushedAt(b.updated_at || null); setPush({ state: "ok", msg: "" }); }
-      else setPush({ state: "err", msg: (b && b.error) || L("nepodařilo se odeslat", "could not send") });
-    }).catch(() => setPush({ state: "err", msg: L("nepodařilo se odeslat", "could not send") }));
-  };
-
-  // Přiřazení plánu = KOPIE z knihovny · knihovní plán zůstává nedotčený
-  const assign = (src) => {
-    const copy = {
-      ...src, id: uid(), client: key, clientName: p.name || p.email || "",
-      sessions: (src.sessions || []).map((s) => ({ ...s, id: uid(), date: "", eff: "", done: false })),
-    };
-    st.addEntry("tPl", copy);
-    setPick(false);
-    setPlId(copy.id);
-  };
-
-  return (
-    <>
-      <KlSection label={L("Plány klienta", "Client plans")} right={<button onClick={() => setPick(!pick)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.accent, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5 }}>{pick ? L("Zavřít", "Close") : L("Přiřadit plán", "Assign plan")}</button>}>
-        {klVeto(p) && <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.accent, lineHeight: 1.6, marginBottom: 10 }}>{L("Omezení má přednost. Nejdřív korekce, pak zátěž.", "The restriction comes first. Correction, then load.")}</div>}
-        {pick && (
-          <div style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "10px 12px", marginBottom: 12 }}>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, marginBottom: 8 }}>{L("Z knihovny se udělá kopie. Originál zůstává nedotčený, termíny se resetují.", "A copy is made from the library. The original stays untouched, dates reset.")}</div>
-            {library.length === 0 ? <KlEmpty>{L("Knihovna plánů je prázdná.", "The plan library is empty.")}</KlEmpty> : library.map((pl) => (
-              <div key={pl.id} onClick={() => assign(pl)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", cursor: "pointer", borderTop: `1px solid ${t.borderSoft}` }}>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, flex: 1 }}>{tExName(pl) || L("Plán", "Plan")}</span>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{(pl.sessions || []).length}×</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {mine.length === 0 ? <KlEmpty>{L("Klient zatím nemá plán.", "This client has no plan yet.")}</KlEmpty> : mine.map((pl) => {
-          const ss = pl.sessions || [];
-          const fp = fulfil && fulfil[pl.id];
-          const sp = sched && sched[pl.id];
-          const isDone = (s) => (fp ? !!(fp[s.id] && fp[s.id].done) : !!s.done);
-          const dateOf = (s) => (sp && sp[s.id]) || s.date || "";
-          const done = ss.filter(isDone).length;
-          const nextS = ss.filter((s) => !isDone(s) && dateOf(s)).sort((a, b) => dateOf(a).localeCompare(dateOf(b)))[0];
-          return (
-            <div key={pl.id} onClick={() => setPlId(pl.id)} className="tm-lift" style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10, cursor: "pointer", boxShadow: t.shadow }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 17, color: t.heading, flex: 1 }}>{tExName(pl) || L("Plán", "Plan")}</span>
-                {(pl.goals || []).slice(0, 2).map((g) => <Tag key={g} label={g} color="orange" />)}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ flex: 1 }}><ProgressBar value={ss.length ? done / ss.length : 0} /></div>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>{done} / {ss.length}</span>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 6, fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, alignItems: "center" }}>
-                {nextS && <span>{L("Další", "Next")}: {klDT(dateOf(nextS))}{sp ? L(" · naplánoval si sám", " · scheduled by them") : ""}</span>}
-                {fp && <span style={{ color: t.sage }}>{L("plní z aplikace", "fulfilment from the app")}</span>}
-                <span style={{ flex: 1 }} />
-                <button onClick={(e) => { e.stopPropagation(); setRxId(pl.id); }} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 100, padding: "4px 12px", cursor: "pointer", color: t.textSec, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10 }}>
-                  {L("Předpis", "Prescription")}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </KlSection>
-
-      <KlSection label={L("Odeslání do aplikace", "Send to the app")}>
-        {!acc ? (
-          <KlEmpty>{L("Bez účtu v aplikaci není kam odeslat.", "No app account, nowhere to send.")}</KlEmpty>
-        ) : (
-          <>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
-              <button onClick={sendPlans} disabled={push.state === "run"} style={{ ...klBtn(t, true), opacity: push.state === "run" ? 0.5 : 1 }}>
-                {push.state === "run" ? L("Odesílám…", "Sending…") : mine.length ? L("Odeslat plány", "Send plans") : L("Smazat plán v aplikaci", "Clear plan in the app")}
-              </button>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: push.state === "err" ? t.accent : t.textMuted }}>
-                {push.state === "err" ? push.msg : pushedAt ? L("naposledy " + klDT(new Date(pushedAt).toISOString().slice(0, 10)), "last sent " + klDT(new Date(pushedAt).toISOString().slice(0, 10))) : L("zatím neodesláno", "not sent yet")}
-              </span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 12 }}>
-              <button onClick={() => st.updateEntry("klProfiles", p.id, { sendPro: !sendPro })} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Check done={sendPro} /></button>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{L("Posílat i progrese cviků", "Send exercise progressions too")}</span>
-              {klVeto(p) && !sendPro && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.accent }}>{L("vypnuto kvůli omezení", "off due to the restriction")}</span>}
-            </div>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, fontStyle: "italic", marginTop: 10, lineHeight: 1.7 }}>
-              {L("Odeslání přepíše, co má klient v aplikaci. Plán je u něj jen ke čtení. Zpátky se vrací splněno, kdy a zapsané série, a jen když to sám zapne.",
-                 "Sending overwrites what the client has in the app. The plan is read-only for them. Done, when and the logged sets come back, and only if they turn it on.")}
-            </p>
-          </>
-        )}
-      </KlSection>
-
-      {rxId && !plId && !woId && !exId && <KlRxDrawer pl={mine.find((x) => x.id === rxId)} fulfil={fulfil} onClose={() => setRxId(null)} />}
-      {exId && <TExDetail exId={exId} onClose={() => setExId(null)} onOpen={(id) => setExId(id)} />}
-      {woId && !exId && <TWoDetail woId={woId} onClose={() => setWoId(null)} onOpenEx={(id) => setExId(id)} onRun={() => {}} />}
-      {plId && !woId && !exId && <TPlDetail plId={plId} onClose={() => setPlId(null)} onOpenWo={(id) => setWoId(id)} />}
-    </>
-  );
-}
 // ---- Karta · Sezení a platby -----------------------------------------------
 function KlSessRow({ s, p }) {
   const { t } = useT();
@@ -6542,7 +6300,6 @@ function KlCard({ p, acc, orphans, onBack, onReload }) {
       </div>
 
       {tab === "prehled" && <KlTabPrehled p={p} acc={acc} onTab={setTab} />}
-      {tab === "trenink" && <KlTabTrenink p={p} acc={acc} />}
       {tab === "sezeni" && <KlTabSezeni p={p} />}
       {tab === "poznamky" && <KlTabPoznamky p={p} />}
       {tab === "aplikace" && <KlTabAplikace p={p} acc={acc} orphans={orphans} onReload={onReload} />}
@@ -7073,7 +6830,7 @@ const T_MUS = Object.fromEntries(T_MUSCLES.map((m) => [m.k, m]));
 //   dcz/den display name · pj prepJoints
 // ======================================================================
 
-const TEX_TIERS = ["core", "extended", "specialist", "program_only", "yoga", "catalog", "breath", "archived"];
+const TEX_TIERS = ["core", "extended", "specialist", "program_only", "yoga", "catalog", "breath", "archived", "activity"];
 const TEX_STATUSES = ["active", "alias", "review", "blocked"];
 const TEX_GOAL_ROLES = ["strength", "hypertrophy", "power", "coordination_skill", "strength_skill", "conditioning", "mobility", "support", "breath"];
 const TEX_SESSION_BLOCKS = ["prep", "coordination_skill", "strength", "accessory", "conditioning", "mobility", "breath"];
@@ -7105,7 +6862,7 @@ const TEX_TIER_LABEL = {
   breath: ["Dech", "Breath"],
   archived: ["Archiv", "Archive"],
 };
-const TEX_TIERS_DEFAULT = ["core", "extended", "yoga", "breath"];
+const TEX_TIERS_DEFAULT = ["core", "extended", "yoga", "breath", "activity"];
 const TEX_TIERS_ADVANCED = ["specialist", "program_only", "catalog", "archived"];
 const TEX_ARCHIVED_NOTE = ["Archivovaný cvik", "An archived exercise"];
 const TEX_ARCHIVED_ALT = {
@@ -7116,7 +6873,9 @@ const TEX_ALIAS_GROUP_LABEL = {
   sissy_squat: ["Sissy dřep", "Sissy squat"],
 };
 
-const TEX_META = {
+// Auditní vrstva. Provenience a jistota důkazu tu nejsou schválně — to jsou
+// trenérovy poznámky a patří na trenérskou stranu.
+const TEX_META_BASE = {
   drep: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "squat_bilateral" },
   wallsit: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 1, f: "squat_bilateral" },
   lunge: { t: "core", g: "generic", r: "strength", b: "strength", tr: 1, f: "squat_unilateral" },
@@ -7389,6 +7148,16 @@ const TEX_META = {
   vi_triceps: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 1, f: "triceps_ext" },
   vi_calf: { t: "program_only", g: "source_plan", r: "strength", b: "strength", tr: 1, f: "calf" },
 };
+
+// Rozšíření Training System V2. Provenience a jistota důkazu se odsud odstraňují:
+// jsou to trenérovy poznámky a do klientské aplikace nepatří. Není to filtr při
+// zobrazení — do balíčku se nedostanou vůbec.
+const TEX_META_V2 = Object.fromEntries(Object.entries(TV.TRAINING_V2_META).map(([id, m]) => {
+  const out = {};
+  for (const k of Object.keys(m)) { if (k !== "src" && k !== "ev") out[k] = m[k]; }
+  return [id, out];
+}));
+const TEX_META = { ...TEX_META_BASE, ...TEX_META_V2 };
 
 // ---- the resolvers · the row wins, then the audit, then a derived default -----
 // Three sources in a fixed order, and only ever these three. A person's own edit
@@ -10075,7 +9844,15 @@ const TWO_SEED_VI=[];
 // ---- Vital Institut · seed plány (dle typu klienta) ----
 const TPL_SEED_VI=[];
 
-const TEX_ALL = [...TEX_SEED, ...TEX_SEED_2, ...TEX_SEED_3, ...TEX_SEED_4, ...TEX_SEED_4B, ...TEX_SEED_5, ...TEX_SEED_5B, ...TEX_SEED_6, ...TEX_SEED_7, ...TEX_SEED_8, ...TEX_SEED_8B, ...TEX_SEED_8C, ...TEX_SEED_9, ...TEX_SEED_SM, ...TEX_SEED_CM, ...TEX_SEED_VI];
+// Rozšíření V2 se připojuje na konec. Původní pole zůstávají beze změny.
+const TEX_ALL_ORIGINAL = [...TEX_SEED, ...TEX_SEED_2, ...TEX_SEED_3, ...TEX_SEED_4, ...TEX_SEED_4B, ...TEX_SEED_5, ...TEX_SEED_5B, ...TEX_SEED_6, ...TEX_SEED_7, ...TEX_SEED_8, ...TEX_SEED_8B, ...TEX_SEED_8C, ...TEX_SEED_9, ...TEX_SEED_SM, ...TEX_SEED_CM, ...TEX_SEED_VI];
+// Klientská knihovna je podmnožina trenérské. Progresní odkaz, který tu nemá
+// kam ukázat, se zahodí — mrtvý odkaz je horší než žádný.
+const TEX_SEED_V2 = TV.extensionFor(TEX_ALL_ORIGINAL.map((x) => x.id));
+const TEX_ALL = [...TEX_ALL_ORIGINAL, ...TEX_SEED_V2];
+// Jedna cesta k efektivnímu záznamu cviku, stejná jako na trenérské straně.
+const tvRec = TV.makeResolver(TEX_META, new Set(TEX_ALL_ORIGINAL.map((x) => x.id)));
+const tvOf = (ex) => (ex && ex.id ? tvRec(ex) : null);
 
 // CRC-32 · the Main App has this for its ZIP export; here it exists for one job:
 // telling a field the audit looked at apart from a field the person has rewritten.
@@ -10428,13 +10205,6 @@ function TDemandDots({ v }) {
     </span>
   );
 }
-// A workout's demand is not something you type in. It is the hardest thing inside it.
-const tWoDemand = (wo, byId) => {
-  let m = 0;
-  ((wo && wo.rows) || []).forEach((r) => { const x = byId[r.ex]; if (x) m = Math.max(m, tLvlOf(x)); });
-  return m;
-};
-
 // multi-select dropdown · checkbox rows, stays open while picking
 function TMultiSel({ label, values, onChange, options }) {
   const { t } = useT();
@@ -10577,32 +10347,6 @@ function TChain({ ex, all, onOpen }) {
         ))}
       </div>
     </div>
-  );
-}
-
-// quiet growth line · records of one exercise over time
-function TProgressChart({ recs, ex }) {
-  const { t } = useT();
-  if (!recs || recs.length < 2) return null;
-  const unitTxt = tScoreUnit(ex);
-  const sorted = [...recs].sort((a, b) => (a.date < b.date ? -1 : 1));
-  const vals = sorted.map((r) => tScore(ex, r));
-  const min = Math.min(...vals), max = Math.max(...vals);
-  const span = max - min || 1;
-  const W = 420, H = 90, P = 10;
-  const px = (i) => P + (i / (sorted.length - 1)) * (W - 2 * P);
-  const py = (v) => H - P - ((v - min) / span) * (H - 2 * P);
-  const pts = vals.map((v, i) => `${px(i)},${py(v)}`).join(" ");
-  const best = Math.max(...vals);
-  return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block", maxWidth: W }}>
-      <polyline points={pts} fill="none" stroke={t.sage} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
-      {vals.map((v, i) => (
-        <circle key={i} cx={px(i)} cy={py(v)} r={v === best ? 4 : 2.5} fill={v === best ? t.accent : t.sage} />
-      ))}
-      <text x={P} y={py(vals[0]) - 6} fill={t.textMuted} fontSize="9" fontFamily="DM Sans">{vals[0]}{unitTxt}</text>
-      <text x={px(vals.length - 1) - 4} y={py(vals[vals.length - 1]) - 8} fill={t.accent} fontSize="9" fontFamily="DM Sans">{vals[vals.length - 1]}{unitTxt}</text>
-    </svg>
   );
 }
 
@@ -10778,50 +10522,6 @@ function TExPick({ onPick, onClose, onNew }) {
   );
 }
 
-function TWoPick({ onPick, onClose }) {
-  const { t } = useT();
-  const st = useStore();
-  const wos = st.coll.tWo || [];
-  const [q, setQ] = useState("");
-  const [fSer, setFSer] = useState([]);
-  const [fLvls, setFLvls] = useState([]);
-  const inRef = React.useRef(null);
-  React.useEffect(() => { if (inRef.current) inRef.current.focus(); }, []);
-  const sers = st.tSeries();
-  const serName = (id) => { const s = sers.find((x) => x.id === id); return s ? s.name : ""; };
-  const byId = Object.fromEntries((st.coll.tEx || []).map((x) => [x.id, x]));
-  const list = wos.filter((w) =>
-    (!fSer.length || fSer.includes(w.ser || "")) &&
-    (!fLvls.length || fLvls.includes(tWoDemand(w, byId))) &&
-    (!q || ((w.cz || "") + " " + (w.en || "") + " " + serName(w.ser)).toLowerCase().includes(q.toLowerCase())));
-  return (
-    <TPickShell title={L("Vyber trénink", "Pick a workout")} onClose={onClose}>
-      <input ref={inRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat trénink…", "Search workouts…")} style={{ ...tPickInp(t), width: "100%", marginBottom: 10 }} />
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-        <TMultiSel label={L("Série", "Series")} values={fSer} onChange={setFSer} options={[...sers.map((s) => ({ v: s.id, label: s.name })), { v: T_NOSER, label: L("Bez série", "No series") }]} />
-        <TMultiSel label={L("Náročnost", "Demand")} values={fLvls} onChange={setFLvls} options={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
-        <span style={{ marginLeft: "auto", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{list.length} {L("tréninků", "workouts")}</span>
-      </div>
-      <div className="tm-scroll" style={{ overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 10, flex: 1, minHeight: 120 }}>
-        {list.map((w, i) => (
-          <button key={w.id} onClick={() => onPick(w.id)} className="tm-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderBottom: i < list.length - 1 ? `1px solid ${t.borderSoft}` : "none", cursor: "pointer", padding: "10px 12px" }}>
-            <span style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{LANG === "cs" ? w.cz : w.en}</span>
-              <span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 2 }}>
-                {w.ser ? <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, color: t.accent }}>{serName(w.ser)}</span> : null}
-                <TDemandDots v={tWoDemand(w, byId)} />
-                <span style={{ fontFamily: FONT_BODY, fontSize: 10.5, color: t.textMuted }}>{(w.rows || []).length} {L("cviků", "exercises")}{tWoTime(w, byId) ? " · ~" + tWoTime(w, byId) + " min" : ""}</span>
-              </span>
-            </span>
-          </button>
-        ))}
-        {list.length === 0 && <div style={{ padding: "18px 14px", fontFamily: FONT_BODY, fontSize: 13.5, fontStyle: "italic", color: t.textMuted }}>{L("Žádný trénink neodpovídá.", "No workout matches.")}</div>}
-      </div>
-      <div style={{ height: 8 }} />
-    </TPickShell>
-  );
-}
-
 // A field that looks like a select but opens the picker · used wherever a workout
 // or an exercise has to be chosen out of a long list.
 function TPickField({ label, placeholder, onOpen, ghost, style }) {
@@ -10986,139 +10686,6 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
   );
 }
 
-// ---- workout card · drags between series, and into a new order --------------
-function TWoCard({ w, onOpen, onDelete, selecting, selected, onToggleSel }) {
-  const { t } = useT();
-  const st = useStore();
-  const byId = Object.fromEntries((st.coll.tEx || []).map((x) => [x.id, x]));
-  const [over, setOver] = useState(false);
-  const rootRef = React.useRef(null);
-  const stRef = React.useRef(st); stRef.current = st;
-  const offRef = React.useRef(false); offRef.current = !!selecting;
-  const onOverRef = React.useRef(null);
-  onOverRef.current = (overId) => stRef.current.reorderEntry("tWo", w.id, overId);
-  useHoldReorder(rootRef, w.id, "data-two", onOverRef, offRef);
-  const take = (id) => {
-    if (id === w.id) return;
-    const srcW = (st.coll.tWo || []).find((x) => x.id === id);
-    if (srcW && (srcW.ser || "") !== (w.ser || "")) st.setWorkoutSeries(id, w.ser || "");
-    st.reorderEntry("tWo", id, w.id);
-  };
-  return (
-    <div ref={rootRef} data-two={w.id}
-      draggable={!selecting}
-      onDragStart={(e) => { e.dataTransfer.setData("text/plain", "twoc:" + w.id); e.dataTransfer.effectAllowed = "move"; }}
-      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setOver(true); }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setOver(false); const p = (e.dataTransfer.getData("text/plain") || "").split(":"); if (p[0] === "twoc") take(p[1]); }}
-      style={{ position: "relative", display: "flex", borderRadius: 10, outline: over ? `2px solid ${t.accent}` : "none" }}>
-      <button onClick={() => (selecting ? onToggleSel() : onOpen())} className="tm-nav-item" style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: "14px 16px" }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, color: t.heading, marginBottom: 5 }}>{LANG === "cs" ? w.cz : w.en}</div>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontStyle: "italic", color: t.textMuted, lineHeight: 1.55, marginBottom: 7, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{TL(w.int)}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>
-            {(w.rows || []).length} {L("cviků", "exercises")}{tWoTime(w, byId) ? ` · ~${tWoTime(w, byId)} min` : ""}
-          </span>
-          <TDemandDots v={tWoDemand(w, byId)} />
-          {tmFlowOf(w) !== "sets" && <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, color: t.accent }}>{L(TM_FLOW[tmFlowOf(w)].cz, TM_FLOW[tmFlowOf(w)].en)}</span>}
-          {(w.aims || []).slice(0, 3).map((a) => <span key={a} style={{ fontFamily: FONT_BODY, fontSize: 10.5, color: t.textMuted }}>{a}</span>)}
-        </div>
-      </button>
-      {selecting
-        ? <span style={{ position: "absolute", top: 10, right: 10, zIndex: 2 }}><Check done={!!selected} /></span>
-        : <button title={L("Do koše", "To trash")} onClick={onDelete} style={tDelBtn(t)}>✕</button>}
-    </div>
-  );
-}
-
-// ---- a series · a shelf that opens, closes, renames, duplicates and dissolves --
-function TSeriesGroup({ ser, all, list, hidden, onOpenWo, onNewWorkout, selecting, sel, onToggleSel, onDeleteWo }) {
-  const { t } = useT();
-  const st = useStore();
-  const [editing, setEditing] = useState(false);
-  const [over, setOver] = useState(false);
-  const isNo = !ser;
-  const id = ser ? ser.id : T_NOSER;
-  const name = ser ? ser.name : "";
-  const headRef = React.useRef(null);
-  const stRef = React.useRef(st); stRef.current = st;
-  const offRef = React.useRef(false); offRef.current = isNo;
-  const cbRef = React.useRef(null);
-  cbRef.current = (overId) => { if (!isNo && overId !== T_NOSER) stRef.current.reorderSeries(id, overId); };
-  useHoldReorder(headRef, id, "data-tser", cbRef, offRef);
-  const closed = isNo ? false : !!ser.closed;
-  const intro = isNo ? null : ser.int;
-  const title = isNo ? L("Bez série", "No series") : name;
-
-  const askDissolve = () => st.ask(
-    L(`Zrušit sérii „${name}"?\n\n${all.length ? tN(all.length, "trénink", "tréninky", "tréninků") + " v ní zůstane — jen ztratí zařazení." : "Je prázdná."}`,
-      `Dissolve the series "${name}"?\n\n${all.length ? tN(all.length, "workout", "workouts") + " will stay — they just lose their shelf." : "It is empty."}`),
-    () => st.dropSeries(id),
-    all.length
-      ? { yes: L("Zrušit sérii", "Dissolve it"), alt: { label: L("Smazat i tréninky", "Delete the workouts too"), onClick: () => { st.removeTrainings("tWo", all.map((w) => w.id), true); st.dropSeries(id); } } }
-      : { yes: L("Zrušit sérii", "Dissolve it") }
-  );
-
-  return (
-    <div style={{ display: "inline-block", width: "100%", verticalAlign: "top", breakInside: "avoid", WebkitColumnBreakInside: "avoid", pageBreakInside: "avoid", marginBottom: 18, border: `1px solid ${over ? t.accent : "transparent"}`, borderRadius: 12, padding: 6 }}
-      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setOver(true); }}
-      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOver(false); }}
-      onDrop={(e) => {
-        e.preventDefault(); setOver(false);
-        const p = (e.dataTransfer.getData("text/plain") || "").split(":");
-        if (p[0] === "twoc") st.setWorkoutSeries(p[1], id);
-        else if (p[0] === "tser" && p[1] !== id && !isNo) st.reorderSeries(p[1], id);
-      }}
-    >
-      <div ref={headRef} data-tser={id}
-        draggable={!isNo}
-        onDragStart={!isNo ? (e) => { e.dataTransfer.setData("text/plain", "tser:" + id); e.dataTransfer.effectAllowed = "move"; } : undefined}
-        style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 4px", borderBottom: `1px solid ${t.borderSoft}`, cursor: isNo ? "default" : "grab", flexWrap: "wrap", touchAction: isNo ? undefined : "pan-y" }}
-      >
-        <button onClick={() => st.toggleSeries(id)} title={closed ? L("rozbalit", "expand") : L("sbalit", "collapse")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: "0 2px", width: 16 }}>{closed ? "\u25b8" : "\u25be"}</button>
-        {editing && !isNo ? (
-          <BufferedInput value={name} onCommit={(v) => st.renameSeries(id, v)} placeholder={L("název série…", "series name…")} style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 24, color: t.heading, borderBottom: `1px dashed ${t.borderSoft}`, maxWidth: 260 }} />
-        ) : (
-          <button onClick={() => st.toggleSeries(id)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 24, color: isNo ? t.textMuted : t.heading, textAlign: "left" }}>{title}</button>
-        )}
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>
-          {all.length}{hidden ? " · " + list.length + " " + L("po filtru", "after filter") : ""}
-        </span>
-        <span style={{ marginLeft: "auto", display: "inline-flex", gap: 5, alignItems: "center" }}>
-          <button title={L("Nový trénink v této sérii", "New workout on this shelf")} onClick={() => onNewWorkout(id)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 14, padding: "2px 9px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 11.5 }}>＋</button>
-          {!isNo && <button title={L("Duplikovat sérii i s tréninky", "Duplicate the series with its workouts")} onClick={() => st.dupSeries(id)} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "2px 9px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 11.5 }}>⧉</button>}
-          {!isNo && <button title={L("Přejmenovat a upravit záměr", "Rename and edit the intent")} onClick={() => setEditing((x) => !x)} style={{ background: editing ? t.activeNav : "transparent", border: `1px solid ${editing ? t.accent : t.borderSoft}`, borderRadius: 14, padding: "2px 9px", cursor: "pointer", color: editing ? t.accent : t.textMuted, fontFamily: FONT_BODY, fontSize: 11.5 }}>✎</button>}
-          {!isNo && <button title={L("Zrušit sérii", "Dissolve the series")} onClick={askDissolve} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "2px 9px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 11.5 }}>🗑</button>}
-        </span>
-      </div>
-
-      {!closed && (
-        <>
-          {editing && !isNo && (
-            <div style={{ margin: "10px 0 4px" }}>
-              <TPairEdit label={L("Záměr série", "Intent of the series")} val={intro || ["", ""]} onPatch={(v) => st.setSeriesIntro(id, v)} />
-            </div>
-          )}
-          {!editing && intro && TL(intro) && (
-            <div style={{ fontFamily: FONT_BODY, fontSize: 14, fontStyle: "italic", lineHeight: 1.7, color: t.textMuted, whiteSpace: "pre-line", maxWidth: 560, margin: "10px 0 14px" }}>{TL(intro)}</div>
-          )}
-          {!intro && !editing && <div style={{ height: 12 }} />}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(195px, 1fr))", gap: 10 }}>
-            {list.map((w) => (
-              <TWoCard key={w.id} w={w} onOpen={() => onOpenWo(w.id)} onDelete={() => onDeleteWo(w.id)} selecting={selecting} selected={sel.includes(w.id)} onToggleSel={() => onToggleSel(w.id)} />
-            ))}
-          </div>
-          {list.length === 0 && (
-            <div style={{ fontFamily: FONT_BODY, fontSize: 13, fontStyle: "italic", color: t.textMuted, padding: "10px 2px" }}>
-              {all.length ? L("Filtr tu nic nenechal.", "The filter left nothing here.") : L("Prázdná police. Přetáhni sem trénink, nebo založ nový.", "An empty shelf. Drag a workout in, or start a new one.")}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 // ---- exercise detail · illustration, muscle map, the four quiet sections ----
 function TExDetail({ exId, onClose, onOpen }) {
   const { t } = useT();
@@ -11136,10 +10703,16 @@ function TExDetail({ exId, onClose, onOpen }) {
   const edit = st.editMode || localEdit;
   const pat = T_PAT[ex.pat] || T_PATTERNS[0];
   const patch = (p) => st.updateEntry("tEx", ex.id, p);
-  const logs = (st.coll.tLog || []).filter((r) => r.ex === ex.id && !r.who);
+  // Vlastní historie tohoto cviku, ze skutečných sérií — ne z odděleného seznamu
+  // rekordů, který se s tréninkem mohl rozejít.
+  const exRecords = (() => {
+    const rec = tvOf(ex);
+    if (!rec) return { kinds: [], recs: {}, mt: "REPS_ONLY" };
+    const hist = TV.historyOf(st.tvSessions ? st.tvSessions() : [], ex.id, {});
+    const recs = TV.recordsFor(rec.measurementType, hist, {});
+    return { kinds: TV.recordKindsFor(rec.measurementType).filter((k) => recs[k]), recs, mt: rec.measurementType };
+  })();
   const load = tLoadOf(ex);
-  const bestRec = logs.length ? logs.reduce((a, r) => (tScore(ex, r) > tScore(ex, a) ? r : a)) : null;
-  const heaviest = logs.filter((r) => Number(r.kg) > 0).sort((a, b) => Number(b.kg) - Number(a.kg))[0];
   const attach = async (fl) => { const added = await filesToAtts(fl, st.ask); if (added.length) patch({ att: [...(ex.att || []), ...added] }); if (fileRef.current) fileRef.current.value = ""; };
   return (
     <Drawer open onClose={onClose}>
@@ -11223,21 +10796,18 @@ function TExDetail({ exId, onClose, onOpen }) {
         {load !== "none" && <Tag label={load === "ext" ? L("váha je cvik", "the weight is the lift") : L("lze přidat váhu", "takes added weight")} color="brown" />}
         <Tag label={L(T_POP(ex.pop || 2).cz, T_POP(ex.pop || 2).en)} color={(ex.pop || 2) === 3 ? "orange" : "brown"} />
       </div>
-      {logs.length > 0 && (
+      {exRecords.kinds.length ? (
         <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 11, color: t.sage, marginBottom: 6 }}>{L("Osobní rekord", "Personal best")}</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 30, color: t.accent }}>{tFmtRec(ex, bestRec)}</span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted }}>· {logs.length} {L("záznamů", "records")}</span>
-          </div>
-          {load === "add" && heaviest && tScore(ex, heaviest) !== tScore(ex, bestRec) && (
-            <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, marginTop: 3 }}>
-              {L("nejtěžší", "heaviest")} · <span style={{ color: t.sand }}>{tFmtRec(ex, heaviest)}</span>
+          {exRecords.kinds.map((k) => (
+            <div key={k} style={{ display: "flex", gap: 10, alignItems: "baseline", fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec, padding: "2px 0" }}>
+              <span style={{ minWidth: 150, fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted }}>{TL(TV.RECORD_LABEL[k])}</span>
+              <span style={{ color: t.heading }}>{TV.fmtRecord(exRecords.mt, exRecords.recs[k], LANG === "cs")}</span>
+              <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, color: t.textMuted }}>{exRecords.recs[k].date}</span>
             </div>
-          )}
-          <TProgressChart recs={logs} ex={ex} />
+          ))}
         </div>
-      )}
+      ) : null}
       <div>
         <input ref={fileRef} type="file" multiple onChange={(e) => attach(e.target.files)} style={{ display: "none" }} />
         {edit && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}>＋ {L("Přiložit foto / video", "Attach photo / video")}</button>}
@@ -11252,336 +10822,6 @@ function TExDetail({ exId, onClose, onOpen }) {
           onPick={(id) => { if (id !== ex.id) patch({ [pickChain]: id }); setPickChain(null); }}
         />
       )}
-    </Drawer>
-  );
-}
-
-// ---- workout detail ----
-function TWoDetail({ woId, onClose, onOpenEx, onRun }) {
-  const { t } = useT();
-  const st = useStore();
-  const wo = (st.coll.tWo || []).find((x) => x.id === woId);
-  const exs = st.coll.tEx || [];
-  const byId = Object.fromEntries(exs.map((x) => [x.id, x]));
-  const [pick, setPick] = useState(null); // { row } · row=null means "append a new one"
-  const [localEdit, setLocalEdit] = useState(false);
-  const [planDate, setPlanDate] = useState(todayISO());
-  const [plannedTick, setPlannedTick] = useState(false);
-  React.useEffect(() => {
-    const w = (st.coll.tWo || []).find((x) => x.id === woId);
-    setLocalEdit(!!w && !(w.rows || []).length);
-    setPlannedTick(false);
-  }, [woId]);
-  if (!wo) return null;
-  const edit = st.editMode || localEdit;
-  const patch = (p) => st.updateEntry("tWo", wo.id, p);
-  const patchRow = (rid, p) => patch({ rows: (wo.rows || []).map((r) => (r.id === rid ? { ...r, ...p } : r)) });
-  const moveRow = (rid, dir) => { const rows = [...(wo.rows || [])]; const i = rows.findIndex((r) => r.id === rid); const j = i + dir; if (i < 0 || j < 0 || j >= rows.length) return; const tmp = rows[i]; rows[i] = rows[j]; rows[j] = tmp; patch({ rows }); };
-  const moveRowTo = (dragId, overId) => {
-    const rows = [...(wo.rows || [])];
-    const from = rows.findIndex((r) => r.id === dragId), to = rows.findIndex((r) => r.id === overId);
-    if (from < 0 || to < 0 || from === to) return;
-    rows.splice(to, 0, rows.splice(from, 1)[0]);
-    patch({ rows });
-  };
-  const addRow = (exId) => patch({ rows: [...(wo.rows || []), { id: uid(), ex: exId, sets: 3, reps: 8, unit: "×", rest: 60, note: ["", ""] }] });
-  const planIt = () => {
-    const my = (st.coll.tPl || []).filter((x) => !x.client);
-    const sess = { id: uid(), w: null, wid: wo.id, eff: 100, done: false, date: planDate || todayISO() };
-    if (my[0]) st.updateEntry("tPl", my[0].id, { sessions: [...(my[0].sessions || []), sess] });
-    else st.addEntry("tPl", { id: uid(), cz: "Moje tréninky", en: "My sessions", client: "", goals: [], int: ["", ""], sessions: [{ ...sess, w: 1 }] });
-    setPlannedTick(true);
-  };
-  const rowNum = (r, key, w) => <input value={String(r[key] == null ? "" : r[key])} onChange={(e) => patchRow(r.id, { [key]: Number(e.target.value.replace(/[^0-9]/g, "")) || 0 })} style={{ width: w, background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 6, color: t.text, fontFamily: FONT_BODY, fontSize: 12.5, padding: "3px 5px", outline: "none", textAlign: "center" }} />;
-  const noteVal = (r) => (Array.isArray(r.note) ? (LANG === "cs" ? r.note[0] : r.note[1]) || "" : r.note || "");
-  const setNote = (r, v) => { const pair = Array.isArray(r.note) ? [...r.note] : [r.note || "", r.note || ""]; pair[LANG === "cs" ? 0 : 1] = v; patchRow(r.id, { note: pair }); };
-  const gridCols = edit ? "minmax(0,1.4fr) 150px 52px minmax(0,1fr)" : "minmax(0,1.6fr) 76px 56px minmax(0,1fr)";
-  const arrBtn = { background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, padding: 0, lineHeight: 0, display: "inline-flex" };
-  const flow = tmFlowOf(wo);
-  const fc = tmFcfgOf(wo);
-  const fnum = (key, label, w) => (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-      <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{label}</span>
-      <BufferedInput value={String(fc[key])} onCommit={(v) => patch({ fcfg: { ...fc, [key]: Number(String(v).replace(/[^0-9]/g, "")) || 0 } })}
-        style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text, borderBottom: `1px dashed ${t.borderSoft}`, width: w || 46 }} />
-    </span>
-  );
-  const startSession = () => {
-    const exById = Object.fromEntries(exs.map((x) => [x.id, x]));
-    onRun({
-      mode: "program",
-      name: LANG === "cs" ? wo.cz : wo.en,
-      program: tmStepsOfWorkout(wo, exById, st.coll),
-      // no entry in today's log yet — the session will make one the moment it has
-      // something true to write into it
-      // `wo` rides along so the brief has something to brief ABOUT. It is a snapshot, not
-      // a closure: the session runs the workout as it was when you pressed start, which is
-      // also the honest thing to do if someone edits it mid-set.
-      source: { kind: "workout", d: todayISO(), iid: null, woId: wo.id, wo, dayKind: flow === "recovery" ? "klid" : flow === "mobility" ? "mobilita" : "trenink" },
-    });
-    onClose();
-  };
-  return (
-    <Drawer open onClose={onClose}>
-      <TEditToggle on={localEdit} onToggle={() => setLocalEdit((x) => !x)} title={L("Upravit trénink", "Edit workout")} />
-      {wo.ser && <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>{(st.seriesOf(wo.ser) || {}).name || ""}</div>}
-      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
-        <TDemandDots v={tWoDemand(wo, byId)} />
-        {(wo.aims || []).map((a) => <Tag key={a} label={a} color="orange" />)}
-      </div>
-      <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, lineHeight: 1.15, color: t.heading, margin: "0 0 6px" }}>{LANG === "cs" ? wo.cz : wo.en}</h2>
-      <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 14, lineHeight: 1.65, color: t.textSec, marginBottom: 6 }}>{TL(wo.int)}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        {tWoTime(wo, byId) ? <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted }}>~{tWoTime(wo, byId)} min</span> : null}
-        {flow !== "sets" && <Tag label={L(TM_FLOW[flow].cz, TM_FLOW[flow].en) + (tmFlowSummary(wo) ? " · " + tmFlowSummary(wo) : "")} color="brown" />}
-      </div>
-
-      {/* Start Session · offered, never imposed. Everything below still works exactly
-          as it did: open it, tick the rows off by hand, close it. */}
-      {onRun && (wo.rows || []).length > 0 && (
-        <button onClick={startSession} className="tm-cta" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, width: "100%", background: t.accent, color: t.bg, border: "none", borderRadius: 10, padding: "12px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 15, fontWeight: 500, marginBottom: 14 }}>
-          <TmIcon name="play" size={15} /> {L("Spustit trénink", "Start session")}
-        </button>
-      )}
-      <div style={{ border: `1px solid ${t.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
-        <div className="tm-thead" style={{ display: "grid", gridTemplateColumns: gridCols, background: t.tableHead, borderBottom: `1px solid ${t.border}` }}>
-          {[L("Cvik", "Exercise"), L("Dávka", "Dose"), L("Pauza", "Rest"), L("Poznámka", "Note")].map((h) => (
-            <div key={h} style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 10.5, color: t.sage, padding: "8px 10px" }}>{h}</div>
-          ))}
-        </div>
-        {(wo.rows || []).map((r, i) => {
-          const ex = byId[r.ex];
-          return (
-            <DragRow key={r.id} id={r.id} attr="data-trow" kind="trow" disabled={!edit} onReorder={moveRowTo} className="tm-trow"
-              style={{ display: "grid", gridTemplateColumns: gridCols, borderBottom: i < wo.rows.length - 1 ? `1px solid ${t.borderSoft}` : "none", alignItems: "center" }}>
-              <div style={{ padding: "9px 10px", minWidth: 0, display: "flex", alignItems: "center", gap: 7 }}>
-                {edit && (
-                  <span style={{ display: "inline-flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
-                    <button title={L("posunout výš", "move up")} onClick={() => moveRow(r.id, -1)} style={arrBtn}><CaretIcon dir="up" size={10} /></button>
-                    <button title={L("posunout níž", "move down")} onClick={() => moveRow(r.id, 1)} style={arrBtn}><CaretIcon dir="down" size={10} /></button>
-                  </span>
-                )}
-                {edit ? (
-                  <TPickField label={ex ? tExName(ex) : ""} placeholder={L("vyber cvik…", "pick an exercise…")} onOpen={() => setPick({ row: r.id })} style={{ maxWidth: 170, minWidth: 0 }} />
-                ) : ex ? (
-                  <button onClick={() => onOpenEx(ex.id)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, textAlign: "left", display: "inline-flex", alignItems: "center", gap: 7 }}>
-                    <span style={{ color: t.sand, flexShrink: 0 }}><TExArt ex={ex} size={24} stroke="currentColor" showDot={false} /></span>
-                    <span style={{ borderBottom: `1px solid ${t.borderSoft}` }}>{tExName(ex)}</span>
-                  </button>
-                ) : <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textMuted }}>—</span>}
-              </div>
-              <div style={{ padding: "9px 8px", fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, whiteSpace: "nowrap" }}>
-                {edit ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                    {rowNum(r, "sets", 32)} × {rowNum(r, "reps", 38)}
-                    <Select small value={r.unit || "×"} onChange={(v) => patchRow(r.id, { unit: v })} options={[{ v: "×", label: "×" }, { v: "s", label: "s" }, { v: "m", label: "m" }]} />
-                    {tLoadOf(byId[r.ex]) !== "none" && (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 2, color: t.sand }}>
-                        {tLoadOf(byId[r.ex]) === "add" ? "+" : ""}{rowNum(r, "kg", 36)}<span style={{ fontSize: 11 }}>kg</span>
-                      </span>
-                    )}
-                  </span>
-                ) : (
-                  <>
-                    {r.sets} × {r.reps}{tUnit(r.unit)}
-                    {r.kg ? <span style={{ color: t.sand }}> {tLoadOf(byId[r.ex]) === "add" ? "+" : "· "}{r.kg} kg</span> : null}
-                  </>
-                )}
-              </div>
-              <div style={{ padding: "9px 8px", fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted }}>{edit ? rowNum(r, "rest", 38) : (r.rest ? r.rest + " s" : "—")}</div>
-              <div style={{ padding: "9px 10px", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, fontStyle: "italic", display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                {edit
-                  ? <BufferedInput value={noteVal(r)} onCommit={(v) => setNote(r, v)} placeholder={L("poznámka…", "note…")} style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, borderBottom: `1px dashed ${t.borderSoft}`, flex: 1, minWidth: 0 }} />
-                  : <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{TL(r.note)}</span>}
-                {edit && <button title={L("Odebrat řádek", "Remove row")} onClick={() => patch({ rows: (wo.rows || []).filter((x) => x.id !== r.id) })} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0, marginLeft: "auto", flexShrink: 0 }}>✕</button>}
-              </div>
-            </DragRow>
-          );
-        })}
-      </div>
-      {edit && (
-        <>
-          <button onClick={() => setPick({ row: null })} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "8px 13px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13, width: "100%", textAlign: "left", marginBottom: 6 }}><SearchIcon size={13} /> {L("Přidat cvik — hledej a filtruj v knihovně", "Add an exercise — search and filter the library")}</button>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, marginBottom: 14 }}>{L("Řádky přetáhni myší, nebo posuň šipkami. Série, opakování a pauzu přepiš přímo v tabulce.", "Drag the rows, or nudge them with the arrows. Sets, reps and rest are edited right in the table.")}</div>
-        </>
-      )}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage }}>{L("Do mého deníku", "To my log")}</span>
-        <input type="date" value={planDate} onChange={(e) => { setPlanDate(e.target.value); setPlannedTick(false); }} style={{ background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 12.5, padding: "5px 9px", outline: "none", colorScheme: t.mode === "light" ? "light" : "dark" }} />
-        <button onClick={() => { if (!plannedTick) planIt(); }} style={{ background: plannedTick ? "transparent" : hexA(t.accent, 0.12), border: `1px solid ${plannedTick ? t.borderSoft : t.accent}`, borderRadius: 8, padding: "5px 12px", cursor: plannedTick ? "default" : "pointer", color: plannedTick ? t.textMuted : t.accent, fontFamily: FONT_BODY, fontSize: 12.5 }}>
-          {plannedTick ? "✓ " + L("naplánováno", "scheduled") : L("Naplánovat na den", "Schedule for this day")}
-        </button>
-      </div>
-      {edit && (
-        <div style={{ marginBottom: 14 }}>
-          <TPairEdit label={L("Záměr", "Intent")} val={wo.int} onPatch={(v) => patch({ int: v })} />
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <BufferedInput value={wo.cz} onCommit={(v) => patch({ cz: v })} placeholder="Název CZ…" style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, borderBottom: `1px dashed ${t.borderSoft}` }} />
-            <BufferedInput value={wo.en} onCommit={(v) => patch({ en: v })} placeholder="Name EN…" style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, borderBottom: `1px dashed ${t.borderSoft}` }} />
-          </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
-            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>{L("Série", "Series")}</span>
-            <Select small value={wo.ser || ""} onChange={(v) => patch({ ser: v })} options={[{ v: "", label: L("Bez série", "No series") }, ...st.tSeries().map((s) => ({ v: s.id, label: s.name }))]} />
-            <BufferedInput value={(wo.aims || []).join(", ")} onCommit={(v) => patch({ aims: v.split(",").map((x) => x.trim()).filter(Boolean) })} placeholder={L("zaměření oddělená čárkou…", "focus tags, comma-separated…")} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, borderBottom: `1px dashed ${t.borderSoft}`, maxWidth: 230 }} />
-          </div>
-
-          {/* How this workout wants to be lived through. The rows do not change — only
-              what a session does with them. Left alone, it means sets and rests, which
-              is what every workout has always meant. */}
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
-            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>{L("Průběh", "Flow")}</span>
-            <Select small value={flow} onChange={(v) => patch({ flow: v })} options={TM_FLOWS.map((f) => ({ v: f.k, label: L(f.cz, f.en) }))} />
-            {flow === "rounds" && <>{fnum("rounds", L("kol", "rounds"), 38)}{fnum("roundRest", L("pauza mezi koly · s", "rest between rounds · s"), 46)}</>}
-            {flow === "emom" && <>{fnum("rounds", L("kol", "rounds"), 38)}{fnum("every", L("po · s", "every · s"), 46)}</>}
-            {flow === "interval" && <>{fnum("work", L("práce · s", "work · s"), 44)}{fnum("rest", L("pauza · s", "rest · s"), 44)}{fnum("rounds", L("kol", "rounds"), 38)}</>}
-            {(flow === "amrap" || flow === "recovery") && fnum("window", L("okno · s", "window · s"), 56)}
-          </div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontStyle: "italic", color: t.textMuted, marginTop: 6, maxWidth: 400, lineHeight: 1.55 }}>
-            {L(TM_FLOW[flow].say[0], TM_FLOW[flow].say[1])}
-          </div>
-        </div>
-      )}
-      <div style={{ marginTop: 4, paddingTop: 12, borderTop: `1px solid ${t.borderSoft}` }}>
-        <button onClick={() => tAskDelete(st, "tWo", wo.id, onClose)} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 }}>{L("Do koše", "To trash")}</button>
-      </div>
-      {pick && (
-        <TExPick
-          onClose={() => setPick(null)}
-          onPick={(exId) => { if (pick.row) patchRow(pick.row, { ex: exId }); else addRow(exId); setPick(null); }}
-        />
-      )}
-    </Drawer>
-  );
-}
-
-// ---- plan detail · sessions mapped in time, tied to Klienti ----
-function TPlDetail({ plId, onClose, onOpenWo }) {
-  const { t } = useT();
-  const st = useStore();
-  const pl = (st.coll.tPl || []).find((x) => x.id === plId);
-  const wos = st.coll.tWo || [];
-  const byId = Object.fromEntries(wos.map((x) => [x.id, x]));
-  const klienti = useKlienti();
-  const klOptions = klClientOptions(st, klienti);
-  const [localEdit, setLocalEdit] = useState(false);
-  const [pickS, setPickS] = useState(null);
-  const [whyOpen, setWhyOpen] = useState(false);
-  React.useEffect(() => {
-    const x = (st.coll.tPl || []).find((y) => y.id === plId);
-    setLocalEdit(!!x && !(x.sessions || []).length);
-  }, [plId]);
-  if (!pl) return null;
-  const edit = st.editMode || localEdit;
-  const patch = (p) => st.updateEntry("tPl", pl.id, p);
-  const patchS = (sid, p) => patch({ sessions: (pl.sessions || []).map((s) => (s.id === sid ? { ...s, ...p } : s)) });
-  const moveSessionTo = (dragId, overId) => {
-    const ss = [...(pl.sessions || [])];
-    const from = ss.findIndex((s) => s.id === dragId), to = ss.findIndex((s) => s.id === overId);
-    if (from < 0 || to < 0 || from === to) return;
-    ss.splice(to, 0, ss.splice(from, 1)[0]);
-    patch({ sessions: ss });
-  };
-  const done = (pl.sessions || []).filter((s) => s.done).length;
-  const total = (pl.sessions || []).length;
-  const clientName = pl.client ? ((klienti.find((k) => k.user_id === pl.client) || {}).name || pl.clientName || pl.client) : "";
-  const PL_COLS = "30px minmax(0,1.4fr) 106px 50px 30px 26px";
-  const askRemoveSession = (s) => {
-    const w = byId[s.wid];
-    const nm = w ? (LANG === "cs" ? w.cz : w.en) : L("prázdnou session", "an empty session");
-    st.ask(L(`Odebrat „${nm}" z plánu?`, `Remove "${nm}" from the plan?`), () => st.removePlanSession(pl.id, s.id), { yes: L("Odebrat", "Remove") });
-  };
-  const dashBtn = { background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "7px 13px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13 };
-  const quietBtn = { background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "7px 13px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 };
-  return (
-    <Drawer open onClose={onClose}>
-      <TEditToggle on={localEdit} onToggle={() => setLocalEdit((x) => !x)} title={L("Upravit plán", "Edit plan")} />
-      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>{L("Plán", "Plan")}{clientName ? " · " + clientName : ""}</div>
-      {!pl.client && (() => { const active = st.activePlanId() === pl.id; return (
-        <button onClick={() => st.setActivePlan(pl.id)} title={L("Jen sledovaný plán se ukáže v Dnes", "Only the followed plan shows in Today")} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: active ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${active ? t.accent : t.border}`, borderRadius: 999, padding: "5px 13px", cursor: "pointer", color: active ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, marginBottom: 10 }}><span style={{ width: 7, height: 7, borderRadius: "50%", background: active ? t.accent : t.border, flexShrink: 0 }} />{active ? L("Sleduji", "Following") : L("Sledovat", "Follow")}</button>
-      ); })()}
-      {edit ? (
-        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <BufferedInput value={pl.cz} onCommit={(v) => patch({ cz: v })} placeholder="Název CZ…" style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 26, color: t.heading, borderBottom: `1px dashed ${t.borderSoft}` }} />
-          <BufferedInput value={pl.en} onCommit={(v) => patch({ en: v })} placeholder="Name EN…" style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, borderBottom: `1px dashed ${t.borderSoft}` }} />
-        </div>
-      ) : (
-        <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, lineHeight: 1.15, color: t.heading, margin: "0 0 6px" }}>{LANG === "cs" ? pl.cz : pl.en}</h2>
-      )}
-      {edit
-        ? <TPairEdit label={L("Záměr", "Intent")} val={pl.int} onPatch={(v) => patch({ int: v })} />
-        : <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 14, lineHeight: 1.65, color: t.textSec, whiteSpace: "pre-line", marginBottom: 10 }}>{TL(pl.int)}</div>}
-      {pl.why && (
-        <div style={{ marginBottom: 14 }}>
-          <button onClick={() => setWhyOpen((x) => !x)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, padding: 0, marginBottom: 10 }}>
-            {whyOpen ? "▾ " : "▸ "}{L("Proč je plán takový, jaký je", "Why the plan is what it is")}
-          </button>
-          {whyOpen && <TpWhy why={pl.why} />}
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-        {(pl.goals || []).map((g) => <Tag key={g} label={g} color="orange" />)}
-        {edit && <BufferedInput value={(pl.goals || []).join(", ")} onCommit={(v) => patch({ goals: v.split(",").map((x) => x.trim()).filter(Boolean) })} placeholder={L("cíle oddělené čárkou…", "goals, comma-separated…")} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, borderBottom: `1px dashed ${t.borderSoft}`, maxWidth: 260 }} />}
-      </div>
-      {edit && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>{L("Klient", "Client")}</span>
-          <Select small value={pl.client || ""} onChange={(v) => patch({ client: v, clientName: (klOptions.find((o) => o.v === v) || {}).label || "" })} options={[{ v: "", label: L("— jen pro mě —", "— just for me —") }, ...klOptions]} />
-        </div>
-      )}
-      <div style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ flex: 1 }}><ProgressBar value={total ? done / total : 0} /></div>
-        <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>{done} / {total}</span>
-      </div>
-      <div style={{ border: `1px solid ${t.border}`, borderRadius: 10, overflow: "hidden", margin: "10px 0 14px" }}>
-        <div className="tm-thead" style={{ display: "grid", gridTemplateColumns: PL_COLS, background: t.tableHead, borderBottom: `1px solid ${t.border}` }}>
-          {[L("T", "W"), L("Trénink", "Workout"), L("Datum", "Date"), L("Úsilí", "Effort"), "✓", ""].map((h, hi) => (
-            <div key={hi} style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 10.5, color: t.sage, padding: "8px 8px" }}>{h}</div>
-          ))}
-        </div>
-        {(pl.sessions || []).map((s, i) => {
-          const wo = byId[s.wid];
-          return (
-            <DragRow key={s.id} id={s.id} attr="data-tsess" kind="tsess" onReorder={moveSessionTo} className="tm-plrow"
-              style={{ display: "grid", gridTemplateColumns: PL_COLS, borderBottom: i < pl.sessions.length - 1 ? `1px solid ${t.borderSoft}` : "none", alignItems: "center", opacity: s.done ? 0.62 : 1 }}>
-              <div style={{ padding: "8px", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{s.w || i + 1}</div>
-              <div style={{ padding: "8px", minWidth: 0 }}>
-                {edit ? (
-                  <TPickField label={wo ? (((wo.ser && (st.seriesOf(wo.ser) || {}).name) ? (st.seriesOf(wo.ser) || {}).name + " · " : "") + (LANG === "cs" ? wo.cz : wo.en)) : ""} placeholder={L("vyber trénink…", "pick a workout…")} onOpen={() => setPickS(s.id)} style={{ width: "100%" }} />
-                ) : wo ? (
-                  <button onClick={() => onOpenWo(wo.id)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, color: t.text, fontFamily: FONT_BODY, fontSize: 13, textAlign: "left", textDecoration: s.done ? "line-through" : "none" }}>{LANG === "cs" ? wo.cz : wo.en}</button>
-                ) : "—"}
-              </div>
-              <div style={{ padding: "8px 4px" }}>
-                <input type="date" value={s.date || ""} onChange={(e) => patchS(s.id, { date: e.target.value })} style={{ background: "transparent", border: "none", color: s.date ? t.textMuted : hexA(t.textMuted, 0.55), fontFamily: FONT_BODY, fontSize: 11.5, outline: "none", padding: 0, width: "100%", colorScheme: t.mode === "light" ? "light" : "dark" }} />
-              </div>
-              <div style={{ padding: "8px", fontFamily: FONT_BODY, fontSize: 12, color: s.eff >= 100 ? t.accent : t.textMuted }}>
-                {edit ? <BufferedInput value={String(s.eff || "")} onCommit={(v) => patchS(s.id, { eff: Number(v) || 0 })} style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, width: 34 }} /> : (s.eff ? s.eff + " %" : "—")}
-              </div>
-              <div style={{ padding: "8px" }}>
-                <button onClick={() => patchS(s.id, { done: !s.done })} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Check done={!!s.done} /></button>
-              </div>
-              <div style={{ padding: "8px 2px" }}>
-                <button title={L("Odebrat session z plánu", "Remove the session from the plan")} onClick={() => askRemoveSession(s)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0, opacity: 0.6 }}>✕</button>
-              </div>
-            </DragRow>
-          );
-        })}
-      </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={() => patch({ sessions: [...(pl.sessions || []), { id: uid(), w: ((pl.sessions || []).length ? (pl.sessions[pl.sessions.length - 1].w || 0) : 0) + 1, wid: "", eff: 100, done: false, date: "" }] })} style={dashBtn}>＋ {L("Přidat session", "Add session")}</button>
-        {(pl.sessions || []).length > 0 && !(pl.sessions || []).some((s) => s.date) && (
-          <button onClick={() => { patch({ sessions: tmScheduleSessions(pl.sessions) }); if (!pl.client && st.activePlanId() !== pl.id) st.setActivePlan(pl.id); }} style={{ ...quietBtn, color: t.sand, borderStyle: "dashed" }}>{L("Naplánovat od dneška", "Schedule from today")}</button>
-        )}
-        {(pl.sessions || []).some((s) => s.date) && (
-          <button onClick={() => st.ask(L("Zrušit naplánování? Sessions v plánu zůstanou, jen ztratí datum a zmizí z deníku.", "Unschedule? The sessions stay in the plan — they just lose their dates and leave the log."), () => st.clearPlanDates(pl.id), { yes: L("Zrušit naplánování", "Unschedule") })} style={quietBtn}>{L("Zrušit naplánování", "Unschedule")}</button>
-        )}
-        {(pl.sessions || []).length > 0 && (
-          <button onClick={() => st.ask(L(`Odebrat všech ${(pl.sessions || []).length} sessions? Plán zůstane, jen prázdný.`, `Remove all ${(pl.sessions || []).length} sessions? The plan stays, just empty.`), () => st.clearPlanSessions(pl.id), { yes: L("Vyprázdnit", "Empty it") })} style={quietBtn}>{L("Vyprázdnit plán", "Empty the plan")}</button>
-        )}
-        <button onClick={() => tAskDelete(st, "tPl", pl.id, onClose)} style={quietBtn}>{L("Do koše", "To trash")}</button>
-      </div>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, marginTop: 8 }}>{L("Sessions přetáhni — myší, nebo prstem po krátkém podržení.", "Drag the sessions — with a mouse, or with a finger after a short hold.")}</div>
-      {pickS && <TWoPick onClose={() => setPickS(null)} onPick={(wid) => { patchS(pickS, { wid }); setPickS(null); }} />}
     </Drawer>
   );
 }
@@ -11627,661 +10867,6 @@ function TEffort({ value, onChange, size = "md" }) {
     </span>
   );
 }
-
-// one day's training session · row-by-row check-off, planned vs. actual
-function TSessionDetail({ date, item, onPatch, onClose, onOpenEx, onDuplicate, onRun }) {
-  const { t } = useT();
-  const st = useStore();
-  const wos = st.coll.tWo || [];
-  const exs = st.coll.tEx || [];
-  const exById = Object.fromEntries(exs.map((x) => [x.id, x]));
-  const wo = wos.find((x) => x.id === item.wid);
-  const rows = wo ? (wo.rows || []) : [];
-  const rr = item.rows || {};
-  const doneCount = rows.filter((r) => (rr[r.id] || {}).done).length;
-  const [restEnd, setRestEnd] = useState(null);
-  const [nowTs, setNowTs] = useState(Date.now());
-  React.useEffect(() => { if (!restEnd) return; const iv = setInterval(() => setNowTs(Date.now()), 250); return () => clearInterval(iv); }, [restEnd]);
-  const remain = restEnd ? Math.max(0, Math.ceil((restEnd - nowTs) / 1000)) : null;
-  React.useEffect(() => {
-    if (restEnd && remain === 0) {
-      try { if (navigator.vibrate) navigator.vibrate([160, 90, 160]); } catch (e) {}
-      const to = setTimeout(() => setRestEnd(null), 2200);
-      return () => clearTimeout(to);
-    }
-  }, [remain === 0, restEnd]);
-  // checking the last row quietly completes the whole session; unchecking reopens it
-  const setRow = (rid, p) => {
-    const row = rows.find((x) => x.id === rid);
-    const next = { ...rr, [rid]: { ...(rr[rid] || {}), ...(row ? { ex: row.ex } : {}), ...p } };
-    const allDone = rows.length > 0 && rows.every((r) => (next[r.id] || {}).done);
-    const extra = allDone && !item.done ? { done: true, eff: item.eff == null ? 100 : item.eff } : (!allDone && item.done && p.done === false ? { done: false } : {});
-    onPatch({ rows: next, ...extra });
-  };
-  const bestNum = (v) => { const m = String(v || "").match(/\d+(?:[.,]\d+)?/g); return m ? Math.max.apply(null, m.map((x) => Number(x.replace(",", ".")) || 0)) : 0; };
-  const logPB = (r) => {
-    const state = rr[r.id] || {};
-    const v = bestNum(state.actual) || Number(r.reps) || 0;
-    const kg = state.kg != null ? Number(state.kg) : (Number(r.kg) || 0);
-    if (!v && !kg) return;
-    st.addEntry("tLog", { id: uid(), ex: r.ex, date, value: v, kg: kg || null, note: "", who: "" });
-    setRow(r.id, { pr: v || kg });
-  };
-  const completeAll = () => {
-    const all = {};
-    rows.forEach((r) => { all[r.id] = { ...(rr[r.id] || {}), ex: r.ex, done: true }; });
-    onPatch({ rows: all, done: true, eff: item.eff == null ? 100 : item.eff });
-  };
-  const fmtPlanned = (r) => `${r.sets} × ${r.reps}${tUnit(r.unit)}` + (r.kg ? (tLoadOf(exById[r.ex]) === "add" ? " +" : " · ") + r.kg + " kg" : "");
-  // only show the kilo column if anything in this session actually takes weight
-  const anyLoad = rows.some((r) => tLoadOf(exById[r.ex]) !== "none");
-  const SES_COLS = anyLoad ? "24px minmax(0,1.15fr) 66px 82px 56px" : "26px minmax(0,1.35fr) 58px 102px";
-  return (
-    <Drawer open onClose={onClose}>
-      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>
-        {fmtCZ(date)} · {L("záznam tréninku", "session log")}
-      </div>
-      <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 28, lineHeight: 1.15, color: t.heading, margin: "0 0 4px" }}>{wo ? (LANG === "cs" ? wo.cz : wo.en) : L("Trénink", "Session")}</h2>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-        {wo ? <TDemandDots v={tWoDemand(wo, exById)} /> : null}
-        {((wo && wo.aims) || []).map((a) => <Tag key={a} label={a} color="orange" />)}
-      </div>
-      {wo && TL(wo.int) && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, lineHeight: 1.6, color: t.textMuted, marginBottom: 14 }}>{TL(wo.int)}</div>}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{ flex: 1 }}><ProgressBar value={rows.length ? doneCount / rows.length : (item.done ? 1 : 0)} /></div>
-        <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>{doneCount} / {rows.length}</span>
-        <button onClick={completeAll} style={{ background: doneCount === rows.length && rows.length ? "transparent" : t.accent, color: doneCount === rows.length && rows.length ? t.textMuted : t.bg, border: doneCount === rows.length && rows.length ? `1px solid ${t.border}` : "none", borderRadius: 8, padding: "6px 13px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 500, whiteSpace: "nowrap" }}>
-          {L("Splnit vše", "Complete all")}
-        </button>
-      </div>
-      {/* The timer's whole reason for being here: it doesn't run "a workout", it runs
-          THIS one — set by set, rest by rest — and ticks it off when it's over. */}
-      {onRun && rows.length > 0 && (
-        <button onClick={() => onRun(wo)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, width: "100%", background: t.accent, color: t.bg, border: "none", borderRadius: 10, padding: "12px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
-          <TmIcon name="play" size={15} /> {L("Spustit trénink", "Start session")}
-        </button>
-      )}
-      {onRun && rows.length > 0 && (
-        <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontStyle: "italic", color: t.textMuted, marginBottom: 14, textAlign: "center" }}>
-          {L("Nebo si to odškrtej rukou, jako vždycky — tabulka níž nikam nezmizela.", "Or tick it off by hand, as always — the table below hasn't gone anywhere.")}
-        </div>
-      )}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage, marginRight: 2 }}>{L("Pauza", "Rest")}</span>
-        {[30, 60, 90, 120].map((sec) => (
-          <button key={sec} onClick={() => setRestEnd(Date.now() + sec * 1000)} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "2px 9px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.04em" }}>{sec} s</button>
-        ))}
-        {remain != null && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, marginLeft: 4 }}>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 21, color: remain === 0 ? t.accent : t.heading, minWidth: 34, textAlign: "center" }}>{remain === 0 ? L("teď", "go") : remain}</span>
-            <button onClick={() => setRestEnd(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0 }}>✕</button>
-          </span>
-        )}
-      </div>
-      <div style={{ border: `1px solid ${t.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
-        <div className="tm-thead" style={{ display: "grid", gridTemplateColumns: SES_COLS, background: t.tableHead, borderBottom: `1px solid ${t.border}` }}>
-          {(anyLoad ? ["✓", L("Cvik", "Exercise"), L("Plán", "Plan"), L("Skutečně", "Actual"), L("Váha", "Weight")] : ["✓", L("Cvik", "Exercise"), L("Plán", "Plan"), L("Skutečně", "Actual")]).map((h, hi) => (
-            <div key={hi} style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 10, color: t.sage, padding: "8px 8px" }}>{h}</div>
-          ))}
-        </div>
-        {rows.map((r, i) => {
-          const state = rr[r.id] || {};
-          // What was done beats what is planned. If this exercise has since been swapped
-          // out by a progression, the day still shows the day.
-          const ex = exById[state.ex || r.ex];
-          return (
-            <div key={r.id} className="tm-srow" style={{ display: "grid", gridTemplateColumns: SES_COLS, borderBottom: i < rows.length - 1 ? `1px solid ${t.borderSoft}` : "none", alignItems: "center", opacity: state.done ? 0.66 : 1 }}>
-              <div style={{ padding: "8px 6px" }}>
-                <button onClick={() => setRow(r.id, { done: !state.done })} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Check done={!!state.done} /></button>
-              </div>
-              <div style={{ padding: "8px 6px", minWidth: 0 }}>
-                {ex ? (
-                  <button onClick={() => onOpenEx(ex.id)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, color: t.text, fontFamily: FONT_BODY, fontSize: 13, textAlign: "left", textDecoration: state.done ? "line-through" : "none", display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                    <span style={{ color: t.sand, flexShrink: 0 }}><TExArt ex={ex} size={20} stroke="currentColor" showDot={false} /></span>
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tExName(ex)}</span>
-                  </button>
-                ) : <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted }}>—</span>}
-              </div>
-              <div style={{ padding: "8px 6px", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>{fmtPlanned(r)}</div>
-              <div style={{ padding: "8px 6px", display: "flex", alignItems: "center", gap: 5 }}>
-                <BufferedInput value={state.actual || ""} onCommit={(v) => setRow(r.id, { actual: v, done: true })} placeholder={String(r.reps) + tUnit(r.unit)} style={{ fontFamily: FONT_BODY, fontSize: 12, color: state.actual ? t.accent : t.text, borderBottom: `1px dashed ${t.borderSoft}`, flex: 1, minWidth: 0 }} />
-                {state.pr
-                  ? <span title={L("zapsáno v Progresu", "logged in Progress")} style={{ color: t.accent, fontSize: 11, flexShrink: 0 }}>✦</span>
-                  : <button onClick={() => logPB(r)} title={L("Zapsat výkon do Progresu", "Log the result into Progress")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0, flexShrink: 0 }}>✦</button>}
-              </div>
-              {anyLoad && (
-                <div style={{ padding: "8px 6px", display: "flex", alignItems: "center", gap: 3 }}>
-                  {tLoadOf(ex) === "none" ? (
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>—</span>
-                  ) : (
-                    <>
-                      {tLoadOf(ex) === "add" && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>+</span>}
-                      <BufferedInput value={state.kg != null ? String(state.kg) : (r.kg ? String(r.kg) : "")} onCommit={(v) => setRow(r.id, { kg: v === "" ? null : Number(String(v).replace(",", ".")) || 0 })} placeholder={r.kg ? String(r.kg) : "kg"} style={{ fontFamily: FONT_BODY, fontSize: 12, color: state.kg != null ? t.accent : t.text, borderBottom: `1px dashed ${t.borderSoft}`, width: 34, minWidth: 0 }} />
-                      <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: t.textMuted }}>kg</span>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {rows.length === 0 && <div style={{ padding: "12px 10px", fontFamily: FONT_BODY, fontSize: 12.5, fontStyle: "italic", color: t.textMuted }}>{L("Vyber trénink, nebo si tenhle den nech volný.", "Pick a workout, or keep this day free-form.")}</div>}
-      </div>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, marginBottom: 14 }}>
-        {anyLoad
-          ? L("Skutečnost piš jen tam, kde se lišila od plánu. Váhu jen tam, kde jsi ji nesl. Hvězdička ✦ zapíše obojí do Progresu.", "Log the actual only where it differed from the plan, and the weight only where you carried one. The ✦ star writes both into Progress.")
-          : L("Skutečnost piš jen tam, kde se lišila od plánu. Hvězdička ✦ zapíše výkon do Progresu.", "Log the actual only where it differed from the plan. The ✦ star writes the result into Progress.")}
-      </div>
-      {onDuplicate && (
-        <div style={{ marginBottom: 12 }}>
-          <button onClick={onDuplicate} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}>⧉ {L("Duplikovat na další den a upravit", "Duplicate to the next day and tweak")}</button>
-        </div>
-      )}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage }}>{L("Úsilí dne", "Effort")}</span>
-        <TEffort value={item.eff} onChange={(v) => onPatch(v != null ? { eff: v, done: true } : { eff: v })} />
-        <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 7 }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted }}>{L("celý trénink", "whole session")}</span>
-          <button onClick={() => onPatch({ done: !item.done })} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Check done={!!item.done} /></button>
-        </span>
-      </div>
-    </Drawer>
-  );
-}
-
-// the log tab · day pills → day detail · calendar · stats
-function TLogTab({ onOpenPl, onOpenEx, onOpenWo, onRun, heroSlot }) {
-  const { t } = useT();
-  const st = useStore();
-  const wos = st.coll.tWo || [];
-  const pls = st.coll.tPl || [];
-  const woById = Object.fromEntries(wos.map((x) => [x.id, x]));
-  const myPlans = pls.filter((p) => !p.client);
-  // jen aktivní: sledovaný plán + ty s naplánovanou (dosud nesplněnou) session — ne celá knihovna
-  const activePlans = myPlans.filter((p) => p.id === st.activePlanId() || (p.sessions || []).some((s) => s.date && !s.done));
-  const [view, setView] = useState("dny");
-  const [selDay, setSelDay] = useState(todayISO());
-  const [weekAnchor, setWeekAnchor] = useState(todayISO());
-  const dowOf = (d) => { const [yy, mm, dd] = d.split("-").map(Number); return (new Date(yy, mm - 1, dd).getDay() + 6) % 7; };
-  const weekStartOf = (d) => shiftISO(d, -dowOf(d));
-  const weekDays = Array.from({ length: 7 }, (_, i) => shiftISO(weekStartOf(weekAnchor), i));
-  const DOW = L(["po", "út", "st", "čt", "pá", "so", "ne"], ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
-  const [openSess, setOpenSess] = useState(null); // { d, iid }
-  const [calYM, setCalYM] = useState(todayISO().slice(0, 7));
-  const [stripYM, setStripYM] = useState(todayISO().slice(0, 7)); // the month the day strip is showing
-  const [pickWo, setPickWo] = useState(null); // { d, iid }
-  const [overPill, setOverPill] = useState(null);
-  const [dayAdd, setDayAdd] = useState(null); // the day whose quiet ＋ is open
-
-  const dayObj = (d) => st.tDayOf(d);
-  // A day has items. `tDays[d].kind` was the shape of a day before a day could hold more
-  // than one thing; it was read here and nowhere else, and every writer since has been
-  // dutifully setting it to null. The migration turned every such day into a real item,
-  // so the field and this branch both go.
-  const dayItems = (d) => dayObj(d).items || [];
-  const setItems = (d, items) => st.setTDay(d, { items });
-  const addItem = (d, kind) => { const it = { id: uid(), kind, wid: "", eff: null, done: kind === "klid" }; setItems(d, [...dayItems(d), it]); return it.id; };
-  const patchItem = (d, iid, p) => setItems(d, dayItems(d).map((x) => (x.id === iid ? { ...x, ...p } : x)));
-  const removeItem = (d, iid) => setItems(d, dayItems(d).filter((x) => x.id !== iid));
-
-  const patchPlanSession = (pid, sid, patch) => {
-    const p = pls.find((x) => x.id === pid);
-    if (!p) return;
-    st.updateEntry("tPl", pid, { sessions: (p.sessions || []).map((s) => (s.id === sid ? { ...s, ...patch } : s)) });
-  };
-
-  // ✕ on a row of the day · takes it off THIS day, nothing more. A session born of a
-  // plan keeps its place in the plan, it just loses the date — otherwise the plan
-  // would post it straight back tomorrow. Deleting from the plan itself lives in the
-  // plan, where it belongs.
-  const removeRow = (d, it, virt) => {
-    if (virt) { patchPlanSession(virt.p.id, virt.s.id, { date: "" }); return; }
-    if (it.src === "plan" && it.pid && it.sid) { removeItem(d, it.id); patchPlanSession(it.pid, it.sid, { date: "" }); return; }
-    removeItem(d, it.id);
-  };
-  // reorder within a day
-  const moveItemTo = (d, dragId, overId) => {
-    const items = [...dayItems(d)];
-    const from = items.findIndex((x) => x.id === dragId), to = items.findIndex((x) => x.id === overId);
-    if (from < 0 || to < 0 || from === to) return;
-    items.splice(to, 0, items.splice(from, 1)[0]);
-    setItems(d, items);
-  };
-  // drag a row onto another day's pill · the day it belongs to changes
-  const moveItemToDay = (fromD, iid, toD) => {
-    if (fromD === toD) return;
-    const it = dayItems(fromD).find((x) => x.id === iid);
-    if (!it) return;
-    if (it.src === "plan" && it.pid && it.sid) patchPlanSession(it.pid, it.sid, { date: toD });
-    setItems(fromD, dayItems(fromD).filter((x) => x.id !== iid));
-    st.setTDay(toD, { items: [...dayItems(toD), it] });
-  };
-  // planned sessions of my plans on a given day, not yet materialized into the log
-  const plannedOn = (d) => {
-    const out = [];
-    myPlans.forEach((p) => (p.sessions || []).forEach((s) => {
-      if (s.date === d && !dayItems(d).some((it) => it.pid === p.id && it.sid === s.id)) out.push({ p, s });
-    }));
-    return out;
-  };
-  const materialize = (d, p, s, extra) => {
-    const it = { id: uid(), src: "plan", pid: p.id, sid: s.id, kind: "trenink", wid: s.wid, eff: s.eff || null, done: false, rows: {}, ...(extra || {}) };
-    setItems(d, [...dayItems(d), it]);
-    return it.id;
-  };
-  // create a workout straight from a day · saved to the register AND my plan
-  const addSessionToMyPlan = (wid, d, eff) => {
-    const p = myPlans[0];
-    if (p) st.updateEntry("tPl", p.id, { sessions: [...(p.sessions || []), { id: uid(), w: null, wid, eff: eff || 100, done: false, date: d }] });
-    else st.addEntry("tPl", { id: uid(), cz: "Moje tréninky", en: "My sessions", client: "", goals: [], int: ["", ""], sessions: [{ id: uid(), w: 1, wid, eff: eff || 100, done: false, date: d }] });
-  };
-  const newWorkoutForDay = (d) => {
-    const wid = uid();
-    st.addEntry("tWo", { id: wid, ser: "", cz: L("Nový trénink", "New workout"), en: "New workout", time: 0, aims: [], int: ["", ""], rows: [] });
-    addSessionToMyPlan(wid, d);
-    if (onOpenWo) onOpenWo(wid);
-  };
-  // duplicate · a real copy in the register, scheduled a day later, ready to tweak
-  const dupWorkout = (wid, d) => {
-    const wo = woById[wid];
-    if (!wo) return;
-    const nid = uid();
-    st.addEntry("tWo", { ...wo, id: nid, cz: wo.cz + " · " + L("kopie", "copy"), en: (wo.en || "") + " · copy", rows: (wo.rows || []).map((r) => ({ ...r, id: uid() })) });
-    addSessionToMyPlan(nid, shiftISO(d, 1));
-    if (onOpenWo) onOpenWo(nid);
-  };
-
-  // plan window · days inside a scheduled plan without a session are plan rest days
-  const datedSessions = myPlans.flatMap((p) => (p.sessions || []).filter((s) => s.date));
-  const planMin = datedSessions.length ? datedSessions.reduce((a, s) => (s.date < a ? s.date : a), "9999") : null;
-  const planMax = datedSessions.length ? datedSessions.reduce((a, s) => (s.date > a ? s.date : a), "0000") : null;
-  const isPlanRest = (d) => planMin && d >= planMin && d <= planMax && !datedSessions.some((s) => s.date === d);
-  const schedulePlan = (p) => st.updateEntry("tPl", p.id, { sessions: tmScheduleSessions(p.sessions) });
-
-  const WD = () => L(["ne", "po", "út", "st", "čt", "pá", "so"], ["su", "mo", "tu", "we", "th", "fr", "sa"]);
-  const fmtDay = (iso) => { const [y, m, d] = iso.split("-").map(Number); const dt = new Date(y, m - 1, d); return WD()[dt.getDay()] + " " + d + ". " + m + "."; };
-  // the strip shows one whole month and walks month by month
-  const DAYS = (() => {
-    const [y, m] = stripYM.split("-").map(Number);
-    const dim = new Date(y, m, 0).getDate();
-    const out = [];
-    for (let d = 1; d <= dim; d++) out.push(y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0"));
-    return out;
-  })();
-  const stripShift = (delta) => {
-    const [y, m] = stripYM.split("-").map(Number);
-    const dt = new Date(y, m - 1 + delta, 1);
-    setStripYM(dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0"));
-  };
-  const backToToday = () => { setStripYM(todayISO().slice(0, 7)); setSelDay(todayISO()); };
-  const stripRef = React.useRef(null);
-  React.useEffect(() => {
-    if (view !== "dny") return;
-    const el = stripRef.current;
-    if (!el) return;
-    const tp = el.querySelector('[data-sel="1"]') || el.querySelector('[data-today="1"]');
-    el.scrollLeft = tp ? Math.max(0, tp.offsetLeft - el.clientWidth / 2 + tp.offsetWidth / 2) : 0;
-  }, [view, stripYM, selDay]);
-
-  // markers for a day: stored items + virtual plan sessions + plan rest
-  const dayMarks = (d) => {
-    const marks = dayItems(d).map((it) => ({ color: tKindColor(t, it.kind), solid: !!it.done }));
-    plannedOn(d).forEach(() => marks.push({ color: t.accent, solid: false }));
-    if (!marks.length && isPlanRest(d)) marks.push({ color: t.sand, solid: false });
-    return marks.slice(0, 3);
-  };
-
-  // ---- stats over the last 28 days ----
-  const last28 = []; for (let i = 27; i >= 0; i--) last28.push(shiftISO(todayISO(), -i));
-  const allDone = last28.flatMap((d) => dayItems(d).filter((x) => x.done));
-  const nTr = allDone.filter((x) => x.kind === "trenink").length;
-  const nMo = allDone.filter((x) => x.kind === "mobilita").length;
-  const nKl = last28.flatMap((d) => dayItems(d)).filter((x) => x.kind === "klid").length;
-  const effs = allDone.filter((x) => x.kind === "trenink" && x.eff).map((x) => x.eff);
-  const avgEff = effs.length ? Math.round(effs.reduce((a, b) => a + b, 0) / effs.length) : null;
-  const pastPlanned = datedSessions.filter((s) => s.date <= todayISO());
-  const adhere = pastPlanned.length ? Math.round((pastPlanned.filter((s) => s.done).length / pastPlanned.length) * 100) : null;
-  let streak = 0;
-  for (let i = 0; ; i++) { const d = shiftISO(todayISO(), -i); if (dayItems(d).length) streak++; else break; if (i > 365) break; }
-
-  const openItem = openSess ? dayItems(openSess.d).find((x) => x.id === openSess.iid) : null;
-
-  const pill = (d) => {
-    const sel = d === selDay;
-    const today = d === todayISO();
-    const future = d > todayISO();
-    const marks = dayMarks(d);
-    const over = overPill === d;
-    return (
-      <button key={d} className="tm-day-pill" data-tday={"@" + d} data-today={today ? "1" : undefined} data-sel={sel ? "1" : undefined} onClick={() => setSelDay(d)}
-        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setOverPill(d); }}
-        onDragLeave={() => setOverPill((x) => (x === d ? null : x))}
-        onDrop={(e) => {
-          e.preventDefault(); setOverPill(null);
-          const p = (e.dataTransfer.getData("text/plain") || "").split(":");
-          if (p[0] === "tday") moveItemToDay(selDay, p[1], d);
-          else if (p[0] === "tvirt") patchPlanSession(p[1], p[2], { date: d });
-        }}
-        style={{ minWidth: 46, flexShrink: 0, textAlign: "center", cursor: "pointer", background: over ? hexA(t.accent, 0.18) : sel ? t.activeNav : "transparent", border: `1px solid ${over || sel ? t.accent : t.borderSoft}`, borderRadius: 10, padding: "7px 4px 6px", opacity: future && !sel ? 0.75 : 1 }}>
-        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 9.5, color: today ? t.accent : t.textMuted }}>{fmtDay(d).split(" ")[0]}</div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 17, color: sel || today ? t.heading : future ? t.textMuted : t.textSec, lineHeight: 1.2 }}>{Number(d.slice(8))}</div>
-        <div style={{ display: "flex", gap: 3, justifyContent: "center", minHeight: 6, marginTop: 3 }}>
-          {marks.map((m, i) => <span key={i} style={{ width: 5.5, height: 5.5, borderRadius: "50%", background: m.solid ? m.color : "transparent", border: `1px solid ${m.color}` }} />)}
-        </div>
-      </button>
-    );
-  };
-
-  // one row in the day detail · stored item or virtual planned session
-  const itemRow = (d, it, virt) => {
-    const wo = it.wid ? woById[it.wid] : null;
-    const kk = tKind(it.kind);
-    const color = tKindColor(t, it.kind);
-    const rowStyle = { display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderBottom: `1px solid ${t.borderSoft}`, flexWrap: "wrap" };
-    const body = (
-      <>
-        <span style={{ width: 3, alignSelf: "stretch", borderRadius: 2, background: color, opacity: it.done ? 1 : 0.45, flexShrink: 0 }} />
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, color, width: 62, flexShrink: 0 }}>
-          {kk ? L(kk.cz, kk.en) : ""}{virt ? " ·" : ""}{virt && <span style={{ color: t.textMuted, letterSpacing: "0.04em" }}> {L("plán", "plan")}</span>}
-        </span>
-        {it.kind !== "klid" && (
-          virt || it.src === "plan" || wo ? (
-            <button onClick={() => { const iid = virt ? materialize(d, virt.p, virt.s) : it.id; setOpenSess({ d, iid }); }} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, textAlign: "left", minWidth: 0 }}>
-              <span style={{ borderBottom: `1px solid ${t.borderSoft}` }}>{wo ? (LANG === "cs" ? wo.cz : wo.en) : L("(vyber trénink)", "(pick a workout)")}</span>
-            </button>
-          ) : (
-            <TPickField ghost label="" placeholder={L("vyber trénink…", "pick a workout…")} onOpen={() => setPickWo({ d, iid: it.id })} style={{ maxWidth: 200 }} />
-          )
-        )}
-        {wo && (wo.aims || []).length > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 10.5, color: t.textMuted }}>{(wo.aims || []).slice(0, 2).join(" · ")}</span>}
-        <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {it.kind === "trenink" && <TEffort size="sm" value={it.eff} onChange={(v) => {
-            // saying how hard you went is saying you went · the tick follows the effort
-            if (virt) { const iid = materialize(d, virt.p, virt.s, { eff: v, done: v != null }); if (v != null) patchPlanSession(virt.p.id, virt.s.id, { done: true }); }
-            else {
-              patchItem(d, it.id, v != null ? { eff: v, done: true } : { eff: v });
-              if (v != null && it.src === "plan") patchPlanSession(it.pid, it.sid, { done: true });
-            }
-          }} />}
-          {virt && (
-            <span style={{ display: "inline-flex", gap: 2 }}>
-              <button title={L("posunout o den dřív", "move a day earlier")} onClick={() => patchPlanSession(virt.p.id, virt.s.id, { date: shiftISO(d, -1) })} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 6, cursor: "pointer", color: t.textMuted, padding: "3px 6px", display: "inline-flex", lineHeight: 0 }}><CaretIcon dir="left" size={10} /></button>
-              <button title={L("posunout o den dál", "move a day later")} onClick={() => patchPlanSession(virt.p.id, virt.s.id, { date: shiftISO(d, 1) })} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 6, cursor: "pointer", color: t.textMuted, padding: "3px 6px", display: "inline-flex", lineHeight: 0 }}><CaretIcon dir="right" size={10} /></button>
-            </span>
-          )}
-          <button onClick={() => {
-            if (virt) { const iid = materialize(d, virt.p, virt.s, { done: true, eff: virt.s.eff || 100 }); patchPlanSession(virt.p.id, virt.s.id, { done: true }); }
-            else { patchItem(d, it.id, { done: !it.done }); if (it.src === "plan") patchPlanSession(it.pid, it.sid, { done: !it.done }); }
-          }} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Check done={!!it.done} /></button>
-          {it.kind === "trenink" && it.wid && <button title={L("Duplikovat — kopie se uloží mezi tréninky a naplánuje na další den", "Duplicate — the copy is saved to the register and scheduled for the next day")} onClick={() => dupWorkout(it.wid, d)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 12, padding: 0 }}>⧉</button>}
-          <button title={L("Odebrat z tohoto dne — v plánu zůstane", "Take it off this day — it stays in the plan")} onClick={() => removeRow(d, it, virt)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0, opacity: 0.7 }}>✕</button>
-        </span>
-      </>
-    );
-    // A virtual row isn't stored anywhere yet. It can be thrown at another day, but
-    // there is nothing to reorder — so it stays a plain draggable div.
-    if (virt) {
-      return (
-        <div key={virt.s.id} draggable
-          onDragStart={(e) => { e.dataTransfer.setData("text/plain", "tvirt:" + virt.p.id + ":" + virt.s.id); e.dataTransfer.effectAllowed = "move"; }}
-          className="tm-trow" style={{ ...rowStyle, cursor: "grab" }}>
-          {body}
-        </div>
-      );
-    }
-    // A stored row reorders within the day — and if it is let go over a day pill
-    // (those carry data-tday="@<date>"), it moves house instead.
-    return (
-      <DragRow key={it.id} id={it.id} attr="data-tday" kind="tday" className="tm-trow" style={rowStyle}
-        onReorder={(dragId, overId) => (String(overId).charAt(0) === "@" ? moveItemToDay(d, dragId, String(overId).slice(1)) : moveItemTo(d, dragId, overId))}>
-        {body}
-      </DragRow>
-    );
-  };
-
-  const calCells = (() => {
-    const [y, m] = calYM.split("-").map(Number);
-    const first = new Date(y, m - 1, 1);
-    const off = (first.getDay() + 6) % 7;
-    const dim = new Date(y, m, 0).getDate();
-    const cells = [];
-    for (let i = 0; i < off; i++) cells.push(null);
-    for (let d = 1; d <= dim; d++) cells.push(y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0"));
-    return cells;
-  })();
-  const calShift = (delta) => { const [y, m] = calYM.split("-").map(Number); const dt = new Date(y, m - 1 + delta, 1); setCalYM(dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0")); };
-  const MONTHS = () => L(["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec"], ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]);
-
-  return (
-    <>
-      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        {[{ v: "dny", cz: "Dny", en: "Days" }, { v: "tyden", cz: "Týden", en: "Week" }, { v: "kalendar", cz: "Kalendář", en: "Calendar" }, { v: "statistiky", cz: "Statistiky", en: "Stats" }, { v: "casovac", cz: "Časovač", en: "Timer" }].map((x) => (
-          <TChip key={x.v} label={L(x.cz, x.en)} active={view === x.v} onClick={() => setView(x.v)} />
-        ))}
-        <span style={{ marginLeft: "auto", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>
-          {streak > 1 ? <><span style={{ color: t.accent }}>●</span> {streak} {L("dní v rytmu", "days in rhythm")}</> : null}
-        </span>
-      </div>
-
-      {view === "tyden" && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <button onClick={() => setWeekAnchor(shiftISO(weekStartOf(weekAnchor), -7))} title={L("předchozí týden", "previous week")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, cursor: "pointer", color: t.textMuted, padding: "3px 9px", fontSize: 12 }}>‹</button>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 19, color: t.heading }}>{L("Týden od ", "Week of ")}{weekStartOf(weekAnchor).slice(8)}. {MONTHS()[Number(weekStartOf(weekAnchor).slice(5, 7)) - 1]}</span>
-            <button onClick={() => setWeekAnchor(shiftISO(weekStartOf(weekAnchor), 7))} title={L("další týden", "next week")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, cursor: "pointer", color: t.textMuted, padding: "3px 9px", fontSize: 12 }}>›</button>
-            {weekStartOf(weekAnchor) !== weekStartOf(todayISO()) && <button onClick={() => setWeekAnchor(todayISO())} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "3px 11px", cursor: "pointer", color: t.accent, fontFamily: FONT_BODY, fontSize: 11.5 }}>{L("tento týden", "this week")}</button>}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
-            {weekDays.map((d) => {
-              const planned = plannedOn(d);
-              const items = dayItems(d);
-              const isToday = d === todayISO();
-              const rest = isPlanRest(d);
-              const rows = [
-                ...planned.map((v) => ({ name: woById[v.s.wid] ? (LANG === "cs" ? woById[v.s.wid].cz : woById[v.s.wid].en) : L("trénink", "session"), eff: v.s.eff, done: false })),
-                ...items.filter((it) => it.kind !== "klid").map((it) => ({ name: it.wid && woById[it.wid] ? (LANG === "cs" ? woById[it.wid].cz : woById[it.wid].en) : (tKind(it.kind) ? L(tKind(it.kind).cz, tKind(it.kind).en) : L("položka", "item")), eff: it.eff, done: it.done })),
-              ];
-              return (
-                <button key={d} onClick={() => { setSelDay(d); setView("dny"); }} className="tm-lift" style={{ display: "flex", gap: 12, alignItems: "stretch", textAlign: "left", cursor: "pointer", background: isToday ? t.callout : t.card, border: `1px solid ${isToday ? t.accent : t.border}`, borderRadius: 10, padding: "10px 14px" }}>
-                  <div style={{ minWidth: 52, display: "flex", flexDirection: "column", gap: 1 }}>
-                    <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11, color: isToday ? t.accent : t.sage }}>{DOW[dowOf(d)]}</span>
-                    <span style={{ fontFamily: FONT_DISPLAY, fontSize: 17, color: t.heading }}>{d.slice(8)}.{d.slice(5, 7)}.</span>
-                  </div>
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, justifyContent: "center", minWidth: 0 }}>
-                    {rows.length ? rows.map((r, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
-                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: r.done ? t.sage : t.accent, flexShrink: 0 }} />
-                        <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: r.done ? t.textMuted : t.text, textDecoration: r.done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
-                        {r.eff != null && <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: t.textMuted, flexShrink: 0 }}>{r.eff} %</span>}
-                      </div>
-                    )) : <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontStyle: "italic", color: t.textMuted }}>{rest ? L("den klidu", "rest day") : L("volno", "free")}</span>}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {view === "dny" && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <button onClick={() => stripShift(-1)} title={L("předchozí měsíc", "previous month")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, cursor: "pointer", color: t.textMuted, padding: "3px 9px", fontSize: 12 }}>‹</button>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 19, color: t.heading }}>{MONTHS()[Number(stripYM.slice(5)) - 1]} {stripYM.slice(0, 4)}</span>
-            <button onClick={() => stripShift(1)} title={L("další měsíc", "next month")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, cursor: "pointer", color: t.textMuted, padding: "3px 9px", fontSize: 12 }}>›</button>
-            {stripYM !== todayISO().slice(0, 7) && (
-              <button onClick={backToToday} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "3px 11px", cursor: "pointer", color: t.accent, fontFamily: FONT_BODY, fontSize: 11.5 }}>{L("dnes", "today")}</button>
-            )}
-          </div>
-          <div ref={stripRef} style={{ display: "flex", gap: 6, overflowX: "auto", padding: "8px 2px", marginBottom: 12 }} className="tm-scroll tm-wavex">
-            {DAYS.map(pill)}
-          </div>
-          <div style={{ border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden", background: t.card }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: `1px solid ${t.borderSoft}` }}>
-              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 19, color: t.heading }}>{fmtDay(selDay)}</span>
-              {selDay === todayISO() && <Bindu size={5} />}
-              {/* §4 ① · the day header carries ONE quiet ＋. Everything it used to
-                  shout is reachable inside it; the destructive button is gone — a day
-                  empties item by item, with the trash behind each ✕. */}
-              <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                {dayAdd === selDay ? (
-                  <>
-                    {T_KINDS.map((k) => (
-                      <button key={k.v} onClick={() => { addItem(selDay, k.v); setDayAdd(null); }} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 14, padding: "3px 10px", cursor: "pointer", color: tKindColor(t, k.v), fontFamily: FONT_BODY, fontSize: 11.5 }}>＋ {L(k.cz, k.en)}</button>
-                    ))}
-                    <button onClick={() => { newWorkoutForDay(selDay); setDayAdd(null); }} style={{ background: hexA(t.accent, 0.12), border: `1px solid ${t.accent}`, borderRadius: 14, padding: "3px 10px", cursor: "pointer", color: t.accent, fontFamily: FONT_BODY, fontSize: 11.5 }}>＋ {L("Nový trénink", "New workout")}</button>
-                    <button onClick={() => { setDayAdd(null); setView("casovac"); }} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "3px 10px", cursor: "pointer", color: t.sage, fontFamily: FONT_BODY, fontSize: 11.5 }}>
-                      <TmIcon name="timer" size={13} /> {L("Časovač", "Timer")}
-                    </button>
-                    <button onClick={() => setDayAdd(null)} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 12, padding: "0 4px" }}>✕</button>
-                  </>
-                ) : (
-                  <button onClick={() => setDayAdd(selDay)} className="tm-dash" title={L("Přidat do dne", "Add to this day")} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 14, padding: "3px 12px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 }}>＋</button>
-                )}
-              </span>
-            </div>
-            {plannedOn(selDay).map((v) => itemRow(selDay, { id: "v" + v.s.id, kind: "trenink", wid: v.s.wid, eff: v.s.eff, done: false }, v))}
-            {dayItems(selDay).map((it) => itemRow(selDay, it, null))}
-            {dayItems(selDay).length === 0 && plannedOn(selDay).length === 0 && (
-              <div style={{ padding: "13px 14px", fontFamily: FONT_BODY, fontSize: 13, fontStyle: "italic", color: t.textMuted }}>
-                {isPlanRest(selDay) ? L("Podle plánu den klidu. Zapiš ho — počítá se.", "A rest day by the plan. Log it — it counts.") : selDay > todayISO() ? L("Volný den před tebou. Naplánuj ho, nebo ho nech dýchat.", "A free day ahead. Plan it, or let it breathe.") : L("Zatím prázdný den.", "An empty day, so far.")}
-              </div>
-            )}
-            <div style={{ padding: "9px 14px", borderTop: `1px solid ${t.borderSoft}` }}>
-              <InlineText value={dayObj(selDay).note || ""} placeholder={L("poznámka ke dni…", "note for the day…")} onSave={(v) => st.setTDay(selDay, { note: v })} />
-            </div>
-          </div>
-        </>
-      )}
-
-      {view === "casovac" && <TmHome onRun={onRun} />}
-
-      {heroSlot ? <div style={{ marginTop: 26 }}>{heroSlot}</div> : null}
-
-      {activePlans.length > 0 && view !== "statistiky" && view !== "casovac" && (
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
-          {activePlans.map((p) => {
-            const done = (p.sessions || []).filter((s) => s.done).length;
-            const total = (p.sessions || []).length;
-            const dated = (p.sessions || []).some((s) => s.date);
-            const nextS = (p.sessions || []).filter((x) => !x.done && x.date && x.date >= todayISO()).sort((a, b) => (a.date < b.date ? -1 : 1))[0];
-            return (
-              <div key={p.id} style={{ flex: "1 1 240px", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "11px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-                <button onClick={() => onOpenPl(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, textAlign: "left", minWidth: 0, flex: 1 }}>
-                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 16.5, color: t.heading, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{LANG === "cs" ? p.cz : p.en}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4 }}>
-                    <div style={{ flex: 1 }}><ProgressBar value={total ? done / total : 0} /></div>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: t.textMuted }}>{done}/{total}</span>
-                  </div>
-                  {nextS && <div style={{ fontFamily: FONT_BODY, fontSize: 11, color: t.sand, marginTop: 3 }}>{L("další", "next")} · {fmtDay(nextS.date)}</div>}
-                </button>
-                {!dated && <button onClick={() => schedulePlan(p)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "5px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 11.5, whiteSpace: "nowrap" }}>{L("Naplánovat od dneška", "Schedule from today")}</button>}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {view === "kalendar" && (
-        <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: "14px 16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <button onClick={() => calShift(-1)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, cursor: "pointer", color: t.textMuted, padding: "3px 9px", fontSize: 12 }}>‹</button>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 19, color: t.heading }}>{MONTHS()[Number(calYM.slice(5)) - 1]} {calYM.slice(0, 4)}</span>
-            <button onClick={() => calShift(1)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, cursor: "pointer", color: t.textMuted, padding: "3px 9px", fontSize: 12 }}>›</button>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
-            {L(["po", "út", "st", "čt", "pá", "so", "ne"], ["mo", "tu", "we", "th", "fr", "sa", "su"]).map((d) => (
-              <div key={d} style={{ textAlign: "center", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 9.5, color: t.sage, padding: "2px 0 6px" }}>{d}</div>
-            ))}
-            {calCells.map((d, i) => d ? (
-              <button key={d} onClick={() => { setSelDay(d); setView("dny"); }} style={{ aspectRatio: "1", background: d === todayISO() ? t.activeNav : "transparent", border: `1px solid ${d === selDay ? t.accent : t.borderSoft}`, borderRadius: 8, cursor: "pointer", padding: 2, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3 }}>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: d > todayISO() ? t.textMuted : t.text }}>{Number(d.slice(8))}</span>
-                <span style={{ display: "flex", gap: 2, minHeight: 5 }}>
-                  {dayMarks(d).map((m, j) => <span key={j} style={{ width: 4.5, height: 4.5, borderRadius: "50%", background: m.solid ? m.color : "transparent", border: `1px solid ${m.color}` }} />)}
-                </span>
-              </button>
-            ) : <span key={"x" + i} />)}
-          </div>
-        </div>
-      )}
-
-      {view === "statistiky" && (
-        <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 16 }}>
-            {[
-              { v: nTr, cz: "tréninků", en: "sessions", c: t.accent },
-              { v: nMo, cz: "mobilit", en: "mobility", c: t.sage },
-              { v: nKl, cz: "dnů klidu", en: "rest days", c: t.sand },
-              { v: avgEff != null ? avgEff + " %" : "—", cz: "průměrné úsilí", en: "average effort", c: t.heading },
-              { v: adhere != null ? adhere + " %" : "—", cz: "plnění plánu", en: "plan adherence", c: t.heading },
-            ].map((x, i) => (
-              <div key={i} style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "12px 14px" }}>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, color: x.c }}>{x.v}</div>
-                <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, color: t.textMuted, marginTop: 2 }}>{L(x.cz, x.en)} · 28 {L("dní", "days")}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "13px 15px" }}>
-            <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 11, color: t.sage, marginBottom: 8 }}>{L("posledních 28 dní · výška = úsilí", "last 28 days · height = effort")}</div>
-            <svg width="100%" viewBox="0 0 560 70" style={{ display: "block" }}>
-              {last28.map((d, i) => {
-                const its = dayItems(d);
-                const tr = its.find((x) => x.kind === "trenink" && x.done);
-                const mo = its.find((x) => x.kind === "mobilita" && x.done);
-                const kl = its.find((x) => x.kind === "klid");
-                const h = tr ? Math.max(8, ((tr.eff || 100) / 100) * 52) : mo ? 14 : kl ? 8 : 0;
-                const c = tr ? t.accent : mo ? t.sage : t.sand;
-                return h > 0
-                  ? <rect key={d} x={i * 20 + 5} y={60 - h} width={10} height={h} rx={2.5} fill={c} opacity={kl && !tr && !mo ? 0.45 : 0.9} />
-                  : <rect key={d} x={i * 20 + 8} y={57} width={4} height={3} rx={1.5} fill={t.border} />;
-              })}
-            </svg>
-            <div style={{ display: "flex", gap: 14, marginTop: 6, fontFamily: FONT_BODY, fontSize: 11, color: t.textMuted }}>
-              {T_KINDS.map((k) => <span key={k.v}><span style={{ color: tKindColor(t, k.v) }}>●</span> {L(k.cz, k.en)}</span>)}
-            </div>
-          </div>
-        </>
-      )}
-
-      {pickWo && (
-        <TWoPick
-          onClose={() => setPickWo(null)}
-          onPick={(wid) => { patchItem(pickWo.d, pickWo.iid, { wid }); setPickWo(null); }}
-        />
-      )}
-
-      {openItem && (
-        <TSessionDetail
-          date={openSess.d}
-          item={openItem}
-          onClose={() => setOpenSess(null)}
-          onOpenEx={onOpenEx}
-          onDuplicate={openItem.wid ? () => { setOpenSess(null); dupWorkout(openItem.wid, openSess.d); } : null}
-          onRun={(wo) => {
-            const exById = Object.fromEntries((st.coll.tEx || []).map((x) => [x.id, x]));
-            onRun({
-              mode: "program",
-              name: wo ? (LANG === "cs" ? wo.cz : wo.en) : L("Trénink", "Workout"),
-              program: tmStepsOfWorkout(wo, exById, st.coll),
-              // an address, not a closure · see TmStage
-              source: {
-                kind: "workout", d: openSess.d, iid: openSess.iid, woId: wo && wo.id, wo,
-                pid: openItem.src === "plan" ? openItem.pid : null,
-                sid: openItem.src === "plan" ? openItem.sid : null,
-              },
-            });
-          }}
-          onPatch={(p) => {
-            patchItem(openSess.d, openSess.iid, p);
-            if (openItem.src === "plan" && p.done !== undefined) patchPlanSession(openItem.pid, openItem.sid, { done: p.done });
-          }}
-        />
-      )}
-
-    </>
-  );
-}
-
 
 // ======================================================================
 // ČASOVAČ · the workout timer
@@ -12933,102 +11518,6 @@ function TmBreath({ el, size }) {
   );
 }
 
-// ---- the dose · what you were asked for, and what you actually did ----------
-// One tap says "as planned" — which is the truth almost every time, and so it is what
-// costs nothing. Only a set that went differently asks for a second tap.
-function TmDose({ seg, ex, act, onAct, locked }) {
-  const { t } = useT();
-  const [open, setOpen] = useState(false);
-  const load = tLoadOf(ex);
-  const unit = tUnit(seg.unit);
-  const changed = act.reps !== seg.reps || (act.kg || 0) !== (seg.kg || 0);
-  if (open) {
-    return (
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-end", flexWrap: "wrap", justifyContent: "center" }}>
-        <TmStepper label={seg.unit === "s" ? L("sekundy", "seconds") : seg.unit === "m" ? L("minuty", "minutes") : L("opakování", "reps")}
-          value={act.reps} onChange={(v) => onAct({ ...act, reps: Math.max(0, typeof v === "function" ? v(act.reps) : v) })}
-          min={0} max={999} step={1} width={64} />
-        {load !== "none" && (
-          <TmStepper label={L("váha · kg", "weight · kg")} value={act.kg || 0}
-            onChange={(v) => onAct({ ...act, kg: Math.max(0, typeof v === "function" ? v(act.kg || 0) : v) })}
-            min={0} max={500} step={2.5} width={64} />
-        )}
-        <button onClick={() => setOpen(false)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 10, padding: "10px 16px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 13.5 }}>
-          {L("Zpět", "Back")}
-        </button>
-      </div>
-    );
-  }
-  return (
-    <button onClick={() => !locked && setOpen(true)} disabled={locked}
-      title={L("Klepni, jen když se to lišilo od plánu", "Tap only if it went differently")}
-      style={{ display: "inline-flex", alignItems: "baseline", gap: 10, background: "transparent", border: "none", borderBottom: `1px dashed ${changed ? t.accent : t.borderSoft}`, padding: "2px 6px 6px", cursor: locked ? "default" : "pointer" }}>
-      <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontVariantNumeric: "tabular-nums", fontSize: "clamp(46px, 12vw, 76px)", lineHeight: 1, color: changed ? t.accent : t.heading }}>
-        {act.reps}{unit}
-      </span>
-      {act.kg ? (
-        <span style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(20px, 5vw, 30px)", color: t.sand }}>
-          {load === "add" ? "+" : ""}{act.kg} kg
-        </span>
-      ) : null}
-    </button>
-  );
-}
-
-// ---- a set of a strength exercise · no clock, on purpose --------------------
-// A stopwatch running while you are under a bar is the application asking to be
-// looked at. It hurries you, it measures the wrong thing, and it is the exact
-// opposite of quietly supporting the practice. So there is no clock here. There is
-// what to do, how much of it, the one cue that matters — and a button the size of a
-// hand, because you will press it with chalk on your fingers.
-function TmSetView({ seg, ex, act, onAct, onDone, locked, next }) {
-  const { t } = useT();
-  return (
-    <div style={{ width: "min(560px, 100%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, animation: "tmRise .28s ease" }}>
-      {ex ? <span style={{ color: t.sand, opacity: 0.9 }}><TExArt ex={ex} size={96} stroke="currentColor" showDot={false} /></span> : null}
-
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: "clamp(28px, 6.5vw, 40px)", lineHeight: 1.15, color: t.heading }}>{tmLabel(seg)}</div>
-        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 11.5, color: t.sage, marginTop: 6 }}>
-          {TL(seg.sub).split(" · ")[0]}
-        </div>
-        {seg.openSet && (
-          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.accent, marginTop: 6 }}>
-            {L("otevřená série · změříme se", "open set · let us measure")}
-          </div>
-        )}
-      </div>
-
-      <TmDose seg={seg} ex={ex} act={act} onAct={onAct} locked={locked} />
-
-      {seg.cue ? (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, maxWidth: 420, padding: "0 8px" }}>
-          <Bindu size={6} style={{ marginTop: 8, flexShrink: 0 }} />
-          <span style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 15, lineHeight: 1.6, color: t.sand, textAlign: "left" }}>{TL(seg.cue)}</span>
-        </div>
-      ) : null}
-
-      <button onClick={onDone} disabled={locked} className="tm-cta" aria-label={L("Série hotová", "Set done")}
-        style={{ width: "100%", maxWidth: 420, minHeight: 68, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-          background: t.accent, color: t.bg, border: "none", borderRadius: 14, cursor: locked ? "default" : "pointer", opacity: locked ? 0.35 : 1,
-          fontFamily: FONT_BODY, fontSize: 17, fontWeight: 500, letterSpacing: "0.01em", marginTop: 4 }}>
-        <TmIcon name="check" size={20} /> {L("Hotovo", "Done")}
-      </button>
-
-      {next ? (
-        <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, textAlign: "center" }}>
-          {next.k === "rest"
-            ? L("pak pauza ", "then ") + tmFmtWords(next.dur) + L("", " of rest")
-            : L("pak ", "then ") + tmLabel(next)}
-        </div>
-      ) : (
-        <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted }}>{L("poslední série", "the last set")}</div>
-      )}
-    </div>
-  );
-}
-
-
 // ======================================================================
 // THE BRIEF · why today exists
 // ----------------------------------------------------------------------
@@ -13046,179 +11535,40 @@ function TmSetView({ seg, ex, act, onAct, onDone, locked, next }) {
 // success. That is the whole point of Phase 3 having been done properly.
 // ======================================================================
 
-// The one thing to hold on to today. Not a list — a coach gives you ONE.
-// It comes from the limiter of the hardest thing in the session, because that is what
-// will actually decide how the session goes.
-function tmFocusOf(rows, exById) {
-  const work = rows.map((r) => exById[r.ex]).filter(Boolean);
-  if (!work.length) return null;
-  const hardest = work.reduce((a, x) => (tSOf(x) + tCOf(x) > tSOf(a) + tCOf(a) ? x : a));
-  return { ex: hardest, cue: hardest.foc, limiter: tLimiterOf(hardest) };
-}
-
-// What today costs, and therefore what it needs afterwards. Derived from `rec`, which
-// is the one number the taxonomy carries for exactly this purpose.
-function tmCostOf(rows, exById) {
-  const rec = rows.reduce((n, r) => {
-    const ex = exById[r.ex];
-    return n + (ex ? tRecOf(ex) * (Number(r.sets) || 1) : 0);
-  }, 0);
-  const hard = rows.filter((r) => tRecOf(exById[r.ex]) >= 2).length;
-  return {
-    rec,
-    hours: rec > 40 ? 72 : rec > 22 ? 48 : rec > 10 ? 24 : 0,
-    hard,
-  };
-}
-
-function TmBrief({ wo, rows, name, serName, exById, onStart, onClose }) {
+// ---- the stage · where a session is lived ----------------------------------
+// Shrnutí holých hodin. Rekordy sem nepatří: odpočet neví, co se pod ním dělo.
+function TmClockSummary({ result, name, onSave, onClose }) {
   const { t } = useT();
-  const focus = tmFocusOf(rows, exById);
-  const cost = tmCostOf(rows, exById);
-  const flow = tmFlowOf(wo);
-  const equip = [...new Set(rows.flatMap((r) => ((exById[r.ex] || {}).eq) || []))].filter((k) => k !== "telo");
-  // The reason is data, not an inference. A hand-set 3-1-3 tempo is a preference;
-  // `mod: "pain"` is a prescription — and only the prescription gets announced.
-  const modified = rows.filter((r) => r.mod === "pain");
-  const sets = rows.reduce((n, r) => n + (Number(r.sets) || 0), 0);
-  const mins = tWoTime(wo, exById) || tpMinutes(rows, exById);
-  const skills = rows.filter((r) => tIsSkill(exById[r.ex]));
-
-  const label = (cz, en) => (
-    <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 10.5, color: t.sage, marginBottom: 7 }}>{L(cz, en)}</div>
-  );
-
+  const [eff, setEff] = useState(result && result.rounds ? 100 : 85);
+  const [note, setNote] = useState("");
   return (
-    <div style={{ width: "min(560px, 100%)", animation: "tmRise .35s ease", paddingBottom: 8 }}>
-      {/* ---- what this is */}
-      <div style={{ textAlign: "center", marginBottom: 22 }}>
-        {serName ? <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 6 }}>{serName}</div> : null}
-        <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: "clamp(28px, 6vw, 38px)", lineHeight: 1.15, color: t.heading }}>{name}</div>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginTop: 7 }}>
-          {flow !== "sets" ? L(TM_FLOW[flow].cz, TM_FLOW[flow].en) + " · " : ""}
-          ~{mins} min · {rows.length} {L("cviků", "exercises")} · {sets} {L("sérií", "sets")}
-        </div>
-      </div>
-
-      {/* ---- the intent, if the workout has one */}
-      {wo && TL(wo.int) ? (
-        <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 15, lineHeight: 1.7, color: t.textSec, textAlign: "center", maxWidth: 460, margin: "0 auto 22px" }}>
-          {TL(wo.int)}
-        </div>
-      ) : null}
-
-      {/* ---- THE one thing. A coach gives you one, not a list. */}
-      {focus && TL(focus.cue) ? (
-        <div style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `2px solid ${t.accent}`, borderRadius: 10, padding: "14px 16px", marginBottom: 18 }}>
-          {label("Dnes se drž tohohle", "Hold on to this today")}
-          <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 15.5, lineHeight: 1.65, color: t.sand }}>{TL(focus.cue)}</div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 6 }}>
-            {tExName(focus.ex)} · {L("první povolí", "the first thing to give out is")} <span style={{ color: t.sage }}>{L(T_LIMITER[focus.limiter].cz, T_LIMITER[focus.limiter].en)}</span>
-          </div>
-        </div>
-      ) : null}
-
-      {/* ---- pain changed the prescription · say so, plainly, before they start */}
-      {modified.length > 0 && (
-        <div style={{ background: hexA(t.accent, 0.08), border: `1px solid ${t.accent}`, borderRadius: 10, padding: "13px 15px", marginBottom: 18 }}>
-          {label("Upraveno kvůli bolesti", "Modified for pain")}
-          <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.65, color: t.textSec }}>
-            {L(`${modified.length} ${modified.length === 1 ? "cvik má" : "cviky mají"} poloviční zátěž, pomalé tempo a tři opakování v rezervě. Nevynechávej je — šlacha se hojí zátěží, jen jinou. Vynechat je by bylo horší než je udělat.`,
-               `${modified.length} of these carry half the load, a slow tempo and three reps in reserve. Do not skip them — a tendon heals under load, just a different one. Skipping would be worse than doing them.`)}
-          </div>
-        </div>
-      )}
-
-      {/* ---- what is coming */}
-      <div style={{ marginBottom: 18 }}>
-        {label("Co tě čeká", "What is coming")}
-        <div style={{ border: `1px solid ${t.borderSoft}`, borderRadius: 10, overflow: "hidden" }}>
-          {rows.map((r, i) => {
-            const ex = exById[r.ex];
-            const skill = tIsSkill(ex);
-            const mod = r.mod === "pain";
-            return (
-              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderBottom: i < rows.length - 1 ? `1px solid ${t.borderSoft}` : "none", opacity: mod ? 0.95 : 1 }}>
-                {ex ? <span style={{ color: t.sand, flexShrink: 0 }}><TExArt ex={ex} size={26} stroke="currentColor" showDot={false} /></span> : null}
-                <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {ex ? tExName(ex) : "—"}
-                </span>
-                {skill && <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 9.5, color: t.sage }}>{L("dovednost", "skill")}</span>}
-                {mod && <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 9.5, color: t.accent }}>{L("upraveno", "modified")}</span>}
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, whiteSpace: "nowrap" }}>
-                  {r.sets} × {r.reps}{tUnit(r.unit)}{r.kg ? " · " + (tLoadOf(ex) === "add" ? "+" : "") + r.kg + " kg" : ""}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ---- the honest small print: what it needs, what it costs */}
-      <div style={{ display: "flex", gap: 22, flexWrap: "wrap", marginBottom: 22 }}>
-        {equip.length > 0 && (
-          <div style={{ flex: "1 1 160px" }}>
-            {label("Potřebuješ", "You will need")}
-            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>
-              {equip.map((k) => L((T_EQ[k] || {}).cz, (T_EQ[k] || {}).en)).filter(Boolean).join(" · ")}
-            </div>
-          </div>
-        )}
-        {cost.hours > 0 && (
-          <div style={{ flex: "1 1 160px" }}>
-            {label("Potom", "Afterwards")}
-            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>
-              {L(`${cost.hours} h, než tyhle vzory zatížíš znovu`, `${cost.hours} h before you load these patterns again`)}
-            </div>
-          </div>
-        )}
-        {skills.length > 0 && (
-          <div style={{ flex: "1 1 160px" }}>
-            {label("Dovednost", "The skill work")}
-            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>
-              {L("Nikdy do selhání. Kvalita, ne únava.", "Never to failure. Quality, not fatigue.")}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ---- success criteria · what would make today a good day */}
-      <div style={{ borderTop: `1px solid ${t.borderSoft}`, paddingTop: 16, marginBottom: 20 }}>
-        {label("Dnešek je hotový, když", "Today is done when")}
-        <div style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.7, color: t.textSec }}>
-          {L("Odejdeš s tím, že poslední série vypadala jako první. Ne s tím, že už nemůžeš.",
-             "You leave knowing the last set looked like the first. Not knowing you had nothing left.")}
-        </div>
-      </div>
-
+    <div style={{ width: "min(560px, 100%)", display: "flex", flexDirection: "column", gap: 18, alignItems: "center", textAlign: "center" }}>
+      <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, color: t.heading }}>{L("Hotovo", "Done")}</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.sand }}>{name}</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontVariantNumeric: "tabular-nums", fontSize: 44, color: t.heading }}>{tmFmt(result ? result.elapsed : 0)}</div>
+      {result && result.rounds ? <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textSec }}>{result.rounds} {L("kol", "rounds")}</div> : null}
+      <TEffort value={eff} onChange={setEff} />
+      <InlineText value={note} placeholder={L("poznámka…", "a note…")} onSave={setNote} />
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-        <button onClick={onStart} className="tm-cta" style={{ display: "inline-flex", alignItems: "center", gap: 9, background: t.accent, color: t.bg, border: "none", borderRadius: 12, padding: "14px 32px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, fontWeight: 500 }}>
-          <TmIcon name="play" size={16} /> {L("Začít", "Begin")}
-        </button>
-        <button onClick={onClose} style={{ background: "transparent", border: "none", borderRadius: 12, padding: "14px 18px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
-          {L("Ještě ne", "Not yet")}
-        </button>
+        <button onClick={() => onSave(eff, note)} className="tm-cta" style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 12, padding: "13px 26px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 48 }}>{L("Zapsat do dne", "Write it into the day")}</button>
+        <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "13px 20px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 15, minHeight: 48 }}>{L("Zavřít", "Close")}</button>
       </div>
     </div>
   );
 }
 
-// ---- the stage · where a session is lived ----------------------------------
-function TmStage({ program, name, mode, source, onClose }) {
+// ---- ČASOVAČ · holé hodiny --------------------------------------------------
+// Trénink má vlastní obrazovku, sérii po sérii. Tady zůstalo to, čím tenhle
+// engine odjakživa byl: odpočet, stopky, intervaly, tabata, EMOM a AMRAP.
+function TmStage({ program, name, mode, onClose }) {
   const { t } = useT();
   const st = useStore();
   const cfg = st.tmCfg();
   const compiled = React.useMemo(() => tmCompile(program, { countIn: cfg.countIn }), [program, cfg.countIn]);
-  const exById = React.useMemo(() => Object.fromEntries((st.coll.tEx || []).map((x) => [x.id, x])), [st.coll.tEx]);
   const [result, setResult] = useState(null);
   const [locked, setLocked] = useState(false);
   const [holdPct, setHoldPct] = useState(0);
   const [muted, setMuted] = useState(!cfg.sound);
-  const [acts, setActs] = useState({});    // { segId: { reps, kg } } · only where you corrected
-  const [logged, setLogged] = useState([]); // the sets actually done, in order
-  // A workout has an intent to declare, so it gets a brief. A bare countdown from the
-  // timer has nothing to say, so it does not get one — and does not make you tap twice.
-  const [briefed, setBriefed] = useState(() => !(source && source.kind === "workout" && source.wo));
   const [showKeys, setShowKeys] = useState(false);   // reachable behind "?", never present (§4④)
   const stageRef = React.useRef(null);
   const [full, toggleFull] = useFullscreen(stageRef);
@@ -13231,62 +11581,17 @@ function TmStage({ program, name, mode, source, onClose }) {
     tmVoice.set(cfg.voice && !muted, { rate: cfg.voiceRate, cs: cfg.voiceCs, en: cfg.voiceEn });
   }, [muted, cfg.sound, cfg.volume, cfg.voice, cfg.voiceRate, cfg.voiceCs, cfg.voiceEn]);
   React.useEffect(() => {
-    if (!briefed) return;          // the brief holds the clock until you say go
     tmVoice.prime();
     const id = setTimeout(() => eng.start(), 120);
     return () => clearTimeout(id);
-  }, [briefed]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   React.useEffect(() => () => { tmVoice.stop(); }, []);
-
-  // ---- where the session writes to · an address, never a closure --------------
-  // The overlay may live for an hour. A callback captured when it opened would be
-  // writing into a day that has since been re-rendered a thousand times. So it holds
-  // the address (which day, which entry) and lets the store do the reading.
-  const src = source && source.kind === "workout" ? source : null;
-  const itemRef = React.useRef(src && src.iid ? src.iid : null);
-  const itemId = () => {
-    if (itemRef.current) return itemRef.current;
-    if (!src) return null;
-    // started from the register, with nothing in the day yet · the day gets an entry
-    // the moment there is something true to put in it, and not one second earlier
-    itemRef.current = st.tOpenDayItem(src.d, src.woId, src.dayKind || "trenink");
-    return itemRef.current;
-  };
-
-  const actOf = (s) => (s && acts[s.id]) || { reps: (s && s.reps) || 0, kg: (s && s.kg) || 0 };
-  const record = (s, a) => {
-    if (!s || s.k !== "set") return;
-    const changed = a.reps !== s.reps || (a.kg || 0) !== (s.kg || 0);
-    if (src && s.rowId) {
-      const iid = itemId();
-      if (iid) st.tSetDone(src.d, iid, s.rowId, {
-        done: true,
-        ex: s.exId || null,      // what this set actually was · the workout may change later
-        ...(changed ? { actual: String(a.reps) + tUnit(s.unit), kg: a.kg || null } : {}),
-      });
-    }
-    setLogged((prev) => [...prev.filter((x) => x.segId !== s.id), { segId: s.id, exId: s.exId, rowId: s.rowId, reps: a.reps, kg: a.kg || 0, unit: s.unit }]);
-  };
-  const confirmSet = () => { record(eng.seg, actOf(eng.seg)); eng.next(); };
-
-  // A timed set finishes itself. It is still a set that was done, so it is still
-  // written down — the engine advancing is the confirmation.
-  const passed = React.useRef(0);
-  React.useEffect(() => {
-    if (eng.idx <= passed.current) { passed.current = eng.idx; return; }
-    for (let i = passed.current; i < eng.idx; i++) {
-      const s = compiled.segs[i];
-      if (s && s.k === "set" && s.dur != null) record(s, actOf(s));
-    }
-    passed.current = eng.idx;
-  }, [eng.idx]);
 
   // ---- keyboard · subscribed once, read through refs
   const engRef = React.useRef(eng); engRef.current = eng;
   const lockRef = React.useRef(locked); lockRef.current = locked;
   const fullRef = React.useRef(toggleFull); fullRef.current = toggleFull;
   const closeRef = React.useRef(onClose); closeRef.current = onClose;
-  const confirmRef = React.useRef(confirmSet); confirmRef.current = confirmSet;
   React.useEffect(() => {
     const onKey = (e) => {
       if (lockRef.current) return;
@@ -13295,7 +11600,7 @@ function TmStage({ program, name, mode, source, onClose }) {
       const E = engRef.current;
       const k = e.key.toLowerCase();
       const hit = {
-        " ": () => (E.seg && E.seg.k === "set" && E.seg.dur == null ? confirmRef.current() : E.toggle()),
+        " ": () => E.toggle(),
         k: () => E.toggle(), r: () => E.restart(),
         n: () => E.next(), p: () => E.prev(), arrowright: () => E.next(), arrowleft: () => E.prev(),
         f: () => fullRef.current(), m: () => setMuted((x) => !x), l: () => setLocked(true),
@@ -13335,12 +11640,10 @@ function TmStage({ program, name, mode, source, onClose }) {
   const seg = eng.seg;
   const tone = tmTone(seg);
   const color = TM_TONE(t, tone);
-  const isHeldSet = !!seg && seg.k === "set" && seg.dur == null;   // waits for a human
   const isOpen = !!seg && seg.dur == null;
   const isAmrap = !!seg && seg.k === "amrap";
   const isBreath = !!seg && !!seg.breath;
   const isRest = !!seg && seg.kind === "rest";
-  const segEx = seg && seg.exId ? exById[seg.exId] : null;
   const shown = isOpen ? eng.segEl : (eng.segLeft != null ? eng.segLeft : eng.elapsed);
   const ringSize = 300;
 
@@ -13368,27 +11671,16 @@ function TmStage({ program, name, mode, source, onClose }) {
     )
   ), [compiled, eng.idx, t]);
 
-  // ---- the end of it
-  const prs = result ? tmPRs(logged, exById, st.coll.tLog || []) : [];
-  const nextUp = result ? tmNextPlanned(st.coll.tPl || [], todayISO()) : null;
-  const save = (eff, note, prsToLog) => {
-    // There is one history and it is the log. A run that mattered ends up as an entry in
-    // a day, next to everything else that happened that day; a run that did not matter
-    // does not need to be remembered at all. `tmSessions` was a second archive that
-    // nothing else in the app could see, and nobody ever read it twice.
-    (prsToLog || []).forEach((p) => st.addEntry("tLog", { id: uid(), ex: p.ex, date: todayISO(), value: p.value, kg: p.kg || null, note: "", who: "" }));
-    if (src) {
-      const iid = itemId();
-      if (iid) {
-        st.tItemPatch(src.d, iid, { done: true, eff: eff || 100, note });
-        if (src.pid && src.sid) st.tPlanSessionDone(src.pid, src.sid, true);
-      }
-    } else {
-      // A bare clock, run against nothing. It still happened, so it still goes in the day.
-      const nm = name || L(TM_MODE[mode].cz, TM_MODE[mode].en);
-      const day = st.tDayOf(todayISO());
-      st.setTDay(todayISO(), { items: [...(day.items || []), { id: uid(), kind: "trenink", wid: "", eff: eff || 100, done: true, src: "timer", tmName: nm, tmElapsed: Math.round(result.elapsed) }] });
-    }
+  // ---- konec běhu ------------------------------------------------------------
+  // Holé hodiny běžely proti ničemu, a přesto se to stalo. Zapíšou se do dne jako
+  // vlastní záznam — jedna historie, ne druhý archiv.
+  const save = (eff, note) => {
+    const nm = name || L(TM_MODE[mode].cz, TM_MODE[mode].en);
+    st.tvPutSession(TV.makeSession({
+      date: todayISO(), kind: "trenink", state: "done",
+      startedAt: Date.now() - Math.round((result ? result.elapsed : 0) * 1000), endedAt: Date.now(),
+      cz: nm, en: nm, effort: eff || 100, note: note || "",
+    }));
     onClose();
   };
 
@@ -13433,9 +11725,9 @@ function TmStage({ program, name, mode, source, onClose }) {
               {name || L(TM_MODE[mode].cz, TM_MODE[mode].en)}
             </div>
             <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>
-              {!briefed ? L("než začneš", "before you begin")
+              {false ? L("než začneš", "before you begin")
                 : eng.status === "done" ? L("hotovo", "complete") : where}
-              {briefed && eng.total != null && eng.status !== "done" ? " · " + L("zbývá", "left") + " " + tmFmt(eng.left) : ""}
+              {eng.total != null && eng.status !== "done" ? " · " + L("zbývá", "left") + " " + tmFmt(eng.left) : ""}
             </div>
           </div>
           <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
@@ -13447,22 +11739,8 @@ function TmStage({ program, name, mode, source, onClose }) {
 
         {/* ---- the middle · the one thing that is true right now */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22, padding: "20px 0", minHeight: 0 }}>
-          {!briefed && src && src.wo ? (
-            <TmBrief
-              wo={src.wo} rows={src.wo.rows || []} name={name} exById={exById}
-              serName={(st.seriesOf(src.wo.ser) || {}).name || ""}
-              onStart={() => setBriefed(true)} onClose={onClose}
-            />
-          ) : result ? (
-            <TmSummary
-              result={result} compiled={compiled} logged={logged} prs={prs} nextUp={nextUp}
-              name={name || L(TM_MODE[mode].cz, TM_MODE[mode].en)} isWorkout={!!src}
-              exById={exById} onSave={save}
-            />
-          ) : isHeldSet ? (
-            /* a strength set · no clock, one button */
-            <TmSetView seg={seg} ex={segEx} act={actOf(seg)} onAct={(a) => setActs((m) => ({ ...m, [seg.id]: a }))}
-              onDone={confirmSet} locked={locked} next={eng.upcoming} />
+          {result ? (
+            <TmClockSummary result={result} name={name || L(TM_MODE[mode].cz, TM_MODE[mode].en)} onSave={save} onClose={onClose} />
           ) : (
             <>
               {isBreath ? <TmBreath el={eng.segEl} size={ringSize} /> : (
@@ -13560,8 +11838,8 @@ function TmStage({ program, name, mode, source, onClose }) {
           )}
         </div>
 
-        {/* a held set keeps its controls out of the way, at the foot of the page */}
-        {isHeldSet && (
+        {/* zámek ovládání zůstává u paty stránky */}
+        {false && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexShrink: 0 }}>
             {locked ? (
               <button onMouseDown={startHold} onMouseUp={endHold} onMouseLeave={endHold} onTouchStart={startHold} onTouchEnd={endHold}
@@ -13621,261 +11899,6 @@ const TP_ADVICE = {
   opakuj:   { cz: "Ještě jednou", en: "Once more" },
   zmer:     { cz: "Změříme se", en: "Let us measure" },
 };
-
-// Everything this needs, it reads from the log. Nothing is declared, nothing is guessed.
-function tpAdvise(ex, done, coll) {
-  if (!ex || !done || !done.length) return null;
-  const best = done.reduce((a, d) => (d.reps > a.reps ? d : a));
-  const gateReps = 8;
-  const gateSecs = 30;
-  const gate = ex.mode === "sec" ? gateSecs : gateReps;
-  const met = best.reps >= gate;
-  const next = ex.hd ? (coll.tEx || []).find((x) => x.id === ex.hd) : null;
-
-  // ---- 1 · a fresh report of pain vetoes the rung. Not a verdict on what it is —
-  //          just a reason not to add anything on top of it this week.
-  const sore = tSoreAtOf(coll, ex);
-  if (sore && Date.now() - sore < T_SORE_FRESH) {
-    return { k: "bolest", ex, next: null, why: [
-      "Nedávno to bolelo. Nic nezvyšuju. Když potíž trvá nebo se zhoršuje, nech si ji zkontrolovat.",
-      "It hurt recently. Nothing goes up. If it lasts or gets worse, have it looked at." ] };
-  }
-
-  // ---- 2 · a COORDINATION skill is not a lift. Its numbers swing and that is not
-  //          fatigue. A high-force skill is a lift wearing a skill's name — it gets
-  //          the ordinary progression logic, because its tissue pays an ordinary bill.
-  if (tIsCoordSkill(ex)) {
-    return { k: "skill", ex, next: met ? next : null, why: [
-      `${tExName(ex)} je dovednost, ne zvedání. Výkon tu skáče ze dne na den a není to únava — je to prostě dovednost. Odpověď na špatný den není míň praxe, ale víc. Nic nepřidávám, nic neubírám.`,
-      `${tExName(ex)} is a skill, not a lift. The numbers swing day to day and that is not fatigue, that is what a skill is. The answer to a bad day is more practice, not less. I am adding nothing and taking nothing away.` ] };
-  }
-
-  // ---- 3 · three sessions ticked exactly as written is not measurement, it is
-  //          transcription (F4). Before "not yet" comes "let us find out": the last
-  //          set opens next time, and the engine finally learns a real number (P10).
-  if (!met && tAsPrescribedStreak(coll, ex.id) >= 3) {
-    return { k: "zmer", ex, next: null, why: [
-      `Třikrát po sobě přesně podle předpisu — to není měření, to je opis. Příště bude poslední série otevřená: uděláš, kolik jich zůstane čistých, a to číslo se zapíše. Pak budu vědět, ne hádat.`,
-      `Three sessions in a row exactly as written — that is not measurement, that is transcription. Next time the last set is open: do as many as stay clean, and that number gets written down. Then I will know instead of guessing.` ] };
-  }
-
-  // ---- 4 · the gate is not met. Repeat. That is the whole answer — unless the
-  //          phase changes what the number MEANS: a drop while returning is normal.
-  if (!met) {
-    const phase = tPhaseOf(coll);
-    const back = phase.k === "vraci"
-      ? [`\n\nPo ${phase.gap} dnech pauzy je pokles normální. Fáze je návrat, ne stavění — číslo se vrátí.`,
-         `\n\nAfter ${phase.gap} days away, a drop is normal. The phase is a return, not a build — the number will come back.`]
-      : ["", ""];
-    return { k: "opakuj", ex, next: null, why: [
-      `${best.reps}${tUnit(best.unit)} z ${gate}. Ještě ne. Není co řešit — příště znovu.` + back[0],
-      `${best.reps}${tUnit(best.unit)} out of ${gate}. Not yet. Nothing to fix — the same again next time.` + back[1] ] };
-  }
-
-  // ---- 5 · the gate IS met. Now the rate limit decides, and it is a function.
-  const weeks = tRateLimitWeeks(ex);
-  const lastISO = tProgAtOf(coll, ex);
-  const sinceDays = lastISO ? Math.floor((Date.now() - new Date(lastISO + "T12:00:00").getTime()) / 86400e3) : 999;
-  const need = weeks * 7;
-
-  if (weeks === 0 || sinceDays >= need) {
-    if (!next) {
-      return { k: "kvalita", ex, next: null, why: [
-        `${best.reps}${tUnit(best.unit)} čistě — a tenhle žebřík už výš nemá kam. Přituhneme jinak: pomalejší tempo, delší pauza v nejtěžším bodě.`,
-        `${best.reps}${tUnit(best.unit)} clean — and this ladder has nowhere higher to go. So it gets stricter another way: slower tempo, a longer pause at the hardest point.` ] };
-    }
-    const sinceCz = weeks === 0 ? "A tenhle cvik nedluží šlaše nic — čekat nemá smysl."
-      : !lastISO ? "A pro tenhle kloub je to tvůj první posun."
-      : `A od posledního posunu uběhlo ${sinceDays} dní.`;
-    const sinceEn = weeks === 0 ? "And this exercise owes the tendon nothing — there is nothing to wait for."
-      : !lastISO ? "And this is the first move this joint has made."
-      : `And it has been ${sinceDays} days since the last move.`;
-    return { k: "postup", ex, next, why: [
-      `${best.reps}${tUnit(best.unit)} čistě, gate je ${gate}. ${sinceCz} Jdeme na ${tExName(next)}.`,
-      `${best.reps}${tUnit(best.unit)} clean, the gate is ${gate}. ${sinceEn} On to ${tExName(next)}.` ] };
-  }
-
-  // ---- 6 · met, but too soon. THIS is where the coaching happens.
-  const left = need - sinceDays;
-  return { k: "cekej", ex, next, why: [
-    `${best.reps}${tUnit(best.unit)} čistě — gate máš splněný. A přesto ještě ${left} ${left === 1 ? "den" : left < 5 ? "dny" : "dní"} počkáme.\n\n` +
-    `Ne proto, že bys nebyl dost silný. Jsi. Ale sval adaptuje za 2–3 týdny a šlacha za 8–12 — takže se cítíš připravený dřív, než jsi. U ${tExName(ex)} to dělá ${weeks} ${weeks === 1 ? "týden" : weeks < 5 ? "týdny" : "týdnů"} mezi příčkami.\n\n` +
-    `Do té doby nezvyšuješ obtížnost. Zvyšuješ kvalitu.`,
-    `${best.reps}${tUnit(best.unit)} clean — you have met the gate. And we are still going to wait ${left} more ${left === 1 ? "day" : "days"}.\n\n` +
-    `Not because you are not strong enough. You are. But muscle adapts in 2–3 weeks and tendon in 8–12 — so you feel ready before you are. For ${tExName(ex)} that means ${weeks} ${weeks === 1 ? "week" : "weeks"} between rungs.\n\n` +
-    `Until then you do not raise the difficulty. You raise the quality.` ] };
-}
-
-// ---- the end · what helps the next session, and nothing else ----------------
-function TmSummary({ result, compiled, logged, prs, nextUp, name, isWorkout, exById, onSave }) {
-  const { t } = useT();
-  const st = useStore();
-  const [eff, setEff] = useState(result.rounds ? 100 : 85);
-  const [note, setNote] = useState("");
-  const [why, setWhy] = useState(false);
-  const [moved, setMoved] = useState(false);
-  const el = Math.round(result.elapsed);
-  const exercises = new Set(logged.map((x) => x.exId).filter(Boolean)).size;
-
-  // The joints this session actually taxed. Not all seven — you do not ask a man who
-  // did squats whether his elbow hurts. Only what he just paid for.
-  const jointsToday = React.useMemo(() => {
-    const s = new Set();
-    logged.forEach((d) => tJointsOf(exById[d.exId]).forEach((j) => s.add(j)));
-    return T_JOINTS.filter((j) => s.has(j.k));
-  }, [logged, exById]);
-
-  // D2 · what today means for next time. Computed on what was actually done, for the one
-  // exercise that carried the session — not for all of them, because a coach does not
-  // hand you five verdicts. A coach hands you one.
-  const advice = React.useMemo(() => {
-    const byEx = {};
-    logged.forEach((d) => { (byEx[d.exId] = byEx[d.exId] || []).push(d); });
-    const cands = Object.keys(byEx)
-      .map((id) => tpAdvise(exById[id], byEx[id], st.coll))
-      .filter(Boolean)
-      .filter((a) => tCatOf(a.ex) !== "mob" && tCatOf(a.ex) !== "flex" && tCatOf(a.ex) !== "dech");
-    if (!cands.length) return null;
-    // the one that matters: a move forward beats a hold, and the hardest thing beats the rest
-    const order = { postup: 0, cekej: 1, kvalita: 2, skill: 3, zmer: 4, opakuj: 5, bolest: 6 };
-    cands.sort((a, b) => (order[a.k] - order[b.k]) || (tSOf(b.ex) - tSOf(a.ex)));
-    return cands[0];
-    // st.coll is a real dependency: a pain tap made HERE must be allowed to veto the
-    // advice standing right below it (P17 · joint pain overrides the gate).
-  }, [logged, exById, st.coll]);
-  const stat = (v, label, color) => (
-    <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "12px 16px", minWidth: 96 }}>
-      <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, color: color || t.heading, lineHeight: 1.1 }}>{v}</div>
-      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, color: t.textMuted, marginTop: 3 }}>{label}</div>
-    </div>
-  );
-  return (
-    <div style={{ width: "min(560px, 100%)", animation: "tmRise .35s ease" }}>
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <Bindu size={7} style={{ margin: "0 auto 10px" }} />
-        <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 34, color: t.heading, lineHeight: 1.2 }}>{L("Odtrénováno", "Done")}</div>
-        <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 14, color: t.textMuted, marginTop: 4 }}>{name}</div>
-      </div>
-
-      <div className="tm-reveal" style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginBottom: 18 }}>
-        {stat(tmFmt(el), L("čas", "time"), t.accent)}
-        {logged.length ? stat(logged.length, L("sérií", "sets")) : null}
-        {exercises ? stat(exercises, L("cviků", "exercises")) : null}
-        {result.rounds ? stat(result.rounds, L("kol", "rounds"), t.sand) : null}
-        {!logged.length && !result.rounds ? stat(compiled.count, L("úseků", "segments")) : null}
-      </div>
-
-      {/* a record is the only statistic that changes what you do next week */}
-      {prs.length > 0 && (
-        <div style={{ background: t.callout, border: `1px solid ${t.accent}`, borderRadius: 10, padding: "13px 15px", marginBottom: 16 }}>
-          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5, color: t.accent, marginBottom: 8 }}>
-            {prs.length === 1 ? L("Osobní rekord", "A personal best") : L("Osobní rekordy", "Personal bests")}
-          </div>
-          {prs.map((p) => (
-            <div key={p.ex} style={{ display: "flex", alignItems: "baseline", gap: 8, fontFamily: FONT_BODY, fontSize: 14, color: t.text, marginBottom: 3 }}>
-              <Bindu size={5} />
-              <span>{p.name}</span>
-              <span style={{ marginLeft: "auto", fontFamily: FONT_DISPLAY, fontSize: 18, color: t.accent }}>{tFmtRec(exById[p.ex], p)}</span>
-              {p.was ? <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>({L("bylo", "was")} {p.was})</span> : null}
-            </div>
-          ))}
-          {/* no switch here · it is a record, so it gets written (spec ⑤) */}
-        </div>
-      )}
-
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "center", marginBottom: 12 }}>
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage }}>{L("Úsilí", "Effort")}</span>
-        <TEffort value={eff} onChange={(v) => setEff(v)} />
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <InlineText value={note} placeholder={L("co si z toho odnášíš…", "what you take away from it…")} onSave={setNote} />
-      </div>
-
-      {/* ---- PAIN · the one question the engine cannot answer for itself.
-          It is asked once, here, about the joints that were just loaded — and a tap is
-          the whole answer. No scale, no "rate your discomfort 1–10". A joint either hurt
-          or it did not, and anything finer than that is a number nobody can give
-          honestly. What it does: it stops the next progression on that joint dead, and
-          if it happens three times in three weeks it stops being an event and becomes a
-          constraint the generator has to plan around. */}
-      {jointsToday.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5, color: t.sage, marginBottom: 7 }}>
-            {L("Bolelo něco?", "Did anything hurt?")}
-          </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {jointsToday.map((j) => {
-              const on = st.soreNow(j.k);
-              return (
-                <button key={j.k} onClick={() => (on ? st.unsetSore(j.k) : st.setSore(j.k))}
-                  style={{ background: on ? hexA(t.accent, 0.14) : "transparent", border: `1px solid ${on ? t.accent : t.borderSoft}`, borderRadius: 20, padding: "5px 13px", cursor: "pointer", color: on ? t.accent : t.textMuted, fontFamily: FONT_BODY, fontSize: 13 }}>
-                  {L(j.cz, j.en)}
-                </button>
-              );
-            })}
-          </div>
-          {jointsToday.some((j) => st.soreNow(j.k)) && (
-            <div style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, marginTop: 7, lineHeight: 1.6 }}>
-              {L("Zapsáno. Na tomhle kloubu teď nic nezvyšuju — a jestli se to bude opakovat, plán s tím dál počítá. Silná náhlá bolest, brnění, ztráta síly nebo zhoršování patří k odborníkovi, ne do aplikace.",
-                 "Noted. Nothing on that joint goes up for now — and if it keeps happening, the plan keeps allowing for it. Sudden strong pain, numbness, loss of strength or things getting worse belong with a professional, not with an app.")}
-            </div>
-          )}
-        </div>
-      )}
-
-      {nextUp && (
-        <div style={{ textAlign: "center", fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, marginBottom: 16 }}>
-          {L("další v plánu", "next in the plan")} · <span style={{ color: t.sand }}>{fmtCZ(nextUp.s.date)}</span>
-        </div>
-      )}
-
-      {/* ---- D2 · the coach's one sentence about next time */}
-      {advice && (
-        <div style={{ background: t.card, border: `1px solid ${advice.k === "postup" ? t.accent : t.borderSoft}`, borderRadius: 10, padding: "13px 15px", marginBottom: 16 }}>
-          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5, color: advice.k === "postup" ? t.accent : t.sage, marginBottom: 6 }}>
-            {L(TP_ADVICE[advice.k].cz, TP_ADVICE[advice.k].en)}
-          </div>
-          {/* P37 · an explanation has a half-life. The long version speaks twice;
-              from the third time on, one sentence — and "why" stays reachable. */}
-          <div style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.65, color: t.textSec, whiteSpace: "pre-line" }}>
-            {(((st.coll.tSaid || {})[advice.k] || 0) < 2 || why) ? TL(advice.why) : TL(advice.why).split("\n\n")[0]}
-          </div>
-          {TL(advice.why).includes("\n\n") && ((st.coll.tSaid || {})[advice.k] || 0) >= 2 && (
-            <button onClick={() => setWhy((x) => !x)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12, textDecoration: "underline", padding: "6px 0 0" }}>
-              {why ? L("méně", "less") : L("proč", "why")}
-            </button>
-          )}
-          {advice.k === "postup" && advice.next && !moved && (
-            <button onClick={() => { st.tProgAccept(advice.ex.id, advice.next.id); setMoved(true); }} style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", marginTop: 10, background: hexA(t.accent, 0.12), border: `1px solid ${t.accent}`, borderRadius: 8, padding: "9px 12px", cursor: "pointer", color: t.accent, fontFamily: FONT_BODY, fontSize: 13.5 }}>
-              <span style={{ flexShrink: 0 }}><TExArt ex={advice.next} size={24} stroke="currentColor" showDot={false} /></span>
-              {L("Přijmout posun na ", "Take the step up to ")}{tExName(advice.next)}
-            </button>
-          )}
-          {advice.k === "postup" && advice.next && moved && (
-            <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 10, background: hexA(t.accent, 0.08), border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "9px 12px", color: t.textSec, fontFamily: FONT_BODY, fontSize: 13 }}>
-              <span style={{ flexShrink: 0, color: t.accent }}><TExArt ex={advice.next} size={24} stroke="currentColor" showDot={false} /></span>
-              {L(`Hotovo. Ve všech trénincích, kde byl ${tExName(advice.ex)}, je teď ${tExName(advice.next)} — a začínáš na spodní příčce, ne tam, kde jsi skončil.`,
-                 `Done. Everywhere ${tExName(advice.ex)} used to be, there is now ${tExName(advice.next)} — and you start at the bottom of it, not where you left off.`)}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* One button. No "again" — nobody does a workout twice. No "close without
-          saving" — the sets were written long ago and this writes the rest. (spec ⑤) */}
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <button onClick={() => { if (advice) st.tSaidBump(advice.k); onSave(eff, note, prs); }} className="tm-cta" style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 12, padding: "14px 44px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 500 }}>
-          {L("Hotovo", "Done")}
-        </button>
-      </div>
-      {isWorkout && logged.length > 0 && (
-        <div style={{ textAlign: "center", fontFamily: FONT_BODY, fontSize: 11.5, fontStyle: "italic", color: t.textMuted, marginTop: 12 }}>
-          {L("Série se zapisovaly průběžně — i kdybys teď zavřel, zůstanou.", "The sets were written down as you did them — they stay even if you close this now.")}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ---- a number you set with your thumb --------------------------------------
 // Hold the button and it accelerates: nobody should tap "+" forty times to reach
@@ -14018,168 +12041,6 @@ const tmFlowSummary = (wo) => {
   if (k === "recovery") return tmFmtWords(f.window);
   return "";
 };
-
-function tmStepsOfWorkout(wo, exById, coll) {
-  const flow = tmFlowOf(wo);
-  const f = tmFcfgOf(wo);
-  const rows = (wo && wo.rows) || [];
-  const out = [];
-  const nameOf = (r) => { const ex = exById[r.ex]; return ex ? tExName(ex) : L("Cvik", "Exercise"); };
-  const cueOf = (r) => { const ex = exById[r.ex]; return ex && ex.foc && TL(ex.foc) ? ex.foc : null; };
-  const timed = (r) => r.unit === "s" || r.unit === "m";
-  const rowDur = (r) => (timed(r) ? (Number(r.reps) || 0) * (r.unit === "m" ? 60 : 1) : null);
-  const doseOf = (r) => {
-    const ex = exById[r.ex];
-    const kg = r.kg ? " · " + (tLoadOf(ex) === "add" ? "+" : "") + r.kg + " kg" : "";
-    return (r.reps || 0) + tUnit(r.unit) + kg;
-  };
-  // one step of one row · everything the stage and the write-back will ever need
-  const step = (r, o) => {
-    const nm = nameOf(r);
-    const counter = (o.word === "kolo" ? L("kolo", "round") : L("série", "set")) + " " + o.i + "/" + o.n;
-    return {
-      id: uid(), k: "set", label: [nm, nm],
-      dur: o.dur === undefined ? rowDur(r) : o.dur,
-      sub: [counter + " · " + doseOf(r), counter + " · " + doseOf(r)],
-      cue: cueOf(r), exId: r.ex, rowId: r.id,
-      reps: Number(r.reps) || 0, kg: Number(r.kg) || 0, unit: r.unit || "×",
-      round: o.round, rounds: o.rounds, quiet: !!o.quiet,
-      // a breathing exercise, held for time, gets the ring that breathes with you
-      breath: (exById[r.ex] || {}).pat === "dech" && timed(r),
-    };
-  };
-  const rest = (d) => ({ id: uid(), k: "rest", dur: d });
-
-  if (flow === "recovery") {
-    const nm = wo ? (LANG === "cs" ? wo.cz : wo.en) : L("Regenerace", "Recovery");
-    return [{ id: uid(), k: "cooldown", label: [nm, nm], dur: f.window, quiet: true }];
-  }
-
-  if (flow === "amrap") {
-    // The round is the whole list. Nobody stops you mid-round to tick a box —
-    // you count rounds, and that is the only interaction there is.
-    const nm = wo ? (LANG === "cs" ? wo.cz : wo.en) : "AMRAP";
-    return [{
-      id: uid(), k: "amrap", label: [nm, nm], dur: f.window,
-      list: rows.map((r) => ({ name: nameOf(r), dose: doseOf(r) })),
-    }];
-  }
-
-  if (flow === "emom") {
-    const R = Math.max(1, Math.round(f.rounds));
-    for (let r = 1; r <= R; r++) rows.forEach((row) => out.push(step(row, { i: r, n: R, word: "kolo", dur: f.every, round: r, rounds: R })));
-    return out;
-  }
-
-  if (flow === "interval") {
-    const R = Math.max(1, Math.round(f.rounds));
-    for (let r = 1; r <= R; r++) {
-      rows.forEach((row, ri) => {
-        out.push(step(row, { i: r, n: R, word: "kolo", dur: f.work, round: r, rounds: R }));
-        const last = r === R && ri === rows.length - 1;
-        if (!last && f.rest > 0) out.push(rest(f.rest));
-      });
-    }
-    return out;
-  }
-
-  if (flow === "rounds") {
-    const R = Math.max(1, Math.round(f.rounds));
-    for (let r = 1; r <= R; r++) {
-      rows.forEach((row) => out.push(step(row, { i: r, n: R, word: "kolo", round: r, rounds: R })));
-      // a rest between rounds of nothing is not a rest, it is dead air
-      if (r < R && f.roundRest > 0 && rows.length) out.push(rest(f.roundRest));
-    }
-    return out;
-  }
-
-  if (flow === "mobility") {
-    rows.forEach((row) => {
-      const n = Math.max(1, Math.round(Number(row.sets) || 1));
-      for (let s = 1; s <= n; s++) out.push(step(row, { i: s, n, word: "série", quiet: true }));
-    });
-    return out;
-  }
-
-  // sets · the traditional one, and the default. A counted set has no duration: it
-  // waits for you, because no clock knows how long your eighth pull-up takes.
-  rows.forEach((row, ri) => {
-    const n = Math.max(1, Math.round(Number(row.sets) || 1));
-    // F4 · the engine only ever sees what it asked for. Three sessions ticked exactly
-    // as prescribed → the LAST set opens: as many as stay clean, and the number gets
-    // corrected by hand. Strength only — a skill is practised, a straight-arm hold is
-    // never pushed, and a timed set already measures itself.
-    const ex = exById[row.ex];
-    const open = coll && ex && !timed(row) && tCatOf(ex) === "sila" && !tIsStraightArm(ex)
-      && tAsPrescribedStreak(coll, row.ex) >= 3;
-    for (let s = 1; s <= n; s++) {
-      const st = step(row, { i: s, n, word: "série" });
-      if (open && s === n) {
-        st.openSet = true;
-        st.cue = ["Otevřená série: udělej, kolik jich zůstane čistých — a oprav číslo.",
-                  "Open set: do as many as stay clean — and correct the number."];
-      }
-      out.push(st);
-      const last = ri === rows.length - 1 && s === n;
-      if (!last && (Number(row.rest) || 0) > 0) out.push(rest(Number(row.rest)));
-    }
-  });
-  return out;
-}
-
-// ---- duration · DERIVED, never stored (P28) ----------------------------------
-// A stored copy of a workout's length was wrong within a week: rows changed, flows
-// changed, and the number lied. The compiler already knows how long the session is —
-// so it is the only thing allowed to answer.
-function tWoTime(wo, exById) {
-  if (!wo || !((wo.rows || []).length)) return 0;
-  try {
-    const c = tmCompile(tmStepsOfWorkout(wo, exById), { countIn: 0 });
-    // a strength session is OPEN — its sets wait for a human — so the compiler cannot
-    // total it; the honest estimate then comes from the rows (work + rest, nothing hidden)
-    if (!c.open && c.planned > 0) return Math.max(1, Math.round(c.planned / 60));
-    return tpMinutes(wo.rows || [], exById);
-  } catch (e) { return 0; }
-}
-
-// ---- what the session was worth ---------------------------------------------
-// Pure, and therefore answerable without a browser: given the sets that were actually
-// confirmed, which of them beat what stood in Progress before today? Only real bests
-// are offered — a set you matched is not a record, and a set you logged for someone
-// else is not yours.
-function tmPRs(done, exById, logs) {
-  const best = {};
-  (logs || []).forEach((r) => {
-    if (r.who) return;
-    const ex = exById[r.ex];
-    if (!ex) return;
-    const v = tScore(ex, r);
-    if (!best[r.ex] || v > best[r.ex]) best[r.ex] = v;
-  });
-  const mine = {};
-  (done || []).forEach((d) => {
-    const ex = exById[d.exId];
-    if (!ex) return;
-    const rec = { ex: d.exId, value: d.reps, kg: d.kg || null };
-    const v = tScore(ex, rec);
-    if (!v) return;
-    if (!mine[d.exId] || v > tScore(ex, mine[d.exId])) mine[d.exId] = rec;
-  });
-  return Object.keys(mine)
-    .filter((exId) => tScore(exById[exId], mine[exId]) > (best[exId] || 0))
-    .map((exId) => ({ ...mine[exId], name: tExName(exById[exId]), was: best[exId] || 0 }));
-}
-
-// The one thing a person wants to know at the end besides "how did I do": what's next.
-function tmNextPlanned(plans, exceptDate) {
-  const today = todayISO();
-  const all = [];
-  (plans || []).filter((p) => !p.client).forEach((p) => (p.sessions || []).forEach((s) => {
-    if (!s.done && s.date && s.date >= today && !(s.date === exceptDate && s.done)) all.push({ p, s });
-  }));
-  all.sort((a, b) => (a.s.date < b.s.date ? -1 : 1));
-  return all[0] || null;
-}
 
 // ---- the timer's home · in the log, where the day already lives -------------
 function TmHome({ onRun }) {
@@ -14995,233 +12856,6 @@ function TLevelLadder({ exs, onLevel }) {
   );
 }
 
-// ---- the wizard · six questions, and not one more --------------------------
-// Intelligent defaults over excessive customisation. Everything here has an answer
-// already; you are only correcting the ones that are wrong about you.
-function TpWizard({ onClose }) {
-  const { t } = useT();
-  const st = useStore();
-  const exs = st.coll.tEx || [];
-  const exById = React.useMemo(() => Object.fromEntries(exs.map((x) => [x.id, x])), [exs]);
-  const [goals, setGoals] = useState(["zdravi"]);  // first one sets the dose
-  const [skillTargets, setSkillTargets] = useState([]);
-  const [musFocus, setMusFocus] = useState([]);
-  const [mobFocus, setMobFocus] = useState([]);
-  const [info, setInfo] = useState(null);           // { title, text } | null
-  const [ladder, setLadder] = useState(false);      // the level test, folded away
-  const [level, setLevel] = useState(1);
-  const [days, setDays] = useState(3);
-  const [minutes, setMinutes] = useState(45);
-  const [weeks, setWeeks] = useState(6);
-  const [equip, setEquip] = useState([]);
-  const [inj, setInj] = useState([]);
-  const [volFloor, setVolFloor] = useState(false);   // the negotiated retreat, chosen out loud
-  const [why, setWhy] = useState(false);
-
-  // ---- what the engine OBSERVES before it prescribes (§6 POZOROVÁNÍ) ----
-  // Each of these is read, never guessed. Missing data stays missing (P3).
-  const obs = React.useMemo(() => {
-    const phase = tPhaseOf(st.coll);
-    // attendance · dated plan sessions over the last three weeks
-    const since = new Date(Date.now() - 21 * 86400e3).toISOString().slice(0, 10);
-    const today = todayISO();
-    const dated = (st.coll.tPl || []).filter((p) => !p.client)
-      .flatMap((p) => p.sessions || [])
-      .filter((s) => s.date && s.date >= since && s.date <= today);
-    const consistency = dated.length >= 3 ? dated.filter((s) => s.done).length / dated.length : null;
-    const measured = new Set((st.coll.tLog || []).map((r) => r.ex));
-    return { phase, consistency, measured };
-  }, [st.coll]);
-
-  const draft = React.useMemo(
-    () => tpGenerate({ goals, skillTargets, musFocus, mobFocus, level, days, minutes, weeks, equip, injuries: inj, volFloor }, exs, tSoreChronic(st.coll), obs),
-    [goals, skillTargets, musFocus, mobFocus, level, days, minutes, weeks, equip, inj, volFloor, exs, obs]);
-
-  const create = (scheduled) => {
-    if (draft.conflict) return;             // an unsolvable brief does not ship (P4)
-    st.addEntry("tSer", draft.series);      // the shelf first, so the workouts land on it
-    draft.workouts.forEach((w) => st.addEntry("tWo", w));
-    // a plan without dates never reaches Dnes — so the default path dates it, and
-    // leaving it undated is a choice made out loud, not an accident of the flow
-    const plan = scheduled ? { ...draft.plan, sessions: tmScheduleSessions(draft.plan.sessions) } : draft.plan;
-    st.addEntry("tPl", plan);               // the plan already carries its reasons
-    onClose(plan.id);
-  };
-  const toggle = (arr, set, k) => set(arr.includes(k) ? arr.filter((x) => x !== k) : [...arr, k]);
-  const toggleGoal = (k) => setGoals((g) => {
-    const n = g.includes(k) ? g.filter((x) => x !== k) : [...g, k];
-    return n.length ? n : ["zdravi"];   // a plan always trains FOR something
-  });
-  const label = (cz, en) => (
-    <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.sage, margin: "18px 0 8px" }}>{L(cz, en)}</div>
-  );
-
-  return (
-    <Drawer open onClose={() => onClose(null)}>
-      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>{L("Metodika Tanmay", "The Tanmay method")}</div>
-      <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, lineHeight: 1.15, color: t.heading, margin: "0 0 6px" }}>{L("Sestavit plán", "Build a plan")}</h2>
-      <p style={{ fontFamily: FONT_BODY, fontSize: 14, fontStyle: "italic", lineHeight: 1.65, color: t.textMuted, margin: "0 0 4px" }}>
-        {L("Pět otázek. Na všechny už je odpověď — opravuješ jen ty, které o tobě neplatí.",
-           "Five questions. Every one of them is already answered — you are only correcting the ones that are wrong about you.")}
-      </p>
-
-      {label("Proč trénuješ", "What you are training for")}
-      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-        {TP_GOALS.map((g) => (
-          <TChip key={g.k}
-            label={goals[0] === g.k && goals.length > 1 ? L(g.cz + " · hlavní", g.en + " · main") : L(g.cz, g.en)}
-            active={goals.includes(g.k)}
-            onClick={() => toggleGoal(g.k)}
-            onInfo={() => setInfo({ title: L(g.cz, g.en), text: L(TP_GOAL_INFO[g.k][0], TP_GOAL_INFO[g.k][1]) })} />
-        ))}
-      </div>
-      {goals.length > 1 && (
-        <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontStyle: "italic", color: t.textMuted, marginTop: 6 }}>
-          {L("Dávkování určuje první vybraný cíl. Další přidávají svůj podpis.", "The first goal sets the dose. The others add their signature.")}
-        </div>
-      )}
-
-      {goals.includes("skill") && (
-        <>
-          {label("Na které dovednosti", "Which skills")}
-          <TSkillPick exs={exs} values={skillTargets} onChange={setSkillTargets} />
-        </>
-      )}
-      {goals.includes("hyper") && (
-        <>
-          {label("Na které partie", "Which muscles")}
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-            {T_MUSCLES.map((m) => <TChip key={m.k} label={L(m.cz, m.en)} active={musFocus.includes(m.k)} onClick={() => toggle(musFocus, setMusFocus, m.k)} />)}
-          </div>
-        </>
-      )}
-      {goals.includes("mob") && (
-        <>
-          {label("Na které oblasti", "Which areas")}
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-            {T_JOINTS.map((j) => <TChip key={j.k} label={L(j.cz, j.en)} active={mobFocus.includes(j.k)} onClick={() => toggle(mobFocus, setMobFocus, j.k)} />)}
-          </div>
-        </>
-      )}
-
-      {label("Kde jsi", "Where you are")}
-      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
-        {T_LEVELS.map((x) => <TChip key={x.v} label={L(x.cz, x.en)} active={level === x.v} onClick={() => setLevel(x.v)} />)}
-        <button onClick={() => setLadder((x) => !x)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", textDecoration: "underline", textUnderlineOffset: 3, padding: "4px 2px" }}>
-          {ladder ? L("Schovat test", "Hide the test") : L("Nevím — otestuj mě", "Not sure — test me")}
-        </button>
-      </div>
-      {ladder && <TLevelLadder exs={exs} onLevel={(v) => { setLevel(v); setLadder(false); }} />}
-
-      {label("Kolik toho máš", "What you have")}
-      <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <TmStepper label={L("dnů týdně", "days a week")} value={days} onChange={(v) => setDays(Math.max(2, Math.min(6, typeof v === "function" ? v(days) : v)))} min={2} max={6} step={1} width={44} />
-        <TmStepper label={L("minut", "minutes")} value={minutes} onChange={(v) => setMinutes(Math.max(20, Math.min(120, typeof v === "function" ? v(minutes) : v)))} min={20} max={120} step={5} width={54} />
-        <TmStepper label={L("týdnů", "weeks")} value={weeks} onChange={(v) => setWeeks(Math.max(2, Math.min(12, typeof v === "function" ? v(weeks) : v)))} min={2} max={12} step={1} width={44} />
-      </div>
-
-      {label("Vybavení", "Equipment")}
-      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-        {T_EQUIP.filter((e) => e.k !== "telo").map((e) => <TChip key={e.k} label={L(e.cz, e.en)} active={equip.includes(e.k)} onClick={() => toggle(equip, setEquip, e.k)} />)}
-      </div>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontStyle: "italic", color: t.textMuted, marginTop: 6 }}>
-        {L("Nic nezaškrtnuto = jen tělo a podlaha. I to je plán, ne omluva.", "Nothing ticked means the body and the floor. That is a plan too, not an excuse.")}
-      </div>
-
-      {label("Co tě bolí", "What hurts")}
-      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-        {TP_INJURIES.map((i) => <TChip key={i.k} label={L(i.cz, i.en)} active={inj.includes(i.k)} onClick={() => toggle(inj, setInj, i.k)} />)}
-      </div>
-
-      {/* ---- what it built, and why */}
-      <div style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "16px 18px", margin: "22px 0 14px" }}>
-        <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginBottom: 12 }}>
-          {[[draft.workouts.length, L("tréninků", "workouts")],
-            [draft.plan.sessions.length, L("sessions", "sessions")],
-            [draft.weekly, L("sérií / vzor / týden", "sets / pattern / week")],
-            [Math.round(draft.workouts.reduce((n, w) => n + tWoTime(w, exById), 0) / draft.workouts.length), L("min · průměr", "min · average")]].map(([v, k], i) => (
-            <div key={i}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: t.heading, lineHeight: 1.1 }}>{v}</div>
-              <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 9.5, color: t.textMuted }}>{k}</div>
-            </div>
-          ))}
-        </div>
-        {inj.length > 0 && (
-          <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.accent, marginBottom: 10, lineHeight: 1.6 }}>
-            {L("Bolest neubrala cviky — ubrala jim dávku. Šlacha se hojí zátěží, jen jinou.",
-               "Pain did not remove exercises — it changed their dose. A tendon heals under load, just a different one.")}
-          </div>
-        )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {draft.workouts.map((w) => (
-            <div key={w.id} style={{ display: "flex", alignItems: "baseline", gap: 8, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>
-              <span style={{ color: t.sand, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{LANG === "cs" ? w.cz : w.en}</span>
-              <span style={{ marginLeft: "auto", fontSize: 11.5, color: t.textMuted, whiteSpace: "nowrap" }}>{w.rows.length} {L("cviků", "exercises")} · ~{tWoTime(w, exById)} min</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ---- P4 · an unsolvable brief is negotiated, never silently compromised.
-          The engine says WHAT does not fit and offers the concrete retreats. You pick. */}
-      {draft.conflict && (
-        <div style={{ background: hexA(t.accent, 0.08), border: `1px solid ${t.accent}`, borderRadius: 12, padding: "16px 18px", marginBottom: 14 }}>
-          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.accent, marginBottom: 8 }}>
-            {L("Tohle se vylučuje", "These do not fit together")}
-          </div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.65, color: t.textSec, marginBottom: 12 }}>
-            {L(`Relace potřebuje ~${draft.conflict.need} minut a ty máš ${draft.conflict.have}. Tiché věci už ustoupily — dál nejdu, protože další škrt by byl kompromis, který vypadá jako plán. Něco musí ustoupit nahlas:`,
-               `A session needs ~${draft.conflict.need} minutes and you have ${draft.conflict.have}. The quiet things have already yielded — going further would be a compromise dressed up as a plan. Something has to give, out loud:`)}
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={() => setMinutes(Math.min(120, draft.conflict.need))} style={{ background: "transparent", border: `1px solid ${t.accent}`, borderRadius: 8, padding: "8px 14px", cursor: "pointer", color: t.accent, fontFamily: FONT_BODY, fontSize: 13 }}>
-              {L(`Dej relaci ${Math.min(120, draft.conflict.need)} min`, `Give the session ${Math.min(120, draft.conflict.need)} min`)}
-            </button>
-            {days < 6 && (
-              <button onClick={() => setDays(days + 1)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 14px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 13 }}>
-                {L(`Přidej den · ${days + 1}× týdně, kratší relace`, `Add a day · ${days + 1}× a week, shorter sessions`)}
-              </button>
-            )}
-            {!volFloor && (
-              <button onClick={() => setVolFloor(true)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 14px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 13 }}>
-                {L("Uber sérii na vzor · pomalejší postup", "One set off each pattern · slower progress")}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-      {volFloor && !draft.conflict && (
-        <div style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, marginBottom: 10 }}>
-          {L("Objem ustoupil o sérii na vzor, aby se relace vešla do času. ", "Volume gave up one set per pattern so the session fits the time. ")}
-          <button onClick={() => setVolFloor(false)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12, textDecoration: "underline", padding: 0 }}>{L("vrátit", "undo")}</button>
-        </div>
-      )}
-
-      <button onClick={() => setWhy((x) => !x)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, padding: 0, marginBottom: 10 }}>
-        {why ? "▾ " : "▸ "}{L("Proč zrovna takhle", "Why exactly this")}
-      </button>
-      {why && <TpWhy why={draft.why} />}
-      {info && <TInfoSheet title={info.title} text={info.text} onClose={() => setInfo(null)} />}
-
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-        {!draft.conflict && (
-          <button onClick={() => create(true)} className="tm-cta" style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 10, padding: "12px 24px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14.5, fontWeight: 500 }}>
-            {L("Vytvořit a naplánovat od dneška", "Create and schedule from today")}
-          </button>
-        )}
-        {!draft.conflict && (
-          <button onClick={() => create(false)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 10, padding: "12px 18px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5 }}>
-            {L("Vytvořit bez dat", "Create without dates")}
-          </button>
-        )}
-        <button onClick={() => onClose(null)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 10, padding: "12px 18px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 14 }}>
-          {L("Zrušit", "Cancel")}
-        </button>
-      </div>
-    </Drawer>
-  );
-}
-
 // ---- the seven answers · the constraint the generator holds itself to -------
 // ---- the school · seven things that hold whatever the plan says -----------------
 // Approved word for word. General knowledge, not this plan's reasons — so it lives
@@ -15299,90 +12933,6 @@ function TpWhy({ why }) {
         </div>
       ))}
       <TSchool />
-    </div>
-  );
-}
-
-// ---- DNES · the first screen (§4 ①) -----------------------------------------
-// You open Training and you see today. One sentence, one button. Not a filing
-// cabinet, not five tabs — the library and the plans are reachable, never present.
-function TDnes({ onRun, onPlan }) {
-  const { t } = useT();
-  const st = useStore();
-  const today = todayISO();
-  const exById = Object.fromEntries((st.coll.tEx || []).map((x) => [x.id, x]));
-  const woById = Object.fromEntries((st.coll.tWo || []).map((x) => [x.id, x]));
-  const items = st.tDayOf(today).items || [];
-  // what stands in the day, not yet done · plus what a plan posted for today and the
-  // day has not materialized yet (the same rule the log uses, so the two never disagree)
-  // jen aktivní sledovaný plán · když žádný není označen, zůstává původní chování
-  const activeId = st.activePlanId();
-  const pending = items.filter((it) => !it.done && it.wid && woById[it.wid] && (!activeId || it.src !== "plan" || it.pid === activeId))
-    .map((it) => ({ wo: woById[it.wid], iid: it.id, pid: it.src === "plan" ? it.pid : null, sid: it.src === "plan" ? it.sid : null }));
-  (st.coll.tPl || []).filter((p) => !p.client && (!activeId || p.id === activeId)).forEach((p) => (p.sessions || []).forEach((s) => {
-    if (s.date === today && !s.done && s.wid && woById[s.wid] && !items.some((it) => it.pid === p.id && it.sid === s.id)) {
-      pending.push({ wo: woById[s.wid], iid: null, pid: p.id, sid: s.id });
-    }
-  }));
-  const doneToday = items.filter((it) => it.done).length;
-  const hero = pending[0] || null;
-
-  const begin = (h) => {
-    const wo = h.wo;
-    const flow = tmFlowOf(wo);
-    onRun({
-      mode: "program",
-      name: LANG === "cs" ? wo.cz : wo.en,
-      program: tmStepsOfWorkout(wo, exById, st.coll),
-      // an address, not a closure · the session writes into this day item (or makes
-      // one the moment it has something true to write)
-      source: { kind: "workout", d: today, iid: h.iid, woId: wo.id, wo, pid: h.pid, sid: h.sid,
-        dayKind: flow === "recovery" ? "klid" : flow === "mobility" ? "mobilita" : "trenink" },
-    });
-  };
-
-  return (
-    <div className="tm-view" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: "28px 26px 26px", marginBottom: 26, textAlign: "center", boxShadow: t.shadow }}>
-      {hero ? (
-        <>
-          {hero.wo.ser && (st.seriesOf(hero.wo.ser) || {}).name ? (
-            <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 7 }}>{(st.seriesOf(hero.wo.ser) || {}).name}</div>
-          ) : null}
-          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: "clamp(26px, 5.5vw, 36px)", lineHeight: 1.2, color: t.heading }}>
-            {LANG === "cs" ? hero.wo.cz : hero.wo.en}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 8, marginBottom: 18 }}>
-            <TDemandDots v={tWoDemand(hero.wo, exById)} />
-            <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted }}>
-              {tWoTime(hero.wo, exById) ? "~" + tWoTime(hero.wo, exById) + " min · " : ""}{(hero.wo.rows || []).length} {L("cviků", "exercises")}
-            </span>
-          </div>
-          <button onClick={() => begin(hero)} className="tm-cta" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: t.accent, color: t.bg, border: "none", borderRadius: 12, padding: "15px 42px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16.5, fontWeight: 500 }}>
-            <TmIcon name="play" size={16} /> {L("Začít", "Begin")}
-          </button>
-          {pending.length > 1 && (
-            <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, marginTop: 12 }}>
-              {L("a pak · ", "then · ")}{pending.slice(1).map((h) => (LANG === "cs" ? h.wo.cz : h.wo.en)).join(" · ")}
-            </div>
-          )}
-        </>
-      ) : doneToday > 0 ? (
-        <>
-          <Bindu size={7} style={{ margin: "0 auto 10px" }} />
-          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 28, color: t.heading }}>{L("Odtrénováno.", "Done for today.")}</div>
-          <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.textMuted, marginTop: 6 }}>{L("Drž svou praxi. Zítra tu bude další.", "Hold the practice. Tomorrow there will be another.")}</div>
-        </>
-      ) : (
-        <>
-          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 28, color: t.heading }}>{L("Dnes nic nemáš.", "Nothing today.")}</div>
-          <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.textMuted, margin: "8px auto 16px", maxWidth: 400, lineHeight: 1.65 }}>
-            {L("Naplánuj si něco — nebo prostě jdi. I bez zápisu to platí.", "Plan something — or simply go. It counts without being written down.")}
-          </div>
-          <button onClick={onPlan} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 10, padding: "10px 22px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14 }}>
-            {L("Naplánovat", "Plan something")}
-          </button>
-        </>
-      )}
     </div>
   );
 }
@@ -16555,471 +14105,563 @@ function KBPlanGroup({ group, t, defaultOpen, onBuild, genPanel, recId, klienti,
 }
 
 // ---- the Trénink page · Dnes first, the library one quiet step away (§4) ----
-function PageTrenink() {
+// ======================================================================
+// TRÉNINK · co ti trenér předepsal, a co jsi opravdu udělal
+// ----------------------------------------------------------------------
+// Předpis je tvůj plán, ne tvůj text. Nedá se tu přepsat — ani omylem, ani
+// schválně —, protože to, co je v něm napsané, je dohoda s trenérem. Co se
+// tu psát dá, je skutečnost: kolik, jak dlouho, jak těžké to bylo.
+//
+// Zapisuje se sérii po sérii a zapíše se hned. Když vypadne síť, zůstane to
+// v telefonu a odejde samo, až se síť vrátí. Odesílá se podle id záznamu,
+// takže dvojí odeslání nikdy nevyrobí dva tréninky.
+// ======================================================================
+
+const tvCz = () => LANG === "cs";
+const tvFmtA = (mt, a) => TV.fmtActual(mt, a, tvCz());
+const tvFmtP = (mt, p) => TV.fmtPlanned(mt, p, tvCz());
+
+// Doručený cvik má přednost: přišel s plánem a nese přesně to, co trenér
+// poslal. Vlastní knihovna je záloha pro cvik, který v balíku není.
+function tvClientRec(st, exId) {
+  const d = st.tvExerciseOf(exId);
+  if (d) {
+    return {
+      id: d.id, displayCz: d.cz, displayEn: d.en,
+      measurementType: d.measurementType || "REPS_ONLY",
+      defaultRestSec: d.defaultRestSec == null ? 90 : d.defaultRestSec,
+      focus: d.focus || null, startPosition: d.startPosition || null,
+      execution: d.execution || null, watchFor: d.watchFor || null, progression: d.progression || null,
+      equipment: d.eq || [], unilateral: !!d.unilateral, art: d.art || null,
+    };
+  }
+  const row = (st.coll.tEx || []).find((x) => x.id === exId);
+  const rec = tvOf(row);
+  return rec ? { ...rec, art: TM_POZY[exId] || null } : null;
+}
+const tvName = (rec) => (rec ? (LANG === "cs" ? rec.displayCz : rec.displayEn) || rec.displayCz : "");
+
+const tvQuiet = (t) => ({ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 9, padding: "7px 12px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 13, minHeight: 38 });
+
+function TvField({ field, value, onChange, disabled }) {
+  const { t } = useT();
+  const spec = TV.FIELD[field] || TV.FIELD.reps;
+  const unit = spec.unit[tvCz() ? 0 : 1];
+  return (
+    <label style={{ display: "inline-flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+      <span style={{ fontFamily: FONT_TAG, fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted }}>
+        {(tvCz() ? spec.cz : spec.en) + (unit ? " · " + unit : "")}
+      </span>
+      <input inputMode="decimal" disabled={disabled} value={value == null ? "" : String(value)}
+        onChange={(e) => onChange(e.target.value === "" ? null : Number(String(e.target.value).replace(",", ".")))}
+        style={{ width: 62, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "8px", color: t.heading, fontFamily: FONT_BODY, fontSize: 15, fontVariantNumeric: "tabular-nums", textAlign: "center", minHeight: 40 }} />
+    </label>
+  );
+}
+
+function TvClientBlock({ block, prev, onSession, onRest }) {
   const { t } = useT();
   const st = useStore();
-  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, []);
-  const [view, setView] = useState("dnes");   // ① Dnes je root · ② Knihovna je vstup
-  const [tab, setTab] = useState("cviky");     // polička uvnitř Knihovny
-  const [openEx, setOpenEx] = useState(null);
-  const [openWo, setOpenWo] = useState(null);
-  const [openPl, setOpenPl] = useState(null);
-  // One owner for the session overlay. Both doors into it — a workout in the register
-  // and a workout in the day — live under this page, so this is where it belongs.
-  const [run, setRun] = useState(null);
-  const [wizard, setWizard] = useState(false);
-  const [viCat, setViCat] = useState("B");
-  const [viGoal, setViGoal] = useState("hyper");
-  const [viDays, setViDays] = useState(3);
-  const exs = st.coll.tEx || [];
-  const wos = st.coll.tWo || [];
-  const pls = st.coll.tPl || [];
-  const logs = st.coll.tLog || [];
-  const exById = Object.fromEntries(exs.map((x) => [x.id, x]));
-  const klienti = useKlienti();
+  const rec = tvClientRec(st, block.exId);
+  const m = TV.measurementOf(block.measurementType);
+  const fields = m.fields.concat(m.secondary ? [m.secondary] : []);
+  const [open, setOpen] = useState(false);
+  const complete = (sid) => onSession((s) => {
+    const done = TV.completeSet(s, block.id, sid, Date.now());
+    if (onRest) onRest(TV.restAfterSet(done, block.id, sid));
+    return done;
+  });
+  return (
+    <div style={{ border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+        {rec && rec.art ? <span style={{ color: t.sand, flexShrink: 0 }}><TmPostava poza={rec.art} size={54} stroke="currentColor" /></span> : null}
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 21, color: t.heading, lineHeight: 1.2 }}>{tvName(rec) || TL(block.name)}</div>
+          {rec && rec.focus ? (
+            <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, lineHeight: 1.55, color: t.sand, marginTop: 4 }}>{TL(rec.focus)}</div>
+          ) : null}
+          {TL(block.coachNote) ? (
+            <div style={{ marginTop: 6, borderLeft: `2px solid ${t.accent}`, paddingLeft: 9, fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.55, color: t.textSec }}>{TL(block.coachNote)}</div>
+          ) : null}
+        </div>
+      </div>
 
-  // library filters
-  const [fPats, setFPats] = useState([]);
-  const [fLvls, setFLvls] = useState([]);
-  const [fMus, setFMus] = useState([]);
-  const [fEq, setFEq] = useState([]);
-  const [fPops, setFPops] = useState([]);
-  const [sortBy, setSortBy] = useState("vzor");
-  const [q, setQ] = useState("");
-  const [patInfo, setPatInfo] = useState(null);  // pattern key | null · hold or double-click a chip
-  const [goalInfo, setGoalInfo] = useState(null);
-  const [fShelf, setFShelf] = useState([]);      // the advanced tiers, opened by name
-  const anyFilter = fPats.length || fLvls.length || fMus.length || fEq.length || fPops.length || fShelf.length || q;
-  const filtered = exs.filter((x) =>
-    tExOnShelf(x, fShelf) &&
-    (!fPats.length || fPats.includes(x.pat)) &&
-    (!fLvls.length || fLvls.includes(tLvlOf(x))) &&
-    (!fMus.length || fMus.some((m) => (x.mp || []).includes(m) || (x.ms || []).includes(m))) &&
-    (!fEq.length || fEq.some((e) => (x.eq || []).includes(e))) &&
-    (!fPops.length || fPops.includes(x.pop || 2)) &&
-    (!q || tExSearchText(x).toLowerCase().includes(q.toLowerCase()))
-  );
-  const patOrder = Object.fromEntries(T_PATTERNS.map((p, i) => [p.k, i]));
-  // "vlastní" keeps the order of the list itself — which is what drag-and-drop writes into
-  const sorted = sortBy === "vlastni" ? filtered : [...filtered].sort((a, b) => sortBy === "vyznam"
-    ? ((b.pop || 2) - (a.pop || 2)) || (patOrder[a.pat] - patOrder[b.pat]) || (tLvlOf(a) - tLvlOf(b))
-    : (patOrder[a.pat] - patOrder[b.pat]) || (tLvlOf(a) - tLvlOf(b)));
+      {prev && prev.sets && prev.sets.length ? (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontFamily: FONT_TAG, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted }}>{L("Naposledy", "Last time")}</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.sand }}>{prev.sets.slice(0, 5).map((x) => tvFmtA(block.measurementType, x.actual)).filter(Boolean).join("  ·  ")}</span>
+        </div>
+      ) : null}
 
-  // workout filters · series, level, focus, movement pattern — every one of them multiple choice
-  const [wSer, setWSer] = useState([]);
-  const [wLvls, setWLvls] = useState([]);
-  const [wAims, setWAims] = useState([]);
-  const [wPats, setWPats] = useState([]);
-  const [wQ, setWQ] = useState("");
-  const [pGoals, setPGoals] = useState([]);
-  const [pSort, setPSort] = useState("nazev");
-  const [pQ, setPQ] = useState("");
-  const sers = st.tSeries();
-  const aimList = [...new Set(wos.flatMap((w) => w.aims || []))];
-  const planGoalList = [...new Set((pls || []).flatMap((p) => p.goals || []))];
-  const plWeeksOf = (p) => (p.sessions || []).reduce((m, x) => Math.max(m, x.w || 0), 0);
-  const plsF0 = (pls || []).filter((p) => (!pGoals.length || pGoals.some((g) => (p.goals || []).includes(g))) && (!pQ || ((p.cz || "") + " " + (p.en || "")).toLowerCase().includes(pQ.toLowerCase())));
-  const plsF = [...plsF0].sort((a, b) => pSort === "delka" ? (plWeeksOf(b) - plWeeksOf(a)) : pSort === "pocet" ? ((b.sessions || []).length - (a.sessions || []).length) : (((LANG === "cs" ? a.cz : a.en) || "").localeCompare((LANG === "cs" ? b.cz : b.en) || "")));
-  const anyPFilter = pGoals.length || pQ;
-  const isSMPlan = (p) => p.cat === "sm" || (p.id || "").indexOf("sm_plan_") === 0;
-  const smRecId = ((pls || []).find((p) => p.rec) || {}).id || "sm_plan_ideal";
-  const isVIPlan = (p) => p.cat === "vi";
-  const viRecId = ((pls || []).find((p) => p.cat === "vi" && p.rec) || {}).id || "vi_plan_b";
-  const onSchedulePlan = (id) => { const pp = (st.coll.tPl || []).find((x) => x.id === id); if (pp) st.updateEntry("tPl", id, { sessions: tmScheduleSessions(pp.sessions) }); };
-  const onBuildSM = () => { const np = smBuildPlan(); const sched = { ...np, sessions: tmScheduleSessions(np.sessions) }; st.addEntry("tPl", sched); setOpenPl(sched.id); };
-  const onBuildVI = () => { const np = viBuildPlan(viRecId); const sched = { ...np, sessions: tmScheduleSessions(np.sessions) }; st.addEntry("tPl", sched); setOpenPl(sched.id); };
-  const onGenVI = () => { const r = viGenPlan(viCat, viGoal, viDays); (r.workouts || []).forEach((w) => st.addEntry("tWo", w)); const sched = { ...r.plan, sessions: tmScheduleSessions(r.plan.sessions) }; st.addEntry("tPl", sched); setOpenPl(sched.id); };
-  const viGenPanel = (<div style={{ border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "13px 15px", marginTop: 14, background: t.callout }}>
-            <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.accent, marginBottom: 9 }}>{L("Vital Institut · generátor plánu", "Vital Institut · plan generator")}</div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
-              <label style={{ display: "flex", flexDirection: "column", gap: 4, fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>
-                {L("Kategorie klienta", "Client category")}
-                <select value={viCat} onChange={(e) => setViCat(e.target.value)} style={{ fontFamily: FONT_BODY, fontSize: 14, padding: "8px 10px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.card, color: t.text }}>
-                  <option value="A">{L("Klient A — začátečník", "Client A — beginner")}</option>
-                  <option value="Ap">{L("Klient A+ — mezistupeň", "Client A+ — intermediate")}</option>
-                  <option value="B">{L("Klient B — mírně pokročilý", "Client B — advanced-ish")}</option>
-                  <option value="Cfb">{L("Klient C — celotělový", "Client C — full-body")}</option>
-                  <option value="Csplit">{L("Klient C — split", "Client C — split")}</option>
-                </select>
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", gap: 4, fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>
-                {L("Cíl", "Goal")}
-                <select value={viGoal} onChange={(e) => setViGoal(e.target.value)} style={{ fontFamily: FONT_BODY, fontSize: 14, padding: "8px 10px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.card, color: t.text }}>
-                  <option value="zdravi">{L("Zdraví a forma", "Health & form")}</option>
-                  <option value="hyper">{L("Svalová hmota", "Muscle")}</option>
-                  <option value="kondice">{L("Kondice", "Conditioning")}</option>
-                  <option value="sila">{L("Síla", "Strength")}</option>
-                  <option value="mob">{L("Mobilita", "Mobility")}</option>
-                </select>
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", gap: 4, fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>
-                {L("Dny / týden", "Days / week")}
-                <select value={viDays} onChange={(e) => setViDays(Number(e.target.value))} style={{ fontFamily: FONT_BODY, fontSize: 14, padding: "8px 10px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.card, color: t.text }}>
-                  <option value={2}>2×</option>
-                  <option value={3}>3×</option>
-                  <option value={4}>4×</option>
-                  <option value={5}>5×</option>
-                </select>
-              </label>
-              <button onClick={onGenVI} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "11px 18px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14.5, fontWeight: 500 }}>✦ {L("Sestavit plán", "Build plan")}</button>
-            </div>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, marginTop: 8, lineHeight: 1.5 }}>{L("Základ tvoří HSS a stabilizátory lopatky; nadstavba a počty opakování/pauzy se řídí cílem. Vytvořený plán uprav podle diagnostiky.", "The base is the HSS and scapular stabilizers; the add-on and rep/rest counts follow the goal. Adjust the created plan by diagnostics.")}</div>
-          </div>);
-  const isCMPlan = (p) => p.cat === "cm";
-  const planGroups = [{ key: "sm", name: "Submax · Anton", plans: plsF.filter(isSMPlan) }];
-  { const cm = plsF.filter(isCMPlan); if (cm.length) planGroups.push({ key: "cm", name: "Cali Move", plans: cm }); }
-  { const vi = plsF.filter(isVIPlan); if (vi.length) planGroups.push({ key: "vi", name: "Vital Institut", plans: vi }); }
-  { const other = plsF.filter((p) => !isSMPlan(p) && !isCMPlan(p) && !isVIPlan(p)); if (other.length) planGroups.push({ key: "other", name: L("Ostatní plány", "Other plans"), plans: other }); }
-  // a workout's patterns are the patterns of the exercises inside it — that is what
-  // makes "show me the pull workouts" answerable at all
-  const woPats = (w) => [...new Set((w.rows || []).map((r) => (exById[r.ex] || {}).pat).filter(Boolean))];
-  const wosF = wos.filter((w) =>
-    (!wSer.length || wSer.includes(w.ser || "")) &&   // by id, and an id does not change when a name does
-    (!wLvls.length || wLvls.includes(tWoDemand(w, exById))) &&
-    (!wAims.length || wAims.some((a) => (w.aims || []).includes(a))) &&
-    (!wPats.length || wPats.some((p) => woPats(w).includes(p))) &&
-    (!wQ || ((w.cz || "") + " " + (w.en || "")).toLowerCase().includes(wQ.toLowerCase())));
-  const anyWFilter = wSer.length || wLvls.length || wAims.length || wPats.length || wQ;
-  const newWorkoutIn = (ser) => {
-    const id = uid();
-    st.addEntry("tWo", { id, ser: ser || "", cz: L("Nový trénink", "New workout"), en: "New workout", aims: [], int: ["", ""], rows: [] });
-    setOpenWo(id);
-  };
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {(block.sets || []).map((sset, i) => (
+          <div key={sset.id} style={{ display: "grid", gridTemplateColumns: "26px minmax(0,1fr) minmax(0,1.5fr) 40px", gap: 8, alignItems: "center", padding: "6px 2px", borderBottom: `1px solid ${t.borderSoft}` }}>
+            <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, color: sset.type === "warmup" ? t.sage : t.textMuted }}>
+              {TV.SET_TYPE_MARK[sset.type] || (i + 1)}
+            </span>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.sand, fontVariantNumeric: "tabular-nums" }}>
+              {tvFmtP(block.measurementType, sset.planned) || "—"}
+            </span>
+            <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {fields.map((f) => (
+                <TvField key={f} field={f} value={sset.actual[f] == null ? null : sset.actual[f]}
+                  onChange={(v) => onSession((x) => TV.setActual(x, block.id, sset.id, { [f]: v }))} />
+              ))}
+            </span>
+            <span style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={() => (sset.completed ? onSession((x) => TV.reopenSet(x, block.id, sset.id)) : complete(sset.id))}
+                aria-label={sset.completed ? L("Znovu otevřít sérii", "Reopen the set") : L("Série hotová", "Set done")}
+                style={{ width: 36, height: 36, borderRadius: 999, border: `1.5px solid ${sset.completed ? t.accent : t.borderSoft}`, background: sset.completed ? t.accent : "transparent", color: sset.completed ? t.onAccent : t.textMuted, cursor: "pointer", padding: 0 }}>
+                {sset.completed ? "✓" : ""}
+              </button>
+            </span>
+          </div>
+        ))}
+      </div>
 
-  // progress view
-  const [pEx, setPEx] = useState("");
-  const [pWho, setPWho] = useState("");
-  const [pickProg, setPickProg] = useState(false);
-  const [nVal, setNVal] = useState("");
-  const [nKg, setNKg] = useState("");
-  const [nDate, setNDate] = useState(todayISO());
-  const [nNote, setNNote] = useState("");
-  const pLogs = logs.filter((r) => (!pEx || r.ex === pEx) && (!pWho || (r.who || "") === pWho));
-  const pLogsSorted = [...pLogs].sort((a, b) => (a.date < b.date ? 1 : -1));
-  const bestOf = {};
-  logs.forEach((r) => { const k = r.ex + "|" + (r.who || ""); const v = tScore(exById[r.ex], r); if (!bestOf[k] || v > bestOf[k]) bestOf[k] = v; });
-  const selEx = pEx ? exById[pEx] : null;
-  const selLoad = tLoadOf(selEx);
-  const whoName = (w) => (!w ? L("já", "me") : ((klienti.find((k) => k.user_id === w) || {}).name || w));
+      {block.rirEnabled ? (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted }}>{L("Kolik ti zbývalo", "How much was left")}</span>
+          {[0, 1, 2, 3, 4, 5].map((v) => (
+            <button key={v} onClick={() => onSession((x) => {
+              let n = x;
+              for (const y of block.sets || []) if (y.completed) n = TV.setRir(n, block.id, y.id, v);
+              return n;
+            })} style={tvQuiet(t)}>{v}{v === 5 ? "+" : ""}</button>
+          ))}
+        </div>
+      ) : null}
 
-  // ---- the library arrives in pages ----
-  // Three hundred exercises is not a page you scroll, it's a page you fall down.
-  // Show a screenful; the rest comes when asked for.
-  const EX_PAGE = 24;
-  const [exShown, setExShown] = useState(EX_PAGE);
-  React.useEffect(() => { setExShown(EX_PAGE); }, [fPats, fLvls, fMus, fEq, fPops, q, sortBy]);
-  const exPage = sorted.slice(0, exShown);
-  const exRest = sorted.length - exPage.length;
-
-  // ---- selection · for clearing several things out of the library at once ----
-  const [selecting, setSelecting] = useState(false);
-  const [sel, setSel] = useState([]);
-  const toggleSel = (id) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-  const exitSel = () => { setSelecting(false); setSel([]); };
-  const selBar = (kind, list) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-      <button onClick={() => (selecting ? exitSel() : setSelecting(true))} style={{ background: selecting ? t.activeNav : "transparent", border: `1px solid ${selecting ? t.accent : t.border}`, borderRadius: 8, padding: "5px 12px", cursor: "pointer", color: selecting ? t.accent : t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 }}>
-        {selecting ? L("Hotovo", "Done") : L("Vybrat", "Select")}
-      </button>
-      {selecting && (
+      {rec && (rec.execution || rec.watchFor) ? (
         <>
-          <button onClick={() => setSel(sel.length === list.length ? [] : list.map((x) => x.id))} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "5px 12px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 }}>
-            {sel.length === list.length && list.length ? L("Zrušit výběr", "Deselect all") : L("Vybrat vše", "Select all")}
-          </button>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted }}>{sel.length} {L("vybráno", "selected")}</span>
-          {sel.length > 0 && (
-            <button onClick={() => tAskDeleteMany(st, kind, sel, exitSel)} style={{ background: hexA(t.accent, 0.12), border: `1px solid ${t.accent}`, borderRadius: 8, padding: "5px 12px", cursor: "pointer", color: t.accent, fontFamily: FONT_BODY, fontSize: 12.5 }}>
-              {L("Do koše", "To trash")} · {sel.length}
-            </button>
-          )}
+          <button onClick={() => setOpen(!open)} style={{ ...tvQuiet(t), alignSelf: "flex-start" }}>{open ? L("Skrýt návod", "Hide the how-to") : L("Jak na to", "How to do it")}</button>
+          {open ? (
+            <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.65, color: t.textSec, display: "flex", flexDirection: "column", gap: 6 }}>
+              {rec.startPosition ? <div><b style={{ color: t.heading }}>{L("Výchozí pozice", "Start")}</b> · {TL(rec.startPosition)}</div> : null}
+              {rec.execution ? <div><b style={{ color: t.heading }}>{L("Provedení", "Execution")}</b> · {TL(rec.execution)}</div> : null}
+              {rec.watchFor ? <div><b style={{ color: t.heading }}>{L("Na co dát pozor", "Watch for")}</b> · {TL(rec.watchFor)}</div> : null}
+              {rec.progression ? <div><b style={{ color: t.heading }}>{L("Progrese", "Progression")}</b> · {TL(rec.progression)}</div> : null}
+            </div>
+          ) : null}
         </>
-      )}
+      ) : null}
+
+      <div style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.1em", color: t.textMuted }}>
+        {L("pauza ", "rest ")}{TV.fmtDuration(block.restSec, tvCz())}
+      </div>
     </div>
   );
+}
 
-  // ② Knihovna · four chips on one surface. Not a sibling of Dnes — a shelf you
-  // visit once a week, one quiet step away.
-  const tabs = [
-    { k: "cviky", cz: "Cviky", en: "Exercises" },
-    { k: "treninky", cz: "Tréninky", en: "Workouts" },
-    { k: "plany", cz: "Plány", en: "Plans" },
-    { k: "progres", cz: "Vývoj", en: "Progress" },
-    { k: "knowledge", cz: "Znalosti", en: "Knowledge" },
-  ];
-  const inpStyle = { background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, padding: "7px 11px", outline: "none" };
+function TvClientRest({ sec, onDone, onSkip }) {
+  const { t } = useT();
+  const st = useStore();
+  const cfg = st.tmCfg ? st.tmCfg() : { countIn: 0, wake: true };
+  const compiled = React.useMemo(() => tmCompile([{ id: "tv_rest", k: "rest", dur: Math.max(1, sec) }], { countIn: 0 }), [sec]);
+  const eng = useTmEngine(compiled, cfg, () => onDone && onDone());
+  React.useEffect(() => { eng.start(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const left = Math.max(0, Math.ceil(eng.left));
+  return (
+    <div role="status" aria-live="polite" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: hexA(t.accent, 0.1), border: `1px solid ${hexA(t.accent, 0.35)}` }}>
+      <span style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontVariantNumeric: "tabular-nums", color: t.accent, lineHeight: 1 }}>
+        {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
+      </span>
+      <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec }}>{L("Pauza běží", "Rest is running")}</span>
+      <button onClick={onSkip} style={{ ...tvQuiet(t), marginLeft: "auto" }}>{L("Přeskočit", "Skip")}</button>
+    </div>
+  );
+}
+
+function TvClientRunner({ sessionId, onClose }) {
+  const { t } = useT();
+  const st = useStore();
+  const ses = st.tvSessionOf(sessionId);
+  const all = st.tvSessions();
+  const [rest, setRest] = useState(null);
+  const [done, setDone] = useState(false);
+  const [eff, setEff] = useState(85);
+  const [note, setNote] = useState("");
+  const nonce = React.useRef(0);
+  React.useEffect(() => {
+    const h = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [onClose]);
+  if (!ses) return null;
+  const counts = TV.countSets(ses);
+  const patch = (fn) => st.tvEditSession(sessionId, fn);
+  const finish = () => {
+    st.tvEditSession(sessionId, (x) => TV.finishSession(x, { effort: eff, note, now: Date.now() }));
+    onClose();
+  };
+  return createPortal(
+    <div data-tm-stage style={{ position: "fixed", inset: 0, zIndex: 260, background: t.bg, overflowY: "auto", WebkitOverflowScrolling: "touch",
+      padding: `calc(16px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom))` }}>
+      <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: t.heading }}>{L(ses.cz, ses.en) || L("Trénink", "Workout")}</div>
+            <div style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted, marginTop: 3 }}>
+              {counts.workingDone}/{counts.working} {L("pracovních sérií", "working sets")}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ ...tvQuiet(t), marginLeft: "auto" }}>{L("Zavřít", "Close")}</button>
+        </div>
+
+        {rest ? <TvClientRest key={rest.nonce} sec={rest.sec} onDone={() => setRest(null)} onSkip={() => setRest(null)} /> : null}
+
+        {done ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: t.heading }}>{L("Hotovo", "Done")}</div>
+            <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textSec }}>
+              {counts.completed} {L("sérií zapsáno", "sets written down")} · {counts.skipped} {L("vynecháno", "skipped")}
+            </div>
+            <div>
+              <div style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted, marginBottom: 6 }}>{L("Úsilí dne", "Effort today")}</div>
+              <TEffort value={eff} onChange={setEff} />
+            </div>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={L("Poznámka pro trenéra", "A note for your coach")}
+              style={{ width: "100%", background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 10, color: t.textSec, fontFamily: FONT_BODY, fontSize: 14 }} />
+            <button onClick={finish} className="tm-cta" style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 12, padding: "14px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 50 }}>
+              {L("Hotovo", "Done")}
+            </button>
+          </div>
+        ) : (
+          <>
+            {(ses.blocks || []).map((b) => (
+              <TvClientBlock key={b.id} block={b} onSession={patch}
+                prev={TV.lastUseOf(all, b.exId, { exceptSessionId: sessionId })}
+                onRest={(r) => { if (r && r.sec > 0) { nonce.current += 1; setRest({ sec: r.sec, nonce: nonce.current }); } }} />
+            ))}
+            <button onClick={() => setDone(true)} className="tm-cta"
+              style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 14, padding: "15px 20px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 56 }}>
+              {L("Ukončit trénink", "Finish the workout")}
+            </button>
+          </>
+        )}
+      </div>
+    </div>, document.body);
+}
+
+// ---- plán od trenéra · jen ke čtení ----------------------------------------
+// Klient tu nemůže změnit ani jeden předepsaný údaj. Jediné, co je jeho, je
+// datum: kdy to udělá. Proto se termín ukládá vedle plánu, ne do něj.
+function TvClientPlan({ onRun }) {
+  const { t } = useT();
+  const st = useStore();
+  const del = st.tvDelivered();
+  const sched = st.tvSched();
+  const sessions = st.tvSessions();
+  const plans = (del && del.plans) || [];
+  const [open, setOpen] = useState(null);
+
+  if (!del || !plans.length) {
+    return (
+      <div className="tm-view" style={{ padding: "26px 20px", textAlign: "center" }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: t.heading }}>{L("Zatím tu není plán.", "No plan here yet.")}</div>
+        <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.textMuted, marginTop: 8, lineHeight: 1.65, maxWidth: 420, margin: "8px auto 0" }}>
+          {L("Až ti ho trenér pošle, objeví se sám. Trénovat můžeš i bez něj — časovač a knihovna jsou tu pořád.",
+             "It will appear on its own once your coach sends it. You can train without one — the timer and the library are here either way.")}
+        </div>
+      </div>
+    );
+  }
+
+  const dateOf = (p, s) => ((sched[p.id] || {})[s.id]) || s.date || "";
+  const recordFor = (p, s) => sessions.find((x) => x.planId === p.id && x.planSessionId === s.id) || null;
+
+  const start = (p, s) => {
+    const existing = recordFor(p, s);
+    if (existing) { onRun(existing.id); return; }
+    const tpl = st.tvTemplateOf(s.templateId);
+    if (!tpl) return;
+    const ses = TV.startSession(tpl, { date: dateOf(p, s) || todayISO(), plan: p, planSession: s });
+    st.tvPutSession(ses);
+    onRun(ses.id);
+  };
 
   return (
-    <>
-      <PageTitle pageKey="trenink" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcTrenink size={40} /></span>} kicker={L("Plán, provedení, záznam.", "Plan, execution, record.")}>
-        {L("Trénink", "Training")}
-      </PageTitle>
-      {view === "dnes" && (
-        <>
-          {/* the one quiet way in · reference is reachable, never present (P38) */}
-          <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 0 12px" }}>
-            <button onClick={() => setView("knihovna")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 11.5, padding: "4px 2px" }}>
-              {L("Knihovna", "Library")} ›
-            </button>
-          </div>
-          <TLogTab heroSlot={<TDnes onRun={setRun} onPlan={() => setWizard(true)} />} onOpenPl={(id) => setOpenPl(id)} onOpenEx={(id) => setOpenEx(id)} onOpenWo={(id) => setOpenWo(id)} onRun={setRun} />
-        </>
-      )}
-
-      {view === "knihovna" && (
-        <>
-          <div className="tm-view" style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap", margin: "0 0 10px" }}>
-            <button onClick={() => { setView("dnes"); exitSel(); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 11.5, padding: "4px 2px" }}>
-              ‹ {L("Dnes", "Today")}
-            </button>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 21, color: t.heading }}>{L("Knihovna", "Library")}</span>
-          </div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, maxWidth: 620, lineHeight: 1.7, margin: "0 0 18px" }}>
-            {L("Cviky se skládají do tréninků. Tréninky do plánů. Plány do času. Progres je jen zapsaná pravda.", "Exercises compose into workouts. Workouts into plans. Plans into time. Progress is simply the truth, written down.")}
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24, borderBottom: `1px solid ${t.borderSoft}`, paddingBottom: 14 }}>
-            {tabs.map((x) => (
-              <button key={x.k} className="tm-tab" onClick={() => { setTab(x.k); exitSel(); }} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "6px 2px", marginRight: 14, color: tab === x.k ? t.heading : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12.5, borderBottom: tab === x.k ? `2px solid ${t.accent}` : "2px solid transparent", display: "inline-flex", alignItems: "center", gap: 7 }}>
-                {tab === x.k && <Bindu size={5} />}{L(x.cz, x.en)}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {view === "knihovna" && tab === "knowledge" && (
-        <KBView />
-      )}
-
-      {view === "knihovna" && tab === "cviky" && (
-        <>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5, color: t.sage, marginRight: 4 }}>{L("Vzor pohybu", "Movement pattern")}</span>
-            <TChip label={L("Vše", "All")} active={!fPats.length} onClick={() => setFPats([])} />
-            {T_PATTERNS.map((p) => <TChip key={p.k} label={L(p.cz, p.en)} active={fPats.includes(p.k)} onInfo={() => setPatInfo(p.k)} onClick={() => setFPats(fPats.includes(p.k) ? fPats.filter((x) => x !== p.k) : [...fPats, p.k])} />)}
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 18 }}>
-            <TMultiSel label={L("Náročnost", "Demand")} values={fLvls} onChange={setFLvls} options={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
-            <TMultiSel label={L("Svaly", "Muscles")} values={fMus} onChange={setFMus} options={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))} />
-            <TMultiSel label={L("Vybavení", "Equipment")} values={fEq} onChange={setFEq} options={T_EQUIP.map((e) => ({ v: e.k, label: L(e.cz, e.en) }))} />
-            <TMultiSel label={L("Rozšířenost", "How common")} values={fPops} onChange={setFPops} options={T_POPS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
-            <Select small value={sortBy} onChange={setSortBy} options={[{ v: "vzor", label: L("Řadit: vzor · úroveň", "Sort: pattern · level") }, { v: "vyznam", label: L("Řadit: světový význam", "Sort: world significance") }, { v: "vlastni", label: L("Řadit: vlastní — táhni myší", "Sort: your own — drag them") }]} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ ...inpStyle, width: 150 }} />
-            {anyFilter ? <button onClick={() => { setFPats([]); setFLvls([]); setFMus([]); setFEq([]); setFPops([]); setFShelf([]); setQ(""); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 11.5, textDecoration: "underline", padding: 0 }}>{L("vyčistit", "clear")}</button> : null}
-            <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginLeft: "auto" }}>{sorted.length} {L("cviků", "exercises")}</span>
-          </div>
-          {/* The rest of the library. Not a default view, and not a secret either. */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5, color: t.sage, marginRight: 4 }}>{L("Ukázat i", "Also show")}</span>
-            {TEX_TIERS_ADVANCED.map((k) => (
-              <TChip key={k} label={L(TEX_TIER_LABEL[k][0], TEX_TIER_LABEL[k][1])} active={fShelf.includes(k)}
-                onClick={() => setFShelf(fShelf.includes(k) ? fShelf.filter((x) => x !== k) : [...fShelf, k])} />
-            ))}
-          </div>
-          {selBar("tEx", exPage)}
-          <div className="tm-reveal" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(235px, 1fr))", gap: 12 }}>
-            {exPage.map((ex) => <TExCard key={ex.id} ex={ex} onOpen={() => setOpenEx(ex.id)} onDelete={() => tAskDelete(st, "tEx", ex.id)} selecting={selecting} selected={sel.includes(ex.id)} onToggleSel={() => toggleSel(ex.id)} drag={sortBy === "vlastni"} />)}
-          </div>
-          {exRest > 0 && (
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 16 }}>
-              <button onClick={() => setExShown((n) => n + EX_PAGE)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13.5 }}>
-                {L("Načíst dalších", "Load")} {Math.min(EX_PAGE, exRest)}
-              </button>
-              <button onClick={() => setExShown(sorted.length)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5 }}>
-                {L("Načíst vše", "Load all")} · {exRest}
-              </button>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginLeft: "auto" }}>
-                {exPage.length} {L("z", "of")} {sorted.length}
-              </span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {plans.map((p) => {
+        const ss = p.sessions || [];
+        const done = ss.filter((s) => { const r = recordFor(p, s); return r && r.state === "done"; }).length;
+        return (
+          <div key={p.id} style={{ border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, padding: 14 }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{L(p.cz, p.en) || L("Plán", "Plan")}</div>
+            {TL(p.intro) ? <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.sand, marginTop: 5 }}>{TL(p.intro)}</div> : null}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+              <div style={{ flex: 1 }}><ProgressBar value={ss.length ? done / ss.length : 0} /></div>
+              <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted }}>{done}/{ss.length}</span>
             </div>
-          )}
-          {sortBy === "vlastni" && <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, marginTop: 8 }}>{L("Přetáhni kartu na jinou — pořadí si knihovna zapamatuje.", "Drag one card onto another — the library remembers the order.")}</div>}
-          <button onClick={() => { const id = uid(); st.addEntry("tEx", { id, cz: L("Nový cvik", "New exercise"), en: "New exercise", pat: fPats[0] || "drep", S: 1, C: 1, eq: ["telo"], mode: "reps", mp: [], ms: [], dot: [60, 60], ez: null, hd: null, foc: ["", ""], pos: ["", ""], exe: ["", ""], wat: ["", ""], pro: ["", ""] }); setOpenEx(id); }} style={{ marginTop: 16, background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "11px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, width: "100%", textAlign: "left" }}>
-            ＋ {L("Přidat cvik", "Add exercise")}
-          </button>
-        </>
-      )}
-
-      {view === "knihovna" && tab === "treninky" && (
-        <>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5, color: t.sage, marginRight: 4 }}>{L("Vzor pohybu", "Movement pattern")}</span>
-            <TChip label={L("Vše", "All")} active={!wPats.length} onClick={() => setWPats([])} />
-            {T_PATTERNS.map((p) => <TChip key={p.k} label={L(p.cz, p.en)} active={wPats.includes(p.k)} onInfo={() => setPatInfo(p.k)} onClick={() => setWPats(wPats.includes(p.k) ? wPats.filter((x) => x !== p.k) : [...wPats, p.k])} />)}
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-            <TMultiSel label={L("Série", "Series")} values={wSer} onChange={setWSer} options={[...sers.map((s) => ({ v: s.id, label: s.name })), { v: T_NOSER, label: L("Bez série", "No series") }]} />
-            <TMultiSel label={L("Náročnost", "Demand")} values={wLvls} onChange={setWLvls} options={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
-            <TMultiSel label={L("Zaměření", "Focus")} values={wAims} onChange={setWAims} options={aimList.map((a) => ({ v: a, label: a }))} />
-            <input value={wQ} onChange={(e) => setWQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ ...inpStyle, width: 150 }} />
-            {anyWFilter ? <button onClick={() => { setWSer([]); setWLvls([]); setWAims([]); setWPats([]); setWQ(""); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 11.5, textDecoration: "underline", padding: 0 }}>{L("vyčistit", "clear")}</button> : null}
-            <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginLeft: "auto" }}>{wosF.length} {L("tréninků", "workouts")}</span>
-          </div>
-          {selBar("tWo", wosF)}
-          {/* Columns, not a single tall stack. columnWidth lets the browser decide how
-              many fit: two on a desktop, one on a phone, three on a very wide screen —
-              no breakpoints to maintain. Each shelf refuses to be split down the middle. */}
-          <div className="tm-reveal" style={{ columnWidth: 430, columnGap: 22 }}>
-            {[...sers, null].map((ser) => {
-              const sid = ser ? ser.id : T_NOSER;
-              const all = wos.filter((w) => (w.ser || "") === sid);
-              const list = wosF.filter((w) => (w.ser || "") === sid);
-              if (!ser && all.length === 0) return null;
-              return (
-                <TSeriesGroup
-                  key={sid || "__none"}
-                  ser={ser}
-                  all={all}
-                  list={list}
-                  hidden={!!anyWFilter}
-                  onOpenWo={(id) => setOpenWo(id)}
-                  onNewWorkout={newWorkoutIn}
-                  onDeleteWo={(id) => tAskDelete(st, "tWo", id)}
-                  selecting={selecting}
-                  sel={sel}
-                  onToggleSel={toggleSel}
-                />
-              );
-            })}
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-            <button onClick={() => st.addSeries(L("Nová série", "New series"))} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "11px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, flex: "1 1 200px", textAlign: "left" }}>
-              ＋ {L("Nová série", "New series")}
-            </button>
-            <button onClick={() => newWorkoutIn("")} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "11px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, flex: "1 1 200px", textAlign: "left" }}>
-              ＋ {L("Přidat trénink", "Add workout")}
-            </button>
-          </div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, marginTop: 8 }}>
-            {L("Trénink přetáhni na jinou sérii, a přestěhuje se. Sérii přetáhni na sérii, a přeuspořádají se.", "Drag a workout onto another series and it moves house. Drag a series onto a series and they trade places.")}
-          </div>
-        </>
-      )}
-
-      {view === "knihovna" && tab === "plany" && (
-        <>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5, color: t.sage, marginRight: 4 }}>{L("Cíl", "Goal")}</span>
-            <TChip label={L("Vše", "All")} active={!pGoals.length} onClick={() => setPGoals([])} />
-            {planGoalList.filter((g) => PG_UNI.includes(g)).map((g) => <TChip key={g} label={g} active={pGoals.includes(g)} onInfo={TP_GOAL_INFO_BY_LABEL[g] ? () => setGoalInfo({ title: g, text: L(TP_GOAL_INFO_BY_LABEL[g][0], TP_GOAL_INFO_BY_LABEL[g][1]) }) : undefined} onClick={() => setPGoals(pGoals.includes(g) ? pGoals.filter((x) => x !== g) : [...pGoals, g])} />)}
-            {[{ key: "skill", label: L("Skilly", "Skills"), set: PG_SKILL }, { key: "abil", label: L("Schopnosti", "Abilities"), set: PG_ABIL }, { key: "phase", label: L("Fáze", "Phase"), set: PG_PHASE }, { key: "other", label: L("Ostatní", "Other"), set: null }].map((c) => {
-              const items = planGoalList.filter((g) => c.set ? c.set.includes(g) : (!PG_UNI.includes(g) && !PG_SKILL.includes(g) && !PG_ABIL.includes(g) && !PG_PHASE.includes(g)));
-              return items.length ? <TMultiSel key={c.key} label={c.label} values={pGoals.filter((g) => items.includes(g))} onChange={(v) => setPGoals([...pGoals.filter((g) => !items.includes(g)), ...v])} options={items.map((g) => ({ v: g, label: g }))} /> : null;
-            })}
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-            <Select small value={pSort} onChange={setPSort} options={[{ v: "nazev", label: L("Řadit: název", "Sort: name") }, { v: "delka", label: L("Řadit: délka", "Sort: length") }, { v: "pocet", label: L("Řadit: počet tréninků", "Sort: sessions") }]} />
-            <input value={pQ} onChange={(e) => setPQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ ...inpStyle, width: 150 }} />
-            {anyPFilter ? <button onClick={() => { setPGoals([]); setPQ(""); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 11.5, textDecoration: "underline", padding: 0 }}>{L("vyčistit", "clear")}</button> : null}
-            <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginLeft: "auto" }}>{plsF.length} {L("plánů", "plans")}</span>
-          </div>
-          {planGroups.map((g) => <KBPlanGroup key={g.key} group={g} t={t} defaultOpen={g.key === "sm"} onBuild={g.key === "sm" ? onBuildSM : null} genPanel={g.key === "vi" ? viGenPanel : null} recId={g.key === "vi" ? viRecId : smRecId} klienti={klienti} onOpen={(id) => setOpenPl(id)} onDelete={(id) => tAskDelete(st, "tPl", id)} onSchedule={onSchedulePlan} />)}
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-            <button onClick={() => setWizard(true)} style={{ display: "inline-flex", alignItems: "center", gap: 9, background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "12px 18px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14.5, fontWeight: 500, flex: "1 1 260px" }}>
-              ✦ {L("Sestavit plán podle metodiky", "Build a plan from the method")}
-            </button>
-            <button onClick={() => { const id = uid(); st.addEntry("tPl", { id, cz: L("Nový plán", "New plan"), en: "New plan", client: "", goals: [], int: ["", ""], sessions: [] }); setOpenPl(id); }} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "12px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, flex: "1 1 200px", textAlign: "left" }}>
-              ＋ {L("Prázdný plán", "An empty plan")}
-            </button>
-          </div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontStyle: "italic", color: t.textMuted, marginTop: 8 }}>
-            {L("Generátor smí použít jen pravidlo, které umí vyslovit. Ke každému plánu proto patří i sedm odpovědí — proč cviky, proč pořadí, proč objem, proč intenzita, proč progrese, proč pauza, proč frekvence.",
-               "The generator may only use a rule it can say out loud. Every plan therefore carries its seven answers — why these exercises, why this order, why this volume, why this intensity, why this progression, why this rest, why this frequency.")}
-          </div>
-        </>
-      )}
-
-      {view === "knihovna" && tab === "progres" && (
-        <>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, maxWidth: 260 }}>
-              <TPickField label={selEx ? tExName(selEx) : ""} placeholder={L("Všechny cviky", "All exercises")} onOpen={() => setPickProg(true)} style={{ minWidth: 190 }} />
-              {pEx && <button title={L("Zrušit výběr", "Clear")} onClick={() => setPEx("")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0 }}>✕</button>}
-            </span>
-            <Select small value={pWho} onChange={setPWho} placeholder={L("Kdo", "Who")} options={[{ v: "", label: L("Já", "Me") }, ...klienti.map((k) => ({ v: k.user_id, label: k.name || k.user_id }))]} />
-          </div>
-          <div style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 14, marginBottom: 18, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage, marginRight: 4 }}>{L("Nový záznam", "New record")}</span>
-            <TPickField label={selEx ? tExName(selEx) : ""} placeholder={L("vyber cvik…", "pick an exercise…")} onOpen={() => setPickProg(true)} style={{ maxWidth: 200, width: 200 }} />
-            {selLoad === "ext" && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <input value={nKg} onChange={(e) => setNKg(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder={L("váha", "weight")} style={{ ...inpStyle, width: 78 }} />
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.sand }}>kg ×</span>
-              </span>
-            )}
-            <input value={nVal} onChange={(e) => setNVal(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder={selEx ? (selEx.mode === "sec" ? L("sekundy", "seconds") : L("opakování", "reps")) : L("hodnota", "value")} style={{ ...inpStyle, width: 96 }} />
-            {selLoad === "add" && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.sand }}>+</span>
-                <input value={nKg} onChange={(e) => setNKg(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder={L("váha", "weight")} style={{ ...inpStyle, width: 70 }} />
-                <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.sand }}>kg</span>
-              </span>
-            )}
-            <input type="date" value={nDate} onChange={(e) => setNDate(e.target.value)} style={{ ...inpStyle, width: 136, colorScheme: t.mode === "light" ? "light" : "dark" }} />
-            <input value={nNote} onChange={(e) => setNNote(e.target.value)} placeholder={L("poznámka…", "note…")} style={{ ...inpStyle, width: 160 }} />
-            <button onClick={() => {
-              const v = Number(String(nVal).replace(",", ".")) || 0;
-              const kg = Number(String(nKg).replace(",", ".")) || 0;
-              // a barbell record may be pure weight; a bodyweight one needs a count
-              if (!pEx || (!v && !kg)) return;
-              if (selLoad === "ext" && !kg) return;
-              if (selLoad !== "ext" && !v) return;
-              st.addEntry("tLog", { id: uid(), ex: pEx, date: nDate || todayISO(), value: v, kg: kg || null, note: nNote, who: pWho || "" });
-              setNVal(""); setNKg(""); setNNote("");
-            }} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "7px 15px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 500 }}>{L("Zapsat", "Log it")}</button>
-            {selEx && (
-              <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontStyle: "italic", color: t.textMuted, flexBasis: "100%" }}>
-                {selLoad === "ext"
-                  ? L("U téhle činky je pokrok váha — opakování jsou poznámka pod čarou.", "For this lift the progress is the weight; the reps are a footnote.")
-                  : selLoad === "add"
-                  ? L("Tenhle cvik unese přidanou váhu. Nech pole prázdné, když jsi šel jen s tělem.", "This one takes added weight. Leave it empty if you went with the body alone.")
-                  : L("Tady se přidaná váha nepočítá — roste se technikou a pákou.", "Added weight is beside the point here — this one grows by leverage and craft.")}
-              </span>
-            )}
-          </div>
-          {selEx && pLogs.length > 1 && (
-            <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "14px 16px", marginBottom: 18 }}>
-              <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 11, color: t.sage, marginBottom: 8 }}>{tExName(selEx)} · {L("křivka růstu", "growth line")} · <span style={{ color: t.sand }}>{selLoad === "ext" ? L("kilogramy", "kilograms") : selEx.mode === "sec" ? L("sekundy", "seconds") : L("opakování", "reps")}</span></div>
-              <TProgressChart recs={pLogs} ex={selEx} />
-            </div>
-          )}
-          {pLogsSorted.length === 0 ? (
-            <div style={{ fontFamily: FONT_BODY, fontSize: 14, fontStyle: "italic", color: t.textMuted, padding: "18px 0" }}>
-              {L("Zatím žádné záznamy. První zápis je začátek křivky.", "No records yet. The first entry is where the line begins.")}
-            </div>
-          ) : (
-            <div style={{ border: `1px solid ${t.border}`, borderRadius: 10, overflow: "hidden" }}>
-              {pLogsSorted.map((r, i) => {
-                const ex = exById[r.ex];
-                const isPR = bestOf[r.ex + "|" + (r.who || "")] === tScore(ex, r);
+            <div style={{ marginTop: 10 }}>
+              {ss.map((s, i) => {
+                const tpl = st.tvTemplateOf(s.templateId);
+                const rec = recordFor(p, s);
+                const isDone = rec && rec.state === "done";
+                const d = dateOf(p, s);
                 return (
-                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderBottom: i < pLogsSorted.length - 1 ? `1px solid ${t.borderSoft}` : "none" }}>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, width: 78, flexShrink: 0 }}>{r.date ? fmtCZ(r.date) : "—"}</span>
-                    <button onClick={() => setOpenEx(r.ex)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, textAlign: "left", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ex ? tExName(ex) : r.ex}</button>
-                    <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: isPR ? t.accent : t.textSec, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      {isPR && <Bindu size={5} />}{ex ? tFmtRec(ex, r) : r.value}
-                    </span>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, width: 76, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>{whoName(r.who)}</span>
-                    {r.note && <span title={r.note} style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontStyle: "italic", color: t.textMuted, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.note}</span>}
-                    <button title={L("Smazat záznam", "Delete the record")} onClick={() => st.ask(L(`Smazat záznam ${ex ? tFmtRec(ex, r) : r.value} — ${ex ? tExName(ex) : ""}, ${r.date ? fmtCZ(r.date) : "—"}?`, `Delete the record ${ex ? tFmtRec(ex, r) : r.value} — ${ex ? tExName(ex) : ""}, ${r.date ? fmtCZ(r.date) : "—"}?`), () => st.removeEntry("tLog", r.id), { yes: L("Smazat", "Delete") })} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0, opacity: 0.6 }}>✕</button>
+                  <div key={s.id} style={{ display: "grid", gridTemplateColumns: "26px minmax(0,1fr) 122px auto", gap: 8, alignItems: "center", padding: "8px 2px", borderTop: `1px solid ${t.borderSoft}` }}>
+                    <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, color: t.textMuted }}>{s.w || i + 1}</span>
+                    <button onClick={() => setOpen(open === s.id ? null : s.id)} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: isDone ? t.textMuted : t.heading, fontFamily: FONT_BODY, fontSize: 14.5, textDecoration: isDone ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {tpl ? L(tpl.cz, tpl.en) : L("Trénink", "Workout")}
+                    </button>
+                    <input type="date" value={d} onChange={(e) => st.tvSetSched(p.id, s.id, e.target.value)}
+                      aria-label={L("Kdy to uděláš", "When you will do it")}
+                      style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 7, padding: "6px", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12.5, minHeight: 36 }} />
+                    <button onClick={() => start(p, s)} style={{ background: isDone ? "transparent" : t.accent, color: isDone ? t.textSec : t.onAccent, border: isDone ? `1px solid ${t.borderSoft}` : "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, minHeight: 38 }}>
+                      {isDone ? L("Otevřít", "Open") : L("Začít", "Begin")}
+                    </button>
+                    {open === s.id && tpl ? (
+                      <div style={{ gridColumn: "1 / -1", padding: "6px 0 10px" }}>
+                        {(tpl.blocks || []).map((b) => {
+                          const r = tvClientRec(st, b.exId);
+                          return (
+                            <div key={b.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "4px 0", fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>
+                              <span style={{ flex: 1, minWidth: 0 }}>{tvName(r) || TL(b.name)}</span>
+                              <span style={{ color: t.sand, fontVariantNumeric: "tabular-nums" }}>
+                                {(b.sets || []).length}× {tvFmtP(b.measurementType, (b.sets || [])[0] ? (b.sets || [])[0].planned : null)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
             </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---- vlastní historie · jen tvoje ------------------------------------------
+function TvClientHistory({ onRun }) {
+  const { t } = useT();
+  const st = useStore();
+  const sessions = st.tvSessions().filter((x) => x.state === "done").sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0));
+  const [exId, setExId] = useState("");
+  const opts = React.useMemo(() => {
+    const set = new Map();
+    for (const s of sessions) for (const b of s.blocks || []) if (!set.has(b.exId)) set.set(b.exId, TL(b.name));
+    return [...set.entries()].map(([v, label]) => ({ v, label }));
+  }, [sessions]);
+  const rec = exId ? tvClientRec(st, exId) : null;
+  const hist = exId && rec ? TV.historyOf(sessions, exId, {}) : [];
+  const records = rec ? TV.recordsFor(rec.measurementType, hist, {}) : {};
+  const sum = TV.summary(sessions, { from: shiftISO(todayISO(), -27), to: todayISO() });
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+        {[[sum.sessions, L("tréninků", "sessions")], [sum.workingSets, L("pracovních sérií", "working sets")],
+          [TV.fmtDuration(sum.totalTimeSec, tvCz()), L("čas", "time")], [sum.avgEffort == null ? "—" : sum.avgEffort + " %", L("průměrné úsilí", "average effort")]].map(([v, k], i) => (
+          <div key={i} style={{ minWidth: 104 }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: t.heading, fontVariantNumeric: "tabular-nums" }}>{v}</div>
+            <div style={{ fontFamily: FONT_TAG, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted }}>{k} · 28 {L("dní", "days")}</div>
+          </div>
+        ))}
+      </div>
+
+      {opts.length ? (
+        <div>
+          <Select value={exId} onChange={setExId} options={[{ v: "", label: L("Vyber cvik", "Choose an exercise") }, ...opts]} />
+          {rec && hist.length ? (
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 5 }}>
+              {TV.recordKindsFor(rec.measurementType).map((k) => (records[k] ? (
+                <div key={k} style={{ display: "flex", gap: 10, alignItems: "baseline", fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec }}>
+                  <span style={{ minWidth: 170, fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted }}>{TL(TV.RECORD_LABEL[k])}</span>
+                  <span style={{ color: t.heading }}>{TV.fmtRecord(rec.measurementType, records[k], tvCz())}</span>
+                  <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, color: t.textMuted }}>{records[k].date}</span>
+                </div>
+              ) : null))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {sessions.slice(0, 30).map((s) => {
+          const c = TV.countSets(s);
+          return (
+            <button key={s.id} onClick={() => onRun(s.id)} className="tm-lift"
+              style={{ textAlign: "left", background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "11px 13px", cursor: "pointer", minHeight: 56 }}>
+              <span style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: t.heading, flex: 1 }}>{L(s.cz, s.en) || L("Trénink", "Workout")}</span>
+                <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, color: t.textMuted }}>{s.date}</span>
+              </span>
+              <span style={{ display: "block", fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.08em", color: t.textMuted, marginTop: 3 }}>
+                {c.completed} {L("sérií", "sets")}{s.effort ? " · " + s.effort + " %" : ""}
+              </span>
+            </button>
+          );
+        })}
+        {!sessions.length ? <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.textMuted }}>{L("Zatím nic zapsaného.", "Nothing written down yet.")}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+// ---- Trénink · čtyři věci, ne devět -----------------------------------------
+// Dnes je to, co máš udělat. Plán je, co ti trenér poslal. Záznam je, co jsi
+// opravdu udělal. Knihovna je slovník. Nic víc tu klient nepotřebuje — a co
+// tu není, nemůže si omylem rozbít.
+function PageTrenink() {
+  const { t } = useT();
+  const st = useStore();
+  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, []);
+  const [tab, setTab] = useState("dnes");
+  const [run, setRun] = useState(null);
+  const [clock, setClock] = useState(null);
+  const [openEx, setOpenEx] = useState(null);
+
+  const exs = st.coll.tEx || [];
+  const del = st.tvDelivered();
+  const sched = st.tvSched();
+  const sessions = st.tvSessions();
+
+  // ---- knihovna · filtry ----
+  const [fPats, setFPats] = useState([]);
+  const [fMus, setFMus] = useState([]);
+  const [fEq, setFEq] = useState([]);
+  const [q, setQ] = useState("");
+  const [fShelf, setFShelf] = useState([]);
+  const filtered = exs.filter((x) =>
+    tExOnShelf(x, fShelf) &&
+    (!fPats.length || fPats.includes(x.pat)) &&
+    (!fMus.length || fMus.some((m) => (x.mp || []).includes(m) || (x.ms || []).includes(m))) &&
+    (!fEq.length || fEq.some((e) => (x.eq || []).includes(e))) &&
+    (!q || tExSearchText(x).toLowerCase().includes(q.toLowerCase())));
+  const patOrder = Object.fromEntries(T_PATTERNS.map((p, i) => [p.k, i]));
+  const sorted = [...filtered].sort((a, b) => (patOrder[a.pat] - patOrder[b.pat]) || (tLvlOf(a) - tLvlOf(b)));
+  const EX_PAGE = 24;
+  const [exShown, setExShown] = useState(EX_PAGE);
+  React.useEffect(() => { setExShown(EX_PAGE); }, [fPats, fMus, fEq, q, fShelf]);
+
+  // ---- dnes ----
+  const today = todayISO();
+  const dateOf = (p, s) => ((sched[p.id] || {})[s.id]) || s.date || "";
+  const recordFor = (p, s) => sessions.find((x) => x.planId === p.id && x.planSessionId === s.id) || null;
+  const todays = [];
+  for (const p of (del && del.plans) || []) {
+    for (const s of p.sessions || []) {
+      if (dateOf(p, s) !== today) continue;
+      const rec = recordFor(p, s);
+      if (rec && rec.state === "done") continue;
+      const tpl = st.tvTemplateOf(s.templateId);
+      if (!tpl) continue;
+      todays.push({ p, s, tpl, rec });
+    }
+  }
+  const doneToday = sessions.filter((x) => x.date === today && x.state === "done").length;
+  const begin = (h) => {
+    if (h.rec) { onRunSession(h.rec.id); return; }
+    const ses = TV.startSession(h.tpl, { date: today, plan: h.p, planSession: h.s });
+    st.tvPutSession(ses);
+    onRunSession(ses.id);
+  };
+  const onRunSession = (id) => setRun(id);
+
+  const tabs = [
+    { k: "dnes", cz: "Dnes", en: "Today" },
+    { k: "plan", cz: "Plán", en: "Plan" },
+    { k: "zaznam", cz: "Záznam", en: "Record" },
+    { k: "knihovna", cz: "Knihovna", en: "Library" },
+    { k: "casovac", cz: "Časovač", en: "Timer" },
+  ];
+  const inpStyle = { background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 14, padding: "8px 12px", outline: "none" };
+
+  return (
+    <>
+      <PageTitle pageKey="trenink" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcTrenink size={40} /></span>} kicker={L("Co máš udělat, a co jsi udělal.", "What to do, and what you did.")}>
+        {L("Trénink", "Training")}
+      </PageTitle>
+
+      {st.syncPending ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: hexA(t.sage, 0.12), border: `1px solid ${hexA(t.sage, 0.35)}`, borderRadius: 10, padding: "8px 12px", marginBottom: 12 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.sage }} />
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>
+            {L("Zapsáno v telefonu. Odejde samo, až bude signál.", "Written down on this phone. It will send itself when there is a signal.")}
+          </span>
+        </div>
+      ) : null}
+
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18 }}>
+        {tabs.map((x) => <TChip key={x.k} label={L(x.cz, x.en)} active={tab === x.k} onClick={() => setTab(x.k)} />)}
+      </div>
+
+      {tab === "dnes" && (
+        <div className="tm-view" style={{ padding: "20px 18px", textAlign: "center" }}>
+          {todays.length ? (
+            <>
+              <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: "clamp(26px, calc(5.5 * var(--tm-vw)), 36px)", lineHeight: 1.2, color: t.heading }}>
+                {L(todays[0].tpl.cz, todays[0].tpl.en)}
+              </div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, margin: "8px 0 18px" }}>
+                {(todays[0].tpl.blocks || []).length} {L("cviků", "exercises")}
+              </div>
+              <button onClick={() => begin(todays[0])} className="tm-cta"
+                style={{ display: "inline-flex", alignItems: "center", gap: 10, background: t.accent, color: t.onAccent, border: "none", borderRadius: 12, padding: "15px 42px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 17, minHeight: 54 }}>
+                {L("Začít", "Begin")}
+              </button>
+              {todays.length > 1 ? (
+                <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, marginTop: 12 }}>
+                  {L("a pak · ", "then · ")}{todays.slice(1).map((h) => L(h.tpl.cz, h.tpl.en)).join(" · ")}
+                </div>
+              ) : null}
+            </>
+          ) : doneToday ? (
+            <>
+              <Bindu size={7} style={{ margin: "0 auto 10px" }} />
+              <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 28, color: t.heading }}>{L("Odtrénováno.", "Done for today.")}</div>
+              <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, marginTop: 6 }}>{L("Zítra tu bude další.", "Tomorrow there will be another.")}</div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 28, color: t.heading }}>{L("Dnes nic nemáš.", "Nothing today.")}</div>
+              <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, margin: "8px auto 0", maxWidth: 400, lineHeight: 1.65 }}>
+                {L("Podívej se do plánu, nebo prostě jdi. I bez zápisu to platí.", "Look at the plan, or simply go. It counts without being written down.")}
+              </div>
+            </>
           )}
+        </div>
+      )}
+
+      {tab === "plan" && <TvClientPlan onRun={onRunSession} />}
+      {tab === "zaznam" && <TvClientHistory onRun={onRunSession} />}
+      {tab === "casovac" && <TmHome onRun={setClock} />}
+
+      {tab === "knihovna" && (
+        <>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+            <TChip label={L("Vše", "All")} active={!fPats.length} onClick={() => setFPats([])} />
+            {T_PATTERNS.map((p) => <TChip key={p.k} label={L(p.cz, p.en)} active={fPats.includes(p.k)} onClick={() => setFPats(fPats.includes(p.k) ? fPats.filter((x) => x !== p.k) : [...fPats, p.k])} />)}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
+            <TMultiSel label={L("Svaly", "Muscles")} values={fMus} onChange={setFMus} options={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))} />
+            <TMultiSel label={L("Vybavení", "Equipment")} values={fEq} onChange={setFEq} options={T_EQUIP.map((e) => ({ v: e.k, label: L(e.cz, e.en) }))} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ ...inpStyle, width: 160 }} />
+            <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginLeft: "auto" }}>{sorted.length} {L("cviků", "exercises")}</span>
+          </div>
+          <div className="tm-reveal" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(235px, 1fr))", gap: 12 }}>
+            {sorted.slice(0, exShown).map((ex) => <TExCard key={ex.id} ex={ex} onOpen={() => setOpenEx(ex.id)} />)}
+          </div>
+          {sorted.length > exShown ? (
+            <button onClick={() => setExShown(exShown + EX_PAGE)} style={{ ...tvQuiet(t), marginTop: 14 }}>
+              {L("Načíst další", "Load more")}
+            </button>
+          ) : null}
         </>
       )}
 
-      {pickProg && <TExPick onClose={() => setPickProg(false)} onPick={(id) => { setPEx(id); setPickProg(false); }} />}
+      {run && <TvClientRunner sessionId={run} onClose={() => setRun(null)} />}
+      {clock && <TmStage program={clock.program} name={clock.name} mode={clock.mode} onClose={() => setClock(null)} />}
       {openEx && <TExDetail exId={openEx} onClose={() => setOpenEx(null)} onOpen={(id) => setOpenEx(id)} />}
-      {openWo && !openEx && <TWoDetail woId={openWo} onClose={() => setOpenWo(null)} onOpenEx={(id) => setOpenEx(id)} onRun={setRun} />}
-      {openPl && !openWo && !openEx && <TPlDetail plId={openPl} onClose={() => setOpenPl(null)} onOpenWo={(id) => setOpenWo(id)} />}
-      {run && <TmStage program={run.program} name={run.name} mode={run.mode} source={run.source} onClose={() => setRun(null)} />}
-      {wizard && <TpWizard onClose={(id) => { setWizard(false); if (id) setOpenPl(id); }} />}
-      {patInfo && <TInfoSheet title={L((T_PAT[patInfo] || {}).cz, (T_PAT[patInfo] || {}).en)} text={L((T_PAT_INFO[patInfo] || ["", ""])[0], (T_PAT_INFO[patInfo] || ["", ""])[1])} onClose={() => setPatInfo(null)} />}
-      {goalInfo && <TInfoSheet title={goalInfo.title} text={goalInfo.text} onClose={() => setGoalInfo(null)} />}
     </>
   );
 }
+
 
 // ---- SADA IKON · one hand for the whole house -------------------------------
 // Nine rooms, nine engravings. Unified apparent stroke: 0.8 on a 24 grid,
@@ -18198,9 +15840,21 @@ export default function App() {
   const _lastSynced = React.useRef(null);
   const _dirty = React.useRef(false); // local changed since load -> never let a late server read clobber it
   const _serializeDoc = (c, e) => JSON.stringify({ coll: c, edits: e });
+  // Zpětný kanál. Jde jen to, co klient sám zapnul, a jen trénink: co odcvičil,
+  // kdy, a jaké termíny si sám posunul. Deník, zápisník ani poznámky nikdy.
+  // Odesílá se celý záznam podle svého id, takže dvojí odeslání po výpadku sítě
+  // nemůže vyrobit druhý trénink — přepíše se tentýž.
+  const _shareOf = (c) => {
+    if (!((c.share || {}).training)) return null;
+    const done = TV.sessionsOf(c).filter((x) => x.state === "done");
+    return { training: { ...TV.fulfilmentFrom(done, { now: Date.now() }), sched: (TV.trainingOf(c) || {}).sched || {} } };
+  };
   // Odeslání na server bylo jediná cesta, kterou práce opouští zařízení,
   // a selhalo beze slova — síťová chyba i odpověď 401 se zahodily stejně.
   const [syncErr, setSyncErr] = useState(false);
+  // Zapsaná série se nesmí tvářit jako odeslaná. Dokud se dokument neshoduje s
+  // tím, co server naposledy potvrdil, je co odeslat — a je to vidět.
+  const [syncPending, setSyncPending] = useState(false);
   React.useEffect(() => {
     // Dokud nevíme, komu úložiště patří, neodesíláme nic a nic nepřijímáme.
     if (ownerId === null) return;
@@ -18237,12 +15891,12 @@ export default function App() {
             const pr = await fetch("/api/state", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ doc: { coll: _collRef.current, edits: _editsRef.current } }),
+              body: JSON.stringify({ doc: { coll: _collRef.current, edits: _editsRef.current }, share: _shareOf(_collRef.current) }),
             });
             if (!pr.ok) throw new Error("state PUT " + pr.status);
             let pv = 0; try { pv = ((await pr.json()) || {}).version || 0; } catch (e) {}
             syncMarkSave(pv, tmDocSig(mine));
-            setSyncErr(false);
+            setSyncErr(false); setSyncPending(false);
           }
           _lastSynced.current = mine;
         }
@@ -18262,24 +15916,50 @@ export default function App() {
     window.addEventListener("online", onOnline);
     return () => { dead = true; window.removeEventListener("online", onOnline); if (gc) clearTimeout(gc); };
   }, [ownerId]);
+  // ---- plán od trenéra ------------------------------------------------------
+  // Plán leží mimo klientův stavový dokument schválně: klientská synchronizace je
+  // poslední-zápis-vyhrává a plán by tím byla otázka času, kdy zmizí. Čte se sem,
+  // ukládá se jako doručený balík a klient ho nikdy nepřepisuje.
+  React.useEffect(() => {
+    if (ownerId === null) return;
+    let dead = false;
+    const pull = () => {
+      fetch("/api/plan", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((b) => {
+          if (dead || !b) return;
+          const doc = b.doc || null;
+          const cur = (TV.trainingOf(_collRef.current) || {}).delivered || null;
+          const same = JSON.stringify(cur && cur.at) === JSON.stringify(doc && doc.at);
+          if (!same) persistColl((c) => TV.patchTraining(c, { delivered: doc, deliveredAt: Date.now() }));
+        })
+        .catch(() => { /* offline · doručený plán zůstává ten, co už tu je */ });
+    };
+    pull();
+    const onOnline = () => pull();
+    window.addEventListener("online", onOnline);
+    return () => { dead = true; window.removeEventListener("online", onOnline); };
+  }, [ownerId]);
+
   // Debounced push of local changes to the server (only once sync is ready).
   React.useEffect(() => {
     const cur = _serializeDoc(coll, edits);
     if (_lastSynced.current === null) { _lastSynced.current = cur; return; } // baseline on mount, not a change
     if (cur === _lastSynced.current) return;
     _dirty.current = true; // real local change -> mark it, even before the initial read completes
+    setSyncPending(true);
     if (!_syncReady.current) return; // not ready to push yet; the load effect will keep + push local
     const h = setTimeout(() => {
       fetch("/api/state", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doc: { coll, edits } }),
+        body: JSON.stringify({ doc: { coll, edits }, share: _shareOf(coll) }),
       }).then(async (r) => {
         if (!r.ok) { setSyncErr(true); return; }
         _lastSynced.current = cur;
         let pv = 0; try { pv = ((await r.json()) || {}).version || 0; } catch (e) {}
         syncMarkSave(pv, tmDocSig(cur));
-        setSyncErr(false);
+        setSyncErr(false); setSyncPending(false);
       }).catch(() => setSyncErr(true));
     }, 1500);
     return () => clearTimeout(h);
@@ -18292,8 +15972,6 @@ export default function App() {
   const malaAdd = (id, d) => persistColl((c) => ({ ...c, mala: (c.mala || MALA_DEFAULT).map((m) => m.id === id ? { ...m, count: Math.max(0, (m.count || 0) + d) } : m) }));
   const malaAddDeity = (nm) => persistColl((c) => ({ ...c, mala: [...(c.mala || MALA_DEFAULT), { id: uid() + "d", name: nm, count: 0 }] }));
   const malaRemoveDeity = (id) => persistColl((c) => ({ ...c, mala: (c.mala || MALA_DEFAULT).filter((m) => m.id !== id) }));
-  const activePlanId = () => coll.tPlActive || null;
-  const setActivePlan = (id) => persistColl((c) => ({ ...c, tPlActive: c.tPlActive === id ? null : id }));
   const setKlCfg = (patch) => persistColl((c) => ({ ...c, klCfg: { ...(c.klCfg || {}), ...patch } }));
   const updateEntry = (kind, id, patch) => persistColl((c) => ({ ...c, [kind]: (c[kind] || []).map((e) => (e.id === id ? { ...e, ...patch } : e)) }));
   const trashAdd = (draft, item) => ({ ...draft, trash: [{ ...item, trashedAt: Date.now() }, ...((draft.trash) || [])] });
@@ -18682,8 +16360,47 @@ export default function App() {
   const purgeIdbOf = (item) => { const att = item && item.data && (item.data.att || (item.data.g && item.data.g.att)); (att || []).forEach((a) => { if (a.idb) idbDel(a.id); if (a.r2) r2Del(a.id); }); };
   const purgeTrash = (tid) => { const item = (coll.trash || []).find((x) => x.tid === tid); if (item) purgeIdbOf(item); persistColl((c) => ({ ...c, trash: (c.trash || []).filter((x) => x.tid !== tid) })); };
   const purgeAllTrash = () => { (coll.trash || []).forEach(purgeIdbOf); persistColl((c) => ({ ...c, trash: [] })); };
-  const seedTraining = () => persistColl((c) => {
-    if (!c.tSeeded) return { ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] };
+  // ---- TRAINING SYSTEM V2 · reset a plot kolem něj ----
+  // Verze leží V datech, ne v localStorage. Reset proto proběhne právě jednou a
+  // nikdy podruhé. Původní tréninková větev se před ním odloží do vlastního
+  // klíče, který se nikdy sám neobnovuje a nic mimo trénink neobsahuje.
+  const tvApply = (c) => (TV.isCurrentSchema(c) ? c : TV.resetTrainingDomain(c, { now: Date.now() }).coll);
+  const tvBackupOnce = () => {
+    const cur = _collRef.current || {};
+    if (TV.isCurrentSchema(cur)) return;
+    const preview = TV.resetTrainingDomain(cur, { now: Date.now() });
+    if (preview.changed) { try { TV.writeLegacyBackup(window.localStorage, preview.backup); } catch (e) { /* plný disk nesmí zastavit trénink */ } }
+  };
+  const seedTraining = () => { tvBackupOnce(); return seedTrainingColl(); };
+  // ---- co klient s tréninkem opravdu dělá ------------------------------------
+  // Vidí, co mu trenér předepsal. Zapisuje, co skutečně udělal. Nic z toho, co
+  // předepsal trenér, nemůže změnit — a předpis se proto nikdy nepřepisuje, jen
+  // se z něj bere snímek do vlastního záznamu.
+  const tvSessions = () => TV.sessionsOf(coll);
+  const tvSessionOf = (id) => tvSessions().find((x) => x.id === id) || null;
+  const tvPutSession = (x) => persistColl((c) => TV.putSession(c, x));
+  const tvEditSession = (id, fn) => persistColl((c) => TV.patchTraining(c, { sessions: TV.sessionsOf(c).map((x) => (x.id === id ? fn(x) : x)) }));
+  const tvDropSession = (id) => persistColl((c) => TV.dropSession(c, id));
+  const tvPrefs = () => TV.prefsOf(coll);
+  const tvSetPrefs = (p) => persistColl((c) => TV.patchTraining(c, { prefs: { ...TV.prefsOf(c), ...p } }));
+  // Doručený balík od trenéra. Je to READ-ONLY vstup: klient ho nikdy neupravuje
+  // a odeslání od trenéra ho celý nahradí.
+  const tvDelivered = () => (TV.trainingOf(coll) || {}).delivered || null;
+  const tvSetDelivered = (doc) => persistColl((c) => TV.patchTraining(c, { delivered: doc || null, deliveredAt: Date.now() }));
+  const tvTemplateOf = (id) => ((tvDelivered() || {}).templates || []).find((x) => x.id === id) || null;
+  const tvPlanOf = (id) => ((tvDelivered() || {}).plans || []).find((x) => x.id === id) || null;
+  const tvExerciseOf = (id) => ((tvDelivered() || {}).exercises || []).find((x) => x.id === id) || null;
+  // Vlastní termín, který si klient posunul. Předpis se tím nemění — mění se jen
+  // datum, a to je jediné, co produkt klientovi dovoluje.
+  const tvSched = () => (TV.trainingOf(coll) || {}).sched || {};
+  const tvSetSched = (planId, sessionId, date) => persistColl((c) => {
+    const cur = (TV.trainingOf(c) || {}).sched || {};
+    const forPlan = { ...(cur[planId] || {}) };
+    if (date) forPlan[sessionId] = date; else delete forPlan[sessionId];
+    return TV.patchTraining(c, { sched: { ...cur, [planId]: forPlan } });
+  });
+  const seedTrainingColl = () => persistColl((c) => {
+    if (!c.tSeeded) return tvApply({ ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] });
     let next = c;
     const seedById = Object.fromEntries(TEX_ALL.map((x) => [x.id, x]));
     if (!next.tSeedV2) {
@@ -18984,51 +16701,8 @@ export default function App() {
       const fixed = tExAuditFix(next.tEx || []);
       next = { ...next, exAudit: EX_AUDIT_VER, exAuditN: fixed.touched, tEx: fixed.rows };
     }
-    return next;
+    return tvApply(next);
   });
-  // ---- series · create, rename, reorder, duplicate, dissolve ----
-  // Every one of these used to have to write to four maps at once and keep them in step.
-  // They now write to one list, and a rename is a rename.
-  const tSeries = () => coll.tSer || [];
-  const seriesOf = (id) => T_SER_BY(coll, id);
-  const addSeries = (name) => persistColl((c) => {
-    const taken = new Set((c.tSer || []).map((s) => s.name));
-    let nm = name, i = 2;
-    while (taken.has(nm)) nm = name + " " + i++;
-    return { ...c, tSer: [...(c.tSer || []), { id: uid(), name: nm, int: null, closed: false }] };
-  });
-  const patchSeries = (id, p) => persistColl((c) => ({ ...c, tSer: (c.tSer || []).map((s) => (s.id === id ? { ...s, ...p } : s)) }));
-  const renameSeries = (id, name) => { const nm = (name || "").trim(); if (nm) patchSeries(id, { name: nm }); };
-  const setSeriesIntro = (id, pair) => patchSeries(id, { int: pair });
-  const toggleSeries = (id) => persistColl((c) => ({ ...c, tSer: (c.tSer || []).map((s) => (s.id === id ? { ...s, closed: !s.closed } : s)) }));
-  // dissolve · the shelf goes, the workouts stay and become shelf-less
-  const dropSeries = (id) => persistColl((c) => ({
-    ...c,
-    tWo: (c.tWo || []).map((w) => ((w.ser || "") === id ? { ...w, ser: "" } : w)),
-    tSer: (c.tSer || []).filter((s) => s.id !== id),
-  }));
-  const dupSeries = (id) => persistColl((c) => {
-    const s = (c.tSer || []).find((x) => x.id === id);
-    if (!s) return c;
-    const taken = new Set((c.tSer || []).map((x) => x.name));
-    let nm = s.name + " · " + L("kopie", "copy"), i = 2;
-    while (taken.has(nm)) nm = s.name + " · " + L("kopie", "copy") + " " + i++;
-    const nid = uid();
-    const copies = (c.tWo || []).filter((w) => (w.ser || "") === id)
-      .map((w) => ({ ...w, id: uid(), ser: nid, rows: (w.rows || []).map((r) => ({ ...r, id: uid() })) }));
-    const arr = [...(c.tSer || [])];
-    arr.splice(arr.findIndex((x) => x.id === id) + 1, 0, { ...s, id: nid, name: nm });
-    return { ...c, tWo: [...(c.tWo || []), ...copies], tSer: arr };
-  });
-  const reorderSeries = (dragId, overId) => persistColl((c) => {
-    const arr = [...(c.tSer || [])];
-    const from = arr.findIndex((s) => s.id === dragId), to = arr.findIndex((s) => s.id === overId);
-    if (from < 0 || to < 0 || from === to) return c;
-    arr.splice(to, 0, arr.splice(from, 1)[0]);
-    return { ...c, tSer: arr };
-  });
-  const setWorkoutSeries = (wid, ser) => persistColl((c) => ({ ...c, tWo: (c.tWo || []).map((w) => (w.id === wid ? { ...w, ser } : w)) }));
-
   // ---- the timer · settings, presets, history ----
   // The voice is remembered per language, not once: the Czech voice you like and the
   // English one you like are two different voices, and the page can switch between them.
@@ -19043,41 +16717,6 @@ export default function App() {
     const cur = { ...TM_CFG_DEFAULT, ...(c.tmCfg || {}) };
     return { ...c, tmCfg: { ...cur, lastMode: mode, specs: { ...(cur.specs || {}), [mode]: spec } } };
   });
-  // ---- what a live session writes down --------------------------------------
-  // Every one of these is a functional update, which is the whole point: the session
-  // overlay holds no closure over the day, only its address (date + item id). It can
-  // therefore run for an hour, across any number of re-renders, and still write to the
-  // right place. A set is written the moment it is done — quit halfway and the half you
-  // did is still yours.
-  const tSetDone = (d, iid, rowId, patch) => persistColl((c) => {
-    const day = (c.tDays || {})[d];
-    if (!day || !(day.items || []).some((it) => it.id === iid)) return c;
-    const items = (day.items || []).map((it) => (it.id === iid
-      ? { ...it, rows: { ...(it.rows || {}), [rowId]: { ...((it.rows || {})[rowId] || {}), ...patch } } }
-      : it));
-    return { ...c, tDays: { ...(c.tDays || {}), [d]: { ...day, items } } };
-  });
-  const tItemPatch = (d, iid, patch) => persistColl((c) => {
-    const day = (c.tDays || {})[d];
-    if (!day) return c;
-    const items = (day.items || []).map((it) => (it.id === iid ? { ...it, ...patch } : it));
-    return { ...c, tDays: { ...(c.tDays || {}), [d]: { ...day, items } } };
-  });
-  // A session started from the register, with no entry in the day yet, makes one.
-  const tPlanSessionDone = (pid, sid, done) => persistColl((c) => ({
-    ...c,
-    tPl: (c.tPl || []).map((p) => (p.id === pid ? { ...p, sessions: (p.sessions || []).map((s) => (s.id === sid ? { ...s, done: !!done } : s)) } : p)),
-  }));
-  const tOpenDayItem = (d, wid, kind) => {
-    const id = uid();
-    persistColl((c) => {
-      const day = (c.tDays || {})[d] || {};
-      const item = { id, kind: kind || "trenink", wid: wid || "", eff: null, done: false, rows: {}, src: "session" };
-      return { ...c, tDays: { ...(c.tDays || {}), [d]: { ...day, items: [...(day.items || []), item] } } };
-    });
-    return id;
-  };
-
   // ---- ACCEPTING A PROGRESSION ------------------------------------------------
   // This used to stamp a date and change nothing. The button said "take the step up to
   // the pull-up" and the next session still said negative pull-up. That is the worst
@@ -19090,25 +16729,6 @@ export default function App() {
   //   · what you actually lifted stays where it was written. History is not editable.
   //   · the joints the new rung taxes are stamped with today, and the rate limit reads
   //     that stamp — so the shoulder cannot climb twice in one week by using two names.
-  const tProgAccept = (fromId, toId) => persistColl((c) => {
-    const nx = (c.tEx || []).find((x) => x.id === toId);
-    if (!nx || !fromId || fromId === toId) return c;
-    const sec = nx.mode === "sec";
-    let moved = 0;
-    const tWo = (c.tWo || []).map((w) => {
-      if (!(w.rows || []).some((r) => r.ex === fromId)) return w;
-      moved += 1;
-      return { ...w, rows: (w.rows || []).map((r) => (r.ex === fromId
-        ? { ...r, ex: toId, reps: sec ? 15 : 5, unit: sec ? "s" : "×", kg: 0 }
-        : r)) };
-    });
-    if (!moved) return c;
-    const iso = todayISO();
-    const tProg = { ...(c.tProg || {}) };
-    tJointsOf(nx).forEach((j) => { tProg[j] = iso; });
-    return { ...c, tWo, tProg };
-  });
-
   // ---- PAIN, WHICH NOW HAS A DOOR ---------------------------------------------
   // `setSore` existed for a whole release and nothing ever called it, which meant the
   // pain veto in the engine could not fire — a branch of code that could never run. It
@@ -19140,114 +16760,36 @@ export default function App() {
   // the Koš (which can bring any of it back, cascade included).
   // ----------------------------------------------------------------------
 
-  // What would break if this went away? Counted before the dialog is written.
+  // Co by se rozbilo, kdyby tohle zmizelo? Po V2 může z tréninkové domény odejít
+  // jen cvik: záznamy tréninků mají vlastní mazání ve své obrazovce.
   const tRefs = (kind, id) => {
-    const exs = coll.tEx || [], wos = coll.tWo || [], pls = coll.tPl || [], logs = coll.tLog || [], days = coll.tDays || {};
-    const dayList = Object.keys(days).map((d) => [d, (days[d] || {}).items || []]);
-    if (kind === "tEx") return {
-      wo: wos.filter((w) => (w.rows || []).some((r) => r.ex === id)).length,
-      rows: wos.reduce((n, w) => n + (w.rows || []).filter((r) => r.ex === id).length, 0),
-      log: logs.filter((r) => r.ex === id).length,
+    if (kind !== "tEx") return {};
+    const exs = coll.tEx || [];
+    const sessions = TV.sessionsOf(coll);
+    return {
+      wo: 0, rows: 0,
+      log: sessions.reduce((n, x) => n + (x.blocks || []).filter((b) => b.exId === id && (b.sets || []).some((y) => y.completed)).length, 0),
       chain: exs.filter((x) => x.id !== id && (x.ez === id || x.hd === id)).length,
     };
-    if (kind === "tWo") return {
-      pl: pls.filter((p) => (p.sessions || []).some((s) => s.wid === id)).length,
-      sess: pls.reduce((n, p) => n + (p.sessions || []).filter((s) => s.wid === id).length, 0),
-      day: dayList.reduce((n, [, items]) => n + items.filter((it) => it.wid === id).length, 0),
-    };
-    if (kind === "tPl") {
-      const p = pls.find((x) => x.id === id) || {};
-      return { sess: (p.sessions || []).length, day: dayList.reduce((n, [, items]) => n + items.filter((it) => it.pid === id).length, 0) };
-    }
-    return {};
   };
 
-  // Delete one training entity. cascade = true also sweeps up everything that
-  // pointed at it; the sweepings ride along in the trash item (cx) so a restore
-  // puts the whole constellation back, in its original order.
   const removeTraining = (kind, id, cascade) => persistColl((c) => {
-    const list = c[kind] || [];
+    if (kind !== "tEx") return c;
+    const list = c.tEx || [];
     const idx = list.findIndex((e) => e.id === id);
     if (idx < 0) return c;
     const item = list[idx];
-    let next = { ...c, [kind]: list.filter((e) => e.id !== id) };
-    const cx = { logs: [], rows: [], sess: [], days: [] };
-
-    if (kind === "tEx") {
-      // a dangling ez/hd is never useful — the chain heals whether you cascade or not
-      next.tEx = (next.tEx || []).map((x) => (x.ez === id || x.hd === id ? { ...x, ez: x.ez === id ? null : x.ez, hd: x.hd === id ? null : x.hd } : x));
-      if (cascade) {
-        next.tWo = (next.tWo || []).map((w) => {
-          if (!(w.rows || []).some((r) => r.ex === id)) return w;
-          (w.rows || []).forEach((r, i) => { if (r.ex === id) cx.rows.push([w.id, i, r]); });
-          return { ...w, rows: (w.rows || []).filter((r) => r.ex !== id) };
-        });
-        cx.logs = (next.tLog || []).filter((r) => r.ex === id);
-        next.tLog = (next.tLog || []).filter((r) => r.ex !== id);
-      }
-    }
-
-    if (kind === "tWo" && cascade) {
-      next.tPl = (next.tPl || []).map((p) => {
-        if (!(p.sessions || []).some((s) => s.wid === id)) return p;
-        (p.sessions || []).forEach((s, i) => { if (s.wid === id) cx.sess.push([p.id, i, s]); });
-        return { ...p, sessions: (p.sessions || []).filter((s) => s.wid !== id) };
-      });
-      const days = { ...(next.tDays || {}) };
-      Object.keys(days).forEach((d) => {
-        const items = (days[d] || {}).items || [];
-        if (!items.some((it) => it.wid === id)) return;
-        items.forEach((it, i) => { if (it.wid === id) cx.days.push([d, i, it]); });
-        days[d] = { ...days[d], items: items.filter((it) => it.wid !== id) };
-      });
-      next.tDays = days;
-    }
-
-    if (kind === "tPl" && cascade) {
-      const days = { ...(next.tDays || {}) };
-      Object.keys(days).forEach((d) => {
-        const items = (days[d] || {}).items || [];
-        if (!items.some((it) => it.pid === id)) return;
-        items.forEach((it, i) => { if (it.pid === id) cx.days.push([d, i, it]); });
-        days[d] = { ...days[d], items: items.filter((it) => it.pid !== id) };
-      });
-      next.tDays = days;
-    }
-
-    const any = cx.logs.length || cx.rows.length || cx.sess.length || cx.days.length;
-    return trashAdd(next, { tid: uid(), kind: "entry", entryKind: kind, index: idx, data: item, label: entryLabel(kind, item), cx: any ? cx : null });
+    let next = { ...c, tEx: list.filter((e) => e.id !== id) };
+    next.tEx = next.tEx.map((x) => (x.ez === id || x.hd === id ? { ...x, ez: x.ez === id ? null : x.ez, hd: x.hd === id ? null : x.hd } : x));
+    return trashAdd(next, { tid: uid(), kind: "entry", entryKind: "tEx", index: idx, data: item, label: entryLabel("tEx", item) });
   });
   const removeTrainings = (kind, ids, cascade) => { (ids || []).forEach((id) => removeTraining(kind, id, cascade)); };
 
-  // A session is a row inside a plan — it goes straight out, like a workout row.
-  // Any day entry it already produced goes with it, or the day would keep a ghost.
-  const removePlanSession = (plId, sid) => persistColl((c) => {
-    const pls = c.tPl || [];
-    const p = pls.find((x) => x.id === plId);
-    if (!p) return c;
-    const days = { ...(c.tDays || {}) };
-    Object.keys(days).forEach((d) => {
-      const items = (days[d] || {}).items || [];
-      if (items.some((it) => it.sid === sid)) days[d] = { ...days[d], items: items.filter((it) => it.sid !== sid) };
-    });
-    return { ...c, tDays: days, tPl: pls.map((x) => (x.id === plId ? { ...x, sessions: (x.sessions || []).filter((s) => s.id !== sid) } : x)) };
-  });
-  const clearPlanDates = (plId) => persistColl((c) => ({ ...c, tPl: (c.tPl || []).map((p) => (p.id === plId ? { ...p, sessions: (p.sessions || []).map((s) => ({ ...s, date: "" })) } : p)) }));
-  const clearPlanSessions = (plId) => persistColl((c) => {
-    const p = (c.tPl || []).find((x) => x.id === plId);
-    if (!p) return c;
-    const ids = new Set((p.sessions || []).map((s) => s.id));
-    const days = { ...(c.tDays || {}) };
-    Object.keys(days).forEach((d) => {
-      const items = (days[d] || {}).items || [];
-      if (items.some((it) => ids.has(it.sid))) days[d] = { ...days[d], items: items.filter((it) => !ids.has(it.sid)) };
-    });
-    return { ...c, tDays: days, tPl: (c.tPl || []).map((x) => (x.id === plId ? { ...x, sessions: [] } : x)) };
-  });
-
-  const store = { selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, listAreas, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, activePlanId, setActivePlan, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings, removePlanSession, clearPlanDates, clearPlanSessions, tSeries, seriesOf, setSeriesIntro, toggleSeries, addSeries, renameSeries, dropSeries, dupSeries, reorderSeries, setWorkoutSeries,
+  const store = { selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, listAreas, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
+    tvSessions, tvSessionOf, tvPutSession, tvEditSession, tvDropSession, tvPrefs, tvSetPrefs,
+    tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, syncPending,
     tmCfg, setTmCfg, tmSpecOf, setTmSpec,
-    tSetDone, tItemPatch, tOpenDayItem, tPlanSessionDone, tProgAccept, setSore, unsetSore, soreNow, tSaidBump };
+    setSore, unsetSore, soreNow, tSaidBump };
 
   const go = (k) => { setSlideDir(null); setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
   // MODULY · dům si klient skládá sám; negatované klíče (mandala, koš…) jsou vždy otevřené

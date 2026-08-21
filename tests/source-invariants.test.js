@@ -124,3 +124,33 @@ test("nasazená verze se člověku nabídne", () => {
   assert.match(app, /<TmNovaVerze \/>/);
   assert.doesNotMatch(app, /setNova\(true\);[\s\S]{0,80}location\.reload\(\)/, "nesmí načítat samo");
 });
+
+// ---- TRAINING SYSTEM V2 · klientská hranice ---------------------------------
+test("starý tréninkový model není aktivní cesta produktu", () => {
+  for (const key of ["tWo", "tPl", "tLog"]) {
+    const re = new RegExp("coll\\." + key + "\\b|addEntry\\(\"" + key + "\"|updateEntry\\(\"" + key + "\"", "g");
+    assert.equal((app.match(re) || []).length, 0, `${key} má být mimo produktovou cestu`);
+  }
+  assert.ok(app.includes("TV.resetTrainingDomain"));
+});
+
+test("doručený plán se opravdu čte · půlka roury je horší než žádná", () => {
+  assert.match(app, /fetch\("\/api\/plan"/, "plán, který se nikdy nevyzvedne, není plán");
+  assert.match(app, /tvSetDelivered|delivered: doc/, "a někam se musí uložit");
+});
+
+test("zpětný kanál se opravdu odesílá", () => {
+  assert.match(app, /_shareOf/, "snímek pro trenéra musí vzniknout");
+  assert.equal((app.match(/share: _shareOf\(/g) || []).length, 2, "obě cesty odeslání ho nesou");
+  assert.match(app, /TV\.fulfilmentFrom/);
+});
+
+test("klient nemá čím sáhnout na předpis", () => {
+  for (const call of ["tvPutTemplate", "tvPutPlan", "tvEditTemplate", "tvEditPlan"]) {
+    assert.equal(app.includes(call), false, call);
+  }
+});
+
+test("čekající odeslání je vidět", () => {
+  assert.match(app, /syncPending/, "zapsaná série se nesmí tvářit jako odeslaná");
+});

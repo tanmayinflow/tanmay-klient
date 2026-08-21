@@ -168,3 +168,38 @@ test("členství vznikne i na úplně prázdné databázi", async () => {
   const r = await worker.fetch(req("/api/join", { email: A, method: "POST", body: { word: "otevri se" } }), env);
   assert.equal(r.status, 200, await r.text());
 });
+
+// ---- zpětný kanál · co klient odcvičil, a jen to -----------------------------
+test("share se uloží k tomu, kdo ho poslal, a nikomu jinému", async () => {
+  const env = makeEnv();
+  await joined(env, A); await joined(env, B);
+  const share = { training: { v: 2, at: 1, sessions: [{ id: "ses1", date: "2026-08-21", blocks: [] }], sched: {} } };
+  const put = await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: { coll: { tv2: { v: 2 } } }, share } }), env);
+  assert.equal(put.status, 200, await put.text());
+  const rowA = await env.DB.prepare("SELECT share FROM members WHERE user_id = ?").bind("klient-a-example-test").first();
+  const rowB = await env.DB.prepare("SELECT share FROM members WHERE user_id = ?").bind("klient-b-example-test").first();
+  assert.ok(rowA && rowA.share && JSON.parse(rowA.share).training.sessions.length === 1);
+  assert.ok(!rowB || !rowB.share, "sdílení jednoho klienta se nikdy nepřipíše druhému");
+});
+
+test("stejný záznam poslaný dvakrát se přepíše, ne zdvojí", async () => {
+  const env = makeEnv();
+  await joined(env, A);
+  const one = { training: { v: 2, at: 1, sessions: [{ id: "ses1", effort: 85 }], sched: {} } };
+  const again = { training: { v: 2, at: 2, sessions: [{ id: "ses1", effort: 100 }], sched: {} } };
+  await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: { coll: {} }, share: one } }), env);
+  await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: { coll: {} }, share: again } }), env);
+  const row = await env.DB.prepare("SELECT share FROM members WHERE user_id = ?").bind("klient-a-example-test").first();
+  const parsed = JSON.parse(row.share);
+  assert.equal(parsed.training.sessions.length, 1);
+  assert.equal(parsed.training.sessions[0].effort, 100, "poslední pravda vyhrává, ale je pořád jedna");
+});
+
+test("share se dá vypnout · pošle se null a v databázi nezůstane", async () => {
+  const env = makeEnv();
+  await joined(env, A);
+  await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: { coll: {} }, share: { training: { v: 2, sessions: [{ id: "x" }] } } } }), env);
+  await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: { coll: {} }, share: null } }), env);
+  const row = await env.DB.prepare("SELECT share FROM members WHERE user_id = ?").bind("klient-a-example-test").first();
+  assert.equal(row.share, null);
+});

@@ -9,6 +9,8 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+// Rozšíření V2 je skutečný modul, takže se importuje, ne vyřezává ze zdroje.
+import { TRAINING_V2_META, extensionFor } from "../../src/training/catalogV2.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA_CTX = vm.createContext(Object.create(null));
@@ -20,6 +22,11 @@ export const SEED_NAMES = [
   "TEX_SEED_8B", "TEX_SEED_8C", "TEX_SEED_9", "TEX_SEED_SM", "TEX_SEED_CM",
   "TEX_SEED_VI",
 ];
+
+// Osmnáct — respektive tady šestnáct — původních polí je původní seznam a jeho
+// pořadí. Rozšíření je vždy poslední a nikdy se mezi ně nevkládá.
+export const EXTENSION_NAME = "TEX_SEED_V2";
+export const ORIGINAL_COUNT = 271;
 
 function readSource() {
   return readFileSync(APP_PATH, "utf8");
@@ -86,6 +93,9 @@ export function loadLibrary() {
 
   const all = [];
   for (const name of SEED_NAMES) for (const ex of seeds[name]) all.push({ ...ex, seed: name });
+  const ext = extensionFor(all.map((x) => x.id));
+  seeds[EXTENSION_NAME] = ext;
+  for (const ex of ext) all.push({ ...ex, seed: EXTENSION_NAME });
 
   const taxonomy = {
     patterns: extract(src, "T_PATTERNS"),
@@ -96,7 +106,15 @@ export function loadLibrary() {
   };
   // Present from the audited schema onwards; optional so this loader can also read
   // a pre-audit checkout and report the baseline.
-  const meta = extract(src, "TEX_META", true);
+  // Auditní literál si drží své jméno; rozšíření se slučuje nahoře, přesně jako
+  // v aplikaci — a bez provenience, která na klientskou stranu nepatří.
+  const metaBase = extract(src, "TEX_META_BASE", true) || extract(src, "TEX_META", true);
+  const metaV2 = Object.fromEntries(Object.entries(TRAINING_V2_META).map(([id, m]) => {
+    const out = {};
+    for (const k of Object.keys(m)) { if (k !== "src" && k !== "ev") out[k] = m[k]; }
+    return [id, out];
+  }));
+  const meta = metaBase ? { ...metaBase, ...metaV2 } : null;
   const tiers = extract(src, "TEX_TIERS", true);
   const statuses = extract(src, "TEX_STATUSES", true);
   const goalRoles = extract(src, "TEX_GOAL_ROLES", true);
@@ -126,7 +144,7 @@ const ENGINE_DECLS = [
   "TEX_GEN_GENERIC", "TEX_PRECAUTIONS", "TEX_TIER_LABEL",
   "TEX_TIERS_DEFAULT", "TEX_TIERS_ADVANCED", "tExOnDefaultShelf", "tExOnShelf",
   "TEX_ARCHIVED_NOTE", "TEX_ARCHIVED_ALT", "TEX_ALIAS_GROUP_LABEL",
-  "TEX_META",
+  "TEX_META_BASE",
   "tMetaOf", "tExCustomReady", "tPick", "tTierOf", "tStatusOf", "tGenRuleOf",
   "tRoleOf", "tBlockOf", "tPrepJointsOf", "tSkillClassOf", "tIsSkill", "tIsCoordSkill",
   "tArmModeOf", "tTendonOf", "tIsStraightArm", "tTissueRecOf", "tSkillFreqOf",
@@ -176,12 +194,18 @@ export function loadEngine() {
   if (engine) return engine;
   const { src } = loadLibrary();
   const parts = ENGINE_DECLS.map((n) => sliceDecl(src, n));
-  const sandbox = { console, TextEncoder, JSON, Math, Date, Object, Array, Number, String, Set, Map };
+  const sandbox = { console, TextEncoder, JSON, Math, Date, Object, Array, Number, String, Set, Map,
+    TV: { TRAINING_V2_META, extensionFor } };
   vm.createContext(sandbox);
   // `const` at the top level of a script is lexically scoped, not a property of the
   // context — so the script hands the names out itself on the last line.
-  const expose = "globalThis.__engine = { " + ENGINE_DECLS.join(", ") + " };";
-  vm.runInContext(parts.join("\n") + "\n" + expose + "\n", sandbox, { timeout: 20000 });
+  // TEX_META je v aplikaci sloučení, takže je sloučením i tady — deklarované
+  // za vyřezanými literály a před vším, co ho čte.
+  const merged = "const TEX_META = { ...TEX_META_BASE, ...Object.fromEntries(Object.entries(TV.TRAINING_V2_META).map(function (e) { var m = e[1], out = {}; Object.keys(m).forEach(function (k) { if (k !== 'src' && k !== 'ev') out[k] = m[k]; }); return [e[0], out]; })) };";
+  const expose = "globalThis.__engine = { " + ENGINE_DECLS.join(", ") + ", TEX_META };";
+  const idx = ENGINE_DECLS.indexOf("TEX_META_BASE");
+  const body = parts.slice(0, idx + 1).join("\n") + "\n" + merged + "\n" + parts.slice(idx + 1).join("\n");
+  vm.runInContext(body + "\n" + expose + "\n", sandbox, { timeout: 20000 });
   engine = sandbox.__engine;
   return engine;
 }
@@ -191,4 +215,9 @@ export function seedOrder() {
   const ids = [];
   for (const name of SEED_NAMES) for (const ex of seeds[name]) ids.push(ex.id);
   return ids;
+}
+
+export function fullOrder() {
+  const { all } = loadLibrary();
+  return all.map((x) => x.id);
 }
