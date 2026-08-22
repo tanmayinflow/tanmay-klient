@@ -19,6 +19,7 @@
     "test:training": "node --test \"tests/training.test.js\"",
     "test:training:browser": "node tests/browser/training.mjs",
     "test:pwa": "node tests/browser/pwa.mjs",
+    "test:theme": "node tests/browser/theme.mjs",
     "test:overlay": "node tests/browser/overlay.mjs",
     "test:update": "node tests/browser/update.mjs",
     "check": "npm run shared:check && npm run lint && npm run test && npm run build && npm run privacy:bundle",

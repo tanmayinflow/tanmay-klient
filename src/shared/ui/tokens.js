@@ -107,6 +107,57 @@ export function tokensCss(t, lang) {
   --tm-shadow: ${t.shadow};
   --tm-shadow-lift: ${t.shadowLift};
   --tm-shadow-sheet: ${t.shadowSheet};
+
+  /* sémantické role motivu · rodina se pozná jen tady, nikde v komponentě */
+  --tm-navigation: ${t.navigation};
+  --tm-surface: ${t.surface};
+  --tm-surface-raised: ${t.surfaceRaised};
+  --tm-surface-muted: ${t.surfaceMuted};
+  --tm-document: ${t.documentSurface};
+  --tm-scrim: ${t.scrim};
+  --tm-text-secondary: ${t.textSecondary};
+  --tm-text-disabled: ${t.textDisabled};
+  --tm-placeholder: ${t.placeholder};
+  --tm-placeholder-strong: ${t.placeholderStrong};
+  --tm-border-strong: ${t.borderStrong};
+  --tm-divider: ${t.divider};
+  --tm-accent-hover: ${t.interactiveAccentHover};
+  --tm-accent-pressed: ${t.interactiveAccentPressed};
+  --tm-selection: ${t.selectionSurface};
+  --tm-selection-text: ${t.selectionText};
+  --tm-focus: ${t.focusRing};
+  --tm-link: ${t.link};
+  --tm-link-hover: ${t.linkHover};
+  --tm-brand-copper: ${t.brandCopper};
+  --tm-brand-linen: ${t.brandLinen};
+  --tm-brand-forest: ${t.brandForest};
+  --tm-atlas-frame: ${t.atlasFrame};
+  --tm-atlas-border: ${t.atlasBorder};
+
+  /* funkční role · význam, ne dekorace */
+  --tm-success-fg: ${t.successFg};   --tm-success-bg: ${t.successBg};
+  --tm-warning-fg: ${t.warningFg};   --tm-warning-bg: ${t.warningBg};
+  --tm-error-fg: ${t.errorFg};       --tm-error-bg: ${t.errorBg};
+  --tm-info-fg: ${t.infoFg};         --tm-info-bg: ${t.infoBg};
+
+  /* data */
+  --tm-chart-1: ${t.chart1}; --tm-chart-2: ${t.chart2}; --tm-chart-3: ${t.chart3};
+  --tm-chart-4: ${t.chart4}; --tm-chart-5: ${t.chart5}; --tm-chart-6: ${t.chart6};
+  --tm-chart-surface: ${t.chartSurface};
+  --tm-grid: ${t.grid};
+  --tm-axis: ${t.axis};
+}
+/* VÝBĚR TEXTU · patří motivu, ne prohlížeči. Dlouhé psaní se nesmí v jiné
+   rodině vybírat do nečitelné plochy. */
+::selection { background: ${t.selectionSurface}; color: ${t.selectionText}; }
+/* PŘEPNUTÍ MOTIVU · krátký přechod jen na barvě, ne na rozvržení. Kdo má
+   vypnutý pohyb, nemá ani tenhle — pravidlo níž ho vynuluje spolu se vším
+   ostatním. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme-family] body,
+  html[data-theme-family] .tm-theme-fade {
+    transition: background-color 140ms var(--tm-ease), color 140ms var(--tm-ease);
+  }
 }
 /* Kdo si vypnul pohyb, ten si ho vypnul. Doby jdou na nulu jedním místem,
    takže se na to nedá zapomenout u nové komponenty. */

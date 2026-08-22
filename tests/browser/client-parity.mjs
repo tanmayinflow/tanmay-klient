@@ -220,7 +220,10 @@ try {
     await page.waitForTimeout(1200);
     const before = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     check("dům se otevírá do světla", before === "rgb(244, 240, 235)", before);
-    await page.evaluate(() => localStorage.setItem("tm-theme", "dark"));
+    // Volba se od Theme System V1 ukládá jako rodina + režim (`tm-appearance-v2`).
+    // Starý klíč se pořád čte, ale nový má přednost — jinak by se po jednom
+    // spuštění nedalo nastavit nic.
+    await page.evaluate(() => localStorage.setItem("tm-appearance-v2", JSON.stringify({ version: 2, family: "signature", mode: "dark" })));
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1200);
     const after = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);

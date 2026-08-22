@@ -31,9 +31,41 @@
     <div id="root"></div>
     <script>
       (function () {
+        /* PŘED PRVNÍM VYKRESLENÍM. Bez tohohle blikne při každém startu
+           Signature Linen a teprve pak naskočí uložený motiv. Mapa je jen
+           POLE každé rodiny ve dne a v noci; zbytek palety přinese aplikace.
+           Sdílené jádro je autorita — `theme-bootstrap.test.js` shodí build,
+           jakmile se ta dvě čísla rozejdou. */
+        var F = {
+          "signature": ["#F4F0EB", "#1C1C1A"],
+          "olive-gold": ["#F7E8A8", "#202B22"],
+          "clay-alabaster": ["#F0E2D3", "#4B2B22"],
+          "atlantic-sky": ["#DDFBFE", "#0F4B70"],
+          "mulberry-paper": ["#EFE9E9", "#5A2132"],
+          "teal-parchment": ["#F3E8BC", "#035352"],
+          "river-mist": ["#E5ECEA", "#243238"]
+        };
         try {
-          var noc = localStorage.getItem("tm-theme") === "dark";
-          var pole = noc ? "#1C1C1A" : "#F4F0EB";
+          var rodina = "signature", rezim = "light";
+          try {
+            var raw = localStorage.getItem("tm-appearance-v2");
+            if (raw) {
+              var p = JSON.parse(raw);
+              if (p && F[p.family]) rodina = p.family;
+              if (p && (p.mode === "dark" || p.mode === "light" || p.mode === "system")) rezim = p.mode;
+            } else {
+              var old = localStorage.getItem("tm-theme");
+              if (old === "dark" || old === "light") rezim = old;
+            }
+          } catch (e) {}
+          if (rezim === "system") {
+            rezim = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          var pole = F[rodina][rezim === "dark" ? 1 : 0];
+          var h = document.documentElement;
+          h.setAttribute("data-theme-family", rodina);
+          h.setAttribute("data-color-mode", rezim);
+          h.style.setProperty("color-scheme", rezim);
           document.body.style.background = pole;
           var m = document.querySelector('meta[name="theme-color"]');
           if (m) m.setAttribute("content", pole);

@@ -157,7 +157,7 @@ export function componentsCss(t) {
 
 /* ---- soustředění · klávesnice musí být vidět --------------------------- */
 :where(button, a[href], input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid ${t.accent};
+  outline: 2px solid ${t.focusRing || t.accent};
   outline-offset: 2px;
   border-radius: var(--tm-r-xs);
 }

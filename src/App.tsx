@@ -12,7 +12,14 @@ import * as TV from "./training/index.js";
 // jazyk, mapa domu i capability jsou týž soubor. Ruční zásah do src/shared/
 // shodí `npm run shared:check`, a s ním build.
 import { FONT_DISPLAY_EN, FONT_DISPLAY_CS, FONT_LOGO, FONT_BODY, FONT_TAG } from "./shared/ui/type.js";
-import { makeTheme, makeTags } from "./shared/ui/theme.js";
+import { makeThemeFor, makeTagsFor } from "./shared/ui/theme.js";
+// Značkové body. Pojmenované, aby je audit poznal od náhodného hexu.
+import { BRAND } from "./shared/ui/themeRegistry.js";
+import {
+  readAppearance, writeAppearance, systemPrefersDark, watchSystemMode,
+  appearanceMode, applyDocumentTheme, APPEARANCE_KEYS,
+} from "./shared/ui/appearance.js";
+import { createAppearanceUI } from "./shared/ui/appearance.jsx";
 import { hexA } from "./shared/ui/color.js";
 import { detectLang, setLang as tmSetLang, getLang, L, LV, GS, PL } from "./shared/lang/lang.js";
 import { navGroupsFor, dockTabsFor, ROOM_COPY } from "./shared/product/rooms.js";
@@ -140,7 +147,10 @@ function ownerLoad() { try { return window.localStorage.getItem(LS_OWNER) || "";
 function ownerSave(tag) { try { window.localStorage.setItem(LS_OWNER, tag); } catch (e) {} }
 function ownerQuarantine(prevTag) {
   const suffix = "__owner_" + (prevTag || "neznamy");
-  [LS_COLL, LS_KEY, "tm_pinned", LS_SYNCED].forEach((k) => {
+  // Motiv je taky volba předchozího člověka. Bez tohohle by klient B otevřel
+  // aplikaci v barvě, kterou si nikdy nevybral — a v barvě, která o klientovi
+  // A něco říká.
+  [LS_COLL, LS_KEY, "tm_pinned", LS_SYNCED].concat(APPEARANCE_KEYS).forEach((k) => {
     try {
       const v = window.localStorage.getItem(k);
       if (v != null) { window.localStorage.setItem(k + suffix, v); window.localStorage.removeItem(k); }
@@ -581,6 +591,8 @@ function MiniCallout({ icon, children }) {
 // začátku dokumentu. Teď to obojí drží src/shared/ui/overlay.jsx.
 const { CenterSheet, Drawer } = createOverlay(useT, L);
 const { Prazdno, TmArtKapka } = createStates(useT, L);
+// VZHLED · týž oddíl jako v osobní aplikaci. Jeden zdroj, dvě role.
+const { VzhledSekce } = createAppearanceUI(useT, L);
 // Praxe · doména ze sdíleného jádra, archivní data zůstávají v aplikaci
 const WB_ZNAMENI = makeWbZnameni({ TmWbMiska, TmWbDiamant, TmWbKruh });
 const tmWbOf = (st, d) => tmWbOfShared(st, d, DETAILS_BY);
@@ -1294,7 +1306,7 @@ function PageCover({ cover, icon }) {
     <div style={{ margin: "-48px -36px 0", position: "relative" }}>
       <div style={{ height: 200, overflow: "hidden", position: "relative" }}>
         <img src={imgSrc(cover)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 55%, ${hexA(t.mode === "light" ? "#F4F0EB" : "#1C1C1A", 0.55)} 100%)` }} />
+        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 55%, ${hexA(t.mode === "light" ? BRAND.linen : BRAND.forest, 0.55)} 100%)` }} />
       </div>
       {icon && (
         <div style={{ padding: "0 36px" }}>
@@ -9192,7 +9204,7 @@ function KBLadder({ t, title, rungs }) {
         <div style={{ position: "absolute", left: 12, top: 16, bottom: 16, width: 2, background: t.borderSoft }} />
         {rungs.map((r, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 13, padding: "7px 0", position: "relative" }}>
-            <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: r.hi ? t.accent : t.bg, border: `1.5px solid ${r.hi ? t.accent : t.border}`, color: r.hi ? "#F4F0EB" : t.sand, fontFamily: FONT_TAG, fontSize: 12.5, zIndex: 1 }}>{i + 1}</span>
+            <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", background: r.hi ? t.accent : t.bg, border: `1.5px solid ${r.hi ? t.accent : t.border}`, color: r.hi ? BRAND.linen : t.sand, fontFamily: FONT_TAG, fontSize: 12.5, zIndex: 1 }}>{i + 1}</span>
             <span style={{ fontFamily: FONT_DISPLAY, fontSize: 16.5, color: r.hi ? t.heading : t.text, lineHeight: 1.35 }}>{L(r.cz, r.en)}</span>
             {r.hi && <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 9.5, color: t.accent, border: `1px solid ${t.accent}`, borderRadius: 6, padding: "2px 6px" }}>{L("cíl", "goal")}</span>}
           </div>
@@ -11859,22 +11871,30 @@ export default function App() {
   // a zůstane, když si ho člověk zvolí — volba přežije zavření aplikace.
   // Klientská aplikace tuhle volbu neměla vůbec: startovala vždycky v noci,
   // ať si člověk přepnul cokoliv.
-  const [mode, setMode] = useState(() => {
-    try { const v = localStorage.getItem("tm-theme"); if (v === "dark" || v === "light") return v; } catch (e) {}
-    return "light";
-  });
-  /* S volbou režimu jde i barva prohlížeče: lišta telefonu a plocha pod
-     přetaženým rolováním musí být totéž pole jako aplikace, jinak na okraji
-     svítí cizí barva. */
+  /* VZHLED · rodina motivu a režim světla. Volba patří KLIENTOVI a nikomu
+     jinému: leží jen v tomhle zařízení, nemá serverový koncový bod, není
+     součástí sdílení ani shrnutí a trenér ji neřídí a nevidí. Při střídání
+     účtu jde do karantény spolu se zbytkem cizího úložiště, takže klient B
+     nezdědí motiv klienta A. */
+  const [appearance, setAppearance] = useState(() => readAppearance());
+  const [sysDark, setSysDark] = useState(() => systemPrefersDark());
+  React.useEffect(() => watchSystemMode(setSysDark), []);
+  const mode = appearanceMode(appearance, sysDark);
+  /* Rychlý přepínač v liště mění JEN režim a nechává rodinu být. */
+  const setMode = React.useCallback((next) => {
+    setAppearance((prev) => {
+      const resolved = appearanceMode(prev, systemPrefersDark());
+      const want = typeof next === "function" ? next(resolved) : next;
+      return { ...prev, mode: want === "dark" ? "dark" : "light" };
+    });
+  }, []);
+  /* S volbou jde i barva prohlížeče: lišta telefonu a plocha pod přetaženým
+     rolováním musí být totéž pole jako aplikace, jinak na okraji svítí cizí
+     barva. */
   React.useEffect(() => {
-    try { localStorage.setItem("tm-theme", mode); } catch (e) {}
-    try {
-      const pole = mode === "dark" ? "#1C1C1A" : "#F4F0EB";
-      document.body.style.background = pole;
-      const m = document.querySelector('meta[name="theme-color"]');
-      if (m) m.setAttribute("content", pole);
-    } catch (e) {}
-  }, [mode]);
+    writeAppearance(appearance, mode);
+    applyDocumentTheme(appearance.family, mode);
+  }, [appearance, mode]);
   const [lang, setLang] = useState(() => (typeof window !== "undefined" ? detectLang() : "cs"));
   LANG = lang; tmSetLang(lang); // render flag + sdílené jádro drží týž jazyk
   FONT_DISPLAY = lang === "cs" ? FONT_DISPLAY_CS : FONT_DISPLAY_EN; // CZ display = EB Garamond 400 (§6)
@@ -12044,8 +12064,8 @@ export default function App() {
     if (!menuOpen && dx > 64) { setMenuOpen(true); swipeRef.current = null; }
     else if (menuOpen && dx < -56) { setMenuOpen(false); swipeRef.current = null; }
   };
-  const t = makeTheme(mode);
-  const tags = makeTags(mode);
+  const t = makeThemeFor(appearance.family, mode);
+  const tags = makeTagsFor(appearance.family, mode);
   const [edits, setEdits] = useState(() => (typeof window !== "undefined" ? loadEdits() : {}));
   const [selDate, setSelDate] = useState(todayISO());
   // Záplata smí být i funkce nad tím, co React právě drží. Dva cíle poslané
@@ -13461,7 +13481,7 @@ export default function App() {
           .tm-rich i, .tm-rich em { font-style: italic; }
           .tm-rich[data-empty="true"]:before { content: attr(data-placeholder); color: ${t.textMuted}; font-style: italic; pointer-events: none; }
           ::selection { background: ${hexA(t.accent, 0.30)}; }
-          input::placeholder, textarea::placeholder { color: ${t.textMuted}; opacity: 0.8; }
+          input::placeholder, textarea::placeholder { color: ${t.placeholder}; opacity: 1; }
           /* brand-wide thin, muted scrollbar — applied globally + to any .tm-scroll opt-in */
           * { scrollbar-width: thin; scrollbar-color: ${t.border} transparent; }
           *::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -13757,7 +13777,7 @@ export default function App() {
             {[
               { ic: editMode ? "✎" : "●", lbl: editMode ? L("Editace zapnuta — klepni pro zamčení", "Editing on — tap to lock") : L("Zamčeno — klepni pro editaci", "Locked — tap to edit"), act: editMode, on: () => setEditMode((e) => !e) },
               { ic: lang === "cs" ? "CZ" : "EN", lbl: L("Jazyk · čeština / angličtina", "Language · Czech / English"), on: toggleLang },
-              { icn: mode === "dark" ? TmIcMesic : TmIcSlunce, lbl: L("Téma · Linen / Forest", "Theme · Linen / Forest"), on: () => setMode((m) => (m === "dark" ? "light" : "dark")) },
+              { icn: mode === "dark" ? TmIcMesic : TmIcSlunce, lbl: L("Světlo / noc — motiv níž ve Vzhledu", "Light / dark — the theme is below, in Appearance"), on: () => setMode((m) => (m === "dark" ? "light" : "dark")) },
               { icn: TmIcSdileni, lbl: L("Místnosti a sdílení", "Rooms and sharing"), on: () => { setSetsOpen(false); setPickerOpen(true); } },
               { ic: mementoZap ? "◉" : "○", act: mementoZap,
                 lbl: mementoZap
@@ -13771,6 +13791,14 @@ export default function App() {
                 {r.lbl}
               </button>
             ))}
+
+            <VzhledSekce
+              family={appearance.family}
+              mode={appearance.mode}
+              onFamily={(id) => setAppearance((p) => ({ ...p, family: id }))}
+              onMode={(m) => setAppearance((p) => ({ ...p, mode: m }))}
+              onReset={() => setAppearance({ version: 2, family: "signature", mode: "light" })}
+            />
 
             {/* VERZE A SOUKROMÍ · co v telefonu opravdu běží a kam se data
                 ukládají. Bez tohohle se ladí naslepo a slib o soukromí visí

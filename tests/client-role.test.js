@@ -283,10 +283,13 @@ test("motiv a typografie se berou ze sdíleného jádra", () => {
   assert.equal(/^function makeTheme\(/m.test(app), false, "makeTheme patří do jádra");
 });
 
-test("volba světla přežije zavření aplikace", () => {
-  assert.match(app, /localStorage\.getItem\("tm-theme"\)/);
-  assert.match(app, /localStorage\.setItem\("tm-theme", mode\)/);
-  assert.match(app, /return "light";/, "dům se otevírá do světla");
+test("volba vzhledu přežije zavření aplikace", () => {
+  // Persistence se přestěhovala do sdíleného jádra (Theme System V1), takže
+  // se drží stejná v obou domech. Aplikace ji smí jen POUŽÍT, ne mít vlastní.
+  assert.match(app, /from "\.\/shared\/ui\/appearance\.js"/);
+  assert.match(app, /readAppearance\(\)/, "volba se čte z jádra");
+  assert.match(app, /writeAppearance\(appearance, mode\)/, "volba se zapisuje přes jádro");
+  assert.equal(/localStorage\.setItem\("tm-theme"/.test(app), false, "klíč patří jádru, ne aplikaci");
 });
 
 test("balík má správnou identitu", () => {
