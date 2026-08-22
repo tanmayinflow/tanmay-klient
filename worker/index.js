@@ -19,6 +19,7 @@ import { handleClient } from "./booking/api.js";
 // klient může poslat cokoliv a prohlížeč není hranice. Sdílené jádro drží
 // tentýž kontrakt, jaký používá aplikace při skládání souhrnu.
 import { validateShareSnapshot } from "../src/shared/product/visibility.js";
+import { coachGoalsForClient } from "../src/shared/product/compass.js";
 import { CLIENT_OPTIONAL } from "../src/shared/product/roles.js";
 
 // Derive a stable, filesystem-safe user id from the Access email.
@@ -92,6 +93,18 @@ async function ensureSchema(env) {
        updated_at INTEGER NOT NULL
      )`
   ).run();
+  // Cíle a prameny od Tanyho · stejný tvar jako plán. Klient je čte, nepíše.
+  // Jeho vlastní postup a soukromé poznámky k nim leží v jeho dokumentu,
+  // kam trenér nevidí — sem se nikdy nevracejí.
+  for (const jmeno of ["goals", "sources"]) {
+    await env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS ` + jmeno + ` (
+         user_id    TEXT PRIMARY KEY,
+         doc        TEXT NOT NULL,
+         updated_at INTEGER NOT NULL
+       )`
+    ).run();
+  }
   // migrace starší tabulky bez sloupce name — bezpečně, jen jednou selže naprázdno
   try { await env.DB.prepare("ALTER TABLE members ADD COLUMN name TEXT").run(); } catch (e) {}
   try { await env.DB.prepare("ALTER TABLE members ADD COLUMN share TEXT").run(); } catch (e) {}
@@ -112,6 +125,22 @@ async function handlePlan(request, env, userId) {
   if (!row) return Response.json({ doc: null, updated_at: null });
   let doc = null;
   try { doc = JSON.parse(row.doc); } catch (e) {}
+  return Response.json({ doc, updated_at: row.updated_at });
+}
+
+// ---- Cíle a prameny od Tanyho · jen ke čtení ------------------------------
+// Klient je needituje. Co si k nim píše sám, zůstává v jeho dokumentu.
+async function handleKlientDoc(request, env, userId, jmeno) {
+  if (request.method !== "GET") {
+    return Response.json({ ok: false, error: "method not allowed" }, { status: 405 });
+  }
+  await ensureSchema(env);
+  const row = await env.DB.prepare("SELECT doc, updated_at FROM " + jmeno + " WHERE user_id = ?").bind(userId).first();
+  if (!row) return Response.json({ doc: null, updated_at: null });
+  let doc = null;
+  try { doc = JSON.parse(row.doc); } catch (e) {}
+  // Trenérova poznámka u cíle je jeho pracovní záznam · ke klientovi nejde.
+  if (jmeno === "goals") doc = coachGoalsForClient(doc);
   return Response.json({ doc, updated_at: row.updated_at });
 }
 
@@ -418,6 +447,12 @@ export default {
 
       if (url.pathname === "/api/state") {
         return handleState(request, env, userId);
+      }
+      if (url.pathname === "/api/goals") {
+        return withSecurityHeaders(await handleKlientDoc(request, env, userId, "goals"));
+      }
+      if (url.pathname === "/api/sources") {
+        return withSecurityHeaders(await handleKlientDoc(request, env, userId, "sources"));
       }
       if (url.pathname === "/api/plan") {
         return handlePlan(request, env, userId);

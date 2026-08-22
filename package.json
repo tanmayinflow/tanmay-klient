@@ -19,10 +19,15 @@
     "test:training": "node --test \"tests/training.test.js\"",
     "test:training:browser": "node tests/browser/training.mjs",
     "test:pwa": "node tests/browser/pwa.mjs",
+    "test:overlay": "node tests/browser/overlay.mjs",
     "test:update": "node tests/browser/update.mjs",
     "check": "npm run shared:check && npm run lint && npm run test && npm run build && npm run privacy:bundle",
     "test:booking": "node tests/browser/booking.mjs",
-    "privacy:bundle": "node scripts/privacy-bundle-scan.mjs"
+    "privacy:bundle": "node scripts/privacy-bundle-scan.mjs",
+    "test:compass": "TM_ROLE=client node tests/browser/compass.mjs",
+    "test:sources": "TM_ROLE=client node tests/browser/sources.mjs",
+    "test:share": "node tests/browser/share.mjs",
+    "test:preview": "node tests/browser/preview.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

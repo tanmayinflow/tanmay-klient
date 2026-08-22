@@ -24,7 +24,11 @@ test("schéma je stejné jako u trenéra · verze, klíč i tvar série", () => 
   }
 });
 
-test("moduly tréninku jsou tytéž soubory, ne kopie s vlastním životem", () => {
+// Sousední repozitář · v nasazení tam není. Zkouška mlčí, místo aby padla.
+const TRE_SOUSED = new URL("../../tanmay-web/src/training/types.js", import.meta.url);
+const treSousedJe = (() => { try { readFileSync(TRE_SOUSED, "utf8"); return true; } catch (e) { return false; } })();
+
+test("moduly tréninku jsou tytéž soubory, ne kopie s vlastním životem", { skip: treSousedJe ? false : "sousední repozitář tu není" }, () => {
   for (const f of ["measurements.js", "sessionModel.js", "sessionEngine.js", "progress.js", "storage.js", "adapters.js", "types.js"]) {
     const here = readFileSync(new URL("../src/training/" + f, import.meta.url), "utf8");
     const there = readFileSync(new URL("../../tanmay-web/src/training/" + f, import.meta.url), "utf8");

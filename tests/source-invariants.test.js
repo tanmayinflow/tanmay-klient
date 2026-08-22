@@ -2,7 +2,7 @@
 // Každé z nich je popis chyby, která se sem už jednou dostala.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -86,7 +86,11 @@ test("každá místnost ve směrovači je opravdu definovaná", () => {
   assert.ok(i > 0, "směrovač místností musí existovat");
   const sw2 = app.slice(i, i + 3000);
   const used = new Set([...sw2.matchAll(/<(Page[A-Za-z0-9_]+)/g)].map((m) => m[1]));
-  const missing = [...used].filter((n) => !new RegExp("function " + n + "\\s*\\(").test(app));
+  // Stránka je „definovaná" i tehdy, když přijde z továrny sdíleného jádra —
+  // Kompas je jedna implementace pro oba domy, ne dvě funkce v každém souboru.
+  const definovana = (n) => new RegExp("function " + n + "\\s*\\(").test(app)
+    || new RegExp("(?:const|let)\\s*\\{[^}]*\\b" + n + "\\b[^}]*\\}\\s*=\\s*create[A-Za-z]+\\(", "s").test(app);
+  const missing = [...used].filter((n) => !definovana(n));
   assert.deepEqual(missing, [], "směrovač ukazuje na nedefinované komponenty");
 });
 
@@ -192,10 +196,16 @@ test("klientský Worker nezná trenérskou část rezervačního API", () => {
   assert.equal(/handleCoach/.test(w), false, "trenérské cesty v klientském Workeru neexistují");
 });
 
-test("rezervační doména je v obou aplikacích tentýž soubor", () => {
+// Sousední repozitář · při nasazení ho vedle sebe nemá nikdo. Cloudflare
+// i čistá místnost staví jeden repozitář sám o sobě, takže se tahle zkouška
+// nejdřív zeptá, jestli soused vůbec je — a když není, mlčí.
+const SOUSED = join(root, "../tanmay-web");
+const sousedJe = existsSync(join(SOUSED, "src/booking/types.js"));
+
+test("rezervační doména je v obou aplikacích tentýž soubor", { skip: sousedJe ? false : "sousední repozitář tu není" }, () => {
   for (const f of ["types.js", "time.js", "slots.js", "credits.js", "status.js", "format.js", "index.js"]) {
     const here = readFileSync(join(root, "src/booking/" + f), "utf8");
-    const there = readFileSync(join(root, "../tanmay-web/src/booking/" + f), "utf8");
+    const there = readFileSync(join(SOUSED, "src/booking/" + f), "utf8");
     assert.equal(here, there, f + " se rozešel s trenérskou stranou");
   }
 });

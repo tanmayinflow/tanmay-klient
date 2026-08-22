@@ -203,3 +203,89 @@ test("share se dá vypnout · pošle se null a v databázi nezůstane", async ()
   const row = await env.DB.prepare("SELECT share FROM members WHERE user_id = ?").bind("klient-a-example-test").first();
   assert.equal(row.share, null);
 });
+
+// ---- CÍLE A PRAMENY OD TANMAYE · jen ke čtení, a jen svoje -------------------
+// Kanál je stejný jako u plánu: server je píše, klient je čte. Zkoušky volají
+// endpointy přímo, ne přes rozhraní — hranice musí držet i tehdy, když se
+// někdo obejde bez aplikace.
+async function napisDoc(env, userId, jmeno, doc) {
+  const now = Date.now();
+  await env.DB.prepare(
+    "CREATE TABLE IF NOT EXISTS " + jmeno + " (user_id TEXT PRIMARY KEY, doc TEXT NOT NULL, updated_at INTEGER NOT NULL)",
+  ).run();
+  await env.DB.prepare(
+    "INSERT INTO " + jmeno + " (user_id, doc, updated_at) VALUES (?, ?, ?) " +
+    "ON CONFLICT(user_id) DO UPDATE SET doc = excluded.doc, updated_at = excluded.updated_at",
+  ).bind(userId, JSON.stringify(doc), now).run();
+}
+
+test("cíle a prameny si klient jen přečte · zapsat je nemůže", async () => {
+  const env = makeEnv();
+  await joined(env, A);
+  for (const cesta of ["/api/goals", "/api/sources"]) {
+    for (const method of ["PUT", "POST", "DELETE", "PATCH"]) {
+      const r = await worker.fetch(req(cesta, { email: A, method, body: { doc: { v: 1, goals: [], sources: [] } } }), env);
+      assert.equal(r.status, 405, cesta + " " + method + " mělo být odmítnuto");
+    }
+  }
+});
+
+test("trenérova poznámka u cíle se ke klientovi nedostane", async () => {
+  const env = makeEnv();
+  await joined(env, A);
+  await napisDoc(env, "klient-a-example-test", "goals", {
+    v: 1, at: 1, goals: [{ id: "g1", title: "Ranní mobilita", intent: "deset minut", coachNote: "TAJNE" }],
+  });
+  const r = await worker.fetch(req("/api/goals", { email: A }), env);
+  assert.equal(r.status, 200);
+  const b = await r.json();
+  const text = JSON.stringify(b);
+  assert.ok(text.indexOf("TAJNE") === -1, "coachNote nesmí odejít: " + text);
+  assert.ok(text.indexOf("coachNote") === -1, "ani prázdný klíč");
+  assert.equal(b.doc.goals[0].title, "Ranní mobilita");
+  assert.equal(b.doc.goals[0].intent, "deset minut");
+});
+
+test("klient A nedostane cíle ani prameny klienta B", async () => {
+  const env = makeEnv();
+  await joined(env, A); await joined(env, B);
+  await napisDoc(env, "klient-b-example-test", "goals", { v: 1, at: 1, goals: [{ id: "gb", title: "PATRI B" }] });
+  await napisDoc(env, "klient-b-example-test", "sources", { v: 1, at: 1, sources: [{ id: "sb", title: "PATRI B" }] });
+  for (const cesta of ["/api/goals", "/api/sources"]) {
+    const r = await worker.fetch(req(cesta, { email: A }), env);
+    const text = await r.text();
+    assert.ok(text.indexOf("PATRI B") === -1, cesta + " vyneslo dokument jiného klienta: " + text);
+  }
+});
+
+test("bez identity a bez členství se na cíle ani prameny nedá", async () => {
+  const env = makeEnv();
+  for (const cesta of ["/api/goals", "/api/sources"]) {
+    assert.equal((await worker.fetch(req(cesta), env)).status, 401, cesta + " anonymně");
+  }
+  await worker.fetch(req("/api/me", { email: A }), env); // představen, ale bez vstupního slova
+  for (const cesta of ["/api/goals", "/api/sources"]) {
+    assert.equal((await worker.fetch(req(cesta, { email: A }), env)).status, 403, cesta + " bez členství");
+  }
+});
+
+// ---- SOUKROMÉ PSANÍ · trenér pro něj nemá žádnou cestu ----------------------
+// Nejde o to, že by se deník „neposílal". Jde o to, že v klientském Workeru
+// neexistuje endpoint, kterým by se dal přečíst, vyhledat, vypsat, zálohovat
+// ani shrnout — ani vlastníkovi aplikace.
+test("v klientském Workeru neexistuje trenérská cesta k soukromému psaní", async () => {
+  const env = makeEnv();
+  await joined(env, A);
+  const zakazane = [
+    "/api/klienti", "/api/klienti/klient-a-example-test", "/api/klienti/klient-a-example-test/state",
+    "/api/klienti/klient-a-example-test/journal", "/api/klienti/klient-a-example-test/notebook",
+    "/api/journal", "/api/notebook", "/api/search", "/api/backup", "/api/export", "/api/summary",
+    "/api/admin", "/api/coach", "/api/states", "/api/members", "/api/attachments",
+  ];
+  for (const cesta of zakazane) {
+    const r = await worker.fetch(req(cesta, { email: A }), env);
+    assert.ok(r.status === 404 || r.status === 405, cesta + " nesmí existovat, dostal " + r.status);
+    const text = await r.text();
+    assert.ok(text.indexOf("journal") === -1 && text.indexOf("notebook") === -1, cesta + " nesmí nic vynést");
+  }
+});

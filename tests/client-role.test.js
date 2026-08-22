@@ -4,7 +4,7 @@
 // skutečného Workeru, ne obrazovky.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import worker from "../worker/index.js";
@@ -251,8 +251,13 @@ test("řádek pro trenéra je povolený seznam polí, ne dokument", () => {
   assert.deepEqual(Object.keys(out).sort(), ["email", "joined_at", "last_active", "modules", "name", "share", "syncs", "user_id"]);
 });
 
-test("trenérský dotaz už nesahá do state.doc", () => {
-  const coach = readFileSync(join(root, "../tanmay-web/worker/index.js"), "utf8");
+// Sousední repozitář · při nasazení ho vedle sebe nemá nikdo. Zkoušky, které
+// se dívají na druhou stranu, se proto nejdřív zeptají, jestli tam je.
+const SOUSED_WEB = join(root, "../tanmay-web");
+const websidJe = existsSync(join(SOUSED_WEB, "worker/index.js"));
+
+test("trenérský dotaz už nesahá do state.doc", { skip: websidJe ? false : "sousední repozitář tu není" }, () => {
+  const coach = readFileSync(join(SOUSED_WEB, "worker/index.js"), "utf8");
   const q = coach.slice(coach.indexOf("async function handleKlientiList"), coach.indexOf("async function handleKlientEdit"));
   assert.equal(/s\.doc/.test(q), false, "dokument klienta se do trenérského dotazu nesmí vrátit");
   assert.match(q, /m\.modules/, "moduly mají vlastní sloupec");
@@ -314,9 +319,68 @@ test("klientský Worker nemá vazbu na osobní databázi", () => {
   assert.match(wr, /"tanmay-files-klient"/);
 });
 
-test("sdílené jádro má v obou aplikacích tutéž verzi", () => {
+test("sdílené jádro má v obou aplikacích tutéž verzi", { skip: existsSync(join(SOUSED_WEB, "src/shared/manifest.json")) ? false : "sousední repozitář tu není" }, () => {
   const mine = JSON.parse(readFileSync(join(root, "src/shared/manifest.json"), "utf8"));
-  const theirs = JSON.parse(readFileSync(join(root, "../tanmay-web/src/shared/manifest.json"), "utf8"));
+  const theirs = JSON.parse(readFileSync(join(SOUSED_WEB, "src/shared/manifest.json"), "utf8"));
   assert.equal(mine.sharedCoreVersion, theirs.sharedCoreVersion);
   assert.deepEqual(mine.files, theirs.files, "zrcadla se rozešla");
+});
+
+// ---- VLNA 2 · Kompas a Prameny mají v obou domech jednu vrstvu ---------------
+test("Kompas a Prameny se v klientovi neberou z vlastní kopie", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  // Stránky přicházejí z továrny sdíleného jádra, ne z lokální funkce.
+  for (const jmeno of ["PageDivine", "PageAreas", "PageGoals", "PageContent", "GoalDetail", "AreaDetail", "GoalWorkspace", "ContentDetail", "ContentRow"]) {
+    assert.ok(!new RegExp("^function " + jmeno + "\\s*\\(", "m").test(app), jmeno + " má být sdílený, ne psaný znovu");
+  }
+  assert.match(app, /createCompassUI\(/, "Kompas se skládá z továrny");
+  assert.match(app, /createSourcesUI\(/, "Prameny se skládají z továrny");
+  assert.match(app, /createListUI\(/, "seznamy se skládají z továrny");
+  assert.match(app, /createAtoms\(/, "atomy se skládají z továrny");
+});
+
+test("cizí zadání klient nepřepíše ani přes adaptér dat", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  // Zápis do cíle i do pramene musí projít tabulkou pravomocí.
+  assert.match(app, /mayEditGoalField\("client"/, "editGoal se musí zeptat tabulky pravomocí");
+  assert.match(app, /mayEditSourceField\("client"/, "zápis k prameni taky");
+  assert.match(app, /sanitizeClientProgress\(/, "postup ke koučovu cíli se čistí");
+  assert.match(app, /sanitizeClientSourceNote\(/, "poznámka ke sdílenému prameni se čistí");
+});
+
+test("klientská aplikace nemá obrazovku, kterou se cíle zadávají", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.ok(!/KlTabSmer/.test(app), "trenérská obrazovka Směru do klienta nepatří");
+  assert.ok(!/validateCoachGoals|validateCoachSources/.test(app), "server-side validace zadání do klienta nepatří");
+  assert.ok(!/\/api\/klienti/.test(app), "trenérská cesta do klienta nepatří");
+});
+
+test("v rozhraní se to jmenuje Moje a Od Tanmaye, ne zámek", () => {
+  const compass = readFileSync(new URL("../src/shared/ui/compass.jsx", import.meta.url), "utf8");
+  const sources = readFileSync(new URL("../src/shared/ui/sources.jsx", import.meta.url), "utf8");
+  const domain = readFileSync(new URL("../src/shared/product/compass.js", import.meta.url), "utf8");
+  const dsrc = readFileSync(new URL("../src/shared/product/sources.js", import.meta.url), "utf8");
+  for (const [jmeno, text] of [["ui/compass", compass], ["ui/sources", sources]]) {
+    for (const slovo of ['"Locked"', '"Admin goal"', '"System-owned"', ">Locked<", ">Admin<"]) {
+      assert.ok(text.indexOf(slovo) === -1, jmeno + " nesmí říkat " + slovo);
+    }
+  }
+  assert.match(domain, /Od Tanmaye/, "cíl od trenéra má jméno");
+  assert.match(domain, /"Moje"/, "vlastní cíl taky");
+  assert.match(dsrc, /Od Tanmaye/);
+  assert.match(dsrc, /"Můj"/);
+});
+
+test("odebrání sdílení nesmí smazat klientovu poznámku", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  // Poznámky ke sdíleným pramenům žijí ve vlastním pytlíku, ne v dokumentu
+  // od trenéra — takže je jeho změna nemá jak přepsat.
+  assert.match(app, /sourceNotes/, "klientovy poznámky mají vlastní místo");
+  assert.match(app, /orphanSourceNotes/, "osiřelé poznámky se nabídnou zpátky");
+  assert.match(app, /keepOrphanNote/, "a dá se z nich udělat vlastní pramen");
+  // Doručený dokument od trenéra se přepisuje celý — proto v něm poznámky nesmí být.
+  const zapisDoruceneho = app.match(/persistColl\(\(c\) => \(\{ \.\.\.c, coachSources: [^)]*\)\)/g) || [];
+  for (const z of zapisDoruceneho) {
+    assert.ok(z.indexOf("sourceNotes") === -1, "zápis doručeného dokumentu nesmí sahat na poznámky: " + z);
+  }
 });

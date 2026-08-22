@@ -14,7 +14,7 @@ import * as TV from "./training/index.js";
 import { FONT_DISPLAY_EN, FONT_DISPLAY_CS, FONT_LOGO, FONT_BODY, FONT_TAG } from "./shared/ui/type.js";
 import { makeTheme, makeTags } from "./shared/ui/theme.js";
 import { hexA } from "./shared/ui/color.js";
-import { detectLang, setLang as tmSetLang, L, LV, GS, PL } from "./shared/lang/lang.js";
+import { detectLang, setLang as tmSetLang, getLang, L, LV, GS, PL } from "./shared/lang/lang.js";
 import { navGroupsFor, dockTabsFor, ROOM_COPY } from "./shared/product/rooms.js";
 import {
   ROLES, deriveCapabilities, roomVisible,
@@ -22,6 +22,35 @@ import {
 } from "./shared/product/roles.js";
 import { habitSummary, goalSummary, validateShareSnapshot, SHARE_WINDOW_DAYS } from "./shared/product/visibility.js";
 import { createFigure } from "./shared/ui/figure.jsx";
+import { createOverlay } from "./shared/ui/overlay.jsx";
+import { tmToTop } from "./shared/ui/overlay.js";
+import { createStates } from "./shared/ui/states.jsx";
+import { createPracticeUI } from "./shared/ui/practice.jsx";
+import { createAtoms } from "./shared/ui/atoms.jsx";
+import { createCompassUI } from "./shared/ui/compass.jsx";
+import { createListUI } from "./shared/ui/lists.jsx";
+import { createSourcesUI } from "./shared/ui/sources.jsx";
+import { tmPlain } from "./shared/lang/text.js";
+import { GOAL_OWNER, mergeGoals, mayEditGoalField, sanitizeClientProgress, coachGoalsForClient } from "./shared/product/compass.js";
+import {
+  SOURCE_ORIGIN, mergeSources, mayEditSourceField, sanitizeClientSourceNote,
+  orphanedNotes, forkSource,
+} from "./shared/product/sources.js";
+import {
+  EMPTY_H, todayISO, shiftISO, fmtCZ, tmNorm,
+  AREA_CZ, AREA_EN, areaClean, areaLabel, AREAS,
+  HABIT_DEFS, HABIT_DEFAULTS, DAY_STATUS_DEFS,
+  SKY_LAT, moonPhaseOf, moonName, sunsetOf,
+  PLAN_QS, PLAN_QS_HLOUBKA, PLAN_QS_STARE, TM_PROMPTS, TM_PROMPT_OKRUH, tmIsoWeek, tmPromptFor,
+  TM_PRAHY, tmPrahKlic, tmPrahMa,
+  tmPraxeDny, tmHabitStats, tmWbOf as tmWbOfShared, tmWbDates as tmWbDatesShared,
+  makeWbZnameni, createPracticeStats,
+} from "./shared/product/practice.js";
+import { tokensCss } from "./shared/ui/tokens.js";
+import {
+  componentsCss, tmButton, tmInput, tmChip, tmCard,
+  iconBtn, fieldStyle, calBtn, subLabel, metaLabel,
+} from "./shared/ui/components.js";
 import { SHELL_ROOT_CSS, shellMobileCss, shellTabletCss, TmDok } from "./shared/ui/shell.jsx";
 import { TmIcTerminy, TmIcMemento } from "./shared/ui/icons.jsx";
 import { SHARED_CORE_VERSION } from "./shared/version.js";
@@ -82,7 +111,6 @@ const { TmPostava, tmPoza, TM_POZY, TM_POZY_VZOR } = createFigure(useT);
 const StoreCtx = createContext(null);
 const useStore = () => useContext(StoreCtx);
 const LS_KEY = "tanmay_edits_v1";
-const EMPTY_H = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 // ---- HLASITÉ SELHÁNÍ ZÁPISU ----------------------------------------------
 // Tiché selhání je jediná chyba, kterou si software nesmí dovolit: text zůstane
 // na obrazovce (drží ho React), ale po zavření záložky je pryč. Prohlížeč zápis
@@ -91,7 +119,6 @@ let TM_ON_SAVE_FAIL = null;
 const tmSaveFailed = (where) => { try { TM_ON_SAVE_FAIL && TM_ON_SAVE_FAIL(where); } catch (e) {} };
 function loadEdits() { try { const r = window.localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : {}; } catch (e) { return {}; } }
 function saveEdits(e) { try { window.localStorage.setItem(LS_KEY, JSON.stringify(e)); return true; } catch (err) { tmSaveFailed("edits"); return false; } }
-function shiftISO(iso, delta) { const [y, m, d] = iso.split("-").map(Number); const dt = new Date(y, m - 1, d); dt.setDate(dt.getDate() + delta); return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); }
 const LS_COLL = "tanmay_coll_v1";
 
 
@@ -136,7 +163,6 @@ function tmDocSig(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h 
 function syncMarkLoad() { try { const r = window.localStorage.getItem(LS_SYNCED); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
 function syncMarkSave(v, sig) { try { window.localStorage.setItem(LS_SYNCED, JSON.stringify({ v: v || 0, sig })); } catch (e) {} }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
-function todayISO() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 function fmtSize(n) { if (!n && n !== 0) return ""; if (n < 1024) return n + " B"; if (n < 1048576) return Math.round(n / 1024) + " kB"; return (n / 1048576).toFixed(1) + " MB"; }
 function idbOpen() {
   return new Promise((res, rej) => {
@@ -384,39 +410,8 @@ function resizeImageToBlob(file, maxSide) {
 async function readFileAsAtt(file) {
   return attDoUloziste(file, uid());
 }
-const iconBtn = (t) => ({ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.textMuted, cursor: "pointer", width: 26, height: 26, fontSize: 12, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" });
-const fieldStyle = (t) => ({ width: "100%", background: t.card, border: `1px solid ${t.border}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 14, padding: "9px 11px", outline: "none" });
 
 
-// ----------------------------------------------------------------------
-// REAL DATA (pulled from Notion)
-// ----------------------------------------------------------------------
-// Krajina mluví oběma jazyky — názvy oblastí jsou data, tohle je jejich český hlas.
-const AREA_CZ = {
-  "Partnership": "Partnerství", "Art": "Umění", "Friendship": "Přátelství", "Financials": "Finance",
-  "Brand building": "Budování značky", "Adventure": "Dobrodružství", "Soul": "Duše", "Family": "Rodina",
-  "Mental halth": "Duševní zdraví", "Mental Health": "Duševní zdraví", "Health": "Zdraví", "Movement": "Pohyb",
-  "holistic body control": "Tělo", "Body": "Tělo", "General health": "Zdraví", "Blood Family wellfear": "Rodina",
-  "Brotherhood / Sisterhood": "Přátelství", "Financial freedom": "Finance", "Finances": "Finance",
-  "Tanamy flow": "Podnikání", "Business": "Podnikání", "Adventure life": "Dobrodružství",
-  "Soul embodyment": "Smysl a směr", "Life mission": "Smysl a směr", "Soul embodyment 📿🔥": "Smysl a směr", "Life mission 📿🔥": "Životní poslání",
-};
-const AREA_EN = {
-  "Brotherhood / Sisterhood": "Friendship", "Adventure life": "Adventure", "Financial freedom": "Finances",
-  "Tanamy flow": "Business", "holistic body control": "Body", "Soul embodyment": "Life mission",
-  "Blood Family wellfear": "Family", "General health": "Health", "Mental halth": "Mental health",
-};
-const areaClean = (n) => String(n || "").replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "").trim();
-const areaLabel = (n) => {
-  const M = LANG === "cs" ? AREA_CZ : AREA_EN;
-  const key = String(n || "").trim();
-  const hit = M[key] != null ? M[key] : M[areaClean(key)];
-  if (hit == null) return n;
-  // emoji z původního jména si necháme za přeloženým názvem
-  const emo = key.replace(areaClean(key), "").trim();
-  return emo ? hit + " " + emo : hit;
-};
-const AREAS=[];
 
 const GOALS=[];
 
@@ -427,13 +422,9 @@ const GOALS=[];
    klient může vzít, co mu dává smysl — a stejně tak si může založit svůj
    vlastní návyk. Historie se váže na slot, ne na jméno, takže přejmenování
    nic nepřepíše a vlastní jméno vždycky vyhraje nad výchozím. */
-const HABIT_DEFS=[["🌊","Ztišení a příprava","Settle and prepare"],["🌾","Práce na značce","Brand work"],["🎸","Tvorba","Create"],["💪","Trénink","Training"],["💾","Čas bez obrazovek","Time away from screens"],["📚","Soustředěné studium","Focused study"],["📿","Jóga a mobilita","Yoga and mobility"],["🔥","Meditace","Meditation"],["🥑","Jíst s pozorností","Eat with attention"]];
-const HABIT_DEFAULTS = HABIT_DEFS.map(([icon, cz, en], i) => ({ slot: i, icon, cz, en }));
 const FLOW=[];
 const FLOW_BY = Object.fromEntries(FLOW.map((e) => [e.d, e]));
 const LATEST = FLOW[FLOW.length - 1];
-function fmtCZ(iso) { const [y, m, d] = iso.split("-").map(Number); return d + ". " + m + ". " + y; }
-const tmNorm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const HABIT_STATS = (() => {
   const days = FLOW.length;
   const totalC = FLOW.reduce((s, e) => s + e.c, 0);
@@ -443,10 +434,6 @@ const HABIT_STATS = (() => {
   const streaks = HABIT_DEFS.map((_, j) => { let s = 0; for (let i = FLOW.length - 1; i >= 0; i--) { if (FLOW[i].h[j]) s++; else break; } return s; });
   return { days, avg, perfect, totals, streaks };
 })();
-// Kalendářní tlačítka měla výšku svého písma. Šipky projdou (jsou to šipky),
-// ale „dnes" je plnohodnotné tlačítko a palec do 24 px nemíří — 26 je minimum,
-// které drží zbytek domu.
-const calBtn = (t, dis) => ({ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: dis ? t.textMuted : t.text, cursor: dis ? "default" : "pointer", padding: "3px 10px", minHeight: 26, fontSize: 15, opacity: dis ? 0.4 : 1 });
 
 // Sleep + Mood + Meditation (Details Database) — real days
 
@@ -542,54 +529,24 @@ const GSTATUS_COLOR = { "Completed": "green", "In progress": "orange", "On Hold"
 const PRIOS = ["High", "Normal", "Moderate"];
 const PRIO_COLOR = { High: "red", Normal: "blue", Moderate: "yellow" };
 const PRIO_ORDER = { High: 0, Normal: 1, Moderate: 2 };
+// podoba pramene, když z něj má vzniknout dokument · zatím jen pro parity,
+// odesílání hotového dokumentu má nastarosti osobní aplikace
+const tmDocPramene = (e) => ({
+  title: e.title || L("Titul", "Title"),
+  sub: [e.author, C_TYPE_LABEL(e.type)].filter(Boolean).join(" · "),
+  date: e.dateFinished || "",
+  room: L("Prameny", "Sources"),
+  text: (e.carry ? "> " + e.carry + "\n\n" : "") + (e.text || ""),
+});
 const ACH_SHORT = { "Highly Achievable": "highly achievable", "Moderately Achievable": "moderately achievable", "Challenging but Achievable": "challenging" };
 
 // ----------------------------------------------------------------------
 // PRIMITIVES
 // ----------------------------------------------------------------------
-function Bindu({ size = 6, style = {} }) {
-  const { t } = useT();
-  return (
-    <span style={{ display: "inline-block", width: size, height: size, borderRadius: "50%", background: t.accent, ...style }} />
-  );
-}
 
-function Tag({ label, color = "default" }) {
-  const { tags } = useT();
-  const c = tags[color] || tags.default;
-  return (
-    <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 12, padding: "2px 9px", borderRadius: 4, background: c.bg, color: c.fg, marginRight: 6, whiteSpace: "nowrap" }}>
-      {label}
-    </span>
-  );
-}
 
-function Eyebrow({ children }) {
-  const { t } = useT();
-  return (
-    <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent, marginBottom: 14 }}>
-      {children}
-    </div>
-  );
-}
 
-function Divider() {
-  const { t } = useT();
-  return <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${t.border}, transparent)`, margin: "26px 0" }} />;
-}
 
-function Callout({ icon, title, children }) {
-  const { t } = useT();
-  return (
-    <div style={{ display: "flex", gap: 14, background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 8, padding: "16px 18px", margin: "14px 0" , boxShadow: t.shadow }}>
-      {icon && <div style={{ fontSize: 20, lineHeight: "26px" }}>{icon}</div>}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {title && <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading, marginBottom: children ? 8 : 0 }}>{title}</div>}
-        {children}
-      </div>
-    </div>
-  );
-}
 
 function Toggle({ summary, color = "green", children, open: openProp = false }) {
   const { t, tags } = useT();
@@ -617,35 +574,20 @@ function MiniCallout({ icon, children }) {
 }
 
 
-// commit on blur/Enter · Escape reverts
-function CenterSheet({ title, onClose, children, center }) {
-  const { t } = useT();
-  React.useEffect(() => {
-    const h = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", h);
-    const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", h); document.body.style.overflow = prev; };
-  }, [onClose]);
-  return createPortal(
-    <div onClick={onClose} className={center ? undefined : "tm-cs-veil"} style={{ position: "fixed", inset: 0, zIndex: 80, background: t.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: "4vh 16px", animation: "tmDim .25s ease both" }}>
-      <div onClick={(e) => e.stopPropagation()} className={"tm-scroll " + (center ? "" : "tm-centersheet")} style={{ width: "min(920px, 96vw)", maxHeight: "min(88vh, 980px)", overflowY: "auto", overscrollBehavior: "contain", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 18, boxShadow: t.shadowLift, padding: "24px clamp(18px, 3vw, 34px) 34px", animation: "tmSheetIn .38s cubic-bezier(.23,.62,.22,.99) both" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, position: "sticky", top: -24, zIndex: 2, background: t.bg, padding: "6px 0" }}>
-          <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent }}>{title}</span>
-          <button onClick={onClose} title="Esc" style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 30, height: 30, cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1 }}>×</button>
-        </div>
-        {children}
-      </div>
-    </div>,
-    document.body
-  );
-}
+// ---- PŘEKRYVY · sdílené jádro ------------------------------------------
+// List a zásuvka jsou tentýž soubor jako v osobní aplikaci. Klientská verze
+// byla o generaci starší: zásuvka mizela bez odchodu, list neuměl Escape
+// zásobník, stránka pod ním se rolovala a focus po zavření skončil na
+// začátku dokumentu. Teď to obojí drží src/shared/ui/overlay.jsx.
+const { CenterSheet, Drawer } = createOverlay(useT, L);
+const { Prazdno, TmArtKapka } = createStates(useT, L);
+// Praxe · doména ze sdíleného jádra, archivní data zůstávají v aplikaci
+const WB_ZNAMENI = makeWbZnameni({ TmWbMiska, TmWbDiamant, TmWbKruh });
+const tmWbOf = (st, d) => tmWbOfShared(st, d, DETAILS_BY);
+const tmWbDates = (st) => tmWbDatesShared(st, DETAILS_BY);
+const usePraxeStats = createPracticeStats({ React, useStore, flowBy: FLOW_BY });
 
-function BufferedInput({ value, onCommit, style, placeholder }) {
-  const [v, setV] = useState(value);
-  React.useEffect(() => setV(value), [value]);
-  const commit = () => { const nv = v.trim(); if (nv && nv !== value) onCommit(nv); else setV(value); };
-  return <input value={v} onChange={(e) => setV(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setV(value); e.currentTarget.blur(); } }} placeholder={placeholder} style={{ background: "transparent", border: "none", outline: "none", padding: 0, width: "100%", ...style }} />;
-}
+
 
 // upload a compressed cover/icon dataURL into pageMeta
 function makePagePicker(st, pageKey, field, maxSide) {
@@ -669,31 +611,6 @@ function makePagePicker(st, pageKey, field, maxSide) {
   };
 }
 
-function PageTitle({ icon, children, kicker, pageKey }) {
-  const { t } = useT();
-  const st = useStore();
-  const meta = pageKey ? st.pageMetaOf(pageKey) : {};
-  const title = meta.title || children;
-  const kick = meta.kicker || kicker;
-  const editable = pageKey && st.editMode;
-  const h1Style = { fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 46, lineHeight: 1.1, color: t.heading, margin: 0, display: "flex", alignItems: "center", gap: 14 };
-  const iconNode = icon && (typeof icon === "string" ? <span style={{ fontSize: 38 }}>{icon}</span> : icon);
-  return (
-    <div>
-      <div style={{ marginBottom: 8 }}>
-        {editable
-          ? <div style={{ marginBottom: 14 }}><BufferedInput value={kick || ""} onCommit={(v) => st.setPageMeta(pageKey, { kicker: v })} placeholder="kicker…" style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent, borderBottom: `1px dashed ${t.borderSoft}` }} /></div>
-          : (kick && <Eyebrow>{kick}</Eyebrow>)}
-        <h1 style={h1Style}>
-          {iconNode}
-          {editable
-            ? <BufferedInput value={typeof title === "string" ? title : ""} onCommit={(v) => st.setPageMeta(pageKey, { title: v })} placeholder={L("Název stránky…", "Page title…")} style={{ ...h1Style, display: "block", borderBottom: `1px dashed ${t.borderSoft}` }} />
-            : title}
-        </h1>
-      </div>
-    </div>
-  );
-}
 
 function NavCard({ icon, title, sub, onClick }) {
   const { t } = useT();
@@ -708,24 +625,7 @@ function NavCard({ icon, title, sub, onClick }) {
   );
 }
 
-function LinkPill({ icon, label, onClick }) {
-  const { t } = useT();
-  const [h, setH] = useState(false);
-  return (
-    <button className="tm-pill" onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{ display: "inline-flex", alignItems: "center", gap: 7, cursor: "pointer", background: h ? t.cardHover : "transparent", border: `1px solid ${t.border}`, borderRadius: 20, padding: "6px 14px", color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, transition: "background .15s ease" }}>
-      <span>{icon}</span>{label}<span className="tm-arrow" style={{ color: t.accent }}>→</span>
-    </button>
-  );
-}
 
-function ProgressBar({ value }) {
-  const { t } = useT();
-  return (
-    <div style={{ height: 7, borderRadius: 4, background: t.border, overflow: "hidden", margin: "4px 0" }}>
-      <div style={{ width: `${Math.round(value * 100)}%`, height: "100%", background: t.accent, transition: "width .55s cubic-bezier(.25,.8,.3,1)" }} />
-    </div>
-  );
-}
 
 function Check({ done }) {
   const { t } = useT();
@@ -755,828 +655,30 @@ const pProse = (t) => ({ fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.7, c
 const h2 = (t) => ({ fontFamily: FONT_DISPLAY, fontWeight: 400, fontSize: 30, color: t.heading, margin: "22px 0 6px" });
 const h3 = (t) => ({ fontFamily: FONT_DISPLAY, fontWeight: 400, fontStyle: "italic", fontSize: 23, color: t.sand, margin: "18px 0 6px" });
 const twoCol = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24 };
-const subLabel = (t) => ({ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12, color: t.sage, marginBottom: 8 });
-const metaLabel = (t) => ({ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, color: t.textMuted });
 
 // ----------------------------------------------------------------------
 // PAGES
 // ----------------------------------------------------------------------
-function AreaTable({ onOpen }) {
-  const { t, tags } = useT();
-  const st = useStore();
-  const all = st.allGoals(); // including archived
-  const statFor = (name) => {
-    const gs = all.filter((g) => g.area === name || (g.areas || []).includes(name));
-    return { done: gs.filter((g) => g.status === "Completed").length, total: gs.length };
-  };
-  const lastRating = (a) => {
-    const months = st.monthsOf(a);
-    for (let i = ROM.length - 1; i >= 0; i--) if (months[ROM[i]] != null) return { v: months[ROM[i]], m: ROM[i] };
-    return null;
-  };
-  const cols = "1fr 120px 90px";
-  const th = { fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 12, color: t.sage, padding: "9px 12px", borderBottom: `1px solid ${t.border}` };
-  return (
-    <div style={{ border: `1px solid ${t.border}`, borderRadius: 8, overflow: "hidden" }}>
-      <div style={{ display: "grid", gridTemplateColumns: cols, background: t.tableHead }}>
-        <div style={th}>Area</div><div style={th}>{L("Poslední hodnocení", "Latest rating")}</div><div style={{ ...th, textAlign: "right" }}>{L("Cíle", "Goals")}</div>
-      </div>
-      {st.listAreas().map((a, i) => {
-        const r = lastRating(a);
-        const st2 = statFor(a.name);
-        return (
-          <button key={a.name} onClick={() => onOpen && onOpen(a.name)} className="tm-nav-item" style={{ display: "grid", width: "100%", gridTemplateColumns: cols, alignItems: "center", background: "transparent", border: "none", cursor: "pointer", textAlign: "left", borderBottom: i < st.listAreas().length - 1 ? `1px solid ${t.borderSoft}` : "none" }}>
-            <span style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 9 }}>
-              <span style={{ fontSize: 16 }}>{a.icon}</span>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.text }}>{areaLabel(a.name)}</span>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: (tags[AREA_COLOR[a.name]] || tags.default).fg }} />
-            </span>
-            <span style={{ padding: "8px 12px", fontFamily: FONT_BODY, fontSize: 13.5, color: r ? t.sand : t.textMuted }}>{r ? `★ ${r.v} · ${r.m}` : "—"}</span>
-            <span style={{ padding: "10px 12px", textAlign: "right", fontFamily: FONT_BODY, fontSize: 13.5, color: st2.done > 0 ? t.text : t.textMuted }}>{st2.total ? `${st2.done} / ${st2.total}` : "—"}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 
-function PageDivine({ go }) {
-  const { t } = useT();
-  const st = useStore();
-  const [dilna, setDilna] = useState(false);
-  // KOMPAS · the compass is read, the workshop is visited. Four sections by
-  // depth of dive: the landscape (areas at a glance), what is in motion (the
-  // needle — only goals actually alive, by priority), today's step, and two
-  // doors into the full workshop. Management lives on Cíle; orientation here.
-  const [sel, setSel] = useState(null); // {type:'goal'|'area', id}
-  const [addingArea, setAddingArea] = useState(false);
-  const live = st.allGoals().filter((g) => !g.archive);
-  const moving = [...live.filter((g) => g.status === "In progress")].sort((a, b) => (PRIO_ORDER[a.prio] ?? 9) - (PRIO_ORDER[b.prio] ?? 9) || (a.target || "9999").localeCompare(b.target || "9999"));
-  const shown = moving.slice(0, 6);
-  const prioDot = (p) => (p === "High" ? t.accent : p === "Normal" ? t.sand : t.sage);
-  return (
-    <>
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcKompas size={40} /></span>} pageKey="kompas" kicker={L("Orientace", "Orientation")}>{L("Kompas", "Compass")}</PageTitle>
-      <p style={pProse(t)}>{L("Dnešní krok. Širší směr. Celá krajina.", "Today's step. The wider direction. The whole landscape.")}</p>
-      <Divider />
-      <Eyebrow>{L("Krajina", "The landscape")}</Eyebrow>
-      {addingArea && <AddAreaForm onDone={() => setAddingArea(false)} />}
-      <AreaChips onOpen={(name) => setSel({ type: "area", id: name })} onAdd={() => setAddingArea(true)} />
-      <Divider />
-      <Eyebrow>{L("V pohybu", "In motion")}</Eyebrow>
-      {shown.length === 0 ? (
-        <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("Nic není v pohybu. Otevři dílnu a zvedni první cíl.", "Nothing is in motion. Open the workshop and lift the first goal.")}</p>
-      ) : (
-        <div style={{ border: `1px solid ${t.border}`, borderRadius: 10, background: t.card, padding: "4px 14px", animation: "tmsettle .24s ease-out", boxShadow: t.shadow }}>
-          {shown.map((g, i) => (
-            <div key={g.name} className="tm-motionrow" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 6px", margin: "0 -6px", borderRadius: 8, borderBottom: i < shown.length - 1 ? `1px solid ${t.borderSoft}` : "none" }}>
-              <span title={PL(g.prio)} style={{ width: 8, height: 8, borderRadius: "50%", background: prioDot(g.prio), flexShrink: 0 }} />
-              <button onClick={() => setSel({ type: "goal", id: g.name })} style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "baseline", gap: 10 }}>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.name}</span>
-                {g.area && <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage, flexShrink: 0 }}>{areaLabel(g.area)}</span>}
-                {g.target && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, flexShrink: 0 }}>{g.target}</span>}
-              </button>
-              <button title={L("→ do dneška · pošle cíl do dnešního plánu", "→ into today · sends the goal into today's plan")} onClick={() => st.pushGoalToDay(g.name)} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 14, color: t.sand, cursor: "pointer", fontSize: 12.5, padding: "2px 9px", flexShrink: 0, transition: "border-color .2s ease, color .2s ease" }}>→</button>
-            </div>
-          ))}
-        </div>
-      )}
-      <div style={{ marginTop: 8 }}>
-        <button onClick={() => go("cile")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13, padding: 0 }}>{L("všech", "all")} {live.length} {L("cílů ›", "goals ›")}</button>
-      </div>
-      <Divider />
-      <Eyebrow>{L("Denní plán", "Daily plan")}</Eyebrow>
-      <div style={twoCol}>
-        <div>
-          <div style={subLabel(t)}>{L("Dnešní cíle", "Today's goals")} · {fmtCZ(todayISO())} · {L("synchronizováno s Praxí", "synced with Practice")}</div>
-          <div style={{ border: `1px solid ${t.border}`, borderRadius: 10, padding: "12px 16px", background: t.card }}>
-            <DayTasks date={todayISO()} />
-          </div>
-          <div style={{ height: 10 }} />
-          <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPraxe size={13} /></span>} label={L("Dnešní praxe", "Today's practice")} onClick={() => go("praxe")} />
-        </div>
-      </div>
-      <Divider />
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent }}>{L("Dílna", "The workshop")}</span>
-        <span style={{ flex: 1 }} />
-        <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcCile size={13} /></span>} label={L("Otevřít dílnu", "Open the workshop")} onClick={() => setDilna(true)} />
-      </div>
-      {dilna && (
-        <CenterSheet title={L("Dílna · cíle a krajiny", "Workshop · goals and landscapes")} onClose={() => setDilna(false)}>
-          <GoalWorkspace withAreas />
-        </CenterSheet>
-      )}
-      <Drawer open={!!sel} onClose={() => setSel(null)}>
-        {sel && sel.type === "goal" && <GoalDetail name={sel.id} openArea={(n) => setSel({ type: "area", id: n })} onClose={() => setSel(null)} />}
-        {sel && sel.type === "area" && <AreaDetail name={sel.id} openGoal={(n) => setSel({ type: "goal", id: n })} onClose={() => setSel(null)} />}
-      </Drawer>
-    </>
-  );
-}
 
-// ---- Day status · three states of the day (labels renamable in edit mode) ----
-const DAY_STATUS_DEFS = [
-  { key: "attention", cz: "Mimo", en: "Adrift" },
-  { key: "fulfilled", cz: "Přítomný", en: "Present" },
-  { key: "wuwei", cz: "Wu wei", en: "Wu wei" },
-];
-function StatusCycle({ date }) {
-  const { t } = useT();
-  const st = useStore();
-  const day = st.getDay(date);
-  const custom = st.dayStatusLabels();
-  const statuses = DAY_STATUS_DEFS.map((s) => ({ ...s, label: (custom[s.key] || "").trim() || L(s.cz, s.en) }));
-  const norm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-  // Resolve a stored value to a status index. Backward compatible: matches the
-  // stable key (new format), the default label, or a custom label (so renaming
-  // never orphans past days).
-  const resolve = (val) => {
-    if (!val) return -1;
-    const nv = norm(val);
-    for (let i = 0; i < DAY_STATUS_DEFS.length; i++) {
-      const d = DAY_STATUS_DEFS[i];
-      if (val === d.key) return i;
-      if (nv === norm(d.cz) || nv === norm(d.en)) return i;
-      const cl = (custom[d.key] || "").trim();
-      if (cl && nv === norm(cl)) return i;
-    }
-    return -1;
-  };
-  const idx = resolve(day.s);
-  const colors = [t.textMuted, t.sage, t.accent]; // attention · fulfilled · wu wei (copper = rare peak)
-  const c = idx >= 0 ? colors[idx] : t.textMuted;
-  const cycle = () => {
-    // empty → 1 → 2 → 3 → empty. Stores the stable KEY so labels can change freely.
-    const next = idx < 0 ? 0 : idx + 1;
-    st.updateDay(date, { s: next >= DAY_STATUS_DEFS.length ? "" : DAY_STATUS_DEFS[next].key });
-  };
-  const legacy = day.s && idx < 0;
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ ...subLabel(t), marginBottom: 5 }}>{L("Status dne", "Day status")}</div>
-      <button onClick={cycle} title={L("Attention → Fulfilled → Wu wei → prázdné", "Attention → Fulfilled → Wu wei → empty")} style={{ background: idx >= 0 ? hexA(c, 0.12) : "transparent", border: `1px solid ${idx >= 0 ? c : t.border}`, borderRadius: 20, padding: "7px 16px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 9, maxWidth: "100%", transition: "background .35s ease, border-color .35s ease" }}>
-        <span style={{ width: 7, height: 7, borderRadius: "50%", background: idx >= 0 ? c : t.border, flexShrink: 0 }} />
-        <span style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 16.5, color: idx >= 0 ? c : t.textMuted, textAlign: "left" }}>
-          {idx >= 0 ? statuses[idx].label : (day.s || L("Jak ses dnes nesl? ·", "How did today carry you? ·"))}
-        </span>
-      </button>
-      {legacy && <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, marginTop: 4 }}>{L("starší volný zápis — kliknutím přejdeš na tři stavy", "older free-form note — click to switch to the three states")}</div>}
-      {st.editMode && (
-        <div style={{ marginTop: 12, padding: "10px 12px", background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10 }}>
-          <div style={{ ...subLabel(t), marginBottom: 6 }}>{L("Přejmenuj stavy dne", "Rename day statuses")}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-            {statuses.map((s, i) => (
-              <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: colors[i], flexShrink: 0 }} />
-                <BufferedInput value={s.label} onCommit={(v) => st.setDayStatusLabel(s.key, v)} placeholder={L(DAY_STATUS_DEFS[i].cz, DAY_STATUS_DEFS[i].en)} style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: `1px dashed ${t.borderSoft}`, color: t.text, fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 15.5, padding: "2px 0", outline: "none" }} />
-                {(custom[s.key] || "").trim() && <button title={L("Vrátit výchozí", "Restore default")} onClick={() => st.setDayStatusLabel(s.key, "")} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 11, border: "none", color: t.textMuted }}>↺</button>}
-              </div>
-            ))}
-          </div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, fontStyle: "italic", marginTop: 7 }}>{L("Historie zůstává — přejmenování nemění dřívější dny.", "History is kept — renaming doesn't change earlier days.")}</div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-// ---- NEBE NA PRAHU · the sky over Prague, computed locally -------------------
-// "Listen to the wild" inside a room means at least knowing what the sky is
-// doing. Moon phase from the synodic month, sunset from the standard solar
-// equation (Ed Williams / NOAA). No API, no request — the sky is arithmetic.
-const SKY_LAT = 50.08, SKY_LON = 14.44; // Praha · the sky this practice lives under
-const moonPhaseOf = (iso) => {
-  const dt = new Date(iso + "T12:00:00Z").getTime();
-  const syn = 29.530588853;
-  const ref = Date.UTC(2000, 0, 6, 18, 14); // a known new moon
-  return ((((dt - ref) / 86400000) % syn + syn) % syn) / syn; // 0 nov · 0.5 úplněk
-};
-const moonName = (ph) => {
-  const i = Math.round(ph * 8) % 8;
-  return L(
-    ["nov", "dorůstající srpek", "první čtvrť", "dorůstající měsíc", "úplněk", "couvající měsíc", "poslední čtvrť", "ubývající srpek"][i],
-    ["new moon", "waxing crescent", "first quarter", "waxing gibbous", "full moon", "waning gibbous", "last quarter", "waning crescent"][i]
-  );
-};
-const sunsetOf = (iso) => {
-  const [Y, Mo, D] = iso.split("-").map(Number);
-  const rad = Math.PI / 180;
-  const day = Math.floor((Date.UTC(Y, Mo - 1, D) - Date.UTC(Y, 0, 0)) / 86400000);
-  const lngHour = SKY_LON / 15;
-  const tt = day + (18 - lngHour) / 24;
-  const M = 0.9856 * tt - 3.289;
-  let Ls = M + 1.916 * Math.sin(M * rad) + 0.020 * Math.sin(2 * M * rad) + 282.634;
-  Ls = ((Ls % 360) + 360) % 360;
-  let RA = Math.atan(0.91764 * Math.tan(Ls * rad)) / rad;
-  RA = ((RA % 360) + 360) % 360;
-  RA += Math.floor(Ls / 90) * 90 - Math.floor(RA / 90) * 90;
-  RA /= 15;
-  const sinDec = 0.39782 * Math.sin(Ls * rad);
-  const cosDec = Math.cos(Math.asin(sinDec));
-  const cosH = (Math.cos(90.833 * rad) - sinDec * Math.sin(SKY_LAT * rad)) / (cosDec * Math.cos(SKY_LAT * rad));
-  if (cosH < -1 || cosH > 1) return "";
-  const H = Math.acos(cosH) / rad / 15;
-  const T = H + RA - 0.06571 * tt - 6.622;
-  const UT = (((T - lngHour) % 24) + 24) % 24;
-  return new Date(Date.UTC(Y, Mo - 1, D, 0, Math.round(UT * 60))).toLocaleTimeString(LANG === "cs" ? "cs-CZ" : "en-GB", { timeZone: "Europe/Prague", hour: "2-digit", minute: "2-digit" });
-};
 
-// ---- Daily tasks · shared between Habit Tracker (Daily planner) and Divine game of life ----
-function DayTasks({ date }) {
-  const { t } = useT();
-  const st = useStore();
-  const day = st.getDay(date);
-  const tasks = day.tasks;
-  const save = (next) => st.updateDay(date, { tasks: next });
-  const [txt, setTxt] = useState("");
-  const add = () => { const v = txt.trim(); if (!v) return; save([...tasks, { id: uid(), text: v, done: false }]); setTxt(""); };
-  return (
-    <div>
-      {tasks.map((task) => (
-        <div key={task.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
-          <button onClick={() => save(tasks.map((x) => x.id === task.id ? { ...x, done: !x.done } : x))} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Check done={!!task.done} /></button>
-          <span style={{ flex: 1, fontFamily: FONT_BODY, fontSize: 14, color: task.done ? t.textMuted : t.text, textDecoration: task.done ? "line-through" : "none" }}>{task.goal && <span title={L("Cíl z Kompasu", "Goal from the Compass")} style={{ color: t.accent, marginRight: 6 }}>◎</span>}{task.text}</span>
-          <button title="Odebrat" onClick={() => save(tasks.filter((x) => x.id !== task.id))} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 12, padding: "0 4px" }}>✕</button>
-        </div>
-      ))}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
-        <span style={{ width: 18, textAlign: "center", color: t.sand, fontSize: 14 }}>＋</span>
-        <input value={txt} onChange={(e) => setTxt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} onBlur={add} placeholder={L("Nový cíl dne… (Enter)", "New goal for today… (Enter)")} style={{ flex: 1, background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 14, outline: "none" }} />
-      </div>
-      {tasks.length === 0 && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5, color: t.textMuted }}>{L("Cíle dne se propisují i do Kompasu.", "Today's goals also flow into the Compass.")}</div>}
-    </div>
-  );
-}
 
-// ---- Daily planner · morning intent + evening review ----
-// cz/en pairs resolved at render via L() — a module const would freeze the language
-const PLAN_QS = [
-  { key: "vision", cz: "Co jsem dnes udělal pro svou dlouhodobou vizi?", en: "What did I do today that moves me closer to my long-term vision?" },
-  { key: "ease", cz: "Kde jsem se dnes odvrátil? A dokážu tomu místu vyjít vstříc se soucitem?", en: "Where did I turn away today — and can I meet that place with compassion?" },
-  { key: "proud", cz: "Na co jsem hrdý?", en: "What am I proud of?" },
-  { key: "insights", cz: "Vhledy k zapamatování", en: "Insights to remember" },
-];
-// RÁNO · one visible line — the first word of the day is never folded away
-function RanniZamer({ date, go }) {
-  const { t } = useT();
-  const st = useStore();
-  const day = st.getDay(date);
-  const plan = day.plan;
-  const setP = (k, v) => st.updateDay(date, { plan: { ...plan, [k]: v } });
-  return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "2px 0 4px" }}>
-      {/* „Dnes jsem" je v klientském domě jen práh věty, ne dveře.
-          V osobní aplikaci odsud vede odkaz do Mandaly — ta je Tanmayova
-          osobní místnost a klient k ní nemá mít ani cestu, ani zmínku. */}
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 26, flexShrink: 0 }}>
-        <span aria-hidden="true" style={{ position: "relative", width: 15, height: 15, flexShrink: 0, display: "inline-flex" }}>
-          <span style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `1.5px solid ${t.sand}` }} />
-          <span style={{ position: "absolute", left: "50%", top: 1.5, bottom: 1.5, width: 1, background: t.borderSoft, transform: "translateX(-50%)" }} />
-          <span style={{ position: "absolute", top: "50%", left: 1.5, right: 1.5, height: 1, background: t.borderSoft, transform: "translateY(-50%)" }} />
-          <span style={{ position: "absolute", left: "50%", top: "50%", width: 3.4, height: 3.4, borderRadius: "50%", background: t.accent, transform: "translate(-50%,-50%)" }} />
-        </span>
-        <span style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 18, color: t.sand }}>{L("Dnes jsem", "Today I am")}</span>
-      </span>
-      <input value={plan.iam || ""} onChange={(e) => setP("iam", e.target.value)} aria-label={L("Dnes jsem", "Today I am")} placeholder={L("charakter a kvality, které držím", "the character and qualities I hold")} style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: `1px solid ${t.border}`, color: t.heading, fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 18, padding: "2px 2px 4px", outline: "none", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }} />
-    </div>
-  );
-}
 
-// VEČER · four questions and tomorrow's first step
-function VecerniOhlednuti({ date }) {
-  const { t, tags } = useT();
-  const st = useStore();
-  const day = st.getDay(date);
-  const plan = day.plan;
-  const setP = (k, v) => st.updateDay(date, { plan: { ...plan, [k]: v } });
-  // questions speak in the same copper as the heading above them; the writing
-  // answers in sand, the hand of the day's motif — never a bare white
-  const qc = (tags.orange || {}).fg || t.accent;
-  const areaStyle = { width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${t.borderSoft}`, color: t.sand, fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, padding: "4px 2px 8px", outline: "none", resize: "vertical" };
-  return (
-    <div>
-      {PLAN_QS.map(({ key, cz, en }) => (
-        <div key={key} style={{ marginBottom: 12 }}>
-          <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: qc, marginBottom: 2 }}>{L(cz, en)}</div>
-          <textarea value={plan[key] || ""} onChange={(e) => setP(key, e.target.value)} rows={key === "insights" ? 2 : 1} placeholder="…" style={areaStyle} />
-        </div>
-      ))}
-      <div style={{ marginBottom: 4 }}>
-        <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: qc, marginBottom: 2 }}>{L("Zítřejší první krok", "Tomorrow's first step")} <span style={{ color: t.textMuted }}>{L("· jedna konkrétní věc, kterou zítřek začne", "· one concrete thing tomorrow starts with")}</span></div>
-        <input value={plan.next || ""} onChange={(e) => setP("next", e.target.value)} placeholder="…" style={{ ...areaStyle, resize: "none" }} />
-      </div>
-    </div>
-  );
-}
 
-// ---- Journal of the day · read-through from Journal card ----
-function JournalOfDay({ date, go }) {
-  const { t } = useT();
-  const st = useStore();
-  const [sel, setSel] = useState(null); // id otevřeného zápisku (akordeon)
-  const jt = st.jTags();
-  const TC = Object.fromEntries(jt.map(([n, c]) => [n, c]));
-  const archive = st.coll.jImported ? [] : JOURNAL_FULL.filter((e) => e.d === date && (e.b || (e.n && e.n !== "Untitled")));
-  const mine = (st.coll.journal || []).filter((e) => e.date === date);
-  const empty = archive.length === 0 && mine.length === 0;
-  const preview = (txt) => String(txt || "").replace(/^#{1,2}\s/gm, "").replace(/\*/g, "").split("\n").filter(Boolean)[0] || "";
-  const row = (key, title, tags, text, isOpen, onToggle, body) => (
-    <div key={key} style={{ background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, margin: "6px 0", boxShadow: isOpen ? t.shadow : "none" }}>
-      <button onClick={onToggle} className="tm-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 8, padding: "8px 12px", cursor: "pointer" }}>
-        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 16.5, color: t.heading, flexShrink: 0 }}>{title}</span>
-        {tags}
-        {!isOpen && <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{preview(text)}</span>}
-        <span style={{ color: t.textMuted, fontSize: 12, flexShrink: 0, marginLeft: "auto", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s ease", display: "inline-block" }}>›</span>
-      </button>
-      {isOpen && <div style={{ padding: "2px 14px 14px" }}>{body}</div>}
-    </div>
-  );
 
-  return (
-    <div style={{ marginTop: 14, borderTop: `1px solid ${t.borderSoft}`, paddingTop: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div style={{ ...subLabel(t), marginBottom: 0, display: "flex", alignItems: "center", gap: 6 }}><span style={{ color: t.sand }}><PenIcon size={12} /></span>{L("Deník", "Journal")} · {fmtCZ(date)}</div>
-        <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><PenIcon size={12} /></span>} label={L("Otevřít Deník", "Open Journal")} onClick={() => go("denik")} />
-      </div>
-      {empty && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("K tomuto dni není zápisek.", "No entry for this day.")}</div>}
-      {mine.map((e) => row(
-        e.id, e.title,
-        e.tag && <Tag label={e.tag} color={TC[e.tag] || "default"} />,
-        e.text,
-        sel === e.id,
-        () => setSel(sel === e.id ? null : e.id),
-        <>
-          <RichArea value={e.text || ""} onChange={(v) => st.updateEntry("journal", e.id, { text: v })} />
-          <AttachmentStrip att={e.att} onRemove={st.editMode ? ((id) => st.updateEntry("journal", e.id, { att: (e.att || []).filter((x) => x.id !== id) })) : undefined} />
-        </>
-      ))}
-      {archive.map((e, i) => row(
-        "a" + i, e.n,
-        (e.t || []).slice(0, 1).map((tg) => <Tag key={tg} label={jCanonTag(tg)} color={TC[jCanonTag(tg)] || "default"} />),
-        e.b,
-        sel === "a" + i,
-        () => setSel(sel === "a" + i ? null : "a" + i),
-        <>
-          <RichText text={e.b} />
-          <div style={{ ...subLabel(t), marginTop: 8, marginBottom: 0 }}>z Notionu</div>
-        </>
-      ))}
-    </div>
-  );
-}
 
-// ---- Tělo · shared day reader (archive + edits), used by the day card and
-// by the overview at the foot of the page ----
-const tmWbOf = (st, d) => {
-  const e = (st.edits[d] || {}).wb || null;
-  const a = DETAILS_BY[d] || null;
-  if (!e && !a) return null;
-  const g = (k, ak, dflt) => (e && e[k] != null ? e[k] : (a && a[ak] != null ? a[ak] : dflt));
-  return {
-    sleep: g("sleep", "sleepH", null),
-    mood: g("mood", "mood", 0),
-    energy: g("energy", "energy", 0),
-    well: e && e.well != null ? e.well : (a && a.well != null ? Math.round(a.well) : 0),
-    theme: g("theme", "note", ""),
-    grat: g("grat", "grat", false),
-    bodhi: g("bodhi", "bodhi", false),
-    wild: g("wild", "wild", false),
-  };
-};
-const tmWbDates = (st) => Array.from(new Set([...Object.keys(DETAILS_BY), ...Object.keys(st.edits).filter((d) => st.edits[d] && st.edits[d].wb)])).sort().reverse();
 
-// ---- Wellbeing · quick tracker (sleep + mood + potenciál dne + téma) ----
-function DotTap({ value, onChange, color, label }) {
-  const { t } = useT();
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <span style={metaLabel(t)}>{label}</span>
-      <span style={{ display: "inline-flex", gap: 6 }}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} className="tm-wb-dot" onClick={() => onChange(value === n ? 0 : n)} title={String(n)} style={{ width: 17, height: 17, borderRadius: "50%", border: `1.5px solid ${n <= value ? color : t.border}`, background: n <= value ? color : "transparent", cursor: "pointer", padding: 0, transition: "background .12s ease" }} />
-        ))}
-      </span>
-    </div>
-  );
-}
 
-function WellbeingTracker() {
-  const { t } = useT();
-  const st = useStore();
-  const date = st.selDate;
-  const cur = tmWbOf(st, date) || { sleep: null, mood: 0, energy: 0, well: 0, theme: "", grat: false, bodhi: false, wild: false };
-  const set = (patch) => st.updateDay(date, { wb: { ...cur, ...patch } });
-  const sleepStep = (dir) => { const v = cur.sleep == null ? 8 : cur.sleep; set({ sleep: Math.max(0, Math.min(16, v + dir * 0.5)) }); };
-  const iconToggle = (on) => ({ background: "transparent", border: "none", cursor: "pointer", fontSize: 20, padding: "0 2px", opacity: on ? 1 : 0.25, transition: "opacity .12s ease" });
-  return (
-    <Callout icon={<span style={{ color: t.sand, fontSize: 18 }}>☾</span>} title={L("Tělo", "Body")}>
-      {/* quick entry — selected day */}
-      <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 8, padding: "14px 16px", marginBottom: 14 }}>
-        {/* one clock per room · this card silently follows the day selected above */}
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 19, color: t.heading, marginBottom: 12 }}>{fmtCZ(date)}</div>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "14px 26px", marginBottom: 12 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={metaLabel(t)}>{L("Spánek", "Sleep")}</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <button onClick={() => sleepStep(-1)} style={{ ...iconBtn(t), width: 24, height: 24 }}>−</button>
-              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 21, color: t.heading, minWidth: 52, textAlign: "center" }}>{cur.sleep == null ? "—" : cur.sleep + " h"}</span>
-              <button onClick={() => sleepStep(1)} style={{ ...iconBtn(t), width: 24, height: 24 }}>＋</button>
-            </span>
-          </div>
-          <DotTap label={L("Nálada", "Mood")} value={cur.mood} onChange={(v) => set({ mood: v })} color={t.sage} />
-          <DotTap label={L("Energie", "Energy")} value={cur.energy} onChange={(v) => set({ energy: v })} color={t.sand} />
-          <DotTap label={L("Potenciál dne", "Day potential")} value={cur.well} onChange={(v) => set({ well: v })} color={t.accent} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <span style={metaLabel(t)}>{L("Znamení", "Marks")}</span>
-            <span>
-              <button className="tm-wb-mark" title="Gratitude" onClick={() => set({ grat: !cur.grat })} style={iconToggle(cur.grat)}><span style={{ display: "inline-flex", color: t.sand }}><TmWbMiska size={16} /></span></button>
-              <button className="tm-wb-mark" title="Bodhichitta" onClick={() => set({ bodhi: !cur.bodhi })} style={iconToggle(cur.bodhi)}><span style={{ display: "inline-flex", color: t.sand }}><TmWbDiamant size={16} /></span></button>
-              <button className="tm-wb-mark" title={L("Praxe ve světě — promítla se dnes do vztahů a kontaktu se světem?", "Practice in the world — did it show up today in relationships and contact with the world?")} onClick={() => set({ wild: !cur.wild })} style={iconToggle(cur.wild)}><span style={{ display: "inline-flex", color: t.sand }}><TmWbKruh size={16} /></span></button>
-            </span>
-          </div>
-        </div>
-        <input value={cur.theme || ""} onChange={(e) => set({ theme: e.target.value })} aria-label={L("Motiv dne", "Day's motif")} placeholder={L("Motiv dne — jméno, které dnešek dostal…", "Day's motif — the name this day earned…")} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${t.border}`, color: t.sand, fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 17, padding: "3px 2px 6px", outline: "none" }} />
-      </div>
 
-    </Callout>
-  );
-}
 
-// Tělo · the record, kept at the foot of the page with the other graphs
-function BodyHistory() {
-  const { t } = useT();
-  const st = useStore();
-  const date = st.selDate;
-  const wbOf = (d) => tmWbOf(st, d);
-  const dates = tmWbDates(st);
-  const recent = dates.slice(0, 10);
-  const last30 = dates.slice(0, 30).reverse();
-  const W = 600, H = 44;
-  const mkPts = (vals) => vals.map((v, i) => `${vals.length > 1 ? (i / (vals.length - 1)) * W : 0},${H - (Math.max(0, Math.min(5, v)) / 5) * (H - 4) - 2}`).join(" ");
-  const ptsWell = mkPts(last30.map((d) => { const w = wbOf(d); return w ? w.well : 0; }));
-  const ptsEnergy = mkPts(last30.map((d) => { const w = wbOf(d); return w ? w.energy : 0; }));
-  const fmtShort = (iso) => { const [, m, d] = iso.split("-"); return (+d) + "." + (+m) + "."; };
-  return (
-    <div>
-      {/* potential + energy over time */}
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: H, display: "block" }}>
-        <polyline points={`0,${H} ${ptsWell} ${W},${H}`} fill={hexA(t.accent, 0.10)} stroke="none" />
-        <polyline points={ptsEnergy} fill="none" stroke={t.sand} strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="4 3" opacity="0.85" />
-        <polyline points={ptsWell} fill="none" stroke={t.accent} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-      </svg>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 14px", marginTop: 4, marginBottom: 12 }}>
-        <span style={{ ...subLabel(t), marginBottom: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 2, background: t.accent, display: "inline-block" }} />{L("Potenciál", "Potential")} · ø {DETAIL_STATS.avgWell}</span>
-        <span style={{ ...subLabel(t), marginBottom: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 0, borderTop: `2px dashed ${t.sand}`, display: "inline-block" }} />{L("Energie", "Energy")}</span>
-        <span style={{ ...subLabel(t), marginBottom: 0 }}>{L("posledních", "last")} {last30.length} {L("zaznamenaných dní", "recorded days")}</span>
-      </div>
 
-      {/* recent days — horizontal scroll on narrow screens */}
-      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-      <div style={{ minWidth: 540 }}>
-      {recent.map((d, i) => {
-        const w = wbOf(d);
-        return (
-          <button key={d} onClick={() => st.setSelDate(d)} title={L("Otevřít den", "Open day")} style={{ width: "100%", textAlign: "left", background: d === date ? t.card : "transparent", border: "none", cursor: "pointer", display: "grid", gridTemplateColumns: "44px 44px auto auto auto auto 1fr", alignItems: "center", gap: 12, padding: "8px 6px", borderBottom: i < recent.length - 1 ? `1px solid ${t.borderSoft}` : "none", borderRadius: 6 }}>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted }}>{fmtShort(d)}</span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textSec }}>{w.sleep != null ? w.sleep + " h" : "—"}</span>
-            <DotMeter value={w.mood} color={t.sage} />
-            <DotMeter value={w.energy} color={t.sand} />
-            <DotMeter value={w.well} color={t.accent} />
-            <span style={{ fontSize: 13 }}>
-              <span title="Gratitude" style={{ opacity: w.grat ? 1 : 0.2, display: "inline-flex", color: t.sand }}><TmWbMiska size={14} /></span>
-              <span title="Bodhichitta" style={{ opacity: w.bodhi ? 1 : 0.2, display: "inline-flex", color: t.sand }}><TmWbDiamant size={14} /></span>
-              <span title={L("Praxe ve světě", "Practice in the world")} style={{ opacity: w.wild ? 1 : 0.2, display: "inline-flex", color: t.sand }}><TmWbKruh size={14} /></span>
-            </span>
-            <span style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5, color: t.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{w.theme}</span>
-          </button>
-        );
-      })}
-      </div>
-      </div>
-    </div>
-  );
-}
 
-// ---- Habit Tracker rich components ----
-function Ring({ value, size = 64, label }) {
-  const { t } = useT();
-  const r = (size - 8) / 2, C0 = 2 * Math.PI * r, off = C0 * (1 - value);
-  return (
-    <div style={{ position: "relative", width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={t.border} strokeWidth="6" />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={t.accent} strokeWidth="6" strokeLinecap="round" strokeDasharray={C0} strokeDashoffset={off} style={{ transition: "stroke-dashoffset .8s cubic-bezier(.23,.62,.22,.99)" }} />
-      </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading }}>{label}</span>
-      </div>
-    </div>
-  );
-}
 
-function StatCard({ value, label }) {
-  const { t } = useT();
-  return (
-    <div className="tm-lift" style={{ flex: 1, minWidth: 110, background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "14px 16px" , boxShadow: t.shadow }}>
-      <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 400, fontSize: 30, color: t.heading, lineHeight: 1 }}>{value}</div>
-      <div style={{ ...subLabel(t), marginBottom: 0, marginTop: 6 }}>{label}</div>
-    </div>
-  );
-}
 
-function HabitCalendar() {
-  const { t } = useT();
-  const st = useStore();
-  // the calendar lives in the present: it opens on the current month and
-  // browses freely into the future — a new day always has its page ready
-  const curYM = todayISO().slice(0, 7);
-  const firstYM = FLOW.length ? FLOW[0].d.slice(0, 7) : curYM;
-  const [ym, setYm] = useState(curYM);
-  const shiftYM = (m, k) => { const [y, mo] = m.split("-").map(Number); const d = new Date(y, mo - 1 + k, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
-  const HTOT = Math.max(1, st.activeHabits().length);
-  const [Y, Mo] = ym.split("-").map(Number);
-  const first = new Date(Y, Mo - 1, 1);
-  const startW = (first.getDay() + 6) % 7;
-  const ndays = new Date(Y, Mo, 0).getDate();
-  const cells = [];
-  for (let i = 0; i < startW; i++) cells.push(null);
-  for (let d = 1; d <= ndays; d++) cells.push(d);
-  const MN = L(["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec"], ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]);
-  const pick = (iso) => { st.setSelDate(iso); if (typeof document !== "undefined") { const el = document.getElementById("dayview"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); } };
-  return (
-    <div className="tm-calwrap" style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: 10, marginTop: 14 }}>
-    <div className="tm-calcard" style={{ border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 16, background: t.card, boxShadow: t.shadow }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{MN[Mo - 1]} {Y}</span>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => setYm((m) => shiftYM(m, -1))} disabled={ym <= firstYM} style={calBtn(t, ym <= firstYM)}>‹</button>
-          <button onClick={() => setYm((m) => shiftYM(m, 1))} style={calBtn(t, false)}>›</button>
-          {ym !== curYM && <button onClick={() => setYm(curYM)} style={{ ...calBtn(t, false), fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, padding: "4px 10px", marginLeft: 6 }}>{L("dnes", "today")}</button>}
-        </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
-        {L(["Po", "Út", "St", "Čt", "Pá", "So", "Ne"], ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]).map((w) => (
-          <div key={w} style={{ textAlign: "center", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 11, color: t.textMuted, paddingBottom: 4 }}>{w}</div>
-        ))}
-        {cells.map((d, i) => {
-          if (!d) return <div key={i} />;
-          const iso = `${Y}-${String(Mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-          const day = st.getDay(iso);
-          const tracked = st.has(iso);
-          const frac = day.c / Math.max(1, st.activeHabits().length);
-          const sel = st.selDate === iso;
-          return (
-            <button key={i} onClick={() => pick(iso)} title={tracked ? `${d}. ${Mo}. — ${day.c}/${HTOT}` : `${d}.`} className="tm-cal-day" style={{ aspectRatio: "1", borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, fontFamily: FONT_BODY, fontSize: 12.5, cursor: "pointer", color: sel ? t.heading : tracked ? t.text : t.textMuted, background: sel ? t.activeNav : t.mode === "light" ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.035)", border: sel ? `1.5px solid ${t.accent}` : iso === todayISO() ? `1px solid ${hexA(t.accent, 0.55)}` : "1px solid transparent", transition: "background .2s ease, border-color .2s ease" }}><span style={{ lineHeight: 1 }}>{d}</span><span style={{ width: 5, height: 5, borderRadius: "50%", background: tracked ? hexA(t.accent, 0.35 + frac * 0.65) : "transparent" }} /></button>
-          );
-        })}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, justifyContent: "flex-end" }}>
-        <span style={{ ...subLabel(t), marginBottom: 0 }}>{L("méně", "less")}</span>
-        {[0.35, 0.55, 0.8, 1].map((o, i) => <span key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: hexA(t.accent, o) }} />)}
-        <span style={{ ...subLabel(t), marginBottom: 0 }}>{HTOT}/{HTOT}</span>
-      </div>
-    </div>
-    </div>
-  );
-}
 
-function HabitMatrix() {
-  const { t } = useT();
-  const st = useStore();
-  const N = 14;
-  const recent = FLOW.slice(-N);
-  return (
-    <div style={{ overflowX: "auto" }}>
-      <div style={{ minWidth: 520 }}>
-        {st.activeHabits().map(({ icon, name, slot: j }) => (
-          <div key={name} style={{ display: "grid", gridTemplateColumns: `190px repeat(${N}, 1fr) 56px`, alignItems: "center", gap: 4, padding: "5px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: FONT_BODY, fontSize: 13.5, color: t.text }}>
-              <span style={{ fontSize: 15 }}>{icon}</span>{name}
-            </span>
-            {recent.map((e, i) => (
-              <span key={i} title={`${e.d} — ${e.h[j] ? "✓" : "·"}`} className="tm-cellpop" style={{ height: 16, borderRadius: 4, background: e.h[j] ? t.accent : (t.mode === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.05)") }} />
-            ))}
-            <span style={{ textAlign: "right", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{(HABIT_STATS.streaks[j] || 0) > 0 ? <span style={{ color: t.accent }}>{HABIT_STATS.streaks[j]}</span> : (HABIT_STATS.totals[j] || 0)}</span>
-          </div>
-        ))}
-        <div style={{ ...subLabel(t), marginTop: 8 }}>{L("Posledních", "Last")} {N} {L("dní · 🔥 = aktuální série", "days · 🔥 = current streak")}</div>
-      </div>
-    </div>
-  );
-}
 
-function MiniChart() {
-  const { t } = useT();
-  const N = 30;
-  const recent = FLOW.slice(-N);
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 90, padding: "0 2px" }}>
-        {recent.map((e, i) => (
-          <div key={i} title={`${e.d} — ${e.c}/9 (${e.p}%)`} style={{ flex: 1, height: `${(e.c / 9) * 100}%`, minHeight: 2, borderRadius: 3, background: hexA(t.accent, 0.45 + (e.c / 9) * 0.55) }} />
-        ))}
-      </div>
-      <div style={{ ...subLabel(t), marginTop: 8 }}>{L("Splněné habity / den · posledních", "Habits done / day · last")} {N} {L("dní", "days")}</div>
-    </div>
-  );
-}
-
-function EditableSchedule({ date }) {
-  const { t } = useT();
-  const st = useStore();
-  const sched = st.getDay(date).sched;
-  const set = (hour, patch) => { const cur = sched[hour] || {}; st.updateDay(date, { sched: { ...sched, [hour]: { ...cur, ...patch } } }); };
-  const blocks = [
-    ["Morning", ["6:00", "7:00", "8:00", "9:00", "10:00", "11:00"]],
-    ["Afternoon", ["12:00", "13:00", "14:00", "15:00", "16:00", "17:00"]],
-    ["Evening", ["18:00", "19:00", "20:00", "21:00", "22:00", "23:00"]],
-  ];
-  return (
-    <div>
-      {blocks.map(([title, hours]) => (
-        <div key={title} style={{ marginBottom: 14 }}>
-          <div style={{ ...subLabel(t), marginBottom: 4 }}>{title}</div>
-          {hours.map((h) => {
-            const cur = sched[h] || {};
-            return (
-              <div key={h} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
-                <button onClick={() => set(h, { done: !cur.done })} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Check done={!!cur.done} /></button>
-                <span style={{ fontFamily: FONT_TAG, fontSize: 13, letterSpacing: "0.05em", color: t.sage, width: 46 }}>{h}</span>
-                <input value={cur.text || ""} onChange={(e) => set(h, { text: e.target.value })} placeholder="…" style={{ flex: 1, background: "transparent", border: "none", color: cur.done ? t.textMuted : t.text, fontFamily: FONT_BODY, fontSize: 13.5, outline: "none", textDecoration: cur.done ? "line-through" : "none" }} />
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// inline habit management inside the day card · edit mode only
-function HabitInlineEditor() {
-  const { t } = useT();
-  const st = useStore();
-  const defs = st.habitDefs();
-  const act = defs.filter((x) => !x.archived);
-  const [dragSlot, setDragSlot] = useState(null);
-  const [overSlot, setOverSlot] = useState(null);
-  const upd = (slot, patch) => st.setHabitDefs(defs.map((d) => (d.slot === slot ? { ...d, ...patch } : d)));
-  const dropOn = (targetSlot) => {
-    if (dragSlot == null || dragSlot === targetSlot) { setDragSlot(null); setOverSlot(null); return; }
-    const order = [...act];
-    const from = order.findIndex((d) => d.slot === dragSlot);
-    const to0 = order.findIndex((d) => d.slot === targetSlot);
-    const [item] = order.splice(from, 1);
-    let to = order.findIndex((d) => d.slot === targetSlot);
-    if (from < to0) to = to + 1; // tažení dopředu -> za cíl
-    order.splice(to, 0, item);
-    st.setHabitDefs([...order, ...defs.filter((x) => x.archived)]);
-    setDragSlot(null); setOverSlot(null);
-  };
-  /* DVĚ CESTY, ŽÁDNÝ PŘEDPIS.
-     Výchozí sada je nabídka, ne povinnost. Klient si může vzít příklad,
-     nebo si založit vlastní návyk — obojí je jeho a obojí se dá kdykoli
-     přejmenovat, odložit nebo archivovat. Nic z toho nesahá na trenérem
-     řízený plán ani na předepsaný trénink; tohle je jen jeho vlastní
-     denní praxe. Nový slot se počítá z maxima, takže se historie žádného
-     dřívějšího návyku nepřepíše. */
-  const dalsiSlot = () => defs.reduce((m, d) => Math.max(m, d.slot), -1) + 1;
-  const addHabit = () => st.setHabitDefs([...defs, { slot: dalsiSlot(), icon: "○", name: L("Nový návyk", "New habit") }]);
-  const [priklady, setPriklady] = useState(false);
-  const maJmeno = (jm) => defs.some((d) => (d.name || "").trim().toLowerCase() === jm.trim().toLowerCase());
-  const pridejPriklad = (icon, jm) => { if (maJmeno(jm)) return; st.setHabitDefs([...defs, { slot: dalsiSlot(), icon, name: jm }]); };
-  /* Obě cesty jsou vidět vždycky, i když má člověk zrovna všechny příklady
-     u sebe. Co už má, se ukáže jako převzaté a nedá se přidat podruhé —
-     nabídka tím zůstane úplná a nic se nezdvojí. */
-  const vsePriklady = HABIT_DEFS.map(([icon, cz, en]) => [icon, L(cz, en)]);
-  const archived = defs.filter((x) => x.archived);
-  return (
-    <div>
-      <div style={{ ...subLabel(t), marginBottom: 6 }}>{L("Přepiš název přímo v dlaždici · ⠿ přetáhni pro změnu pořadí", "Rename directly in the tile · ⠿ drag to reorder")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px,1fr))", gap: 8 }}>
-        {act.map((d) => (
-          <div
-            key={d.slot}
-            onDragOver={(e) => { e.preventDefault(); setOverSlot(d.slot); }}
-            onDragLeave={() => setOverSlot((x) => (x === d.slot ? null : x))}
-            onDrop={(e) => { e.preventDefault(); dropOn(d.slot); }}
-            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, background: t.card, border: `1px dashed ${overSlot === d.slot && dragSlot !== d.slot ? t.accent : t.border}`, opacity: dragSlot === d.slot ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
-          >
-            <span
-              draggable
-              onDragStart={(e) => { setDragSlot(d.slot); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", "habit:" + d.slot); }}
-              onDragEnd={() => { setDragSlot(null); setOverSlot(null); }}
-              title={L("Přetáhni pro změnu pořadí", "Drag to reorder")}
-              style={{ cursor: "grab", color: t.textMuted, fontSize: 13, padding: "2px 2px", userSelect: "none", touchAction: "none" }}
-            >⠿</span>
-            <input value={d.icon} onChange={(e) => upd(d.slot, { icon: e.target.value.slice(0, 4) })} style={{ width: 30, background: "transparent", border: "none", outline: "none", textAlign: "center", fontSize: 15 }} />
-            <input value={d.name} onChange={(e) => upd(d.slot, { name: e.target.value })} placeholder={L("Název návyku…", "Habit name…")} style={{ flex: 1, minWidth: 60, background: "transparent", border: "none", outline: "none", borderBottom: `1px dashed ${t.borderSoft}`, fontFamily: FONT_BODY, fontSize: 14, color: t.text, padding: "1px 0" }} />
-            <button title={L("Archivovat — historie zůstane", "Archive — history stays")} onClick={() => st.ask(L(`Archivovat návyk „${d.name}"?`, `Archive habit "${d.name}"?`), () => upd(d.slot, { archived: true }))} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 11, border: "none", color: t.textMuted }}>✕</button>
-          </div>
-        ))}
-        <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13.5 }}>＋ {L("Vytvořit vlastní", "Create your own")}</button>
-        <button onClick={() => setPriklady((x) => !x)} aria-expanded={priklady} aria-controls="tm-priklady" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13.5 }}>＋ {L("Přidat z příkladů", "Add from examples")}</button>
-      </div>
-      {/* PŘÍKLADY · nabídka, ne předpis. Klepnutím se přidá jako vlastní návyk
-          klienta; s trenérem řízeným plánem to nemá nic společného. */}
-      {priklady && (
-        <div id="tm-priklady" style={{ marginTop: 10 }}>
-          <div style={{ ...subLabel(t), marginBottom: 6 }}>{L("Příklady · vezmi si jen to, co dává smysl tobě", "Examples · take only what makes sense for you")}</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-            {vsePriklady.map(([icon, jm]) => {
-              const uz = maJmeno(jm);
-              return (
-                <button key={jm} onClick={() => pridejPriklad(icon, jm)} disabled={uz}
-                  title={uz ? L("Tenhle návyk už máš", "You already have this one") : L("Přidat mezi své návyky", "Add to your habits")}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, minHeight: 36, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 999, padding: "5px 13px", cursor: uz ? "default" : "pointer", color: uz ? t.textMuted : t.textSec, opacity: uz ? 0.45 : 1, fontFamily: FONT_BODY, fontSize: 13 }}>
-                  <span aria-hidden="true">{icon}</span>{jm}{uz ? " ✓" : ""}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      {archived.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
-          <span style={{ ...subLabel(t), marginBottom: 0 }}>{L("Archivované:", "Archived:")}</span>
-          {archived.map((d) => (
-            <button key={d.slot} title={L("Obnovit", "Restore")} onClick={() => upd(d.slot, { archived: false })} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "2px 10px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12 }}>{d.icon} {d.name} ↺</button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DayView({ go }) {
-  const { t } = useT();
-  const st = useStore();
-  const date = st.selDate;
-  const day = st.getDay(date);
-  const tracked = st.has(date);
-  const toggle = (j) => { const h = day.h.slice(); while (h.length <= j) h.push(0); h[j] = h[j] ? 0 : 1; st.updateDay(date, { h }); };
-  const HTOT = Math.max(1, st.activeHabits().length);
-  return (
-    <div id="dayview" style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: 10, margin: "14px 0" }}>
-      <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 8, padding: "16px 18px", boxShadow: t.shadow }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={() => st.setSelDate(shiftISO(date, -1))} style={calBtn(t, false)}>‹</button>
-          <div>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: t.heading }}>{fmtCZ(date)}</div>
-            <div style={{ ...subLabel(t), marginBottom: 0 }}>{tracked ? L("Praxe zaznamenána", "Practice recorded") : L("Nový den", "A new day")}</div>
-          </div>
-          <button onClick={() => st.setSelDate(shiftISO(date, 1))} style={calBtn(t, false)}>›</button>
-        </div>
-        <button onClick={() => st.setSelDate(todayISO())} style={{ ...calBtn(t, false), fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11, padding: "5px 12px", marginLeft: 10 }}>{L("dnes", "today")}</button>
-      </div>
-
-      {/* RÁNO → DEN → VEČER · the card follows the arc of the day itself:
-          one word in the morning, a handful of touches through the day,
-          one seal in the evening. Everything else waits folded. */}
-      <RanniZamer date={date} go={go} />
-      <Toggle summary={L("Cíle a rozvrh", "Goals and schedule")} color="orange">
-        <div style={{ ...subLabel(t), marginBottom: 2 }}>{L("Dnešní cíle", "Today's goals")}</div>
-        <DayTasks date={date} />
-        <Toggle summary={L("Rozvrh dne · 6:00–23:00", "Schedule · 6:00–23:00")} color="orange"><EditableSchedule date={date} /></Toggle>
-      </Toggle>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "16px 0 12px" }}>
-        <Ring value={day.c / HTOT} size={56} label={day.c + "/" + HTOT} />
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, color: day.c >= HTOT ? t.accent : t.sage, transition: "color .4s ease" }}>{L("Dnešní praxe", "Today's practice")}</span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{day.p}%</span>
-          </div>
-          <ProgressBar value={day.c / HTOT} />
-        </div>
-      </div>
-
-      {st.editMode ? (
-        <HabitInlineEditor />
-      ) : (
-      <div className="tm-habitgrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px,1fr))", gap: 8 }}>
-        {st.activeHabits().map(({ icon, name, slot: j }) => (
-          <button key={j} onClick={() => toggle(j)} className="tm-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
-            <span className={"tmink" + (day.h[j] ? " on" : "")} style={{ width: 13, height: 13, borderRadius: "50%", flexShrink: 0, border: `1.5px solid ${day.h[j] ? "transparent" : t.border}`, background: day.h[j] ? (day.c >= HTOT ? t.accent : t.sage) : "transparent", transition: "background .4s ease, border-color .4s ease" }} />
-            <span style={{ fontSize: 15 }}>{icon}</span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: day.h[j] ? t.text : t.textMuted, transition: "color .3s ease" }}>{name}</span>
-          </button>
-        ))}
-      </div>
-      )}
-
-      <div style={{ height: 16 }} />
-      <StatusCycle date={date} />
-      <Toggle summary={L("Večerní ohlédnutí", "Evening review")} color="orange"><VecerniOhlednuti date={date} /></Toggle>
-
-      <JournalOfDay date={date} go={go} />
-    </div>
-    </div>
-  );
-}
 
 // ---- MEMENTO MORI · the hidden room ------------------------------------------
 // One dot for every day of an average life. The lived ones are ink, today is a
@@ -1876,76 +978,7 @@ function PageAtomic() {
   );
 }
 
-function PageAreas({ go }) {
-  const { t } = useT();
-  const st = useStore();
-  const [sel, setSel] = useState(null);
-  const [full, setFull] = useState(null); // {type, id} · full-page detail
-  const [adding, setAdding] = useState(false);
-  if (full) {
-    return (
-      <>
-        <button onClick={() => setFull(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 0 16px", display: "inline-flex", alignItems: "center", gap: 6 }}>{L("‹ Zpět", "‹ Back")}</button>
-        {full.type === "area"
-          ? <AreaDetail name={full.id} wide openGoal={(n) => setFull({ type: "goal", id: n })} onClose={() => setFull(null)} />
-          : <GoalDetail name={full.id} wide openArea={(n) => setFull({ type: "area", id: n })} onClose={() => setFull(null)} />}
-      </>
-    );
-  }
-  return (
-    <>
-      {go && <button onClick={() => go("kompas")} className="tm-nav-item" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 8px 14px 0", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 8 }}>‹ {L("Kompas", "Compass")}</button>}
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcOblasti size={34} /></span>} pageKey="oblasti" kicker={L("Kompas", "Compass")}>{L("Oblasti", "Areas")}</PageTitle>
-      <p style={pProse(t)}>{st.listAreas().length} {L("oblastí života · poslední hodnocení · splněné cíle včetně archivovaných.", "life areas · latest ratings · completed goals including archived.")}{st.editMode && <span style={{ color: t.textMuted }}>{L(" Klikni na oblast a otevři detail s měsíčním hodnocením.", " Click an area to open its detail with monthly ratings.")}</span>}</p>
-      {adding ? <AddAreaForm onDone={() => setAdding(false)} /> : (
-        <button onClick={() => setAdding(true)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "9px 13px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13.5, marginBottom: 12 }}>＋ {L("Nová oblast", "New area")}</button>
-      )}
-      <AreaTable onOpen={(name) => setSel({ type: "area", id: name })} />
-      <Drawer open={!!sel} onClose={() => setSel(null)}>
-        {sel && sel.type === "area" && <AreaDetail name={sel.id} openGoal={(n) => setSel({ type: "goal", id: n })} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
-        {sel && sel.type === "goal" && <GoalDetail name={sel.id} openArea={(n) => setSel({ type: "area", id: n })} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
-      </Drawer>
-    </>
-  );
-}
 
-function Select({ value, onChange, options, placeholder, style, small, ghost }) {
-  const { t } = useT();
-  const [open, setOpen] = useState(false);
-  const wrapRef = React.useRef(null);
-  React.useEffect(() => {
-    if (!open) return;
-    const onDoc = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
-    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
-  }, [open]);
-  const opts = options.map((o) => typeof o === "string" ? { v: o, label: o } : o);
-  const cur = opts.find((o) => o.v === value);
-  const trigStyle = {
-    display: "inline-flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-    background: ghost ? "transparent" : t.card, border: ghost ? "none" : `1px solid ${t.border}`, borderRadius: 8, color: t.text,
-    fontFamily: FONT_BODY, cursor: "pointer", outline: "none", width: "100%",
-    padding: ghost ? "4px 6px" : small ? "5px 9px" : "9px 11px", fontSize: ghost ? 12 : small ? 12.5 : 14,
-    ...(style || {}),
-  };
-  return (
-    <div ref={wrapRef} style={{ position: "relative", display: "inline-block", ...(style && style.maxWidth ? { maxWidth: style.maxWidth } : {}), width: (style && style.width) || "auto" }}>
-      <button type="button" onClick={() => setOpen((x) => !x)} style={trigStyle}>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: ghost ? t.textMuted : (cur || value) ? t.text : t.textMuted }}>{cur ? cur.label : (value || placeholder || "—")}</span>
-        <span style={{ color: t.textMuted, fontSize: 10, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
-      </button>
-      {open && (
-        <div style={{ animation: "tmsettle .18s ease both", position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: "100%", maxWidth: "min(320px, 86vw)", maxHeight: 280, overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 24px rgba(0,0,0,0.18)", zIndex: 60, padding: 4 }}>
-          {opts.map((o) => (
-            <button key={o.v} type="button" onClick={() => { onChange(o.v); setOpen(false); }} className="tm-nav-item" style={{ display: "block", width: "100%", textAlign: "left", background: o.v === value ? t.card : "transparent", border: "none", cursor: "pointer", color: t.text, fontFamily: FONT_BODY, fontSize: small ? 12.5 : 14, padding: "7px 10px", borderRadius: 6, whiteSpace: "nowrap" }}>{o.label}</button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function ClipIcon({ size = 15 }) {
   return (
@@ -2243,428 +1276,16 @@ function AddEntry({ kind, tags, label }) {
 }
 
 
-function GoalCard({ g, onOpen }) {
-  const { t, tags } = useT();
-  const st = useStore();
-  const today = todayISO();
-  const overdue = g.target && g.target < today && g.status !== "Completed";
-  const inToday = st.getDay(today).tasks.some((task) => task.text === g.name);
-  const fmtT = (iso) => { if (!iso) return null; const [y, m, d] = iso.split("-"); return (+d) + ". " + (+m) + ". " + y; };
-  return (
-    <div onClick={() => onOpen && onOpen(g.name)} style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "12px 14px", marginBottom: 10, cursor: "pointer" , boxShadow: t.shadow }} className="tm-nav-item tm-lift">
-      <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
-        <span style={{ color: t.textMuted, fontSize: 14, lineHeight: "20px" }}>◎</span>
-        <span style={{ fontFamily: FONT_BODY, fontSize: 14.5, fontWeight: 500, color: g.status === "Completed" ? t.textMuted : t.heading, textDecoration: g.status === "Completed" ? "line-through" : "none", lineHeight: 1.4 }}>{g.name}</span>
-      </div>
-      {g.area && (
-        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
-          <span style={{ fontSize: 13 }}>{st.areaIcon(g.area)}</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textSec, borderBottom: `1px solid ${t.border}` }}>{g.area}</span>
-        </div>
-      )}
-      {g.target && <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: overdue ? tags.red.fg : t.textMuted, marginBottom: 7 }}>{fmtT(g.target)}</div>}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        {g.prio && <Tag label={PL(g.prio)} color={PRIO_COLOR[g.prio] || "default"} />}
-        {g.status !== "Completed" && (
-          inToday
-            ? <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: t.sage, marginLeft: "auto" }}>{L("✓ dnes", "✓ today")}</span>
-            : <button onClick={(e) => { e.stopPropagation(); st.pushGoalToDay(g.name); }} title={L("Přidat do dnešních cílů", "Add to today's goals")} style={{ marginLeft: "auto", background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 12, padding: "1px 9px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 11 }}>{L("→ dnes", "→ today")}</button>
-        )}
-      </div>
-    </div>
-  );
-}
 
-// ---- Side drawer (Notion-like peek panel) ----
-// Rendered through a portal to <body>: no animated/transformed ancestor can
-// trap its position:fixed. Desktop slides in from the right; on mobile
-// (≤820px, via CSS) it becomes a bottom sheet with a grab handle — drag the
-// handle down past ~90px to close, otherwise it snaps back.
-function Drawer({ open, onClose, children }) {
-  const { t } = useT();
-  const [dragY, setDragY] = React.useState(0);
-  const [snapping, setSnapping] = React.useState(false);
-  const [touched, setTouched] = React.useState(false); // once true, the entry animation yields to the finger
-  const startRef = React.useRef(null);
-  React.useEffect(() => { if (!open) { setDragY(0); setSnapping(false); setTouched(false); } }, [open]);
-  if (!open) return null;
-  const onGripStart = (e) => { startRef.current = e.touches[0].clientY; setTouched(true); setSnapping(false); };
-  const onGripMove = (e) => {
-    if (startRef.current == null) return;
-    const dy = e.touches[0].clientY - startRef.current;
-    setDragY(dy > 0 ? dy : 0);
-  };
-  const onGripEnd = () => {
-    if (startRef.current == null) return;
-    startRef.current = null;
-    if (dragY > 90) { setDragY(0); onClose(); }
-    else { setSnapping(true); setDragY(0); }
-  };
-  return createPortal(
-    <>
-      <div onClick={onClose} className="tm-dim" style={{ position: "fixed", inset: 0, background: "rgba(20,18,15,0.45)", backdropFilter: "blur(2.5px)", WebkitBackdropFilter: "blur(2.5px)", zIndex: 180, animation: "tmDim .28s ease both" }} />
-      <div
-        className="tm-drawer"
-        style={{
-          position: "fixed", zIndex: 190, background: t.bg, overflowY: "auto", WebkitOverflowScrolling: "touch",
-          animation: touched ? "none" : undefined,
-          transform: dragY ? `translateY(${dragY}px)` : undefined,
-          transition: snapping ? "transform .26s cubic-bezier(.23,.62,.22,.99)" : undefined,
-        }}
-      >
-        <div className="tm-drawer-grip" onTouchStart={onGripStart} onTouchMove={onGripMove} onTouchEnd={onGripEnd} onTouchCancel={onGripEnd}>
-          <span />
-        </div>
-        <div style={{ padding: "22px 26px calc(40px + env(safe-area-inset-bottom))" }}>
-          <button onClick={onClose} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 16, padding: 4, float: "right" }}>✕</button>
-          <div style={{ clear: "none" }}>{children}</div>
-        </div>
-      </div>
-    </>,
-    document.body
-  );
-}
 
-function PropRow({ icon, label, children }) {
-  const { t } = useT();
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 0", minHeight: 34 }}>
-      <span style={{ width: 150, display: "flex", alignItems: "center", gap: 9, color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, flexShrink: 0 }}>
-        <span style={{ fontSize: 13, width: 16, textAlign: "center" }}>{icon}</span>{label}
-      </span>
-      <span style={{ flex: 1, minWidth: 0 }}>{children}</span>
-    </div>
-  );
-}
 
 // shared notes + attachments block for goals and areas · mirrors ContentDetail
-function MetaSection({ meta, onPatch, placeholder = L("Piš…", "Write…") }) {
-  const { t } = useT();
-  const st = useStore();
-  const fileRef = React.useRef(null);
-  const attach = async (fl) => {
-    const added = await filesToAtts(fl, st.ask);
-    if (added.length) onPatch({ att: [...(meta.att || []), ...added] });
-    if (fileRef.current) fileRef.current.value = "";
-  };
-  return (
-    <div style={{ borderTop: `1px solid ${t.borderSoft}`, marginTop: 16, paddingTop: 12 }}>
-      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11, color: t.sage, marginBottom: 6 }}>{L("Zápisky", "Notes")}</div>
-      <RichArea value={meta.text || ""} onChange={(v) => onPatch({ text: v })} placeholder={placeholder} />
-      <div style={{ marginTop: 10 }}>
-        <input ref={fileRef} type="file" multiple onChange={(e) => attach(e.target.files)} style={{ display: "none" }} />
-        <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}>＋ {L("Přiložit soubor", "Attach file")}</button>
-        <AttachmentStrip att={meta.att} onRemove={st.editMode ? ((id) => onPatch({ att: (meta.att || []).filter((x) => x.id !== id) })) : undefined} />
-      </div>
-    </div>
-  );
-}
 
-function GoalDetail({ name, openArea, onClose, onExpand, wide }) {
-  const { t } = useT();
-  const st = useStore();
-  const g = st.allGoals().find((x) => x.name === name);
-  const [note, setNote] = useState("");
-  if (!g) return null;
-  const cycle = (list, cur, apply) => apply(list[(list.indexOf(cur) + 1) % list.length]);
-  const pill = (label, color, onClick, title) => (
-    <button onClick={onClick} title={title || L("Klikni a přepínej", "Click to cycle")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Tag label={label} color={color} /></button>
-  );
-  const notes = st.goalNotes(g.name);
-  const addNote = () => { const v = note.trim(); if (!v) return; st.addGoalNote(g.name, v); setNote(""); };
-  const today = todayISO();
-  const inToday = st.getDay(today).tasks.some((task) => task.text === g.name);
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
-        <div style={{ fontSize: 30, color: t.textMuted }}>◎</div>
-        {onExpand && <button title={L("Otevřít jako stránku", "Open as page")} onClick={onExpand} style={{ ...iconBtn(t), border: "none", color: t.textMuted, fontSize: 14 }}>⤢</button>}
-      </div>
-      <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: wide ? 34 : 30, fontWeight: 500, color: t.heading, margin: "0 0 18px", lineHeight: 1.2, maxWidth: wide ? 720 : "none" }}>{g.name}</h2>
-      <PropRow icon="◍" label="Achievability">
-        {pill(g.ach ? ACH_SHORT[g.ach] || g.ach : "—", "default", () => cycle(ACHIEVES, g.ach, (v) => st.editGoal(g.name, { ach: v })))}
-      </PropRow>
-      <PropRow icon="◌" label="Status">
-        {pill(GS(g.status), GSTATUS_COLOR[g.status] || "default", () => cycle(GOAL_STATUSES, g.status, (v) => st.editGoal(g.name, { status: v })))}
-      </PropRow>
-      <PropRow icon="⊙" label="Priority">
-        {pill(g.prio || "—", PRIO_COLOR[g.prio] || "default", () => cycle(PRIOS, g.prio, (v) => st.editGoal(g.name, { prio: v })))}
-      </PropRow>
-      <PropRow icon="⌖" label="Goals">
-        {g.area ? (
-          <button onClick={() => openArea && openArea(g.area)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", gap: 7 }}>
-            <span style={{ fontSize: 14 }}>{st.areaIcon(g.area)}</span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 500, color: t.text, borderBottom: `1px solid ${t.textMuted}` }}>{g.area}</span>
-          </button>
-        ) : <span style={{ color: t.textMuted }}>—</span>}
-      </PropRow>
-      <PropRow icon="▦" label="Target Date">
-        <input type="date" value={g.target || ""} onChange={(e) => st.editGoal(g.name, { target: e.target.value })} style={{ background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 14, outline: "none", colorScheme: t.mode === "light" ? "light" : "dark" }} />
-      </PropRow>
-      <PropRow icon="▤" label={L("Archiv", "Archive")}>
-        <button onClick={() => st.editGoal(g.name, { archive: !g.archive })} title={L("Archivovat / vrátit", "Archive / restore")} style={{ width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${g.archive ? t.accent : t.border}`, background: g.archive ? t.accent : "transparent", cursor: "pointer", color: t.bg, fontSize: 11, lineHeight: 1, padding: 0 }}>{g.archive ? "✓" : ""}</button>
-      </PropRow>
-      <div style={{ padding: "10px 0 4px" }}>
-        {g.status !== "Completed" && !inToday && (
-          <button onClick={() => st.pushGoalToDay(g.name)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 14, padding: "4px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}>{L("→ poslat do dnešních cílů", "→ send to today's goals")}</button>
-        )}
-        {inToday && <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.sage }}>✓ {L("v dnešním plánu", "in today's plan")}</span>}
-        {st.editMode && (
-        <button
-          onClick={() => st.ask(L(`Přesunout „${g.name}" do koše?`, `Move "${g.name}" to trash?`), () => { if (g.user) st.removeUserGoal(g.id); else st.trashBuiltinGoal(g.name); onClose && onClose(); })}
-          style={{ marginLeft: 12, background: "transparent", border: `1px solid ${t.border}`, borderRadius: 14, padding: "4px 14px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 }}
-        >{L("Do koše", "To trash")}</button>
-        )}
-      </div>
-      <MetaSection meta={st.goalMetaOf(g.name)} onPatch={(p) => st.setGoalMeta(g.name, p)} placeholder={L("Piš k tomuto cíli…", "Write about this goal…")} />
-      <div style={{ borderTop: `1px solid ${t.borderSoft}`, marginTop: 14, paddingTop: 14 }}>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginBottom: 8 }}>Comments</div>
-        {notes.map((n) => (
-          <div key={n.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
-            <span style={{ width: 26, height: 26, borderRadius: "50%", background: t.card, border: `1px solid ${t.border}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>🐉</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>{fmtCZ(n.date)}</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.text, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{n.text}</div>
-            </div>
-            <button onClick={() => st.ask(L("Smazat komentář?", "Delete comment?"), () => st.removeGoalNote(g.name, n.id))} title={L("Smazat", "Delete")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 12 }}>✕</button>
-          </div>
-        ))}
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 6 }}>
-          <span style={{ width: 26, height: 26, borderRadius: "50%", background: t.card, border: `1px solid ${t.border}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>🐉</span>
-          <input value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addNote(); }} placeholder="Add a comment…" style={{ flex: 1, background: "transparent", border: "none", borderBottom: `1px solid ${t.borderSoft}`, color: t.text, fontFamily: FONT_BODY, fontSize: 14, padding: "4px 2px 7px", outline: "none" }} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function AreaDetail({ name, openGoal, onClose, onExpand, wide }) {
-  const { t, tags } = useT();
-  const st = useStore();
-  const a = st.listAreas().find((x) => x.name === name);
-  if (!a) return null;
-  const months = st.monthsOf(a);
-  const gs = st.allGoals().filter((g) => g.area === name || (g.areas || []).includes(name));
-  const done = gs.filter((g) => g.status === "Completed").length;
-  const em = st.editMode;
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
-        <div style={{ fontSize: 34 }}>{a.icon}</div>
-        {onExpand && <button title={L("Otevřít jako stránku", "Open as page")} onClick={onExpand} style={{ ...iconBtn(t), border: "none", color: t.textMuted, fontSize: 14 }}>⤢</button>}
-      </div>
-      <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 500, color: t.heading, margin: "0 0 16px", lineHeight: 1.2 }}>{a.name}</h2>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11, color: t.sage }}>Goals progress</span>
-        <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{done} / {gs.length}</span>
-      </div>
-      <ProgressBar value={gs.length ? done / gs.length : 0} />
-      <div style={{ height: 18 }} />
-      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11, color: t.sage, marginBottom: 8 }}>{L("Hodnocení po měsících", "Ratings by month")}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, marginBottom: 18 }}>
-        {ROM.map((r) => (
-          <div key={r} style={{ textAlign: "center", border: `1px solid ${months[r] != null ? t.border : t.borderSoft}`, borderRadius: 8, padding: "6px 2px", background: months[r] != null ? t.card : "transparent" }}>
-            <div style={{ fontFamily: FONT_TAG, fontSize: 10, letterSpacing: "0.08em", color: t.textMuted }}>{r}</div>
-            {em ? (
-              <input type="number" min="0" max="10" value={months[r] != null ? months[r] : ""} placeholder="—"
-                onChange={(e) => st.setAreaMonth(a.name, r, e.target.value === "" ? null : Math.max(0, Math.min(10, +e.target.value)))}
-                style={{ width: "100%", background: "transparent", border: "none", textAlign: "center", color: t.heading, fontFamily: FONT_DISPLAY, fontSize: 16, outline: "none" }} />
-            ) : (
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 17, color: months[r] != null ? t.sand : t.borderSoft }}>{months[r] != null ? months[r] : "·"}</div>
-            )}
-          </div>
-        ))}
-      </div>
-      <MetaSection meta={st.areaMetaOf(a.name)} onPatch={(p) => st.setAreaMeta(a.name, p)} placeholder={L("Piš k této oblasti…", "Write about this area…")} />
-      <div style={{ height: 14 }} />
-      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11, color: t.sage, marginBottom: 6 }}>{L("Cíle", "Goals")} · {gs.length}</div>
-      {gs.length === 0 && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("Zatím žádné cíle v této oblasti.", "No goals in this area yet.")}</div>}
-      {gs.map((g) => (
-        <button key={g.name} onClick={() => openGoal && openGoal(g.name)} style={{ display: "flex", width: "100%", alignItems: "center", gap: 9, padding: "8px 4px", background: "transparent", border: "none", borderBottom: `1px solid ${t.borderSoft}`, cursor: "pointer", textAlign: "left" }}>
-        <span style={{ color: t.textMuted, fontSize: 12 }}>◎</span>
-          <span style={{ flex: 1, fontFamily: FONT_BODY, fontSize: 13.5, color: g.status === "Completed" ? t.textMuted : t.text, textDecoration: g.status === "Completed" ? "line-through" : "none" }}>{g.name}</span>
-          <Tag label={GS(g.status)} color={GSTATUS_COLOR[g.status] || "default"} />
-        </button>
-      ))}
-      <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${t.borderSoft}` }}>
-        {st.editMode && (
-        <button
-          onClick={() => { const msg = gs.length ? L(`Přesunout „${a.name}" do koše? ${gs.length} cílů v této oblasti tam zůstane, jen ztratí přiřazení.`, `Move "${a.name}" to trash? ${gs.length} goals in this area will stay, they just lose the assignment.`) : L(`Přesunout „${a.name}" do koše?`, `Move "${a.name}" to trash?`); st.ask(msg, () => { st.removeArea(a.name); onClose && onClose(); }); }}
-          style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 14, padding: "4px 14px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 }}
-        >🗑 {L("Přesunout oblast do koše", "Move area to trash")}</button>
-        )}
-      </div>
-    </div>
-  );
-}
 
-function AddGoalForm() {
-  const { t } = useT();
-  const st = useStore();
-  const areas = st.listAreas();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [area, setArea] = useState(areas[0] ? areas[0].name : "");
-  const [prio, setPrio] = useState("Normal");
-  const [target, setTarget] = useState("");
-  if (!open) return <button onClick={() => setOpen(true)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, width: "100%", textAlign: "left", marginBottom: 12 }}>＋ {L("Nový cíl", "New goal")}</button>;
-  return (
-    <div style={{ background: t.callout, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, marginBottom: 12 , boxShadow: t.shadow }}>
-      <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) { st.addGoal({ id: uid(), name: name.trim(), area, areas: [area], status: "Not started", prio, ach: "", target }); setName(""); setTarget(""); setOpen(false); } }} placeholder={L("Název cíle…", "Goal name…")} style={{ ...fieldStyle(t), marginBottom: 8 }} />
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-        <Select value={area} onChange={setArea} style={{ maxWidth: 220, width: 220 }} options={areas.map((a) => ({ v: a.name, label: `${a.icon} ${a.name}` }))} />
-        <Select value={prio} onChange={setPrio} style={{ maxWidth: 130, width: 130 }} options={PRIOS.map((x) => ({ v: x, label: PL(x) }))} />
-        <input type="date" value={target} onChange={(e) => setTarget(e.target.value)} style={{ ...fieldStyle(t), maxWidth: 170, colorScheme: t.mode === "light" ? "light" : "dark" }} />
-      </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => { if (!name.trim()) return; st.addGoal({ id: uid(), name: name.trim(), area, areas: [area], status: "Not started", prio, ach: "", target }); setName(""); setTarget(""); setOpen(false); }} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14, fontWeight: 500 }}>{L("Uložit", "Save")}</button>
-        <button onClick={() => setOpen(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14 }}>{L("Zrušit", "Cancel")}</button>
-      </div>
-    </div>
-  );
-}
 
-function Board({ groups, onOpen, onMove }) {
-  const { t, tags } = useT();
-  const [overCol, setOverCol] = useState(null);
-  const dnd = !!onMove;
-  const getName = (e) => { const d = (e.dataTransfer.getData("text/plain") || "").split(":"); return d[0] === "goal" ? d.slice(1).join(":") : null; };
-  return (
-    <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" }}>
-      {groups.map(([title, color, items, dropVal]) => {
-        const c = (tags[color] || tags.default).fg;
-        const colOver = overCol === title;
-        return (
-          <div
-            key={title}
-            onDragOver={dnd ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setOverCol(title); } : undefined}
-            onDragLeave={dnd ? () => setOverCol((x) => (x === title ? null : x)) : undefined}
-            onDrop={dnd ? (e) => {
-              e.preventDefault(); setOverCol(null);
-              const n = getName(e); if (!n) return;
-              onMove(n, dropVal, null); // column body -> end of column
-            } : undefined}
-            style={{ minWidth: 240, maxWidth: 285, flex: "1 0 240px", display: "flex", flexDirection: "column", maxHeight: "min(560px, 64vh)", background: hexA(c, colOver ? 0.12 : 0.055), border: `1px solid ${hexA(c, colOver ? 0.4 : 0.14)}`, borderRadius: 10, padding: "10px 6px 4px 10px", transition: "background .15s ease, border-color .15s ease" }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingLeft: 2, flexShrink: 0 }}>
-              <Tag label={title} color={color} />
-              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{items.length}</span>
-            </div>
-            <div style={{ overflowY: "auto", flex: 1, minHeight: 0, paddingRight: 4 }}>
-              {items.map((g) => (
-                <div
-                  key={g.name}
-                  draggable={dnd}
-                  onDragStart={dnd ? (e) => { e.dataTransfer.setData("text/plain", "goal:" + g.name); e.dataTransfer.effectAllowed = "move"; } : undefined}
-                  onDragOver={dnd ? (e) => { e.preventDefault(); e.stopPropagation(); setOverCol(title); } : undefined}
-                  onDrop={dnd ? (e) => {
-                    e.preventDefault(); e.stopPropagation(); setOverCol(null);
-                    const n = getName(e); if (!n || n === g.name) return;
-                    onMove(n, dropVal, g.name); // relative to this card, direction-aware
-                  } : undefined}
-                  style={dnd ? { cursor: "grab" } : undefined}
-                >
-                  <GoalCard g={g} onOpen={onOpen} />
-                </div>
-              ))}
-              {items.length === 0 && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5, color: t.textMuted, padding: "2px 4px 8px" }}>"—"</div>}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
-const G_VIEWS = ["Status", "Area", "Priority", "Completed", "Archiv"];
 
-function GoalWorkspace({ withAreas }) {
-  const { t } = useT();
-  const st = useStore();
-  const [view, setView] = useState("Status");
-  const [fArea, setFArea] = useState("Vše");
-  const [fPrio, setFPrio] = useState("Vše");
-  const [sortBy, setSortBy] = useState("prio");
-  const [sel, setSel] = useState(null); // {type:'goal'|'area', id}
-  const [full, setFull] = useState(null); // {type, id} · full-page detail
-  const [addingArea, setAddingArea] = useState(false);
-
-  const openGoal = (name) => setSel({ type: "goal", id: name });
-  const applyMove = (patchOf) => (n, v, over) => { st.dragGoal(n, over, patchOf(v)); if (sortBy !== "manual") setSortBy("manual"); };
-  const openArea = (name) => setSel({ type: "area", id: name });
-
-  const all = st.allGoals();
-  const areaNames = st.listAreas().map((a) => a.name);
-  const sorters = {
-    prio: (a, b) => (PRIO_ORDER[a.prio] ?? 9) - (PRIO_ORDER[b.prio] ?? 9) || (a.target || "9999").localeCompare(b.target || "9999"),
-    dateAsc: (a, b) => (a.target || "9999").localeCompare(b.target || "9999"),
-    dateDesc: (a, b) => (b.target || "0000").localeCompare(a.target || "0000"),
-    name: (a, b) => a.name.localeCompare(b.name, "cs"),
-  };
-  let rows = st.orderGoals(all.filter((g) => {
-    if (fArea !== "Vše" && g.area !== fArea && !(g.areas || []).includes(fArea)) return false;
-    if (fPrio !== "Vše" && g.prio !== fPrio) return false;
-    return true;
-  }));
-  if (sortBy !== "manual") rows = [...rows].sort(sorters[sortBy] || sorters.prio);
-  const nonArch = rows.filter((g) => !g.archive);
-  const archived = rows.filter((g) => g.archive);
-  const completed = nonArch.filter((g) => g.status === "Completed");
-
-  const selStyle = { ...fieldStyle(t), width: "auto", maxWidth: 168, padding: "5px 8px", fontSize: 12.5 };
-  const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 10 };
-
-  if (full) {
-    return (
-      <>
-        <button onClick={() => setFull(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 0 16px", display: "inline-flex", alignItems: "center", gap: 6 }}>{L("‹ Zpět", "‹ Back")}</button>
-        {full.type === "area"
-          ? <AreaDetail name={full.id} wide openGoal={(n) => setFull({ type: "goal", id: n })} onClose={() => setFull(null)} />
-          : <GoalDetail name={full.id} wide openArea={(n) => setFull({ type: "area", id: n })} onClose={() => setFull(null)} />}
-      </>
-    );
-  }
-  return (
-    <>
-      {withAreas && (
-        <div style={{ marginBottom: 14 }}>
-          {addingArea && <AddAreaForm onDone={() => setAddingArea(false)} />}
-          <AreaChips onOpen={openArea} onAdd={() => setAddingArea(true)} />
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}` }}>
-        {G_VIEWS.map((v) => (
-          <button key={v} onClick={() => setView(v)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "8px 11px 9px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: view === v ? t.accent : t.textMuted, borderBottom: view === v ? `2px solid ${t.accent}` : "2px solid transparent", marginBottom: -1 }}>{LV(v)}</button>
-        ))}
-        <span style={{ flex: 1 }} />
-      </div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}>
-        <Select small value={fArea} onChange={setFArea} style={{ flex: "1 1 0", minWidth: 0, maxWidth: 180 }} options={[{ v: "Vše", label: L("Vše", "All") }, ...areaNames]} />
-        <Select small value={fPrio} onChange={setFPrio} style={{ flex: "1 1 0", minWidth: 0, maxWidth: 140 }} options={[{ v: "Vše", label: L("Vše", "All") }, ...PRIOS.map((x) => ({ v: x, label: PL(x) }))]} />
-        <Select small value={sortBy} onChange={setSortBy} style={{ flex: "1 1 0", minWidth: 0, maxWidth: 150 }} options={[{ v: "manual", label: L("vlastní pořadí", "custom order") }, { v: "prio", label: L("priorita", "priority") }, { v: "dateAsc", label: L("datum ↑", "date ↑") }, { v: "dateDesc", label: L("datum ↓", "date ↓") }, { v: "name", label: "A–Z" }]} />
-      </div>
-
-      <AddGoalForm />
-
-      {view === "Status" && (
-        <Board onOpen={openGoal} onMove={applyMove((v) => ({ status: v }))} groups={GOAL_STATUSES.map((sx) => [GS(sx), GSTATUS_COLOR[sx], nonArch.filter((g) => g.status === sx), sx])} />
-      )}
-      {view === "Area" && (
-        <Board onOpen={openGoal} onMove={applyMove((v) => ({ area: v, areas: v ? [v] : [] }))} groups={[...areaNames, ""].map((n) => [n || L("Bez krajiny", "No landscape"), n ? (AREA_COLOR[n] || "default") : "default", nonArch.filter((g) => (g.area || "") === n), n]).filter(([, , items]) => items.length > 0)} />
-      )}
-      {view === "Priority" && (
-        <Board onOpen={openGoal} onMove={applyMove((v) => ({ prio: v }))} groups={PRIOS.map((p) => [PL(p), PRIO_COLOR[p], nonArch.filter((g) => g.prio === p), p])} />
-      )}
-      {view === "Completed" && (completed.length ? <div style={grid}>{completed.map((g) => <GoalCard key={g.name} g={g} onOpen={openGoal} />)}</div> : <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("Zatím nic dokončeného v tomto filtru.", "Nothing completed in this filter yet.")}</p>)}
-      {view === "Archiv" && (archived.length ? <div style={grid}>{archived.map((g) => <GoalCard key={g.name} g={g} onOpen={openGoal} />)}</div> : <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("Archiv je prázdný.", "The archive is empty.")}</p>)}
-
-      <Drawer open={!!sel} onClose={() => setSel(null)}>
-        {sel && sel.type === "goal" && <GoalDetail name={sel.id} openArea={openArea} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
-        {sel && sel.type === "area" && <AreaDetail name={sel.id} openGoal={openGoal} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
-      </Drawer>
-    </>
-  );
-}
 
 // ---- Notion-style page cover + animated icon ----
 function PageCover({ cover, icon }) {
@@ -2769,46 +1390,7 @@ function AreaInlineEditor() {
   );
 }
 
-function AreaChips({ onOpen, onAdd }) {
-  const { t } = useT();
-  const st = useStore();
-  const all = st.allGoals();
-  if (st.editMode) return <AreaInlineEditor />;
-  return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 4, alignItems: "center" }}>
-      {st.listAreas().map((a) => {
-        const gs = all.filter((g) => g.area === a.name || (g.areas || []).includes(a.name));
-        const done = gs.filter((g) => g.status === "Completed").length;
-        return (
-          <button key={a.name} onClick={() => onOpen(a.name)} title={`${done} / ${gs.length} ${L("cílů", "goals")}`} className="tm-nav-item tm-lift" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 18, padding: "6px 13px", cursor: "pointer" }}>
-          <span style={{ fontSize: 14 }}>{a.icon}</span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text }}>{areaLabel(a.name)}</span>
-            <span style={{ width: 34, height: 3, borderRadius: 2, background: t.borderSoft, position: "relative", overflow: "hidden" }}>
-              <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${gs.length ? Math.round((done / gs.length) * 100) : 0}%`, background: t.accent, transition: "width .55s cubic-bezier(.25,.8,.3,1)" }} />
-            </span>
-          </button>
-        );
-      })}
-      {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 18, padding: "6px 12px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13 }}>＋ {L("nová", "new")}</button>}
-    </div>
-  );
-}
 
-function PageGoals({ go }) {
-  const { t } = useT();
-  const st = useStore();
-  const live = st.allGoals().filter((g) => !g.archive);
-  const nProg = live.filter((g) => g.status === "In progress").length;
-  const nDone = live.filter((g) => g.status === "Completed").length;
-  return (
-    <>
-      {go && <button onClick={() => go("kompas")} className="tm-nav-item" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 8px 14px 0", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 8 }}>‹ {L("Kompas", "Compass")}</button>}
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcCile size={34} /></span>} pageKey="cile" kicker={L("Kompas", "Compass")}>{L("Cíle", "Goals")}</PageTitle>
-      <p style={pProse(t)}>{live.length} {L("cílů", "goals")} · {nProg} {L("rozpracovaných", "in progress")} · {nDone} {L("hotových.", "done.")}{st.editMode && <span style={{ color: t.textMuted }}>{L(" Klikni na kartu a otevři detail.", " Click a card to open its detail.")}</span>}</p>
-      <GoalWorkspace />
-    </>
-  );
-}
 // ---- Rich text · lightweight brand formatting ----
 // # Nadpis (Cormorant) · ## Podnadpis (Barlow tag) · **tučně** · *kurzíva*
 // ---- brand ink · the only colours writing may wear (§6: copper/sage/sand as accents) ----
@@ -3095,265 +1677,8 @@ function InlineText({ value, placeholder, onSave }) {
 }
 
 
-function ContentDetail({ id, onClose, onExpand, wide }) {
-  const { t } = useT();
-  const st = useStore();
-  const e = (st.coll.content || []).find((x) => x.id === id);
-  const coverRef = React.useRef(null);
-  const fileRef = React.useRef(null);
-  const taRef = React.useRef(null);
-  const autosize = () => { const el = taRef.current; if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + 2 + "px"; } };
-  React.useEffect(() => { autosize(); }, [id]);
-  if (!e) return null;
-  const upd = (patch) => st.updateEntry("content", e.id, patch);
-  const cycle = (list, cur, key) => upd({ [key]: list[(list.indexOf(cur) + 1) % list.length] });
-  const pickCover = async (file) => {
-    if (!file) return;
-    try {
-      const old = e.icon;
-      const blob = await resizeImageToBlob(file, 360);
-      const id = uid() + "i";
-      await r2Put(id, blob, file.name);
-      upd({ icon: { r2id: id } });
-      if (old && old.r2id) r2Del(old.r2id);
-    } catch (err) {}
-    if (coverRef.current) coverRef.current.value = "";
-  };
-  const findCover = () => {
-    const q = ((e.title || "") + " " + (e.author || "")).trim() || L("obálka", "cover");
-    window.open("https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(q + " cover"), "_blank", "noopener,noreferrer");
-  };
-  const sourceLink = () => {
-    const q = encodeURIComponent(((e.title || "") + " " + (e.author || "")).trim());
-    if (e.type === "Movie") return { url: "https://www.imdb.com/find/?q=" + encodeURIComponent(e.title || ""), label: "IMDb" };
-    if (e.type === "Podcast" || e.type === "Feed") return { url: "https://www.google.com/search?q=" + q, label: "Google" };
-    return { url: "https://www.goodreads.com/search?q=" + q, label: "Goodreads" };
-  };
-  const attach = async (fileList) => {
-    const added = await filesToAtts(fileList, st.ask);
-    if (added.length) upd({ att: [...(e.att || []), ...added] });
-    if (fileRef.current) fileRef.current.value = "";
-  };
-  const scoreN = e.score === "" || e.score == null ? null : +e.score;
-  return (
-    <div style={wide ? { maxWidth: 640 } : undefined}>
-      <input ref={coverRef} type="file" accept="image/*" onChange={(ev) => pickCover(ev.target.files && ev.target.files[0])} style={{ display: "none" }} />
-      <button title={L("Nahrát obálku", "Upload cover")} onClick={() => coverRef.current && coverRef.current.click()} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, marginBottom: 12, display: "block" }}>
-        {e.icon
-          ? <img src={imgSrc(e.icon)} alt="" style={{ width: 92, height: 128, objectFit: "cover", borderRadius: 8, border: `1px solid ${t.border}`, boxShadow: "0 8px 20px rgba(0,0,0,0.3)", display: "block" }} />
-          : <span style={{ width: 92, height: 128, borderRadius: 8, border: `1px dashed ${t.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 6, color: t.textMuted, fontFamily: FONT_BODY, fontSize: 11 }}><span style={{ color: t.sand }}>{React.createElement(C_TYPE_GLYPH[e.type] || TmIcKniha, { size: 26 })}</span>{L("nahrát obálku", "upload cover")}<span onClick={(ev) => { ev.stopPropagation(); findCover(); }} title={L("Otevře Google obrázky s názvem — obrázek stáhni a nahraj", "Opens Google Images for the title — download and upload it")} style={{ marginTop: 4, paddingTop: 6, borderTop: `1px dashed ${t.borderSoft}`, width: "72%", textAlign: "center", color: t.sand, fontSize: 11.5 }}>{L("Najít obálku", "Find cover")}</span></span>}
-      </button>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 }}>
-        {e.icon && <button onClick={() => { if (e.icon && e.icon.r2id) r2Del(e.icon.r2id); upd({ icon: null }); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 }}>{L("Odebrat", "Remove")}</button>}
-      </div>
-      <div style={{ marginBottom: 14 }}>
-        {st.editMode
-          ? <input value={e.title} onChange={(ev) => upd({ title: ev.target.value })} placeholder={L("Název…", "Title…")} style={{ width: "100%", background: "transparent", border: "none", fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 500, color: t.heading, outline: "none", padding: 0, lineHeight: 1.2 }} />
-          : (() => { const s = sourceLink(); return <a href={e.title ? s.url : undefined} target="_blank" rel="noopener noreferrer" title={e.title ? L("Vyhledat · ", "Search · ") + s.label : ""} onMouseOver={(ev) => { if (e.title) ev.currentTarget.style.color = t.accent; }} onMouseOut={(ev) => { ev.currentTarget.style.color = t.heading; }} style={{ display: "block", fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 500, color: t.heading, lineHeight: 1.2, textDecoration: "none", cursor: e.title ? "pointer" : "default", transition: "color .18s ease" }}>{e.title || L("Bez názvu", "Untitled")}</a>; })()}
-      </div>
-      <PropRow icon="◌" label={L("Stav", "Progress")}><button onClick={() => cycle(C_PROGRESS, e.progress, "progress")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Tag label={C_PROG_LABEL(e.progress, e.type)} color={C_PROG_COLOR[e.progress] || "default"} /></button></PropRow>
-      <PropRow icon="≡" label={L("Autor", "Author")}><input value={e.author || ""} onChange={(ev) => upd({ author: ev.target.value })} placeholder="—" style={{ width: "100%", background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 14, outline: "none" }} /></PropRow>
-      <PropRow icon="▦" label={L("Dokončeno dne", "Date finished")}><input type="date" value={e.dateFinished || ""} onChange={(ev) => upd({ dateFinished: ev.target.value })} style={{ background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 14, outline: "none", colorScheme: t.mode === "light" ? "light" : "dark" }} /></PropRow>
-      <PropRow icon="#" label={L("Skóre /10", "Score /10")}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => upd({ score: String(Math.max(0, (scoreN == null ? 5 : scoreN) - 1)) })} style={{ ...iconBtn(t), width: 22, height: 22 }}>−</button>
-          <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: scoreN != null ? t.heading : t.textMuted, minWidth: 26, textAlign: "center" }}>{scoreN != null ? scoreN : "—"}</span>
-          <button onClick={() => upd({ score: String(Math.min(10, (scoreN == null ? 5 : scoreN) + 1)) })} style={{ ...iconBtn(t), width: 22, height: 22 }}>＋</button>
-        </span>
-      </PropRow>
-      <PropRow icon="⊙" label={L("Typ", "Type")}><button onClick={() => cycle(C_TYPES, e.type, "type")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Tag label={e.type ? C_TYPE_LABEL(e.type) : "—"} color={C_TYPE_COLOR[e.type] || "default"} /></button></PropRow>
-      <PropRow icon="⊙" label={L("Žánr", "Genre")}><Select small value={e.category || ""} onChange={(v) => upd({ category: v })} placeholder="—" style={{ maxWidth: 170, width: 170 }} options={(C_CATS_BY_TYPE[e.type] || C_CATS).map((c) => ({ v: c, label: C_CAT_LABEL(c) }))} /></PropRow>
-      <PropRow icon="▤" label={L("Archiv", "Archive")}>
-        <button onClick={() => upd({ archive: !e.archive })} title={e.archive ? L("Vrátit z archivu", "Restore from archive") : L("Archivovat", "Archive")} style={{ width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${e.archive ? t.accent : t.border}`, background: e.archive ? t.accent : "transparent", cursor: "pointer", color: t.bg, fontSize: 11, lineHeight: 1, padding: 0 }}>{e.archive ? "✓" : ""}</button>
-      </PropRow>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px 0 6px" }}>
-        <input ref={fileRef} type="file" multiple accept=".pdf,audio/*,image/*,.doc,.docx,.txt" onChange={(ev) => attach(ev.target.files)} style={{ display: "none" }} />
-        <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5, display: "inline-flex", alignItems: "center", gap: 7 }}><ClipIcon size={13} />{L("PDF · audio shrnutí · soubor", "PDF · audio summary · file")}</button>
-        {onExpand && <button title={L("Otevřít jako stránku", "Open as page")} onClick={onExpand} style={{ ...iconBtn(t), border: "none", color: t.textMuted, fontSize: 14 }}>⤢</button>}
-        {wide && <PinToggle entry={e} />}
-        <span style={{ flex: 1 }} />
-        {(st.editMode || wide) && <button onClick={() => st.ask(L(`Přesunout „${e.title}" do koše?`, `Move "${e.title}" to trash?`), () => { st.removeEntry("content", e.id); onClose && onClose(); })} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 14, padding: "4px 14px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 }}>{L("Do koše", "To trash")}</button>}
-      </div>
-      <AttachmentStrip att={e.att} onRemove={(aid) => upd({ att: (e.att || []).filter((x) => x.id !== aid) })} />
 
-      <div style={{ borderTop: `1px solid ${t.borderSoft}`, marginTop: 14, paddingTop: 12 }}>
-        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11, color: t.sage, marginBottom: 6 }}>{L("Postřehy", "Notes")}</div>
-        <RichArea value={e.text || ""} onChange={(v) => upd({ text: v })} placeholder={L("Co si z toho odnáším…", "What I take from it…")} />
-      </div>
-    </div>
-  );
-}
-
-function ContentRow({ e, cols, last, onOpen, noDrag, selecting, selected, onToggleSel }) {
-  const { t } = useT();
-  const st = useStore();
-  const rootRef = React.useRef(null);
-  const onOverRef = React.useRef(null);
-  onOverRef.current = (overId) => st.reorderEntry("content", e.id, overId);
-  const disRef = React.useRef(false); disRef.current = !!noDrag || !!selecting;
-  const dragging = useHoldReorder(rootRef, e.id, "data-cid", onOverRef, disRef);
-  return (
-    <div
-      ref={rootRef}
-      data-cid={e.id}
-      draggable={!noDrag && !selecting}
-      onDragStart={!noDrag && !selecting ? (ev) => { ev.dataTransfer.setData("text/plain", "cid:" + e.id); ev.dataTransfer.effectAllowed = "move"; } : undefined}
-      onDragOver={(ev) => ev.preventDefault()}
-      onDrop={(ev) => { ev.preventDefault(); const d = (ev.dataTransfer.getData("text/plain") || "").split(":"); if (d[0] === "cid" && d[1] && d[1] !== e.id) st.reorderEntry("content", d[1], e.id); }}
-      className="tm-nav-item"
-      onClick={selecting ? () => onToggleSel(e.id) : () => onOpen(e.id)}
-      style={{ display: "flex", alignItems: "center", gap: 12, border: `1px solid ${selected || dragging ? t.accent : t.borderSoft}`, borderRadius: 10, margin: "8px 0", padding: "10px 12px", cursor: "pointer", background: selected ? hexA(t.accent, 0.07) : dragging ? hexA(t.accent, 0.08) : t.card, boxShadow: dragging ? t.shadowLift : t.shadow, transform: dragging ? "scale(1.008)" : "none", transition: "transform .12s ease, box-shadow .12s ease", userSelect: dragging ? "none" : "auto" }}
-    >
-      {selecting && <span style={{ width: 17, height: 17, flexShrink: 0, borderRadius: 6, border: `1.5px solid ${selected ? t.accent : t.border}`, background: selected ? t.accent : "transparent", color: t.bg, fontSize: 11, lineHeight: "15px", textAlign: "center" }}>{selected ? "✓" : ""}</span>}
-      {e.icon
-        ? <img src={imgSrc(e.icon)} alt="" style={{ width: 30, height: 40, objectFit: "cover", borderRadius: 5, flexShrink: 0, border: `1px solid ${t.borderSoft}` }} />
-        : <span style={{ width: 30, flexShrink: 0, display: "inline-flex", justifyContent: "center", color: t.sand }}>{React.createElement(C_TYPE_GLYPH[e.type] || TmIcKniha, { size: 19 })}</span>}
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-          <span style={{ fontFamily: FONT_DISPLAY, fontSize: 17.5, color: t.heading, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</span>
-          <PinDot id={e.id} />
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4, flexWrap: "wrap" }} onClick={(ev) => ev.stopPropagation()}>
-          <button onClick={() => st.updateEntry("content", e.id, { progress: C_PROGRESS[(C_PROGRESS.indexOf(e.progress) + 1) % C_PROGRESS.length] })} title={L("Klikni a přepínej", "Click to cycle")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
-            <Tag label={C_PROG_LABEL(e.progress, e.type)} color={C_PROG_COLOR[e.progress] || "default"} />
-          </button>
-          {e.category ? <Tag label={C_CAT_LABEL(e.category)} color="default" /> : null}
-          {e.author ? <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180 }}>{e.author}</span> : null}
-        </span>
-      </span>
-      <span title="/10" style={{ flexShrink: 0, fontFamily: FONT_DISPLAY, fontSize: 16.5, color: e.score ? t.sand : t.textMuted }}>{e.score || "—"}</span>
-    </div>
-  );
-}
-
-function PageContent() {
-  const { t } = useT();
-  const st = useStore();
-  React.useEffect(() => { st.importContent(); st.migrateContentSchema(); }, []);
-  const all = st.coll.content || [];
-  const [view, setView] = useState("Vše");
-  const [fProg, setFProg] = useState("Vše");
-  const [fCat, setFCat] = useState("Vše");
-  const [offlineOnly, setOfflineOnly] = useState(false);
-  const [sortBy, setSortBy] = useState("manual");
-  const [sel, setSel] = useState(null);   // drawer id
-  const [full, setFull] = useState(null); // full-page id
-  const [adding, setAdding] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [newType, setNewType] = useState("Book");
-  const [q, setQ] = useState("");
-  const [qOpen, setQOpen] = useState(false);
-  const [fOpen, setFOpen] = useState(false);
-  const [selecting, setSelecting] = useState(false);
-  const [selIds, setSelIds] = useState([]);
-  const toggleSelC = (id) => setSelIds((xs) => xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]);
-  const exitSelectC = () => { setSelecting(false); setSelIds([]); };
-
-  const TABS = ["Vše", ...C_TYPES];
-  const live = all.filter((e) => !e.archive);
-  let shown = view === "Archiv" ? all.filter((e) => e.archive) : view === "Vše" ? live : live.filter((e) => e.type === view);
-  if (fProg !== "Vše") shown = shown.filter((e) => e.progress === fProg);
-  if (fCat !== "Vše") shown = shown.filter((e) => e.category === fCat);
-  const catOpts = Array.from(new Set(live.map((e) => e.category).filter(Boolean))).sort((a, b) => C_CAT_LABEL(a).localeCompare(C_CAT_LABEL(b), "cs"));
-  const sorters = {
-    score: (a, b) => (+(b.score || -1)) - (+(a.score || -1)),
-    dateDesc: (a, b) => (b.dateFinished || "").localeCompare(a.dateFinished || ""),
-    name: (a, b) => (a.title || "").localeCompare(b.title || "", "cs"),
-    cat: (a, b) => (a.category || "").localeCompare(b.category || "") || (+(b.score || -1)) - (+(a.score || -1)),
-  };
-  if (sortBy !== "manual") shown = [...shown].sort(sorters[sortBy] || sorters.score);
-  if (q.trim()) { const needle = q.trim().toLowerCase(); shown = shown.filter((e) => ((e.title || "") + " " + (e.author || "")).toLowerCase().includes(needle)); }
-  if (offlineOnly) shown = shown.filter((e) => isEntryPinned(e.id));
-  const counts = { "Vše": live.length, "Archiv": all.length - live.length };
-  C_TYPES.forEach((x) => { counts[x] = live.filter((e) => e.type === x).length; });
-
-  const addNew = () => {
-    const v = newTitle.trim();
-    if (!v) return;
-    const id = uid();
-    st.addEntry("content", { id, title: v, author: "", score: "", type: newType, progress: "Ready to start", category: (C_CATS_BY_TYPE[newType] || [])[0] || "", dateFinished: "", text: "", icon: null });
-    setNewTitle(""); setAdding(false); setSel(id);
-  };
-
-  if (full) {
-    return (
-      <>
-        <button onClick={() => setFull(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 0 16px", display: "inline-flex", alignItems: "center", gap: 6 }}>‹ {L("Prameny", "Sources")}</button>
-        <ContentDetail id={full} wide onClose={() => setFull(null)} />
-      </>
-    );
-  }
-
-  const cols = "minmax(200px, 1fr) 118px 112px 42px 128px";
-
-  return (
-    <>
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPrameny size={38} /></span>} pageKey="prameny" kicker={L("Co si nést dál", "What to carry forward")}>{L("Prameny", "Sources")}</PageTitle>
-      {st.editMode && <p style={pProse(t)}><span style={{ color: t.textMuted }}>{L("Klik otevře detail · podrž a přetáhni ve vlastním pořadí · progress přepneš přímo v řádku.", "Click opens the detail · hold and drag in custom order · toggle progress right in the row.")}</span></p>}
-
-      <div className="tm-typerow" style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
-        {TABS.map((v) => (
-          <button key={v} onClick={() => setView(v)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "8px 10px 9px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 11.5, color: view === v ? t.accent : t.textMuted, borderBottom: view === v ? `2px solid ${t.accent}` : "2px solid transparent", marginBottom: -1 }}>
-            {C_TYPES.includes(v) ? C_TYPE_LABEL(v) : LV(v)}<span style={{ marginLeft: 5, opacity: 0.6, fontSize: 10 }}>{counts[v] || 0}</span>
-          </button>
-        ))}
-        <span style={{ flex: 1 }} />
-        <span className="tm-deskonly" style={{ display: "inline-flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${q ? t.accent : t.borderSoft}`, marginRight: 4, flexShrink: 0 }}><span style={{ color: t.textMuted, display: "inline-flex" }}><TmIcLupa size={13} /></span><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13, outline: "none", padding: "4px 2px", width: 120 }} /></span>
-        <button className="tm-monly" onClick={() => setQOpen((x) => !x)} title={L("Hledat", "Search")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: qOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: qOpen ? t.accent : t.textMuted }}><TmIcLupa size={15} /></button>
-        <button className="tm-monly" onClick={() => setFOpen((x) => !x)} title={L("Filtry a řazení", "Filters and sorting")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: fOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: fOpen ? t.accent : t.textMuted, fontSize: 13 }}>▾</button>
-      </div>
-      {qOpen && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${q ? t.accent : t.borderSoft}`, margin: "0 0 12px", paddingBottom: 6 }}>
-          <span style={{ color: t.textMuted, display: "inline-flex" }}><TmIcLupa size={13} /></span>
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat v pramenech…", "Search the sources…")} style={{ flex: 1, background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, outline: "none", padding: "4px 2px" }} />
-        </div>
-      )}
-      <div className={"tm-cfilters" + (fOpen ? " open" : "")} style={{ display: "flex", gap: 8, alignItems: "center", margin: "10px 0 12px", flexWrap: "wrap" }}>
-        <Select ghost value={fProg} onChange={setFProg} style={{ width: "auto" }} options={[{ v: "Vše", label: L("progress: vše", "progress: all") }, ...C_PROGRESS.map((p) => ({ v: p, label: C_PROG_LABEL(p).toLowerCase() }))]} />
-        {catOpts.length > 0 && <Select ghost value={fCat} onChange={setFCat} style={{ width: "auto" }} options={[{ v: "Vše", label: L("žánr: vše", "genre: all") }, ...catOpts.map((c) => ({ v: c, label: C_CAT_LABEL(c) }))]} />}
-        <Select ghost value={sortBy} onChange={setSortBy} style={{ width: "auto" }} options={[{ v: "manual", label: L("vlastní pořadí", "custom order") }, { v: "score", label: L("skóre", "score") }, { v: "dateDesc", label: L("nejnovější", "newest") }, { v: "cat", label: L("žánr", "genre") }, { v: "name", label: "A–Z" }]} />
-        <button onClick={() => setOfflineOnly((x) => !x)} title={L("Zobrazit jen offline uložené", "Show only offline-saved")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: offlineOnly ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${offlineOnly ? t.accent : "transparent"}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: offlineOnly ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: offlineOnly ? t.accent : t.textMuted, flexShrink: 0 }} />offline</button>
-        <button onClick={() => setView(view === "Archiv" ? "Vše" : "Archiv")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: view === "Archiv" ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${view === "Archiv" ? t.accent : "transparent"}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: view === "Archiv" ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}>{LV("Archiv")} {counts["Archiv"] || 0}</button>
-        {st.editMode && <button onClick={() => selecting ? exitSelectC() : setSelecting(true)} style={{ background: selecting ? t.activeNav : "transparent", border: `1px solid ${selecting ? t.accent : t.border}`, borderRadius: 14, padding: "3px 12px", cursor: "pointer", color: selecting ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, marginLeft: 6 }}>{selecting ? L("Zrušit výběr", "Cancel selection") : L("☑ Vybrat", "☑ Select")}</button>}
-      </div>
-
-      {adding ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: t.callout, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
-          <input autoFocus value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addNew(); }} placeholder={L("Název titulu…", "Title name…")} style={{ ...fieldStyle(t), flex: 1, minWidth: 180 }} />
-          <Select value={newType} onChange={setNewType} style={{ maxWidth: 130, width: 130 }} options={C_TYPES.map((x) => ({ v: x, label: C_TYPE_LABEL(x) }))} />
-          <button onClick={addNew} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5 }}>{L("Přidat", "Add")}</button>
-          <button onClick={() => setAdding(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5 }}>{L("Zrušit", "Cancel")}</button>
-        </div>
-      ) : (
-        <button onClick={() => setAdding(true)} className="tm-dash" style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, width: "100%", textAlign: "left", marginBottom: 12 }}>＋ {L("Nový titul", "New title")}</button>
-      )}
-
-      <div className="tm-scroll" style={{ marginTop: 6, maxHeight: "min(620px, 62vh)", overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "4px 10px 10px" }}>
-        <div>
-          {shown.map((e, i) => (
-            <ContentRow key={e.id} e={e} cols={cols} last={i === shown.length - 1} onOpen={setSel} noDrag={sortBy !== "manual" || view !== "Vše" || fProg !== "Vše"} selecting={selecting} selected={selIds.includes(e.id)} onToggleSel={toggleSelC} />
-          ))}
-          {shown.length === 0 && <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.textMuted, padding: "18px 14px" }}>{L("V tomto pohledu zatím nic není.", "Nothing in this view yet.")}</p>}
-        </div>
-      </div>
-
-      {selecting && selIds.length > 0 && (
-        <div style={{ position: "sticky", bottom: 16, display: "flex", alignItems: "center", gap: 10, background: t.bg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 14px", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", zIndex: 50, flexWrap: "wrap", marginTop: 10 }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heading }}>{selIds.length} {L("vybráno", "selected")}</span>
-          <span style={{ flex: 1 }} />
-          <button onClick={() => st.ask(L(`Přesunout ${selIds.length} titulů do koše?`, `Move ${selIds.length} titles to trash?`), () => { st.removeEntries("content", selIds); exitSelectC(); })} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 14px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13 }}>{L("Do koše", "To trash")}</button>
-        </div>
-      )}
-
-      {sel && (
-        <CenterSheet center title={(((st.coll.content || []).find((x) => x.id === sel) || {}).title) || L("Titul", "Title")} onClose={() => setSel(null)}>
-          <ContentDetail id={sel} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />
-        </CenterSheet>
-      )}
-    </>
-  );
-}
 // více štítků na jeden zápis · `tags` je zdroj pravdy, `tag` zůstává (první) kvůli zpětné kompatibilitě
 const entryTags = (e) => (e && Array.isArray(e.tags) && e.tags.length) ? e.tags : (e && e.tag ? [e.tag] : []);
 function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel, noDrag, kind = "notebook", onExpand, full }) {
@@ -3807,32 +2132,6 @@ function PageJournal() {
         </div>
       )}
     </>
-  );
-}
-function AddAreaForm({ onDone }) {
-  const { t } = useT();
-  const st = useStore();
-  const [name, setName] = useState("");
-  const [icon, setIcon] = useState("▦");
-  const save = () => {
-    const v = name.trim();
-    if (!v) return;
-    if (st.listAreas().some((a) => a.name.toLowerCase() === v.toLowerCase())) { st.ask(L("Oblast s tímto jménem už existuje.", "An area with this name already exists."), null); return; }
-    st.addArea({ name: v, icon: icon.trim() || "▦" });
-    onDone && onDone();
-  };
-  return (
-    <div style={{ background: t.callout, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, marginBottom: 14 , boxShadow: t.shadow }}>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-        <input value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="◈" maxLength={4} style={{ ...fieldStyle(t), width: 60, textAlign: "center", fontSize: 16 }} />
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") save(); }} placeholder={L("Název oblasti…", "Area name…")} style={{ ...fieldStyle(t), flex: 1, minWidth: 180 }} />
-      </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={save} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "7px 15px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 500 }}>{L("Vytvořit", "Create")}</button>
-        <button onClick={onDone} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "7px 15px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13.5 }}>{L("Zrušit", "Cancel")}</button>
-      </div>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, fontStyle: "italic", marginTop: 8 }}>{L("Ikona: emoji nebo znak. Oblast se objeví ve všech filtrech a chips.", "Icon: an emoji or a symbol. The area appears in all filters and chips.")}</div>
-    </div>
   );
 }
 
@@ -7689,38 +5988,6 @@ function TMultiSel({ label, values, onChange, options }) {
   );
 }
 
-function TChip({ label, active, onClick, onInfo }) {
-  const { t } = useT();
-  // Press and hold (~450 ms) opens the info — the one gesture, phone and desktop
-  // alike, via pointer events. Two things kill a hold in the wild and both are
-  // handled: a finger on glass always trembles (so movement under 9 px is not a
-  // move), and the browser's own long-press menu (so it is suppressed here).
-  const holdRef = React.useRef(null);
-  const firedRef = React.useRef(false);
-  const posRef = React.useRef(null);
-  const clear = () => { if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; } };
-  const down = onInfo ? (e) => {
-    firedRef.current = false;
-    posRef.current = { x: e.clientX, y: e.clientY };
-    clear();
-    holdRef.current = setTimeout(() => { holdRef.current = null; firedRef.current = true; onInfo(); }, 450);
-  } : undefined;
-  const move = onInfo ? (e) => {
-    if (!holdRef.current || !posRef.current) return;
-    if (Math.hypot(e.clientX - posRef.current.x, e.clientY - posRef.current.y) > 9) clear();
-  } : undefined;
-  return (
-    <button
-      onClick={onInfo ? (e) => { if (firedRef.current) { firedRef.current = false; e.preventDefault(); return; } onClick && onClick(e); } : onClick}
-      onPointerDown={down} onPointerMove={move} onPointerUp={onInfo ? clear : undefined}
-      onPointerLeave={onInfo ? clear : undefined} onPointerCancel={onInfo ? clear : undefined}
-      onContextMenu={onInfo ? (e) => e.preventDefault() : undefined}
-      className="tm-chip"
-      style={{ background: active ? t.card : "transparent", border: `1px solid ${active ? t.border : "transparent"}`, borderRadius: 20, padding: "5px 12px", cursor: "pointer", color: active ? t.heading : t.textMuted, boxShadow: active ? t.shadow : "none", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11, whiteSpace: "nowrap", WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "manipulation" }}>
-      {label}
-    </button>
-  );
-}
 
 function TEditToggle({ on, onToggle, title }) {
   const { t } = useT();
@@ -8658,6 +6925,91 @@ function useTmVoices() {
 
 // ---- haptics ---------------------------------------------------------------
 const tmBuzz = (pattern, on) => { if (!on) return; try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {} };
+
+// ---- SEZNAMY · sdílená generace -----------------------------------------
+// Přepínač zobrazení, hledání v hlavičce, filtrační pilulky, pruh „vrátit"
+// a dlouhý stisk pro výběr a přeuspořádání. Klientská aplikace tohle neměla
+// vůbec — proto vypadala o generaci starší. Teď je to týž soubor.
+const {
+  TM_VIEWS, tmViewOk, tmViewLabel, tmNextView, TM_VW_IC, TmIcFiltr,
+  ViewCycle, VwMark, RoomView, HdrIcon, HdrSearch, HdrLbl, FiltrPill, UndoBar, useHoldSelect,
+} = createListUI({ useT, L, hexA, TmIcLupa });
+
+// ---- ATOMY · sdílená drobnost -------------------------------------------
+// Táž pětice jako v osobní aplikaci. Dřív se v každém domě kreslila zvlášť
+// a rozešla se o půl pixelu: 12 proti 12,5 · rádius 5 proti 4 · `t.inkSand`
+// proti `t.sand`. Teď je to jeden soubor.
+const {
+  Tag, Select, ProgressBar, MetaSection, PropRow,
+  Eyebrow, Divider, LinkPill, Callout, Bindu, PageTitle, BufferedInput, TChip,
+} = createAtoms({
+  useT, useStore, L, RichArea, AttachmentStrip, filesToAtts,
+});
+
+// ---- PRAXE · sdílený engine ---------------------------------------------
+// Týž soubor jako v osobní aplikaci (src/shared/ui/practice.jsx). Klientská
+// Praxe byla dosud chudší: neznala tři znamení, týdenní podněty, prahy dne
+// ani přehled praxe. Rozdíl role se předává — Deník dne se v kartě objeví
+// jen tomu, kdo si Deník otevřel, a rezervace má klient ve vlastní místnosti.
+const {
+  TmRyt, HABIT_RYT, HabitGlyph, StatusCycle, DayTasks, RanniZamer, RostouciText,
+  ReflexeOtazka, VecerniOhlednuti, JournalOfDay, DotTap, WellbeingTracker, ZnameniDne,
+  BodyHistory, Ring, StatCard, HabitCalendar, HabitMatrix, MiniChart, EditableSchedule,
+  HabitInlineEditor, TmPasPrahu, DayView, PraxeOverview,
+} = createPracticeUI({
+  useT, useStore, L, hexA, uid,
+  Bindu, Tag, Eyebrow, Callout, Check, DotMeter, Toggle, LinkPill, Prazdno,
+  BufferedInput, RichArea, RichText, AttachmentStrip,
+  BookIcon, PenIcon, TmWbMiska, TmWbDiamant, TmWbKruh,
+  subLabel, metaLabel, calBtn, iconBtn, tmBuzz, tmPlain, jCanonTag,
+  EMPTY_H, HABIT_DEFS, DAY_STATUS_DEFS, PLAN_QS, PLAN_QS_HLOUBKA, PLAN_QS_STARE,
+  TM_PROMPT_OKRUH, tmPromptFor, TM_PRAHY, tmPrahKlic, tmPrahMa,
+  WB_ZNAMENI, tmWbOf, tmWbDates, usePraxeStats,
+  fmtCZ, todayISO, shiftISO, moonPhaseOf, moonName, sunsetOf,
+  journalArchive: JOURNAL_FULL, flow: FLOW,
+});
+
+// ---- KOMPAS · sdílená orientace ------------------------------------------
+// Týž soubor jako v osobní aplikaci (src/shared/ui/compass.jsx). Klientský
+// Kompas byl o generaci pozadu: emoji místo rytin, natvrdo anglické popisky
+// v detailu cíle, žádní čekající, žádný spouštěč, žádný výběr krajiny.
+// Rozdíl role se předává: klient nemá Pomodoro vedle dnešního kroku a
+// u cílů od Tanmaye smí měnit jen svůj postup.
+const {
+  AreaGlyph, OwnerBadge, GoalCard, Board, AddGoalForm, AddAreaForm, AreaChips, AreaTable,
+  AreaVlq, GoalDetail, AreaDetail, GoalWorkspace, PageDivine, PageAreas, PageGoals,
+} = createCompassUI({
+  useT, useStore, L, LV, GS, PL, hexA, uid, getLang,
+  Tag, Select, ProgressBar, MetaSection, PropRow,
+  PageTitle, Divider, Eyebrow, Prazdno, LinkPill, Drawer, CenterSheet, DayTasks, DotTap,
+  TmIcKompas, TmIcOblasti, TmIcCile, TmIcPraxe, TmRyt,
+  iconBtn, fieldStyle, metaLabel, pProse, twoCol,
+  PRIO_ORDER, PRIOS, PRIO_COLOR, GSTATUS_COLOR, GOAL_STATUSES,
+  AREA_COLOR, AREA_ICON, AREAS, ACHIEVES, ACH_SHORT, ROM,
+  areaClean, areaLabel,
+  todayISO, fmtCZ, tmToTop,
+  role: "client",
+  sideSlot: null,
+});
+
+// ---- PRAMENY · sdílená knihovna ------------------------------------------
+// Týž soubor jako v osobní aplikaci (src/shared/ui/sources.jsx). Klientské
+// Prameny neuměly hledat, přepínat zobrazení, vybírat dlouhým stiskem ani
+// nést „větu, kterou si nesu". Odeslání hotového dokumentu a Google Drive
+// zůstávají zatím jen v osobní aplikaci — předávají se, nekopírují.
+const { OriginBadge, ContentDetail, ContentRow, PageContent } = createSourcesUI({
+  useT, useStore, L, LV, hexA, uid, getLang,
+  Tag, Select, PropRow,
+  PageTitle, Prazdno, CenterSheet, RichArea, AttachmentStrip, filesToAtts,
+  ViewCycle, HdrIcon, HdrSearch, HdrLbl, FiltrPill, UndoBar, useHoldSelect, RoomView, TmIcFiltr, tmViewOk,
+  useHoldReorder, PinDot, PinToggle, isEntryPinned, imgSrc, r2Put, r2Del, resizeImageToBlob,
+  TmIcPrameny, TmIcLupa, TmIcKniha, ClipIcon, TmArtKapka,
+  typeGlyph: (typ) => C_TYPE_GLYPH[typ] || TmIcKniha,
+  iconBtn, fieldStyle, tmPlain, tmToTop,
+  C_TYPES, C_TYPE_LABEL, C_TYPE_COLOR, C_PROGRESS, C_PROG_LABEL, C_PROG_COLOR,
+  C_CATS, C_CATS_BY_TYPE, C_CAT_LABEL, tmDocPramene,
+});
+
 
 // ---- keep the screen awake · released the moment the timer stops ------------
 function useWakeLock(active) {
@@ -13343,10 +11695,14 @@ function InviteGate() {
  *  vždycky. Vybírá se jen soukromé psaní, Memento mori a to, co uvidí Tany.
  *  Motiv se bere z tokenů, ne z pevných barev — jinak by uvítání svítilo
  *  tmavě i v Linen a bylo by to první, co člověk v domě uvidí jinak. */
-function ModulePicker({ t, firstRun, current, initialName, initialShare, onConfirm, onClose }) {
+function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled, onConfirm, onClose }) {
   const [sel, setSel] = useState(() => current || []);
   const [name, setName] = useState(initialName || "");
   const [share, setShare] = useState(() => ({ habits: false, goals: false, training: false, ...(initialShare || {}) }));
+  // Náhled před potvrzením · ne popis toho, co by odejít mohlo, ale přesně to,
+  // co odejde ze skutečných dat. Kdo nevidí, co posílá, nesouhlasil.
+  const [nahledOtevren, setNahledOtevren] = useState(false);
+  const snimek = nahledOtevren && typeof nahled === "function" ? nahled(share) : null;
   const shareRow = (key, labelCs, labelEn, descCs, descEn) => (
     <button onClick={() => setShare((s) => ({ ...s, [key]: !s[key] }))} aria-pressed={!!share[key]} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 48, padding: "11px 14px", borderRadius: 10, cursor: "pointer", textAlign: "left", background: share[key] ? hexA(t.accent, 0.10) : t.callout, border: `1px solid ${share[key] ? t.accent : t.borderSoft}`, marginBottom: 8 }}>
       <span style={{ minWidth: 0, flex: 1 }}>
@@ -13431,6 +11787,53 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, onConfi
           {shareRow("habits", "Návyky", "Habits", "Posledních 30 dní zaškrtnutí a jména návyků. Bez poznámek a bez textu.", "Last 30 days of checkmarks and habit names. No notes, no text.")}
           {shareRow("goals", "Cíle", "Goals", "Názvy cílů a jejich stav. Ne příští krok, ne poznámka.", "Goal names and their status. Not the next step, not the note.")}
           {shareRow("training", "Trénink", "Training", "Co jsi z plánu odcvičil, kdy, s jakým RIR a co jsi k tomu napsal jemu.", "What you trained from the plan, when, at what RIR, and what you wrote to him about it.")}
+        </div>
+        <div style={{ textAlign: "left", marginTop: 14 }}>
+          <button onClick={() => setNahledOtevren((x) => !x)} aria-expanded={nahledOtevren}
+            style={{ background: "transparent", border: `1px dashed ${nahledOtevren ? t.accent : t.border}`, borderRadius: 100, minHeight: 40, padding: "9px 18px", cursor: "pointer", color: nahledOtevren ? (t.accentInk || t.accent) : t.textSec, fontFamily: FONT_BODY, fontSize: 13 }}>
+            {nahledOtevren ? L("Skrýt, co přesně odejde", "Hide exactly what will be sent") : L("Ukázat, co přesně odejde", "Show exactly what will be sent")}
+          </button>
+          {nahledOtevren && (
+            <div style={{ marginTop: 12, border: `1px solid ${t.border}`, borderRadius: 12, padding: "14px 16px", background: t.callout }}>
+              {!snimek ? (
+                <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, lineHeight: 1.6 }}>{L("Zatím neodejde nic. Všechny přepínače jsou vypnuté.", "Nothing will be sent. All switches are off.")}</div>
+              ) : (
+                <>
+                  <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 11, color: t.sage, marginBottom: 8 }}>{L("Tohle odejde", "This is what goes")}</div>
+                  {snimek.habits && (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text }}>{L("Návyky", "Habits")} · {snimek.habits.days} {L("dní z posledních", "days out of the last")} {snimek.habits.window}</div>
+                      {(snimek.habits.rows || []).map((r) => (
+                        <div key={r.name} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, paddingLeft: 12 }}>{r.name} · {r.done}×</div>
+                      ))}
+                    </div>
+                  )}
+                  {snimek.goals && (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text }}>{L("Cíle", "Goals")} · {snimek.goals.length}</div>
+                      {snimek.goals.map((g) => (
+                        <div key={g.name} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, paddingLeft: 12 }}>{g.name} — {GS(g.status)}</div>
+                      ))}
+                    </div>
+                  )}
+                  {snimek.training && (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text }}>{L("Trénink", "Training")} · {Array.isArray(snimek.training.sessions) ? snimek.training.sessions.length : (snimek.training.sessions || 0)} {L("záznamů z plánu", "records from the plan")}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, paddingLeft: 12 }}>{L("série, opakování, RIR a to, co jsi k tréninku napsal jemu", "sets, reps, RIR and what you wrote to him about the session")}</div>
+                    </div>
+                  )}
+                  <details style={{ marginTop: 8 }}>
+                    <summary style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, cursor: "pointer", minHeight: 30, display: "flex", alignItems: "center" }}>{L("Ukázat to i syrově", "Show it raw as well")}</summary>
+                    <pre style={{ margin: "8px 0 0", maxHeight: 200, overflow: "auto", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 11, lineHeight: 1.5, color: t.textMuted, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{JSON.stringify(snimek, null, 2)}</pre>
+                  </details>
+                </>
+              )}
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${t.borderSoft}`, fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, lineHeight: 1.6 }}>
+                {L("Neodejde nikdy: Deník, Zápisník, Ohlédnutí, hlubší odpovědi, Memento, soukromé poznámky u Pramenů, přílohy, nahrávky, podrobnosti o těle a náladě.",
+                   "Never sent: Journal, Notebook, the evening looking-back, deeper answers, Memento, private notes on Sources, attachments, recordings, body and mood detail.")}
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ marginTop: 28, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <button onClick={() => onConfirm(ordered, name, { habits: !!share.habits, goals: !!share.goals, training: !!share.training })} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 100, minHeight: 48, padding: "13px 38px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12.5 }}>
@@ -13645,7 +12048,16 @@ export default function App() {
   const tags = makeTags(mode);
   const [edits, setEdits] = useState(() => (typeof window !== "undefined" ? loadEdits() : {}));
   const [selDate, setSelDate] = useState(todayISO());
-  const updateDay = (date, patch) => setEdits((prev) => { const next = { ...prev, [date]: { ...(prev[date] || {}), ...patch } }; saveEdits(next); return next; });
+  // Záplata smí být i funkce nad tím, co React právě drží. Dva cíle poslané
+  // do dneška rychle po sobě by se jinak přepsaly — druhý zápis by četl
+  // zastaralý snímek a první by z něj vypadl.
+  const updateDay = (date, patch) => setEdits((prev) => {
+    const stary = prev[date] || {};
+    const p = typeof patch === "function" ? patch(stary) : patch;
+    const next = { ...prev, [date]: { ...stary, ...p } };
+    saveEdits(next);
+    return next;
+  });
   const habitDefs = () => (coll.habitDefs || HABIT_DEFAULTS).map((x) => (x.name ? x : { ...x, name: L(x.cz || "", x.en || "") }));
   const activeHabits = () => habitDefs().filter((x) => !x.archived);
   const setHabitDefs = (list) => persistColl((c) => ({ ...c, habitDefs: list }));
@@ -13654,6 +12066,8 @@ export default function App() {
   const getDay = (date) => { const base = FLOW_BY[date] || { d: date, s: "", h: EMPTY_H }; const e = edits[date] || {}; const h = e.h || base.h || EMPTY_H; const sVal = e.s != null ? e.s : (base.s || ""); const actSlots = ((coll.habitDefs || HABIT_DEFAULTS).filter((x) => !x.archived)).map((x) => x.slot); const c = actSlots.reduce((a, sl) => a + (h[sl] ? 1 : 0), 0); return { d: date, h, s: sVal, c, p: Math.round((c / Math.max(1, actSlots.length)) * 100), sched: e.sched || {}, note: e.note || "", plan: e.plan || {}, tasks: e.tasks || [], wb: e.wb || null }; };
   const has = (date) => !!(FLOW_BY[date] || edits[date]);
   const [coll, setColl] = useState(() => (typeof window !== "undefined" ? loadColl() : { goals: {}, journal: [], notebook: [] }));
+  // Kam se má otevřít, když se sem přišlo odjinud (z hledání, z dnešního cíle).
+  const [openTarget, setOpenTarget] = useState(null); // { kind: "goal"|"area", id }
   const [editMode, setEditMode] = useState(false);
   const [confirmBox, setConfirmBox] = useState(null); // { msg, onYes } — onYes=null means info-only
   // hlasité selhání zápisu · jeden příznak pro celou relaci
@@ -13960,6 +12374,56 @@ export default function App() {
     return () => { dead = true; window.removeEventListener("online", onOnline); };
   }, [ownerId]);
 
+  // ---- cíle od Tanmaye ------------------------------------------------------
+  // Týž kanál jako plán: leží mimo klientův stavový dokument, klient je nikdy
+  // nepřepisuje a jeho vlastní postup k nim žije zvlášť v `coll.goalProgress`.
+  // Server posílá cíl už očištěný — trenérova poznámka k němu se sem nikdy
+  // nedostane, protože ji odstraňuje `coachGoalForClient` na serveru, ne my.
+  React.useEffect(() => {
+    if (ownerId === null) return;
+    let dead = false;
+    const pull = () => {
+      fetch("/api/goals", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((b) => {
+          if (dead || !b) return;
+          // Druhá brzda na klientovi. Kdyby se na server někdy dostal cíl
+          // s trenérovou poznámkou, tady se z něj stejně odloupne.
+          const doc = coachGoalsForClient(b.doc || null);
+          const cur = _collRef.current.coachGoals || null;
+          if (JSON.stringify(cur) !== JSON.stringify(doc)) persistColl((c) => ({ ...c, coachGoals: doc }));
+        })
+        .catch(() => { /* offline · co bylo doručeno, zůstává */ });
+    };
+    pull();
+    const onOnline = () => pull();
+    window.addEventListener("online", onOnline);
+    return () => { dead = true; window.removeEventListener("online", onOnline); };
+  }, [ownerId]);
+
+  // ---- prameny od Tanmaye ---------------------------------------------------
+  // Kanonický obsah drží on, klientova poznámka žije zvlášť a nikam neodchází.
+  // Když pramen přestane sdílet, zmizí ze seznamu — poznámka zůstane.
+  React.useEffect(() => {
+    if (ownerId === null) return;
+    let dead = false;
+    const pull = () => {
+      fetch("/api/sources", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((b) => {
+          if (dead || !b) return;
+          const doc = b.doc && Array.isArray(b.doc.sources) ? b.doc : { v: 1, at: 0, sources: [] };
+          const cur = _collRef.current.coachSources || null;
+          if (JSON.stringify(cur) !== JSON.stringify(doc)) persistColl((c) => ({ ...c, coachSources: doc }));
+        })
+        .catch(() => { /* offline · co bylo doručeno, zůstává */ });
+    };
+    pull();
+    const onOnline = () => pull();
+    window.addEventListener("online", onOnline);
+    return () => { dead = true; window.removeEventListener("online", onOnline); };
+  }, [ownerId]);
+
   // Debounced push of local changes to the server (only once sync is ready).
   React.useEffect(() => {
     const cur = _serializeDoc(coll, edits);
@@ -14014,7 +12478,21 @@ export default function App() {
   };
   // ---- Goal system: Notion-shaped (status · priority · target · achievability · archive) ----
   const goalPatchOf = (name) => (coll.goalEdits || {})[name] || {};
-  const editGoal = (name, patch) => persistColl((c) => ({ ...c, goalEdits: { ...(c.goalEdits || {}), [name]: { ...((c.goalEdits || {})[name] || {}), ...patch } } }));
+  // Zápis do cíle prochází jedinou tabulkou pravomocí (product/compass.js).
+  // U cíle od Tanmaye se z návrhu vezme jen postup — název, záměr, termín ani
+  // trenérova poznámka se odsud přepsat nedají, a to ani přes API.
+  const editGoal = (name, patch) => {
+    const cg = coachGoalByName(name);
+    if (cg) {
+      const dovolene = {};
+      for (const k of Object.keys(patch || {})) if (mayEditGoalField("client", cg, k)) dovolene[k] = patch[k];
+      const cisty = sanitizeClientProgress({ ...dovolene, at: Date.now() });
+      if (!Object.keys(cisty).length) return;
+      persistColl((c) => ({ ...c, goalProgress: { ...(c.goalProgress || {}), [cg.id]: { ...((c.goalProgress || {})[cg.id] || {}), ...cisty } } }));
+      return;
+    }
+    persistColl((c) => ({ ...c, goalEdits: { ...(c.goalEdits || {}), [name]: { ...((c.goalEdits || {})[name] || {}), ...patch } } }));
+  };
   const listAreas = () => {
     const removed = new Set(coll.removedAreas || []);
     const edits = coll.areaEdits || {};
@@ -14084,7 +12562,15 @@ export default function App() {
     next = trashAdd(next, { tid: uid(), kind: "area", data: { ...area }, label: `${area.icon} ${area.name}` });
     persistColl(next);
   };
-  const allGoals = () => {
+  // ---- CÍLE · dvě třídy, jeden seznam --------------------------------------
+  // Cíl je buď klientův, nebo od Tanmaye. V rozhraní se jmenují Moje a
+  // Od Tanmaye a vypadají stejně; liší se jen tím, kdo jim smí měnit zadání.
+  // Doručený dokument se sem přimíchává až tady, v adaptéru dat — kreslicí
+  // vrstva je pro oba domy jedna a o rozdílu rolí neví nic než štítek.
+  const coachGoalsDoc = () => (coll.coachGoals && Array.isArray(coll.coachGoals.goals)) ? coll.coachGoals : { v: 1, at: 0, goals: [] };
+  const hasCoachGoals = () => coachGoalsDoc().goals.some((g) => g && !g.archivedAt);
+  const goalProgress = () => coll.goalProgress || {};
+  const vlastniGoals = () => {
     const base = GOALS.map((g) => ({ ...g, user: false }));
     const mine = (coll.userGoals || []).map((g) => ({ ...g, user: true }));
     return [...base, ...mine].map((g) => {
@@ -14093,6 +12579,51 @@ export default function App() {
       return { ...g, ...p, status: p.status != null ? p.status : legacyStatus };
     }).filter((g) => !((coll.goalEdits || {})[g.name] || {}).trashed);
   };
+  const allGoals = () => mergeGoals(vlastniGoals(), coachGoalsDoc(), goalProgress());
+
+  // ---- PRAMENY · dva původy, jeden seznam ---------------------------------
+  // Sdílený pramen drží Tanmay. Klientova poznámka k němu žije zvlášť
+  // v `coll.sourceNotes` a odsud nikdy neodchází — ani do `_shareOf`.
+  const coachSourcesDoc = () => (coll.coachSources && Array.isArray(coll.coachSources.sources)) ? coll.coachSources : { v: 1, at: 0, sources: [] };
+  const sourceNotes = () => coll.sourceNotes || {};
+  const hasCoachSources = () => coachSourcesDoc().sources.some((x) => x && !x.unsharedAt);
+  const allSources = () => mergeSources(coll.content || [], coachSourcesDoc(), sourceNotes());
+  const coachSourceById = (id) => allSources().find((x) => x.id === id && x.origin === SOURCE_ORIGIN.COACH) || null;
+  /** Zápis klientovy poznámky ke sdílenému prameni. Jen povolená pole. */
+  const updateSourceNote = (id, patch) => {
+    const cs = coachSourceById(id);
+    if (!cs) return;
+    const dovolene = {};
+    for (const k of Object.keys(patch || {})) if (mayEditSourceField("client", cs, k)) dovolene[k] = patch[k];
+    const cisty = sanitizeClientSourceNote({ ...dovolene, at: Date.now() });
+    if (!Object.keys(cisty).length) return;
+    persistColl((c) => ({ ...c, sourceNotes: { ...(c.sourceNotes || {}), [id]: { ...((c.sourceNotes || {})[id] || {}), ...cisty } } }));
+  };
+  /** Prameny, které Tanmay odebral, ale klient si k nim něco napsal. */
+  const orphanSourceNotes = () => orphanedNotes(coachSourcesDoc(), sourceNotes());
+  /** „Nechat si to" · z osiřelé poznámky vznikne vlastní pramen. */
+  const keepOrphanNote = (id) => {
+    const p = sourceNotes()[id];
+    if (!p) return;
+    const novy = { id: uid(), title: (p.note || p.carry || L("Pramen", "Source")).split("\n")[0].slice(0, 90), type: "Article", progress: p.progress || "Ready to start", text: p.note || "", carry: p.carry || "" };
+    persistColl((c) => {
+      const zbytek = { ...(c.sourceNotes || {}) };
+      delete zbytek[id];
+      return { ...c, content: [novy, ...(c.content || [])], sourceNotes: zbytek };
+    });
+  };
+  /** Vlastní kopie sdíleného pramene. Od té chvíle s originálem nesouvisí. */
+  const forkCoachSource = (id) => {
+    const cs = coachSourceById(id);
+    if (!cs) return null;
+    const nid = uid();
+    const kopie = forkSource(cs, sourceNotes()[id], nid);
+    if (!kopie) return null;
+    persistColl((c) => ({ ...c, content: [{ id: nid, title: kopie.name, author: kopie.author, type: kopie.type || "Article", progress: "Ready to start", text: kopie.note || "", carry: kopie.carry || "", forkedFrom: cs.id }, ...(c.content || [])] }));
+    return nid;
+  };
+  /** Cíl od Tanmaye podle jména, nebo null. Jméno je v obou třídách klíč. */
+  const coachGoalByName = (name) => allGoals().find((g) => g.name === name && g.owner === GOAL_OWNER.COACH) || null;
   const orderGoals = (list) => {
     const ord = coll.goalOrder;
     if (!ord || !ord.length) return list;
@@ -14132,6 +12663,8 @@ export default function App() {
   };
   // built-in goal can be trashed too via editGoal({ archive:true }) — but full trash requires removing from GOALS which is constant. Instead we mark it with goalEdits.trashed and hide from lists.
   const trashBuiltinGoal = (name) => {
+    // Cíl od Tanmaye klient nemaže — zmizí, až ho Tanmay odebere nebo pustí.
+    if (coachGoalByName(name)) return;
     const g = GOALS.find((x) => x.name === name);
     if (!g) return;
     const edits = (coll.goalEdits || {})[name];
@@ -14142,11 +12675,23 @@ export default function App() {
   };
   const pushGoalToDay = (name) => {
     const d = todayISO();
-    const e = edits[d] || {};
-    const tasks = e.tasks || [];
-    if (tasks.some((task) => task.text === name)) return;
-    updateDay(d, { tasks: [...tasks, { id: uid(), text: name, done: false, goal: true }] });
+    // dvojí kontrola i vložení nad seznamem, který React právě drží · dva cíle
+    // poslané do dneška rychle po sobě se jinak přepíšou
+    updateDay(d, (den) => {
+      const tasks = den.tasks || [];
+      if (tasks.some((task) => task.text === name)) return {};
+      return { tasks: [...tasks, { id: uid(), text: name, done: false, goal: true }] };
+    });
   };
+  // opak pushGoalToDay · zvednutí i sundání musí být jedno klepnutí
+  const pullGoalFromDay = (name) => {
+    const d = todayISO();
+    const tasks = (edits[d] || {}).tasks || [];
+    updateDay(d, { tasks: tasks.filter((task) => task.text !== name) });
+  };
+  // dvě otázky ke krajině · důležitost proti prožitému týdnu
+  const areaVlqOf = (name) => (coll.areaVlq || {})[name] || {};
+  const setAreaVlq = (name, patch) => persistColl((c) => ({ ...c, areaVlq: { ...(c.areaVlq || {}), [name]: { ...((c.areaVlq || {})[name] || {}), ...patch } } }));
   const monthsOf = (a) => { const seed = {}; if (a.rating != null && a.ratingMonth) seed[a.ratingMonth] = a.rating; return { ...seed, ...((coll.areaMonths || {})[a.name] || {}) }; };
   const setAreaMonth = (name, rom, v) => persistColl((c) => ({ ...c, areaMonths: { ...(c.areaMonths || {}), [name]: { ...((c.areaMonths || {})[name] || {}), [rom]: v } } }));
   const goalMetaOf = (name) => (coll.goalMeta || {})[name] || {};
@@ -14804,14 +13349,6 @@ export default function App() {
   });
   const removeTrainings = (kind, ids, cascade) => { (ids || []).forEach((id) => removeTraining(kind, id, cascade)); };
 
-  const store = { selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, listAreas, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
-    tvSessions, tvSessionOf, tvPutSession, tvEditSession, tvDropSession, tvPrefs, tvSetPrefs,
-    tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, syncPending,
-    tmCfg, setTmCfg, tmSpecOf, setTmSpec,
-    setSore, unsetSore, soreNow, tSaidBump };
-
-  const go = (k) => { setSlideDir(null); setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
-
   // ---- ROLE A CAPABILITY · jedna vrstva, ne stovky podmínek ---------------
   // Praxe, Trénink, Termíny, Kompas a Prameny jsou vždycky doma — bez nich
   // nemá klientská aplikace smysl a nikdo je nemá vypínat. Volitelné jsou
@@ -14846,6 +13383,15 @@ export default function App() {
     const owner = page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page;
     if (!isEnabled(owner)) setPage("praxe");
   }, [enabledModules, mementoZap, page]);
+
+  const store = { caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
+    tvSessions, tvSessionOf, tvPutSession, tvEditSession, tvDropSession, tvPrefs, tvSetPrefs,
+    tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, syncPending,
+    tmCfg, setTmCfg, tmSpecOf, setTmSpec,
+    setSore, unsetSore, soreNow, tSaidBump };
+
+  const go = (k) => { setSlideDir(null); setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
+
 
   // one nav button · shared by the four groups and by the trash at the very
   // bottom (dim = infrastructure, quieter than the rooms of the house)
@@ -14896,6 +13442,8 @@ export default function App() {
    plus 700, které nese tučné písmo v editoru. */
           @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=EB+Garamond:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500&display=swap');
           ${SHELL_ROOT_CSS}
+          ${tokensCss(t, lang)}
+          ${componentsCss(t)}
           * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
           body { margin: 0; }
           .tm-sidebar .tm-nav-active { box-shadow: inset 2px 0 0 ${t.accent}; }
@@ -15099,6 +13647,7 @@ export default function App() {
             current={enabledModules}
             initialName={memberName}
             initialShare={coll.share}
+            nahled={(sh) => _shareOf({ ...(_collRef.current || coll), share: sh }, _editsRef.current || edits)}
             onConfirm={(list, name, share) => { const firstBuild = !enabledModules; persistColl((c) => ({ ...c, modules: list, share })); saveName(name); setPickerOpen(false); const ownerP = page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page; if (MOD_KEYS.includes(ownerP) && list.indexOf(ownerP) === -1) setPage(list[0] || "praxe"); if (firstBuild) setGuideOpen(true); }}
             onClose={() => setPickerOpen(false)}
           />
@@ -15158,14 +13707,14 @@ export default function App() {
             <button
               onClick={() => setEditMode((e) => !e)}
               title={editMode ? L("Zamknout — zpět do režimu praxe", "Lock — back to practice mode") : L("Odemknout strukturu — mazání, přejmenování, správa návyků, tagů a kategorií", "Unlock structure — deleting, renaming, managing habits, tags and categories")}
-              style={{ background: editMode ? t.activeNav : "transparent", border: `1px solid ${editMode ? t.accent : t.borderSoft}`, borderRadius: 20, color: editMode ? t.accent : t.textSec, cursor: "pointer", padding: "5px 14px", minHeight: 26, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}
+              style={{ background: editMode ? t.activeNav : "transparent", border: `1px solid ${editMode ? t.accent : t.borderSoft}`, borderRadius: 20, color: editMode ? t.accent : t.textSec, cursor: "pointer", padding: "7px 14px", minHeight: 34, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}
             >
               <span>{editMode ? "✎" : "●"}</span>{editMode ? L("Editace", "Editing") : L("Zamčeno", "Locked")}
             </button>
-            <button onClick={toggleLang} title={L("Přepnout do angličtiny", "Switch to Czech")} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 20, color: t.textSec, cursor: "pointer", padding: "5px 14px", minHeight: 26, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}>
+            <button onClick={toggleLang} title={L("Přepnout do angličtiny", "Switch to Czech")} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 20, color: t.textSec, cursor: "pointer", padding: "7px 14px", minHeight: 34, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}>
               <span key={lang} className="tm-turn" style={{ color: t.accent }}>{lang === "cs" ? "CZ" : "EN"}</span>{lang === "cs" ? "· EN" : "· CZ"}
             </button>
-            <button onClick={() => setMode((m) => (m === "dark" ? "light" : "dark"))} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 20, color: t.textSec, cursor: "pointer", padding: "5px 14px", minHeight: 26, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}>
+            <button onClick={() => setMode((m) => (m === "dark" ? "light" : "dark"))} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 20, color: t.textSec, cursor: "pointer", padding: "7px 14px", minHeight: 34, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}>
               <span key={mode} className="tm-turn" style={{ display: "inline-flex", alignItems: "center" }}>{mode === "dark" ? <TmIcMesic size={13} /> : <TmIcSlunce size={13} />}</span>{mode === "dark" ? "Linen" : "Forest"}
             </button>
           </div>

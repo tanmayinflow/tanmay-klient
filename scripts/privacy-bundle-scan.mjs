@@ -41,6 +41,13 @@ const MARKERS = [
   { name: "main-files-bucket",    re: /["'`]tanmay-files["'`]/,  why: "vazba na osobní úložiště" },
   { name: "pomodoro",             re: /\bPomodoroTimer\b/,       why: "pomodoro se do klientského domu nepřenáší" },
   { name: "stale-palette",        re: /\bTHEME_ATELIER\b|\bTHEME_BRAND\b|\bTM_PALETTE\b/, why: "vyřazená paleta" },
+  // Vlna 2 · trenérova strana Kompasu a Pramenů. Klient smí číst svoje cíle
+  // a prameny, ale nesmí mít v balíku obrazovku, kterou je někdo zadává,
+  // ani trenérovu poznámku k cíli.
+  { name: "coach-direction-room", re: /\bKlTabSmer\b/,          why: "trenérská obrazovka Směru" },
+  { name: "coach-goal-note",      re: /\bcoachPrivateNote\b|\bCOACH_PRIVATE_GOAL_FIELDS\b/, why: "trenérova poznámka u cíle" },
+  { name: "coach-goal-validate",  re: /\bvalidateCoachGoals\b|\bvalidateCoachSources\b/, why: "server-side validace zadání trenéra" },
+  { name: "coach-client-row",     re: /\bcoachClientRow\b/,     why: "trenérská projekce klientského řádku" },
 ];
 
 function files(dir) {
