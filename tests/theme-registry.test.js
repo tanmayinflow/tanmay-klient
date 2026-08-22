@@ -6,7 +6,8 @@
 // Rejstřík motivů · kontrakt, bezpečný pád a migrace.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
@@ -24,6 +25,12 @@ import {
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const app = readFileSync(join(root, "src/App.tsx"), "utf8");
+const sha = (t) => createHash("sha256").update(t).digest("hex");
+// Soused stojí vedle jen v pracovním prostoru; Cloudflare i čistá místnost
+// staví jeden repozitář sám o sobě, takže se tahle zkouška ptá, jestli tam je.
+const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const SOUSED = join(root, pkg.name === "tanmay-web" ? "../tanmay-klient" : "../tanmay-web");
+const SOUSED_JE = existsSync(join(SOUSED, "src/shared/manifest.json"));
 
 const ROLES = [
   "background", "navigation", "surface", "surfaceRaised", "surfaceMuted", "card",
@@ -43,9 +50,10 @@ test("sedm rodin, Signature první a doporučená", () => {
   assert.equal(THEME_FAMILIES[0].id, DEFAULT_FAMILY);
   assert.equal(THEME_FAMILIES[0].recommended, true);
   assert.equal(THEME_FAMILIES.filter((f) => f.recommended).length, 1, "doporučená je jen jedna");
+  // Pořadí je podle šířky použitelnosti (V1.1 §7), ne podle zdrojových obrázků.
   assert.deepEqual(THEME_FAMILIES.map((f) => f.id), [
-    "signature", "olive-gold", "clay-alabaster", "atlantic-sky",
-    "mulberry-paper", "teal-parchment", "river-mist",
+    "signature", "clay-alabaster", "river-mist", "atlantic-sky",
+    "olive-gold", "mulberry-paper", "teal-parchment",
   ]);
   for (const f of THEME_FAMILIES) {
     assert.ok(f.labelCs && f.labelEn, f.id + " musí mít český i anglický název");
@@ -153,7 +161,7 @@ test("vyřešený režim a pole pro pre-paint", () => {
 test("náhled je kus rozhraní, ne dva čtverce", () => {
   for (const f of THEME_FAMILIES) for (const m of ["light", "dark"]) {
     const p = previewTokens(f.id, m);
-    for (const k of ["background", "card", "text", "textMuted", "border", "accent", "onAccent"]) {
+    for (const k of ["background", "surface", "card", "documentSurface", "text", "textMuted", "heading", "border", "accent", "onAccent"]) {
       assert.ok(p[k], `${f.id}/${m} náhled nemá ${k}`);
     }
     assert.equal(p.background, f[m].background);
@@ -225,4 +233,34 @@ test("v aplikaci není ani jedna podmínka na jméno rodiny", () => {
     assert.equal(inCondition.test(app), false, `App.tsx se ptá na motiv ${id}`);
   }
   assert.equal(/theme\s*===\s*["']/.test(app), false, "žádné větvení podle motivu");
+});
+
+
+test("registr motivů je v obou aplikacích bajt po bajtu týž", { skip: SOUSED_JE ? false : "sousední repozitář tu není" }, () => {
+  // `shared:check` to hlídá proti kanonickému zdroji; tohle se ptá přímo obou
+  // aplikací navzájem. Kdyby se jedna z nich „opravila" ručně, tady to spadne
+  // i bez pracovního prostoru.
+  for (const rel of ["src/shared/ui/themeRegistry.js", "src/shared/ui/theme.js",
+    "src/shared/ui/appearance.js", "src/shared/ui/appearance.jsx", "src/shared/ui/contrast.js",
+    "src/shared/ui/tokens.js"]) {
+    const mine = readFileSync(join(root, rel), "utf8").replace(/\r\n/g, "\n");
+    const theirs = readFileSync(join(SOUSED, rel), "utf8").replace(/\r\n/g, "\n");
+    assert.equal(sha(mine), sha(theirs), rel + " se mezi aplikacemi rozešel");
+  }
+});
+
+test("jméno Forest Night není v uživatelském rozhraní", () => {
+  // Značkově je Forest Night pořád Forest Night. V produktu se noc jmenuje
+  // Noc / Night a rodina Signature — jméno rampu se v aplikaci neukazuje.
+  // Komentáře ve zdroji se počítat nemají, ty o té historii mluvit smí.
+  // `\r` je terminátor řádku, takže na CRLF souboru `//.*$` nechytí nic —
+  // a celý test by tiše prošel na zdroji, který slovo nese. Nejdřív se
+  // konce řádků srovnají, teprve pak se škrtají komentáře.
+  const bezKomentaru = app.replace(/\r/g, "").replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n").map((l) => l.replace(/(^|[^:])\/\/.*$/, "$1")).join("\n");
+  assert.equal(/Forest/.test(bezKomentaru), false,
+    "slovo Forest zůstalo v kódu, který se vykresluje · rychlý přepínač říká Den / Noc");
+  // A totéž ve sdíleném oddílu Nastavení.
+  const vzhled = readFileSync(join(root, "src/shared/ui/appearance.jsx"), "utf8");
+  assert.equal(/Forest/.test(vzhled), false, "oddíl Vzhled nesmí jmenovat Forest Night");
 });

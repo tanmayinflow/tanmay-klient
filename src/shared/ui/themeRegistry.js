@@ -36,10 +36,19 @@ import { contrast, luminance } from "./contrast.js";
 export const BRAND = Object.freeze({ copper: "#B87333", linen: "#F4F0EB", forest: "#1C1C1A" });
 
 export const THEME_MODES = Object.freeze(["system", "light", "dark"]);
+/* Pořadí je podle ŠIŘKY POUŽITELNOSTI, ne podle pořadí zdrojových obrázků.
+   Signature první a doporučená, pak tři přirozené, pak tři výrazné. */
 export const THEME_FAMILY_IDS = Object.freeze([
-  "signature", "olive-gold", "clay-alabaster", "atlantic-sky",
-  "mulberry-paper", "teal-parchment", "river-mist",
+  "signature", "clay-alabaster", "river-mist", "atlantic-sky",
+  "olive-gold", "mulberry-paper", "teal-parchment",
 ]);
+/* Skupiny existují jako DATA, ne jako záložky. Karta je dost — kategorie
+   navrch by z výběru vzhledu udělala katalog. */
+export const THEME_GROUPS = Object.freeze({
+  signature: "recommended",
+  "clay-alabaster": "natural", "river-mist": "natural", "olive-gold": "natural",
+  "atlantic-sky": "expressive", "mulberry-paper": "expressive", "teal-parchment": "expressive",
+});
 export const DEFAULT_FAMILY = "signature";
 /* Výchozí režim zůstává „světlo", ne „automaticky". Kdo si nikdy nevybral,
    viděl dosud den — a po nasazení musí vidět zase den, i když má systém
@@ -136,43 +145,6 @@ const SIGNATURE_LIGHT = {
   heroInkSoft: "rgba(46,61,53,0.78)",
   heroLine: "rgba(184,115,51,0.30)",
 };
-const SIGNATURE_DARK = {
-  bg: "#1C1C1A",
-  bgSidebar: "#161714",
-  text: "#F4F0EB",
-  heading: "#F4F0EB",
-  textSec: "#CAC6BE",
-  textMuted: "#A7A39B",
-  accent: "#B87333",
-  accentInk: "#D39A63",
-  onAccent: "#1C1C1A",
-  sage: "#9AAA8D",
-  sand: "#D0BEA3",
-  inkSand: "#D8C7AE",
-  danger: "#D9A4A8",
-  info: "#9EB8BE",
-  success: "#9AAA8D",
-  warning: "#D0BEA3",
-  border: "rgba(244,240,235,0.16)",
-  borderSoft: "rgba(244,240,235,0.08)",
-  card: "#242521",
-  cardHover: "#2A2B26",
-  callout: "#22231F",
-  tableHead: "#282923",
-  sheet: "#2C2D27",
-  sheetHover: "#32332D",
-  activeNav: "rgba(184,115,51,0.16)",
-  overlay: "rgba(0,0,0,0.58)",
-  shadow: "0 0 0 1px rgba(244,240,235,0.05), 0 2px 4px rgba(0,0,0,0.36), 0 12px 30px -16px rgba(0,0,0,0.60)",
-  shadowLift: "0 0 0 1px rgba(244,240,235,0.07), 0 3px 8px rgba(0,0,0,0.40), 0 24px 50px -22px rgba(0,0,0,0.66)",
-  shadowPop: "0 0 0 1px rgba(244,240,235,0.09), 0 4px 12px -5px rgba(0,0,0,0.48), 0 28px 60px -26px rgba(0,0,0,0.72)",
-  shadowSheet: "0 0 0 1px rgba(244,240,235,0.11), 0 6px 18px -8px rgba(0,0,0,0.52), 0 36px 78px -30px rgba(0,0,0,0.76)",
-  shadowDrag: "0 0 0 1px rgba(184,115,51,0.30), 0 8px 22px -10px rgba(0,0,0,0.58), 0 34px 68px -28px rgba(0,0,0,0.78)",
-  hero: "#2E3D35",
-  heroInk: "#F4F0EB",
-  heroInkSoft: "rgba(244,240,235,0.78)",
-  heroLine: "rgba(184,115,51,0.42)",
-};
 
 // ----------------------------------------------------------------------
 // ŠEST VOLITELNÝCH RODIN · kotvy a doporučené tokeny ze specifikace
@@ -181,22 +153,22 @@ const SIGNATURE_DARK = {
 // zakázané stavy, výběr, stín, hero) se odvozuje níž — jednou, pro všechny
 // rodiny stejným pravidlem, aby nová rodina nebyla nová sada výjimek.
 const SPECS = {
-  "olive-gold": {
-    labelCs: "Olivová a zlatá", labelEn: "Olive Gold",
-    anchors: { "Olive Green": "#202B22", "Royal Yellow": "#FFD85F" },
-    light: {
-      background: "#F7E8A8", navigation: "#EED77F", surface: "#FBEFB9", card: "#FFF4C9",
-      documentSurface: "#FFF6D1", text: "#202B22", textSecondary: "#465247", textMuted: "#5B6455",
-      border: "#C5B464", borderStrong: "#A7954C",
-      interactiveAccent: "#202B22", interactiveAccentHover: "#172019", interactiveOnAccent: "#FFD85F",
-      focusRing: "#202B22",
-    },
+  /* SIGNATURE · NOC · „Ink Night".
+     Dřív to byl Forest Night ramp: pole #1C1C1A, ale povrchy, nadpis, hero
+     a poloviny inkoustů táhly do mechu (#2E3D35, #9AAA8D). Ve výsledku
+     aplikace v noci nečetla jako papír a měď, ale jako wellness. V1.1 to
+     narovnává: teplé uhlové pole, lněný text, měď a písek jako akcenty.
+     Žádný sage, mech ani oliva v povrchech. `#1C1C1A` zůstává značkovým
+     tokenem (brandForest), jen už není celoplošným polem. */
+  signature: {
     dark: {
-      background: "#202B22", navigation: "#18211A", surface: "#273429", card: "#2E3D31",
-      documentSurface: "#263328", text: "#F7EDC4", textSecondary: "#D8CFAC", textMuted: "#AAA98E",
-      border: "#455747", borderStrong: "#627264",
-      interactiveAccent: "#FFD85F", interactiveAccentHover: "#FFE17F", interactiveOnAccent: "#202B22",
-      focusRing: "#FFD85F",
+      background: "#0F100E", navigation: "#0B0C0A", surface: "#181916", card: "#21221E",
+      documentSurface: "#171815", text: "#F4F0EB", textSecondary: "#C9C0B6", textMuted: "#918B82",
+      border: "#34352F", borderStrong: "#4A4A42",
+      interactiveAccent: "#B87333", interactiveAccentHover: "#CF8446", interactiveOnAccent: "#0F100E",
+      focusRing: "#C5B49A",
+      // Copper a Sand jsou v noci dvě značkové stopy, ne dekorace.
+      sand: "#C5B49A", inkSand: "#D8C7AE", heading: "#F4F0EB",
     },
   },
   "clay-alabaster": {
@@ -204,89 +176,113 @@ const SPECS = {
     anchors: { "Copper Clay": "#B86443", "Alabaster Sand": "#F0E2D3" },
     light: {
       background: "#F0E2D3", navigation: "#E6D3C1", surface: "#F7EBDD", card: "#FBF2E8",
-      documentSurface: "#FFF7EF", text: "#33231E", textSecondary: "#60483D", textMuted: "#765D50",
+      documentSurface: "#FFF7EF", text: "#2A211D",
       border: "#CFB4A0", borderStrong: "#B98F77",
       interactiveAccent: "#A65336", interactiveAccentHover: "#93482E", interactiveOnAccent: "#FFF7EF",
       focusRing: "#8F452D", decorative: "#B86443",
     },
     dark: {
-      background: "#4B2B22", navigation: "#40251D", surface: "#553126", card: "#623A2C",
-      documentSurface: "#533027", text: "#F0E2D3", textSecondary: "#D8C2B2", textMuted: "#B59684",
-      border: "#805848", borderStrong: "#A77962",
-      interactiveAccent: "#F0E2D3", interactiveAccentHover: "#FFF0E3", interactiveOnAccent: "#4B2B22",
-      focusRing: "#F0E2D3", decorative: "#B86443",
-    },
-  },
-  "atlantic-sky": {
-    labelCs: "Atlantik a obloha", labelEn: "Atlantic Sky",
-    anchors: { "Atlantic Blue": "#0F4B70", "Soft Sky Blue": "#C4F8FF" },
-    light: {
-      background: "#DDFBFE", navigation: "#C4F8FF", surface: "#E8FCFE", card: "#F0FEFF",
-      documentSurface: "#F5FEFF", text: "#0F4B70", textSecondary: "#356A86", textMuted: "#4B7184",
-      border: "#9FD8E2", borderStrong: "#72BACB",
-      interactiveAccent: "#0F4B70", interactiveAccentHover: "#0A3C5B", interactiveOnAccent: "#C4F8FF",
-      focusRing: "#0F4B70",
-    },
-    dark: {
-      background: "#0F4B70", navigation: "#0B405F", surface: "#145A82", card: "#1A638E",
-      documentSurface: "#13577E", text: "#E7FCFF", textSecondary: "#C5E7ED", textMuted: "#9FC7D1",
-      border: "#397997", borderStrong: "#62A0B8",
-      interactiveAccent: "#C4F8FF", interactiveAccentHover: "#D9FBFF", interactiveOnAccent: "#0F4B70",
-      focusRing: "#C4F8FF",
-    },
-  },
-  "mulberry-paper": {
-    labelCs: "Moruše a papír", labelEn: "Mulberry Paper",
-    anchors: { Mulberry: "#5A2132", Paper: "#EFE9E9" },
-    light: {
-      background: "#EFE9E9", navigation: "#E4DADB", surface: "#F5F0F0", card: "#FAF6F6",
-      documentSurface: "#FBF8F8", text: "#5A2132", textSecondary: "#754253", textMuted: "#805663",
-      border: "#CEBBC1", borderStrong: "#B3919C",
-      interactiveAccent: "#5A2132", interactiveAccentHover: "#461827", interactiveOnAccent: "#EFE9E9",
-      focusRing: "#5A2132",
-    },
-    dark: {
-      background: "#5A2132", navigation: "#4D1B2A", surface: "#67283B", card: "#713046",
-      documentSurface: "#632638", text: "#F8EFF1", textSecondary: "#E1CAD1", textMuted: "#C6A6B0",
-      border: "#8B5364", borderStrong: "#AA7182",
-      interactiveAccent: "#EFE9E9", interactiveAccentHover: "#F8F3F3", interactiveOnAccent: "#5A2132",
-      focusRing: "#F3C8D4",
-    },
-  },
-  "teal-parchment": {
-    labelCs: "Teal a pergamen", labelEn: "Teal Parchment",
-    anchors: { "Authentic Teal": "#035352", "Sidecar Yellow": "#F3E8BC" },
-    light: {
-      background: "#F3E8BC", navigation: "#E9DDA8", surface: "#F8EFCB", card: "#FCF5D8",
-      documentSurface: "#FFF9E2", text: "#035352", textSecondary: "#2D6B68", textMuted: "#4B6F68",
-      border: "#CABF8C", borderStrong: "#A99D68",
-      interactiveAccent: "#035352", interactiveAccentHover: "#02413F", interactiveOnAccent: "#F3E8BC",
-      focusRing: "#035352",
-    },
-    dark: {
-      background: "#035352", navigation: "#024845", surface: "#0A605D", card: "#106C68",
-      documentSurface: "#095C59", text: "#F3E8BC", textSecondary: "#D7D0AA", textMuted: "#C0C39D",
-      border: "#3A817C", borderStrong: "#67A49E",
-      interactiveAccent: "#F3E8BC", interactiveAccentHover: "#FFF2C8", interactiveOnAccent: "#035352",
-      focusRing: "#F3E8BC",
+      background: "#15110F", navigation: "#100D0B", surface: "#241815", card: "#30201A",
+      documentSurface: "#1D1512", text: "#F3E7DC", textSecondary: "#D7C5BA", textMuted: "#A88F82",
+      border: "#4C352C", borderStrong: "#6A4A3C",
+      interactiveAccent: "#C66F4B", interactiveAccentHover: "#D98662", interactiveOnAccent: "#15110F",
+      focusRing: "#E0B89E", decorative: "#B86443",
     },
   },
   "river-mist": {
     labelCs: "Řeka a mlha", labelEn: "River Mist",
     anchors: { "River Slate": "#4F646B", Mist: "#E5ECEA", "Warm Sand": "#C5B49A" },
     light: {
-      background: "#E5ECEA", navigation: "#D7E1DF", surface: "#EEF3F1", card: "#F6F8F5",
-      documentSurface: "#F8FAF7", text: "#25383F", textSecondary: "#4F646B", textMuted: "#566A6F",
+      background: "#E5ECEA", navigation: "#D7E1DF", surface: "#EEF3F1", card: "#F7F9F7",
+      documentSurface: "#FAFBF9", text: "#1C2325",
       border: "#B7C6C3", borderStrong: "#8FA3A2",
       interactiveAccent: "#4F646B", interactiveAccentHover: "#3E555E", interactiveOnAccent: "#F4F0EB",
       focusRing: "#375B67",
     },
     dark: {
-      background: "#243238", navigation: "#1F2C31", surface: "#2C3D43", card: "#35484F",
-      documentSurface: "#2A3A40", text: "#E8EFEC", textSecondary: "#C7D1CE", textMuted: "#9DADAA",
-      border: "#4E636A", borderStrong: "#6E858A",
-      interactiveAccent: "#C5B49A", interactiveAccentHover: "#D7C9B3", interactiveOnAccent: "#243238",
-      focusRing: "#C5B49A",
+      background: "#101315", navigation: "#0C0F11", surface: "#192125", card: "#222B2F",
+      documentSurface: "#151B1E", text: "#E8EFEC", textSecondary: "#C7D1CE", textMuted: "#98A7A5",
+      border: "#3A484D", borderStrong: "#56686E",
+      interactiveAccent: "#C5B49A", interactiveAccentHover: "#D7C9B3", interactiveOnAccent: "#101315",
+      focusRing: "#AFC2C4",
+    },
+  },
+  "atlantic-sky": {
+    labelCs: "Atlantik a obloha", labelEn: "Atlantic Sky",
+    anchors: { "Atlantic Blue": "#0F4B70", "Soft Sky Blue": "#C4F8FF" },
+    light: {
+      background: "#E6F1F4", navigation: "#D0EDF2", surface: "#EEF7F8", card: "#F7FBFB",
+      documentSurface: "#FAFCFB", text: "#172127",
+      border: "#9FD8E2", borderStrong: "#72BACB",
+      interactiveAccent: "#0F4B70", interactiveAccentHover: "#0A3C5B", interactiveOnAccent: "#C4F8FF",
+      focusRing: "#0F4B70", decorative: "#C4F8FF",
+    },
+    dark: {
+      background: "#0E1216", navigation: "#0A0E12", surface: "#15202A", card: "#1C2B37",
+      documentSurface: "#121A21", text: "#EAF6F8", textSecondary: "#C4D9DE", textMuted: "#91A9B1",
+      border: "#324754", borderStrong: "#4D6573",
+      interactiveAccent: "#7CCFE2", interactiveAccentHover: "#9DE2EF", interactiveOnAccent: "#0E1216",
+      focusRing: "#C4F8FF", decorative: "#C4F8FF",
+    },
+  },
+  "olive-gold": {
+    labelCs: "Oliva a zlato", labelEn: "Olive Gold",
+    anchors: { "Olive Green": "#202B22", "Royal Yellow": "#FFD85F" },
+    light: {
+      /* Navigace byla #E8D779 — po vizuální prohlídce nejhlasitější plocha celé
+         sady: celoplošný Royal Yellow vedle klidnějšího pole. #E3D7A1 zůstává
+         zřetelně olivově zlatá a od pole odlišená, ale přestává křičet.
+         Royal Yellow #FFD85F zůstává akcentem a dekorativním bodem. */
+      background: "#F3EAC4", navigation: "#E3D7A1", surface: "#F8F1D6", card: "#FCF7E4",
+      documentSurface: "#FFF9EA", text: "#1D211B",
+      border: "#C5B464", borderStrong: "#A7954C",
+      interactiveAccent: "#6B5D13", interactiveAccentHover: "#544A0E", interactiveOnAccent: "#FFF9EA",
+      focusRing: "#6B5D13",
+      // Royal Yellow jen jako jasný dekorativní / vybraný bod, ne plocha stránky.
+      decorative: "#FFD85F",
+    },
+    dark: {
+      background: "#10120F", navigation: "#0C0E0B", surface: "#1A2118", card: "#222B20",
+      documentSurface: "#171C16", text: "#F5EDCE", textSecondary: "#D8D0B0", textMuted: "#AAA98E",
+      border: "#3B493A", borderStrong: "#566556",
+      interactiveAccent: "#E4C852", interactiveAccentHover: "#F2D86C", interactiveOnAccent: "#10120F",
+      focusRing: "#FFD85F", decorative: "#FFD85F",
+    },
+  },
+  "mulberry-paper": {
+    labelCs: "Moruše a papír", labelEn: "Mulberry Paper",
+    anchors: { Mulberry: "#5A2132", Paper: "#EFE9E9" },
+    light: {
+      background: "#F1E8EA", navigation: "#E8DADD", surface: "#F7F0F1", card: "#FCF8F8",
+      documentSurface: "#FDFBFA", text: "#241A1E",
+      border: "#CEBBC1", borderStrong: "#B3919C",
+      interactiveAccent: "#5A2132", interactiveAccentHover: "#461827", interactiveOnAccent: "#F1E8EA",
+      focusRing: "#5A2132",
+    },
+    dark: {
+      background: "#130F11", navigation: "#0F0B0D", surface: "#21151A", card: "#2D1C23",
+      documentSurface: "#191116", text: "#F5ECEF", textSecondary: "#DCCAD0", textMuted: "#AD8E99",
+      border: "#4C303A", borderStrong: "#6B4653",
+      interactiveAccent: "#D091A6", interactiveAccentHover: "#E1AABD", interactiveOnAccent: "#130F11",
+      focusRing: "#F0C7D4",
+    },
+  },
+  "teal-parchment": {
+    labelCs: "Tyrkys a pergamen", labelEn: "Teal Parchment",
+    anchors: { "Authentic Teal": "#035352", "Sidecar Yellow": "#F3E8BC" },
+    light: {
+      background: "#F3E8BC", navigation: "#E9DDA8", surface: "#F8EFCF", card: "#FCF6DF",
+      documentSurface: "#FFF9E9", text: "#1D211F",
+      border: "#CABF8C", borderStrong: "#A99D68",
+      interactiveAccent: "#035352", interactiveAccentHover: "#02413F", interactiveOnAccent: "#F3E8BC",
+      focusRing: "#035352",
+    },
+    dark: {
+      background: "#0E1312", navigation: "#0A0F0E", surface: "#162321", card: "#1D2E2B",
+      documentSurface: "#121B19", text: "#F4EBC8", textSecondary: "#D9D0AC", textMuted: "#A5AA8E",
+      border: "#35504C", borderStrong: "#4F706A",
+      interactiveAccent: "#E5D59B", interactiveAccentHover: "#F2E4AD", interactiveOnAccent: "#0E1312",
+      focusRing: "#8CC9C0",
     },
   },
 };
@@ -346,24 +342,41 @@ function buildPalette(mode, s, legacy) {
 
   // Povrchy, na kterých písmo a hrany opravdu leží.
   const fields = [s.background, s.navigation, s.surface, s.card, s.documentSurface];
-  const textMuted = ensureOn(s.textMuted, fields, 4.5, s.text);
-  const textSecondary = ensureOn(s.textSecondary, fields, 4.5, s.text);
+  /* BĚŽNÝ TEXT ZŮSTÁVÁ NEUTRÁLNÍ (V1.1 §3). Sekundární a ztlumené písmo se
+     proto neodvozuje z rodinného odstínu, ale z vlastního inkoustu rodiny
+     posunutého k jejímu poli — nese tedy jen tolik barvy, kolik má pole samo.
+     Dlouhý odstavec se nikde nesází celý modře, tyrkysově ani vínově. */
+  const textMuted = ensureOn(s.textMuted || mixHex(s.text, s.background, 0.44), fields, 4.5, s.text);
+  const textSecondary = ensureOn(s.textSecondary || mixHex(s.text, s.background, 0.26), fields, 4.5, s.text);
   const link = ensureOn(s.accentInk || s.interactiveAccent, fields, 4.5, s.text);
   const borderStrong = ensureOn(s.borderStrong || mixHex(s.text, s.background, 0.45), fields, 3, s.text);
   const focusRing = ensureOn(s.focusRing || s.interactiveAccent, fields, 3, s.text);
   // Zakázaný stav zůstává čitelný (3:1), ale je zřetelně tišší než ztlumené písmo.
   const textDisabled = ensureOn(mixHex(textMuted, s.background, 0.3), fields, 3, s.text);
+  /* NADPIS je jediné běžné písmo, které smí nést rodinný odstín (V1.1 §1).
+     Ve dne je to přímo akcent, který je v každé rodině tmavý inkoust; v noci
+     je akcent světlý, a plný akcent v nadpisu by byl křik — bere se proto
+     jako nádech do lněného textu. Signature si nese svůj vlastní nadpis:
+     ve dne zmrazený Deep Moss, v noci prostý len. */
+  const heading = s.heading
+    || (light ? ensureOn(s.interactiveAccent, fields, 4.5, s.text) : mixHex(s.text, s.interactiveAccent, 0.35));
   /* NÁPOVĚDA V POLI je vlastní role, ne ztlumené písmo se sníženým krytím.
      Dokud byla, nešla uhlídat: aby prošla 4,5:1 na pergamenovém listu, muselo
      by ztlumené písmo zčernat skoro na barvu textu a hierarchie by zmizela.
-     Teď má vlastní token — a Signature ho má nastavený PŘESNĚ na složeninu,
-     kterou dnes vykresluje (0,80 v poli, 0,85 na psací ploše), takže se v ní
-     nezmění ani jeden pixel. */
-  const freeze = !!legacy;
-  const phField = mixHex(textMuted, s.documentSurface, 0.2);
-  const phWrite = mixHex(textMuted, s.documentSurface, 0.15);
-  const placeholder = freeze ? phField : ensureOn(phField, fields, 4.5, s.text);
-  const placeholderStrong = freeze ? phWrite : ensureOn(phWrite, fields, 4.5, s.text);
+     Vlastní token to řeší bez toho, aby se ztlumené písmo hnulo.
+
+     ŽÁDNÁ RODINA UŽ TU NEMÁ VÝJIMKU. Ve V1.1 měla Signature nápovědu
+     zmrazenou na dnešní složeninu (0,80 v poli), a ta dělala 3,99:1. Naváděcí
+     text je významový a 4,5:1 pro něj platí stejně jako pro cokoli jiného, co
+     se čte — tak se to opravilo, a `theme-contrast.test.js` teď nemá co
+     odpouštět. Signature si nese vlastní hodnotu ze specifikace, protože
+     odvozený tón dědil zelenošedý nádech ztlumeného písma; ostatní rodiny
+     hodnotu dopočítávají. Krytí se na nápovědu nikde nepoužívá — snížilo by
+     kontrast zpátky pod práh a `theme-visual.test.js` to hlídá ve zdroji. */
+  const phField = s.placeholder || mixHex(textMuted, s.documentSurface, 0.2);
+  const phWrite = s.placeholderStrong || s.placeholder || mixHex(textMuted, s.documentSurface, 0.15);
+  const placeholder = ensureOn(phField, fields, 4.5, s.text);
+  const placeholderStrong = ensureOn(phWrite, fields, 4.5, s.text);
   /* VÝBĚR TEXTU · nádech akcentu pod textem. Sytější nádech vypadá líp a hůř
      se čte, takže se ubírá, dokud text na výběru nedrží 4,5:1. */
   const selectionSurface = (() => {
@@ -389,7 +402,7 @@ function buildPalette(mode, s, legacy) {
 
     // ---- písmo --------------------------------------------------------
     text: s.text,
-    heading: s.heading || s.text,
+    heading,
     textSecondary,
     textMuted,
     textDisabled,
@@ -449,9 +462,11 @@ function buildPalette(mode, s, legacy) {
     accent: s.interactiveAccent,
     accentInk: link,
     onAccent: s.interactiveOnAccent,
-    sage: textSecondary,
-    sand: textSecondary,
-    inkSand: textSecondary,
+    // Sage, Sand a inkSand jsou v Signature značkové stopy; jinde jsou to jen
+    // tišší inkousty, protože rodinná barva do běžného písma nepatří.
+    sage: s.sage || textSecondary,
+    sand: s.sand || textSecondary,
+    inkSand: s.inkSand || textSecondary,
     danger: fn.errorFg,
     info: fn.infoFg,
     success: fn.successFg,
@@ -503,11 +518,24 @@ function signatureBase(legacy) {
     border: legacy.border, borderStrong: mixHex(legacy.text, legacy.bg, 0.45),
     interactiveAccent: legacy.accent, interactiveOnAccent: legacy.onAccent,
     accentInk: legacy.accentInk, focusRing: legacy.accent,
+    /* Naváděcí text ve dne. Odvozený tón by zdědil zelenošedý nádech
+       `textMuted` (#5C5F58); tenhle je teplý a patří do světa Linen, mědi
+       a inkoustu. Měří 4,64:1 na navigaci až 5,67:1 na listu. */
+    placeholder: "#6B655E",
   };
 }
 
+/* Náhled musí ukázat to, co v motivu opravdu rozhoduje: neutrální běžný text,
+   rodinný nadpis, plochu stránky, kartu, DOKUMENTOVOU plochu (na které se
+   dlouho píše) a interakční akcent. Dva velké barevné obdélníky jsou plakát,
+   ne pracovní prostor. */
 function previewOf(p) {
-  return { background: p.background, card: p.card, text: p.text, textMuted: p.textMuted, border: p.border, accent: p.interactiveAccent, onAccent: p.interactiveOnAccent };
+  return {
+    background: p.background, surface: p.surface, card: p.card,
+    documentSurface: p.documentSurface,
+    text: p.text, textMuted: p.textMuted, heading: p.heading,
+    border: p.border, accent: p.interactiveAccent, onAccent: p.interactiveOnAccent,
+  };
 }
 
 function makeFamily(id, labelCs, labelEn, recommended, anchors, lightPal, darkPal) {
@@ -522,11 +550,14 @@ function makeFamily(id, labelCs, labelEn, recommended, anchors, lightPal, darkPa
 
 const REGISTRY = (() => {
   const out = {};
+  /* Signature má den ZMRAZENÝ (produkční Linen, přepsaný doslova) a noc
+     PŘESTAVĚNOU (Ink Night z V1.1). Je to jediná rodina, kde se obě poloviny
+     chovají různě, a je to záměr: den nikdo neměnil, noc se opravovala. */
   out.signature = makeFamily(
     "signature", "Signature", "Signature", true,
-    { "Forest Night": BRAND.forest, Linen: BRAND.linen, Copper: BRAND.copper },
+    { "Ink Night": SPECS.signature.dark.background, Linen: BRAND.linen, Copper: BRAND.copper },
     buildPalette("light", signatureBase(SIGNATURE_LIGHT), SIGNATURE_LIGHT),
-    buildPalette("dark", signatureBase(SIGNATURE_DARK), SIGNATURE_DARK),
+    buildPalette("dark", SPECS.signature.dark, null),
   );
   for (const id of THEME_FAMILY_IDS) {
     if (id === "signature") continue;

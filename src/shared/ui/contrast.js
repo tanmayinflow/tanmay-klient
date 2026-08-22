@@ -108,5 +108,47 @@ export function cvdDistance(a, b, kind) {
   return Math.sqrt((x.r - y.r) ** 2 + (x.g - y.g) ** 2 + (x.b - y.b) ** 2);
 }
 
+/**
+ * Sytost 0–1 (max − min kanálu). Je to hrubé měřítko a přesně to stačí na
+ * otázku, kterou tu řešíme: JE TA PLOCHA JEŠTĚ NEUTRÁLNÍ, nebo už je to
+ * barevný blok? Neutrální uhel má sytost pod 0,06; sytá modř nad 0,3.
+ */
+export function chroma(color, on) {
+  const c = parseColor(on ? composite(color, on) : color);
+  return (Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b)) / 255;
+}
+
+/**
+ * Barevný nádech 0–1: největší odchylka kanálu od průměru. Na rozdíl od
+ * `chroma` nepenalizuje světlé barvy — krémový len (#F4EBC8) vyjde 0,10,
+ * kdežto sytý tyrkys (#035352) 0,21. Přesně tuhle otázku potřebujeme
+ * u BĚŽNÉHO TEXTU: je to ještě inkoust, nebo už barva?
+ */
+export function tint(color, on) {
+  const c = parseColor(on ? composite(color, on) : color);
+  const mean = (c.r + c.g + c.b) / 3;
+  return Math.max(Math.abs(c.r - mean), Math.abs(c.g - mean), Math.abs(c.b - mean)) / 255;
+}
+
+/** Odstín ve stupních (0 = červená, 120 = zelená, 240 = modrá). */
+export function hueDeg(color, on) {
+  const c = parseColor(on ? composite(color, on) : color);
+  const r = c.r / 255, g = c.g / 255, b = c.b / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  if (d === 0) return 0;
+  let h;
+  if (mx === r) h = ((g - b) / d) % 6;
+  else if (mx === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  h *= 60;
+  return h < 0 ? h + 360 : h;
+}
+
+/** Je barva zelená / mechová? Odstín 75–170° a sytost nad prahem. */
+export function readsGreen(color, minChroma) {
+  const h = hueDeg(color), c = chroma(color);
+  return h >= 75 && h <= 170 && c >= (minChroma == null ? 0.05 : minChroma);
+}
+
 /** Prahy WCAG 2.1 AA, pojmenované, ať se v testech nehádají čísla. */
 export const AA = Object.freeze({ text: 4.5, largeText: 3, ui: 3 });

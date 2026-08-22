@@ -25,15 +25,18 @@ let browser;
 try { browser = await chromium.launch({ executablePath: EXE, args: ["--no-sandbox"] }); }
 catch (e) { console.log("SKIP · Chromium se nepodařilo spustit: " + e.message); srv.close(); process.exit(0); }
 
+// Pořadí i hodnoty jsou z V1.1. Noční pole jsou přirozený uhel, ne kotevní
+// odstín rodiny — na tom stojí polovina téhle opravy.
 const FIELDS = {
-  signature: ["#F4F0EB", "#1C1C1A"],
-  "olive-gold": ["#F7E8A8", "#202B22"],
-  "clay-alabaster": ["#F0E2D3", "#4B2B22"],
-  "atlantic-sky": ["#DDFBFE", "#0F4B70"],
-  "mulberry-paper": ["#EFE9E9", "#5A2132"],
-  "teal-parchment": ["#F3E8BC", "#035352"],
-  "river-mist": ["#E5ECEA", "#243238"],
+  signature: ["#F4F0EB", "#0F100E"],
+  "clay-alabaster": ["#F0E2D3", "#15110F"],
+  "river-mist": ["#E5ECEA", "#101315"],
+  "atlantic-sky": ["#E6F1F4", "#0E1216"],
+  "olive-gold": ["#F3EAC4", "#10120F"],
+  "mulberry-paper": ["#F1E8EA", "#130F11"],
+  "teal-parchment": ["#F3E8BC", "#0E1312"],
 };
+const ORDER = Object.keys(FIELDS);
 const rgb = (hex) => {
   const h = hex.replace("#", "");
   return `rgb(${parseInt(h.slice(0, 2), 16)}, ${parseInt(h.slice(2, 4), 16)}, ${parseInt(h.slice(4, 6), 16)})`;
@@ -190,6 +193,7 @@ try {
           pocet: b.length,
           prvni: (b[0].innerText || "").trim(),
           jmena: b.map((x) => (x.innerText || "").trim().split("\n")[0]),
+          vse: g.innerText || "",
           doporuceno: b.map((x) => /Doporuč|Recommend/i.test(x.innerText || "")).filter(Boolean).length,
           bezJmena: b.filter((x) => !(x.innerText || "").trim()).length,
           vybrano: b.filter((x) => x.getAttribute("aria-checked") === "true").length,
@@ -197,6 +201,7 @@ try {
       });
       check("v Nastavení je sedm karet motivu", karty && karty.pocet === 7, karty ? String(karty.pocet) : "sekce nenalezena");
       check("Signature je první", !!karty && /Signature/i.test(karty.prvni), karty ? karty.prvni : "");
+      check("Nastavení nikde neříká Forest Night", !!karty && !/forest/i.test(karty.vse), karty ? String(karty.vse).slice(0, 80) : "");
       check("doporučená je právě jedna", !!karty && karty.doporuceno === 1, karty ? String(karty.doporuceno) : "");
       check("karta motivu není bezejmenný barevný box", !!karty && karty.bezJmena === 0, karty ? String(karty.bezJmena) : "");
       check("právě jedna karta je zvolená", !!karty && karty.vybrano === 1, karty ? String(karty.vybrano) : "");
@@ -209,8 +214,8 @@ try {
       });
       await page.waitForTimeout(600);
       const po = await themeState(page);
-      check("výběr motivu se projeví hned", po.family === "mulberry-paper", String(po.family));
-      check("výběr motivu se uloží", !!po.stored && JSON.parse(po.stored).family === "mulberry-paper", String(po.stored));
+      check("výběr motivu se projeví hned", po.family === ORDER[4], String(po.family));
+      check("výběr motivu se uloží", !!po.stored && JSON.parse(po.stored).family === ORDER[4], String(po.stored));
 
       // klávesnice · šipka posune volbu
       await page.evaluate(() => {
@@ -221,7 +226,7 @@ try {
       await page.keyboard.press("ArrowRight");
       await page.waitForTimeout(500);
       const klav = await themeState(page);
-      check("šipka vybere další rodinu", klav.family === "teal-parchment", String(klav.family));
+      check("šipka vybere další rodinu", klav.family === ORDER[5], String(klav.family));
       const fokus = await page.evaluate(() => {
         const a = document.activeElement;
         return a ? { role: a.getAttribute("role"), checked: a.getAttribute("aria-checked") } : null;
@@ -237,7 +242,7 @@ try {
       await page.waitForTimeout(600);
       const noc = await themeState(page);
       check("přepínač režimu přepne na noc", noc.mode === "dark", noc.mode);
-      check("přepínač režimu nechá rodinu být", noc.family === "teal-parchment", String(noc.family));
+      check("přepínač režimu nechá rodinu být", noc.family === ORDER[5], String(noc.family));
 
       // reset
       await page.evaluate(() => {
@@ -312,9 +317,34 @@ try {
             const cr = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
             if (cr < worst) { worst = cr; kde = (el.innerText || "").trim().slice(0, 24) + " " + st.color; }
           }
+          /* VIZUÁLNÍ PŘIJETÍ, měřené na skutečně vykreslené stránce (V1.1 §10).
+             `nadmira` je podíl viditelných prvků, které nesou akcent jako
+             výplň nebo barvu písma — když je akcent všude, přestává být
+             akcentem. `sytost` je sytost pole, které prohlížeč opravdu
+             namaloval: v noci to musí být uhel, ne barevný blok. */
+          const kanaly = (c) => c.match(/\d+(\.\d+)?/g).map(Number);
+          const syt = (c) => { const p = kanaly(c); return (Math.max(p[0], p[1], p[2]) - Math.min(p[0], p[1], p[2])) / 255; };
+          const acc = getComputedStyle(document.documentElement).getPropertyValue("--tm-accent").trim();
+          const accRgb = (() => { const h = acc.replace("#", ""); return h.length === 6 ? [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) : null; })();
+          const blizko = (c) => { if (!accRgb || !c) return false; const p = kanaly(c); return Math.abs(p[0] - accRgb[0]) + Math.abs(p[1] - accRgb[1]) + Math.abs(p[2] - accRgb[2]) < 12 && (p[3] === undefined || p[3] > 0.5); };
+          /* Počítá se VÝPLŇ a HRANA, ne barva písma: odkaz, nadpis nebo aktivní
+             položka v akcentu je v pořádku a je to jeho práce. Nadměrné je,
+             když se akcentem maluje plocha. */
+          let vidno = 0, sAkcentem = 0;
+          for (const el of document.querySelectorAll("body *")) {
+            const r = el.getBoundingClientRect();
+            if (r.width < 4 || r.height < 4 || r.top > window.innerHeight || r.bottom < 0) continue;
+            const st = getComputedStyle(el);
+            if (st.visibility === "hidden" || st.display === "none") continue;
+            vidno++;
+            if (blizko(st.backgroundColor) || blizko(st.borderTopColor)) sAkcentem++;
+          }
           return {
             presah: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
             worst: Math.round(worst * 100) / 100, kde, texty: texty.length,
+            sytostPole: Math.round(syt(bg) * 1000) / 1000,
+            nadmira: vidno ? Math.round((sAkcentem / vidno) * 1000) / 1000 : 0,
+            vidno,
           };
         });
         check(`${fam}/${mode} · nepřetéká do strany`, m.presah === 0, "přesah " + m.presah + "px");
@@ -322,6 +352,10 @@ try {
         // 3:1 je podlaha měřená proti POLI stránky · text na kartě se měří
         // proti kartě v node testu, tady jde o hrubý nález typu „bílá na bílé".
         check(`${fam}/${mode} · žádný text nesplynul s polem`, m.worst >= 3, `nejhorší ${m.worst} · ${m.kde}`);
+        if (mode === "dark") {
+          check(`${fam}/dark · pole je uhel, ne barevný blok`, m.sytostPole <= 0.06, `sytost ${m.sytostPole}`);
+        }
+        check(`${fam}/${mode} · akcent není všude`, m.nadmira <= 0.18, `${Math.round(m.nadmira * 100)} % z ${m.vidno} prvků`);
         await ctx.close();
       }
     }

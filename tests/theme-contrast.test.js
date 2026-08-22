@@ -17,12 +17,12 @@ import { ratio, composite, grayscale, cvdDistance, AA } from "../src/shared/ui/c
 const MODES = ["light", "dark"];
 const TAG_KEYS = ["moss", "sage", "sand", "ochre", "taupe", "stone", "burgundy", "rose", "plum", "slate"];
 
-/* SIGNATURE JE ZMRAZENÁ. Nápověda v poli je v ní od Brand V2 pod 4,5:1 a
-   opravit ji znamená změnit odstín, který dnes lidé vidí — což tahle vlna
-   výslovně nesmí. Je to nález, ne povolená výjimka pro nové rodiny: čísla
-   jsou zapsaná, takže se nemůžou tiše zhoršit, a THEME-CONTRAST-REPORT.md
-   nese návrh opravy, který čeká na samostatné rozhodnutí. */
-const SIGNATURE_FROZEN_PLACEHOLDER = { light: "#7D7F78", dark: "#8E8B84" };
+/* ŽÁDNÁ VÝJIMKA. Nápověda v poli byla ve světlé Signature od Brand V2 na
+   3,99:1 a chvíli tu stála jako zapsaný nález. Naváděcí text je významový
+   a čte se — 4,5:1 pro něj platí stejně jako pro všechno ostatní, tak se to
+   opravilo. `#7D7F78` je hodnota, která TU VADU MĚLA; drží se tady jako
+   negativní kontrola, aby se návrat k ní nedal přehlédnout. */
+const OLD_BROKEN_PLACEHOLDER = "#7D7F78";
 
 function pairs(t) {
   const out = [];
@@ -66,23 +66,39 @@ test("čtrnáct palet · text, hrany, stavy a soustředění", () => {
   assert.deepEqual(failures, [], failures.join("\n"));
 });
 
-test("nápověda v poli · nová rodina drží 4,5:1, Signature je zmrazená a změřená", () => {
+test("nápověda v poli drží 4,5:1 ve všech čtrnácti paletách · bez výjimky", () => {
   const failures = [];
   for (const f of THEME_FAMILIES) for (const mode of MODES) {
     const t = f[mode];
-    if (f.id === "signature") {
-      assert.equal(t.placeholder, SIGNATURE_FROZEN_PLACEHOLDER[mode],
-        "Signature nesmí změnit odstín nápovědy · viz THEME-CONTRAST-REPORT.md");
-      continue;
-    }
-    for (const [n, bg] of [["documentSurface", t.documentSurface], ["card", t.card], ["background", t.background]]) {
+    // Plochy, na kterých se naváděcí text opravdu vykresluje: pole formuláře
+    // (`tmInput` staví na `sheet`, tedy documentSurface), karta (`fieldStyle`),
+    // psací plocha, a pro jistotu i pole stránky a navigace.
+    for (const [n, bg] of [["documentSurface", t.documentSurface], ["card", t.card],
+      ["surface", t.surface], ["background", t.background], ["navigation", t.navigation]]) {
       for (const tok of ["placeholder", "placeholderStrong"]) {
         const r = ratio(t[tok], bg, bg);
         if (r < AA.text) failures.push(`${f.id}/${mode} ${tok}/${n}: ${r}`);
       }
     }
+    // Zůstává tišší než napsaný text — jinak by to nebyla nápověda.
+    assert.ok(ratio(t.text, t.background, t.background) > ratio(t.placeholder, t.background, t.background),
+      `${f.id}/${mode}: nápověda není tišší než text`);
   }
   assert.deepEqual(failures, [], failures.join("\n"));
+});
+
+test("negativní kontrola · stará hodnota nápovědy by tenhle test shodila", () => {
+  // Kdyby se někdo vrátil k odvozené složenině ztlumeného písma (nebo k ní
+  // dojel snížením krytí), tohle je přesně ta hodnota — a neprojde.
+  const t = THEME_FAMILIES.find((f) => f.id === "signature").light;
+  const r = ratio(OLD_BROKEN_PLACEHOLDER, t.documentSurface, t.documentSurface);
+  assert.ok(r < AA.text, `negativní kontrola přestala platit: ${OLD_BROKEN_PLACEHOLDER} dělá ${r}`);
+  assert.notEqual(t.placeholder, OLD_BROKEN_PLACEHOLDER);
+  // A totéž krytím: 0,80 nad listem je přesně ta složenina.
+  const via80 = composite(`rgba(92,95,88,0.8)`, t.documentSurface);
+  assert.equal(via80.toUpperCase(), OLD_BROKEN_PLACEHOLDER);
+  assert.ok(ratio(via80, t.documentSurface, t.documentSurface) < AA.text,
+    "snížené krytí nesmí být cesta zpátky pod práh");
 });
 
 test("zakázaný stav je čitelný, ale zřetelně tišší než ztlumené písmo", () => {

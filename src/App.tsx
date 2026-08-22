@@ -13735,7 +13735,7 @@ export default function App() {
               <span key={lang} className="tm-turn" style={{ color: t.accent }}>{lang === "cs" ? "CZ" : "EN"}</span>{lang === "cs" ? "· EN" : "· CZ"}
             </button>
             <button onClick={() => setMode((m) => (m === "dark" ? "light" : "dark"))} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 20, color: t.textSec, cursor: "pointer", padding: "7px 14px", minHeight: 34, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}>
-              <span key={mode} className="tm-turn" style={{ display: "inline-flex", alignItems: "center" }}>{mode === "dark" ? <TmIcMesic size={13} /> : <TmIcSlunce size={13} />}</span>{mode === "dark" ? "Linen" : "Forest"}
+              <span key={mode} className="tm-turn" style={{ display: "inline-flex", alignItems: "center" }}>{mode === "dark" ? <TmIcMesic size={13} /> : <TmIcSlunce size={13} />}</span>{mode === "dark" ? L("Den", "Day") : L("Noc", "Night")}
             </button>
           </div>
           <div key={page} className={"tm-page tm-reveal" + (slideDir ? " tm-slide-" + slideDir : "")} style={{ maxWidth: 1160, margin: "0 auto", padding: "44px clamp(28px, 4vw, 72px) 120px" }}>{render()}</div>

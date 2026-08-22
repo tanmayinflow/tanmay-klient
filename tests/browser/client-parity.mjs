@@ -108,8 +108,10 @@ try {
   for (const theme of ["light", "dark"]) {
     const c = await openApp(BASE, { theme, seed: JSON.stringify({ modules: [] }) });
     const kt = await tokensOf(c.page);
-    const want = theme === "light" ? "rgb(244, 240, 235)" : "rgb(28, 28, 26)";
-    check(`${theme} · pole klienta je ${theme === "light" ? "Linen" : "Forest Night"}`, kt.bg === want, kt.bg);
+    // Noční pole je od Theme System V1.1 Ink Night (#0F100E) — teplý uhel,
+    // ne Forest Night. Světlé pole zůstává Linen.
+    const want = theme === "light" ? "rgb(244, 240, 235)" : "rgb(15, 16, 14)";
+    check(`${theme} · pole klienta je ${theme === "light" ? "Linen" : "Ink Night"}`, kt.bg === want, kt.bg);
     check(`${theme} · tělo píše DM Sans`, /DM Sans/.test(kt.bodyFont), kt.bodyFont);
     check(`${theme} · nadpisy píše Garamond`, /Garamond/.test(kt.displayFont), kt.displayFont);
     check(`${theme} · bez chyby stránky`, c.errs.length === 0, c.errs.join(" | "));
@@ -227,9 +229,9 @@ try {
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1200);
     const after = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    check("volba noci přežije načtení", after === "rgb(28, 28, 26)", after);
+    check("volba noci přežije načtení", after === "rgb(15, 16, 14)", after);
     const meta = await page.evaluate(() => (document.querySelector('meta[name="theme-color"]') || {}).content);
-    check("barva lišty prohlížeče jde s motivem", meta === "#1C1C1A", String(meta));
+    check("barva lišty prohlížeče jde s motivem", meta === "#0F100E", String(meta));
     await ctx.close();
   }
 

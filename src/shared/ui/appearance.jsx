@@ -22,16 +22,27 @@ import { THEME_FAMILIES, THEME_MODES, DEFAULT_FAMILY, previewTokens } from "./th
 
 export function createAppearanceUI(useT, L) {
   function Half({ tok, label }) {
-    // Malý kus rozhraní: pole, karta, dva řádky textu, akcentní bod.
+    /* Kus skutečného rozhraní, ne dva barevné čtverce (V1.1 §9). Ukazuje
+       pole stránky, kartu, RODINNÝ NADPIS, dva řádky NEUTRÁLNÍHO běžného
+       textu, dokumentovou plochu — na které se dlouho píše a která má být
+       nejklidnější — a interakční akcent s popiskem na něm. Přesně to jsou
+       věci, podle kterých se motiv dá posoudit dřív, než se zapne. */
     return (
-      <div aria-hidden="true" style={{ flex: 1, minWidth: 0, background: tok.background, padding: 6, display: "flex", flexDirection: "column", gap: 4, justifyContent: "center" }} title={label}>
-        <div style={{ background: tok.card, border: `1px solid ${tok.border}`, borderRadius: 4, padding: "5px 5px 6px", display: "flex", flexDirection: "column", gap: 3 }}>
-          <div style={{ height: 3, borderRadius: 2, background: tok.text, width: "78%" }} />
-          <div style={{ height: 3, borderRadius: 2, background: tok.textMuted, width: "54%" }} />
-          <div style={{ marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ width: 16, height: 6, borderRadius: 999, background: tok.accent, display: "inline-block" }} />
-            <span style={{ width: 6, height: 6, borderRadius: 999, background: tok.accent, display: "inline-block" }} />
-          </div>
+      <div aria-hidden="true" style={{ flex: 1, minWidth: 0, background: tok.background, padding: 5, display: "flex", flexDirection: "column", gap: 4, justifyContent: "center" }} title={label}>
+        <div style={{ background: tok.card, border: `1px solid ${tok.border}`, borderRadius: 4, padding: "4px 5px 5px", display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ height: 3.5, borderRadius: 2, background: tok.heading, width: "62%" }} />
+          <div style={{ height: 2.5, borderRadius: 2, background: tok.text, width: "88%" }} />
+          <div style={{ height: 2.5, borderRadius: 2, background: tok.textMuted, width: "58%" }} />
+        </div>
+        <div style={{ background: tok.documentSurface, border: `1px solid ${tok.border}`, borderRadius: 3, padding: "4px 5px", display: "flex", flexDirection: "column", gap: 2.5 }}>
+          <div style={{ height: 2.5, borderRadius: 2, background: tok.text, width: "92%" }} />
+          <div style={{ height: 2.5, borderRadius: 2, background: tok.text, width: "70%" }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 20, height: 8, borderRadius: 999, background: tok.accent }}>
+            <span style={{ width: 8, height: 2, borderRadius: 1, background: tok.onAccent, display: "inline-block" }} />
+          </span>
+          <span style={{ width: 7, height: 7, borderRadius: 999, background: tok.accent, display: "inline-block" }} />
         </div>
       </div>
     );
@@ -58,9 +69,9 @@ export function createAppearanceUI(useT, L) {
           borderRadius: 10, textAlign: "left", minHeight: 44, width: "100%", boxSizing: "border-box",
         }}
       >
-        <span style={{ display: "flex", height: 52, borderRadius: 6, overflow: "hidden", border: `1px solid ${t.borderSoft}` }}>
+        <span style={{ display: "flex", height: 74, borderRadius: 6, overflow: "hidden", border: `1px solid ${t.borderSoft}` }}>
           <Half tok={light} label={L("Světlo", "Light")} />
-          <Half tok={dark} label={L("Noc", "Dark")} />
+          <Half tok={dark} label={L("Noc", "Night")} />
         </span>
         <span style={{ display: "flex", alignItems: "baseline", gap: 6, minWidth: 0 }}>
           <span aria-hidden="true" style={{ width: 12, flexShrink: 0, color: t.interactiveAccent || t.accent, fontFamily: "var(--tm-font-tag)", fontSize: 12 }}>{selected ? "✓" : ""}</span>
@@ -141,7 +152,7 @@ export function createAppearanceUI(useT, L) {
     const modes = [
       { id: "system", label: L("Automaticky", "System") },
       { id: "light", label: L("Světlo", "Light") },
-      { id: "dark", label: L("Noc", "Dark") },
+      { id: "dark", label: L("Noc", "Night") },
     ].filter((m) => THEME_MODES.indexOf(m.id) !== -1);
     const families = THEME_FAMILIES.map((f) => ({ id: f.id, fam: f, card: true }));
     const isDefault = family === DEFAULT_FAMILY;
