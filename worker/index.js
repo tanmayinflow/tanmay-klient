@@ -399,6 +399,25 @@ export default {
         result.files = "error: " + e.message;
       }
       result.identity = userIdFrom(request) || "missing";
+      // Stav schématu · po nasazení se dá ověřit z aplikace, ne ručním SQL.
+      // `ensureSchema` je idempotentní: druhý běh nic nezmění a nic nesmaže.
+      // Tady se jen podíváme, co v databázi opravdu stojí.
+      try {
+        await ensureSchema(env);
+        const nutne = ["state", "members", "plans", "goals", "sources", "bookings", "credits", "packages"];
+        const res = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all();
+        const jsou = new Set(((res && res.results) || []).map((r) => r.name));
+        const sloupce = await env.DB.prepare("PRAGMA table_info(members)").all();
+        const clenSloupce = ((sloupce && sloupce.results) || []).map((r) => r.name);
+        result.schema = {
+          tables: nutne.filter((n) => jsou.has(n)),
+          missing: nutne.filter((n) => !jsou.has(n)),
+          memberColumns: clenSloupce,
+          ready: nutne.every((n) => jsou.has(n)) && ["name", "share", "modules"].every((c) => clenSloupce.indexOf(c) !== -1),
+        };
+      } catch (e) {
+        result.schema = { error: e.message };
+      }
       return Response.json(result);
     }
 
