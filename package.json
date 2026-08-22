@@ -17,7 +17,8 @@
     "test:training:browser": "node tests/browser/training.mjs",
     "test:pwa": "node tests/browser/pwa.mjs",
     "test:update": "node tests/browser/update.mjs",
-    "check": "npm run lint && npm run test && npm run build"
+    "check": "npm run lint && npm run test && npm run build",
+    "test:booking": "node tests/browser/booking.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

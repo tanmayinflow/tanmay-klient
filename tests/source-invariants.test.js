@@ -154,3 +154,40 @@ test("klient nemá čím sáhnout na předpis", () => {
 test("čekající odeslání je vidět", () => {
   assert.match(app, /syncPending/, "zapsaná série se nesmí tvářit jako odeslaná");
 });
+
+// Rezervační vrstva je v souboru ohraničená; test se musí ptát právě jí,
+// jinak by odpovídal za polovinu aplikace a jeho výsledek by nic neznamenal.
+const bookingSlice = () => app.slice(app.indexOf("const BKC_API"), app.indexOf("const MODULES = ["));
+
+test("klientská aplikace nemluví s trenérskými cestami", () => {
+  const bk = bookingSlice();
+  assert.ok(bk.length > 1000, "rezervační vrstva musí ve zdroji být");
+  assert.match(bk, /const BKC_API = "\/api\/client"/);
+  assert.equal(/["'`]\/api\/booking\//.test(bk), false, "trenérské cesty v klientském sestavení nemají co dělat");
+});
+
+test("klient neposílá vlastní identifikátor jako autoritu", () => {
+  const bk = bookingSlice();
+  assert.equal(/clientId\s*:/.test(bk), false, "identitu odvozuje Worker ze session, ne tělo požadavku");
+});
+
+test("rezervace klienta nikdy nekončí jen v prohlížeči", () => {
+  const bk = bookingSlice();
+  assert.equal(/localStorage/.test(bk), false);
+  // offline se dá číst, ne rezervovat — a musí to být napsané, ne doufané
+  assert.match(bk, /OFFLINE/);
+});
+
+test("klientský Worker nezná trenérskou část rezervačního API", () => {
+  const w = readFileSync(join(root, "worker/index.js"), "utf8");
+  assert.match(w, /handleClient/);
+  assert.equal(/handleCoach/.test(w), false, "trenérské cesty v klientském Workeru neexistují");
+});
+
+test("rezervační doména je v obou aplikacích tentýž soubor", () => {
+  for (const f of ["types.js", "time.js", "slots.js", "credits.js", "status.js", "format.js", "index.js"]) {
+    const here = readFileSync(join(root, "src/booking/" + f), "utf8");
+    const there = readFileSync(join(root, "../tanmay-web/src/booking/" + f), "utf8");
+    assert.equal(here, there, f + " se rozešel s trenérskou stranou");
+  }
+});

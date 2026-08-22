@@ -1,4 +1,9 @@
 // tanmay-klient — Worker (client edition).
+//
+// Client Operations V1 adds the client half of the booking domain. It reads
+// and writes the same tables as the coach application, in this very database,
+// and it never takes a client id from a request: the identity comes from the
+// Access header and the Worker looks the booking client up itself.
 // Same API surface as tanmay-web, with ONE structural change:
 // the user id is derived from the Cloudflare Access identity header,
 // not a constant. Every client authenticated by Access gets their own
@@ -8,6 +13,8 @@
 // Storage layout (identical shape to tanmay-web, keyed per user):
 //   D1  state.user_id = <derived id>
 //   R2  files/<derived id>/<file id>
+
+import { handleClient } from "./booking/api.js";
 
 // Derive a stable, filesystem-safe user id from the Access email.
 // "jan.novak@gmail.com" -> "jan-novak-gmail-com"
@@ -306,7 +313,7 @@ async function handleFilesList(request, env, userId) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/health") {
@@ -359,6 +366,15 @@ export default {
         const name = String(body.name || "").trim().slice(0, 80);
         await env.DB.prepare("UPDATE members SET name = ? WHERE user_id = ?").bind(name, userId).run();
         return Response.json({ ok: true, name });
+      }
+
+      // Termíny · rezervace, sloty a kredity. Vlastnictví se odvozuje ze
+      // session, ne z těla požadavku — cizí id se sem nedá poslat.
+      if (url.pathname.startsWith("/api/client/booking") || url.pathname.startsWith("/api/client/bookings")
+          || url.pathname === "/api/client/credits") {
+        const odpoved = await handleClient(request, env, url, userId, ctx);
+        if (odpoved) return odpoved;
+        return Response.json({ ok: false, error: "not found" }, { status: 404 });
       }
 
       if (url.pathname === "/api/state") {

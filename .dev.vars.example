@@ -1,0 +1,13 @@
+# Tajemství pro místní vývoj. Zkopíruj na `.dev.vars` a doplň hodnoty.
+# Skutečné hodnoty do repozitáře nikdy nepatří — v provozu žijí jako Worker
+# secrets (`npx wrangler secret put …`), ne v souboru.
+
+# Vstupní slovo, kterým Tanmay otevírá prostor pozvanému klientovi.
+INVITE_WORD=
+
+# Klientská aplikace s Googlem nemluví o nic víc, než musí: potřebuje jen
+# ověřit obsazenost ve chvíli, kdy klient potvrzuje rezervaci. Proto tady
+# není client id ani client secret — jen šifrovací klíč, kterým se odemkne
+# obnovovací token uložený v téže databázi. Musí to být TÁŽ hodnota jako
+# v trenérské aplikaci.
+GOOGLE_TOKEN_ENCRYPTION_KEY=

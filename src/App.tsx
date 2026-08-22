@@ -1,5 +1,6 @@
 import React, { useState, useContext, createContext } from "react";
 import { createPortal } from "react-dom";
+import * as BK from "./booking/index.js";
 // Tréninková doména je stejný modul jako v trenérské aplikaci. Ne kopie kódu —
 // stejný soubor, takže schéma série, měření a rekordů nemůže mezi oběma appkami
 // tiše rozejít. Nic z něj nezná React ani DOM.
@@ -14919,6 +14920,7 @@ const NAV_GROUPS = [
   { cz: "Den", en: "Day", items: [
     { key: "praxe", icon: "🔥", cz: "Praxe", en: "Practice" },
     { key: "trenink", icon: "▲", cz: "Trénink", en: "Training" },
+    { key: "terminy", icon: "◷", cz: "Termíny", en: "Sessions" },
     { key: "denik", icon: "✎", cz: "Deník", en: "Journal" },
   ] },
   { cz: "Směr", en: "Direction", items: [
@@ -15266,6 +15268,520 @@ function TmGuide({ onClose }) {
   );
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   TERMÍNY · rezervace pro klienta
+   ────────────────────────────────────────────────────────────────────────
+   Krátká cesta ke čtyřem otázkám: kdy se vidíme, kolik mi zbývá, kdy si
+   můžu vzít další čas, a jak ten domluvený přesunout nebo zrušit.
+
+   Co tady nikdy nebude: cizí rezervace, názvy toho, čím je Tanmay obsazený,
+   počet ostatních klientů, jeho poznámky. Server o nich ani neřekne — tohle
+   rozhraní o ně ani nežádá.
+
+   Rezervace nikdy nežije jen tady v prohlížeči. Offline se dá přečíst, co už
+   je načtené; rezervovat, přesunout ani zrušit se offline nedá, protože čas
+   mezitím může vzít někdo jiný a předstírat opak by bylo horší než počkat.
+   ════════════════════════════════════════════════════════════════════════ */
+
+const BKC_API = "/api/client";
+
+async function bkcFetch(path, opts) {
+  const o = opts || {};
+  const init = { method: o.method || "GET", cache: "no-store", headers: {} };
+  if (o.body !== undefined) { init.body = JSON.stringify(o.body); init.headers["Content-Type"] = "application/json"; }
+  if (o.idempotencyKey) init.headers["Idempotency-Key"] = o.idempotencyKey;
+  let res;
+  try { res = await fetch(BKC_API + path, init); }
+  catch (e) { const err = new Error("network"); err.code = "OFFLINE"; throw err; }
+  let body = null;
+  try { body = await res.json(); } catch (e) { body = null; }
+  if (!res.ok || !body || body.ok === false) {
+    const err = new Error((body && body.error) || "http-" + res.status);
+    err.code = (body && body.error) || "VALIDATION_ERROR";
+    err.status = res.status;
+    throw err;
+  }
+  return body;
+}
+const bkcErr = (e) => {
+  if (!e) return "";
+  if (e.code === "OFFLINE") return L("Tohle potřebuje připojení. Zkus to znovu, až budeš online.", "This needs a connection. Try again when you are online.");
+  return BK.errorCopy(e.code, LANG);
+};
+
+const bkcTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Prague"; } catch (e) { return "Europe/Prague"; } };
+const bkcName = (x) => (!x ? "" : (LANG === "cs" ? (x.nameCs || x.nameEn) : (x.nameEn || x.nameCs)) || "");
+const bkcDay = (iso) => { const d = new Date(iso + "T12:00:00Z"); return isNaN(d) ? iso : d.toLocaleDateString(LANG === "cs" ? "cs-CZ" : "en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); };
+const bkcTime = (ms, tz) => BK.hhmm(ms, tz || bkcTz());
+const bkcWhen = (ms, tz) => bkcDay(BK.localDateISO(ms, tz || bkcTz())) + " · " + bkcTime(ms, tz);
+const bkcCredits = (n) => BK.credits(n, LANG);
+
+function useBkc(path, deps, opts) {
+  const [state, setState] = useState({ data: null, err: null, loading: true });
+  const ziv = React.useRef(true);
+  const nacti = React.useCallback(() => {
+    setState((s) => ({ ...s, loading: true }));
+    bkcFetch(path).then(
+      (b) => { if (ziv.current) setState({ data: b, err: null, loading: false }); },
+      (e) => { if (ziv.current) setState((s) => ({ data: s.data, err: e, loading: false })); }
+    );
+  }, [path]);
+  React.useEffect(() => { ziv.current = true; if (!(opts && opts.skip)) nacti(); return () => { ziv.current = false; }; }, deps || [path]);
+  return { ...state, reload: nacti };
+}
+
+function BkcStav({ status }) {
+  const { t } = useT();
+  const tone = BK.statusTone(status);
+  const barva = { ok: t.sage, wait: t.sand, done: t.textMuted, warn: t.danger, off: t.textMuted }[tone] || t.textMuted;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: FONT_BODY, fontSize: 12.5, color: barva }}>
+      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: barva }} />
+      {BK.statusCopy(status, LANG)}
+    </span>
+  );
+}
+
+function BkcHlaska({ e, onRetry }) {
+  const { t } = useT();
+  if (!e) return null;
+  return (
+    <div role="alert" style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: t.danger, padding: "10px 0", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <span>{bkcErr(e)}</span>
+      {onRetry && <button onClick={onRetry} style={bkcBtn(t)}>{L("Zkusit znovu", "Try again")}</button>}
+    </div>
+  );
+}
+
+const bkcBtn = (t, primary) => primary
+  ? { background: t.accent, color: t.onAccent, border: "none", borderRadius: 100, padding: "11px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 15, minHeight: 44 }
+  : { background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 100, padding: "10px 18px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14, minHeight: 44 };
+
+/* ---- karta termínu ------------------------------------------------------ */
+function BkcTermin({ b, onOpen, tlumene }) {
+  const { t } = useT();
+  return (
+    <button onClick={() => onOpen && onOpen(b)}
+      style={{ display: "block", width: "100%", textAlign: "left", background: tlumene ? "transparent" : t.card,
+        border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10,
+        cursor: onOpen ? "pointer" : "default", color: t.text, fontFamily: FONT_BODY, opacity: tlumene ? 0.75 : 1 }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading }}>{bkcWhen(b.startsAt, b.timezone)}</span>
+        <BkcStav status={b.status} />
+      </span>
+      <span style={{ display: "block", fontSize: 13.5, color: t.textMuted }}>
+        {[bkcName(b.service), b.location ? bkcName(b.location) : ""].filter(Boolean).join(" · ")}
+      </span>
+    </button>
+  );
+}
+
+/* ════════ TERMÍNY · hlavní stav ════════════════════════════════════════ */
+function PageTerminy() {
+  const { t } = useT();
+  const [rezervuji, setRezervuji] = useState(false);
+  const [otevreny, setOtevreny] = useState(null);
+  const [obnov, setObnov] = useState(0);
+  const ctx = useBkc("/booking/context", [obnov]);
+  const moje = useBkc("/bookings", [obnov]);
+  const znovu = () => setObnov((x) => x + 1);
+
+  const c = ctx.data || {};
+  const kredity = c.credits || { available: 0, reserved: 0 };
+  const pristi = (moje.data && moje.data.upcoming) || [];
+  const minule = (moje.data && moje.data.past) || [];
+
+  return (
+    <>
+      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPraxe size={38} /></span>} kicker={L("Kdy se vidíme.", "When we meet.")}>{L("Termíny", "Sessions")}</PageTitle>
+
+      {ctx.loading && !ctx.data && <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, fontStyle: "italic" }}>{L("Načítám…", "Loading…")}</p>}
+      {ctx.err && <BkcHlaska e={ctx.err} onRetry={znovu} />}
+
+      {/* Další setkání je to hlavní, co sem člověk chodí zjistit. */}
+      {pristi.length > 0 ? (
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage, marginBottom: 8 }}>{L("Další setkání", "Next session")}</div>
+          <BkcTermin b={pristi[0]} onOpen={setOtevreny} />
+        </div>
+      ) : ctx.data ? (
+        <p className="tm-prose" style={{ ...pProse(t), marginBottom: 18 }}>{L("Zatím nemáš domluvený žádný termín.", "You have no session arranged yet.")}</p>
+      ) : null}
+
+      {/* Zůstatek · číslo, ne graf. A hned pod ním, co se s ním dá udělat. */}
+      {ctx.data && (
+        <div style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "14px 16px", marginBottom: 22 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage }}>{L("Zůstatek", "Balance")}</span>
+            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: t.heading }}>{bkcCredits(kredity.available)}</span>
+            {kredity.reserved > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted }}>{L(kredity.reserved + " drží termín", kredity.reserved + " held by a session")}</span>}
+          </div>
+          {(c.credits && c.credits.packages || []).map((p) => (
+            <div key={p.id} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, marginTop: 6 }}>
+              {p.name}{p.expiresAt ? " · " + L("platí do ", "valid until ") + bkcDay(BK.localDateISO(Number(p.expiresAt), bkcTz())) : ""}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Když si rezervovat nejde, řekne se to rovnou — prázdný kalendář
+          plný zašedlých buněk nikomu nic nevysvětlí. */}
+      {ctx.data && !c.enabled && (
+        <div style={{ marginBottom: 22 }}>
+          <p className="tm-prose" style={pProse(t)}>
+            {c.reason === "NO_CREDIT" || c.reason === "NO_CLIENT"
+              ? L("Nemáš teď aktivní kredit pro rezervaci. Domluv se s Tanmayem.", "You have no active credit for booking right now. Talk to Tanmay.")
+              : L("Zatím tu pro tebe není otevřená žádná služba. Domluv se s Tanmayem.", "No service is open for you yet. Talk to Tanmay.")}
+          </p>
+        </div>
+      )}
+
+      {ctx.data && c.enabled && !rezervuji && (
+        <button onClick={() => setRezervuji(true)} style={{ ...bkcBtn(t, true), marginBottom: 24 }}>{L("Rezervovat", "Book a session")}</button>
+      )}
+
+      {rezervuji && <BkcRezervace ctx={c} onClose={() => setRezervuji(false)} onDone={() => { setRezervuji(false); znovu(); }} />}
+
+      {ctx.data && (kredity.available > 0 || kredity.reserved > 0 || kredity.consumed > 0) && <BkcKniha />}
+
+      {pristi.length > 1 && (
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage, marginBottom: 8 }}>{L("Další termíny", "Upcoming")}</div>
+          {pristi.slice(1).map((b) => <BkcTermin key={b.id} b={b} onOpen={setOtevreny} />)}
+        </div>
+      )}
+
+      {minule.length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage, marginBottom: 8 }}>{L("Minulé", "Past")}</div>
+          {minule.slice(0, 12).map((b) => <BkcTermin key={b.id} b={b} tlumene />)}
+        </div>
+      )}
+
+      {otevreny && <BkcDetail b={otevreny} onClose={() => setOtevreny(null)} onChanged={() => { setOtevreny(null); znovu(); }} />}
+    </>
+  );
+}
+
+/* ════════ REZERVACE · čtyři kroky ══════════════════════════════════════
+   Služba → místo → čas → souhrn. Nic víc. Tlačítko na konci se jmenuje
+   Rezervovat, ne Dokončit objednávku: nic se tu nekupuje. */
+function BkcRezervace({ ctx, onClose, onDone }) {
+  const { t } = useT();
+  const sluzby = ctx.services || [];
+  const [sid, setSid] = useState(sluzby.length === 1 ? sluzby[0].id : "");
+  const [lid, setLid] = useState("");
+  const [cas, setCas] = useState(null);
+  const [chyba, setChyba] = useState(null);
+  const [posilam, setPosilam] = useState(false);
+  const klic = React.useRef("bk_" + Math.random().toString(36).slice(2));
+  const sluzba = sluzby.find((s) => s.id === sid) || null;
+  const mista = sluzba ? (sluzba.locations || []) : [];
+  const misto = mista.find((m) => m.id === lid) || (mista.length === 1 ? mista[0] : null);
+
+  React.useEffect(() => { if (mista.length === 1) setLid(mista[0].id); else setLid(""); setCas(null); }, [sid]);
+  React.useEffect(() => { setCas(null); }, [lid]);
+
+  const posli = () => {
+    setPosilam(true); setChyba(null);
+    bkcFetch("/bookings", { method: "POST", idempotencyKey: klic.current,
+      body: { serviceId: sid, locationId: misto ? misto.id : null, startsAt: cas.startsAt } }).then(
+      () => { setPosilam(false); onDone(); },
+      (e) => {
+        setPosilam(false); setChyba(e);
+        // Když čas mezitím zmizel, nabídne se rovnou nový výběr — a klíč se
+        // vymění, aby další pokus nebyl pochopený jako opakování toho prvního.
+        if (e.code === "SLOT_TAKEN") { setCas(null); klic.current = "bk_" + Math.random().toString(36).slice(2); }
+      });
+  };
+
+  const Krok = ({ n, label, children, hotovo }) => (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span style={{ width: 20, height: 20, borderRadius: "50%", background: hotovo ? t.accent : "transparent", border: `1px solid ${hotovo ? t.accent : t.border}`, color: hotovo ? t.onAccent : t.textMuted, fontFamily: FONT_TAG, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n}</span>
+        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage }}>{label}</span>
+      </div>
+      {children}
+    </div>
+  );
+
+  return (
+    <div style={{ border: `1px solid ${t.border}`, borderRadius: 16, padding: "16px 16px 20px", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 20, color: t.heading }}>{L("Rezervovat", "Book a session")}</span>
+        <button onClick={onClose} aria-label={L("Zavřít", "Close")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: t.textMuted }}>✕</button>
+      </div>
+
+      <Krok n="1" label={L("Co", "What")} hotovo={!!sid}>
+        {sluzby.map((s) => (
+          <button key={s.id} onClick={() => setSid(s.id)}
+            style={{ display: "block", width: "100%", textAlign: "left", background: sid === s.id ? hexA(t.accent, 0.1) : "transparent",
+              border: `1px solid ${sid === s.id ? t.accent : t.borderSoft}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8,
+              cursor: "pointer", color: t.text, fontFamily: FONT_BODY, minHeight: 44 }}>
+            <span style={{ display: "block", fontSize: 15.5 }}>{bkcName(s)}</span>
+            <span style={{ display: "block", fontSize: 12.5, color: t.textMuted, marginTop: 2 }}>
+              {s.durationMin + " min" + (s.creditUnits ? " · " + bkcCredits(s.creditUnits) : "") + (s.priceMinor && !s.creditUnits ? " · " + BK.money(s.priceMinor, s.currency, LANG) : "")}
+            </span>
+            {(LANG === "cs" ? s.descriptionCs : s.descriptionEn)
+              ? <span style={{ display: "block", fontSize: 13, color: t.textSec, marginTop: 5, lineHeight: 1.55 }}>{LANG === "cs" ? s.descriptionCs : s.descriptionEn}</span> : null}
+          </button>
+        ))}
+      </Krok>
+
+      {sid && mista.length > 1 && (
+        <Krok n="2" label={L("Kde", "Where")} hotovo={!!lid}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {mista.map((m) => (
+              <button key={m.id} onClick={() => setLid(m.id)}
+                style={{ ...bkcBtn(t, lid === m.id), fontSize: 14 }}>{bkcName(m)}</button>
+            ))}
+          </div>
+        </Krok>
+      )}
+
+      {sid && (mista.length <= 1 || lid) && (
+        <Krok n={mista.length > 1 ? "3" : "2"} label={L("Kdy", "When")} hotovo={!!cas}>
+          <BkcSloty serviceId={sid} locationId={misto ? misto.id : null} vybrany={cas} onPick={setCas} />
+        </Krok>
+      )}
+
+      {cas && (
+        <Krok n={mista.length > 1 ? "4" : "3"} label={L("Souhrn", "Summary")} hotovo={false}>
+          <div style={{ background: t.callout, borderRadius: 12, padding: "14px 16px", fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.8, color: t.text }}>
+            <div>{bkcName(sluzba)} · {sluzba.durationMin} min</div>
+            {misto && <div style={{ color: t.textSec }}>{bkcName(misto)}</div>}
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading, margin: "4px 0" }}>{bkcWhen(cas.startsAt, cas.timezone)}</div>
+            <div style={{ fontSize: 12.5, color: t.textMuted }}>{cas.timezone}</div>
+            <div style={{ marginTop: 8, color: t.textSec }}>
+              {sluzba.creditUnits ? bkcCredits(sluzba.creditUnits) : (sluzba.priceMinor ? BK.money(sluzba.priceMinor, sluzba.currency, LANG) : L("bez kreditu", "no credit"))}
+            </div>
+            <div style={{ fontSize: 12.5, color: t.textMuted, marginTop: 6, lineHeight: 1.6 }}>
+              {L("Zrušit nebo přesunout jde do ", "You can cancel or move it up to ") + Math.round((sluzba.cancelBeforeMin || 0) / 60) + L(" hodin předem.", " hours beforehand.")}
+              {sluzba.lateCancelRefunds ? "" : L(" Později už se kredit nevrací.", " After that the credit is not returned.")}
+              <span style={{ display: "block" }}>{LANG === "cs" ? BK.CONFIRMATION_COPY[sluzba.confirmationMode].cs : BK.CONFIRMATION_COPY[sluzba.confirmationMode].en}</span>
+            </div>
+          </div>
+          {chyba && <BkcHlaska e={chyba} />}
+          <button disabled={posilam} onClick={posli} style={{ ...bkcBtn(t, true), marginTop: 14, width: "100%" }}>
+            {posilam ? L("Odesílám…", "Sending…") : L("Rezervovat", "Book it")}
+          </button>
+        </Krok>
+      )}
+      {chyba && !cas && <BkcHlaska e={chyba} />}
+    </div>
+  );
+}
+
+/* ---- sloty --------------------------------------------------------------
+   Nejdřív dny, které něco mají. Potom časy. Žádná mřížka měsíce plná
+   zašedlých buněk, které nikomu nic neřeknou. */
+function BkcSloty({ serviceId, locationId, vybrany, onPick, excludeBooking }) {
+  const { t } = useT();
+  const [from, setFrom] = useState(() => todayISO());
+  const q = "/booking/slots?serviceId=" + encodeURIComponent(serviceId)
+    + (locationId ? "&locationId=" + encodeURIComponent(locationId) : "")
+    + "&from=" + from + "&days=21" + (excludeBooking ? "&reschedule=" + encodeURIComponent(excludeBooking) : "");
+  const { data, err, loading, reload } = useBkc(q, [q]);
+  const [den, setDen] = useState(null);
+  const dny = (data && data.days) || [];
+  const aktivni = dny.find((d) => d.date === den) || dny[0] || null;
+
+  if (loading && !data) return <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, fontStyle: "italic" }}>{L("Hledám volný čas…", "Looking for free time…")}</p>;
+  if (err) return <BkcHlaska e={err} onRetry={reload} />;
+  if (!dny.length) {
+    return (
+      <div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, lineHeight: 1.6 }}>
+          {L("V nejbližších třech týdnech není volný čas. Zkus se podívat dál, nebo napiš Tanmayovi.",
+             "There is no free time in the next three weeks. Look further ahead, or message Tanmay.")}
+        </p>
+        <button onClick={() => setFrom(BK.shiftDateISO(from, 21))} style={bkcBtn(t)}>{L("Načíst další dny", "Load more days")}</button>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="tm-scroll" style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 12, scrollbarWidth: "none" }}>
+        {dny.map((d) => {
+          const je = aktivni && aktivni.date === d.date;
+          return (
+            <button key={d.date} onClick={() => setDen(d.date)} aria-pressed={je}
+              style={{ flexShrink: 0, minWidth: 66, minHeight: 62, padding: "8px 10px", borderRadius: 14, cursor: "pointer",
+                background: je ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${je ? t.accent : t.borderSoft}`,
+                color: je ? (t.accentInk || t.accent) : t.textSec, fontFamily: FONT_BODY }}>
+              <span style={{ display: "block", fontSize: 11.5, opacity: 0.8 }}>{new Date(d.date + "T12:00:00Z").toLocaleDateString(LANG === "cs" ? "cs-CZ" : "en-GB", { weekday: "short", timeZone: "UTC" })}</span>
+              <span style={{ display: "block", fontSize: 17, marginTop: 2 }}>{Number(d.date.slice(8))}. {Number(d.date.slice(5, 7))}.</span>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {(aktivni ? aktivni.slots : []).map((s) => {
+          const je = vybrany && vybrany.startsAt === s.startsAt;
+          return (
+            <button key={s.startsAt} onClick={() => onPick({ ...s, timezone: data.timezone })}
+              aria-label={bkcDay(aktivni.date) + " " + bkcTime(s.startsAt, data.timezone)}
+              style={{ background: je ? hexA(t.accent, 0.14) : "transparent", border: `1px solid ${je ? t.accent : t.border}`,
+                borderRadius: 12, padding: "12px 16px", cursor: "pointer", color: je ? (t.accentInk || t.accent) : t.text,
+                fontFamily: FONT_BODY, fontSize: 15.5, minWidth: 84, minHeight: 46 }}>
+              {bkcTime(s.startsAt, data.timezone)}
+            </button>
+          );
+        })}
+      </div>
+      <button onClick={() => setFrom(BK.shiftDateISO(from, 21))} style={{ ...bkcBtn(t), marginTop: 14 }}>{L("Načíst další dny", "Load more days")}</button>
+    </>
+  );
+}
+
+/* ════════ DETAIL TERMÍNU ═══════════════════════════════════════════════ */
+function BkcDetail({ b, onClose, onChanged }) {
+  const { t } = useT();
+  const [presun, setPresun] = useState(false);
+  const [cas, setCas] = useState(null);
+  const [rusim, setRusim] = useState(null);   // náhled zrušení
+  const [chyba, setChyba] = useState(null);
+  const [prace, setPrace] = useState(false);
+  const zavreno = BK.isClosedStatus(b.status);
+  const sluzba = b.service || {};
+  const misto = b.location || null;
+
+  const zeptejSeNaZruseni = () => {
+    setChyba(null);
+    bkcFetch("/bookings/" + b.id + "/cancel-preview").then((r) => setRusim(r.preview), setChyba);
+  };
+  const zrus = () => {
+    setPrace(true);
+    bkcFetch("/bookings/" + b.id + "/cancel", { method: "POST" }).then(
+      () => { setPrace(false); onChanged(); }, (e) => { setPrace(false); setChyba(e); });
+  };
+  const presunNa = () => {
+    setPrace(true); setChyba(null);
+    bkcFetch("/bookings/" + b.id + "/reschedule", { method: "POST", body: { startsAt: cas.startsAt } }).then(
+      () => { setPrace(false); onChanged(); },
+      (e) => { setPrace(false); setChyba(e); if (e.code === "SLOT_TAKEN") setCas(null); });
+  };
+  const doKalendare = () => {
+    const stamp = (ms) => new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const esc = (s) => String(s == null ? "" : s).replace(/([,;\\])/g, "\\$1").replace(/\r?\n/g, "\\n");
+    const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//tanmay//klient//CS", "BEGIN:VEVENT",
+      "UID:" + b.id + "@tanmay", "DTSTAMP:" + stamp(Date.now()),
+      "DTSTART:" + stamp(b.startsAt), "DTEND:" + stamp(b.endsAt),
+      "SUMMARY:" + esc(bkcName(sluzba) || L("Sezení", "Session")),
+      "LOCATION:" + esc(misto ? (misto.address || bkcName(misto)) : ""),
+      "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    try {
+      const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+      const a = document.createElement("a");
+      a.href = url; a.download = "tanmay-termin.ics";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) {}
+  };
+
+  return (
+    <CenterSheet title={bkcWhen(b.startsAt, b.timezone)} onClose={onClose}>
+      <div style={{ marginBottom: 16 }}><BkcStav status={b.status} /></div>
+
+      <div style={{ fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.9, color: t.text, marginBottom: 18 }}>
+        <div>{bkcName(sluzba)}{sluzba.durationMin ? " · " + sluzba.durationMin + " min" : ""}</div>
+        {misto && <div style={{ color: t.textSec }}>{bkcName(misto)}</div>}
+        {misto && misto.address && <div style={{ color: t.textMuted, fontSize: 13.5 }}>{misto.address}</div>}
+        {misto && (LANG === "cs" ? misto.instructionsCs : misto.instructionsEn)
+          ? <div style={{ color: t.textSec, fontSize: 13.5, marginTop: 6, lineHeight: 1.65 }}>{LANG === "cs" ? misto.instructionsCs : misto.instructionsEn}</div> : null}
+        <div style={{ color: t.textMuted, fontSize: 13 }}>{b.timezone}</div>
+        {b.creditUnits ? <div style={{ color: t.textSec }}>{bkcCredits(b.creditUnits)}</div> : null}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        {misto && misto.mapUrl && <a href={misto.mapUrl} target="_blank" rel="noopener noreferrer" style={{ ...bkcBtn(t), textDecoration: "none", display: "inline-flex", alignItems: "center" }}>{L("Zobrazit místo", "Show the place")}</a>}
+        {b.meetingUrl && <a href={b.meetingUrl} target="_blank" rel="noopener noreferrer" style={{ ...bkcBtn(t), textDecoration: "none", display: "inline-flex", alignItems: "center" }}>{L("Otevřít odkaz", "Open the link")}</a>}
+        {!zavreno && <button onClick={doKalendare} style={bkcBtn(t)}>{L("Přidat do kalendáře", "Add to calendar")}</button>}
+      </div>
+
+      {chyba && <BkcHlaska e={chyba} />}
+
+      {rusim && (
+        <div role="alertdialog" style={{ border: `1px solid ${t.accent}`, borderRadius: 14, padding: 16, marginBottom: 16, background: hexA(t.accent, 0.06) }}>
+          <p style={{ margin: "0 0 12px", fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.7, color: t.text }}>
+            {rusim.late
+              ? L("Tohle je pozdní zrušení.", "This is a late cancellation.")
+              : L("Zrušení je včas.", "This cancellation is in time.")}
+            <span style={{ display: "block", marginTop: 6 }}>
+              {rusim.unitsReturned > 0
+                ? L("Vrátí se ti ", "You get back ") + bkcCredits(rusim.unitsReturned) + "."
+                : L("Kredit se nevrací.", "The credit is not returned.")}
+            </span>
+            <span style={{ display: "block", color: t.textMuted, marginTop: 4 }}>
+              {L("Nový zůstatek: ", "New balance: ") + bkcCredits(rusim.balanceAfter)}
+            </span>
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button disabled={prace} onClick={zrus} style={bkcBtn(t, true)}>{L("Zrušit termín", "Cancel the session")}</button>
+            <button onClick={() => setRusim(null)} style={bkcBtn(t)}>{L("Nechat být", "Leave it")}</button>
+          </div>
+        </div>
+      )}
+
+      {presun && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage, marginBottom: 10 }}>{L("Nový čas", "A new time")}</div>
+          <BkcSloty serviceId={sluzba.id} locationId={misto ? misto.id : null} vybrany={cas} onPick={setCas} excludeBooking={b.id} />
+          {cas && (
+            <button disabled={prace} onClick={presunNa} style={{ ...bkcBtn(t, true), marginTop: 14 }}>
+              {L("Přesunout na ", "Move to ") + bkcWhen(cas.startsAt, cas.timezone)}
+            </button>
+          )}
+        </div>
+      )}
+
+      {!zavreno && !rusim && !presun && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => setPresun(true)} style={bkcBtn(t)}>{L("Přesunout termín", "Reschedule")}</button>
+          <button onClick={zeptejSeNaZruseni} style={bkcBtn(t)}>{L("Zrušit termín", "Cancel")}</button>
+        </div>
+      )}
+    </CenterSheet>
+  );
+}
+
+/* ---- kreditní kniha ------------------------------------------------------
+   Zůstatek je nahoře v Termínech. Tohle je to, co za ním stojí — a otevře se
+   jen když si to někdo vyžádá, protože většinu dní stačí jedno číslo. */
+function BkcKniha() {
+  const { t } = useT();
+  const [otevreno, setOtevreno] = useState(false);
+  const { data, err, reload } = useBkc("/credits", [otevreno], { skip: !otevreno });
+  if (!otevreno) {
+    return (
+      <button onClick={() => setOtevreno(true)} style={{ ...bkcBtn(t), marginBottom: 22 }}>
+        {L("Historie kreditů", "Credit history")}
+      </button>
+    );
+  }
+  if (err) return <BkcHlaska e={err} onRetry={reload} />;
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage, marginBottom: 8 }}>{L("Historie kreditů", "Credit history")}</div>
+      {!data && <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, fontStyle: "italic" }}>{L("Načítám…", "Loading…")}</p>}
+      {((data && data.entries) || []).map((e, i) => (
+        <div key={i} style={{ display: "flex", gap: 10, padding: "8px 0", borderBottom: `1px solid ${t.borderSoft}`, fontFamily: FONT_BODY, fontSize: 13.5, alignItems: "baseline" }}>
+          <span style={{ width: 92, flexShrink: 0, color: t.textMuted }}>{bkcDay(BK.localDateISO(Number(e.at), bkcTz()))}</span>
+          <span style={{ flex: 1, color: t.textSec }}>
+            {LANG === "cs" ? (BK.LEDGER_COPY[e.kind] || {}).cs : (BK.LEDGER_COPY[e.kind] || {}).en}
+            {e.reason ? <span style={{ color: t.textMuted }}>{" · " + e.reason}</span> : null}
+          </span>
+          <span style={{ flexShrink: 0, color: Number(e.units) > 0 ? t.sage : t.inkSand }}>{Number(e.units) > 0 ? "+" + e.units : e.units}</span>
+        </div>
+      ))}
+      {data && !(data.entries || []).length && (
+        <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, fontStyle: "italic" }}>{L("Zatím se nic nestalo.", "Nothing has happened yet.")}</p>
+      )}
+    </div>
+  );
+}
+
+
 const MODULES = [
   { key: "praxe",    icon: "🔥", label: "Practice",            lcs: "Praxe",        dcs: "Denní návyky, kalendář, série.",            den: "Daily habits, calendar, streaks.",        core: true },
   { key: "denik",  icon: "✎",  label: "Journal",             lcs: "Deník",          dcs: "Zápisy z praxe i života. Bez pointy.",       den: "Entries from practice and life.",          core: true },
@@ -15274,6 +15790,7 @@ const MODULES = [
   { key: "hospodareni", icon: "🫙", label: "Stewardship",         lcs: "Hospodaření",        dcs: "Šest džbánů. Klidný přehled o penězích.",   den: "Six jars. A calm view of money.",          core: false },
   { key: "prameny",  icon: "▤",  label: "Sources",             lcs: "Prameny",       dcs: "Knihy, filmy, podcasty a co ti daly.",      den: "Books, films, podcasts and their gifts.",  core: false },
   { key: "trenink", icon: "△",  label: "Training",            lcs: "Trénink",        dcs: "Plán od Tanyho. Odškrtáváš, co jsi odcvičil.", den: "The plan from Tanmay. Tick off what you trained.", core: false },
+  { key: "terminy", icon: "◷",  label: "Sessions",            lcs: "Termíny",        dcs: "Kdy se vidíte. Zůstatek, rezervace, přesun.",  den: "When you meet. Balance, booking, rescheduling.",    core: false },
 ];
 const CORE_MODULES = MODULES.filter((m) => m.core).map((m) => m.key);
 const MOD_KEYS = MODULES.map((m) => m.key);
@@ -16838,6 +17355,7 @@ export default function App() {
       case "prameny": return <PageContent />;
       case "hospodareni": return <PageFinances />;
       case "denik": return <PageJournal />;
+      case "terminy": return <PageTerminy />;
       // „klienti" je místnost trenéra, ne klienta — v klientské aplikaci
       // na ni nevede žádná cesta a nesmí vést ani oklikou přes stav.
       case "klienti": return null;

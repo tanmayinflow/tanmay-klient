@@ -1,26 +1,64 @@
 // Zkušební prostředí Workeru — skutečné SQL (node:sqlite) místo napodobeniny,
 // aby test ověřoval dotazy tak, jak je uvidí D1, ne tak, jak je čte atrapa.
-// Bez závislostí: všechno, co je tu potřeba, přináší Node sám.
+// Bez závislostí: všechno, co je tu potřeba, přináší Node sám.//
+// Dávka (`batch`) je tu skutečná transakce, protože v D1 skutečná je:
+// „Batched statements are SQL transactions. If a statement in the sequence
+// fails, then an error is returned for that specific statement, and it aborts
+// or rolls back the entire sequence." Bez toho by se ochrana proti dvojí
+// rezervaci testovala proti něčemu, co se v provozu chová jinak.
 import { DatabaseSync } from "node:sqlite";
 
 export function makeD1() {
   const db = new DatabaseSync(":memory:");
-  const wrap = (sql) => {
-    const run = (args) => {
-      const st = db.prepare(sql);
-      if (/^\s*(select|pragma)/i.test(sql)) return { rows: st.all(...args) };
-      st.run(...args);
-      return { rows: [] };
-    };
-    const api = (args) => ({
-      bind: (...a) => api(a),
-      run: async () => { run(args); return { success: true }; },
-      first: async () => { const r = run(args); return r.rows.length ? r.rows[0] : null; },
-      all: async () => ({ results: run(args).rows }),
-    });
-    return api([]);
+  db.exec("PRAGMA foreign_keys = ON");
+
+  const exec = (sql, args) => {
+    const st = db.prepare(sql);
+    if (/^\s*(select|pragma|with)/i.test(sql)) return { rows: st.all(...args) };
+    const info = st.run(...args);
+    return { rows: [], changes: Number(info && info.changes) || 0 };
   };
-  return { prepare: wrap, _raw: db };
+
+  let gate = Promise.resolve(); // jedna transakce naráz, přesně jako v D1
+
+  const stmt = (sql, args) => ({
+    _sql: sql,
+    _args: args,
+    bind: (...a) => stmt(sql, a),
+    run: async () => { const r = exec(sql, args); return { success: true, meta: { changes: r.changes || 0 } }; },
+    first: async (col) => {
+      const r = exec(sql, args);
+      if (!r.rows.length) return null;
+      return col ? r.rows[0][col] : r.rows[0];
+    },
+    all: async () => ({ results: exec(sql, args).rows, success: true }),
+  });
+
+  return {
+    prepare: (sql) => stmt(sql, []),
+    // D1 dává každé dávce vlastní transakci a dvě se nikdy nezanoří. Řetěz
+    // to drží i tady, takže dva souběžné požadavky se v testu potkají stejně
+    // jako v provozu, místo aby se srazily na BEGIN.
+    batch(list) {
+      const run = () => {
+        db.exec("BEGIN IMMEDIATE");
+        try {
+          const out = [];
+          for (const s of list) out.push({ success: true, results: exec(s._sql, s._args).rows });
+          db.exec("COMMIT");
+          return out;
+        } catch (e) {
+          try { db.exec("ROLLBACK"); } catch (e2) {}
+          throw e;
+        }
+      };
+      const next = gate.then(run, run);
+      gate = next.then(() => {}, () => {});
+      return next;
+    },
+    async exec(sql) { db.exec(sql); return { count: 1 }; },
+    _raw: db,
+  };
 }
 
 export function makeR2() {
