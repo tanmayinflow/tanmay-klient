@@ -15,6 +15,11 @@
 //   R2  files/<derived id>/<file id>
 
 import { handleClient } from "./booking/api.js";
+// Vědomé sdílení má tvar, ne důvěru. Souhrn se ověřuje i tady, na serveru —
+// klient může poslat cokoliv a prohlížeč není hranice. Sdílené jádro drží
+// tentýž kontrakt, jaký používá aplikace při skládání souhrnu.
+import { validateShareSnapshot } from "../src/shared/product/visibility.js";
+import { CLIENT_OPTIONAL } from "../src/shared/product/roles.js";
 
 // Derive a stable, filesystem-safe user id from the Access email.
 // "jan.novak@gmail.com" -> "jan-novak-gmail-com"
@@ -90,6 +95,10 @@ async function ensureSchema(env) {
   // migrace starší tabulky bez sloupce name — bezpečně, jen jednou selže naprázdno
   try { await env.DB.prepare("ALTER TABLE members ADD COLUMN name TEXT").run(); } catch (e) {}
   try { await env.DB.prepare("ALTER TABLE members ADD COLUMN share TEXT").run(); } catch (e) {}
+  // Zapnuté soukromé místnosti. Trenér potřebuje vědět, které moduly má klient
+  // otevřené, aby uměl poradit — ale jeho dotaz kvůli tomu nesmí sahat do
+  // `state.doc`, kde leží Deník a Zápisník. Klient je sem zapisuje sám.
+  try { await env.DB.prepare("ALTER TABLE members ADD COLUMN modules TEXT").run(); } catch (e) {}
 }
 
 // ---- Plán od Tanyho · jen ke čtení ----------------------------------------
@@ -170,13 +179,38 @@ async function handleState(request, env, userId) {
     }
     const docStr = JSON.stringify(body && "doc" in body ? body.doc : null);
     // Vědomé sdílení: klientská aplikace přibaluje snímek (nebo null = vypnuto).
+    // Tvar se ověřuje tady. Když souhrn neprojde, sdílení se zneplatní —
+    // radši ať trenér nevidí nic, než aby uviděl něco, co vidět nemá.
     if (body && "share" in body) {
       let s = null;
       if (body.share != null) {
+        const check = validateShareSnapshot(body.share);
+        if (!check.ok) {
+          return Response.json({ ok: false, error: "share summary refused", detail: check.errors.slice(0, 8) }, { status: 400 });
+        }
         const raw = JSON.stringify(body.share);
         if (raw.length <= 100000) s = raw; // pojistka velikosti
       }
       await env.DB.prepare("UPDATE members SET share = ? WHERE user_id = ?").bind(s, userId).run();
+    }
+    // Zapnuté soukromé místnosti do vlastního sloupce. Jen jména z povoleného
+    // seznamu — nic jiného se odsud k trenérovi nedostane.
+    {
+      let mods = null;
+      try {
+        const doc = body && body.doc;
+        const list = doc && doc.coll && doc.coll.modules;
+        if (Array.isArray(list)) {
+          mods = JSON.stringify(list.filter((k) => CLIENT_OPTIONAL.indexOf(k) !== -1));
+        }
+        const memento = doc && doc.coll && doc.coll.memento && doc.coll.memento.zapnuto;
+        if (memento) {
+          const cur = mods ? JSON.parse(mods) : [];
+          if (cur.indexOf("memento") === -1) cur.push("memento");
+          mods = JSON.stringify(cur);
+        }
+      } catch (e) { mods = null; }
+      await env.DB.prepare("UPDATE members SET modules = ? WHERE user_id = ?").bind(mods, userId).run();
     }
     const now = Date.now();
     await env.DB
@@ -206,6 +240,11 @@ async function handleState(request, env, userId) {
 // odkazy ven bez adresy stránky. Styly zůstávají povolené vloženě — celá
 // aplikace je psaná inline styly a hodnotami motivu, takže „unsafe-inline"
 // v style-src tu není nedbalost, ale popis skutečnosti.
+// Vložený skript v index.html (dorovnání barvy pole ještě před vykreslením)
+// je povolený otiskem, ne plošným 'unsafe-inline' — a test hlídá, že otisk
+// pořád sedí. Styly vložené zůstávají: aplikace je psaná inline styly a
+// hodnotami motivu, tvrdit u nich přísnost by bylo nepřesné.
+const INDEX_INLINE_SCRIPT_HASH = "sha256-RZnGqinxcD011ckQ3HDe0daemj4Ha7TmEDdvPhWYB3M=";
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -213,7 +252,7 @@ const CSP = [
   "frame-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "script-src 'self'",
+  "script-src 'self' '" + INDEX_INLINE_SCRIPT_HASH + "'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob:",
