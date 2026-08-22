@@ -99,6 +99,34 @@ test("stav schématu se dá přečíst z aplikace, ne ručním SQL", async () =>
   assert.equal(r.status, 200);
   const b = await r.json();
   assert.ok(b.schema, "health musí hlásit stav schématu");
-  assert.deepEqual(b.schema.missing.filter((x) => NUTNE.indexOf(x) !== -1), [], "po dorovnání nesmí chybět nutná tabulka");
+  assert.deepEqual([...b.schema.tables].sort(), [...NUTNE].sort(), "health musí hlásit právě ty tabulky, které migrace zakládá");
+  assert.deepEqual(b.schema.missing, [], "po dorovnání nesmí chybět žádná nutná tabulka");
   for (const c of ["name", "share", "modules"]) assert.ok(b.schema.memberColumns.indexOf(c) !== -1, "chybí sloupec " + c);
+  // Tohle je ta věta, kvůli které celý report existuje: po nasazení se dá
+  // z aplikace přečíst, že je schéma připravené. Když `ready` nemůže být
+  // nikdy true, report nic nehlásí — jen straší.
+  assert.equal(b.schema.ready, true, "po dorovnání musí být schéma připravené");
+});
+
+test("nutné tabulky v /api/health jsou opravdu ty, které Worker zakládá", async () => {
+  // Seznam v `/api/health` se dá napsat z hlavy a nikdo si toho nevšimne:
+  // vymyšlené jméno chybí navždy a `ready` je navždy false. Proto se seznam
+  // porovnává se zdrojem Workeru, ne s pamětí toho, kdo ho psal.
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../worker/index.js", import.meta.url), "utf8");
+
+  const m = src.match(/const nutne = \[([^\]]*)\]/);
+  assert.ok(m, "v /api/health musí stát seznam nutných tabulek");
+  const hlasene = m[1].split(",").map((x) => x.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+
+  const zakladane = new Set();
+  for (const x of src.matchAll(/CREATE TABLE IF NOT EXISTS\s+([a-z_]+)/gi)) zakladane.add(x[1]);
+  // `goals` a `sources` vznikají v cyklu, jméno se do SQL vkládá spojením.
+  for (const x of src.matchAll(/for \(const jmeno of \[([^\]]+)\]/g)) {
+    for (const j of x[1].split(",")) zakladane.add(j.trim().replace(/^["']|["']$/g, ""));
+  }
+
+  const vymyslene = hlasene.filter((t) => !zakladane.has(t));
+  assert.deepEqual(vymyslene, [], "health hlásí tabulky, které nikdo nezakládá: " + vymyslene.join(", "));
+  assert.deepEqual([...hlasene].sort(), [...NUTNE].sort(), "seznam v health se rozešel s tím, co testy považují za nutné");
 });

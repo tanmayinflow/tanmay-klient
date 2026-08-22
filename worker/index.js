@@ -402,9 +402,14 @@ export default {
       // Stav schématu · po nasazení se dá ověřit z aplikace, ne ručním SQL.
       // `ensureSchema` je idempotentní: druhý běh nic nezmění a nic nesmaže.
       // Tady se jen podíváme, co v databázi opravdu stojí.
+      //
+      // Nutné je právě to, co `ensureSchema` zakládá. Rezervace mají vlastní
+      // migraci (`ensureBookingSchema`), která běží až na první rezervační
+      // dotaz — dokud si klient nic nedomluvil, její tabulky tu být nemusí
+      // a jejich nepřítomnost není nedostatek.
       try {
         await ensureSchema(env);
-        const nutne = ["state", "members", "plans", "goals", "sources", "bookings", "credits", "packages"];
+        const nutne = ["state", "members", "plans", "goals", "sources"];
         const res = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all();
         const jsou = new Set(((res && res.results) || []).map((r) => r.name));
         const sloupce = await env.DB.prepare("PRAGMA table_info(members)").all();
