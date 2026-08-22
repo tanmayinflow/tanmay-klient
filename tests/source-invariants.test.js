@@ -18,13 +18,21 @@ test("persistColl se nevolá s hotovým objektem", () => {
   assert.equal(hits, 0, "nalezeno " + hits + " volání v objektovém tvaru");
 });
 
-test("z klientského sestavení neodchází požadavek na trenérské cesty", () => {
-  assert.equal([...app.matchAll(/[^k]fetch\(\s*["'`]\/api\/klienti/g)].length, 0);
-  assert.match(app, /function klFetch\(\)/, "plot okolo trenérských cest musí existovat");
+test("trenérská správa klientů v klientském sestavení vůbec není", () => {
+  // Dřív tu ležel celý kokpit trenéra a jen se k němu nedalo dojít: cesta
+  // vracela null a `klFetch` odmítal. Plot okolo mrtvého kódu je slabší
+  // hranice než ten kód nemít. Teď ho tu nemáme.
+  assert.equal([...app.matchAll(/["'`]\/api\/klienti/g)].length, 0, "žádná trenérská cesta");
+  for (const n of ["PageKlienti", "KlRosterCard", "KlTabPrehled", "KlBrief", "klFetch", "useKlienti"]) {
+    assert.doesNotMatch(app, new RegExp("\\b" + n + "\\b"), n + " nemá v klientském sestavení co dělat");
+  }
 });
 
 test("místnost trenéra není v klientské aplikaci směrovaná", () => {
-  assert.doesNotMatch(app, /case\s+"klienti":\s*return\s+<PageKlienti/);
+  assert.doesNotMatch(app, /case\s+"klienti"/);
+  assert.doesNotMatch(app, /case\s+"hospodareni"/);
+  assert.doesNotMatch(app, /case\s+"mandala"/);
+  assert.doesNotMatch(app, /case\s+"socsite"/);
 });
 
 test("střídání účtu odklidí i média předchozího člověka", () => {

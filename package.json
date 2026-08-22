@@ -9,17 +9,20 @@
     "browser:setup": "npm install --no-save playwright-core@^1.62.1",
     "lint": "oxlint src worker scripts tests",
     "preview": "vite preview",
+    "shared:check": "node scripts/shared-check.mjs",
     "exercise-library:check": "node --test \"tests/exercise-library.test.js\"",
     "test": "node --test \"tests/**/*.test.js\"",
     "test:security": "node --test \"tests/worker.test.js\"",
     "test:source": "node --test \"tests/source-invariants.test.js\"",
     "test:browser": "node tests/browser/account-switch.mjs",
+    "test:parity": "node tests/browser/client-parity.mjs",
     "test:training": "node --test \"tests/training.test.js\"",
     "test:training:browser": "node tests/browser/training.mjs",
     "test:pwa": "node tests/browser/pwa.mjs",
     "test:update": "node tests/browser/update.mjs",
-    "check": "npm run lint && npm run test && npm run build",
-    "test:booking": "node tests/browser/booking.mjs"
+    "check": "npm run shared:check && npm run lint && npm run test && npm run build && npm run privacy:bundle",
+    "test:booking": "node tests/browser/booking.mjs",
+    "privacy:bundle": "node scripts/privacy-bundle-scan.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

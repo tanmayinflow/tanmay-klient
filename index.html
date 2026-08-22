@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
     <title>tanmay</title>
-    <meta name="theme-color" content="#171412" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F3ED" />
+    <!-- Barva se dorovná podle uloženého režimu ještě před vykreslením (níž). -->
+    <meta name="theme-color" content="#F4F0EB" />
     <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -18,14 +18,28 @@
     <meta name="apple-mobile-web-app-title" content="tanmay" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=EB+Garamond:ital,wght@0,400;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Barlow+Condensed:wght@300;400;500&family=Caveat:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=EB+Garamond:ital,wght@0,400;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@300;400;500&display=swap" rel="stylesheet" />
     <style>
       html, body, #root { margin: 0; padding: 0; min-height: 100%; }
-      body { background: #171412; }
+      /* Linen je výchozí pole domu · skript níž ho přepne na Forest Night,
+         když si člověk naposledy zvolil noc. Bez toho blikne při každém
+         startu opačný režim. */
+      body { background: #F4F0EB; }
     </style>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        try {
+          var noc = localStorage.getItem("tm-theme") === "dark";
+          var pole = noc ? "#1C1C1A" : "#F4F0EB";
+          document.body.style.background = pole;
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute("content", pole);
+        } catch (e) {}
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
