@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "browser:setup": "npm install --no-save playwright-core@^1.62.1",
     "lint": "oxlint src worker scripts tests",
     "preview": "vite preview",
     "exercise-library:check": "node --test \"tests/exercise-library.test.js\"",
@@ -30,7 +31,6 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
-    "playwright-core": "^1.62.1",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
   }

@@ -191,3 +191,31 @@ test("rezervační doména je v obou aplikacích tentýž soubor", () => {
     assert.equal(here, there, f + " se rozešel s trenérskou stranou");
   }
 });
+test("package.json a package-lock.json se shodují", () => {
+  // Cloudflare staví `npm ci`, a to odmítne nainstalovat cokoliv, jakmile se
+  // tyhle dva soubory rozejdou. Build umře na instalaci, poslední povedené
+  // nasazení zůstane zamrzlé a v telefonu to vypadá, jako by se týdny nic
+  // nedělo. Stalo se to dvakrát — `sharp` a `playwright-core` — a pokaždé to
+  // stálo celou vlnu práce.
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const lock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
+  const koren = lock.packages[""];
+  assert.deepEqual(pkg.dependencies || {}, koren.dependencies || {}, "dependencies se rozešly");
+  assert.deepEqual(pkg.devDependencies || {}, koren.devDependencies || {}, "devDependencies se rozešly");
+  for (const jm of Object.keys({ ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) })) {
+    assert.ok(lock.packages["node_modules/" + jm], jm + " není v zámku, `npm ci` by odmítl instalovat");
+  }
+});
+
+test("nástroje na psaní nejsou v závislostech nasazení", () => {
+  // `sharp` kreslí plakáty, `playwright-core` klepe na aplikaci v prohlížeči.
+  // Build ani jeden z nich nevolá. V `package.json` by jen prodlužovaly
+  // instalaci na Cloudflare a lámaly ji, kdyby se rozešly se zámkem;
+  // instalují se na požádání skriptem s `--no-save`.
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const vse = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+  for (const jm of ["sharp", "playwright-core", "playwright", "@playwright/test"]) {
+    assert.equal(jm in vse, false, jm + " patří za `--no-save`, ne do závislostí");
+  }
+  assert.match(pkg.scripts["browser:setup"], /--no-save/);
+});
