@@ -288,7 +288,8 @@ test("volba vzhledu přežije zavření aplikace", () => {
   // se drží stejná v obou domech. Aplikace ji smí jen POUŽÍT, ne mít vlastní.
   assert.match(app, /from "\.\/shared\/ui\/appearance\.js"/);
   assert.match(app, /readAppearance\(\)/, "volba se čte z jádra");
-  assert.match(app, /writeAppearance\(appearance, mode\)/, "volba se zapisuje přes jádro");
+  assert.match(app, /writeAppearance\(appearance\)/, "volba se zapisuje přes jádro");
+  assert.match(app, /appearance\.preset/, "volba je jedno id vzhledu, ne rodina a režim");
   assert.equal(/localStorage\.setItem\("tm-theme"/.test(app), false, "klíč patří jádru, ne aplikaci");
 });
 

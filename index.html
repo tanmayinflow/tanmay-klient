@@ -32,43 +32,69 @@
     <script>
       (function () {
         /* PŘED PRVNÍM VYKRESLENÍM. Bez tohohle blikne při každém startu
-           Signature Linen a teprve pak naskočí uložený motiv. Mapa je jen
-           POLE každé rodiny ve dne a v noci; zbytek palety přinese aplikace.
-           Sdílené jádro je autorita — `theme-bootstrap.test.js` shodí build,
-           jakmile se ta dvě čísla rozejdou. */
+           Signature Day a teprve pak naskočí uložený vzhled. Mapa je jen POLE
+           každého pevného vzhledu; zbytek palety přinese aplikace. Sdílené
+           jádro je autorita — `theme-bootstrap.test.js` shodí build, jakmile
+           se ta čísla rozejdou.
+
+           Skript rozumí VŠEM TŘEM generacím uložené volby, protože jinak by
+           v den nasazení bliklo napříč celou instalovanou základnou. */
         var F = {
-          "signature": ["#F4F0EB", "#0F100E"],
-          "clay-alabaster": ["#F0E2D3", "#15110F"],
-          "river-mist": ["#E5ECEA", "#101315"],
-          "atlantic-sky": ["#E6F1F4", "#0E1216"],
-          "olive-gold": ["#F3EAC4", "#10120F"],
-          "mulberry-paper": ["#F1E8EA", "#130F11"],
-          "teal-parchment": ["#F3E8BC", "#0E1312"]
+          "signature-day": "#F4F0EB",
+          "signature-night": "#262725",
+          "river-night": "#101315",
+          "teal-night": "#0E1312",
+          "mulberry-paper": "#F1E8EA",
+          "slate-clay": "#DBD6D1",
+          "sand-earth": "#D3C7AD",
+          "smoke-spice": "#282227"
+        };
+        /* noční vzhledy · seznam je týž jako polarita v rejstříku */
+        var N = ["signature-night", "river-night", "teal-night", "smoke-spice"];
+        /* rodina × režim (V1, V1.1) → vzhled (V2) · tabulka je táž jako
+           FAMILY_MIGRATION v rejstříku */
+        var M = {
+          "signature": { "system": "auto", "light": "signature-day", "dark": "signature-night" },
+          "river-mist": "river-night",
+          "teal-parchment": "teal-night",
+          "mulberry-paper": "mulberry-paper",
+          "atlantic-sky": "slate-clay",
+          "clay-alabaster": "sand-earth",
+          "olive-gold": "sand-earth"
         };
         try {
-          var rodina = "signature", rezim = "light";
+          var vzhled = "auto";
           try {
-            var raw = localStorage.getItem("tm-appearance-v2");
-            if (raw) {
-              var p = JSON.parse(raw);
-              if (p && F[p.family]) rodina = p.family;
-              if (p && (p.mode === "dark" || p.mode === "light" || p.mode === "system")) rezim = p.mode;
+            var raw = localStorage.getItem("tm-appearance-v3");
+            var p = raw ? JSON.parse(raw) : null;
+            if (p && (p.preset === "signature-auto" || F[p.preset])) {
+              vzhled = p.preset === "signature-auto" ? "auto" : p.preset;
             } else {
-              var old = localStorage.getItem("tm-theme");
-              if (old === "dark" || old === "light") rezim = old;
+              var raw2 = localStorage.getItem("tm-appearance-v2");
+              var q = raw2 ? JSON.parse(raw2) : null;
+              var m = q ? M[q.family] : null;
+              if (typeof m === "string") vzhled = m;
+              else if (m) vzhled = m[q.mode === "light" || q.mode === "dark" ? q.mode : "system"];
+              else {
+                var old = localStorage.getItem("tm-theme");
+                if (old === "dark") vzhled = "signature-night";
+                else if (old === "light") vzhled = "signature-day";
+              }
             }
           } catch (e) {}
-          if (rezim === "system") {
-            rezim = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          if (vzhled === "auto") {
+            vzhled = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "signature-night" : "signature-day";
           }
-          var pole = F[rodina][rezim === "dark" ? 1 : 0];
+          var pole = F[vzhled] || F["signature-day"];
+          var noc = N.indexOf(vzhled) >= 0;
           var h = document.documentElement;
-          h.setAttribute("data-theme-family", rodina);
-          h.setAttribute("data-color-mode", rezim);
-          h.style.setProperty("color-scheme", rezim);
+          h.setAttribute("data-appearance", vzhled);
+          h.setAttribute("data-color-mode", noc ? "dark" : "light");
+          h.style.setProperty("color-scheme", noc ? "dark" : "light");
           document.body.style.background = pole;
-          var m = document.querySelector('meta[name="theme-color"]');
-          if (m) m.setAttribute("content", pole);
+          var m2 = document.querySelector('meta[name="theme-color"]');
+          if (m2) m2.setAttribute("content", pole);
         } catch (e) {}
       })();
     </script>

@@ -108,10 +108,11 @@ try {
   for (const theme of ["light", "dark"]) {
     const c = await openApp(BASE, { theme, seed: JSON.stringify({ modules: [] }) });
     const kt = await tokensOf(c.page);
-    // Noční pole je od Theme System V1.1 Ink Night (#0F100E) — teplý uhel,
-    // ne Forest Night. Světlé pole zůstává Linen.
-    const want = theme === "light" ? "rgb(244, 240, 235)" : "rgb(15, 16, 14)";
-    check(`${theme} · pole klienta je ${theme === "light" ? "Linen" : "Ink Night"}`, kt.bg === want, kt.bg);
+    /* Od Theme System V2 je noc Signature Night (#262725) — měkký uhel,
+       ne near-black. Světlé pole zůstává Linen. Zkouška podstrkuje nejstarší
+       klíč `tm-theme`, takže zároveň ověřuje, že migrace na V2 sedí. */
+    const want = theme === "light" ? "rgb(244, 240, 235)" : "rgb(38, 39, 37)";
+    check(`${theme} · pole klienta je ${theme === "light" ? "Linen" : "Signature Night"}`, kt.bg === want, kt.bg);
     check(`${theme} · tělo píše DM Sans`, /DM Sans/.test(kt.bodyFont), kt.bodyFont);
     check(`${theme} · nadpisy píše Garamond`, /Garamond/.test(kt.displayFont), kt.displayFont);
     check(`${theme} · bez chyby stránky`, c.errs.length === 0, c.errs.join(" | "));
@@ -216,22 +217,24 @@ try {
   {
     // Bez init skriptu · volba se má vzít z úložiště, ne z toho, co jí zkouška
     // podstrčí při každém načtení.
-    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    /* Systém je výslovně ve dne: po V2 je výchozí volbou Automaticky ·
+       Signature, takže bez uložené volby rozhoduje `prefers-color-scheme`. */
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: "light" });
     const page = await ctx.newPage();
     await page.goto(BASE, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1200);
     const before = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    check("dům se otevírá do světla", before === "rgb(244, 240, 235)", before);
-    // Volba se od Theme System V1 ukládá jako rodina + režim (`tm-appearance-v2`).
-    // Starý klíč se pořád čte, ale nový má přednost — jinak by se po jednom
-    // spuštění nedalo nastavit nic.
-    await page.evaluate(() => localStorage.setItem("tm-appearance-v2", JSON.stringify({ version: 2, family: "signature", mode: "dark" })));
+    check("dům se otevírá do světla, když je systém ve dne", before === "rgb(244, 240, 235)", before);
+    /* Volba se od Theme System V2 ukládá jako jedno id vzhledu
+       (`tm-appearance-v3`). Starší klíče se pořád čtou, ale nový má přednost —
+       jinak by se po jednom spuštění nedalo nastavit nic. */
+    await page.evaluate(() => localStorage.setItem("tm-appearance-v3", JSON.stringify({ version: 3, preset: "signature-night" })));
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1200);
     const after = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    check("volba noci přežije načtení", after === "rgb(15, 16, 14)", after);
+    check("volba noci přežije načtení", after === "rgb(38, 39, 37)", after);
     const meta = await page.evaluate(() => (document.querySelector('meta[name="theme-color"]') || {}).content);
-    check("barva lišty prohlížeče jde s motivem", meta === "#0F100E", String(meta));
+    check("barva lišty prohlížeče jde s motivem", meta === "#262725", String(meta));
     await ctx.close();
   }
 

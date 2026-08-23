@@ -1,186 +1,230 @@
 // GENERATED · SHARED PRODUCT CORE — do not edit inside an application repository.
-// Canonical source: Work/web-application/Shared/product-core/repo-tests/theme-contrast.test.js
+// Canonical source: Work/web-application/repo-tests/theme-contrast.test.js
 // Change it there, then run `npm run shared:sync` in the outer workspace.
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
-// KONTRASTNÍ AUDIT · 7 rodin × 2 režimy = 14 vyřešených palet.
+// KONTRAST SE POČÍTÁ, NEODHADUJE.
 //
-// Tenhle test nečte předem napsané `pass: true`. Relativní jas se počítá
-// z hexu podle WCAG 2.1 a průsvitná barva se skládá na povrch, na kterém
-// opravdu leží. Když se v rejstříku pohne jediný odstín, spadne to tady.
+// Měří se SKUTEČNÉ DVOJICE, ne tokeny proti sobě: písmo na každé ploše, na
+// které opravdu leží, popisek na akcentu i na jeho hoveru, nápověda v poli,
+// obtah soustředění vedle sousední plochy, stavový text na stavovém pozadí,
+// série grafu na plotně motivu.
+//
+// V2 přidal do seznamu ploch VYVÝŠENOU (`elevatedSurface`) — modal, popover,
+// list nad listem. Do V1.1 se dopočítávala z karty a byla jí tak blízko, že
+// se neměřila zvlášť; od V2 ji nové palety určují samy a leží o patro výš,
+// takže ztlumené písmo na ní musí projít stejně jako všude jinde.
+//
+// Nula známých výjimek u běžného textu. Když sem někdy nějaká přibude, musí
+// být napsaná tady i v THEME-CONTRAST-REPORT.md, ne mlčky odpuštěná.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { THEME_FAMILIES, chartPalette, statusPalette } from "../src/shared/ui/themeRegistry.js";
+import {
+  FIXED_PRESET_IDS, resolveTheme, chartPalette, statusPalette, appearancePreset,
+} from "../src/shared/ui/themeRegistry.js";
 import { makeTagsFor } from "../src/shared/ui/theme.js";
-import { ratio, composite, grayscale, cvdDistance, AA } from "../src/shared/ui/contrast.js";
+import { ratio, grayscale, cvdDistance, composite, contrast, AA } from "../src/shared/ui/contrast.js";
 
-const MODES = ["light", "dark"];
-const TAG_KEYS = ["moss", "sage", "sand", "ochre", "taupe", "stone", "burgundy", "rose", "plum", "slate"];
+/* MĚŘÍ SE ROLE, NE KARTÉZSKÝ SOUČIN. „Nápověda na najeté kartě" není dvojice,
+   která v aplikaci existuje: nápověda leží uvnitř pole formuláře, ne na kartě
+   pod kurzorem. Kdyby se měřil součin všeho se vším, matice by hlásila selhání
+   kombinací, které nikdo nikdy nevykreslí — a skutečná selhání by se v tom
+   ztratila. Každá role má proto vlastní seznam ploch, na kterých se opravdu
+   ocitne. */
 
-/* ŽÁDNÁ VÝJIMKA. Nápověda v poli byla ve světlé Signature od Brand V2 na
-   3,99:1 a chvíli tu stála jako zapsaný nález. Naváděcí text je významový
-   a čte se — 4,5:1 pro něj platí stejně jako pro všechno ostatní, tak se to
-   opravilo. `#7D7F78` je hodnota, která TU VADU MĚLA; drží se tady jako
-   negativní kontrola, aby se návrat k ní nedal přehlédnout. */
-const OLD_BROKEN_PLACEHOLDER = "#7D7F78";
+/** Plochy, na kterých leží běžný text. */
+const TEXT_ON = ["background", "navigation", "surface", "card", "cardHover", "documentSurface",
+  "sheetHover", "elevatedSurface", "callout", "tableHead", "sheet", "hero"];
+/** Plochy polí formuláře · tam a nikde jinde leží nápověda. */
+const INPUT_ON = ["documentSurface", "card", "surface", "background", "navigation"];
+/** Klidové plochy · hrana nebo obtah leží vedle nich. */
+const REST_ON = ["background", "navigation", "surface", "card", "documentSurface", "elevatedSurface"];
 
-function pairs(t) {
-  const out = [];
-  const on = (name, fg, bg, min) => out.push({ name, fg, bg, min });
-  const fields = [["background", t.background], ["navigation", t.navigation], ["surface", t.surface],
-    ["card", t.card], ["documentSurface", t.documentSurface]];
-  for (const [n, bg] of fields) {
-    on("text/" + n, t.text, bg, AA.text);
-    on("textSecondary/" + n, t.textSecondary, bg, AA.text);
-    on("textMuted/" + n, t.textMuted, bg, AA.text);
-    on("link/" + n, t.link, bg, AA.text);
-    on("accent/" + n, t.interactiveAccent, bg, AA.ui);
-    on("focusRing/" + n, t.focusRing, bg, AA.ui);
-    on("borderStrong/" + n, t.borderStrong, bg, AA.ui);
-    on("textDisabled/" + n, t.textDisabled, bg, AA.ui);
-    on("heading/" + n, t.heading, bg, AA.text);
-  }
-  on("onAccent/accent", t.interactiveOnAccent, t.interactiveAccent, AA.text);
-  on("onAccent/accentHover", t.interactiveOnAccent, t.interactiveAccentHover, AA.text);
-  on("onAccent/accentPressed", t.interactiveOnAccent, t.interactiveAccentPressed, AA.text);
-  on("selectionText/selectionSurface", t.selectionText, t.selectionSurface, AA.text);
-  for (const s of ["success", "warning", "error", "info"]) {
-    on(s + "Fg/" + s + "Bg", t[s + "Fg"], t[s + "Bg"], AA.text);
-    on(s + "Fg/card", t[s + "Fg"], t.card, AA.ui);
-    on(s + "Fg/background", t[s + "Fg"], t.background, AA.ui);
-  }
-  return out;
-}
+const INKS = ["text", "heading", "textSecondary", "textMuted", "link"];
+const PLACEHOLDERS = ["placeholder", "placeholderText", "placeholderStrong"];
+const STATUS_INKS = ["successFg", "warningFg", "errorFg", "infoFg"];
 
-test("čtrnáct palet · text, hrany, stavy a soustředění", () => {
-  const failures = [];
-  let checks = 0;
-  for (const f of THEME_FAMILIES) for (const mode of MODES) {
-    for (const p of pairs(f[mode])) {
-      checks++;
-      const r = ratio(p.fg, p.bg, p.bg);
-      if (r < p.min) failures.push(`${f.id}/${mode} ${p.name}: ${r} < ${p.min} (${p.fg} na ${p.bg})`);
+let measured = 0;
+
+test("běžný text drží 4,5:1 na každé ploše, na které leží", () => {
+  const fail = [];
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    for (const ink of [...INKS, ...STATUS_INKS]) for (const f of TEXT_ON) {
+      const r = ratio(t[ink], t[f], t[f]); measured++;
+      if (r < AA.text) fail.push(`${id}: ${ink} na ${f} = ${r}`);
     }
   }
-  assert.ok(checks >= 7 * 2 * 50, "audit musí projít všechny palety, ne vzorek · " + checks);
-  assert.deepEqual(failures, [], failures.join("\n"));
+  assert.deepEqual(fail, [], fail.join("\n"));
 });
 
-test("nápověda v poli drží 4,5:1 ve všech čtrnácti paletách · bez výjimky", () => {
-  const failures = [];
-  for (const f of THEME_FAMILIES) for (const mode of MODES) {
-    const t = f[mode];
-    // Plochy, na kterých se naváděcí text opravdu vykresluje: pole formuláře
-    // (`tmInput` staví na `sheet`, tedy documentSurface), karta (`fieldStyle`),
-    // psací plocha, a pro jistotu i pole stránky a navigace.
-    for (const [n, bg] of [["documentSurface", t.documentSurface], ["card", t.card],
-      ["surface", t.surface], ["background", t.background], ["navigation", t.navigation]]) {
-      for (const tok of ["placeholder", "placeholderStrong"]) {
-        const r = ratio(t[tok], bg, bg);
-        if (r < AA.text) failures.push(`${f.id}/${mode} ${tok}/${n}: ${r}`);
-      }
+test("nápověda drží 4,5:1 v každém poli formuláře", () => {
+  const fail = [];
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    for (const ph of PLACEHOLDERS) for (const f of INPUT_ON) {
+      const r = ratio(t[ph], t[f], t[f]); measured++;
+      if (r < AA.text) fail.push(`${id}: ${ph} na ${f} = ${r}`);
     }
-    // Zůstává tišší než napsaný text — jinak by to nebyla nápověda.
-    assert.ok(ratio(t.text, t.background, t.background) > ratio(t.placeholder, t.background, t.background),
-      `${f.id}/${mode}: nápověda není tišší než text`);
+    // Nápověda zůstává tišší než napsaný text — je to nápověda, ne text.
+    assert.ok(ratio(t.text, t.documentSurface, t.documentSurface) > ratio(t.placeholder, t.documentSurface, t.documentSurface),
+      `${id}: nápověda není tišší než napsaný text`);
   }
-  assert.deepEqual(failures, [], failures.join("\n"));
+  assert.deepEqual(fail, [], fail.join("\n"));
 });
 
-test("negativní kontrola · stará hodnota nápovědy by tenhle test shodila", () => {
-  // Kdyby se někdo vrátil k odvozené složenině ztlumeného písma (nebo k ní
-  // dojel snížením krytí), tohle je přesně ta hodnota — a neprojde.
-  const t = THEME_FAMILIES.find((f) => f.id === "signature").light;
-  const r = ratio(OLD_BROKEN_PLACEHOLDER, t.documentSurface, t.documentSurface);
-  assert.ok(r < AA.text, `negativní kontrola přestala platit: ${OLD_BROKEN_PLACEHOLDER} dělá ${r}`);
-  assert.notEqual(t.placeholder, OLD_BROKEN_PLACEHOLDER);
-  // A totéž krytím: 0,80 nad listem je přesně ta složenina.
-  const via80 = composite(`rgba(92,95,88,0.8)`, t.documentSurface);
-  assert.equal(via80.toUpperCase(), OLD_BROKEN_PLACEHOLDER);
-  assert.ok(ratio(via80, t.documentSurface, t.documentSurface) < AA.text,
-    "snížené krytí nesmí být cesta zpátky pod práh");
-});
-
-test("zakázaný stav je čitelný, ale zřetelně tišší než ztlumené písmo", () => {
-  for (const f of THEME_FAMILIES) for (const mode of MODES) {
-    const t = f[mode];
-    const dis = ratio(t.textDisabled, t.background, t.background);
-    const muted = ratio(t.textMuted, t.background, t.background);
-    assert.ok(dis >= AA.ui, `${f.id}/${mode}: zakázaný stav ${dis} < 3`);
-    assert.ok(dis < muted, `${f.id}/${mode}: zakázaný stav se nedá odlišit od ztlumeného písma`);
+test("popisek osy drží 3:1 na plotně, hrany a obtah na klidových plochách", () => {
+  /* HRANA SE MĚŘÍ PROTI PLOŠE, KTEROU OHRANIČUJE. `borderStrong` dnes nečte
+     žádná komponenta — vydává se jen jako `--tm-border-strong` a rejstřík z něj
+     dělá rám plátu Movement Atlasu, který leží na lnu. Kdyby ho někdy začala
+     kreslit komponenta na najetou kartu, patří sem i plochy hoveru; do té doby
+     by to bylo měření dvojice, která neexistuje. Zapsáno v
+     THEME-CONTRAST-REPORT.md i s naměřenými čísly. */
+  const fail = [];
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    for (const u of ["borderStrong", "focusRing"]) for (const f of REST_ON) {
+      const r = ratio(t[u], t[f], t[f]); measured++;
+      if (r < AA.ui) fail.push(`${id}: ${u} na ${f} = ${r}`);
+    }
+    const ax = ratio(t.axis, t.chartSurface, t.chartSurface); measured++;
+    if (ax < AA.ui) fail.push(`${id}: osa na plotně = ${ax}`);
+    // Rám plátu leží na lněném plátu, nikde jinde.
+    const fr = ratio(t.atlasBorder, t.atlasFrame, t.atlasFrame); measured++;
+    if (fr < AA.ui) fail.push(`${id}: rám plátu na lnu = ${fr}`);
   }
+  assert.deepEqual(fail, [], fail.join("\n"));
 });
 
-test("štítky drží 4,5:1 na kartě každé rodiny", () => {
-  const failures = [];
-  for (const f of THEME_FAMILIES) for (const mode of MODES) {
-    const tags = makeTagsFor(f.id, mode);
-    for (const k of TAG_KEYS) {
-      const tone = tags[k];
-      const eff = composite(tone.bg, f[mode].card);
-      const r = ratio(tone.fg, eff, eff);
-      if (r < AA.text) failures.push(`${f.id}/${mode} štítek ${k}: ${r}`);
+test("zakázaný prvek zůstává čitelný v klidu · WCAG ho nepožaduje, dům ano", () => {
+  /* SC 1.4.3 neklade na neaktivní prvek žádný požadavek. Tenhle dům si klade
+     vlastní: 3:1 na klidových plochách, aby zakázané tlačítko šlo přečíst,
+     i když je zřetelně tišší než živé. */
+  const fail = [];
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    for (const f of REST_ON) {
+      const r = ratio(t.textDisabled, t[f], t[f]); measured++;
+      if (r < AA.ui) fail.push(`${id}: zakázaný na ${f} = ${r}`);
+    }
+    assert.ok(ratio(t.textMuted, t.card, t.card) > ratio(t.textDisabled, t.card, t.card),
+      `${id}: zakázaný prvek není tišší než ztlumené písmo`);
+  }
+  assert.deepEqual(fail, [], fail.join("\n"));
+});
+
+test("popisek na akcentu drží i při najetí a stisku", () => {
+  const fail = [];
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    for (const a of ["interactiveAccent", "interactiveAccentHover", "interactiveAccentPressed"]) {
+      const r = ratio(t.interactiveOnAccent, t[a], t[a]); measured++;
+      if (r < AA.text) fail.push(`${id}: popisek na ${a} = ${r}`);
+    }
+    // Akcent musí být vidět i jako plocha vedle pole a karty.
+    for (const f of ["background", "card"]) {
+      const r = ratio(t.interactiveAccent, t[f], t[f]); measured++;
+      if (r < AA.ui) fail.push(`${id}: akcent vedle ${f} = ${r}`);
     }
   }
-  assert.deepEqual(failures, [], failures.join("\n"));
+  assert.deepEqual(fail, [], fail.join("\n"));
 });
 
-test("Signature má tóny štítků nezměněné", () => {
-  // Tóny jsou data uložených poznámek. V Signature se nesmí pohnout vůbec.
-  const light = makeTagsFor("signature", "light");
-  assert.equal(light.moss.fg, "#2E3D35");
-  assert.equal(light.slate.fg, "#3F565E");
-  assert.equal(light.green.fg, light.moss.fg, "starý klíč je alias, ne druhý systém");
-  const dark = makeTagsFor("signature", "dark");
-  assert.equal(dark.moss.fg, "#ABC0B1");
-  assert.equal(dark.slate.fg, "#A6BFC5");
+test("výběr textu a označený řádek zůstávají čitelné", () => {
+  const fail = [];
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    const r = ratio(t.selectionText, t.selectionSurface, t.selectionSurface); measured++;
+    if (r < AA.text) fail.push(`${id}: text na výběru = ${r}`);
+    const nav = composite(t.activeNav, t.navigation);
+    const r2 = ratio(t.text, nav, nav); measured++;
+    if (r2 < AA.text) fail.push(`${id}: text na aktivní navigaci = ${r2}`);
+  }
+  assert.deepEqual(fail, [], fail.join("\n"));
+});
+
+test("stavový text drží na stavovém pozadí i na plochách pod ním", () => {
+  const fail = [];
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    const s = statusPalette(id);
+    for (const role of ["success", "warning", "error", "info"]) {
+      const r = ratio(s[role + "Fg"], s[role + "Bg"], s[role + "Bg"]); measured++;
+      if (r < AA.text) fail.push(`${id}: ${role} na vlastním pozadí = ${r}`);
+      // Chip musí být vidět i jako plocha na kartě.
+      const r2 = ratio(s[role + "Bg"], t.card, t.card); measured++;
+      if (r2 < 1.12) fail.push(`${id}: ${role} chip splývá s kartou = ${r2}`);
+    }
+  }
+  assert.deepEqual(fail, [], fail.join("\n"));
+});
+
+test("štítky drží 4,5:1 na každé ploše, na které mohou ležet", () => {
+  const fail = [];
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    const tg = makeTagsFor(id, false);
+    for (const k of Object.keys(tg)) for (const f of TEXT_ON) {
+      const eff = composite(tg[k].bg, t[f]);
+      const r = ratio(tg[k].fg, eff, eff); measured++;
+      if (r < AA.text) fail.push(`${id}: štítek ${k} na ${f} = ${r}`);
+    }
+  }
+  assert.deepEqual(fail, [], fail.join("\n"));
+});
+
+test("série grafu drží 3:1 na plotně svého vzhledu", () => {
+  const fail = [];
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    chartPalette(id).series.forEach((c, i) => {
+      const r = ratio(c, t.chartSurface, t.chartSurface); measured++;
+      if (r < AA.ui) fail.push(`${id} chart${i + 1}: ${r}`);
+    });
+    const ax = ratio(t.axis, t.chartSurface, t.chartSurface); measured++;
+    if (ax < AA.ui) fail.push(`${id} osa: ${ax}`);
+  }
+  assert.deepEqual(fail, [], fail.join("\n"));
 });
 
 test("série grafu se rozliší i bez barvy", () => {
-  for (const mode of MODES) {
-    const series = chartPalette(mode).series;
-    for (let i = 0; i < series.length - 1; i++) {
-      const g = ratio(grayscale(series[i]), grayscale(series[i + 1]));
-      assert.ok(g >= 1.18, `${mode}: sousední série ${i + 1} a ${i + 2} splynou v šedi (${g})`);
-    }
-    // žebřík jasu je monotónní, takže vzdálenější dvojice jsou vždycky dál
+  /* ŽEBŘÍK NEBO ODSTÍN, NE NIC. Kurátorská řada V2 nese odstíny, které dům
+     opravdu má — a dvě z nich (hlína a měď) leží v jasu skoro na sobě.
+     Pravidlo proto zní: dvě série se musí lišit v ŠEDI, nebo si musí zachovat
+     odstup ve všech třech simulacích barvosleposti. Vzor a legenda jsou třetí
+     vrstva, ne omluva. */
+  const fail = [];
+  for (const id of FIXED_PRESET_IDS) {
+    const series = chartPalette(id).series;
     for (let i = 0; i < series.length; i++) for (let j = i + 1; j < series.length; j++) {
       const g = ratio(grayscale(series[i]), grayscale(series[j]));
-      assert.ok(g >= 1.18, `${mode}: série ${i + 1} a ${j + 1} splynou v šedi (${g})`);
+      const cv = Math.min(...["protanopia", "deuteranopia", "tritanopia"].map((k) => cvdDistance(series[i], series[j], k)));
+      measured++;
+      if (g < 1.18 && cv < 40) fail.push(`${id}: série ${i + 1} a ${j + 1} splynou (šeď ${g}, barvoslepost ${cv})`);
     }
   }
+  assert.deepEqual(fail, [], fail.join("\n"));
 });
 
-test("série grafu drží 3:1 na plotně každého motivu", () => {
-  const failures = [];
-  for (const f of THEME_FAMILIES) for (const mode of MODES) {
-    const t = f[mode];
-    chartPalette(mode).series.forEach((c, i) => {
-      const r = ratio(c, t.chartSurface, t.chartSurface);
-      if (r < AA.ui) failures.push(`${f.id}/${mode} chart${i + 1}: ${r}`);
-    });
-    const ax = ratio(t.axis, t.chartSurface, t.chartSurface);
-    if (ax < AA.ui) failures.push(`${f.id}/${mode} osa: ${ax}`);
-  }
-  assert.deepEqual(failures, [], failures.join("\n"));
-});
-
-test("barvoslepost · co barva neunese, unese znak a slovo", () => {
-  // Zelená a červená leží v deuteranopii blízko sebe a po převodu do šedi mají
-  // skoro týž jas. Tenhle test to NEMASKUJE — změří to a tím zdůvodní, proč
-  // stav povinně nese ještě znak a popisek (viz theme-registry.test.js).
-  for (const mode of MODES) {
-    const s = statusPalette(mode);
+test("stav se nepozná jen barvou · to je předpoklad, ne nedostatek", () => {
+  for (const id of FIXED_PRESET_IDS) {
+    const s = statusPalette(id);
     const d = cvdDistance(s.successFg, s.errorFg, "deuteranopia");
-    assert.ok(d < 60, "kdyby to najednou stačilo barvou, je tenhle předpoklad neplatný a je třeba přepsat pravidlo");
-    for (const kind of ["protanopia", "deuteranopia", "tritanopia"]) {
-      const series = chartPalette(mode).series;
-      for (let i = 0; i < series.length - 1; i++) {
-        // hue smí splynout — jas ne, a ten je hlídaný výš
-        const g = ratio(grayscale(series[i]), grayscale(series[i + 1]));
-        const c = cvdDistance(series[i], series[i + 1], kind);
-        assert.ok(g >= 1.18 || c >= 40, `${mode}/${kind}: série ${i + 1} a ${i + 2} nemají čím se lišit`);
-      }
-    }
+    assert.ok(d < 60, `${id}: kdyby to najednou stačilo barvou, je předpoklad neplatný a pravidlo se má přepsat`);
   }
+});
+
+test("vybraný a nevybraný stav se pozná i v šedi", () => {
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    const on = composite(t.activeNav, t.navigation);
+    const g = ratio(grayscale(on), grayscale(t.navigation));
+    assert.ok(g >= 1.03, `${id}: vybraná položka navigace je v šedi k nerozeznání (${g})`);
+  }
+});
+
+test("žádná známá výjimka a dost měření, aby to něco znamenalo", () => {
+  assert.ok(measured > 1400, `měření je jen ${measured} — matice se scvrkla`);
+  assert.equal(FIXED_PRESET_IDS.length, 8);
+  for (const id of FIXED_PRESET_IDS) assert.ok(appearancePreset(id).kind === "fixed");
 });

@@ -4,63 +4,88 @@
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
 // ----------------------------------------------------------------------
-// REJSTŘÍK MOTIVŮ · sedm rodin, dva režimy, jeden kontrakt
+// REJSTŘÍK VZHLEDŮ · devět kurátorovaných presetů, jeden kontrakt
 // ----------------------------------------------------------------------
-// Motiv není čtrnáct nesouvisejících palet. Je to RODINA a REŽIM:
+// Do V1.1 byl motiv DVOJICE: rodina × režim. Sedm rodin krát dvě světla dalo
+// čtrnáct palet — a z nich byla dobrá zhruba polovina. Druhá polovina vznikla
+// jen ze symetrie: ke každé denní paletě se dopočítala noční a naopak, i tam,
+// kde ta druhá půlka nikdy neměla vlastní důvod existovat. Výsledek byl
+// katalog, ne výběr.
 //
-//     { family: "atlantic-sky", mode: "system" }
+// V2 to obrací. Vzhled je JEDNA hodnota:
 //
-// Rodina drží atmosféru, režim rozhoduje o světle. Ze dvojice se pokaždé
-// složí jedna z čtrnácti vyřešených palet, a ta má vždycky stejné role —
-// komponenty se nikdy neptají, JAKÝ motiv je zapnutý. Ptají se na roli:
+//     "slate-clay"
+//
+// Devět položek, z toho osm PEVNÝCH dokončených vzhledů a jediná automatická:
+// `signature-auto`, která podle `prefers-color-scheme` sáhne po Signature Day
+// nebo Signature Night. Nic jiného se systémem nehýbe — kdo si zvolí Kouř
+// a koření, má Kouř a koření i v poledne.
+//
+// CO SE NEZMĚNILO. Odvozovací stroj z V1.1 zůstal celý: role, dopočet hran,
+// nápovědy, hoveru a stínů, deterministické dorovnání kontrastu (`ensureOn`)
+// i vrstva starších názvů, na které stojí tisíce míst v obou aplikacích.
+// Čtyři palety, které dům opravdu nosí — Signature Day, Řeka v noci, Tyrkys
+// v noci a Moruše a papír — procházejí tímtéž strojem z týchž vstupů, takže
+// vycházejí ZNAK PO ZNAKU stejné jako před V2. `theme-preserved.test.js` to
+// měří proti zapsanému otisku produkce.
+//
+// CO SE ZMĚNILO. Signature Night dostal ze specifikace V2 měkčí uhlový žebřík
+// (dřív skoro černý), přibyly tři hotové palety (Břidlice a hlína, Písek
+// a země, Kouř a koření) a zmizely protějšky, které nikdo nevybíral: River
+// light, Teal light, Mulberry dark, celá Hlína a alabastr, Atlantik a obloha
+// i Oliva a zlato. Uložené volby se na ně nezapomínají — migrace je převádí
+// (viz §MIGRACE níž).
+//
+// Komponenty se nikdy neptají, JAKÝ vzhled je zapnutý. Ptají se na roli:
 // `t.card`, `t.textMuted`, `t.focusRing`. Proto v aplikaci není a nesmí
-// vzniknout `if (theme === "olive-gold")`.
+// vzniknout `if (preset === "smoke-spice")`.
 //
-// SIGNATURE JE NORMA. Její hodnoty jsou doslova ty, které dům nosí dnes —
-// přepsané sem znak po znaku z původního ui/theme.js. Nová rodina nesmí
-// změnit ani jeden odstín Signature; kontrola `theme-signature.test.js` to
-// hlídá proti zapsanému otisku.
-//
-// ODVOZENÉ TOKENY se počítají JEDNOU při načtení modulu, ne při vykreslení.
-// Rejstřík je zmrazená datová struktura; motiv se přepíná výměnou objektu a
-// atributem na <html>, ne přepočtem barev.
-//
-// Kotevní barvy šesti volitelných rodin a jejich doporučené tokeny přicházejí
-// z tanmay_theme_system_v1_palette_spec.md. Odchylky od specifikace jsou
-// vypsané v Work/web-application/THEME-CONTRAST-REPORT.md i s důvodem.
+// Barevná autorita: tanmay_theme_system_v2_curated_palette_spec.md.
+// Odchylky od doporučených hodnot jsou vypsané i s důvodem v
+// Work/web-application/THEME-CONTRAST-REPORT.md.
 
 import { hexA, mixHex } from "./color.js";
-import { contrast, luminance } from "./contrast.js";
+import { contrast, luminance, grayscale, ratio, cvdDistance } from "./contrast.js";
 
 /** Značkové body. Copper je značka, ne interakční barva. */
 export const BRAND = Object.freeze({ copper: "#B87333", linen: "#F4F0EB", forest: "#1C1C1A" });
 
-export const THEME_MODES = Object.freeze(["system", "light", "dark"]);
-/* Pořadí je podle ŠIŘKY POUŽITELNOSTI, ne podle pořadí zdrojových obrázků.
-   Signature první a doporučená, pak tři přirozené, pak tři výrazné. */
-export const THEME_FAMILY_IDS = Object.freeze([
-  "signature", "clay-alabaster", "river-mist", "atlantic-sky",
-  "olive-gold", "mulberry-paper", "teal-parchment",
+/* Pořadí je pořadí v Nastavení: nejdřív automatika, pak Signature ve dvou
+   světlech, pak šest hotových alternativ od nejtišší po nejvýraznější. */
+export const APPEARANCE_PRESET_IDS = Object.freeze([
+  "signature-auto",
+  "signature-day",
+  "signature-night",
+  "river-night",
+  "teal-night",
+  "mulberry-paper",
+  "slate-clay",
+  "sand-earth",
+  "smoke-spice",
 ]);
-/* Skupiny existují jako DATA, ne jako záložky. Karta je dost — kategorie
-   navrch by z výběru vzhledu udělala katalog. */
-export const THEME_GROUPS = Object.freeze({
-  signature: "recommended",
-  "clay-alabaster": "natural", "river-mist": "natural", "olive-gold": "natural",
-  "atlantic-sky": "expressive", "mulberry-paper": "expressive", "teal-parchment": "expressive",
-});
-export const DEFAULT_FAMILY = "signature";
-/* Výchozí režim zůstává „světlo", ne „automaticky". Kdo si nikdy nevybral,
-   viděl dosud den — a po nasazení musí vidět zase den, i když má systém
-   nastavený na noc. */
-export const DEFAULT_MODE = "light";
+
+/** Pevné vzhledy — všechno kromě automatiky. Systém s nimi nehýbe. */
+export const FIXED_PRESET_IDS = Object.freeze(APPEARANCE_PRESET_IDS.filter((id) => id !== "signature-auto"));
+
+/* VÝCHOZÍ JE AUTOMATIKA. Ve V1.1 byl výchozí režim „světlo", protože tehdy
+   existoval globální přepínač den/noc a automatika byla jen jedna z jeho tří
+   poloh. Ve V2 je Automaticky · Signature první položkou výběru a specifikace
+   ji určuje i jako cíl pro neznámou a chybějící hodnotu. Kdo si nikdy nic
+   nezvolil, dostane tedy Signature podle svého systému. */
+export const DEFAULT_PRESET = "signature-auto";
+
+/** Doporučený vzhled. Signature zůstává normou domu. */
+export const RECOMMENDED_PRESET = "signature-auto";
 
 // ----------------------------------------------------------------------
 // FUNKČNÍ BARVY · význam, ne dekorace
 // ----------------------------------------------------------------------
-// Error, warning, success a info se neodvozují z kotevních barev rodiny.
-// Mulberry pozadí není chyba a Teal není automaticky úspěch. Tyhle čtyři
-// role mají v celém domě jeden význam a jednu barvu na režim.
+// Error, warning, success a info se neodvozují z kotevních barev vzhledu.
+// Moruše není chyba a Tyrkys není automaticky úspěch. Tyhle čtyři role mají
+// v celém domě jeden význam; preset je smí LADIT (specifikace V2 to u nových
+// palet dělá), ne PŘEBARVIT na svůj akcent. Kdo nic neladí, dostane tuhle
+// výchozí sadu — a to je právě případ všech čtyř zachovaných palet, takže se
+// jim po V2 nehnula ani stavová barva.
 export const FUNCTIONAL = Object.freeze({
   light: Object.freeze({
     successFg: "#2F624A", successBg: "#DDEBDF",
@@ -77,13 +102,12 @@ export const FUNCTIONAL = Object.freeze({
 });
 
 // ----------------------------------------------------------------------
-// DATOVÁ PALETA · šest sérií, ne sedm odstínů akcentu
+// DATOVÁ PALETA · žebřík jasu, ne duha
 // ----------------------------------------------------------------------
-// Série se v jednom motivu nesmí rozlišovat jenom odstínem. Obě řady jsou
-// proto postavené jako ŽEBŘÍK JASU: každý další člen je zhruba o třetinu
-// světlejší než předchozí, takže se od sebe liší i po převodu do šedi a i
-// pro člověka bez jednoho barevného kanálu. Význam série je napříč motivy
-// stejný — theme smí tónovat mřížku a osu, ne význam.
+// Výchozí dvě řady (pro čtyři zachované palety) zůstávají beze změny. Nové
+// palety si nesou VLASTNÍ kurátorovanou řadu ze specifikace — a ta projde
+// `fitSeries()` níž, protože kurátorský výběr rozhoduje o ODSTÍNU, kdežto
+// o čitelnosti rozhoduje měření.
 export const CHART = Object.freeze({
   light: Object.freeze({
     series: Object.freeze(["#1B324C", "#62381F", "#3B5C26", "#8B4C9A", "#1F8581", "#AD8529"]),
@@ -104,10 +128,11 @@ export const CHART_PATTERNS = Object.freeze([
 ]);
 
 // ----------------------------------------------------------------------
-// SIGNATURE · doslovný přepis současné produkční palety
+// SIGNATURE DAY · doslovný přepis současné produkční palety
 // ----------------------------------------------------------------------
-// Tyhle dva objekty se nesmí „vylepšit". Jsou to hodnoty, které dům nosí, a
-// jediný důvod, proč tu jsou znovu, je že rejstřík je teď jejich domov.
+// Tenhle objekt se nesmí „vylepšit". Jsou to hodnoty, které dům nosí, a
+// jediný důvod, proč tu jsou, je že rejstřík je jejich domov. §7 zadání V2:
+// Signature Day nesmí vizuálně změnit ani o odstín.
 const SIGNATURE_LIGHT = {
   bg: "#F4F0EB",
   bgSidebar: "#EBE6E0",
@@ -147,154 +172,169 @@ const SIGNATURE_LIGHT = {
 };
 
 // ----------------------------------------------------------------------
-// ŠEST VOLITELNÝCH RODIN · kotvy a doporučené tokeny ze specifikace
+// VSTUPY OSMI PEVNÝCH VZHLEDŮ
 // ----------------------------------------------------------------------
-// Zapisuje se jen to, co specifikace určuje. Zbytek (hrany bez sytosti,
-// zakázané stavy, výběr, stín, hero) se odvozuje níž — jednou, pro všechny
-// rodiny stejným pravidlem, aby nová rodina nebyla nová sada výjimek.
+// Zapisuje se jen to, co je rozhodnutí. Zbytek — hrany bez sytosti, zakázaný
+// stav, výběr, stín, hero, hover — se odvozuje níž, jedním pravidlem pro
+// všechny, aby nový vzhled nebyl nová sada výjimek.
+//
+// TŘI ZACHOVANÉ VSTUPY (river-night, teal-night, mulberry-paper) jsou DOSLOVA
+// ty, které tu stály ve V1.1 jako `river-mist.dark`, `teal-parchment.dark`
+// a `mulberry-paper.light`. Nepřepisovaly se, jen se přejmenovaly na
+// samostatné vzhledy — proto z nich vypadne přesně táž paleta jako dřív.
 const SPECS = {
-  /* SIGNATURE · NOC · „Ink Night".
-     Dřív to byl Forest Night ramp: pole #1C1C1A, ale povrchy, nadpis, hero
-     a poloviny inkoustů táhly do mechu (#2E3D35, #9AAA8D). Ve výsledku
-     aplikace v noci nečetla jako papír a měď, ale jako wellness. V1.1 to
-     narovnává: teplé uhlové pole, lněný text, měď a písek jako akcenty.
-     Žádný sage, mech ani oliva v povrchech. `#1C1C1A` zůstává značkovým
-     tokenem (brandForest), jen už není celoplošným polem. */
-  signature: {
-    dark: {
-      background: "#0F100E", navigation: "#0B0C0A", surface: "#181916", card: "#21221E",
-      documentSurface: "#171815", text: "#F4F0EB", textSecondary: "#C9C0B6", textMuted: "#918B82",
-      border: "#34352F", borderStrong: "#4A4A42",
-      interactiveAccent: "#B87333", interactiveAccentHover: "#CF8446", interactiveOnAccent: "#0F100E",
-      focusRing: "#C5B49A",
-      // Copper a Sand jsou v noci dvě značkové stopy, ne dekorace.
-      sand: "#C5B49A", inkSand: "#D8C7AE", heading: "#F4F0EB",
-    },
+  /* SIGNATURE · NOC · V2.
+     V1.1 opravila barvu (pryč od mechu, k uhlu a mědi), ale nechala příliš
+     tvrdý near-black žebřík: pole #0F100E, navigace #0B0C0A. Na displeji to
+     byl OLED, ne večerní pokoj — a jednotlivé vrstvy se od sebe daly poznat
+     jen podle hrany. V2 celý žebřík zvedá a rozestupuje podle specifikace:
+     šest rozlišitelných vrstev nad sebou, měkký uhel místo černé, len jako
+     písmo, měď a písek jako akcenty. Žádná zeleň, modř ani fialový nádech. */
+  "signature-night": {
+    polarity: "dark",
+    labelCs: "Signature · Noc", labelEn: "Signature · Night",
+    anchors: { "Soft Charcoal": "#262725", Linen: "#F4F0EB", Copper: "#B87333" },
+    background: "#262725", navigation: "#1E1F1D", surface: "#30312E", card: "#383A35",
+    documentSurface: "#2B2C29", elevatedSurface: "#414445",
+    text: "#F4F0EB", textSecondary: "#D0C9BE", textMuted: "#AAA399", placeholder: "#B7AFA4",
+    border: "#464740", borderStrong: "#5A5B53",
+    interactiveAccent: "#B87333", interactiveAccentHover: "#CC8043", interactiveOnAccent: "#171815",
+    focusRing: "#C5B49A", selectionSurface: "#4A382B",
+    // Nadpis zůstává prostý len — měď v nadpisu by v noci křičela.
+    heading: "#F4F0EB",
+    // Copper a Sand jsou v noci dvě značkové stopy, ne dekorace.
+    sand: "#C5B49A", inkSand: "#D8C7AE",
+    status: { success: "#82AA8B", warning: "#D4A45E", error: "#DF7C83", info: "#83A9BA" },
+    chart: ["#B87333", "#C5B49A", "#8F9295", "#5C6263", "#7C8C6E", "#E4D9C6"],
+    themeColor: "#262725",
   },
-  "clay-alabaster": {
-    labelCs: "Hlína a alabastr", labelEn: "Clay Alabaster",
-    anchors: { "Copper Clay": "#B86443", "Alabaster Sand": "#F0E2D3" },
-    light: {
-      background: "#F0E2D3", navigation: "#E6D3C1", surface: "#F7EBDD", card: "#FBF2E8",
-      documentSurface: "#FFF7EF", text: "#2A211D",
-      border: "#CFB4A0", borderStrong: "#B98F77",
-      interactiveAccent: "#A65336", interactiveAccentHover: "#93482E", interactiveOnAccent: "#FFF7EF",
-      focusRing: "#8F452D", decorative: "#B86443",
-    },
-    dark: {
-      background: "#15110F", navigation: "#100D0B", surface: "#241815", card: "#30201A",
-      documentSurface: "#1D1512", text: "#F3E7DC", textSecondary: "#D7C5BA", textMuted: "#A88F82",
-      border: "#4C352C", borderStrong: "#6A4A3C",
-      interactiveAccent: "#C66F4B", interactiveAccentHover: "#D98662", interactiveOnAccent: "#15110F",
-      focusRing: "#E0B89E", decorative: "#B86443",
-    },
-  },
-  "river-mist": {
-    labelCs: "Řeka a mlha", labelEn: "River Mist",
+
+  /* ŘEKA V NOCI · zachováno beze změny z V1.1 (`river-mist.dark`). */
+  "river-night": {
+    polarity: "dark",
+    labelCs: "Řeka v noci", labelEn: "River Night",
     anchors: { "River Slate": "#4F646B", Mist: "#E5ECEA", "Warm Sand": "#C5B49A" },
-    light: {
-      background: "#E5ECEA", navigation: "#D7E1DF", surface: "#EEF3F1", card: "#F7F9F7",
-      documentSurface: "#FAFBF9", text: "#1C2325",
-      border: "#B7C6C3", borderStrong: "#8FA3A2",
-      interactiveAccent: "#4F646B", interactiveAccentHover: "#3E555E", interactiveOnAccent: "#F4F0EB",
-      focusRing: "#375B67",
-    },
-    dark: {
-      background: "#101315", navigation: "#0C0F11", surface: "#192125", card: "#222B2F",
-      documentSurface: "#151B1E", text: "#E8EFEC", textSecondary: "#C7D1CE", textMuted: "#98A7A5",
-      border: "#3A484D", borderStrong: "#56686E",
-      interactiveAccent: "#C5B49A", interactiveAccentHover: "#D7C9B3", interactiveOnAccent: "#101315",
-      focusRing: "#AFC2C4",
-    },
+    background: "#101315", navigation: "#0C0F11", surface: "#192125", card: "#222B2F",
+    documentSurface: "#151B1E", text: "#E8EFEC", textSecondary: "#C7D1CE", textMuted: "#98A7A5",
+    border: "#3A484D", borderStrong: "#56686E",
+    interactiveAccent: "#C5B49A", interactiveAccentHover: "#D7C9B3", interactiveOnAccent: "#101315",
+    focusRing: "#AFC2C4",
   },
-  "atlantic-sky": {
-    labelCs: "Atlantik a obloha", labelEn: "Atlantic Sky",
-    anchors: { "Atlantic Blue": "#0F4B70", "Soft Sky Blue": "#C4F8FF" },
-    light: {
-      background: "#E6F1F4", navigation: "#D0EDF2", surface: "#EEF7F8", card: "#F7FBFB",
-      documentSurface: "#FAFCFB", text: "#172127",
-      border: "#9FD8E2", borderStrong: "#72BACB",
-      interactiveAccent: "#0F4B70", interactiveAccentHover: "#0A3C5B", interactiveOnAccent: "#C4F8FF",
-      focusRing: "#0F4B70", decorative: "#C4F8FF",
-    },
-    dark: {
-      background: "#0E1216", navigation: "#0A0E12", surface: "#15202A", card: "#1C2B37",
-      documentSurface: "#121A21", text: "#EAF6F8", textSecondary: "#C4D9DE", textMuted: "#91A9B1",
-      border: "#324754", borderStrong: "#4D6573",
-      interactiveAccent: "#7CCFE2", interactiveAccentHover: "#9DE2EF", interactiveOnAccent: "#0E1216",
-      focusRing: "#C4F8FF", decorative: "#C4F8FF",
-    },
+
+  /* TYRKYS V NOCI · zachováno beze změny z V1.1 (`teal-parchment.dark`). */
+  "teal-night": {
+    polarity: "dark",
+    labelCs: "Tyrkys v noci", labelEn: "Teal Night",
+    anchors: { "Authentic Teal": "#035352", "Sidecar Yellow": "#F3E8BC" },
+    background: "#0E1312", navigation: "#0A0F0E", surface: "#162321", card: "#1D2E2B",
+    documentSurface: "#121B19", text: "#F4EBC8", textSecondary: "#D9D0AC", textMuted: "#A5AA8E",
+    border: "#35504C", borderStrong: "#4F706A",
+    interactiveAccent: "#E5D59B", interactiveAccentHover: "#F2E4AD", interactiveOnAccent: "#0E1312",
+    focusRing: "#8CC9C0",
   },
-  "olive-gold": {
-    labelCs: "Oliva a zlato", labelEn: "Olive Gold",
-    anchors: { "Olive Green": "#202B22", "Royal Yellow": "#FFD85F" },
-    light: {
-      /* Navigace byla #E8D779 — po vizuální prohlídce nejhlasitější plocha celé
-         sady: celoplošný Royal Yellow vedle klidnějšího pole. #E3D7A1 zůstává
-         zřetelně olivově zlatá a od pole odlišená, ale přestává křičet.
-         Royal Yellow #FFD85F zůstává akcentem a dekorativním bodem. */
-      background: "#F3EAC4", navigation: "#E3D7A1", surface: "#F8F1D6", card: "#FCF7E4",
-      documentSurface: "#FFF9EA", text: "#1D211B",
-      border: "#C5B464", borderStrong: "#A7954C",
-      interactiveAccent: "#6B5D13", interactiveAccentHover: "#544A0E", interactiveOnAccent: "#FFF9EA",
-      focusRing: "#6B5D13",
-      // Royal Yellow jen jako jasný dekorativní / vybraný bod, ne plocha stránky.
-      decorative: "#FFD85F",
-    },
-    dark: {
-      background: "#10120F", navigation: "#0C0E0B", surface: "#1A2118", card: "#222B20",
-      documentSurface: "#171C16", text: "#F5EDCE", textSecondary: "#D8D0B0", textMuted: "#AAA98E",
-      border: "#3B493A", borderStrong: "#566556",
-      interactiveAccent: "#E4C852", interactiveAccentHover: "#F2D86C", interactiveOnAccent: "#10120F",
-      focusRing: "#FFD85F", decorative: "#FFD85F",
-    },
-  },
+
+  /* MORUŠE A PAPÍR · zachováno beze změny z V1.1 (`mulberry-paper.light`). */
   "mulberry-paper": {
+    polarity: "light",
     labelCs: "Moruše a papír", labelEn: "Mulberry Paper",
     anchors: { Mulberry: "#5A2132", Paper: "#EFE9E9" },
-    light: {
-      background: "#F1E8EA", navigation: "#E8DADD", surface: "#F7F0F1", card: "#FCF8F8",
-      documentSurface: "#FDFBFA", text: "#241A1E",
-      border: "#CEBBC1", borderStrong: "#B3919C",
-      interactiveAccent: "#5A2132", interactiveAccentHover: "#461827", interactiveOnAccent: "#F1E8EA",
-      focusRing: "#5A2132",
-    },
-    dark: {
-      background: "#130F11", navigation: "#0F0B0D", surface: "#21151A", card: "#2D1C23",
-      documentSurface: "#191116", text: "#F5ECEF", textSecondary: "#DCCAD0", textMuted: "#AD8E99",
-      border: "#4C303A", borderStrong: "#6B4653",
-      interactiveAccent: "#D091A6", interactiveAccentHover: "#E1AABD", interactiveOnAccent: "#130F11",
-      focusRing: "#F0C7D4",
-    },
+    background: "#F1E8EA", navigation: "#E8DADD", surface: "#F7F0F1", card: "#FCF8F8",
+    documentSurface: "#FDFBFA", text: "#241A1E",
+    border: "#CEBBC1", borderStrong: "#B3919C",
+    interactiveAccent: "#5A2132", interactiveAccentHover: "#461827", interactiveOnAccent: "#F1E8EA",
+    focusRing: "#5A2132",
   },
-  "teal-parchment": {
-    labelCs: "Tyrkys a pergamen", labelEn: "Teal Parchment",
-    anchors: { "Authentic Teal": "#035352", "Sidecar Yellow": "#F3E8BC" },
-    light: {
-      background: "#F3E8BC", navigation: "#E9DDA8", surface: "#F8EFCF", card: "#FCF6DF",
-      documentSurface: "#FFF9E9", text: "#1D211F",
-      border: "#CABF8C", borderStrong: "#A99D68",
-      interactiveAccent: "#035352", interactiveAccentHover: "#02413F", interactiveOnAccent: "#F3E8BC",
-      focusRing: "#035352",
-    },
-    dark: {
-      background: "#0E1312", navigation: "#0A0F0E", surface: "#162321", card: "#1D2E2B",
-      documentSurface: "#121B19", text: "#F4EBC8", textSecondary: "#D9D0AC", textMuted: "#A5AA8E",
-      border: "#35504C", borderStrong: "#4F706A",
-      interactiveAccent: "#E5D59B", interactiveAccentHover: "#F2E4AD", interactiveOnAccent: "#0E1312",
-      focusRing: "#8CC9C0",
-    },
+
+  /* BŘIDLICE A HLÍNA · nový vzhled V2.
+     Chladné redakční pole s teplým hliněným přerušením. Tělo textu je
+     břidlicová modř, hlína je AKCENT — kotva `#A57051` je na malé interakční
+     písmo příliš světlá, akcentem je proto tmavší odvozenina ze specifikace.
+     Světlá alternativa s nejjasnější stavbou; nesmí působit jako korporátní
+     navy dashboard. */
+  "slate-clay": {
+    polarity: "light",
+    labelCs: "Břidlice a hlína", labelEn: "Slate Clay",
+    anchors: { "Blue Slate": "#243746", "Warm Grey": "#DBD6D1", Clay: "#A57051" },
+    background: "#DBD6D1", navigation: "#C8C5C1", surface: "#E8E4DF", card: "#F2EFEB",
+    documentSurface: "#FAF8F5", elevatedSurface: "#FFFFFF",
+    text: "#243746", textSecondary: "#3F4F59", textMuted: "#48545C", placeholder: "#48545C",
+    border: "#B8B5B1", borderStrong: "#929BA1",
+    interactiveAccent: "#75452F", interactiveAccentHover: "#623924", interactiveOnAccent: "#FAF8F5",
+    focusRing: "#36566A", selectionSurface: "#E4D2C8",
+    // Kotevní hlína zůstává jako referenční / datový bod, ne jako plocha.
+    decorative: "#A57051",
+    status: { success: "#3F6A50", warning: "#81551D", error: "#8B3138", info: "#365F73" },
+    chart: ["#75452F", "#243746", "#7D8A92", "#A57051", "#B87333", "#3F5D3A"],
+    themeColor: "#DBD6D1",
+  },
+
+  /* PÍSEK A ZEMĚ · nový vzhled V2.
+     Teplé přírodní redakční pole s tmavě modrou stavbou. Modř nese tělo textu
+     i nadpis, pálená zem je akcent (ne chyba), tlumená oliva podpírá graf
+     a ohnisko (ne velké zelené plochy). Nesmí sklouznout do rustikálního,
+     boho ani spa výrazu. */
+  "sand-earth": {
+    polarity: "light",
+    labelCs: "Písek a země", labelEn: "Sand Earth",
+    anchors: { Sand: "#D3C7AD", "Dark Blue": "#28374A", "Burnt Earth": "#754437", "Muted Olive": "#6B6751" },
+    background: "#D3C7AD", navigation: "#C4B99F", surface: "#E0D6C0", card: "#EAE3D2",
+    documentSurface: "#F2EBDD", elevatedSurface: "#FAF5E9",
+    text: "#28374A", textSecondary: "#3F4650", textMuted: "#464A43", placeholder: "#464A43",
+    border: "#B6A98D", borderStrong: "#8E826A",
+    interactiveAccent: "#6E3D32", interactiveAccentHover: "#5C3028", interactiveOnAccent: "#F2EBDD",
+    focusRing: "#6B6751", selectionSurface: "#D8C9AA",
+    /* NADPIS NESE MODŘ, NE PÁLENOU ZEM. Odvozený nadpis by v každém světlém
+       vzhledu vzal akcent; tady to specifikace výslovně obrací — modř drží
+       stavbu (tělo, nadpis, navigační text), zem drží akci. */
+    heading: "#28374A",
+    status: { success: "#45654A", warning: "#79531C", error: "#8A3035", info: "#365D70" },
+    chart: ["#6E3D32", "#28374A", "#6B6751", "#A57051", "#B87333", "#5A4E77"],
+    themeColor: "#D3C7AD",
+  },
+
+  /* KOUŘ A KOŘENÍ · nový vzhled V2.
+     Teplý tmavý materiál: uhel, švestkově hnědá, taupe a fosilní tan. Tan nese
+     akcent a vybraný nadpis, tělo textu zůstává bledě neutrální. Nesmí
+     působit luxusně, kosmeticky ani jako čokoládový obal — žádný lesk,
+     přechod ani kovová měď. */
+  "smoke-spice": {
+    polarity: "dark",
+    labelCs: "Kouř a koření", labelEn: "Smoke Spice",
+    anchors: { Shikon: "#282227", "Dark Taupe": "#493C3C", "Fossil Tan": "#D0B08F" },
+    background: "#282227", navigation: "#1E1D1D", surface: "#403638", card: "#493C3C",
+    documentSurface: "#312A2C", elevatedSurface: "#554643",
+    /* BĚŽNÝ TEXT NENÍ AKCENT. Tabulka ve specifikaci dává sekundárnímu písmu
+       i nápovědě přesně hodnotu akcentu (`#D0B08F`) — jenže tatáž
+       specifikace tři odstavce nad tím říká „body copy stays pale neutral"
+       a zadání §14 zakazuje, aby běžný odstavec nesl `interactiveAccent`.
+       Když si dva vlastní odstavce protiřečí, platí pravidlo, ne buňka
+       tabulky: písmo si nechává JAS, který specifikace zvolila, a odevzdá
+       polovinu sytosti. Fosilní tan tak zůstává akcentem a odkaz se v textu
+       pozná. Zapsáno v THEME-CONTRAST-REPORT.md. */
+    text: "#F0E2D3", textSecondary: "#D5C6B8", textMuted: "#B8A89C", placeholder: "#CCBDAF",
+    border: "#6D5B57", borderStrong: "#8B7167",
+    interactiveAccent: "#D0B08F", interactiveAccentHover: "#E0C39F", interactiveOnAccent: "#282227",
+    focusRing: "#9B7E6D", selectionSurface: "#5A4744",
+    /* ŽÁDNÉ `sand` ANI `inkSand`. Starší tokeny nesou v Signature značkovou
+       stopu (Warm Sand vedle mědi); jinde jsou to prostě tišší inkousty
+       a dopočítají se ze sekundárního písma. Kdyby si je Kouř a koření nastavil
+       na fosilní tan, byl by to přesně akcent — a `t.sand` kreslí ikony
+       v navigaci, takže by akcent najednou nesla třetina viditelných prvků.
+       Naměřeno v prohlížeči: 34 % proti stropu 18 % (§ Accent coverage). */
+    status: { success: "#86AA8D", warning: "#D5A45D", error: "#E07C82", info: "#87AABA" },
+    chart: ["#D0B08F", "#9B7E6D", "#6D5B57", "#B87333", "#8F9295", "#EFE3D2"],
+    themeColor: "#282227",
   },
 };
 
 // ----------------------------------------------------------------------
-// ODVOZENÍ · jedno pravidlo pro všech sedm rodin
+// ODVOZENÍ · jedno pravidlo pro všech osm vzhledů
 // ----------------------------------------------------------------------
-// Rodina dodá kotvy a základní role. Zbytek — hover povrchů, hrany bez
+// Vzhled dodá kotvy a základní role. Zbytek — hover povrchů, hrany bez
 // sytosti, zakázaný stav, výběr, stín, hero, funkční a datové role — vzniká
-// tady, stejným postupem pro všechny. Signature na konci přepíše svoje
+// tady, stejným postupem pro všechny. Signature Day na konci přepíše svoje
 // PRODUKČNÍ hodnoty doslova, takže se nemůže pohnout ani o odstín, a přesto
-// prochází stejnou cestou jako ostatní: žádná rodina není sada výjimek.
+// prochází stejnou cestou jako ostatní: žádný vzhled není sada výjimek.
 function meets(color, surfaces, min, alpha) {
   const c = alpha == null ? color : hexA(color, alpha);
   for (const bg of surfaces) if (contrast(c, bg, bg) < min) return false;
@@ -304,8 +344,8 @@ function meets(color, surfaces, min, alpha) {
 /**
  * Posune barvu k inkoustu, dokud nesplní práh na VŠECH povrchech, na kterých
  * opravdu leží. Doporučená hodnota ze specifikace je výchozí bod, ne dogma:
- * §8 dovoluje odvozený token změnit právě tehdy, když selže kontrast — a
- * každý takový posun je vypsaný v THEME-CONTRAST-REPORT.md.
+ * odvozený token se smí změnit právě tehdy, když selže kontrast — a každý
+ * takový posun je vypsaný v THEME-CONTRAST-REPORT.md.
  * Krok je setina, takže výsledek je deterministický a stejný v testu i v běhu.
  */
 function ensureOn(color, surfaces, min, toward, alpha) {
@@ -317,16 +357,69 @@ function ensureOn(color, surfaces, min, toward, alpha) {
   return toward;
 }
 
+/** Dvě série se liší, když je od sebe pozná šedý tisk NEBO barvoslepé oko. */
+function seriesApart(a, b) {
+  if (ratio(grayscale(a), grayscale(b)) >= 1.18) return true;
+  for (const kind of ["protanopia", "deuteranopia", "tritanopia"]) {
+    if (cvdDistance(a, b, kind) < 40) return false;
+  }
+  return true;
+}
+
+/**
+ * ŽEBŘÍK MÍSTO ROTACE. Kurátorská řada ze specifikace rozhoduje o ODSTÍNU;
+ * o čitelnosti rozhoduje měření. Každý člen se nejdřív dorovná na 3:1 na
+ * vlastní plotně, a pokud pak splývá s některým už přijatým členem (v šedi
+ * i ve všech třech simulacích barvosleposti), posouvá se PO SVÉM ODSTÍNU
+ * k inkoustu vzhledu, dokud se neodliší. Směr „k inkoustu" je na tmavé
+ * plotně nahoru a na světlé dolů — kontrast na plotně tedy vždycky roste,
+ * nikdy neklesá. Žádná automatická rotace odstínu se tu neděje.
+ */
+function fitSeries(list, plate, ink) {
+  const out = [];
+  for (const raw of list) {
+    let c = ensureOn(raw, [plate], 3, ink);
+    if (out.every((k) => seriesApart(c, k))) { out.push(c); continue; }
+    let fixed = c;
+    for (let i = 1; i <= 100; i++) {
+      const step = mixHex(c, ink, i / 100);
+      if (contrast(step, plate, plate) >= 3 && out.every((k) => seriesApart(step, k))) { fixed = step; break; }
+    }
+    out.push(fixed);
+  }
+  return out;
+}
+
+/**
+ * Stavová dvojice pro vzhled, který si stavy ladí. Popředí se dorovná na
+ * 4,5:1 na všech plochách, pozadí je NEJSYTĚJŠÍ nádech té barvy v poli, pod
+ * kterým popředí pořád drží 4,5:1. Kdo stavy neladí, tudy vůbec neprojde
+ * a dostane sdílenou tabulku FUNCTIONAL — proto se zachovaným paletám
+ * nehnula ani stavová barva.
+ */
+function deriveStatus(s, mode, fields) {
+  const out = {};
+  for (const role of ["success", "warning", "error", "info"]) {
+    const fg = ensureOn(s.status[role], fields, 4.5, s.text);
+    let bg = mixHex(s.background, fg, 0.04);
+    for (let k = mode === "light" ? 28 : 36; k >= 4; k--) {
+      const c = mixHex(s.background, fg, k / 100);
+      if (contrast(fg, c, c) >= 4.5) { bg = c; break; }
+    }
+    out[role + "Fg"] = fg;
+    out[role + "Bg"] = bg;
+  }
+  return out;
+}
+
 function buildPalette(mode, s, legacy) {
   const light = mode === "light";
   const hex = (v) => typeof v === "string" && v.charAt(0) === "#";
   const shadowInk = light ? s.text : mixHex(s.background, BRAND.forest, 0.8);
   const hair = light ? s.text : s.text;
-  const fn = FUNCTIONAL[mode];
-  const series = CHART[mode].series;
   /* HOVER SE HÝBE OD POPISKU, NE PODLE REŽIMU. Ztmavit měď v Signature zní
-     samozřejmě — a shodí to popisek NA mědi pod 4,5:1, protože ten je Forest
-     Night. Směr proto určuje popisek: akcent se posouvá pryč od něj, takže
+     samozřejmě — a shodí to popisek NA mědi pod 4,5:1, protože ten je tmavý
+     inkoust. Směr proto určuje popisek: akcent se posouvá pryč od něj, takže
      tlačítko je při najetí čitelnější, ne hůř čitelné. Doporučené hodnoty ze
      specifikace tenhle směr už mají; dopočítává se jen tam, kde chybí. */
   const away = luminance(s.interactiveOnAccent) < luminance(s.interactiveAccent) ? BRAND.linen : BRAND.forest;
@@ -340,12 +433,29 @@ function buildPalette(mode, s, legacy) {
   };
   const accentHover = fitOnAccent(s.interactiveAccentHover || mixHex(s.interactiveAccent, away, 0.14));
 
-  // Povrchy, na kterých písmo a hrany opravdu leží.
-  const fields = [s.background, s.navigation, s.surface, s.card, s.documentSurface];
-  /* BĚŽNÝ TEXT ZŮSTÁVÁ NEUTRÁLNÍ (V1.1 §3). Sekundární a ztlumené písmo se
-     proto neodvozuje z rodinného odstínu, ale z vlastního inkoustu rodiny
-     posunutého k jejímu poli — nese tedy jen tolik barvy, kolik má pole samo.
-     Dlouhý odstavec se nikde nesází celý modře, tyrkysově ani vínově. */
+  /* Povrchy, na kterých písmo a hrany opravdu leží.
+     VYVÝŠENÁ PLOCHA SE PŘIDÁVÁ JEN TAM, KDE JI VZHLED VÝSLOVNĚ URČUJE. Do
+     V1.1 se `surfaceRaised` DOPOČÍTÁVALA z karty, takže nikdy nebyla o moc
+     světlejší a písmo na ní procházelo samo. Specifikace V2 dává novým
+     vzhledům vlastní `elevatedSurface` o patro výš (modal, popover, list nad
+     listem) — a tam už ztlumené písmo bez dorovnání neprojde. Kdyby se ale
+     tenhle povrch přidal i čtyřem ZACHOVANÝM paletám, posunula by se jim
+     dorovnaná písma a produkce by se hnula; ty žádnou vlastní vyvýšenou
+     plochu neurčují, takže jejich seznam zůstává přesně ten z V1.1. */
+  const hoverCard = light ? mixHex(s.card, s.documentSurface, 0.45) : mixHex(s.card, s.text, 0.06);
+  const hoverSheet = light ? mixHex(s.documentSurface, s.card, 0.35) : mixHex(s.documentSurface, s.text, 0.05);
+  const heroField = light ? mixHex(s.background, s.text, 0.05) : s.surface;
+  const fields = s.elevatedSurface
+    ? [s.background, s.navigation, s.surface, s.card, s.documentSurface, s.elevatedSurface,
+       hoverCard, hoverSheet, heroField]
+    : [s.background, s.navigation, s.surface, s.card, s.documentSurface];
+  const fn = s.status ? deriveStatus(s, mode, fields) : FUNCTIONAL[mode];
+  const chartSurface = light ? s.card : mixHex(s.card, BRAND.forest, 0.45);
+  const series = s.chart ? fitSeries(s.chart, chartSurface, s.text) : CHART[mode].series;
+  /* BĚŽNÝ TEXT ZŮSTÁVÁ NEUTRÁLNÍ (V1.1 §3, V2 §14). Sekundární a ztlumené
+     písmo se proto neodvozuje z rodinného odstínu, ale z vlastního inkoustu
+     vzhledu posunutého k jeho poli — nese tedy jen tolik barvy, kolik má pole
+     samo. Dlouhý odstavec se nikde nesází celý modře, tyrkysově ani vínově. */
   const textMuted = ensureOn(s.textMuted || mixHex(s.text, s.background, 0.44), fields, 4.5, s.text);
   const textSecondary = ensureOn(s.textSecondary || mixHex(s.text, s.background, 0.26), fields, 4.5, s.text);
   const link = ensureOn(s.accentInk || s.interactiveAccent, fields, 4.5, s.text);
@@ -353,48 +463,61 @@ function buildPalette(mode, s, legacy) {
   const focusRing = ensureOn(s.focusRing || s.interactiveAccent, fields, 3, s.text);
   // Zakázaný stav zůstává čitelný (3:1), ale je zřetelně tišší než ztlumené písmo.
   const textDisabled = ensureOn(mixHex(textMuted, s.background, 0.3), fields, 3, s.text);
-  /* NADPIS je jediné běžné písmo, které smí nést rodinný odstín (V1.1 §1).
-     Ve dne je to přímo akcent, který je v každé rodině tmavý inkoust; v noci
-     je akcent světlý, a plný akcent v nadpisu by byl křik — bere se proto
-     jako nádech do lněného textu. Signature si nese svůj vlastní nadpis:
-     ve dne zmrazený Deep Moss, v noci prostý len. */
+  /* NADPIS je jediné běžné písmo, které smí nést rodinný odstín. Ve dne je to
+     přímo akcent, který je v každém světlém vzhledu tmavý inkoust; v noci je
+     akcent světlý a plný akcent v nadpisu by byl křik — bere se proto jako
+     nádech do lněného textu. Signature Day si nese svůj zmrazený Deep Moss,
+     Signature Night prostý len, Písek a země modř místo pálené země. */
   const heading = s.heading
     || (light ? ensureOn(s.interactiveAccent, fields, 4.5, s.text) : mixHex(s.text, s.interactiveAccent, 0.35));
   /* NÁPOVĚDA V POLI je vlastní role, ne ztlumené písmo se sníženým krytím.
-     Dokud byla, nešla uhlídat: aby prošla 4,5:1 na pergamenovém listu, muselo
-     by ztlumené písmo zčernat skoro na barvu textu a hierarchie by zmizela.
-     Vlastní token to řeší bez toho, aby se ztlumené písmo hnulo.
-
-     ŽÁDNÁ RODINA UŽ TU NEMÁ VÝJIMKU. Ve V1.1 měla Signature nápovědu
-     zmrazenou na dnešní složeninu (0,80 v poli), a ta dělala 3,99:1. Naváděcí
-     text je významový a 4,5:1 pro něj platí stejně jako pro cokoli jiného, co
-     se čte — tak se to opravilo, a `theme-contrast.test.js` teď nemá co
-     odpouštět. Signature si nese vlastní hodnotu ze specifikace, protože
-     odvozený tón dědil zelenošedý nádech ztlumeného písma; ostatní rodiny
-     hodnotu dopočítávají. Krytí se na nápovědu nikde nepoužívá — snížilo by
-     kontrast zpátky pod práh a `theme-visual.test.js` to hlídá ve zdroji. */
+     Dokud byla, nešla uhlídat: aby prošla 4,5:1 na listu, muselo by ztlumené
+     písmo zčernat skoro na barvu textu a hierarchie by zmizela. Vlastní token
+     to řeší bez toho, aby se ztlumené písmo hnulo. Krytí se na nápovědu nikde
+     nepoužívá — snížilo by kontrast zpátky pod práh. */
   const phField = s.placeholder || mixHex(textMuted, s.documentSurface, 0.2);
   const phWrite = s.placeholderStrong || s.placeholder || mixHex(textMuted, s.documentSurface, 0.15);
   const placeholder = ensureOn(phField, fields, 4.5, s.text);
   const placeholderStrong = ensureOn(phWrite, fields, 4.5, s.text);
   /* VÝBĚR TEXTU · nádech akcentu pod textem. Sytější nádech vypadá líp a hůř
-     se čte, takže se ubírá, dokud text na výběru nedrží 4,5:1. */
-  const selectionSurface = (() => {
-    for (let k = light ? 18 : 24; k >= 4; k--) {
-      const c = mixHex(s.background, s.interactiveAccent, k / 100);
-      if (contrast(s.text, c, c) >= 4.5) return c;
-    }
-    return mixHex(s.background, s.interactiveAccent, 0.04);
-  })();
+     se čte, takže se ubírá, dokud text na výběru nedrží 4,5:1. Vzhled, který
+     si výběr určí sám, se dorovná stejným pravidlem — ne ignoruje. */
+  const selectionSurface = s.selectionSurface
+    ? (() => {
+        for (let i = 0; i <= 100; i++) {
+          const c = mixHex(s.selectionSurface, s.background, i / 100);
+          if (contrast(s.text, c, c) >= 4.5) return c;
+        }
+        return s.background;
+      })()
+    : (() => {
+        for (let k = light ? 18 : 24; k >= 4; k--) {
+          const c = mixHex(s.background, s.interactiveAccent, k / 100);
+          if (contrast(s.text, c, c) >= 4.5) return c;
+        }
+        return mixHex(s.background, s.interactiveAccent, 0.04);
+      })();
+
+  /* VYVÝŠENÁ PLOCHA JE NAVRŽENÁ, NE DOPOČÍTANÁ. Kdo si ji neurčí, žádnou
+     nemá — modal a popover mu leží na kartě, přesně jak to dělal dosud.
+     Dopočítaná „raised" plocha z V1 zůstává pod svým starým jménem jako
+     starší alias (dnes ji nečte žádná komponenta), aby se zachovaným paletám
+     nezměnila ani ta. Kdyby se vyvýšená plocha dopočítávala i tam, kde ji
+     nikdo nenavrhl, ležel by na ní text, který na ni nebyl dorovnaný. */
+  const surfaceRaised = s.elevatedSurface
+    || (light ? mixHex(s.card, s.documentSurface, 0.6) : mixHex(s.card, s.text, 0.08));
+  const elevatedSurface = s.elevatedSurface || s.card;
 
   const out = {
     mode,
+    polarity: mode,
 
     // ---- plochy -------------------------------------------------------
     background: s.background,
     navigation: s.navigation,
     surface: s.surface,
-    surfaceRaised: light ? mixHex(s.card, s.documentSurface, 0.6) : mixHex(s.card, s.text, 0.08),
+    surfaceRaised,
+    elevatedSurface,
     surfaceMuted: s.navigation,
     card: s.card,
     documentSurface: s.documentSurface,
@@ -407,6 +530,7 @@ function buildPalette(mode, s, legacy) {
     textMuted,
     textDisabled,
     placeholder,
+    placeholderText: placeholder,
     placeholderStrong,
 
     // ---- hrany --------------------------------------------------------
@@ -426,7 +550,7 @@ function buildPalette(mode, s, legacy) {
     linkHover: accentHover,
 
     // ---- značka -------------------------------------------------------
-    // Copper je značka, ne ovládací prvek. V žádné rodině nesoutěží
+    // Copper je značka, ne ovládací prvek. V žádném vzhledu nesoutěží
     // s interactiveAccent a nikde se nepřebarvuje.
     brandCopper: BRAND.copper,
     brandLinen: BRAND.linen,
@@ -434,10 +558,18 @@ function buildPalette(mode, s, legacy) {
 
     // ---- Movement Atlas -----------------------------------------------
     // Plát je záměrné lněné pole. Netónuje se, neinvertuje a nemíchá se
-    // s podkladem — mění se jen rám kolem něj, aby na tmavém motivu nestál
+    // s podkladem — mění se jen rám kolem něj, aby na tmavém vzhledu nestál
     // bez hrany.
     atlasFrame: BRAND.linen,
-    atlasBorder: borderStrong,
+    /* RÁM PLÁTU JE INKOUST NA LNU, NE HRANA MOTIVU. Do V1.1 to byl prostě
+       `borderStrong` — a ten se dorovnává proti PLOCHÁM VZHLEDU. U tmavého
+       vzhledu je to světlá čára, která je na lněném plátu skoro neviditelná
+       (Signature Night 2,80:1, Kouř a koření 2,63:1). Jednu barvu, která by
+       držela 3:1 zároveň proti nejsvětlejší ploše tmavého vzhledu i proti lnu,
+       sestrojit nelze — jsou to dva různé úkoly. Rám proto patří plátu: bere
+       silnou hranu vzhledu jako výchozí bod a ztmavuje ji, dokud na lnu
+       nedrží. Plát sám se od tmavé stránky odliší i bez něj. */
+    atlasBorder: ensureOn(borderStrong, [BRAND.linen], 3, BRAND.forest),
 
     // ---- funkční role -------------------------------------------------
     successFg: fn.successFg, successBg: fn.successBg,
@@ -448,14 +580,15 @@ function buildPalette(mode, s, legacy) {
     // ---- data ---------------------------------------------------------
     chart1: series[0], chart2: series[1], chart3: series[2],
     chart4: series[3], chart5: series[4], chart6: series[5],
-    chartSurface: light ? s.card : mixHex(s.card, BRAND.forest, 0.45),
+    chartSurface,
     grid: hex(s.border) ? mixHex(s.border, s.background, 0.35) : hexA(s.text, 0.12),
     axis: textMuted,
 
     // ---- starší názvy, na kterých stojí celý dům -----------------------
-    // Nejsou to duplicity, je to VEŘEJNÉ API motivu. Tisíce míst v obou
+    // Nejsou to duplicity, je to VEŘEJNÉ API vzhledu. Tisíce míst v obou
     // aplikacích čtou `t.bg`, `t.card`, `t.textMuted`. Migrační vrstva je
-    // tady, ne v komponentách.
+    // tady, ne v komponentách. Odstranit ji smí až samostatná vlna, která
+    // přepíše volající místa — ne barevná změna.
     bg: s.background,
     bgSidebar: s.navigation,
     textSec: textSecondary,
@@ -471,13 +604,13 @@ function buildPalette(mode, s, legacy) {
     info: fn.infoFg,
     success: fn.successFg,
     warning: fn.warningFg,
-    cardHover: light ? mixHex(s.card, s.documentSurface, 0.45) : mixHex(s.card, s.text, 0.06),
+    cardHover: hoverCard,
     callout: s.surface,
     tableHead: s.navigation,
     sheet: s.documentSurface,
-    sheetHover: light ? mixHex(s.documentSurface, s.card, 0.35) : mixHex(s.documentSurface, s.text, 0.05),
+    sheetHover: hoverSheet,
     activeNav: hexA(s.interactiveAccent, light ? 0.12 : 0.16),
-    hero: light ? mixHex(s.background, s.text, 0.05) : s.surface,
+    hero: heroField,
     heroInk: s.text,
     heroInkSoft: hexA(s.text, 0.78),
     heroLine: hexA(s.interactiveAccent, light ? 0.3 : 0.42),
@@ -501,7 +634,7 @@ function buildPalette(mode, s, legacy) {
   };
 
   if (s.decorative) out.decorative = s.decorative;
-  // Signature má poslední slovo: produkční hodnoty se vrací doslova.
+  // Signature Day má poslední slovo: produkční hodnoty se vrací doslova.
   if (legacy) Object.assign(out, legacy);
   // Vlásečnice a dělítko jsou po přepisu totéž.
   out.divider = out.borderSoft;
@@ -525,135 +658,240 @@ function signatureBase(legacy) {
   };
 }
 
-/* Náhled musí ukázat to, co v motivu opravdu rozhoduje: neutrální běžný text,
-   rodinný nadpis, plochu stránky, kartu, DOKUMENTOVOU plochu (na které se
-   dlouho píše) a interakční akcent. Dva velké barevné obdélníky jsou plakát,
-   ne pracovní prostor. */
+/* Náhled musí ukázat to, co ve vzhledu opravdu rozhoduje: pole stránky,
+   NAVIGACI, kartu, DOKUMENTOVOU plochu (na které se dlouho píše), nadpis,
+   neutrální běžný text, interakční akcent a dva stavy. Dva velké barevné
+   obdélníky jsou plakát, ne pracovní prostor (V2 §18). */
 function previewOf(p) {
-  return {
-    background: p.background, surface: p.surface, card: p.card,
+  return Object.freeze({
+    background: p.background, navigation: p.navigation, surface: p.surface, card: p.card,
     documentSurface: p.documentSurface,
     text: p.text, textMuted: p.textMuted, heading: p.heading,
     border: p.border, accent: p.interactiveAccent, onAccent: p.interactiveOnAccent,
-  };
-}
-
-function makeFamily(id, labelCs, labelEn, recommended, anchors, lightPal, darkPal) {
-  return Object.freeze({
-    id, labelCs, labelEn, recommended,
-    anchors: Object.freeze(anchors),
-    light: lightPal,
-    dark: darkPal,
-    preview: Object.freeze({ light: Object.freeze(previewOf(lightPal)), dark: Object.freeze(previewOf(darkPal)) }),
+    success: p.successFg, error: p.errorFg,
   });
 }
 
-const REGISTRY = (() => {
+function makeFixed(id, def, palette) {
+  return Object.freeze({
+    id,
+    kind: "fixed",
+    labelCs: def.labelCs,
+    labelEn: def.labelEn,
+    polarity: def.polarity,
+    recommended: false,
+    anchors: Object.freeze(def.anchors),
+    palette,
+    preview: previewOf(palette),
+    themeColor: def.themeColor || palette.background,
+  });
+}
+
+const FIXED = (() => {
   const out = {};
-  /* Signature má den ZMRAZENÝ (produkční Linen, přepsaný doslova) a noc
-     PŘESTAVĚNOU (Ink Night z V1.1). Je to jediná rodina, kde se obě poloviny
-     chovají různě, a je to záměr: den nikdo neměnil, noc se opravovala. */
-  out.signature = makeFamily(
-    "signature", "Signature", "Signature", true,
-    { "Ink Night": SPECS.signature.dark.background, Linen: BRAND.linen, Copper: BRAND.copper },
-    buildPalette("light", signatureBase(SIGNATURE_LIGHT), SIGNATURE_LIGHT),
-    buildPalette("dark", SPECS.signature.dark, null),
-  );
-  for (const id of THEME_FAMILY_IDS) {
-    if (id === "signature") continue;
+  /* Signature Day je jediný vzhled, který jde do stroje se zmrazenou
+     produkční tabulkou navrch — ta má poslední slovo, takže se den nemůže
+     pohnout ani o odstín, a přesto prochází stejnou cestou jako ostatní. */
+  out["signature-day"] = Object.freeze({
+    id: "signature-day",
+    kind: "fixed",
+    labelCs: "Signature · Den",
+    labelEn: "Signature · Day",
+    polarity: "light",
+    recommended: true,
+    anchors: Object.freeze({ Linen: BRAND.linen, Ink: BRAND.forest, Copper: BRAND.copper }),
+    palette: buildPalette("light", signatureBase(SIGNATURE_LIGHT), SIGNATURE_LIGHT),
+    preview: null,
+    themeColor: SIGNATURE_LIGHT.bg,
+  });
+  // preview se doplní až po zmrazení palety (previewOf čte hotové role)
+  const day = out["signature-day"];
+  out["signature-day"] = Object.freeze({ ...day, preview: previewOf(day.palette) });
+
+  for (const id of FIXED_PRESET_IDS) {
+    if (id === "signature-day") continue;
     const def = SPECS[id];
-    out[id] = makeFamily(id, def.labelCs, def.labelEn, false, def.anchors,
-      buildPalette("light", def.light, null), buildPalette("dark", def.dark, null));
+    out[id] = makeFixed(id, def, buildPalette(def.polarity, def, null));
   }
+  // Signature Night je doporučená noční polovina normy domu.
+  out["signature-night"] = Object.freeze({ ...out["signature-night"], recommended: true });
   return Object.freeze(out);
 })();
 
-/** Všechny rodiny v pořadí, ve kterém se nabízejí. Signature první. */
-export const THEME_FAMILIES = Object.freeze(THEME_FAMILY_IDS.map((id) => REGISTRY[id]));
+/** Automatika. Není to paleta — je to odkaz na dvě poloviny Signature. */
+const AUTO = Object.freeze({
+  id: "signature-auto",
+  kind: "auto",
+  labelCs: "Automaticky · Signature",
+  labelEn: "Automatic · Signature",
+  polarity: "auto",
+  recommended: true,
+  anchors: Object.freeze({ Linen: BRAND.linen, Ink: BRAND.forest, Copper: BRAND.copper }),
+  resolves: Object.freeze({ light: "signature-day", dark: "signature-night" }),
+  palette: null,
+  preview: Object.freeze({
+    light: FIXED["signature-day"].preview,
+    dark: FIXED["signature-night"].preview,
+  }),
+  themeColor: FIXED["signature-day"].themeColor,
+});
 
-/** Rodina podle id. Neznámé id nikdy nespadne — vrací Signature. */
-export function themeFamily(id) { return REGISTRY[id] || REGISTRY[DEFAULT_FAMILY]; }
+const REGISTRY = Object.freeze({ "signature-auto": AUTO, ...FIXED });
 
-/** Bezpečné id rodiny. */
-export function resolveFamilyId(id) { return Object.prototype.hasOwnProperty.call(REGISTRY, id) ? id : DEFAULT_FAMILY; }
+/** Všechny vzhledy v pořadí, ve kterém se nabízejí. Automatika první. */
+export const APPEARANCE_PRESETS = Object.freeze(APPEARANCE_PRESET_IDS.map((id) => REGISTRY[id]));
 
-/** "system" | "light" | "dark" + přání systému → "light" | "dark". */
-export function resolveMode(mode, systemPrefersDark) {
-  if (mode === "light" || mode === "dark") return mode;
-  if (mode === "system") return systemPrefersDark ? "dark" : "light";
-  return DEFAULT_MODE;
+/** Jen pevné vzhledy, v pořadí. */
+export const FIXED_PRESETS = Object.freeze(FIXED_PRESET_IDS.map((id) => REGISTRY[id]));
+
+/** Bezpečné id. Neznámé id nikdy nespadne — vrací výchozí. */
+export function resolvePresetId(id) {
+  return Object.prototype.hasOwnProperty.call(REGISTRY, id) ? id : DEFAULT_PRESET;
 }
 
-/** Bezpečný režim volby (ne vyřešený). */
-export function resolveModeChoice(mode) { return THEME_MODES.indexOf(mode) === -1 ? DEFAULT_MODE : mode; }
+/** Záznam vzhledu podle id (i automatiky). */
+export function appearancePreset(id) { return REGISTRY[resolvePresetId(id)]; }
 
-/** Vyřešená paleta. `mode` už musí být light/dark. */
-export function resolveTheme(familyId, mode) {
-  return themeFamily(resolveFamilyId(familyId))[mode === "dark" ? "dark" : "light"];
+/**
+ * JEDINÝ KANONICKÝ RESOLVER.
+ * Vrací PEVNÝ vzhled: pro `signature-auto` podle přání systému, pro cokoli
+ * jiného sebe sama. Fixní vzhled systém nikdy nepřepíše — to je celý rozdíl
+ * mezi V1.1 a V2.
+ */
+export function resolveAppearancePreset(id, systemDark) {
+  const p = REGISTRY[resolvePresetId(id)];
+  if (p.kind !== "auto") return p;
+  return REGISTRY[systemDark ? p.resolves.dark : p.resolves.light];
 }
 
-/** Náhledové tokeny pro kartu v Nastavení — kus UI, ne dva čtverce. */
-export function previewTokens(familyId, mode) {
-  return themeFamily(resolveFamilyId(familyId)).preview[mode === "dark" ? "dark" : "light"];
-}
+/** Vyřešená paleta. */
+export function resolveTheme(id, systemDark) { return resolveAppearancePreset(id, systemDark).palette; }
+
+/** "light" | "dark" pro vyřešený vzhled. */
+export function presetPolarity(id, systemDark) { return resolveAppearancePreset(id, systemDark).polarity; }
+
+/** Jen automatika poslouchá systém. */
+export function isSystemAware(id) { return REGISTRY[resolvePresetId(id)].kind === "auto"; }
+
+/** Náhledové tokeny. Automatika vrací { light, dark }, pevný vzhled jeden set. */
+export function previewTokens(id) { return REGISTRY[resolvePresetId(id)].preview; }
 
 /** Barva prohlížeče a lišty telefonu. Pole aplikace, nic jiného. */
-export function pwaThemeColor(familyId, mode) { return resolveTheme(familyId, mode).background; }
+export function pwaThemeColor(id, systemDark) { return resolveAppearancePreset(id, systemDark).themeColor; }
 
 /** Atributy na <html>. CSS i pre-paint skript čtou totéž. */
-export function documentThemeAttrs(familyId, mode) {
-  return { "data-theme-family": resolveFamilyId(familyId), "data-color-mode": mode === "dark" ? "dark" : "light" };
+export function documentThemeAttrs(id, systemDark) {
+  const p = resolveAppearancePreset(id, systemDark);
+  return { "data-appearance": p.id, "data-color-mode": p.polarity };
 }
 
-/** Stavová paleta pro vyřešený režim — jeden význam napříč motivy. */
-export function statusPalette(mode) { return FUNCTIONAL[mode === "dark" ? "dark" : "light"]; }
+/** Pole každého pevného vzhledu — mapa pro pre-paint skript v index.html. */
+export const PRESET_FIELDS = Object.freeze(FIXED_PRESET_IDS.reduce((acc, id) => {
+  acc[id] = REGISTRY[id].themeColor;
+  return acc;
+}, {}));
 
-/** Datová paleta pro vyřešený režim, i s nebarevným nosičem série. */
-export function chartPalette(mode) {
-  const m = mode === "dark" ? "dark" : "light";
-  return { series: CHART[m].series, patterns: CHART_PATTERNS };
+/** Stavová paleta. Bere id vzhledu; holé "light"/"dark" zůstává pro starší volání. */
+export function statusPalette(idOrMode, systemDark) {
+  if (idOrMode === "light" || idOrMode === "dark") return FUNCTIONAL[idOrMode];
+  const p = resolveAppearancePreset(idOrMode, systemDark).palette;
+  return {
+    successFg: p.successFg, successBg: p.successBg,
+    warningFg: p.warningFg, warningBg: p.warningBg,
+    errorFg: p.errorFg, errorBg: p.errorBg,
+    infoFg: p.infoFg, infoBg: p.infoBg,
+  };
+}
+
+/** Datová paleta i s nebarevným nosičem série. */
+export function chartPalette(idOrMode, systemDark) {
+  if (idOrMode === "light" || idOrMode === "dark") {
+    return { series: CHART[idOrMode].series, patterns: CHART_PATTERNS };
+  }
+  const p = resolveAppearancePreset(idOrMode, systemDark).palette;
+  return {
+    series: Object.freeze([p.chart1, p.chart2, p.chart3, p.chart4, p.chart5, p.chart6]),
+    patterns: CHART_PATTERNS,
+  };
 }
 
 /** Kanonický dokumentový motiv pro tisk, PDF a export. Nikdy nesleduje volbu. */
-export const DOCUMENT_THEME = REGISTRY.signature.light;
+export const DOCUMENT_THEME = FIXED["signature-day"].palette;
 
 // ----------------------------------------------------------------------
 // MIGRACE · nikdo se po nasazení nesmí probudit do jiné palety
 // ----------------------------------------------------------------------
-// Starý klíč nesl jen "light" | "dark". Nový nese rodinu a režim. Převod je
-// čistá funkce, aby se dal otestovat bez prohlížeče: uložený řetězec dovnitř,
-// platná volba ven. Cokoliv nesrozumitelného končí na Signature.
-export const APPEARANCE_VERSION = 2;
+// Tři generace uložené volby:
+//
+//   v0   `tm-theme` = "light" | "dark"                     (před V1)
+//   v2   { version: 2, family, mode }                      (V1 a V1.1)
+//   v3   { version: 3, preset }                            (V2)
+//
+// Převod je čistá funkce, aby se dal otestovat bez prohlížeče: uložený řetězec
+// dovnitř, platná volba ven. Druhý běh je no-op. Cokoli nesrozumitelného končí
+// na `signature-auto` — do rozbitého vzhledu se nikdo nesmí zavřít.
+//
+// ZRUŠENÉ RODINY SE NEZTRÁCEJÍ. Kdo měl Atlantik, dostane Břidlici a hlínu;
+// kdo měl Hlínu nebo Olivu, dostane Písek a zemi. Je to nejbližší dochovaný
+// vzhled, ne náhoda — a je to jednosměrné, protože zrušené palety už v běhu
+// neexistují.
+export const APPEARANCE_VERSION = 3;
 
+/** Rodina × režim (v2) → preset (v3). Tabulka je ze specifikace. */
+const FAMILY_MIGRATION = Object.freeze({
+  signature: Object.freeze({ system: "signature-auto", light: "signature-day", dark: "signature-night" }),
+  "river-mist": "river-night",
+  "teal-parchment": "teal-night",
+  "mulberry-paper": "mulberry-paper",
+  "atlantic-sky": "slate-clay",
+  "clay-alabaster": "sand-earth",
+  "olive-gold": "sand-earth",
+});
+
+/** Starý klíč `tm-theme` (v0) → preset. */
+const LEGACY_MODE_MIGRATION = Object.freeze({
+  light: "signature-day",
+  dark: "signature-night",
+  system: "signature-auto",
+});
+
+/** Ať přijde cokoli, ven jde platná volba V3. */
 export function normalizeAppearance(value) {
+  if (typeof value === "string") return { version: APPEARANCE_VERSION, preset: resolvePresetId(value) };
   const v = value && typeof value === "object" ? value : {};
-  return {
-    version: APPEARANCE_VERSION,
-    family: resolveFamilyId(v.family),
-    mode: resolveModeChoice(v.mode),
-  };
+  if (typeof v.preset === "string") return { version: APPEARANCE_VERSION, preset: resolvePresetId(v.preset) };
+  if (typeof v.family === "string") return { version: APPEARANCE_VERSION, preset: presetFromFamily(v.family, v.mode) };
+  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET };
+}
+
+/** Rodina + režim → preset. Neznámá rodina končí na automatice. */
+export function presetFromFamily(family, mode) {
+  const m = FAMILY_MIGRATION[family];
+  if (!m) return DEFAULT_PRESET;
+  if (typeof m === "string") return m;
+  return m[mode === "light" || mode === "dark" ? mode : "system"];
 }
 
 /**
- * @param {string|null} raw   obsah nového klíče (JSON), nebo null
+ * @param {string|null} raw    obsah nového klíče (JSON), nebo null
  * @param {string|null} legacy obsah starého klíče `tm-theme` ("light"|"dark"), nebo null
  */
 export function migrateLegacyAppearance(raw, legacy) {
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return normalizeAppearance(parsed);
-    } catch (e) { /* rozbitý JSON není důvod k pádu, je důvod k Signature */ }
+      if (parsed && (typeof parsed === "object" || typeof parsed === "string")) return normalizeAppearance(parsed);
+    } catch (e) { /* rozbitý JSON není důvod k pádu, je důvod k automatice */ }
   }
-  if (legacy === "light" || legacy === "dark" || legacy === "system") {
-    return { version: APPEARANCE_VERSION, family: DEFAULT_FAMILY, mode: legacy };
+  if (Object.prototype.hasOwnProperty.call(LEGACY_MODE_MIGRATION, legacy)) {
+    return { version: APPEARANCE_VERSION, preset: LEGACY_MODE_MIGRATION[legacy] };
   }
-  return { version: APPEARANCE_VERSION, family: DEFAULT_FAMILY, mode: DEFAULT_MODE };
+  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET };
 }
 
-/** Návrat na doporučený motiv. */
+/** Návrat na doporučený vzhled. */
 export function signatureAppearance() {
-  return { version: APPEARANCE_VERSION, family: DEFAULT_FAMILY, mode: DEFAULT_MODE };
+  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET };
 }
 
 // ----------------------------------------------------------------------
@@ -681,11 +919,11 @@ export const TONE_ROLES = Object.freeze({
   off: "neutral",
 });
 
-/** Barvy a nosič pro jeden tón v daném režimu. */
-export function toneStyle(tone, mode) {
+/** Barvy a nosič pro jeden tón v daném vzhledu. */
+export function toneStyle(tone, idOrMode, systemDark) {
   const role = TONE_ROLES[tone] || "neutral";
   const carrier = STATUS_CARRIERS[role];
-  const pal = statusPalette(mode);
+  const pal = statusPalette(idOrMode, systemDark);
   if (role === "neutral") return { role, carrier, fg: null, bg: null };
   return { role, carrier, fg: pal[role + "Fg"], bg: pal[role + "Bg"] };
 }

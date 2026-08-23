@@ -6,29 +6,42 @@
 // ----------------------------------------------------------------------
 // VZHLED · co si člověk zvolil a kde to leží
 // ----------------------------------------------------------------------
-// Volba je JEDNA hodnota: rodina + režim. Ukládá se verzovaně, aby se dala
-// v budoucnu rozšířit bez hádání, a čte se odolně: rozbitý JSON, neznámá
-// rodina ani zmizelé úložiště nesmí shodit start aplikace — skončí na
-// Signature, protože do rozbitého motivu se nikdo nesmí zavřít.
+// Od V2 je volba JEDNA hodnota: id hotového vzhledu. Ukládá se verzovaně,
+// aby se dala v budoucnu rozšířit bez hádání, a čte se odolně: rozbitý JSON,
+// zrušená rodina ani zmizelé úložiště nesmí shodit start aplikace — skončí
+// na `signature-auto`, protože do rozbitého vzhledu se nikdo nesmí zavřít.
+//
+// TŘI GENERACE KLÍČŮ ŽIJÍ VEDLE SEBE:
+//
+//   `tm-theme`          "light" | "dark"            před V1
+//   `tm-appearance-v2`  { version: 2, family, mode } V1 a V1.1
+//   `tm-appearance-v3`  { version: 3, preset }       V2
+//
+// Čtení sáhne po nejnovějším, který najde, a starší jen PŘEVEDE. Nic se
+// nemaže: starší nasazený build na témže zařízení své klíče pořád chce, a
+// odinstalovaná verze se pak chová jako dřív. Kdy se smí kompatibilní čtení
+// odstranit, je zapsané v THEME-SYSTEM-V2.md.
 //
 // PREFERENCE JE MÍSTNÍ, NA ZAŘÍZENÍ. Nedělá se pro ni serverový koncový bod
 // a necestuje s dokumentem: trenér ji neřídí, nevidí a nepotřebuje vidět,
-// a v žádném sdílení ani exportu se neobjevuje. Přesně tak se chová dnešní
-// `tm-theme` a Theme System V1 to nemění.
+// a v žádném sdílení ani exportu se neobjevuje.
 //
 // Při střídání účtu na jednom zařízení jde volba do karantény spolu se
 // zbytkem cizího úložiště (klientská aplikace, `ownerQuarantine`), takže
-// klient B nezdědí motiv klienta A.
+// klient B nezdědí vzhled klienta A.
 
 import {
-  APPEARANCE_VERSION, DEFAULT_FAMILY, DEFAULT_MODE,
-  migrateLegacyAppearance, normalizeAppearance, resolveFamilyId, resolveMode, resolveModeChoice,
-  documentThemeAttrs, pwaThemeColor, resolveTheme,
+  APPEARANCE_VERSION, DEFAULT_PRESET,
+  migrateLegacyAppearance, normalizeAppearance, resolvePresetId,
+  resolveAppearancePreset, appearancePreset, isSystemAware,
+  documentThemeAttrs, pwaThemeColor, resolveTheme, presetPolarity,
 } from "./themeRegistry.js";
 
 /** Nový klíč. Verze je i uvnitř hodnoty, ne jen v názvu. */
-export const APPEARANCE_KEY = "tm-appearance-v2";
-/** Starý klíč. Čte se, nemaže se — starý build na témže zařízení ho pořád chce. */
+export const APPEARANCE_KEY = "tm-appearance-v3";
+/** Klíč V1 / V1.1. Čte se, nemaže se. */
+export const LEGACY_APPEARANCE_KEY = "tm-appearance-v2";
+/** Nejstarší klíč. Čte se, nemaže se. */
 export const LEGACY_THEME_KEY = "tm-theme";
 
 function storage(store) {
@@ -39,24 +52,34 @@ function storage(store) {
 /** Přečte volbu. Nikdy nevyhodí výjimku a nikdy nevrátí nesmysl. */
 export function readAppearance(store) {
   const s = storage(store);
-  if (!s) return { version: APPEARANCE_VERSION, family: DEFAULT_FAMILY, mode: DEFAULT_MODE };
-  let raw = null, legacy = null;
+  if (!s) return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET };
+  let raw = null, v2 = null, legacy = null;
   try { raw = s.getItem(APPEARANCE_KEY); } catch (e) { /* soukromý režim */ }
+  try { v2 = s.getItem(LEGACY_APPEARANCE_KEY); } catch (e) { /* soukromý režim */ }
   try { legacy = s.getItem(LEGACY_THEME_KEY); } catch (e) { /* soukromý režim */ }
-  return migrateLegacyAppearance(raw, legacy);
+  return migrateLegacyAppearance(raw || v2, legacy);
 }
 
 /**
- * Zapíše volbu. Píše i starý klíč `tm-theme` vyřešeným režimem, aby na témže
- * zařízení nespadl starší nasazený build do jiného světla — a aby se
- * odinstalovaná verze chovala jako dřív.
+ * Zapíše volbu. Píše i oba starší klíče, aby na témže zařízení nespadl starší
+ * nasazený build do jiného světla — a aby se odinstalovaná verze chovala jako
+ * dřív. Starší klíče jsou ODVOZENÉ, ne druhá pravda: autorita je `preset`.
  */
-export function writeAppearance(pref, resolvedMode, store) {
+export function writeAppearance(pref, store) {
   const s = storage(store);
   const clean = normalizeAppearance(pref);
   if (!s) return clean;
+  const p = appearancePreset(clean.preset);
   try { s.setItem(APPEARANCE_KEY, JSON.stringify(clean)); } catch (e) { /* plná kvóta motiv neshodí */ }
-  try { s.setItem(LEGACY_THEME_KEY, resolvedMode === "dark" ? "dark" : "light"); } catch (e) { /* totéž */ }
+  /* Zpětný zápis: automatika se starším buildům jeví jako Signature v režimu
+     „automaticky", pevný vzhled jako Signature v jeho polaritě. Starší build
+     tedy neuvidí svoji vlastní paletu jinak než jako den nebo noc — a to je
+     přesně to, co uměl. */
+  const mode = p.kind === "auto" ? "system" : p.polarity;
+  try {
+    s.setItem(LEGACY_APPEARANCE_KEY, JSON.stringify({ version: 2, family: "signature", mode }));
+  } catch (e) { /* totéž */ }
+  try { s.setItem(LEGACY_THEME_KEY, mode === "dark" ? "dark" : "light"); } catch (e) { /* totéž */ }
   return clean;
 }
 
@@ -78,37 +101,45 @@ export function watchSystemMode(cb, win) {
   return () => {};
 }
 
-/** Vyřešený režim z volby a přání systému. */
+/**
+ * Vyřešená polarita. Systémové přání se uplatní JEN u `signature-auto` — kdo
+ * si zvolil pevný vzhled, tomu ho východ slunce nepřepne.
+ */
 export function appearanceMode(pref, prefersDark) {
-  return resolveMode(resolveModeChoice(pref && pref.mode), prefersDark);
+  return presetPolarity(pref && pref.preset, !!prefersDark);
+}
+
+/** Vyřešený pevný vzhled pro danou volbu a přání systému. */
+export function appearanceResolved(pref, prefersDark) {
+  return resolveAppearancePreset(pref && pref.preset, !!prefersDark);
 }
 
 /**
- * Zapíše motiv do dokumentu: atributy na <html>, pole pod stránkou a barvu
- * prohlížeče. Tohle je jediné místo, kde se motiv dostává mimo React —
+ * Zapíše vzhled do dokumentu: atributy na <html>, pole pod stránkou a barvu
+ * prohlížeče. Tohle je jediné místo, kde se vzhled dostává mimo React —
  * pre-paint skript v index.html dělá totéž a nesmí se s ním rozejít.
  */
-export function applyDocumentTheme(family, mode, doc) {
+export function applyDocumentTheme(preset, prefersDark, doc) {
   const d = doc || (typeof document === "undefined" ? null : document);
   if (!d) return;
-  const attrs = documentThemeAttrs(family, mode);
-  const field = pwaThemeColor(family, mode);
+  const attrs = documentThemeAttrs(preset, !!prefersDark);
+  const field = pwaThemeColor(preset, !!prefersDark);
   try {
     if (d.documentElement) {
-      d.documentElement.setAttribute("data-theme-family", attrs["data-theme-family"]);
+      d.documentElement.setAttribute("data-appearance", attrs["data-appearance"]);
       d.documentElement.setAttribute("data-color-mode", attrs["data-color-mode"]);
-      d.documentElement.style.setProperty("color-scheme", mode === "dark" ? "dark" : "light");
+      d.documentElement.style.setProperty("color-scheme", attrs["data-color-mode"]);
     }
     if (d.body) d.body.style.background = field;
     const m = d.querySelector('meta[name="theme-color"]');
     if (m) m.setAttribute("content", field);
-  } catch (e) { /* motiv nikdy neshodí render */ }
+  } catch (e) { /* vzhled nikdy neshodí render */ }
 }
 
 /** Pole aplikace pro danou volbu — používá i pre-paint. */
-export function appearanceField(family, mode) { return resolveTheme(family, mode).background; }
+export function appearanceField(preset, prefersDark) { return resolveTheme(preset, !!prefersDark).background; }
 
 /** Klíče, které při střídání účtu patří předchozímu člověku. */
-export const APPEARANCE_KEYS = Object.freeze([APPEARANCE_KEY, LEGACY_THEME_KEY]);
+export const APPEARANCE_KEYS = Object.freeze([APPEARANCE_KEY, LEGACY_APPEARANCE_KEY, LEGACY_THEME_KEY]);
 
-export { APPEARANCE_VERSION, DEFAULT_FAMILY, DEFAULT_MODE, resolveFamilyId, resolveModeChoice };
+export { APPEARANCE_VERSION, DEFAULT_PRESET, resolvePresetId, isSystemAware };

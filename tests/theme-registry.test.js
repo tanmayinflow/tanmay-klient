@@ -1,266 +1,216 @@
 // GENERATED · SHARED PRODUCT CORE — do not edit inside an application repository.
-// Canonical source: Work/web-application/Shared/product-core/repo-tests/theme-registry.test.js
+// Canonical source: Work/web-application/repo-tests/theme-registry.test.js
 // Change it there, then run `npm run shared:sync` in the outer workspace.
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
-// Rejstřík motivů · kontrakt, bezpečný pád a migrace.
+// REJSTŘÍK VZHLEDŮ · devět položek, jeden resolver, jedna migrace.
+//
+// Tenhle soubor hlídá TVAR systému, ne barvy: že vzhledů je devět a v daném
+// pořadí, že jediná z nich poslouchá systém, že každá vyřešená paleta má
+// všechny role, že náhled ukazuje kus rozhraní a ne dva čtverce, a že se
+// uložená volba převede ze všech tří generací a podruhé už se nehne.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
-import { createHash } from "node:crypto";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
 import {
-  THEME_FAMILIES, THEME_FAMILY_IDS, THEME_MODES, DEFAULT_FAMILY, DEFAULT_MODE,
+  APPEARANCE_PRESETS, APPEARANCE_PRESET_IDS, FIXED_PRESETS, FIXED_PRESET_IDS,
+  DEFAULT_PRESET, RECOMMENDED_PRESET, PRESET_FIELDS,
   BRAND, FUNCTIONAL, CHART, CHART_PATTERNS, DOCUMENT_THEME, STATUS_CARRIERS, TONE_ROLES,
-  themeFamily, resolveFamilyId, resolveMode, resolveModeChoice, resolveTheme,
-  previewTokens, pwaThemeColor, documentThemeAttrs, statusPalette, chartPalette,
-  migrateLegacyAppearance, normalizeAppearance, signatureAppearance, toneStyle,
+  appearancePreset, resolvePresetId, resolveAppearancePreset, resolveTheme, presetPolarity,
+  isSystemAware, previewTokens, pwaThemeColor, documentThemeAttrs, statusPalette, chartPalette,
+  presetFromFamily, migrateLegacyAppearance, normalizeAppearance, signatureAppearance,
+  toneStyle, APPEARANCE_VERSION,
 } from "../src/shared/ui/themeRegistry.js";
-import { makeTheme, makeThemeFor, makeTagsFor, THEME_TANMAY } from "../src/shared/ui/theme.js";
-import {
-  APPEARANCE_KEY, LEGACY_THEME_KEY, APPEARANCE_KEYS,
-  readAppearance, writeAppearance, appearanceMode, appearanceField, applyDocumentTheme,
-} from "../src/shared/ui/appearance.js";
+import { makeThemeFor, makeTagsFor, TAG_ALIAS } from "../src/shared/ui/theme.js";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const app = readFileSync(join(root, "src/App.tsx"), "utf8");
-const sha = (t) => createHash("sha256").update(t).digest("hex");
-// Soused stojí vedle jen v pracovním prostoru; Cloudflare i čistá místnost
-// staví jeden repozitář sám o sobě, takže se tahle zkouška ptá, jestli tam je.
-const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-const SOUSED = join(root, pkg.name === "tanmay-web" ? "../tanmay-klient" : "../tanmay-web");
-const SOUSED_JE = existsSync(join(SOUSED, "src/shared/manifest.json"));
+const ORDER = ["signature-auto", "signature-day", "signature-night", "river-night",
+  "teal-night", "mulberry-paper", "slate-clay", "sand-earth", "smoke-spice"];
 
 const ROLES = [
-  "background", "navigation", "surface", "surfaceRaised", "surfaceMuted", "card",
-  "documentSurface", "overlay", "scrim",
-  "text", "textSecondary", "textMuted", "textDisabled", "placeholder", "placeholderStrong",
-  "border", "borderStrong", "divider",
+  "mode", "polarity",
+  "background", "navigation", "surface", "surfaceRaised", "elevatedSurface", "surfaceMuted",
+  "card", "documentSurface", "overlay",
+  "text", "heading", "textSecondary", "textMuted", "textDisabled", "placeholder", "placeholderText", "placeholderStrong",
+  "border", "borderStrong", "borderSoft",
   "interactiveAccent", "interactiveAccentHover", "interactiveAccentPressed", "interactiveOnAccent",
-  "selectionSurface", "selectionText", "focusRing", "link", "linkHover", "shadow",
+  "selectionSurface", "selectionText", "focusRing", "link", "linkHover",
   "brandCopper", "brandLinen", "brandForest", "atlasFrame", "atlasBorder",
   "successFg", "successBg", "warningFg", "warningBg", "errorFg", "errorBg", "infoFg", "infoBg",
-  "chart1", "chart2", "chart3", "chart4", "chart5", "chart6", "grid", "axis",
+  "chart1", "chart2", "chart3", "chart4", "chart5", "chart6", "chartSurface", "grid", "axis",
+  "bg", "bgSidebar", "textSec", "accent", "accentInk", "onAccent", "sage", "sand", "inkSand",
+  "danger", "info", "success", "warning", "cardHover", "callout", "tableHead", "sheet", "sheetHover",
+  "activeNav", "hero", "heroInk", "heroInkSoft", "heroLine",
+  "shadow", "shadowLift", "shadowPop", "shadowSheet", "shadowDrag", "divider", "scrim",
 ];
 
-test("sedm rodin, Signature první a doporučená", () => {
-  assert.equal(THEME_FAMILIES.length, 7, "po V1 je maximum sedm rodin");
-  assert.equal(THEME_FAMILY_IDS.length, 7);
-  assert.equal(THEME_FAMILIES[0].id, DEFAULT_FAMILY);
-  assert.equal(THEME_FAMILIES[0].recommended, true);
-  assert.equal(THEME_FAMILIES.filter((f) => f.recommended).length, 1, "doporučená je jen jedna");
-  // Pořadí je podle šířky použitelnosti (V1.1 §7), ne podle zdrojových obrázků.
-  assert.deepEqual(THEME_FAMILIES.map((f) => f.id), [
-    "signature", "clay-alabaster", "river-mist", "atlantic-sky",
-    "olive-gold", "mulberry-paper", "teal-parchment",
-  ]);
-  for (const f of THEME_FAMILIES) {
-    assert.ok(f.labelCs && f.labelEn, f.id + " musí mít český i anglický název");
-    assert.ok(Object.keys(f.anchors).length >= 2, f.id + " musí mít kotevní barvy");
+test("devět vzhledů, v daném pořadí, osm z nich pevných", () => {
+  assert.deepEqual([...APPEARANCE_PRESET_IDS], ORDER);
+  assert.equal(APPEARANCE_PRESETS.length, 9);
+  assert.equal(FIXED_PRESET_IDS.length, 8);
+  assert.equal(FIXED_PRESET_IDS.indexOf("signature-auto"), -1);
+  assert.equal(DEFAULT_PRESET, "signature-auto");
+  assert.equal(RECOMMENDED_PRESET, "signature-auto");
+  const cs = new Set(), en = new Set();
+  for (const p of APPEARANCE_PRESETS) {
+    assert.ok(p.labelCs && p.labelEn, `${p.id} nemá oba popisky`);
+    assert.ok(!cs.has(p.labelCs), `český popisek ${p.labelCs} je dvakrát`);
+    assert.ok(!en.has(p.labelEn), `anglický popisek ${p.labelEn} je dvakrát`);
+    cs.add(p.labelCs); en.add(p.labelEn);
+    assert.ok(p.kind === "auto" || p.polarity === "light" || p.polarity === "dark", `${p.id} nemá polaritu`);
   }
 });
 
-test("každá ze čtrnácti palet má úplný kontrakt rolí", () => {
-  for (const f of THEME_FAMILIES) {
-    for (const mode of ["light", "dark"]) {
-      const t = f[mode];
-      for (const role of ROLES) {
-        assert.ok(t[role], `${f.id}/${mode} nemá roli ${role}`);
-        assert.equal(typeof t[role], "string");
-      }
-      assert.equal(t.mode, mode);
-    }
+test("model rodina × režim je pryč z rejstříku", () => {
+  const mod = Object.keys(FUNCTIONAL);
+  assert.deepEqual(mod, ["light", "dark"], "FUNCTIONAL zůstává tabulka dvou polarit, ne výběr");
+  // Staré exporty výběru už nesmí existovat — jinak by je něco mohlo číst dál.
+  for (const gone of ["THEME_FAMILIES", "THEME_FAMILY_IDS", "THEME_MODES", "THEME_GROUPS",
+    "DEFAULT_FAMILY", "DEFAULT_MODE", "themeFamily", "resolveFamilyId", "resolveMode", "resolveModeChoice"]) {
+    assert.equal(typeof globalThis[gone], "undefined");
   }
 });
 
-test("starší API motivu drží tvar", () => {
-  // Tisíce míst v obou aplikacích čtou `t.bg`, `t.card`, `t.textMuted`.
-  const legacy = ["bg", "bgSidebar", "text", "heading", "textSec", "textMuted", "accent",
-    "accentInk", "onAccent", "sage", "sand", "inkSand", "danger", "info", "success", "warning",
-    "border", "borderSoft", "card", "cardHover", "callout", "tableHead", "sheet", "sheetHover",
-    "activeNav", "overlay", "shadow", "shadowLift", "shadowPop", "shadowSheet", "shadowDrag",
-    "hero", "heroInk", "heroInkSoft", "heroLine"];
-  for (const f of THEME_FAMILIES) for (const mode of ["light", "dark"]) {
-    for (const k of legacy) assert.ok(f[mode][k], `${f.id}/${mode} ztratilo starší klíč ${k}`);
-  }
-  assert.equal(makeTheme("light"), THEME_TANMAY.light);
-  assert.equal(makeTheme("dark"), THEME_TANMAY.dark);
-  assert.equal(makeThemeFor("signature", "light"), THEME_TANMAY.light);
-});
-
-test("neznámá rodina ani rozbitá volba nezavře nikoho v rozbitém motivu", () => {
-  assert.equal(resolveFamilyId("neexistuje"), DEFAULT_FAMILY);
-  assert.equal(resolveFamilyId(undefined), DEFAULT_FAMILY);
-  assert.equal(resolveFamilyId(null), DEFAULT_FAMILY);
-  assert.equal(themeFamily("budoucí-rodina").id, DEFAULT_FAMILY);
-  assert.equal(resolveModeChoice("zítra"), DEFAULT_MODE);
-  assert.equal(resolveTheme("nic", "dark"), THEME_TANMAY.dark);
-  assert.equal(makeTagsFor("nic", "dark"), makeTagsFor("signature", "dark"));
-});
-
-test("režim: system se řeší podle systému, light a dark ne", () => {
-  assert.deepEqual([...THEME_MODES], ["system", "light", "dark"]);
-  assert.equal(resolveMode("system", true), "dark");
-  assert.equal(resolveMode("system", false), "light");
-  assert.equal(resolveMode("light", true), "light");
-  assert.equal(resolveMode("dark", false), "dark");
-  assert.equal(resolveMode("nesmysl", true), DEFAULT_MODE);
-});
-
-test("migrace ze starého klíče nezmění nikomu paletu", () => {
-  assert.deepEqual(migrateLegacyAppearance(null, "light"), { version: 2, family: "signature", mode: "light" });
-  assert.deepEqual(migrateLegacyAppearance(null, "dark"), { version: 2, family: "signature", mode: "dark" });
-  assert.deepEqual(migrateLegacyAppearance(null, "system"), { version: 2, family: "signature", mode: "system" });
-  // chybějící volba → současný výchozí stav, tedy den
-  assert.deepEqual(migrateLegacyAppearance(null, null), { version: 2, family: "signature", mode: DEFAULT_MODE });
-  // Rozbitý JSON není důvod probudit člověka do jiné poloviny dne: nová volba
-  // se zahodí, ale starý klíč, který na tomtéž zařízení pořád leží, se přečte.
-  assert.deepEqual(migrateLegacyAppearance("{tohle není json", "dark"), { version: 2, family: "signature", mode: "dark" });
-  // Rozbitý JSON a žádný starý klíč → výchozí stav.
-  assert.deepEqual(migrateLegacyAppearance("{tohle není json", null), { version: 2, family: "signature", mode: DEFAULT_MODE });
-  assert.deepEqual(migrateLegacyAppearance("[]", null), { version: 2, family: "signature", mode: DEFAULT_MODE });
-  assert.deepEqual(migrateLegacyAppearance('{"version":2,"family":"neznámá","mode":"dark"}', null), { version: 2, family: "signature", mode: "dark" });
-  assert.deepEqual(migrateLegacyAppearance('{"version":2,"family":"teal-parchment","mode":"zítra"}', null), { version: 2, family: "teal-parchment", mode: DEFAULT_MODE });
-  // budoucí verze se čte tolerantně, ne pádem
-  assert.deepEqual(migrateLegacyAppearance('{"version":9,"family":"river-mist","mode":"dark"}', null), { version: 2, family: "river-mist", mode: "dark" });
-  assert.deepEqual(normalizeAppearance({}), { version: 2, family: "signature", mode: DEFAULT_MODE });
-  assert.deepEqual(signatureAppearance(), { version: 2, family: "signature", mode: DEFAULT_MODE });
-});
-
-test("úložiště: čtení, zápis a nedostupné úložiště", () => {
-  const mem = () => { const d = {}; return { d, getItem: (k) => (k in d ? d[k] : null), setItem: (k, v) => { d[k] = v; } }; };
-  const s = mem();
-  s.d[LEGACY_THEME_KEY] = "dark";
-  assert.deepEqual(readAppearance(s), { version: 2, family: "signature", mode: "dark" });
-  writeAppearance({ family: "olive-gold", mode: "system" }, "dark", s);
-  assert.equal(JSON.parse(s.d[APPEARANCE_KEY]).family, "olive-gold");
-  assert.equal(s.d[LEGACY_THEME_KEY], "dark", "starý klíč drží vyřešený režim pro starší build");
-  assert.deepEqual(readAppearance(s), { version: 2, family: "olive-gold", mode: "system" });
-
-  const brokenSet = { getItem: () => { throw new Error("private mode"); }, setItem: () => { throw new Error("quota"); } };
-  assert.deepEqual(readAppearance(brokenSet), { version: 2, family: "signature", mode: DEFAULT_MODE });
-  assert.doesNotThrow(() => writeAppearance({ family: "river-mist", mode: "dark" }, "dark", brokenSet));
-  assert.deepEqual(readAppearance(null), { version: 2, family: "signature", mode: DEFAULT_MODE });
-  assert.ok(APPEARANCE_KEYS.includes(APPEARANCE_KEY) && APPEARANCE_KEYS.includes(LEGACY_THEME_KEY));
-});
-
-test("vyřešený režim a pole pro pre-paint", () => {
-  assert.equal(appearanceMode({ mode: "system" }, true), "dark");
-  assert.equal(appearanceMode({ mode: "system" }, false), "light");
-  assert.equal(appearanceMode({ mode: "dark" }, false), "dark");
-  for (const f of THEME_FAMILIES) for (const m of ["light", "dark"]) {
-    assert.equal(appearanceField(f.id, m), f[m].background);
-    assert.equal(pwaThemeColor(f.id, m), f[m].background);
-  }
-  assert.deepEqual(documentThemeAttrs("olive-gold", "dark"), { "data-theme-family": "olive-gold", "data-color-mode": "dark" });
-  assert.deepEqual(documentThemeAttrs("nic", "nic"), { "data-theme-family": "signature", "data-color-mode": "light" });
-  assert.doesNotThrow(() => applyDocumentTheme("signature", "dark", null));
-});
-
-test("náhled je kus rozhraní, ne dva čtverce", () => {
-  for (const f of THEME_FAMILIES) for (const m of ["light", "dark"]) {
-    const p = previewTokens(f.id, m);
-    for (const k of ["background", "surface", "card", "documentSurface", "text", "textMuted", "heading", "border", "accent", "onAccent"]) {
-      assert.ok(p[k], `${f.id}/${m} náhled nemá ${k}`);
-    }
-    assert.equal(p.background, f[m].background);
+test("resolver · jen automatika poslouchá systém", () => {
+  assert.ok(isSystemAware("signature-auto"));
+  assert.equal(resolveAppearancePreset("signature-auto", false).id, "signature-day");
+  assert.equal(resolveAppearancePreset("signature-auto", true).id, "signature-night");
+  for (const id of FIXED_PRESET_IDS) {
+    assert.ok(!isSystemAware(id), `${id} nesmí poslouchat systém`);
+    assert.equal(resolveAppearancePreset(id, false).id, id);
+    assert.equal(resolveAppearancePreset(id, true).id, id, `${id} se změnil, když systém přepnul na noc`);
+    assert.equal(resolveTheme(id, false), resolveTheme(id, true), `${id} vrátil jinou paletu podle systému`);
   }
 });
 
-test("značka a interakční barva jsou dvě různé věci", () => {
-  assert.equal(BRAND.copper, "#B87333");
-  for (const f of THEME_FAMILIES) for (const m of ["light", "dark"]) {
-    assert.equal(f[m].brandCopper, "#B87333", "Copper je vždycky Copper");
-    assert.equal(f[m].brandLinen, "#F4F0EB");
-    assert.equal(f[m].brandForest, "#1C1C1A");
-    assert.equal(f[m].atlasFrame, "#F4F0EB", "plát Atlasu leží na lněném poli v každém motivu");
-    if (f.id !== "signature") {
-      assert.notEqual(f[m].interactiveAccent, BRAND.copper,
-        f.id + ": měď nesmí být zároveň interakční barva jiné rodiny");
-    }
+test("neznámé id nikdy nespadne", () => {
+  assert.equal(resolvePresetId("nic"), DEFAULT_PRESET);
+  assert.equal(resolvePresetId(undefined), DEFAULT_PRESET);
+  assert.equal(appearancePreset("nic").id, DEFAULT_PRESET);
+  assert.equal(resolveAppearancePreset("nic", true).id, "signature-night");
+  assert.equal(resolveTheme(null, false).bg, resolveTheme("signature-day", false).bg);
+});
+
+test("každá vyřešená paleta má všechny role a je zmrazená", () => {
+  for (const id of FIXED_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    assert.ok(Object.isFrozen(t), `${id} není zmrazená`);
+    for (const r of ROLES) assert.ok(t[r] !== undefined, `${id} nemá roli ${r}`);
+    assert.equal(t.brandCopper, BRAND.copper, `${id} přebarvil značku`);
+    assert.equal(t.brandLinen, BRAND.linen);
+    assert.equal(t.brandForest, BRAND.forest);
+    assert.equal(t.atlasFrame, BRAND.linen, `${id} tónuje plát Movement Atlasu`);
+    assert.equal(t.polarity, t.mode);
+    assert.equal(t.mode, appearancePreset(id).polarity);
   }
 });
 
-test("funkční barvy se neodvozují z kotev rodiny", () => {
-  for (const m of ["light", "dark"]) {
-    const pal = statusPalette(m);
-    for (const f of THEME_FAMILIES) {
-      for (const role of ["success", "warning", "error", "info"]) {
-        assert.equal(f[m][role + "Fg"], pal[role + "Fg"], `${f.id}/${m}: ${role} musí znamenat totéž ve všech motivech`);
-        assert.equal(f[m][role + "Bg"], pal[role + "Bg"]);
-      }
-    }
-    assert.equal(FUNCTIONAL[m].errorFg, pal.errorFg);
+test("náhled ukazuje kus rozhraní, ne dva čtverce", () => {
+  const need = ["background", "navigation", "surface", "card", "documentSurface",
+    "text", "textMuted", "heading", "border", "accent", "onAccent", "success", "error"];
+  for (const id of FIXED_PRESET_IDS) {
+    const pv = previewTokens(id);
+    for (const k of need) assert.ok(pv[k], `${id}: náhled nemá ${k}`);
   }
+  const auto = previewTokens("signature-auto");
+  assert.ok(auto.light && auto.dark, "automatika má náhled rozdělený na den a noc");
+  assert.equal(auto.light.background, resolveTheme("signature-day", false).background);
+  assert.equal(auto.dark.background, resolveTheme("signature-night", false).background);
 });
 
-test("datová paleta je společná a nese nebarevný nosič", () => {
-  for (const m of ["light", "dark"]) {
-    const cp = chartPalette(m);
-    assert.equal(cp.series.length, 6);
-    assert.equal(cp.patterns.length, 6);
-    for (const p of CHART_PATTERNS) assert.ok(p.dash && p.marker);
-    for (const f of THEME_FAMILIES) {
-      CHART[m].series.forEach((c, i) => assert.equal(f[m]["chart" + (i + 1)], c,
-        `${f.id}/${m}: série ${i + 1} musí znamenat totéž ve všech motivech`));
-    }
+test("barva prohlížeče, atributy dokumentu a mapa polí sedí na paletu", () => {
+  for (const id of FIXED_PRESET_IDS) {
+    assert.equal(pwaThemeColor(id, false), resolveTheme(id, false).background, `${id}: theme-color není pole`);
+    assert.equal(PRESET_FIELDS[id], resolveTheme(id, false).background, `${id}: mapa polí se rozešla`);
+    assert.deepEqual(documentThemeAttrs(id, false), { "data-appearance": id, "data-color-mode": appearancePreset(id).polarity });
   }
+  assert.deepEqual(documentThemeAttrs("signature-auto", true), { "data-appearance": "signature-night", "data-color-mode": "dark" });
+  assert.equal(Object.keys(PRESET_FIELDS).length, 8, "mapa polí zná jiný počet vzhledů než rejstřík");
+  assert.equal(presetPolarity("signature-auto", true), "dark");
+  assert.equal(presetPolarity("mulberry-paper", true), "light");
 });
 
-test("stav má vždycky znak a roli, ne jen barvu", () => {
+test("stav není nikdy jen barva", () => {
   for (const role of ["success", "warning", "error", "info", "neutral"]) {
     assert.ok(STATUS_CARRIERS[role].glyph, role + " nemá znak");
     assert.ok(STATUS_CARRIERS[role].shape, role + " nemá tvar");
   }
   for (const tone of Object.keys(TONE_ROLES)) {
-    const st = toneStyle(tone, "light");
-    assert.ok(st.carrier && st.carrier.glyph, tone + " nemá nosič");
+    const st = toneStyle(tone, "slate-clay");
+    assert.ok(st.carrier && st.carrier.glyph, tone + " nenese znak");
   }
-  assert.equal(toneStyle("neznámý", "light").role, "neutral");
+  assert.equal(toneStyle("neznámý", "signature-day").role, "neutral");
+  // statusPalette bere id vzhledu i holou polaritu (starší volání)
+  assert.equal(statusPalette("light").successFg, FUNCTIONAL.light.successFg);
+  assert.equal(statusPalette("mulberry-paper").successFg, FUNCTIONAL.light.successFg);
+  assert.notEqual(statusPalette("slate-clay").successFg, statusPalette("signature-day").successFg,
+    "vzhled, který si stavy ladí, je musí opravdu mít vlastní");
 });
 
-test("tisk a export mají kanonický dokumentový motiv, ne zvolený", () => {
-  assert.equal(DOCUMENT_THEME, resolveTheme("signature", "light"));
-  assert.equal(DOCUMENT_THEME.background, "#F4F0EB");
-});
-
-test("v aplikaci není ani jedna podmínka na jméno rodiny", () => {
-  // Tohle je celý smysl rejstříku. Komponenta smí znát roli, ne motiv.
-  for (const id of THEME_FAMILY_IDS) {
-    if (id === "signature") continue;   // migrace a reset ho jmenují záměrně
-    const inCondition = new RegExp(`(===|!==|==)\\s*["'\`]${id}["'\`]`);
-    assert.equal(inCondition.test(app), false, `App.tsx se ptá na motiv ${id}`);
+test("datová paleta má šest sérií a nebarevný nosič", () => {
+  for (const id of FIXED_PRESET_IDS) {
+    const cp = chartPalette(id);
+    assert.equal(cp.series.length, 6, `${id}: jiný počet sérií`);
+    assert.equal(cp.patterns.length, 6);
+    assert.equal(new Set(cp.series).size, 6, `${id}: dvě série mají stejnou barvu`);
+    for (const p of cp.patterns) assert.ok(p.dash && p.marker);
   }
-  assert.equal(/theme\s*===\s*["']/.test(app), false, "žádné větvení podle motivu");
+  assert.deepEqual([...chartPalette("light").series], [...CHART.light.series]);
+  assert.equal(CHART_PATTERNS.length, 6);
 });
 
+test("dokument pro tisk a PDF nikdy nesleduje volbu", () => {
+  assert.equal(DOCUMENT_THEME, resolveTheme("signature-day", false));
+  assert.equal(DOCUMENT_THEME.bg, BRAND.linen);
+});
 
-test("registr motivů je v obou aplikacích bajt po bajtu týž", { skip: SOUSED_JE ? false : "sousední repozitář tu není" }, () => {
-  // `shared:check` to hlídá proti kanonickému zdroji; tohle se ptá přímo obou
-  // aplikací navzájem. Kdyby se jedna z nich „opravila" ručně, tady to spadne
-  // i bez pracovního prostoru.
-  for (const rel of ["src/shared/ui/themeRegistry.js", "src/shared/ui/theme.js",
-    "src/shared/ui/appearance.js", "src/shared/ui/appearance.jsx", "src/shared/ui/contrast.js",
-    "src/shared/ui/tokens.js"]) {
-    const mine = readFileSync(join(root, rel), "utf8").replace(/\r\n/g, "\n");
-    const theirs = readFileSync(join(SOUSED, rel), "utf8").replace(/\r\n/g, "\n");
-    assert.equal(sha(mine), sha(theirs), rel + " se mezi aplikacemi rozešel");
+test("migrace · všechny tři generace uložené volby", () => {
+  const v3 = (preset) => JSON.stringify({ version: 3, preset });
+  const v2 = (family, mode) => JSON.stringify({ version: 2, family, mode });
+  assert.equal(migrateLegacyAppearance(v3("smoke-spice"), null).preset, "smoke-spice");
+  assert.equal(migrateLegacyAppearance(v2("signature", "system"), null).preset, "signature-auto");
+  assert.equal(migrateLegacyAppearance(v2("signature", "light"), null).preset, "signature-day");
+  assert.equal(migrateLegacyAppearance(v2("signature", "dark"), null).preset, "signature-night");
+  assert.equal(migrateLegacyAppearance(v2("river-mist", "light"), null).preset, "river-night");
+  assert.equal(migrateLegacyAppearance(v2("river-mist", "dark"), null).preset, "river-night");
+  assert.equal(migrateLegacyAppearance(v2("teal-parchment", "light"), null).preset, "teal-night");
+  assert.equal(migrateLegacyAppearance(v2("mulberry-paper", "dark"), null).preset, "mulberry-paper");
+  assert.equal(migrateLegacyAppearance(v2("atlantic-sky", "dark"), null).preset, "slate-clay");
+  assert.equal(migrateLegacyAppearance(v2("clay-alabaster", "light"), null).preset, "sand-earth");
+  assert.equal(migrateLegacyAppearance(v2("olive-gold", "dark"), null).preset, "sand-earth");
+  assert.equal(migrateLegacyAppearance(null, "light").preset, "signature-day");
+  assert.equal(migrateLegacyAppearance(null, "dark").preset, "signature-night");
+  assert.equal(migrateLegacyAppearance(null, "system").preset, "signature-auto");
+  // nesmysl a prázdno končí na automatice, ne na výjimce
+  assert.equal(migrateLegacyAppearance("{rozbité", null).preset, DEFAULT_PRESET);
+  assert.equal(migrateLegacyAppearance(v2("neznámá", "dark"), null).preset, DEFAULT_PRESET);
+  assert.equal(migrateLegacyAppearance(null, null).preset, DEFAULT_PRESET);
+  assert.equal(migrateLegacyAppearance(v3("neexistuje"), null).preset, DEFAULT_PRESET);
+});
+
+test("migrace je idempotentní a verzovaná", () => {
+  for (const id of ORDER) {
+    const once = migrateLegacyAppearance(JSON.stringify({ version: 2, family: "olive-gold", mode: "light" }), null);
+    const twice = migrateLegacyAppearance(JSON.stringify(once), null);
+    const thrice = normalizeAppearance(twice);
+    assert.equal(once.preset, twice.preset);
+    assert.equal(twice.preset, thrice.preset);
+    assert.equal(thrice.version, APPEARANCE_VERSION);
+    const direct = normalizeAppearance({ preset: id });
+    assert.equal(normalizeAppearance(direct).preset, direct.preset);
   }
+  assert.equal(APPEARANCE_VERSION, 3);
+  assert.equal(signatureAppearance().preset, DEFAULT_PRESET);
+  assert.equal(presetFromFamily("signature", "dark"), "signature-night");
+  assert.equal(presetFromFamily("nic", "dark"), DEFAULT_PRESET);
 });
 
-test("jméno Forest Night není v uživatelském rozhraní", () => {
-  // Značkově je Forest Night pořád Forest Night. V produktu se noc jmenuje
-  // Noc / Night a rodina Signature — jméno rampu se v aplikaci neukazuje.
-  // Komentáře ve zdroji se počítat nemají, ty o té historii mluvit smí.
-  // `\r` je terminátor řádku, takže na CRLF souboru `//.*$` nechytí nic —
-  // a celý test by tiše prošel na zdroji, který slovo nese. Nejdřív se
-  // konce řádků srovnají, teprve pak se škrtají komentáře.
-  const bezKomentaru = app.replace(/\r/g, "").replace(/\/\*[\s\S]*?\*\//g, "")
-    .split("\n").map((l) => l.replace(/(^|[^:])\/\/.*$/, "$1")).join("\n");
-  assert.equal(/Forest/.test(bezKomentaru), false,
-    "slovo Forest zůstalo v kódu, který se vykresluje · rychlý přepínač říká Den / Noc");
-  // A totéž ve sdíleném oddílu Nastavení.
-  const vzhled = readFileSync(join(root, "src/shared/ui/appearance.jsx"), "utf8");
-  assert.equal(/Forest/.test(vzhled), false, "oddíl Vzhled nesmí jmenovat Forest Night");
+test("štítky drží význam ve všech vzhledech", () => {
+  for (const id of FIXED_PRESET_IDS) {
+    const tg = makeTagsFor(id, false);
+    assert.ok(tg.moss && tg.slate && tg.burgundy, `${id}: chybí tón`);
+    for (const [alias, tone] of Object.entries(TAG_ALIAS)) {
+      assert.equal(tg[alias].fg, tg[tone] ? tg[tone].fg : tg[alias].fg, `${id}: starý klíč ${alias} přestal být alias`);
+    }
+  }
+  assert.equal(makeThemeFor("signature-auto", true), resolveTheme("signature-night", false));
+  assert.equal(makeTagsFor("signature-auto", true), makeTagsFor("signature-night", false));
 });

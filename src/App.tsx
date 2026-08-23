@@ -12,7 +12,7 @@ import * as TV from "./training/index.js";
 // jazyk, mapa domu i capability jsou týž soubor. Ruční zásah do src/shared/
 // shodí `npm run shared:check`, a s ním build.
 import { FONT_DISPLAY_EN, FONT_DISPLAY_CS, FONT_LOGO, FONT_BODY, FONT_TAG } from "./shared/ui/type.js";
-import { makeThemeFor, makeTagsFor } from "./shared/ui/theme.js";
+import { makeThemeFor, makeTagsFor, appearancePreset } from "./shared/ui/theme.js";
 // Značkové body. Pojmenované, aby je audit poznal od náhodného hexu.
 import { BRAND } from "./shared/ui/themeRegistry.js";
 import {
@@ -11880,21 +11880,33 @@ export default function App() {
   const [sysDark, setSysDark] = useState(() => systemPrefersDark());
   React.useEffect(() => watchSystemMode(setSysDark), []);
   const mode = appearanceMode(appearance, sysDark);
-  /* Rychlý přepínač v liště mění JEN režim a nechává rodinu být. */
-  const setMode = React.useCallback((next) => {
-    setAppearance((prev) => {
-      const resolved = appearanceMode(prev, systemPrefersDark());
-      const want = typeof next === "function" ? next(resolved) : next;
-      return { ...prev, mode: want === "dark" ? "dark" : "light" };
-    });
+  const vzhled = appearancePreset(appearance.preset);
+  const vzhledNazev = L(vzhled.labelCs, vzhled.labelEn);
+  /* RYCHLÝ PŘEPÍNAČ DEN/NOC PO V2 ZMIZEL. Dokud byl motiv rodina × režim,
+     dávalo „Den" smysl u každé volby. Od chvíle, kdy je většina vzhledů pevná,
+     lže: kdo má Kouř a koření, tomu „Den" neudělá nic smysluplného. Na jeho
+     místě je ovládání, které otevře Vzhled a rovnou řekne, co je zvolené —
+     jedno klepnutí, žádné cyklování devíti motivy a žádná tichá výměna
+     vlastní volby. */
+  const setPreset = React.useCallback((id) => {
+    setAppearance((prev) => ({ ...prev, version: 3, preset: id }));
+  }, []);
+  const otevriVzhled = React.useCallback(() => {
+    setSetsOpen(true);
+    setTimeout(() => {
+      try {
+        const el = document.getElementById("tm-vzhled");
+        if (el && el.scrollIntoView) el.scrollIntoView({ block: "start" });
+      } catch (e) { /* posun je pohodlí, ne podmínka */ }
+    }, 60);
   }, []);
   /* S volbou jde i barva prohlížeče: lišta telefonu a plocha pod přetaženým
      rolováním musí být totéž pole jako aplikace, jinak na okraji svítí cizí
      barva. */
   React.useEffect(() => {
-    writeAppearance(appearance, mode);
-    applyDocumentTheme(appearance.family, mode);
-  }, [appearance, mode]);
+    writeAppearance(appearance);
+    applyDocumentTheme(appearance.preset, sysDark);
+  }, [appearance, sysDark]);
   const [lang, setLang] = useState(() => (typeof window !== "undefined" ? detectLang() : "cs"));
   LANG = lang; tmSetLang(lang); // render flag + sdílené jádro drží týž jazyk
   FONT_DISPLAY = lang === "cs" ? FONT_DISPLAY_CS : FONT_DISPLAY_EN; // CZ display = EB Garamond 400 (§6)
@@ -12064,8 +12076,8 @@ export default function App() {
     if (!menuOpen && dx > 64) { setMenuOpen(true); swipeRef.current = null; }
     else if (menuOpen && dx < -56) { setMenuOpen(false); swipeRef.current = null; }
   };
-  const t = makeThemeFor(appearance.family, mode);
-  const tags = makeTagsFor(appearance.family, mode);
+  const t = makeThemeFor(appearance.preset, sysDark);
+  const tags = makeTagsFor(appearance.preset, sysDark);
   const [edits, setEdits] = useState(() => (typeof window !== "undefined" ? loadEdits() : {}));
   const [selDate, setSelDate] = useState(todayISO());
   // Záplata smí být i funkce nad tím, co React právě drží. Dva cíle poslané
@@ -13734,8 +13746,8 @@ export default function App() {
             <button onClick={toggleLang} title={L("Přepnout do angličtiny", "Switch to Czech")} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 20, color: t.textSec, cursor: "pointer", padding: "7px 14px", minHeight: 34, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}>
               <span key={lang} className="tm-turn" style={{ color: t.accent }}>{lang === "cs" ? "CZ" : "EN"}</span>{lang === "cs" ? "· EN" : "· CZ"}
             </button>
-            <button onClick={() => setMode((m) => (m === "dark" ? "light" : "dark"))} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 20, color: t.textSec, cursor: "pointer", padding: "7px 14px", minHeight: 34, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}>
-              <span key={mode} className="tm-turn" style={{ display: "inline-flex", alignItems: "center" }}>{mode === "dark" ? <TmIcMesic size={13} /> : <TmIcSlunce size={13} />}</span>{mode === "dark" ? L("Den", "Day") : L("Noc", "Night")}
+            <button onClick={otevriVzhled} aria-label={L("Vzhled · ", "Appearance · ") + vzhledNazev} title={L("Vzhled · ", "Appearance · ") + vzhledNazev} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 20, color: t.textSec, cursor: "pointer", padding: "7px 14px", minHeight: 34, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}>
+              <span key={mode} className="tm-turn" style={{ display: "inline-flex", alignItems: "center" }}>{mode === "dark" ? <TmIcMesic size={13} /> : <TmIcSlunce size={13} />}</span>{L("Vzhled", "Appearance")}
             </button>
           </div>
           <div key={page} className={"tm-page tm-reveal" + (slideDir ? " tm-slide-" + slideDir : "")} style={{ maxWidth: 1160, margin: "0 auto", padding: "44px clamp(28px, 4vw, 72px) 120px" }}>{render()}</div>
@@ -13777,7 +13789,7 @@ export default function App() {
             {[
               { ic: editMode ? "✎" : "●", lbl: editMode ? L("Editace zapnuta — klepni pro zamčení", "Editing on — tap to lock") : L("Zamčeno — klepni pro editaci", "Locked — tap to edit"), act: editMode, on: () => setEditMode((e) => !e) },
               { ic: lang === "cs" ? "CZ" : "EN", lbl: L("Jazyk · čeština / angličtina", "Language · Czech / English"), on: toggleLang },
-              { icn: mode === "dark" ? TmIcMesic : TmIcSlunce, lbl: L("Světlo / noc — motiv níž ve Vzhledu", "Light / dark — the theme is below, in Appearance"), on: () => setMode((m) => (m === "dark" ? "light" : "dark")) },
+              { icn: mode === "dark" ? TmIcMesic : TmIcSlunce, lbl: L("Vzhled · ", "Appearance · ") + vzhledNazev, on: otevriVzhled },
               { icn: TmIcSdileni, lbl: L("Místnosti a sdílení", "Rooms and sharing"), on: () => { setSetsOpen(false); setPickerOpen(true); } },
               { ic: mementoZap ? "◉" : "○", act: mementoZap,
                 lbl: mementoZap
@@ -13793,11 +13805,9 @@ export default function App() {
             ))}
 
             <VzhledSekce
-              family={appearance.family}
-              mode={appearance.mode}
-              onFamily={(id) => setAppearance((p) => ({ ...p, family: id }))}
-              onMode={(m) => setAppearance((p) => ({ ...p, mode: m }))}
-              onReset={() => setAppearance({ version: 2, family: "signature", mode: "light" })}
+              preset={appearance.preset}
+              onPreset={setPreset}
+              onReset={() => setAppearance({ version: 3, preset: "signature-auto" })}
             />
 
             {/* VERZE A SOUKROMÍ · co v telefonu opravdu běží a kam se data

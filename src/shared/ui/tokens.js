@@ -112,12 +112,14 @@ export function tokensCss(t, lang) {
   --tm-navigation: ${t.navigation};
   --tm-surface: ${t.surface};
   --tm-surface-raised: ${t.surfaceRaised};
+  --tm-elevated: ${t.elevatedSurface};
   --tm-surface-muted: ${t.surfaceMuted};
   --tm-document: ${t.documentSurface};
   --tm-scrim: ${t.scrim};
   --tm-text-secondary: ${t.textSecondary};
   --tm-text-disabled: ${t.textDisabled};
   --tm-placeholder: ${t.placeholder};
+  --tm-placeholder-text: ${t.placeholderText};
   --tm-placeholder-strong: ${t.placeholderStrong};
   --tm-border-strong: ${t.borderStrong};
   --tm-divider: ${t.divider};
@@ -154,8 +156,8 @@ export function tokensCss(t, lang) {
    vypnutý pohyb, nemá ani tenhle — pravidlo níž ho vynuluje spolu se vším
    ostatním. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-theme-family] body,
-  html[data-theme-family] .tm-theme-fade {
+  html[data-appearance] body,
+  html[data-appearance] .tm-theme-fade {
     transition: background-color 140ms var(--tm-ease), color 140ms var(--tm-ease);
   }
 }
