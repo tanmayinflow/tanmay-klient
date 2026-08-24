@@ -130,6 +130,24 @@ export function tokensCss(t, lang) {
   --tm-focus: ${t.focusRing};
   --tm-link: ${t.link};
   --tm-link-hover: ${t.linkHover};
+  /* navigace · vlastní inkousty, protože panel může být tmavý nad světlým polem */
+  --tm-nav-text: ${t.navText};
+  --tm-nav-text-sec: ${t.navTextSec};
+  --tm-nav-kicker: ${t.navKicker};
+  --tm-nav-icon: ${t.navIcon};
+  --tm-nav-muted: ${t.navMuted};
+  --tm-nav-accent: ${t.navAccent};
+  --tm-nav-active: ${t.navActiveBg};
+  --tm-nav-hairline: ${t.navHairline};
+  --tm-nav-border: ${t.navBorder};
+  --tm-dock-bg: ${t.dockBg};
+
+  /* řeč rámů · čte ji jen volitelná paleta přes data-frame-grammar */
+  --tm-frame-outer: ${t.frameOuter};
+  --tm-frame-inner: ${t.frameInner};
+  --tm-frame-rail: ${t.frameRail};
+  --tm-frame-highlight: ${t.frameHighlight};
+
   --tm-brand-copper: ${t.brandCopper};
   --tm-brand-linen: ${t.brandLinen};
   --tm-brand-forest: ${t.brandForest};
@@ -172,5 +190,106 @@ export function tokensCss(t, lang) {
     scroll-behavior: auto !important;
   }
 }
+${frameGrammarCss()}
+`;
+}
+
+// ----------------------------------------------------------------------
+// ŘEČ RÁMŮ · sedm gramatik, čisté CSS, žádná změna rozměrů
+// ----------------------------------------------------------------------
+// Rám je vnitřní stín, obrys nebo pseudo-prvek — nikdy padding, border-width
+// ani wrapper, takže přepnutí palety nepohne geometrií ani o pixel. Všechno
+// je střeženo atributem `data-frame-grammar` na kořeni: Signature má „none"
+// a žádné z těchhle pravidel se jí nedotkne.
+//
+// ROZPOČET RÁMŮ (V3 §9): rámuje se list a zásuvka (nejvýš jedna na
+// obrazovce), psací plocha v režimu psaní a vybraná položka navigace.
+// Karty, řádky seznamů a pole formulářů zůstávají otevřené — paleta se
+// pozná podle mála, ne podle krabice kolem všeho.
+export function frameGrammarCss() {
+  const g = (name) => `html[data-frame-grammar="${name}"]`;
+  const sheets = (name) => `${g(name)} .tm-cs, ${g(name)} .tm-drawer`;
+  const writing = (name) => `${g(name)} body.tm-psani .tm-page`;
+  const sel = (name) => `${g(name)} .tm-sidebar .tm-nav-active`;
+  return `
+/* ---- Břidlice a hlína · dvojitá architektonická linka ------------------ */
+${sheets("architectural-double")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-outer), inset 0 0 0 4px var(--tm-bg),
+    inset 0 0 0 5px var(--tm-frame-inner), var(--tm-shadow-sheet) !important;
+}
+${writing("architectural-double")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-outer), inset 0 0 0 4px var(--tm-bg),
+    inset 0 0 0 5px var(--tm-frame-inner);
+}
+${sel("architectural-double")} { box-shadow: inset 4px 0 0 0 var(--tm-frame-rail) !important; }
+
+/* ---- Monument · vsazený rám s hliněnou kolejnicí ----------------------- */
+${sheets("monument-inset")} {
+  box-shadow: inset 0 0 0 3px var(--tm-frame-outer), inset 11px 0 0 0 var(--tm-frame-rail),
+    var(--tm-shadow-sheet) !important;
+}
+${writing("monument-inset")} {
+  box-shadow: inset 0 0 0 3px var(--tm-frame-outer), inset 11px 0 0 0 var(--tm-frame-rail);
+}
+${sel("monument-inset")} { box-shadow: inset 6px 0 0 0 var(--tm-frame-rail) !important; }
+
+/* ---- Písek a země · vrstvy strat --------------------------------------- */
+${sheets("strata-rails")} {
+  box-shadow: inset 0 2px 0 0 var(--tm-frame-outer), inset 4px 0 0 0 var(--tm-frame-rail),
+    inset 0 -2px 0 0 var(--tm-frame-inner), var(--tm-shadow-sheet) !important;
+}
+${writing("strata-rails")} {
+  box-shadow: inset 4px 0 0 0 var(--tm-frame-rail);
+}
+${sel("strata-rails")} { box-shadow: inset 4px 0 0 0 var(--tm-frame-rail) !important; }
+
+/* ---- Granát a břidlice · rohové konzoly -------------------------------- */
+html[data-frame-grammar="corner-brackets"] .tm-cs,
+html[data-frame-grammar="corner-brackets"] .tm-drawer,
+html[data-frame-grammar="corner-brackets"] body.tm-psani .tm-page { position: relative; }
+html[data-frame-grammar="corner-brackets"] .tm-cs::before,
+html[data-frame-grammar="corner-brackets"] .tm-drawer::before,
+html[data-frame-grammar="corner-brackets"] body.tm-psani .tm-page::before {
+  content: ""; position: absolute; top: 0; left: 0; width: 24px; height: 24px;
+  border-top: 2px solid var(--tm-frame-outer); border-left: 2px solid var(--tm-frame-outer);
+  pointer-events: none; z-index: 3;
+}
+html[data-frame-grammar="corner-brackets"] .tm-cs::after,
+html[data-frame-grammar="corner-brackets"] .tm-drawer::after,
+html[data-frame-grammar="corner-brackets"] body.tm-psani .tm-page::after {
+  content: ""; position: absolute; bottom: 0; right: 0; width: 24px; height: 24px;
+  border-bottom: 2px solid var(--tm-frame-outer); border-right: 2px solid var(--tm-frame-outer);
+  pointer-events: none; z-index: 3;
+}
+${sel("corner-brackets")} { box-shadow: inset 3px 0 0 0 var(--tm-frame-rail) !important; }
+
+/* ---- Šikon a fosilní písek · vnořená fosilie --------------------------- */
+${sheets("nested-fossil")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-outer), inset 0 0 0 9px var(--tm-frame-inner),
+    var(--tm-shadow-sheet) !important;
+}
+${writing("nested-fossil")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-outer), inset 0 0 0 9px var(--tm-frame-inner);
+}
+${sel("nested-fossil")} { box-shadow: inset 3px 0 0 0 var(--tm-frame-rail) !important; }
+
+/* ---- Sopečná šeď · čedičové stupně · žádný rozmazaný stín -------------- */
+${sheets("basalt-steps")} {
+  box-shadow: inset 0 0 0 2px var(--tm-frame-outer), 6px 6px 0 0 var(--tm-frame-inner) !important;
+}
+${writing("basalt-steps")} {
+  box-shadow: inset 0 0 0 2px var(--tm-frame-outer);
+}
+${sel("basalt-steps")} { box-shadow: inset 3px 0 0 0 var(--tm-frame-rail) !important; }
+
+/* ---- Americano a chai · tkané kolejnice -------------------------------- */
+${sheets("woven-rails")} {
+  box-shadow: inset 0 0 0 6px var(--tm-frame-outer), inset 0 0 0 8px var(--tm-frame-inner),
+    var(--tm-shadow-sheet) !important;
+}
+${writing("woven-rails")} {
+  box-shadow: inset 0 0 0 6px var(--tm-frame-outer), inset 0 0 0 8px var(--tm-frame-inner);
+}
+${sel("woven-rails")} { box-shadow: inset 0 3px 0 0 var(--tm-frame-highlight), inset 3px 0 0 0 var(--tm-frame-highlight) !important; }
 `;
 }

@@ -3,188 +3,159 @@
 // Change it there, then run `npm run shared:sync` in the outer workspace.
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
-// NEGATIVNÍ KONTROLY (V2 §34).
+// NEGATIVNÍ KONTROLY (V3 §29).
 //
 // Zelený test dokazuje, že něco prošlo. Nedokazuje, že by to bylo umělo
-// SPADNOUT. Tenhle soubor tu druhou půlku dodává: pro každé pravidlo, na
-// kterém vlně záleží, vezme zakázaný stav, prožene ho toutéž kontrolou a
-// tvrdí, že NEPROJDE. Kdyby pravidlo někdo omylem změkčil, spadne tady —
-// a bude vidět, které to bylo.
-//
-// Nic z toho se nikde nezapisuje: všechny zakázané stavy jsou lokální
-// hodnoty v tomhle souboru.
+// SPADNOUT. Tenhle soubor bere zakázané stavy — orámovanou Signature, hlínu
+// v odstavci, granátové písmo na břidlici, gradient v rámu, cizí volbu
+// v cizím úložišti — a tvrdí o každém, že neprojde.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
-  APPEARANCE_PRESET_IDS, FIXED_PRESET_IDS, resolvePresetId, resolveAppearancePreset,
-  resolveTheme, migrateLegacyAppearance, DEFAULT_PRESET, appearancePreset, DOCUMENT_THEME,
+  APPEARANCE_PRESET_IDS, FIXED_PRESET_IDS, OPTIONAL_PRESET_IDS, SIGNATURE_PRESET_IDS,
+  resolvePresetId, resolveAppearancePreset, resolveTheme, frameChrome,
+  migrateLegacyAppearance, DEFAULT_PRESET, DOCUMENT_THEME, appearancePreset,
 } from "../src/shared/ui/themeRegistry.js";
-import { readAppearance, writeAppearance, APPEARANCE_KEYS } from "../src/shared/ui/appearance.js";
-import { chroma, tint, ratio, readsGreen, luminance, contrast } from "../src/shared/ui/contrast.js";
+import { readAppearance, writeAppearance, APPEARANCE_KEYS, selectAppearance } from "../src/shared/ui/appearance.js";
+import { frameGrammarCss } from "../src/shared/ui/tokens.js";
+import { contrast, readsGreen, chroma } from "../src/shared/ui/contrast.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const app = readFileSync(join(root, "src/App.tsx"), "utf8");
-/* Komentáře nejsou rozhraní. „Forest Night" je kanonický název značkového
-   inkoustu `#1C1C1A` a v komentářích se jím smí a má argumentovat; co se
-   nesmí vrátit, je POPISKA, kterou uvidí člověk. Hledá se proto ve zdroji
-   bez komentářů. `\r` se normalizuje první — je to konec řádku, takže by
-   `//.*` bez něj neodpovídalo ničemu a kontrola by tiše prošla. */
 const appCode = app.replace(/\r/g, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*/g, "");
-const html = readFileSync(join(root, "index.html"), "utf8");
+const ui = readFileSync(join(root, "src/shared/ui/appearance.jsx"), "utf8");
 
-/** Falešné úložiště · nic z tohohle testu se nikam nezapíše. */
 const store = () => {
   const s = {};
-  return { getItem: (k) => (k in s ? s[k] : null), setItem: (k, v) => { s[k] = String(v); }, removeItem: (k) => { delete s[k]; }, _s: s };
+  return { getItem: (k) => (k in s ? s[k] : null), setItem: (k, v) => { s[k] = String(v); }, _s: s };
 };
 
-test("zrušený protějšek se nesmí vrátit do výběru", () => {
-  for (const gone of ["river-light", "river-mist", "teal-light", "teal-parchment",
-    "mulberry-dark", "atlantic-sky", "clay-alabaster", "olive-gold"]) {
-    assert.equal(APPEARANCE_PRESET_IDS.includes(gone), false, `${gone} je zpátky ve výběru`);
-    // A i kdyby ho někdo uložil, výběr ho nesmí přijmout jako platný.
-    assert.equal(resolvePresetId(gone), DEFAULT_PRESET, `${gone} prošel jako platné id`);
+test("Signature nesmí dostat rám", () => {
+  for (const id of SIGNATURE_PRESET_IDS) {
+    assert.equal(frameChrome(id, false).frameGrammar, "none", id);
+    assert.equal(frameChrome(id, true).frameGrammar, "none", id);
   }
-  assert.equal(APPEARANCE_PRESET_IDS.length, 9, "výběr má jiný počet položek než devět");
-});
-
-test("volič režimu se nesmí vrátit do rozhraní", () => {
-  /* Kdyby se do Nastavení vrátil druhý přepínač den/noc, byl by u pevných
-     vzhledů lživý. Hledá se v opravdovém zdroji obou aplikací. */
-  const ui = readFileSync(join(root, "src/shared/ui/appearance.jsx"), "utf8");
-  assert.equal(/THEME_MODES/.test(ui), false, "výběr režimu se vrátil do Nastavení");
-  assert.equal(/onMode\s*[=}]/.test(ui), false, "sekce Vzhled zase dostala volbu režimu");
-  assert.equal(/\bfamily\b/.test(ui), false, "sekce Vzhled zase mluví o rodinách");
-  /* `setMode` v aplikaci existuje dál — patří tréninkovému běhu (intervaly,
-     EMOM…) a s motivem nemá nic společného. Zakázané je jen to jediné, co
-     přepínalo světlo. */
-  assert.equal(/setMode\(\(?m\)? =>\s*\(?m === "dark"/.test(appCode), false,
-    "rychlý přepínač den/noc je zpátky v aplikaci");
-  assert.equal(/appearanceMode\(prev/.test(appCode), false, "volba znovu ukládá režim vedle vzhledu");
-});
-
-test("systémová změna nesmí hnout pevným vzhledem", () => {
-  for (const id of FIXED_PRESET_IDS) {
-    const den = resolveAppearancePreset(id, false);
-    const noc = resolveAppearancePreset(id, true);
-    assert.equal(den.id, noc.id, `${id} se změnil, když systém přepnul`);
-    assert.equal(den.palette, noc.palette, `${id} vrátil jinou paletu`);
+  const css = frameGrammarCss();
+  // Kdyby existovalo pravidlo pro „none", Signature by rám dostala.
+  assert.ok(!css.includes('data-frame-grammar="none"'));
+  // A kdyby existoval nestřežený selektor, dostal by ho každý.
+  for (const sel of css.match(/^[^\s@/][^{]*\{/gm) || []) {
+    assert.ok(sel.includes("data-frame-grammar"), "nestřežený selektor: " + sel.slice(0, 70));
   }
-  // A automatika naopak MUSÍ reagovat — jinak by pravidlo nic neznamenalo.
-  assert.notEqual(resolveAppearancePreset("signature-auto", false).id,
-    resolveAppearancePreset("signature-auto", true).id,
-    "kdyby ani automatika nereagovala, tenhle test by nic nedokazoval");
 });
 
-test("otisk Signature Day by spadl, kdyby se den hnul", () => {
-  // Dokazuje, že otisk je citlivý: změna jediného kanálu ho musí rozbít.
-  const day = resolveTheme("signature-day", false);
-  const fake = { ...day, bg: "#F4F0EC" };
-  assert.notEqual(JSON.stringify(fake), JSON.stringify(day),
-    "otisk by nezachytil posun o jednu jednotku · pak by nehlídal nic");
-  assert.equal(day.bg, "#F4F0EB");
-  assert.equal(DOCUMENT_THEME.bg, "#F4F0EB", "tisk a PDF nesmí sledovat volbu");
+test("rám nesmí měnit geometrii ani chování", () => {
+  const css = frameGrammarCss();
+  for (const bad of ["padding", "margin:", "margin-", "width: 100", "min-height", "max-height", "display:", "overflow", "transform", "font-size"]) {
+    assert.ok(!css.includes(bad), `rámové CSS nese ${bad}`);
+  }
+  // Pseudo-prvky konzol mají rozměry — smí, protože jsou absolutně
+  // pozicované a pointer-events: none; nic jiného rozměry mít nesmí.
+  const nonPseudo = css.split("}").filter((r) => r.includes("{") && !r.includes("::before") && !r.includes("::after"));
+  for (const r of nonPseudo) {
+    assert.ok(!/(^|[^-])width\s*:|(^|[^-])height\s*:/.test(r), "rozměr mimo pseudo-prvek: " + r.trim().slice(0, 70));
+  }
+  assert.ok(!/gradient|blur\(|url\(/i.test(css), "gradient, rozostření ani obrázek do rámu nepatří");
 });
 
-test("běžný odstavec s akcentem by pravidlo neprošel", () => {
-  const t = resolveTheme("smoke-spice", false);
-  const zakazane = { ...t, textSecondary: t.interactiveAccent };
-  assert.equal(zakazane.textSecondary === zakazane.interactiveAccent, true);
-  // A totéž pravidlo, kterým to kontroluje theme-visual, tady musí selhat:
-  assert.ok(!(zakazane.textSecondary !== zakazane.interactiveAccent),
-    "pravidlo o neutralitě běžného písma by zakázaný stav propustilo");
-  // Skutečná paleta ho neporušuje.
-  assert.notEqual(t.textSecondary, t.interactiveAccent);
+test("hlína, monument-hlína a oliva nesmí nést běžné písmo", () => {
+  const t1 = resolveTheme("slate-clay-pantone", false);
+  const t2 = resolveTheme("monument-clay", false);
+  const t3 = resolveTheme("sand-burnt-earth", false);
+  for (const role of ["text", "textSecondary", "textMuted", "placeholder"]) {
+    assert.ok(!String(t1[role]).toUpperCase().startsWith("#A57051"), `slate.${role}`);
+    assert.ok(!String(t2[role]).toUpperCase().startsWith("#9A694E"), `monument.${role}`);
+    assert.ok(!String(t3[role]).toUpperCase().startsWith("#6B6751"), `sand.${role}`);
+  }
+  // A že by hlína na teplé šedi ani neprošla — proto je to pravidlo:
+  assert.ok(contrast("#A57051", "#DBD6D1", "#DBD6D1") < 4.5, "kdyby hlína procházela, pravidlo by nic nehlídalo");
+  assert.ok(contrast("#6B6751", "#D3C7AD", "#D3C7AD") < 4.5, "kdyby oliva procházela, pravidlo by nic nehlídalo");
 });
 
-test("nápověda pod 4,5:1 by neprošla", () => {
-  const t = resolveTheme("signature-day", false);
-  // Historická hodnota z V1, která měřila 3,99:1 na listu.
-  const stara = "#7D7F78";
-  assert.ok(contrast(stara, t.documentSurface, t.documentSurface) < 4.5,
-    "kdyby i tahle hodnota prošla, práh 4,5:1 by nic neznamenal");
-  // A cesta, kterou vznikala — ztlumené písmo se sníženým krytím.
-  const krytim = "rgba(92,95,88,0.8)";
-  assert.ok(contrast(krytim, t.documentSurface, t.documentSurface) < 4.5);
-  assert.ok(contrast(t.placeholder, t.documentSurface, t.documentSurface) >= 4.5);
+test("granátové písmo na břidlici by neprošlo — a nikde není", () => {
+  assert.ok(contrast("#6E2C29", "#364857", "#364857") < 4.5, "granát na břidlici nedává ani 4,5");
+  const t = resolveTheme("garnet-slate", false);
+  // Všechna písma na navigaci (břidlice) jsou krém:
+  for (const role of ["navText", "navTextSec", "navHeading", "navAccent"]) {
+    // krém plný, nebo krém s krytím — nikdy granát
+    const v = String(t[role]).toUpperCase();
+    assert.ok(v.indexOf("#F7DEC1") === 0 || v.indexOf("RGBA(247,222,193") === 0 || v.indexOf("RGBA(247, 222, 193") === 0,
+      `${role} na břidlici musí být krém (${v})`);
+  }
+  // A na granátové akci je krém:
+  assert.equal(t.interactiveOnAccent, "#F7DEC1");
 });
 
-test("zelený nádech v Signature Night by pravidlem neprošel", () => {
-  const zelena = "#2E3D35";   // Deep Moss · pole V1, které V1.1 zavrhla
-  assert.ok(readsGreen(zelena) || chroma(zelena) > 0.03,
-    "kdyby mech prošel jako uhel, pravidlo o zeleni by nic nehlídalo");
-  const t = resolveTheme("signature-night", false);
-  assert.ok(!readsGreen(t.background) && chroma(t.background) <= 0.03);
+test("americano nesmí psát hnědým písmem pod 4,5", () => {
+  assert.ok(contrast("#867C70", "#303031", "#303031") < 4.5, "roast na brew nedává 4,5 — proto servisní len");
+  const t = resolveTheme("americano-chai", false);
+  assert.equal(t.text, "#F4F0EB");
 });
 
-test("near-black Signature Night by pravidlem o vrstvách neprošel", () => {
-  const stare = "#0F100E";    // pole Ink Night z V1.1
-  assert.ok(luminance(stare) < 0.018, "kdyby stará noc prošla rozsahem, změkčení by nebylo měřitelné");
-  const L = luminance(resolveTheme("signature-night", false).background);
-  assert.ok(L >= 0.018 && L <= 0.026);
+test("systémová změna nesmí hnout volitelnou paletou", () => {
+  for (const id of OPTIONAL_PRESET_IDS) {
+    assert.equal(resolveAppearancePreset(id, false).palette, resolveAppearancePreset(id, true).palette, id);
+  }
+  assert.notEqual(resolveAppearancePreset("signature-auto", false).id, resolveAppearancePreset("signature-auto", true).id,
+    "kdyby ani automatika nereagovala, test by nic nedokazoval");
 });
 
-test("neuložená ani cizí volba nikdy nepropadne k jinému člověku", () => {
-  // Klient A a klient B na jednom zařízení · klíče vzhledu patří do karantény.
+test("volič režimu ani přepínač rámů se nesmí vrátit", () => {
+  assert.ok(!/THEME_MODES/.test(ui), "volič režimu je zpátky v Nastavení");
+  assert.ok(!/onMode\s*[=}]/.test(ui), "sekce Vzhled zase dostala volbu režimu");
+  assert.ok(!/rámy?\s*(on|off|zap|vyp)/i.test(ui), "přepínač rámů nesmí existovat");
+  assert.ok(!/frameToggle|framesEnabled/.test(ui + appCode), "přepínač rámů nesmí existovat");
+});
+
+test("cizí volba nikdy nepropadne k jinému člověku", () => {
   for (const k of ["tm-appearance-v3", "tm-appearance-v2", "tm-theme"]) {
-    assert.ok(APPEARANCE_KEYS.includes(k), `klíč ${k} chybí v seznamu pro karanténu`);
+    assert.ok(APPEARANCE_KEYS.includes(k), k);
   }
   const a = store();
-  writeAppearance({ preset: "smoke-spice" }, a);
-  const b = store();   // druhý člověk, čisté úložiště
-  assert.equal(readAppearance(b).preset, DEFAULT_PRESET, "prázdné úložiště nesmí zdědit cizí vzhled");
-  assert.equal(readAppearance(a).preset, "smoke-spice");
+  writeAppearance(selectAppearance(readAppearance(a), "americano-chai"), a);
+  const b = store();
+  assert.equal(readAppearance(b).preset, DEFAULT_PRESET, "prázdné úložiště nesmí zdědit cizí paletu");
+  assert.equal(readAppearance(a).preset, "americano-chai");
 });
 
-test("stará rodina, kterou by nikdo nepřevedl, by skončila na výchozím vzhledu", () => {
-  // Negativní kontrola migrace: kdyby tabulka zmizela, tohle spadne.
-  assert.equal(migrateLegacyAppearance(JSON.stringify({ version: 2, family: "olive-gold", mode: "dark" }), null).preset,
-    "sand-earth", "zrušená rodina se přestala převádět");
-  assert.notEqual(migrateLegacyAppearance(JSON.stringify({ version: 2, family: "atlantic-sky", mode: "dark" }), null).preset,
-    DEFAULT_PRESET, "Atlantik se má převést na Břidlici, ne spadnout na výchozí");
+test("tisk a PDF nesmí zdědit volitelnou paletu", () => {
+  assert.equal(DOCUMENT_THEME, resolveTheme("signature-day", false));
+  assert.equal(DOCUMENT_THEME.bg, "#F4F0EB");
 });
 
-test("popisek zrušené palety se nesmí objevit v rozhraní", () => {
-  /* „Forest Night", „Ink Night", „Hlína a alabastr", „Atlantik a obloha",
-     „Oliva a zlato", „Řeka a mlha", „Tyrkys a pergamen" jsou názvy, které
-     uživatel po V2 nesmí potkat. Hledá se v opravdovém zdroji aplikace. */
-  for (const label of ["Forest Night", "Ink Night", "Hlína a alabastr", "Clay Alabaster",
-    "Atlantik a obloha", "Atlantic Sky", "Oliva a zlato", "Olive Gold",
-    "Řeka a mlha", "River Mist", "Tyrkys a pergamen", "Teal Parchment"]) {
-    assert.equal(appCode.includes(label), false, `zrušený název ${label} je zpátky v rozhraní`);
-  }
-});
-
-test("Movement Atlas se nesmí tónovat, ani kdyby to vzhled uměl", () => {
+test("Movement Atlas nesmí dostat filtr ani rám palety", () => {
   for (const id of FIXED_PRESET_IDS) {
-    assert.equal(resolveTheme(id, false).atlasFrame, "#F4F0EB", `${id} tónuje plát`);
+    assert.equal(resolveTheme(id, false).atlasFrame, "#F4F0EB", id);
   }
   const atlas = appCode.indexOf("function TmAtlasArt");
   if (atlas >= 0) {
     const blok = appCode.slice(atlas, appCode.indexOf("function TExArt", atlas));
-    for (const bad of ["hue-rotate", "invert(", "mixBlendMode", "sepia(", "filter:"]) {
-      assert.equal(blok.includes(bad), false, `na plátu se objevil ${bad}`);
+    for (const bad of ["hue-rotate", "invert(", "mixBlendMode", "sepia(", "filter:", "data-frame-role"]) {
+      assert.ok(!blok.includes(bad), `na plátu se objevil ${bad}`);
     }
   }
+  assert.ok(!frameGrammarCss().includes("atlas"), "rám se nesmí přiblížit k plátu");
 });
 
-test("pre-paint bez migrace by staršího člověka probudil do jiné palety", () => {
-  const src = html.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/)[1];
-  assert.ok(src.includes("tm-appearance-v2"), "pre-paint přestal číst volbu z V1.1");
-  assert.ok(src.includes("tm-theme"), "pre-paint přestal číst nejstarší klíč");
-  // Kdyby uměl jen nejnovější klíč, tahle podmínka je jediné, co to odhalí.
-  assert.ok(src.indexOf("tm-appearance-v3") < src.indexOf("tm-appearance-v2"),
-    "pre-paint musí sáhnout nejdřív po nejnovější volbě");
-});
-
-test("žádná komponenta nevybírá barvu podle id vzhledu", () => {
-  for (const id of FIXED_PRESET_IDS) {
+test("žádná komponenta nevybírá barvu podle id palety", () => {
+  for (const id of OPTIONAL_PRESET_IDS) {
     const branch = new RegExp(`(preset|vzhled|theme)\\s*===\\s*["'\`]${id}["'\`]`);
-    assert.equal(branch.test(appCode), false, `aplikace se větví podle ${id}`);
+    assert.ok(!branch.test(appCode), `aplikace se větví podle ${id}`);
   }
-  assert.equal(/appearance\.family/.test(appCode), false, "aplikace pořád čte rodinu");
-  assert.equal(/appearance\.mode/.test(appCode), false, "aplikace pořád čte režim");
+  assert.ok(!/appearance\.family/.test(appCode));
+});
+
+test("zrušený název se nesmí vrátit do rozhraní", () => {
+  for (const label of ["Řeka v noci", "Tyrkys v noci", "Moruše a papír", "Kouř a koření",
+    "Forest Night", "Ink Night", "River Night", "Teal Night", "Smoke Spice"]) {
+    assert.ok(!appCode.includes(label), `zrušený název ${label} je zpátky`);
+  }
+});
+
+test("stará volba, kterou by nikdo nepřevedl, končí na Signature", () => {
+  assert.equal(migrateLegacyAppearance(JSON.stringify({ version: 3, preset: "uplne-nova" }), null).preset, DEFAULT_PRESET);
+  assert.equal(migrateLegacyAppearance(JSON.stringify({ version: 2, family: "neznama", mode: "dark" }), null).preset, DEFAULT_PRESET);
 });

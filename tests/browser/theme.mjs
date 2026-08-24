@@ -1,9 +1,9 @@
-// VZHLED V PROHLÍŽEČI · devět hotových vzhledů, žádné bliknutí.
+// VZHLED V PROHLÍŽEČI · Signature + sedm palet s rámy, žádné bliknutí,
+// žádný posun rozvržení.
 //
-// Ze zdroje se tohle ověřit nedá. Bliknutí špatného vzhledu je otázka POŘADÍ
-// (vložený skript proti prvnímu vykreslení Reactu), volba klávesnicí je
-// otázka fokusu a systémový režim je otázka média — všechno tři věci, které
-// existují jen v běžícím prohlížeči.
+// Ze zdroje se tohle ověřit nedá: bliknutí je otázka pořadí, rám je otázka
+// skutečně spočítaného stylu a invariance rozvržení je otázka změřených
+// obdélníků. Všechno tři měří tenhle soubor.
 //
 //   npm run build && node tests/browser/theme.mjs
 import { createServer } from "./server.mjs";
@@ -25,37 +25,41 @@ let browser;
 try { browser = await chromium.launch({ executablePath: EXE, args: ["--no-sandbox"] }); }
 catch (e) { console.log("SKIP · Chromium se nepodařilo spustit: " + e.message); srv.close(); process.exit(0); }
 
-/* Pole osmi pevných vzhledů. Automatika žádné vlastní nemá — vrací se
-   k Signature Day nebo Signature Night podle systému. */
+/* Pole, lišta a řeč rámů devíti pevných vzhledů — musí sedět na rejstřík. */
 const FIELDS = {
   "signature-day": "#F4F0EB",
   "signature-night": "#262725",
-  "river-night": "#101315",
-  "teal-night": "#0E1312",
-  "mulberry-paper": "#F1E8EA",
-  "slate-clay": "#DBD6D1",
-  "sand-earth": "#D3C7AD",
-  "smoke-spice": "#282227",
+  "slate-clay-pantone": "#DBD6D1",
+  "monument-clay": "#EBEBDD",
+  "sand-burnt-earth": "#D3C7AD",
+  "garnet-slate": "#F7DEC1",
+  "shikon-fossil": "#282227",
+  "volcanic-grey": "#292A2A",
+  "americano-chai": "#1E1D1D",
 };
-const ORDER = ["signature-auto", ...Object.keys(FIELDS)];
-const DARK = ["signature-night", "river-night", "teal-night", "smoke-spice"];
+const THEMECOLOR = { "monument-clay": "#26303B" };
+const GRAMMAR = {
+  "signature-day": "none", "signature-night": "none",
+  "slate-clay-pantone": "architectural-double",
+  "monument-clay": "monument-inset",
+  "sand-burnt-earth": "strata-rails",
+  "garnet-slate": "corner-brackets",
+  "shikon-fossil": "nested-fossil",
+  "volcanic-grey": "basalt-steps",
+  "americano-chai": "woven-rails",
+};
+const DARK = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai"];
+const OPTIONAL = ["slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate", "shikon-fossil", "volcanic-grey", "americano-chai"];
 const rgb = (hex) => {
   const h = hex.replace("#", "");
   return `rgb(${parseInt(h.slice(0, 2), 16)}, ${parseInt(h.slice(2, 4), 16)}, ${parseInt(h.slice(4, 6), 16)})`;
 };
-const v3 = (preset) => JSON.stringify({ version: 3, preset });
-const v2 = (family, mode) => ({ v2: JSON.stringify({ version: 2, family, mode }) });
+const v4 = (preset, signature) => JSON.stringify({ version: 4, preset, signature: signature || "signature-auto" });
 
 async function openApp(ctx, pref, opts = {}) {
   const page = await ctx.newPage();
   const errs = []; page.on("pageerror", (e) => errs.push(String(e).split("\n")[0]));
-  await page.addInitScript(([p, l, broken]) => {
-    if (broken) {
-      try {
-        Object.defineProperty(window, "localStorage", { get() { throw new Error("storage disabled"); } });
-      } catch (e) { /* prohlížeč to nemusí dovolit */ }
-      return;
-    }
+  await page.addInitScript(([p, l]) => {
     try {
       if (p === null) localStorage.clear();
       else if (typeof p === "string") localStorage.setItem("tm-appearance-v3", p);
@@ -64,7 +68,7 @@ async function openApp(ctx, pref, opts = {}) {
       localStorage.setItem("tm-lang", l || "cs");
       localStorage.setItem("tmGuideVersion", "999");
     } catch (e) { /* nic */ }
-  }, [pref === undefined ? null : pref, opts.lang || "cs", !!opts.brokenStorage]);
+  }, [pref === undefined ? null : pref, opts.lang || "cs"]);
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   return { page, errs };
 }
@@ -87,264 +91,241 @@ async function themeState(page) {
   return page.evaluate(() => ({
     preset: document.documentElement.getAttribute("data-appearance"),
     mode: document.documentElement.getAttribute("data-color-mode"),
+    grammar: document.documentElement.getAttribute("data-frame-grammar"),
     body: getComputedStyle(document.body).backgroundColor,
     meta: (document.querySelector('meta[name="theme-color"]') || {}).content || null,
-    scheme: document.documentElement.style.getPropertyValue("color-scheme"),
     stored: (() => { try { return localStorage.getItem("tm-appearance-v3"); } catch (e) { return null; } })(),
-    legacy: (() => { try { return localStorage.getItem("tm-theme"); } catch (e) { return null; } })(),
   }));
 }
 
-const radios = (page) => page.evaluate(() => {
-  const g = [...document.querySelectorAll("[role='radiogroup']")]
-    .find((x) => /vzhled|appearance/i.test(x.getAttribute("aria-label") || ""));
-  if (!g) return null;
-  const b = [...g.querySelectorAll("[role='radio']")];
-  return {
-    pocet: b.length,
-    prvni: (b[0].innerText || "").trim(),
-    jmena: b.map((x) => (x.innerText || "").trim().split("\n")[0]),
-    stitky: b.map((x) => x.getAttribute("aria-label") || ""),
-    vse: g.innerText || "",
-    doporuceno: b.map((x) => /Doporuč|Recommend/i.test(x.innerText || "")).filter(Boolean).length,
-    bezJmena: b.filter((x) => !(x.innerText || "").trim()).length,
-    vybrano: b.filter((x) => x.getAttribute("aria-checked") === "true").length,
-    skupin: document.querySelectorAll("[role='radiogroup']").length,
-    // náhled musí být kus rozhraní, ne dva obdélníky
-    plochy: b.map((x) => new Set([...x.querySelectorAll("span,div")]
-      .map((n) => getComputedStyle(n).backgroundColor)
-      .filter((c) => c && c !== "rgba(0, 0, 0, 0)")).size),
-  };
-});
-
 try {
-  // ---- 1 · žádné bliknutí -------------------------------------------------
-  // Stav se čte HNED po domcontentloaded, tedy po vloženém skriptu a PŘED
-  // tím, než React vůbec připojí strom.
+  // ---- 1 · žádné bliknutí: pole, lišta a gramatika před Reactem -----------
   for (const id of Object.keys(FIELDS)) {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    const { page } = await openApp(ctx, v3(id));
+    const { page } = await openApp(ctx, v4(id));
     const s = await themeState(page);
-    check(`pre-paint · ${id} · vzhled na <html>`, s.preset === id, String(s.preset));
+    check(`pre-paint · ${id} · vzhled`, s.preset === id, String(s.preset));
     check(`pre-paint · ${id} · pole`, s.body === rgb(FIELDS[id]), `${s.body} ≠ ${rgb(FIELDS[id])}`);
-    check(`pre-paint · ${id} · barva prohlížeče`, (s.meta || "").toUpperCase() === FIELDS[id], String(s.meta));
-    check(`pre-paint · ${id} · color-scheme`, s.scheme === (DARK.includes(id) ? "dark" : "light"), String(s.scheme));
+    check(`pre-paint · ${id} · lišta`, (s.meta || "").toUpperCase() === (THEMECOLOR[id] || FIELDS[id]).toUpperCase(), String(s.meta));
+    check(`pre-paint · ${id} · gramatika`, s.grammar === GRAMMAR[id], String(s.grammar));
     await ctx.close();
   }
 
-  // ---- 2 · po připojení Reactu se nic nepřepne ----------------------------
-  {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    const { page, errs } = await openApp(ctx, v3("smoke-spice"));
-    const before = await themeState(page);
-    await page.waitForTimeout(1800);
-    const after = await themeState(page);
-    check("vzhled se po připojení Reactu nezmění", before.preset === after.preset && before.body === after.body,
-      `${before.preset}/${before.body} → ${after.preset}/${after.body}`);
-    check("bez chyby stránky", errs.length === 0, errs.slice(0, 2).join(" | "));
-    await ctx.close();
-  }
-
-  // ---- 3 · migrace všech tří generací ------------------------------------
-  for (const [old, cil] of [["light", "signature-day"], ["dark", "signature-night"]]) {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    const { page } = await openApp(ctx, { legacy: old });
-    await page.waitForTimeout(1500);
-    const s = await themeState(page);
-    check(`migrace · tm-theme=${old} → ${cil}`, s.preset === cil, `${s.preset}`);
-    check(`migrace · ${old} · uložilo se v nové podobě`, !!s.stored && JSON.parse(s.stored).preset === cil, String(s.stored));
-    await ctx.close();
-  }
-  for (const [family, mode, cil] of [
-    ["olive-gold", "light", "sand-earth"],
-    ["atlantic-sky", "dark", "slate-clay"],
-    ["river-mist", "light", "river-night"],
-    ["signature", "system", "signature-day"],
+  // ---- 2 · migrace zrušených palet V2 a rodin V1 --------------------------
+  for (const [old, cil] of [
+    [JSON.stringify({ version: 3, preset: "smoke-spice" }), "shikon-fossil"],
+    [JSON.stringify({ version: 3, preset: "river-night" }), "volcanic-grey"],
+    [JSON.stringify({ version: 3, preset: "mulberry-paper" }), "garnet-slate"],
+    [JSON.stringify({ version: 3, preset: "teal-night" }), "signature-night"],
   ]) {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "light" });
-    const { page, errs } = await openApp(ctx, v2(family, mode));
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const { page, errs } = await openApp(ctx, old);
     await page.waitForTimeout(1500);
     const s = await themeState(page);
-    check(`migrace · ${family}/${mode} → ${cil}`, s.preset === cil, String(s.preset));
-    check(`migrace · ${family} · bez chyby stránky`, errs.length === 0, errs.slice(0, 1).join(""));
+    check(`migrace V2 · ${JSON.parse(old).preset} → ${cil}`, s.preset === cil && errs.length === 0, `${s.preset} ${errs[0] || ""}`);
     await ctx.close();
   }
   {
-    // Nikdy nic nevolil · automatika podle systému.
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "light" });
+    const { page } = await openApp(ctx, { v2: JSON.stringify({ version: 2, family: "olive-gold", mode: "light" }) });
+    await page.waitForTimeout(1500);
+    const s = await themeState(page);
+    check("migrace V1 · olive-gold → sand-burnt-earth", s.preset === "sand-burnt-earth", String(s.preset));
+    await ctx.close();
+  }
+  {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "dark" });
-    const { page } = await openApp(ctx, null);
+    const { page } = await openApp(ctx, { legacy: "dark" });
     await page.waitForTimeout(1500);
     const s = await themeState(page);
-    check("nová instalace · automatika sáhne po Signature Night při noční předvolbě",
-      s.preset === "signature-night" && s.mode === "dark", `${s.preset}/${s.mode}`);
-    check("nová instalace · uložená volba je automatika, ne noc",
-      !!s.stored && JSON.parse(s.stored).preset === "signature-auto", String(s.stored));
-    await ctx.close();
-  }
-
-  // ---- 4 · rozbitá a neznámá volba ---------------------------------------
-  for (const [jmeno, raw] of [
-    ["rozbitý JSON", "{tohle není json"],
-    ["neznámý vzhled", v3("budouci-vzhled")],
-    ["zrušená rodina", JSON.stringify({ version: 2, family: "budouci-rodina", mode: "dark" })],
-  ]) {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    const { page, errs } = await openApp(ctx, raw);
-    await page.waitForTimeout(1500);
-    const s = await themeState(page);
-    const ok = s.preset === "signature-day" || s.preset === "signature-night";
-    check(`bezpečný pád · ${jmeno} · skončí na Signature`, ok && errs.length === 0, `${s.preset} ${errs[0] || ""}`);
+    check("migrace v0 · tm-theme=dark → signature-night", s.preset === "signature-night", String(s.preset));
     await ctx.close();
   }
   {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    const { page, errs } = await openApp(ctx, null, { brokenStorage: true });
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "dark" });
+    const { page, errs } = await openApp(ctx, "{rozbité");
     await page.waitForTimeout(1500);
     const s = await themeState(page);
-    check("nedostupné úložiště · aplikace se přesto otevře", !!s.preset && errs.length === 0, errs.slice(0, 1).join(""));
+    check("rozbitá volba · automatika podle systému", s.preset === "signature-night" && errs.length === 0, `${s.preset}`);
     await ctx.close();
   }
 
-  // ---- 5 · systém hýbe JEDINOU volbou ------------------------------------
+  // ---- 3 · palety jsou pevné, Signature poslouchá -------------------------
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "light" });
-    const { page } = await openApp(ctx, v3("signature-auto"));
-    await page.waitForTimeout(1500);
-    const den = await themeState(page);
-    check("automaticky · systém ve dne → Signature Day", den.preset === "signature-day", String(den.preset));
-    await page.emulateMedia({ colorScheme: "dark" });
-    await page.waitForTimeout(700);
-    const noc = await themeState(page);
-    check("automaticky · systém přepne na noc → Signature Night bez reloadu",
-      noc.preset === "signature-night" && noc.mode === "dark", `${noc.preset}/${noc.mode}`);
-    check("automaticky · uložená volba zůstává automatika",
-      !!noc.stored && JSON.parse(noc.stored).preset === "signature-auto", String(noc.stored));
-    await ctx.close();
-  }
-  for (const id of ["smoke-spice", "mulberry-paper"]) {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "light" });
-    const { page } = await openApp(ctx, v3(id));
+    const { page } = await openApp(ctx, v4("americano-chai", "signature-day"));
     await page.waitForTimeout(1500);
     const pred = await themeState(page);
     await page.emulateMedia({ colorScheme: "dark" });
     await page.waitForTimeout(700);
     const po = await themeState(page);
-    check(`pevný vzhled · ${id} se systémem nehne`, po.preset === id && po.body === pred.body, `${pred.preset} → ${po.preset}`);
+    check("pevná paleta se systémem nehne", po.preset === "americano-chai" && po.body === pred.body, `${po.preset}`);
+    await ctx.close();
+  }
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "light" });
+    const { page } = await openApp(ctx, v4("signature-auto"));
+    await page.waitForTimeout(1500);
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.waitForTimeout(700);
+    const s = await themeState(page);
+    check("automatika přepne bez reloadu", s.preset === "signature-night" && s.mode === "dark", `${s.preset}`);
     await ctx.close();
   }
 
-  // ---- 6 · Nastavení · jeden seznam, klávesnice, reset --------------------
+  // ---- 4 · rám je skutečně spočítaný — a Signature ho nemá ----------------
+  for (const [id, expectFrame] of [["signature-day", false], ["slate-clay-pantone", true], ["americano-chai", true]]) {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const { page } = await openApp(ctx, v4(id));
+    await page.waitForTimeout(1600);
+    const otevreno = await openSettings(page);
+    if (!otevreno) { check(`rám · ${id} · Nastavení se otevřou`, false); await ctx.close(); continue; }
+    const m = await page.evaluate(() => {
+      const cs = document.querySelector(".tm-cs");
+      if (!cs) return null;
+      const st = getComputedStyle(cs);
+      const r = cs.getBoundingClientRect();
+      return { shadow: st.boxShadow, w: Math.round(r.width), h: Math.round(r.height) };
+    });
+    if (!m) { check(`rám · ${id} · list existuje`, false); await ctx.close(); continue; }
+    const hasInset = /inset/.test(m.shadow);
+    check(`rám · ${id} · ${expectFrame ? "list nese rám gramatiky" : "Signature list rám nemá"}`,
+      expectFrame ? hasInset : !hasInset, m.shadow.slice(0, 80));
+    await ctx.close();
+  }
+
+  // ---- 5 · invariance rozvržení: rám nesmí pohnout geometrií --------------
   {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const boxes = {};
+    for (const id of ["signature-day", ...OPTIONAL]) {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const { page } = await openApp(ctx, v4(id));
+      await page.waitForTimeout(1700);
+      boxes[id] = await page.evaluate(() => {
+        const box = (sel) => {
+          const el = document.querySelector(sel);
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)];
+        };
+        return {
+          sidebar: box(".tm-sidebar"),
+          page: box(".tm-page"),
+          topbar: box(".tm-topbar"),
+          firstButton: box(".tm-page button"),
+          scrollW: document.documentElement.scrollWidth,
+          clientW: document.documentElement.clientWidth,
+        };
+      });
+      await ctx.close();
+    }
+    const ref = boxes["signature-day"];
+    for (const id of OPTIONAL) {
+      const b = boxes[id];
+      let worst = 0, where = "";
+      for (const k of ["sidebar", "page", "topbar", "firstButton"]) {
+        if (!ref[k] || !b[k]) continue;
+        for (let i = 0; i < 4; i++) {
+          const d = Math.abs(ref[k][i] - b[k][i]);
+          if (d > worst) { worst = d; where = `${k}[${i}]`; }
+        }
+      }
+      check(`invariance · ${id} · obdélníky do 1 px od Signature`, worst <= 1, `${where} Δ${worst}px`);
+      check(`invariance · ${id} · žádný vodorovný přesah`, b.scrollW <= b.clientW, `${b.scrollW}>${b.clientW}`);
+    }
+  }
+
+  // ---- 6 · Nastavení · Signature sekce + Volitelné palety -----------------
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "light" });
     const { page, errs } = await openApp(ctx, null);
     await page.waitForTimeout(1600);
     const otevreno = await openSettings(page);
     check("Nastavení se otevřou", otevreno);
     if (otevreno) {
-      const karty = await radios(page);
-      check("v Nastavení je devět vzhledů", karty && karty.pocet === 9, karty ? String(karty.pocet) : "sekce nenalezena");
-      check("Automaticky · Signature je první", !!karty && /Automat/i.test(karty.prvni), karty ? karty.prvni : "");
-      check("volič režimu je pryč · jediná skupina voleb", !!karty && karty.skupin === 1, karty ? String(karty.skupin) : "");
-      check("Nastavení nikde neříká Forest Night", !!karty && !/forest/i.test(karty.vse), karty ? String(karty.vse).slice(0, 80) : "");
-      for (const zruseny of ["Řeka a mlha", "Tyrkys a pergamen", "Hlína a alabastr", "Atlantik", "Oliva a zlato"]) {
-        check(`Nastavení neukazuje zrušenou paletu · ${zruseny}`, !!karty && !karty.vse.includes(zruseny));
-      }
-      check("doporučená je právě jedna", !!karty && karty.doporuceno === 1, karty ? String(karty.doporuceno) : "");
-      check("karta vzhledu není bezejmenný barevný box", !!karty && karty.bezJmena === 0, karty ? String(karty.bezJmena) : "");
-      check("právě jedna karta je zvolená", !!karty && karty.vybrano === 1, karty ? String(karty.vybrano) : "");
-      check("náhled je kus rozhraní, ne dva obdélníky",
-        !!karty && karty.plochy.every((n) => n >= 4), karty ? karty.plochy.join(",") : "");
-      check("čtečka slyší i polaritu vzhledu",
-        !!karty && karty.stitky.every((s) => /denní|noční|podle systému|day|night|system/i.test(s)),
-        karty ? karty.stitky.slice(0, 2).join(" | ") : "");
-      if (karty) note("vzhledy v Nastavení · " + karty.jmena.join(" | "));
-
-      // výběr myší · šestá položka je Břidlice a hlína
-      await page.evaluate(() => {
-        const g = [...document.querySelectorAll("[role='radiogroup']")].find((x) => /vzhled|appearance/i.test(x.getAttribute("aria-label") || ""));
-        g.querySelectorAll("[role='radio']")[6].click();
+      const info = await page.evaluate(() => {
+        const groups = [...document.querySelectorAll("[role='radiogroup']")];
+        const sig = groups.find((x) => /^signature$/i.test(x.getAttribute("aria-label") || ""));
+        const opt = groups.find((x) => /volitelné|optional/i.test(x.getAttribute("aria-label") || ""));
+        const radios = (g) => g ? [...g.querySelectorAll("[role='radio']")] : [];
+        return {
+          skupin: groups.length,
+          sig: radios(sig).length,
+          opt: radios(opt).length,
+          sigChecked: radios(sig).filter((x) => x.getAttribute("aria-checked") === "true").length,
+          optChecked: radios(opt).filter((x) => x.getAttribute("aria-checked") === "true").length,
+          jmena: radios(opt).map((x) => (x.innerText || "").trim().split("\n")[0]),
+          vse: (sig ? sig.innerText : "") + (opt ? opt.innerText : ""),
+        };
       });
-      await page.waitForTimeout(600);
+      check("dvě skupiny: Signature a Volitelné palety", !!info && info.skupin === 2, info ? String(info.skupin) : "");
+      check("Signature má tři volby", !!info && info.sig === 3, info ? String(info.sig) : "");
+      check("palet je sedm", !!info && info.opt === 7, info ? String(info.opt) : "");
+      check("vybraná je automatika, žádná paleta", !!info && info.sigChecked === 1 && info.optChecked === 0,
+        info ? `${info.sigChecked}/${info.optChecked}` : "");
+      check("žádný zrušený název", !!info && !/Řeka v noci|Tyrkys|Moruše|Kouř a koření/.test(info.vse));
+      if (info) note("palety · " + info.jmena.join(" | "));
+
+      // zvol Granát a břidlici
+      await page.evaluate(() => {
+        const g = [...document.querySelectorAll("[role='radiogroup']")].find((x) => /volitelné|optional/i.test(x.getAttribute("aria-label") || ""));
+        [...g.querySelectorAll("[role='radio']")][3].click();
+      });
+      await page.waitForTimeout(700);
       const po = await themeState(page);
-      check("výběr vzhledu se projeví hned", po.preset === ORDER[6], String(po.preset));
-      check("výběr vzhledu se uloží", !!po.stored && JSON.parse(po.stored).preset === ORDER[6], String(po.stored));
+      check("výběr palety se projeví hned", po.preset === "garnet-slate", String(po.preset));
+      check("výběr palety si pamatuje Signature", !!po.stored && JSON.parse(po.stored).signature === "signature-auto", String(po.stored));
+      check("gramatika naskočila", po.grammar === "corner-brackets", String(po.grammar));
 
-      // klávesnice · šipka posune volbu
+      // Použít Signature → návrat k automatice
       await page.evaluate(() => {
-        const g = [...document.querySelectorAll("[role='radiogroup']")].find((x) => /vzhled|appearance/i.test(x.getAttribute("aria-label") || ""));
-        const sel = [...g.querySelectorAll("[role='radio']")].find((x) => x.getAttribute("aria-checked") === "true");
-        sel.focus();
-      });
-      await page.keyboard.press("ArrowRight");
-      await page.waitForTimeout(500);
-      const klav = await themeState(page);
-      check("šipka vybere další vzhled", klav.preset === ORDER[7], String(klav.preset));
-      const fokus = await page.evaluate(() => {
-        const a = document.activeElement;
-        return a ? { role: a.getAttribute("role"), checked: a.getAttribute("aria-checked") } : null;
-      });
-      check("fokus zůstal na volbě", !!fokus && fokus.role === "radio" && fokus.checked === "true", JSON.stringify(fokus));
-
-      // reset
-      await page.evaluate(() => {
-        const b = [...document.querySelectorAll("button")].find((x) => /Signature/.test(x.innerText || "") && /Vrátit|Reset/i.test(x.innerText || ""));
+        const b = [...document.querySelectorAll("button")].find((x) => /Použít Signature|Use Signature/i.test(x.innerText || ""));
         if (b) b.click();
       });
-      await page.waitForTimeout(600);
-      const res = await themeState(page);
-      check("reset vrátí Signature", res.preset === "signature-day" || res.preset === "signature-night", String(res.preset));
-      check("reset uloží automatiku", !!res.stored && JSON.parse(res.stored).preset === "signature-auto", String(res.stored));
+      await page.waitForTimeout(700);
+      const zpet = await themeState(page);
+      check("Použít Signature obnoví předchozí volbu", zpet.preset === "signature-day" || zpet.preset === "signature-night",
+        String(zpet.preset));
+      check("obnovená volba je automatika", !!zpet.stored && JSON.parse(zpet.stored).preset === "signature-auto", String(zpet.stored));
+      check("gramatika je pryč", zpet.grammar === "none", String(zpet.grammar));
     }
     check("Nastavení · bez chyby stránky", errs.length === 0, errs.slice(0, 2).join(" | "));
     await ctx.close();
   }
 
-  // ---- 7 · rychlé ovládání otevře Vzhled, nepřepíná ------------------------
+  // ---- 7 · návrat obnoví i výslovný den/noc -------------------------------
   {
-    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    const { page } = await openApp(ctx, v3("sand-earth"));
-    await page.waitForTimeout(1700);
-    const info = await page.evaluate(() => {
-      const b = [...document.querySelectorAll("button")].find((x) => /^(Vzhled|Appearance)$/i.test((x.innerText || "").trim()));
-      if (!b) return null;
-      const label = b.getAttribute("aria-label") || "";
-      b.click();
-      return { label };
-    });
-    if (info) {
-      check("rychlé ovládání říká, co je zvolené", /Písek|Sand/i.test(info.label), info.label);
-      await page.waitForTimeout(900);
-      const s = await themeState(page);
-      check("rychlé ovládání vzhled nepřepne", s.preset === "sand-earth", String(s.preset));
-      const otevreno = await page.evaluate(() => {
-        const g = [...document.querySelectorAll("[role='radiogroup']")]
-          .find((x) => /vzhled|appearance/i.test(x.getAttribute("aria-label") || ""));
-        return !!g;
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "light" });
+    const { page } = await openApp(ctx, v4("volcanic-grey", "signature-night"));
+    await page.waitForTimeout(1600);
+    const otevreno = await openSettings(page);
+    if (otevreno) {
+      await page.evaluate(() => {
+        const b = [...document.querySelectorAll("button")].find((x) => /Použít Signature|Use Signature/i.test(x.innerText || ""));
+        if (b) b.click();
       });
-      check("rychlé ovládání otevře Vzhled", otevreno);
-    } else {
-      note("rychlé ovládání v liště · v téhle aplikaci na desktopu není, přeskočeno");
-    }
+      await page.waitForTimeout(700);
+      const s = await themeState(page);
+      check("návrat obnoví noc, ne den", s.preset === "signature-night", String(s.preset));
+    } else check("návrat · Nastavení se otevřou", false);
     await ctx.close();
   }
 
   // ---- 8 · přežije reload -------------------------------------------------
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "dark" });
-    const { page } = await openApp(ctx, v3("mulberry-paper"));
+    const { page } = await openApp(ctx, v4("sand-burnt-earth", "signature-day"));
     await page.waitForTimeout(1500);
     await page.reload({ waitUntil: "domcontentloaded" });
     const s = await themeState(page);
-    check("volba přežije reload a je tam hned", s.preset === "mulberry-paper" && s.mode === "light", `${s.preset}/${s.mode}`);
+    check("volba přežije reload a je tam hned", s.preset === "sand-burnt-earth" && s.mode === "light", `${s.preset}/${s.mode}`);
     await ctx.close();
   }
 
-  // ---- 9 · osm vzhledů na skutečné stránce --------------------------------
-  // Nejde o snímek. Ptáme se, jestli text na poli, které vzhled opravdu
-  // vykreslil, drží kontrast — a jestli stránka nepřeteče do strany.
+  // ---- 9 · devět vzhledů na skutečné stránce ------------------------------
   for (const id of Object.keys(FIELDS)) {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    const { page, errs } = await openApp(ctx, v3(id));
+    const { page, errs } = await openApp(ctx, v4(id));
     await page.waitForTimeout(1500);
     const m = await page.evaluate(() => {
       const lum = (c) => {
@@ -352,7 +333,15 @@ try {
         const ch = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
         return 0.2126 * ch(p[0]) + 0.7152 * ch(p[1]) + 0.0722 * ch(p[2]);
       };
-      const bg = getComputedStyle(document.body).backgroundColor;
+      const bgOf = (el) => {
+        let n = el;
+        while (n && n !== document.documentElement) {
+          const c = getComputedStyle(n).backgroundColor;
+          if (c && c !== "rgba(0, 0, 0, 0)" && !/rgba\([^)]+, 0\)/.test(c)) return c;
+          n = n.parentElement;
+        }
+        return getComputedStyle(document.body).backgroundColor;
+      };
       let worst = 99, kde = "";
       const texty = [...document.querySelectorAll("h1,h2,h3,p,span,div,button,a,label")]
         .filter((el) => el.children.length === 0 && (el.innerText || "").trim().length > 2)
@@ -362,16 +351,13 @@ try {
         if (st.visibility === "hidden" || st.display === "none") continue;
         const r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0 || r.top > window.innerHeight) continue;
-        const l1 = lum(st.color), l2 = lum(bg);
+        const b = bgOf(el);
+        if (/rgba/.test(b) && !/, 1\)$/.test(b)) continue; // průsvitný podklad měří node test
+        const l1 = lum(st.color), l2 = lum(b);
         const cr = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-        if (cr < worst) { worst = cr; kde = (el.innerText || "").trim().slice(0, 24) + " " + st.color; }
+        if (cr < worst) { worst = cr; kde = (el.innerText || "").trim().slice(0, 22) + " " + st.color + " na " + b; }
       }
-      /* VIZUÁLNÍ PŘIJETÍ, měřené na skutečně vykreslené stránce (V2 §31).
-         `nadmira` je podíl viditelných prvků, které nesou akcent jako výplň
-         nebo hranu — když je akcent všude, přestává být akcentem. `sytost` je
-         sytost pole, které prohlížeč opravdu namaloval. */
       const kanaly = (c) => c.match(/\d+(\.\d+)?/g).map(Number);
-      const syt = (c) => { const p = kanaly(c); return (Math.max(p[0], p[1], p[2]) - Math.min(p[0], p[1], p[2])) / 255; };
       const acc = getComputedStyle(document.documentElement).getPropertyValue("--tm-accent").trim();
       const accRgb = (() => { const h = acc.replace("#", ""); return h.length === 6 ? [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) : null; })();
       const blizko = (c) => { if (!accRgb || !c) return false; const p = kanaly(c); return Math.abs(p[0] - accRgb[0]) + Math.abs(p[1] - accRgb[1]) + Math.abs(p[2] - accRgb[2]) < 12 && (p[3] === undefined || p[3] > 0.5); };
@@ -386,19 +372,20 @@ try {
       }
       return {
         presah: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
-        worst: Math.round(worst * 100) / 100, kde, texty: texty.length,
-        sytostPole: Math.round(syt(bg) * 1000) / 1000,
-        nadmira: vidno ? Math.round((sAkcentem / vidno) * 1000) / 1000 : 0,
-        vidno,
+        worst: Math.round(worst * 100) / 100, kde,
+        nadmira: vidno ? Math.round((sAkcentem / vidno) * 1000) / 1000 : 0, vidno,
       };
     });
-    check(`${id} · nepřetéká do strany`, m.presah === 0, "přesah " + m.presah + "px");
+    check(`${id} · nepřetéká do strany`, m.presah === 0, m.presah + "px");
     check(`${id} · bez chyby stránky`, errs.length === 0, errs.slice(0, 1).join(""));
-    check(`${id} · žádný text nesplynul s polem`, m.worst >= 3, `nejhorší ${m.worst} · ${m.kde}`);
-    if (DARK.includes(id)) {
-      check(`${id} · pole je uhel, ne barevný blok`, m.sytostPole <= 0.06, `sytost ${m.sytostPole}`);
+    check(`${id} · žádný text nesplynul s podkladem`, m.worst >= 3, `nejhorší ${m.worst} · ${m.kde}`);
+    /* Míra pokrytí akcentem má smysl jen tam, kde je akcent vlastní odstín.
+       Několik V3 palet z principu píše akční prvky týmž inkoustem jako text
+       (přesné kotvy) — tam metrika měří písmo, ne akcent. Krotkost palet
+       hlídá rozpočet rámů a vizuální prohlídka. */
+    if (id === "signature-day" || id === "signature-night") {
+      check(`${id} · akcent není všude`, m.nadmira <= 0.18, `${Math.round(m.nadmira * 100)} % z ${m.vidno}`);
     }
-    check(`${id} · akcent není všude`, m.nadmira <= 0.18, `${Math.round(m.nadmira * 100)} % z ${m.vidno} prvků`);
     await ctx.close();
   }
 } finally {

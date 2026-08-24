@@ -17,7 +17,7 @@ import { makeThemeFor, makeTagsFor, appearancePreset } from "./shared/ui/theme.j
 import { BRAND } from "./shared/ui/themeRegistry.js";
 import {
   readAppearance, writeAppearance, systemPrefersDark, watchSystemMode,
-  appearanceMode, applyDocumentTheme, APPEARANCE_KEYS,
+  appearanceMode, applyDocumentTheme, APPEARANCE_KEYS, selectAppearance, returnToSignature,
 } from "./shared/ui/appearance.js";
 import { createAppearanceUI } from "./shared/ui/appearance.jsx";
 import { hexA } from "./shared/ui/color.js";
@@ -11889,7 +11889,12 @@ export default function App() {
      jedno klepnutí, žádné cyklování devíti motivy a žádná tichá výměna
      vlastní volby. */
   const setPreset = React.useCallback((id) => {
-    setAppearance((prev) => ({ ...prev, version: 3, preset: id }));
+    /* Signature volba se pamatuje: odbočka k paletě ji nepřepíše a „Použít
+       Signature" se vrací přesně k ní. */
+    setAppearance((prev) => selectAppearance(prev, id));
+  }, []);
+  const pouzitSignature = React.useCallback(() => {
+    setAppearance((prev) => returnToSignature(prev));
   }, []);
   const otevriVzhled = React.useCallback(() => {
     setSetsOpen(true);
@@ -13431,11 +13436,11 @@ export default function App() {
     const active = page === f.key || (page === "atomic" && f.key === "praxe") || ((page === "oblasti" || page === "cile") && f.key === "kompas");
     const customIcon = pageMetaOf(f.key).icon; // uploaded icon from setPageMeta, mirrors the page header
     return (
-      <button key={f.key} className={"tm-nav-item" + (active ? " tm-nav-active" : "")} onClick={() => go(f.key)} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: dim ? "7px 8px" : "9px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: active ? t.activeNav : "transparent", color: active ? t.heading : dim ? t.textMuted : t.textSec, fontFamily: FONT_BODY, fontSize: dim ? 13 : 14.5, marginBottom: 2, borderLeft: active ? `2px solid ${t.accent}` : "2px solid transparent", opacity: dim && !active ? 0.8 : 1 }}>
+      <button key={f.key} className={"tm-nav-item" + (active ? " tm-nav-active" : "")} onClick={() => go(f.key)} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: dim ? "7px 8px" : "9px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: active ? t.navActiveBg : "transparent", color: active ? t.navHeading : dim ? t.navMuted : t.navTextSec, fontFamily: FONT_BODY, fontSize: dim ? 13 : 14.5, marginBottom: 2, borderLeft: active ? `2px solid ${t.navAccent}` : "2px solid transparent", opacity: dim && !active ? 0.8 : 1 }}>
         {customIcon
           ? <img src={imgSrc(customIcon)} alt="" style={{ width: 20, height: 20, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
           : NAV_ICONS[f.key]
-          ? <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.sand }}>{React.createElement(NAV_ICONS[f.key], { size: dim ? 15 : 17 })}</span>
+          ? <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}>{React.createElement(NAV_ICONS[f.key], { size: dim ? 15 : 17 })}</span>
           : <span style={{ fontSize: dim ? 13 : 16, width: 20, textAlign: "center" }}>{f.icon}</span>}{pageMetaOf(f.key).title || L(f.cz, f.en)}
       </button>
     );
@@ -13478,7 +13483,7 @@ export default function App() {
           ${componentsCss(t)}
           * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
           body { margin: 0; }
-          .tm-sidebar .tm-nav-active { box-shadow: inset 2px 0 0 ${t.accent}; }
+          .tm-sidebar .tm-nav-active { box-shadow: inset 2px 0 0 ${t.navAccent}; }
           .tm-wb-dot { transition: transform .16s cubic-bezier(.23,.62,.22,.99), border-color .16s ease; }
           .tm-wb-dot:active { transform: scale(1.05); }
           .tm-wb-mark { transition: transform .16s cubic-bezier(.23,.62,.22,.99), opacity .16s ease; }
@@ -13686,38 +13691,38 @@ export default function App() {
         )}
 
         <TmGround />
-        <aside className={`tm-sidebar${menuOpen ? " open" : ""}${sideHidden ? " collapsed" : ""}`} style={{ width: 268, flexShrink: 0, background: t.bgSidebar, borderRight: `1px solid ${t.border}`, padding: "26px 16px", overflowY: "auto", position: "relative", zIndex: 1 }}>
+        <aside className={`tm-sidebar${menuOpen ? " open" : ""}${sideHidden ? " collapsed" : ""}`} style={{ width: 268, flexShrink: 0, background: t.bgSidebar, borderRight: `1px solid ${t.navBorder}`, padding: "26px 16px", overflowY: "auto", position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button className="tm-logo" onClick={() => go("praxe")} title={L("Zpět do dneška", "Back to today")} aria-label={L("Zpět do dneška", "Back to today")} style={{ display: "block", flex: "1 1 auto", minWidth: 0, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "0 8px 22px" }}>
             <span style={{ fontFamily: FONT_LOGO, fontWeight: 300, fontSize: 30, color: t.heading, letterSpacing: "0.04em" }}>
               t<span style={{ position: "relative" }}>a<Bindu size={5} style={{ position: "absolute", top: 4, left: 3.5 }} /></span>nmay
             </span>
           </button>
-            <button className="tm-gear" onClick={() => setSetsOpen(true)} title={L("Nastavení", "Settings")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, marginTop: -12, background: "transparent", border: "none", borderRadius: 10, color: t.sand, cursor: "pointer", flexShrink: 0 }}><TmIcNastaveni size={19} /></button>
+            <button className="tm-gear" onClick={() => setSetsOpen(true)} title={L("Nastavení", "Settings")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, marginTop: -12, background: "transparent", border: "none", borderRadius: 10, color: t.navIcon, cursor: "pointer", flexShrink: 0 }}><TmIcNastaveni size={19} /></button>
           </div>
           {NAV_GROUPS_ALL.map((g) => {
             const items = g.items.filter((f) => isEnabled(f.key));
             if (!items.length) return null;
             return (
               <div key={g.cz} style={{ marginBottom: 16 }}>
-                <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 10.5, color: t.sage, padding: "0 8px 6px" }}>{L(g.cz, g.en)}</div>
+                <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 10.5, color: t.navKicker, padding: "0 8px 6px" }}>{L(g.cz, g.en)}</div>
                 {items.map((f) => renderNavItem(f))}
               </div>
             );
           })}
           <div style={{ marginTop: 24, padding: "0 8px" }}>
-            <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5, color: t.textMuted, lineHeight: 1.6 }}>{L("Důvěřuj tělu. Drž svou praxi. Naslouchej divočině.", "Trust the body. Hold the practice. Listen to the wild.")}</div>
+            <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5, color: t.navMuted, lineHeight: 1.6 }}>{L("Důvěřuj tělu. Drž svou praxi. Naslouchej divočině.", "Trust the body. Hold the practice. Listen to the wild.")}</div>
           </div>
-          <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.borderSoft}` }}>
-            <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
-              <span style={{ fontSize: 15, width: 20, textAlign: "center", color: t.accent }}>＋</span>{L("Místnosti", "Rooms")}
+          <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.navHairline}` }}>
+            <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
+              <span style={{ fontSize: 15, width: 20, textAlign: "center", color: t.navAccent }}>＋</span>{L("Místnosti", "Rooms")}
             </button>
-            <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
-              <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.sand }}><TmIcSdileni size={15} /></span>{L("Sdílení", "Sharing")}
+            <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
+              <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}><TmIcSdileni size={15} /></span>{L("Sdílení", "Sharing")}
             </button>
             {renderNavItem(NAV_TRASH, true)}
-            <button className="tm-nav-item tm-mhide" onClick={() => setGuideOpen(true)} title={L("Průvodce aplikací", "App guide")} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
-              <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.sand }}><TmIcPruvodce size={15} /></span>
+            <button className="tm-nav-item tm-mhide" onClick={() => setGuideOpen(true)} title={L("Průvodce aplikací", "App guide")} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
+              <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}><TmIcPruvodce size={15} /></span>
               {L("Průvodce", "Guide")}
             </button>
           </div>
@@ -13756,7 +13761,7 @@ export default function App() {
         {/* MOBIL · spodní navigace: čtyři místnosti + mapa celého domu.
             Skrytá inline, mobilní CSS ji probouzí — desktop ji nikdy nevidí. */}
         <TmDok>
-        <nav className="tm-tabbar" style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 50, display: "none", alignItems: "stretch", gap: 2, padding: "7px 8px calc(7px + env(safe-area-inset-bottom))", background: hexA(t.bg, 0.9), borderTop: `1px solid ${t.borderSoft}`, backdropFilter: "blur(16px) saturate(1.1)", WebkitBackdropFilter: "blur(16px) saturate(1.1)" }}>
+        <nav className="tm-tabbar" style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 50, display: "none", alignItems: "stretch", gap: 2, padding: "7px 8px calc(7px + env(safe-area-inset-bottom))", background: hexA(t.dockBg, 0.9), borderTop: `1px solid ${t.navHairline}`, backdropFilter: "blur(16px) saturate(1.1)", WebkitBackdropFilter: "blur(16px) saturate(1.1)" }}>
             <div className="tm-tabscroll" ref={tabScrollRef} onScroll={(e) => { if (dockAnimRef.current || dockTabs.length <= 3) return; const el = e.currentTarget; const setW = el.scrollWidth / 3; if (setW <= 0) return; if (el.scrollLeft < setW * 0.45) el.scrollLeft += setW; else if (el.scrollLeft > setW * 1.95) el.scrollLeft -= setW; }} style={{ flex: "1 1 auto", minWidth: 0, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollSnapType: "x proximity" }}>
               <div style={{ position: "relative", display: "flex", width: `${dockTabs.length > 3 ? dockTabs.length * 100 : 100}%` }}>
                 {(dockTabs.length > 3 ? [0, 1, 2] : [0]).map((copy) => dockTabs.map((k) => {
@@ -13764,7 +13769,7 @@ export default function App() {
                   const lbl = ((coll.pageMeta || {})[k] || {}).title || L(nf.cz, nf.en);
                   const act = page === k || (page === "atomic" && k === "praxe") || ((page === "oblasti" || page === "cile") && k === "kompas");
                   return (
-                    <button key={copy + "-" + k} onClick={() => go(k)} style={{ flex: dockTabs.length > 3 ? `0 0 calc(100% / ${3 * dockTabs.length})` : "1 1 0%", scrollSnapAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "transparent", border: "none", cursor: "pointer", padding: "4px 2px", minHeight: 48, color: act ? t.accent : t.textMuted, transition: "color .25s ease", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.07em", fontSize: 9.5 }}>
+                    <button key={copy + "-" + k} onClick={() => go(k)} style={{ flex: dockTabs.length > 3 ? `0 0 calc(100% / ${3 * dockTabs.length})` : "1 1 0%", scrollSnapAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "transparent", border: "none", cursor: "pointer", padding: "4px 2px", minHeight: 48, color: act ? t.navAccent : t.navMuted, transition: "color .25s ease", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.07em", fontSize: 9.5 }}>
                       <span style={{ display: "inline-flex", height: 21, alignItems: "center", transform: act ? "scale(1.16) translateY(-1px)" : "none", transition: "transform .28s cubic-bezier(.23,.62,.22,.99)" }}>{NAV_ICONS[k] ? React.createElement(NAV_ICONS[k], { size: 19 }) : null}</span>
                       <span style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lbl}</span>
                     </button>
@@ -13772,7 +13777,7 @@ export default function App() {
                 }))}
               </div>
             </div>
-            <button onClick={() => setMenuOpen(true)} style={{ flex: "0 0 62px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "transparent", border: "none", borderLeft: `1px solid ${t.borderSoft}`, cursor: "pointer", padding: "4px 2px", minHeight: 48, color: menuOpen ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.07em", fontSize: 9.5 }}>
+            <button onClick={() => setMenuOpen(true)} style={{ flex: "0 0 62px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "transparent", border: "none", borderLeft: `1px solid ${t.navHairline}`, cursor: "pointer", padding: "4px 2px", minHeight: 48, color: menuOpen ? t.navAccent : t.navMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.07em", fontSize: 9.5 }}>
               <span style={{ fontSize: 17, height: 21, display: "inline-flex", alignItems: "center" }}>☰</span>
               {L("Vše", "All")}
             </button>
@@ -13806,8 +13811,9 @@ export default function App() {
 
             <VzhledSekce
               preset={appearance.preset}
+              signature={appearance.signature}
               onPreset={setPreset}
-              onReset={() => setAppearance({ version: 3, preset: "signature-auto" })}
+              onSignature={pouzitSignature}
             />
 
             {/* VERZE A SOUKROMÍ · co v telefonu opravdu běží a kam se data

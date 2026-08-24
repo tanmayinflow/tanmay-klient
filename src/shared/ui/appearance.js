@@ -11,11 +11,17 @@
 // zrušená rodina ani zmizelé úložiště nesmí shodit start aplikace — skončí
 // na `signature-auto`, protože do rozbitého vzhledu se nikdo nesmí zavřít.
 //
-// TŘI GENERACE KLÍČŮ ŽIJÍ VEDLE SEBE:
+// GENERACE KLÍČŮ ŽIJÍ VEDLE SEBE:
 //
-//   `tm-theme`          "light" | "dark"            před V1
-//   `tm-appearance-v2`  { version: 2, family, mode } V1 a V1.1
-//   `tm-appearance-v3`  { version: 3, preset }       V2
+//   `tm-theme`          "light" | "dark"                 před V1
+//   `tm-appearance-v2`  { version: 2, family, mode }      V1 a V1.1
+//   `tm-appearance-v3`  { version: 3, preset }            V2
+//   `tm-appearance-v3`  { version: 4, preset, signature } V3 · týž klíč
+//
+// V3 nese v témže klíči i POSLEDNÍ SIGNATURE VOLBU: kdo si zapne volitelnou
+// paletu a vrátí se, dostane zpátky přesně tu automatiku, den, nebo noc,
+// kterou měl. Starší build V2 si z hodnoty přečte neznámý preset a bezpečně
+// spadne na automatiku.
 //
 // Čtení sáhne po nejnovějším, který najde, a starší jen PŘEVEDE. Nic se
 // nemaže: starší nasazený build na témže zařízení své klíče pořád chce, a
@@ -33,7 +39,8 @@
 import {
   APPEARANCE_VERSION, DEFAULT_PRESET,
   migrateLegacyAppearance, normalizeAppearance, resolvePresetId,
-  resolveAppearancePreset, appearancePreset, isSystemAware,
+  resolveAppearancePreset, appearancePreset, isSystemAware, isSignaturePreset,
+  selectAppearance, returnToSignature,
   documentThemeAttrs, pwaThemeColor, resolveTheme, presetPolarity,
 } from "./themeRegistry.js";
 
@@ -52,7 +59,7 @@ function storage(store) {
 /** Přečte volbu. Nikdy nevyhodí výjimku a nikdy nevrátí nesmysl. */
 export function readAppearance(store) {
   const s = storage(store);
-  if (!s) return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET };
+  if (!s) return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: DEFAULT_PRESET };
   let raw = null, v2 = null, legacy = null;
   try { raw = s.getItem(APPEARANCE_KEY); } catch (e) { /* soukromý režim */ }
   try { v2 = s.getItem(LEGACY_APPEARANCE_KEY); } catch (e) { /* soukromý režim */ }
@@ -71,10 +78,9 @@ export function writeAppearance(pref, store) {
   if (!s) return clean;
   const p = appearancePreset(clean.preset);
   try { s.setItem(APPEARANCE_KEY, JSON.stringify(clean)); } catch (e) { /* plná kvóta motiv neshodí */ }
-  /* Zpětný zápis: automatika se starším buildům jeví jako Signature v režimu
-     „automaticky", pevný vzhled jako Signature v jeho polaritě. Starší build
-     tedy neuvidí svoji vlastní paletu jinak než jako den nebo noc — a to je
-     přesně to, co uměl. */
+  /* Zpětný zápis: starším buildům se každá volba jeví jako Signature ve své
+     polaritě — automatika jako „automaticky", volitelná paleta jako den nebo
+     noc. Starší build neuměl nic jiného, takže nic jiného neuvidí. */
   const mode = p.kind === "auto" ? "system" : p.polarity;
   try {
     s.setItem(LEGACY_APPEARANCE_KEY, JSON.stringify({ version: 2, family: "signature", mode }));
@@ -128,6 +134,7 @@ export function applyDocumentTheme(preset, prefersDark, doc) {
     if (d.documentElement) {
       d.documentElement.setAttribute("data-appearance", attrs["data-appearance"]);
       d.documentElement.setAttribute("data-color-mode", attrs["data-color-mode"]);
+      d.documentElement.setAttribute("data-frame-grammar", attrs["data-frame-grammar"]);
       d.documentElement.style.setProperty("color-scheme", attrs["data-color-mode"]);
     }
     if (d.body) d.body.style.background = field;
@@ -142,4 +149,7 @@ export function appearanceField(preset, prefersDark) { return resolveTheme(prese
 /** Klíče, které při střídání účtu patří předchozímu člověku. */
 export const APPEARANCE_KEYS = Object.freeze([APPEARANCE_KEY, LEGACY_APPEARANCE_KEY, LEGACY_THEME_KEY]);
 
-export { APPEARANCE_VERSION, DEFAULT_PRESET, resolvePresetId, isSystemAware };
+export {
+  APPEARANCE_VERSION, DEFAULT_PRESET, resolvePresetId, isSystemAware,
+  isSignaturePreset, selectAppearance, returnToSignature,
+};

@@ -27,24 +27,30 @@
 
 import {
   APPEARANCE_PRESETS, APPEARANCE_PRESET_IDS, FIXED_PRESETS, FIXED_PRESET_IDS,
-  DEFAULT_PRESET, RECOMMENDED_PRESET, PRESET_FIELDS,
-  BRAND, FUNCTIONAL, CHART, CHART_PATTERNS, DOCUMENT_THEME,
+  SIGNATURE_PRESET_IDS, OPTIONAL_PRESET_IDS, OPTIONAL_PRESETS,
+  DEFAULT_PRESET, RECOMMENDED_PRESET, PRESET_FIELDS, PRESET_THEME_COLORS, PRESET_GRAMMARS,
+  BRAND, UTILITY, FUNCTIONAL, CHART, CHART_PATTERNS, DOCUMENT_THEME,
   appearancePreset, resolvePresetId, resolveAppearancePreset, resolveTheme,
-  presetPolarity, isSystemAware, previewTokens, pwaThemeColor, documentThemeAttrs,
+  presetPolarity, isSystemAware, isSignaturePreset, frameChrome,
+  previewTokens, pwaThemeColor, documentThemeAttrs,
   statusPalette, chartPalette, presetFromFamily, STATUS_CARRIERS, TONE_ROLES, toneStyle,
-  normalizeAppearance, migrateLegacyAppearance, signatureAppearance, APPEARANCE_VERSION,
+  normalizeAppearance, migrateLegacyAppearance, signatureAppearance,
+  selectAppearance, returnToSignature, APPEARANCE_VERSION,
 } from "./themeRegistry.js";
 import { contrast, composite } from "./contrast.js";
 import { mixHex } from "./color.js";
 
 export {
   APPEARANCE_PRESETS, APPEARANCE_PRESET_IDS, FIXED_PRESETS, FIXED_PRESET_IDS,
-  DEFAULT_PRESET, RECOMMENDED_PRESET, PRESET_FIELDS,
-  BRAND, FUNCTIONAL, CHART, CHART_PATTERNS, DOCUMENT_THEME,
+  SIGNATURE_PRESET_IDS, OPTIONAL_PRESET_IDS, OPTIONAL_PRESETS,
+  DEFAULT_PRESET, RECOMMENDED_PRESET, PRESET_FIELDS, PRESET_THEME_COLORS, PRESET_GRAMMARS,
+  BRAND, UTILITY, FUNCTIONAL, CHART, CHART_PATTERNS, DOCUMENT_THEME,
   appearancePreset, resolvePresetId, resolveAppearancePreset, resolveTheme,
-  presetPolarity, isSystemAware, previewTokens, pwaThemeColor, documentThemeAttrs,
+  presetPolarity, isSystemAware, isSignaturePreset, frameChrome,
+  previewTokens, pwaThemeColor, documentThemeAttrs,
   statusPalette, chartPalette, presetFromFamily, STATUS_CARRIERS, TONE_ROLES, toneStyle,
-  normalizeAppearance, migrateLegacyAppearance, signatureAppearance, APPEARANCE_VERSION,
+  normalizeAppearance, migrateLegacyAppearance, signatureAppearance,
+  selectAppearance, returnToSignature, APPEARANCE_VERSION,
 };
 
 /* Signature ve dvou světlech. HISTORICKÝ TVAR, ne druhý přepínač: čte ho
@@ -152,15 +158,21 @@ const TAGS_BY_PRESET = (() => {
        tím, co dům nosí; noc projde stejným dorovnáním jako ostatní vzhledy
        a posune se právě tam, kde je to potřeba. */
     if (preset.id === "signature-day") { out[preset.id] = TAGS_TANMAY[m]; continue; }
-    /* VŠECHNY PLOCHY, NA KTERÝCH ŠTÍTEK OPRAVDU LEŽÍ. Do V1.1 se tón dorovnával
-       jen na kartě, protože v tehdejších rodinách byla karta nejtěžší plocha.
-       Písek a země to porušil: jeho pole (`#D3C7AD`) je o dva stupně tmavší než
-       karta, takže chip, který na kartě prošel, byl na stránce pod 4:1. Fit
-       proto bere NEJHORŠÍ z ploch — a protože začíná na nule, palety, které
-       procházely už dřív, se nehnou ani o odstín. */
+    /* PLOCHY, NA KTERÝCH ŠTÍTEK OPRAVDU LEŽÍ — obsahové plochy, ne navigace.
+       Od V3 mají čtyři palety tmavou navigaci nad světlým polem; štítek na
+       navigaci nikdy neleží, a kdyby se na ni dorovnával, spadl by fit na
+       čistý inkoust. Průsvitné nádechy (hover) se nejdřív složí na svůj
+       podklad, aby se měřilo to, co prohlížeč opravdu namaluje. */
     const pal = preset.palette;
-    const surfaces = [pal.background, pal.navigation, pal.surface, pal.card,
-      pal.documentSurface, pal.cardHover, pal.sheetHover, pal.hero, pal.elevatedSurface];
+    const comp = (v, base) => (typeof v === "string" && v.charAt(0) === "#" ? v : composite(v, base));
+    /* Signature · Noc si nese PŘESNĚ seznam ploch z V2 — jiný seznam by
+       posunul dorovnané tóny a Signature se hýbat nesmí. */
+    const surfaces = preset.id === "signature-night"
+      ? [pal.background, pal.navigation, pal.surface, pal.card,
+         pal.documentSurface, pal.cardHover, pal.sheetHover, pal.hero, pal.elevatedSurface]
+      : [pal.background, pal.surface, pal.card, pal.documentSurface,
+         comp(pal.cardHover, pal.card), comp(pal.sheetHover, pal.documentSurface),
+         comp(pal.elevatedSurface, pal.card)];
     const card = preset.palette.card;
     const pole = m === "light" ? BRAND.forest : BRAND.linen;
     const chipWith = (tint) => (hex) => {

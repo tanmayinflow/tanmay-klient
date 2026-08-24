@@ -6,26 +6,50 @@
 // ----------------------------------------------------------------------
 // VZHLED · oddíl v Nastavení
 // ----------------------------------------------------------------------
-// Do V1.1 tu byly dvě volby — RODINA a REŽIM — a jejich součin dával
-// čtrnáct palet. Od V2 je volba JEDNA: devět hotových vzhledů. Přepínač
-// den/noc zmizel, protože po zavedení pevných vzhledů lhal: kdo měl Kouř
-// a koření, tomu „Den" nic smysluplného neudělal.
+// Dvě části, jeden princip:
 //
-// Karta neukazuje dva barevné čtverce — ukazuje malý kus skutečného
-// rozhraní: pole stránky, navigační pruh, kartu s nadpisem a dvěma řádky
-// NEUTRÁLNÍHO běžného textu, dokumentovou plochu (na které se dlouho píše),
-// akcentní tlačítko a dva stavy. Kdo si vybírá vzhled, vybírá si místnost,
-// ne vzorník.
+//   SIGNATURE — norma domu, přesně ta trojice, kterou dům nosí: automatika,
+//   den, noc. Nic se na ní neměnilo a nemění.
 //
-// Celý seznam je jeden `radiogroup`: šipky se pohybují po volbách, mezerník
-// nebo Enter vybírá, čtečka čte název vzhledu, jeho polaritu a to, jestli je
-// zvolený. Automaticky · Signature je první a má náhled rozdělený na den
-// a noc, protože je to jediná položka, která se sama mění.
+//   VOLITELNÉ PALETY — sedm hotových vzhledů s přesnými kotvami z dodaných
+//   referencí a s vlastní řečí rámů. Karta neukazuje ploché vzorky: kreslí
+//   pole, navigační pruh, RÁMOVANÝ panel v gramatice té palety, dokumentovou
+//   plochu, neutrální text, akcent a dva stavy. Volitelná paleta nemá režim
+//   a nemá přepínač rámů — je to jeden dokončený vzhled.
 //
-// Komponenta nezná ani jeden vzhled jménem. Všechno, co kreslí, si bere
-// z rejstříku.
+// „Použít Signature" vrací PŘESNĚ tu Signature volbu, která tu byla před
+// odbočkou k paletě — automatiku, den, nebo noc.
+//
+// Obě skupiny jsou radiogroup se šipkami a rovingem; čtečka slyší název,
+// polaritu a stav. Komponenta nezná ani jednu paletu jménem — všechno si
+// bere z rejstříku, včetně receptu rámu pro náhled.
 import React, { useRef } from "react";
-import { APPEARANCE_PRESETS, DEFAULT_PRESET, previewTokens } from "./themeRegistry.js";
+import {
+  APPEARANCE_PRESETS, SIGNATURE_PRESET_IDS, OPTIONAL_PRESETS, DEFAULT_PRESET,
+  appearancePreset, previewTokens, isSignaturePreset,
+} from "./themeRegistry.js";
+
+/* Miniaturní rám v gramatice palety — týž recept jako ve skutečném CSS,
+   jen zmenšený na náhled. Náhled je jediné místo, kde se rám kreslí bez
+   `data-frame-grammar`: ukazuje, co paleta udělá, ještě před zapnutím. */
+function frameShadow(grammar, tok) {
+  switch (grammar) {
+    case "architectural-double":
+      return `inset 0 0 0 1px ${tok.frameOuter}, inset 0 0 0 3px ${tok.background}, inset 0 0 0 4px ${tok.frameInner}`;
+    case "monument-inset":
+      return `inset 0 0 0 2px ${tok.frameOuter}, inset 7px 0 0 0 ${tok.frameRail}`;
+    case "strata-rails":
+      return `inset 0 2px 0 0 ${tok.frameOuter}, inset 3px 0 0 0 ${tok.frameRail}, inset 0 -2px 0 0 ${tok.frameInner}`;
+    case "nested-fossil":
+      return `inset 0 0 0 1px ${tok.frameOuter}, inset 0 0 0 5px ${tok.frameInner}`;
+    case "basalt-steps":
+      return `inset 0 0 0 2px ${tok.frameOuter}, 3px 3px 0 0 ${tok.frameInner}`;
+    case "woven-rails":
+      return `inset 0 0 0 4px ${tok.frameOuter}, inset 0 0 0 5px ${tok.frameInner}`;
+    default:
+      return "none";
+  }
+}
 
 export function createAppearanceUI(useT, L) {
   /** Slunce a měsíc jako tvar, ne jako barva — polarita se pozná i v šedi. */
@@ -54,17 +78,16 @@ export function createAppearanceUI(useT, L) {
     );
   }
 
-  /* Kus skutečného rozhraní, ne dva barevné obdélníky (V2 §18): pole,
-     NAVIGACE, karta s nadpisem a neutrálním běžným textem, DOKUMENTOVÁ
-     plocha, akcent s popiskem na něm a dva stavy. Přesně to jsou věci,
-     podle kterých se vzhled dá posoudit dřív, než se zapne. */
-  function Snippet({ tok, label }) {
+  /* Kus skutečného rozhraní: pole, navigační pruh, RÁMOVANÝ panel (skutečná
+     gramatika palety), dokumentová plocha, akcent s popiskem a dva stavy. */
+  function Snippet({ tok, grammar, label }) {
+    const framed = grammar && grammar !== "none";
     return (
       <div aria-hidden="true" title={label}
         style={{ flex: 1, minWidth: 0, background: tok.background, display: "flex", flexDirection: "column" }}>
-        <div style={{ height: 7, background: tok.navigation, borderBottom: `1px solid ${tok.border}`, flexShrink: 0 }} />
+        <div style={{ height: 7, background: tok.navigation, flexShrink: 0 }} />
         <div style={{ padding: 5, display: "flex", flexDirection: "column", gap: 4, justifyContent: "center", flex: 1 }}>
-          <div style={{ background: tok.card, border: `1px solid ${tok.border}`, borderRadius: 4, padding: "4px 5px 5px", display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ background: tok.card, border: framed ? "none" : `1px solid ${tok.border}`, boxShadow: framed ? frameShadow(grammar, tok) : "none", borderRadius: 4, padding: framed ? "6px 7px 7px" : "4px 5px 5px", display: "flex", flexDirection: "column", gap: 3 }}>
             <div style={{ height: 3.5, borderRadius: 2, background: tok.heading, width: "62%" }} />
             <div style={{ height: 2.5, borderRadius: 2, background: tok.text, width: "88%" }} />
             <div style={{ height: 2.5, borderRadius: 2, background: tok.textMuted, width: "58%" }} />
@@ -91,6 +114,7 @@ export function createAppearanceUI(useT, L) {
     const name = L(preset.labelCs, preset.labelEn);
     const tok = previewTokens(preset.id);
     const auto = preset.kind === "auto";
+    const grammar = preset.chrome ? preset.chrome.frameGrammar : "none";
     const polarityWord = auto
       ? L("podle systému", "follows the system")
       : preset.polarity === "dark" ? L("noční", "night") : L("denní", "day");
@@ -113,8 +137,8 @@ export function createAppearanceUI(useT, L) {
       >
         <span style={{ display: "flex", height: 78, borderRadius: 6, overflow: "hidden", border: `1px solid ${t.borderSoft}` }}>
           {auto
-            ? <><Snippet tok={tok.light} label={L("Den", "Day")} /><Snippet tok={tok.dark} label={L("Noc", "Night")} /></>
-            : <Snippet tok={tok} label={name} />}
+            ? <><Snippet tok={tok.light} grammar="none" label={L("Den", "Day")} /><Snippet tok={tok.dark} grammar="none" label={L("Noc", "Night")} /></>
+            : <Snippet tok={tok} grammar={grammar} label={name} />}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
           <span aria-hidden="true" style={{ width: 12, flexShrink: 0, color: t.interactiveAccent || t.accent, fontFamily: "var(--tm-font-tag)", fontSize: 12, lineHeight: 1 }}>{selected ? "✓" : ""}</span>
@@ -139,17 +163,9 @@ export function createAppearanceUI(useT, L) {
     );
   }
 
-  /**
-   * @param {object} p
-   * @param {string} p.preset   zvolený vzhled
-   * @param {function} p.onPreset
-   * @param {function} p.onReset
-   */
-  function VzhledSekce({ preset, onPreset, onReset }) {
-    const { t } = useT();
+  function Radios({ label, items, value, onPick, refsOffset }) {
     const refs = useRef([]);
-    const items = APPEARANCE_PRESETS;
-    const idx = Math.max(0, items.findIndex((i) => i.id === preset));
+    const idx = Math.max(0, items.findIndex((i) => i.id === value));
     const move = (e) => {
       const k = e.key;
       const fwd = k === "ArrowRight" || k === "ArrowDown";
@@ -158,41 +174,67 @@ export function createAppearanceUI(useT, L) {
       e.preventDefault();
       const n = items.length;
       const next = (idx + (fwd ? 1 : n - 1)) % n;
-      onPreset(items[next].id);
+      onPick(items[next].id);
       const el = refs.current[next];
       if (el && el.focus) el.focus();
     };
-    const label = {
+    return (
+      <div role="radiogroup" aria-label={label} onKeyDown={move}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(132px, 1fr))", gap: 10 }}>
+        {items.map((p, i) => (
+          <PresetCard key={p.id} preset={p} selected={p.id === value} tabIndex={i === idx ? 0 : -1}
+            onSelect={() => onPick(p.id)} refFn={(el) => { refs.current[i] = el; }} />
+        ))}
+      </div>
+    );
+  }
+
+  /**
+   * @param {object} p
+   * @param {string} p.preset      zvolený vzhled
+   * @param {string} p.signature   poslední Signature volba (auto/den/noc)
+   * @param {function} p.onPreset  zvol vzhled (Signature i paletu)
+   * @param {function} p.onSignature  „Použít Signature" — návrat k poslední volbě
+   */
+  function VzhledSekce({ preset, signature, onPreset, onSignature }) {
+    const { t } = useT();
+    const sig = APPEARANCE_PRESETS.filter((p) => SIGNATURE_PRESET_IDS.indexOf(p.id) !== -1);
+    const optional = OPTIONAL_PRESETS;
+    const naPalete = !isSignaturePreset(preset);
+    const label = (extra) => ({
       fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.2em",
-      fontSize: 10.5, color: t.sage, marginBottom: 8,
-    };
-    const isDefault = preset === DEFAULT_PRESET;
+      fontSize: 10.5, color: t.sage, marginBottom: 8, marginTop: extra ? 18 : 0,
+    });
     return (
       <div id="tm-vzhled" style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${t.borderSoft}` }}>
-        <div style={label}>{L("Vzhled", "Appearance")}</div>
+        <div style={label(false)}>{L("Vzhled", "Appearance")}</div>
         <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, lineHeight: 1.55, marginBottom: 12 }}>
-          {L("Vzhled je jen to, jak tahle aplikace vypadá na tomhle zařízení. Nemění, co je vidět, co se sdílí ani co znamenají stavy. Podle systému se řídí jediná volba — první.",
-             "An appearance is only how this app looks on this device. It changes nothing about what is visible, what is shared, or what a status means. Only the first entry follows the system.")}
+          {L("Vzhled je jen to, jak tahle aplikace vypadá na tomhle zařízení. Nemění, co je vidět, co se sdílí ani co znamenají stavy.",
+             "An appearance is only how this app looks on this device. It changes nothing about what is visible, what is shared, or what a status means.")}
         </div>
 
-        <div role="radiogroup" aria-label={L("Vzhled", "Appearance")} onKeyDown={move}
-          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(132px, 1fr))", gap: 10 }}>
-          {items.map((p, i) => (
-            <PresetCard key={p.id} preset={p} selected={p.id === preset} tabIndex={i === idx ? 0 : -1}
-              onSelect={() => onPreset(p.id)} refFn={(el) => { refs.current[i] = el; }} />
-          ))}
-        </div>
+        <div style={label(false)}>{L("Signature", "Signature")}</div>
+        <Radios label={L("Signature", "Signature")} items={sig}
+          value={isSignaturePreset(preset) ? preset : ""} onPick={onPreset} />
 
-        <button type="button" onClick={onReset} disabled={isDefault}
+        <div style={label(true)}>{L("Volitelné palety", "Optional palettes")}</div>
+        <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, lineHeight: 1.55, marginBottom: 12 }}>
+          {L("Sedm hotových palet s přesnými barvami z předloh a vlastní řečí rámů. Paleta nemá režim: je to jeden dokončený vzhled a systém s ním nehýbe.",
+             "Seven finished palettes with exact reference colours and their own frame language. A palette has no mode: it is one finished appearance, and the system never moves it.")}
+        </div>
+        <Radios label={L("Volitelné palety", "Optional palettes")} items={optional}
+          value={naPalete ? preset : ""} onPick={onPreset} />
+
+        <button type="button" onClick={onSignature} disabled={!naPalete}
           className="tm-cta"
           style={{
             marginTop: 14, minHeight: 38, padding: "8px 16px",
             background: "transparent", border: `1px solid ${t.border}`,
-            color: isDefault ? t.textDisabled || t.textMuted : t.textSec,
-            cursor: isDefault ? "default" : "pointer",
+            color: !naPalete ? t.textDisabled || t.textMuted : t.textSec,
+            cursor: !naPalete ? "default" : "pointer",
             fontFamily: "var(--tm-font-body)", fontSize: 13,
           }}>
-          {L("Vrátit na Signature", "Reset to Signature")}
+          {L("Použít Signature", "Use Signature")}
         </button>
       </div>
     );

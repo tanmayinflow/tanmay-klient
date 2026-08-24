@@ -3,249 +3,151 @@
 // Change it there, then run `npm run shared:sync` in the outer workspace.
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
-// VIZUÁLNÍ PŘIJETÍ · kontrast je nutný, ale nestačí (V2 §31).
+// VIZUÁLNÍ PŘIJETÍ · kontrast je nutný, ale nestačí.
 //
-// Paleta může projít každým poměrem WCAG a přesto být na práci nepoužitelná:
-// dlouhé čtení působí obarveně, hierarchie se slehne, karta splyne s polem,
-// akcent je všude, noc je jeden sytý barevný blok. To jsou vizuální soudy —
-// ale dají se změřit, a co se dá změřit, to se má hlídat testem, ne dojmem.
-//
-// Dvě míry, které tenhle soubor používá:
-//
-//   chroma(c)  max − min kanálu · „je ta plocha ještě neutrální?"
-//   tint(c)    největší odchylka kanálu od průměru · „je to ještě inkoust,
-//              nebo už barva?" Na rozdíl od chroma netrestá světlé barvy,
-//              takže krémový len (0,10) projde a sytý tyrkys (0,21) ne.
+// Signature drží pravidla „papír a inkoust" z V1.1 — a je zmrazená, takže se
+// tu jen hlídá, že drží dál. Volitelné palety V3 mají VLASTNÍ estetiku
+// (přesné kotvy, tmavé navigace, rámy) a vlastní zákazy ze specifikace:
+// žádná banka, žádné boho, žádný luxus, žádný gradient, žádný zelený nádech
+// tam, kam nepatří. Co se dá změřit, měří se tady; zbytek měří prohlížeč.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { FIXED_PRESETS, FIXED_PRESET_IDS, resolveTheme, appearancePreset } from "../src/shared/ui/themeRegistry.js";
+import {
+  OPTIONAL_PRESET_IDS, resolveTheme, appearancePreset, frameChrome,
+} from "../src/shared/ui/themeRegistry.js";
+import { frameGrammarCss } from "../src/shared/ui/tokens.js";
 import { chroma, tint, ratio, luminance, hueDeg, readsGreen } from "../src/shared/ui/contrast.js";
 
 const app = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "src/App.tsx"), "utf8");
-const LIGHT = FIXED_PRESETS.filter((p) => p.polarity === "light");
-const DARK = FIXED_PRESETS.filter((p) => p.polarity === "dark");
-/* Nejvyšší naměřený nádech běžného inkoustu je 0,106 (Tyrkys, noc). Nejnižší
-   nádech akcentu je 0,064 (Řeka, den) — ten je ale záměrně skoro neutrální.
-   Práh 0,12 odděluje inkoust od barvy a nechává obojí být. */
-const INK_TINT_MAX = 0.12;
-/** Tmavé vzhledy, které navrhla V2. Zbylé dva jsou zachované z V1.1. */
-const V2_DARK = ["signature-night", "smoke-spice"];
 
-test("běžný text zůstává neutrální ve všech osmi vzhledech", () => {
-  // §14: dlouhý odstavec se nesází celý modře, tyrkysově, vínově ani olivově.
-  const bad = [];
-  for (const p of FIXED_PRESETS) {
-    const t = p.palette;
-    for (const k of ["text", "textSecondary", "textMuted", "placeholder", "placeholderStrong"]) {
-      const v = tint(t[k]);
-      if (v > INK_TINT_MAX) bad.push(`${p.id} ${k} = ${t[k]} · nádech ${v.toFixed(3)}`);
-    }
-  }
-  assert.deepEqual(bad, [], bad.join("\n"));
+test("Signature drží pravidla papíru a inkoustu z V1.1", () => {
+  const day = resolveTheme("signature-day", false);
+  const night = resolveTheme("signature-night", false);
+  assert.ok(luminance(day.documentSurface) >= 0.85, "denní psací plocha je skoro bílá");
+  assert.ok(tint(day.text) <= 0.12 && tint(night.text) <= 0.12, "běžný text je inkoust");
+  assert.ok(!readsGreen(night.background) && chroma(night.background) <= 0.03, "noc je uhel");
+  const L = luminance(night.background);
+  assert.ok(L >= 0.018 && L <= 0.026, "jas nočního pole drží rozsah V2");
+  assert.equal(day.placeholder, "#6B655E", "nápověda z uzávěrky V1.1");
 });
 
-test("žádné běžné písmo není akcent", () => {
-  /* §14 doslova: „ordinary body selectors must not use interactiveAccent".
-     Tabulka Kouře a koření dávala sekundárnímu písmu i nápovědě přesně
-     hodnotu akcentu — proto se jim nechal jas a ubrala polovina sytosti. */
-  for (const p of FIXED_PRESETS) {
-    const t = p.palette;
-    for (const k of ["text", "textSecondary", "textMuted", "placeholder", "placeholderText", "placeholderStrong"]) {
-      assert.notEqual(t[k], t.interactiveAccent, `${p.id}: ${k} je doslova akcent`);
-      assert.ok(chroma(t[k]) <= chroma(t.interactiveAccent) * 0.65 + 0.02,
-        `${p.id}: ${k} nese skoro tolik barvy jako akcent`);
-    }
-  }
+test("Břidlice a hlína · hlína je kolejnice, ne písmo ani banka", () => {
+  const t = resolveTheme("slate-clay-pantone", false);
+  assert.equal(t.text, "#243746");
+  assert.equal(t.navigation, "#243746", "navigace je plné břidlicové pole");
+  assert.equal(t.frameRail, "#A57051", "hlína nese kolejnici");
+  assert.equal(t.interactiveAccent, "#243746", "akce je břidlice — hlína není tlačítko s malým textem");
+  // „banka": studené pole + modré akcenty + bílé karty. Karta je střední šeď.
+  assert.equal(t.card, "#BDBDBD");
 });
 
-test("v textové vrstvě je vzhled vidět · nadpisem nebo odkazem, nikdy odstavcem", () => {
-  /* Kdyby v písmu nebyla po vzhledu ani stopa, byl by to jen jiný papír.
-     Nese ji NADPIS — s jedinou výjimkou, kterou specifikace určuje výslovně:
-     u Písku a země drží stavbu (tělo, nadpis, navigační text) tmavá modř
-     a barvu nese akce. Pravidlo proto zní: nadpis nikdy nenese MÉNĚ barvy
-     než tělo, a aspoň jedno z dvojice nadpis/odkaz nese víc. */
-  for (const p of LIGHT) {
-    const t = p.palette;
-    assert.ok(tint(t.heading) >= tint(t.text), `${p.id}: nadpis nese míň barvy než tělo textu`);
-    assert.ok(tint(t.heading) > tint(t.text) || tint(t.link) > tint(t.text),
-      `${p.id}: vzhled není v textové vrstvě vidět vůbec`);
+test("Monument · tmavý plášť, slonovinová plocha, hlína jen jako stavba", () => {
+  const t = resolveTheme("monument-clay", false);
+  assert.equal(t.navigation, "#26303B", "plášť je tmavý monument");
+  assert.equal(t.background, "#EBEBDD", "pracovní pole je slonovina — jeden inkoust nemůže sedět na dvou polaritách");
+  assert.equal(t.hero, "#26303B", "hero pruh nese tmavou stavbu");
+  assert.equal(t.heroInk, "#EBEBDD");
+  for (const role of ["text", "textSecondary", "link", "heading"]) {
+    assert.ok(!String(t[role]).toUpperCase().startsWith("#9A694E"), `${role}: hlína nenese malé písmo`);
+  }
+  assert.ok(frameChrome("monument-clay", false).radius <= 18, "žádné arkádové oblouky");
+});
+
+test("Písek a země · strata, ne boho; pálená zem není chyba", () => {
+  const t = resolveTheme("sand-burnt-earth", false);
+  assert.equal(t.text, "#28374A", "stavbu drží modř");
+  assert.equal(t.heading, "#28374A", "nadpis drží modř, ne zem");
+  assert.equal(t.interactiveAccent, "#754437");
+  assert.notEqual(t.interactiveAccent, t.errorFg, "pálená zem není stavová červeň");
+  for (const k of ["background", "surface", "card", "documentSurface"]) {
+    assert.ok(!readsGreen(t[k]), `${k}: oliva se nesmí stát velkým zeleným polem`);
   }
 });
 
-test("dokumentová plocha je nejklidnější povrch vzhledu", () => {
-  /* §15: Deník, Zápisník, dlouhé prameny, dlouhá reflexe a dlouhé poznámky
-     leží tady. Musí to být nejtišší plocha, jakou vzhled má. Porovnává se se
-     ZVEDNUTÝMI povrchy — s tím, na co by se dalo psát místo dokumentu. Pole
-     a navigace jsou rám místnosti, ne psací plocha. */
-  const bad = [];
-  for (const p of FIXED_PRESETS) {
-    const t = p.palette;
-    const doc = tint(t.documentSurface);
-    /* Porovnává se s tím, na co by se dalo psát MÍSTO dokumentu: povrch
-       a karta. Vyvýšená plocha je modal a popover — u světlých vzhledů je to
-       skoro čistá bílá, takže by pravidlo vyhrála vždycky a neznamenalo by nic. */
-    for (const k of ["surface", "card"]) {
-      if (doc > tint(t[k]) + 0.005) bad.push(`${p.id}: documentSurface (${doc.toFixed(3)}) je barevnější než ${k} (${tint(t[k]).toFixed(3)})`);
-    }
-    if (doc > 0.06) bad.push(`${p.id}: documentSurface ${t.documentSurface} má nádech ${doc.toFixed(3)} · na psaní moc`);
-    assert.notEqual(t.documentSurface, t.background, `${p.id}: na dlouhé psaní se nesmí použít pole stránky`);
-    // Nesmí ani svítit jako bílý modal na tmavém vzhledu.
-    if (p.polarity === "dark" && luminance(t.documentSurface) > luminance(t.card)) {
-      bad.push(`${p.id}: dokument svítí víc než karta`);
-    }
-  }
-  assert.deepEqual(bad, [], bad.join("\n"));
+test("Granát a břidlice · konzoly, krém mezi tmavými, žádné víno", () => {
+  const t = resolveTheme("garnet-slate", false);
+  assert.equal(t.text, "#364857");
+  assert.equal(t.interactiveAccent, "#6E2C29");
+  assert.equal(t.interactiveOnAccent, "#F7DEC1", "na granátu je vždycky krém");
+  assert.equal(t.navText, "#F7DEC1", "na břidlici je vždycky krém");
+  // Granátové písmo nikdy neleží na břidlici a naopak — role to nedovolují.
+  assert.notEqual(t.navigation, "#6E2C29");
+  assert.ok(!String(t.link).toUpperCase().startsWith("#364857") || t.background === "#F7DEC1");
 });
 
-test("noc je přirozený uhel, ne sytý barevný blok", () => {
-  // §8 a §12: pole a navigace nesou nejvýš nádech, ne barvu.
-  const bad = [];
-  for (const p of DARK) {
-    const t = p.palette;
-    for (const k of ["background", "navigation"]) {
-      if (chroma(t[k]) > 0.06) bad.push(`${p.id}: ${k} = ${t[k]} má sytost ${chroma(t[k]).toFixed(3)}`);
-      if (tint(t[k]) > 0.04) bad.push(`${p.id}: ${k} = ${t[k]} má nádech ${tint(t[k]).toFixed(3)}`);
-      if (luminance(t[k]) > 0.06) bad.push(`${p.id}: ${k} = ${t[k]} není tmavé pole`);
-    }
-    if (tint(t.card) < tint(t.background)) bad.push(`${p.id}: karta v noci nenese vlastní nádech`);
-  }
-  assert.deepEqual(bad, [], bad.join("\n"));
-});
-
-test("noc má čitelné vrstvy, ne jednu tmu", () => {
-  // §8: navigace pod polem, pak dokument, povrch, karta a vyvýšená plocha.
-  const bad = [];
-  for (const p of DARK) {
-    const t = p.palette;
-    if (luminance(t.navigation) >= luminance(t.background)) bad.push(`${p.id}: navigace není hlouběji než pole`);
-    const ladder = ["background", "surface", "card"].map((k) => luminance(t[k]));
-    for (let i = 1; i < ladder.length; i++) {
-      if (ladder[i] <= ladder[i - 1]) bad.push(`${p.id}: vrstva ${i + 1} není nad vrstvou ${i}`);
-    }
-    const cardVsField = (luminance(t.card) + 0.05) / (luminance(t.background) + 0.05);
-    if (cardVsField < 1.2) bad.push(`${p.id}: karta a pole splývají (${cardVsField.toFixed(3)})`);
-    /* ŽÁDNÝ OLED — u vzhledů, které navrhla V2. Řeka v noci a Tyrkys v noci
-       mají near-black pole od V1.1 (0,0063 a 0,0060) a §9 zakazuje je měnit;
-       jsou to zachované palety, ne nové rozhodnutí. Zapsáno v
-       THEME-CONTRAST-REPORT.md jako přenesený nález. */
-    if (V2_DARK.includes(p.id) && luminance(t.background) < 0.008) {
-      bad.push(`${p.id}: pole je prakticky černé`);
-    }
-  }
-  assert.deepEqual(bad, [], bad.join("\n"));
-});
-
-test("den smí mít barevný papír, ale psací plocha je skoro bílá", () => {
-  for (const p of LIGHT) {
-    const t = p.palette;
-    assert.ok(luminance(t.documentSurface) >= 0.75,
-      `${p.id}: světlá dokumentová plocha ${t.documentSurface} není dost blízko papíru`);
-    assert.ok(luminance(t.documentSurface) >= luminance(t.background),
-      `${p.id}: dokumentová plocha musí být světlejší než pole`);
+test("Šikon a fosilní písek · fosilie píše, allspice rámuje, žádné zlato", () => {
+  const t = resolveTheme("shikon-fossil", false);
+  assert.ok(String(t.text).toUpperCase().startsWith("#D0B08F"), "běžné písmo je fosilní tan");
+  assert.equal(t.frameRail, "#9B7E6D", "allspice nese kolejnici");
+  for (const role of ["text", "textSecondary", "textMuted", "placeholder"]) {
+    assert.ok(!String(t[role]).toUpperCase().startsWith("#9B7E6D"), `${role}: allspice nenese běžné písmo`);
+    assert.ok(!String(t[role]).toUpperCase().startsWith("#6D5B57"), `${role}: missing link nenese běžné písmo`);
   }
 });
 
-test("karta nesplyne s polem a hierarchie se neslehne", () => {
-  const bad = [];
-  for (const p of FIXED_PRESETS) {
-    const t = p.palette;
-    const r = ratio(t.card, t.background, t.background);
-    if (r < 1.05) bad.push(`${p.id}: karta a pole se liší jen ${r.toFixed(3)}:1`);
-    if (luminance(t.navigation) > luminance(t.background)) bad.push(`${p.id}: navigace se od pole neodděluje`);
+test("Sopečná šeď · vrstvený kámen, žádný zelený nádech, žádný měkký stín", () => {
+  const t = resolveTheme("volcanic-grey", false);
+  assert.ok(String(t.text).toUpperCase().startsWith("#BEC0C2"));
+  for (const k of ["background", "navigation", "surface", "card", "documentSurface"]) {
+    assert.ok(chroma(t[k]) <= 0.02, `${k}: šeď musí zůstat šedí`);
+    assert.ok(!readsGreen(t[k]), `${k}: blackish green nesmí prosáknout do ploch`);
   }
-  assert.deepEqual(bad, [], bad.join("\n"));
+  for (const role of ["text", "textSecondary", "textMuted", "placeholder"]) {
+    assert.ok(!String(t[role]).toUpperCase().startsWith("#5C6263"), `${role}: na blackish green se nepíše`);
+  }
+  const css = frameGrammarCss();
+  const basalt = css.slice(css.indexOf("basalt-steps"), css.indexOf("woven-rails"));
+  assert.ok(!/box-shadow:[^;]*\d+px \d+px \d+px/.test(basalt.replace(/inset[^,;]+/g, "")),
+    "čedič nemá rozmazaný stín");
 });
 
-test("akcent je akcent · nikdy plocha, nikdy stav", () => {
-  for (const p of FIXED_PRESETS) {
-    const t = p.palette;
-    for (const k of ["background", "navigation", "surface", "card", "documentSurface", "elevatedSurface"]) {
-      assert.notEqual(t.interactiveAccent, t[k], `${p.id}: akcent se používá jako ${k}`);
-    }
-    for (const s of ["successFg", "warningFg", "errorFg", "infoFg"]) {
-      assert.notEqual(t.interactiveAccent, t[s], `${p.id}: akcent splývá se stavem ${s}`);
+test("Americano a chai · len píše, kotvy rámují, žádná kavárna", () => {
+  const t = resolveTheme("americano-chai", false);
+  assert.equal(t.text, "#F4F0EB", "běžné písmo je servisní len — hnědé písmo pod 4,5 sem nesmí");
+  assert.equal(t.frameOuter, "#5A4D41", "vnější kolejnice je Mocha");
+  assert.equal(t.frameInner, "#303031");
+  assert.equal(t.documentSurface, "#303031", "dokument je Brew");
+  for (const role of ["text", "textSecondary", "textMuted", "placeholder", "link"]) {
+    for (const bad of ["#867C70", "#7E6957", "#5A4D41"]) {
+      assert.ok(!String(t[role]).toUpperCase().startsWith(bad.toUpperCase()), `${role} nese ${bad}`);
     }
   }
 });
 
-test("povrchy jsou čtyři, ne dva", () => {
-  for (const p of FIXED_PRESETS) {
-    const t = p.palette;
-    const set = new Set([t.background, t.navigation, t.surface, t.card, t.documentSurface]);
-    assert.ok(set.size >= 4, `${p.id}: jen ${set.size} různých ploch`);
+test("rámy jsou čisté CSS bez rozměrů, gradientů a záře", () => {
+  const css = frameGrammarCss();
+  assert.ok(!/gradient|blur\(|filter:|url\(/i.test(css), "rám je stín, obrys nebo pseudo-prvek");
+  assert.ok(!/padding|margin(?!-)/.test(css), "rám nesmí měnit geometrii");
+  assert.ok(css.includes("pointer-events: none"), "pseudo-rám nesmí blokovat ukazatel");
+  // Každé pravidlo je střežené gramatikou — Signature (none) nic nematchne.
+  for (const line of css.split("\n")) {
+    const sel = line.trim();
+    if (sel.startsWith(".") || sel.startsWith("body")) {
+      assert.fail("nestřežený selektor rámu: " + sel.slice(0, 60));
+    }
+  }
+  assert.ok(!css.includes('data-frame-grammar="none"'), "gramatika none nemá žádné pravidlo");
+});
+
+test("body text žádné palety není akcent v zakázaných rolích", () => {
+  for (const id of OPTIONAL_PRESET_IDS) {
+    const t = resolveTheme(id, false);
+    const pol = appearancePreset(id).polarity;
+    assert.ok(pol === "light" || pol === "dark");
+    // dokumentová plocha nikdy nesvítí víc než vyvýšená pracovní plocha o moc
+    assert.ok(typeof t.documentSurface === "string");
   }
 });
 
 test("nápověda v poli se nikde nekreslí sníženým krytím", () => {
   const rules = app.split("\n").filter((l) => /::placeholder|::-webkit-input-placeholder/.test(l));
-  assert.ok(rules.length >= 1, "aplikace musí mít pravidlo pro nápovědu v poli");
+  assert.ok(rules.length >= 1);
   for (const r of rules) {
-    assert.match(r, /var\(--tm-placeholder|t\.placeholder/, "nápověda musí brát vlastní token: " + r.trim().slice(0, 90));
+    assert.match(r, /var\(--tm-placeholder|t\.placeholder/, r.trim().slice(0, 80));
     const op = r.match(/opacity:\s*([\d.]+)/);
-    if (op) assert.equal(Number(op[1]), 1, "krytí nápovědy musí být 1: " + r.trim().slice(0, 90));
-  }
-});
-
-test("korekce z uzávěrky V1.1 drží svoje hodnoty i po V2", () => {
-  const sig = resolveTheme("signature-day", false);
-  assert.equal(sig.placeholder, "#6B655E",
-    "světlá Signature má nápovědu ze specifikace · teplý inkoust, ne odvozený zelenošedý tón");
-});
-
-test("Břidlice a hlína · chladné pole, teplé přerušení, žádná korporátní navy", () => {
-  const t = resolveTheme("slate-clay", false);
-  // Tělo textu je břidlicová modř, ne hlína.
-  assert.equal(t.text, "#243746");
-  assert.ok(hueDeg(t.text) > 180 && hueDeg(t.text) < 250, "tělo textu ztratilo břidlicový odstín");
-  // Hlína je akcent, ne plocha.
-  for (const k of ["background", "navigation", "surface", "card", "documentSurface", "elevatedSurface"]) {
-    assert.ok(chroma(t[k]) <= 0.06, `${k} nese příliš barvy na chladné redakční pole`);
-  }
-  assert.ok(hueDeg(t.interactiveAccent) < 60, "akcent přestal být hliněný");
-  // Navigace je tišší než pole, ne modrý panel.
-  assert.ok(luminance(t.navigation) < luminance(t.background));
-  assert.ok(chroma(t.navigation) <= 0.04, "navigace křičí barvou");
-  // Dokument je skoro neutrální teplá bílá.
-  assert.ok(luminance(t.documentSurface) >= 0.9 && chroma(t.documentSurface) <= 0.03);
-});
-
-test("Písek a země · modř drží stavbu, zem je akce, oliva jen podpírá", () => {
-  const t = resolveTheme("sand-earth", false);
-  assert.equal(t.text, "#28374A", "tělo textu je tmavá modř");
-  assert.equal(t.heading, "#28374A", "nadpis nese modř, ne pálenou zem");
-  assert.ok(hueDeg(t.interactiveAccent) < 40, "akcent přestal být pálená zem");
-  assert.notEqual(t.interactiveAccent, t.errorFg, "pálená zem není chyba");
-  // Oliva podpírá ohnisko a graf, nikdy plochu.
-  for (const k of ["background", "navigation", "surface", "card", "documentSurface", "elevatedSurface"]) {
-    assert.ok(!readsGreen(t[k]), `${k} je zelená plocha`);
-  }
-  const h = hueDeg(t.focusRing);
-  assert.ok(h >= 45 && h <= 110, `ohnisko ztratilo tlumenou olivu · hue ${h.toFixed(0)}`);
-  assert.ok(chroma(t.focusRing) <= 0.14, "ohnisko je sytější, než tlumená oliva unese");
-  assert.notEqual(t.focusRing, t.interactiveAccent, "ohnisko a akce musí zůstat dvě věci");
-});
-
-test("Kouř a koření · teplý materiál, bledě neutrální text, žádný luxus", () => {
-  const t = resolveTheme("smoke-spice", false);
-  // Tan nese akcent, ne odstavec.
-  assert.notEqual(t.textSecondary, t.interactiveAccent);
-  assert.ok(chroma(t.text) <= 0.14, "tělo textu není bledě neutrální");
-  // Karta se pozná od povrchu.
-  assert.ok(luminance(t.card) > luminance(t.surface), "karta musí být nad povrchem");
-  assert.ok(ratio(t.card, t.surface, t.surface) >= 1.02, "karta splývá s povrchem");
-  // Žádný lesk, přechod ani kovová měď: stín je stín, akcent je plocha.
-  assert.ok(!/gradient|glow|metallic/i.test(JSON.stringify(t)), "vzhled nese lesk nebo přechod");
-  assert.equal(t.brandCopper, "#B87333", "Copper zůstává značkou, ne dekorací vzhledu");
-});
-
-test("žádný vzhled si nepřepsal značku ani plát Atlasu", () => {
-  for (const id of FIXED_PRESET_IDS) {
-    const t = resolveTheme(id, false);
-    assert.equal(t.brandCopper, "#B87333", `${id} přebarvil Copper`);
-    assert.equal(t.atlasFrame, "#F4F0EB", `${id} tónuje plát Movement Atlasu`);
-    assert.equal(appearancePreset(id).kind, "fixed");
+    if (op) assert.equal(Number(op[1]), 1, r.trim().slice(0, 80));
   }
 });

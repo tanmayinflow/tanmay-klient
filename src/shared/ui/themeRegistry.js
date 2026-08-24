@@ -4,45 +4,41 @@
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
 // ----------------------------------------------------------------------
-// REJSTŘÍK VZHLEDŮ · devět kurátorovaných presetů, jeden kontrakt
+// REJSTŘÍK VZHLEDŮ · Signature + sedm přesných palet s vlastní řečí rámů
 // ----------------------------------------------------------------------
-// Do V1.1 byl motiv DVOJICE: rodina × režim. Sedm rodin krát dvě světla dalo
-// čtrnáct palet — a z nich byla dobrá zhruba polovina. Druhá polovina vznikla
-// jen ze symetrie: ke každé denní paletě se dopočítala noční a naopak, i tam,
-// kde ta druhá půlka nikdy neměla vlastní důvod existovat. Výsledek byl
-// katalog, ne výběr.
+// V2 zavedla kurátorované presety a jeden resolver. V3 na tom staví a mění
+// dvě věci:
 //
-// V2 to obrací. Vzhled je JEDNA hodnota:
+// 1 · SIGNATURE JE NORMA A NEHÝBE SE. Automaticky / Den / Noc zůstávají
+//     přesně tak, jak je dům nosí — stejné hodnoty, stejné chování, žádné
+//     rámy. Otisky to hlídají znak po znaku.
 //
-//     "slate-clay"
+// 2 · SEDM VOLITELNÝCH PALET S PŘESNÝMI KOTVAMI. Každá pochází z jedné
+//     dodané barevné reference a nese JEN její hexy: žádné odvozené rampy,
+//     žádná HSL rotace, žádný color-mix uložený jako token. Jediné povolené
+//     doplňky jsou průhlednost přesné kotvy (dekorace, hierarchie písma),
+//     servisní Ink a Linen ze Signature tam, kde dodaná paleta nemá
+//     přístupnou dvojici pro běžný text (výslovně: Americano a chai),
+//     a sdílené stavové barvy.
 //
-// Devět položek, z toho osm PEVNÝCH dokončených vzhledů a jediná automatická:
-// `signature-auto`, která podle `prefers-color-scheme` sáhne po Signature Day
-// nebo Signature Night. Nic jiného se systémem nehýbe — kdo si zvolí Kouř
-// a koření, má Kouř a koření i v poledne.
+// KAŽDÁ VOLITELNÁ PALETA MÁ VLASTNÍ ŘEČ RÁMŮ. Nejde o monolitické
+// přebarvení: paleta se pozná podle toho, jak rámuje list, zásuvku a vybraný
+// prvek — dvojitá linka, vsazený monument, vrstvy strat, rohové konzoly,
+// vnořená fosilie, čedičové stupně, tkané kolejnice. Rámy jsou čisté CSS
+// (pseudo-prvky, vnitřní stíny, obrysy), nemění rozměry komponent a Signature
+// se jich nikdy nedotkne.
 //
-// CO SE NEZMĚNILO. Odvozovací stroj z V1.1 zůstal celý: role, dopočet hran,
-// nápovědy, hoveru a stínů, deterministické dorovnání kontrastu (`ensureOn`)
-// i vrstva starších názvů, na které stojí tisíce míst v obou aplikacích.
-// Čtyři palety, které dům opravdu nosí — Signature Day, Řeka v noci, Tyrkys
-// v noci a Moruše a papír — procházejí tímtéž strojem z týchž vstupů, takže
-// vycházejí ZNAK PO ZNAKU stejné jako před V2. `theme-preserved.test.js` to
-// měří proti zapsanému otisku produkce.
+// DVOJÍ POLARITA NAVIGACE. Čtyři z dodaných palet mají tmavou navigaci nad
+// světlým polem. Kontrakt proto nese NAV-TOKENY (`navText`, `navIcon`,
+// `navKicker`, …): postranní panel a dok čtou je, ne globální inkousty.
+// V Signature se rovnají přesně dosavadním hodnotám, takže se nezměnil
+// jediný pixel.
 //
-// CO SE ZMĚNILO. Signature Night dostal ze specifikace V2 měkčí uhlový žebřík
-// (dřív skoro černý), přibyly tři hotové palety (Břidlice a hlína, Písek
-// a země, Kouř a koření) a zmizely protějšky, které nikdo nevybíral: River
-// light, Teal light, Mulberry dark, celá Hlína a alabastr, Atlantik a obloha
-// i Oliva a zlato. Uložené volby se na ně nezapomínají — migrace je převádí
-// (viz §MIGRACE níž).
+// Komponenty se nikdy neptají, JAKÁ paleta je zapnutá. Ptají se na roli
+// (`t.card`, `t.navText`, `t.frameRail`) a na `data-frame-grammar` na kořeni.
 //
-// Komponenty se nikdy neptají, JAKÝ vzhled je zapnutý. Ptají se na roli:
-// `t.card`, `t.textMuted`, `t.focusRing`. Proto v aplikaci není a nesmí
-// vzniknout `if (preset === "smoke-spice")`.
-//
-// Barevná autorita: tanmay_theme_system_v2_curated_palette_spec.md.
-// Odchylky od doporučených hodnot jsou vypsané i s důvodem v
-// Work/web-application/THEME-CONTRAST-REPORT.md.
+// Barevná autorita: tanmay_theme_system_v3_exact_palettes_frame_spec.md
+// a sedm dodaných referencí. Odchylky jsou v THEME-CONTRAST-REPORT.md.
 
 import { hexA, mixHex } from "./color.js";
 import { contrast, luminance, grayscale, ratio, cvdDistance } from "./contrast.js";
@@ -50,28 +46,43 @@ import { contrast, luminance, grayscale, ratio, cvdDistance } from "./contrast.j
 /** Značkové body. Copper je značka, ne interakční barva. */
 export const BRAND = Object.freeze({ copper: "#B87333", linen: "#F4F0EB", forest: "#1C1C1A" });
 
-/* Pořadí je pořadí v Nastavení: nejdřív automatika, pak Signature ve dvou
-   světlech, pak šest hotových alternativ od nejtišší po nejvýraznější. */
+/**
+ * Servisní inkousty. Dodaná paleta je grafická, ne kompletní přístupný
+ * systém — kde nemá vlastní dvojici pro běžný text, smí si půjčit lněné
+ * písmo a inkoust ze Signature. Jen pro písmo, popisky tlačítek a ohnisko;
+ * nikdy jako novou kotvu plochy.
+ */
+export const UTILITY = Object.freeze({ ink: BRAND.forest, linen: BRAND.linen });
+
+/* Pořadí je pořadí v Nastavení: Signature (automatika, den, noc) a pak sedm
+   volitelných palet v pořadí ze specifikace. */
 export const APPEARANCE_PRESET_IDS = Object.freeze([
   "signature-auto",
   "signature-day",
   "signature-night",
-  "river-night",
-  "teal-night",
-  "mulberry-paper",
-  "slate-clay",
-  "sand-earth",
-  "smoke-spice",
+  "slate-clay-pantone",
+  "monument-clay",
+  "sand-burnt-earth",
+  "garnet-slate",
+  "shikon-fossil",
+  "volcanic-grey",
+  "americano-chai",
 ]);
 
-/** Pevné vzhledy — všechno kromě automatiky. Systém s nimi nehýbe. */
+/** Signature trojice — jediná část výběru, kde existuje režim. */
+export const SIGNATURE_PRESET_IDS = Object.freeze(["signature-auto", "signature-day", "signature-night"]);
+
+/** Sedm volitelných palet. Pevné: systém s nimi nehýbe. */
+export const OPTIONAL_PRESET_IDS = Object.freeze([
+  "slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate",
+  "shikon-fossil", "volcanic-grey", "americano-chai",
+]);
+
+/** Všechno kromě automatiky — vyřešené palety. */
 export const FIXED_PRESET_IDS = Object.freeze(APPEARANCE_PRESET_IDS.filter((id) => id !== "signature-auto"));
 
-/* VÝCHOZÍ JE AUTOMATIKA. Ve V1.1 byl výchozí režim „světlo", protože tehdy
-   existoval globální přepínač den/noc a automatika byla jen jedna z jeho tří
-   poloh. Ve V2 je Automaticky · Signature první položkou výběru a specifikace
-   ji určuje i jako cíl pro neznámou a chybějící hodnotu. Kdo si nikdy nic
-   nezvolil, dostane tedy Signature podle svého systému. */
+/* Výchozí je automatika: kdo si nikdy nic nezvolil, má Signature podle
+   systému (rozhodnutí V2, V3 ho nemění). */
 export const DEFAULT_PRESET = "signature-auto";
 
 /** Doporučený vzhled. Signature zůstává normou domu. */
@@ -183,13 +194,6 @@ const SIGNATURE_LIGHT = {
 // a `mulberry-paper.light`. Nepřepisovaly se, jen se přejmenovaly na
 // samostatné vzhledy — proto z nich vypadne přesně táž paleta jako dřív.
 const SPECS = {
-  /* SIGNATURE · NOC · V2.
-     V1.1 opravila barvu (pryč od mechu, k uhlu a mědi), ale nechala příliš
-     tvrdý near-black žebřík: pole #0F100E, navigace #0B0C0A. Na displeji to
-     byl OLED, ne večerní pokoj — a jednotlivé vrstvy se od sebe daly poznat
-     jen podle hrany. V2 celý žebřík zvedá a rozestupuje podle specifikace:
-     šest rozlišitelných vrstev nad sebou, měkký uhel místo černé, len jako
-     písmo, měď a písek jako akcenty. Žádná zeleň, modř ani fialový nádech. */
   "signature-night": {
     polarity: "dark",
     labelCs: "Signature · Noc", labelEn: "Signature · Night",
@@ -207,123 +211,6 @@ const SPECS = {
     status: { success: "#82AA8B", warning: "#D4A45E", error: "#DF7C83", info: "#83A9BA" },
     chart: ["#B87333", "#C5B49A", "#8F9295", "#5C6263", "#7C8C6E", "#E4D9C6"],
     themeColor: "#262725",
-  },
-
-  /* ŘEKA V NOCI · zachováno beze změny z V1.1 (`river-mist.dark`). */
-  "river-night": {
-    polarity: "dark",
-    labelCs: "Řeka v noci", labelEn: "River Night",
-    anchors: { "River Slate": "#4F646B", Mist: "#E5ECEA", "Warm Sand": "#C5B49A" },
-    background: "#101315", navigation: "#0C0F11", surface: "#192125", card: "#222B2F",
-    documentSurface: "#151B1E", text: "#E8EFEC", textSecondary: "#C7D1CE", textMuted: "#98A7A5",
-    border: "#3A484D", borderStrong: "#56686E",
-    interactiveAccent: "#C5B49A", interactiveAccentHover: "#D7C9B3", interactiveOnAccent: "#101315",
-    focusRing: "#AFC2C4",
-  },
-
-  /* TYRKYS V NOCI · zachováno beze změny z V1.1 (`teal-parchment.dark`). */
-  "teal-night": {
-    polarity: "dark",
-    labelCs: "Tyrkys v noci", labelEn: "Teal Night",
-    anchors: { "Authentic Teal": "#035352", "Sidecar Yellow": "#F3E8BC" },
-    background: "#0E1312", navigation: "#0A0F0E", surface: "#162321", card: "#1D2E2B",
-    documentSurface: "#121B19", text: "#F4EBC8", textSecondary: "#D9D0AC", textMuted: "#A5AA8E",
-    border: "#35504C", borderStrong: "#4F706A",
-    interactiveAccent: "#E5D59B", interactiveAccentHover: "#F2E4AD", interactiveOnAccent: "#0E1312",
-    focusRing: "#8CC9C0",
-  },
-
-  /* MORUŠE A PAPÍR · zachováno beze změny z V1.1 (`mulberry-paper.light`). */
-  "mulberry-paper": {
-    polarity: "light",
-    labelCs: "Moruše a papír", labelEn: "Mulberry Paper",
-    anchors: { Mulberry: "#5A2132", Paper: "#EFE9E9" },
-    background: "#F1E8EA", navigation: "#E8DADD", surface: "#F7F0F1", card: "#FCF8F8",
-    documentSurface: "#FDFBFA", text: "#241A1E",
-    border: "#CEBBC1", borderStrong: "#B3919C",
-    interactiveAccent: "#5A2132", interactiveAccentHover: "#461827", interactiveOnAccent: "#F1E8EA",
-    focusRing: "#5A2132",
-  },
-
-  /* BŘIDLICE A HLÍNA · nový vzhled V2.
-     Chladné redakční pole s teplým hliněným přerušením. Tělo textu je
-     břidlicová modř, hlína je AKCENT — kotva `#A57051` je na malé interakční
-     písmo příliš světlá, akcentem je proto tmavší odvozenina ze specifikace.
-     Světlá alternativa s nejjasnější stavbou; nesmí působit jako korporátní
-     navy dashboard. */
-  "slate-clay": {
-    polarity: "light",
-    labelCs: "Břidlice a hlína", labelEn: "Slate Clay",
-    anchors: { "Blue Slate": "#243746", "Warm Grey": "#DBD6D1", Clay: "#A57051" },
-    background: "#DBD6D1", navigation: "#C8C5C1", surface: "#E8E4DF", card: "#F2EFEB",
-    documentSurface: "#FAF8F5", elevatedSurface: "#FFFFFF",
-    text: "#243746", textSecondary: "#3F4F59", textMuted: "#48545C", placeholder: "#48545C",
-    border: "#B8B5B1", borderStrong: "#929BA1",
-    interactiveAccent: "#75452F", interactiveAccentHover: "#623924", interactiveOnAccent: "#FAF8F5",
-    focusRing: "#36566A", selectionSurface: "#E4D2C8",
-    // Kotevní hlína zůstává jako referenční / datový bod, ne jako plocha.
-    decorative: "#A57051",
-    status: { success: "#3F6A50", warning: "#81551D", error: "#8B3138", info: "#365F73" },
-    chart: ["#75452F", "#243746", "#7D8A92", "#A57051", "#B87333", "#3F5D3A"],
-    themeColor: "#DBD6D1",
-  },
-
-  /* PÍSEK A ZEMĚ · nový vzhled V2.
-     Teplé přírodní redakční pole s tmavě modrou stavbou. Modř nese tělo textu
-     i nadpis, pálená zem je akcent (ne chyba), tlumená oliva podpírá graf
-     a ohnisko (ne velké zelené plochy). Nesmí sklouznout do rustikálního,
-     boho ani spa výrazu. */
-  "sand-earth": {
-    polarity: "light",
-    labelCs: "Písek a země", labelEn: "Sand Earth",
-    anchors: { Sand: "#D3C7AD", "Dark Blue": "#28374A", "Burnt Earth": "#754437", "Muted Olive": "#6B6751" },
-    background: "#D3C7AD", navigation: "#C4B99F", surface: "#E0D6C0", card: "#EAE3D2",
-    documentSurface: "#F2EBDD", elevatedSurface: "#FAF5E9",
-    text: "#28374A", textSecondary: "#3F4650", textMuted: "#464A43", placeholder: "#464A43",
-    border: "#B6A98D", borderStrong: "#8E826A",
-    interactiveAccent: "#6E3D32", interactiveAccentHover: "#5C3028", interactiveOnAccent: "#F2EBDD",
-    focusRing: "#6B6751", selectionSurface: "#D8C9AA",
-    /* NADPIS NESE MODŘ, NE PÁLENOU ZEM. Odvozený nadpis by v každém světlém
-       vzhledu vzal akcent; tady to specifikace výslovně obrací — modř drží
-       stavbu (tělo, nadpis, navigační text), zem drží akci. */
-    heading: "#28374A",
-    status: { success: "#45654A", warning: "#79531C", error: "#8A3035", info: "#365D70" },
-    chart: ["#6E3D32", "#28374A", "#6B6751", "#A57051", "#B87333", "#5A4E77"],
-    themeColor: "#D3C7AD",
-  },
-
-  /* KOUŘ A KOŘENÍ · nový vzhled V2.
-     Teplý tmavý materiál: uhel, švestkově hnědá, taupe a fosilní tan. Tan nese
-     akcent a vybraný nadpis, tělo textu zůstává bledě neutrální. Nesmí
-     působit luxusně, kosmeticky ani jako čokoládový obal — žádný lesk,
-     přechod ani kovová měď. */
-  "smoke-spice": {
-    polarity: "dark",
-    labelCs: "Kouř a koření", labelEn: "Smoke Spice",
-    anchors: { Shikon: "#282227", "Dark Taupe": "#493C3C", "Fossil Tan": "#D0B08F" },
-    background: "#282227", navigation: "#1E1D1D", surface: "#403638", card: "#493C3C",
-    documentSurface: "#312A2C", elevatedSurface: "#554643",
-    /* BĚŽNÝ TEXT NENÍ AKCENT. Tabulka ve specifikaci dává sekundárnímu písmu
-       i nápovědě přesně hodnotu akcentu (`#D0B08F`) — jenže tatáž
-       specifikace tři odstavce nad tím říká „body copy stays pale neutral"
-       a zadání §14 zakazuje, aby běžný odstavec nesl `interactiveAccent`.
-       Když si dva vlastní odstavce protiřečí, platí pravidlo, ne buňka
-       tabulky: písmo si nechává JAS, který specifikace zvolila, a odevzdá
-       polovinu sytosti. Fosilní tan tak zůstává akcentem a odkaz se v textu
-       pozná. Zapsáno v THEME-CONTRAST-REPORT.md. */
-    text: "#F0E2D3", textSecondary: "#D5C6B8", textMuted: "#B8A89C", placeholder: "#CCBDAF",
-    border: "#6D5B57", borderStrong: "#8B7167",
-    interactiveAccent: "#D0B08F", interactiveAccentHover: "#E0C39F", interactiveOnAccent: "#282227",
-    focusRing: "#9B7E6D", selectionSurface: "#5A4744",
-    /* ŽÁDNÉ `sand` ANI `inkSand`. Starší tokeny nesou v Signature značkovou
-       stopu (Warm Sand vedle mědi); jinde jsou to prostě tišší inkousty
-       a dopočítají se ze sekundárního písma. Kdyby si je Kouř a koření nastavil
-       na fosilní tan, byl by to přesně akcent — a `t.sand` kreslí ikony
-       v navigaci, takže by akcent najednou nesla třetina viditelných prvků.
-       Naměřeno v prohlížeči: 34 % proti stropu 18 % (§ Accent coverage). */
-    status: { success: "#86AA8D", warning: "#D5A45D", error: "#E07C82", info: "#87AABA" },
-    chart: ["#D0B08F", "#9B7E6D", "#6D5B57", "#B87333", "#8F9295", "#EFE3D2"],
-    themeColor: "#282227",
   },
 };
 
@@ -639,6 +526,28 @@ function buildPalette(mode, s, legacy) {
   // Vlásečnice a dělítko jsou po přepisu totéž.
   out.divider = out.borderSoft;
   out.scrim = out.overlay;
+  /* NAV-TOKENY (V3). Postranní panel a dok čtou vlastní role, protože čtyři
+     volitelné palety mají tmavou navigaci nad světlým polem. V Signature se
+     rovnají PŘESNĚ hodnotám, které panel četl dosud — jiná cesta ke stejným
+     číslům, žádná vizuální změna. Otisk dne to hlídá. */
+  out.navText = out.text;
+  out.navHeading = out.heading;
+  out.navTextSec = out.textSec;
+  out.navKicker = out.sage;
+  out.navIcon = out.sand;
+  out.navMuted = out.textMuted;
+  out.navAccent = out.accent;
+  out.navAccentInk = out.accentInk;
+  out.navActiveBg = out.activeNav;
+  out.navHairline = out.borderSoft;
+  out.navBorder = out.border;
+  out.dockBg = out.bg;
+  /* Rámové tokeny. Signature žádnou řeč rámů nemá (grammar „none"), takže
+     tohle nikdy nic nečte — hodnoty tu jsou jen proto, aby kontrakt byl úplný. */
+  out.frameOuter = out.borderStrong;
+  out.frameInner = out.border;
+  out.frameRail = out.accent;
+  out.frameHighlight = out.accent;
   return Object.freeze(out);
 }
 
@@ -669,13 +578,15 @@ function previewOf(p) {
     text: p.text, textMuted: p.textMuted, heading: p.heading,
     border: p.border, accent: p.interactiveAccent, onAccent: p.interactiveOnAccent,
     success: p.successFg, error: p.errorFg,
+    frameOuter: p.frameOuter, frameInner: p.frameInner,
+    frameRail: p.frameRail, frameHighlight: p.frameHighlight,
   });
 }
 
-function makeFixed(id, def, palette) {
+function makeFixed(id, def, palette, kind) {
   return Object.freeze({
     id,
-    kind: "fixed",
+    kind: kind || "fixed",
     labelCs: def.labelCs,
     labelEn: def.labelEn,
     polarity: def.polarity,
@@ -684,37 +595,449 @@ function makeFixed(id, def, palette) {
     palette,
     preview: previewOf(palette),
     themeColor: def.themeColor || palette.background,
+    chrome: Object.freeze(def.chrome || { frameGrammar: "none", radius: 0, density: "none", frameTargets: Object.freeze([]) }),
   });
 }
+
+// ----------------------------------------------------------------------
+// SEDM VOLITELNÝCH PALET · přesné kotvy, žádné odvozování
+// ----------------------------------------------------------------------
+// Tady se NEPOČÍTÁ. Každá role je doslovná kotva z dodané reference, nebo
+// průhlednost přesné kotvy (hierarchie písma, tiché plochy, stíny), nebo
+// výslovně povolený servisní inkoust. `exactPalette()` jen skládá kontrakt —
+// jediná operace s barvou je `hexA` (kanál alfa), žádný mixHex, žádný ramp.
+//
+// Alfa u písma není dojem: každá složenina se měří v testu proti ploše, na
+// které opravdu leží, a hodnoty tady jsou ty, které prošly.
+const A = hexA;
+
+/** Poskládá úplný kontrakt z doslovných rolí. Nic nedopočítává. */
+function exactPalette(d) {
+  const dark = d.polarity === "dark";
+  const fn = FUNCTIONAL[d.statusMode];
+  const series = d.chart;
+  const shadowInk = d.shadowInk;
+  const out = {
+    mode: d.polarity,
+    polarity: d.polarity,
+
+    background: d.background,
+    navigation: d.navigation,
+    surface: d.surface,
+    surfaceRaised: d.elevatedSurface,
+    elevatedSurface: d.elevatedSurface,
+    surfaceMuted: d.tableHead,
+    card: d.card,
+    documentSurface: d.documentSurface,
+    overlay: d.overlay,
+
+    text: d.text,
+    heading: d.heading || d.text,
+    textSecondary: d.textSecondary || d.text,
+    textMuted: d.textMuted,
+    textDisabled: d.textDisabled,
+    placeholder: d.placeholder,
+    placeholderText: d.placeholder,
+    placeholderStrong: d.placeholder,
+
+    border: d.border,
+    borderStrong: d.borderStrong,
+    borderSoft: d.borderSoft,
+
+    interactiveAccent: d.interactive,
+    /* Najetí a stisk NEMĚNÍ odstín: pravidlo přesných kotev nedovoluje
+       ztmavenou odvozeninu a poloprůhledné tlačítko by prosvítalo. Zpětnou
+       vazbu nese existující nebarevná vrstva (kurzor, podtržení, stín). */
+    interactiveAccentHover: d.interactive,
+    interactiveAccentPressed: d.interactive,
+    interactiveOnAccent: d.interactiveText,
+    selectionSurface: d.selectionSurface,
+    selectionText: d.selectionText || d.text,
+    focusRing: d.focus,
+    link: d.link,
+    linkHover: d.link,
+
+    brandCopper: BRAND.copper,
+    brandLinen: BRAND.linen,
+    brandForest: BRAND.forest,
+
+    atlasFrame: BRAND.linen,
+    atlasBorder: d.atlasBorder,
+
+    successFg: fn.successFg, successBg: fn.successBg,
+    warningFg: fn.warningFg, warningBg: fn.warningBg,
+    errorFg: fn.errorFg, errorBg: fn.errorBg,
+    infoFg: fn.infoFg, infoBg: fn.infoBg,
+
+    chart1: series[0], chart2: series[1], chart3: series[2],
+    chart4: series[3], chart5: series[4], chart6: series[5],
+    chartSurface: d.chartSurface,
+    grid: d.grid,
+    axis: d.axis,
+
+    bg: d.background,
+    bgSidebar: d.navigation,
+    textSec: d.textSecondary || d.text,
+    accent: d.interactive,
+    accentInk: d.link,
+    onAccent: d.interactiveText,
+    sage: d.quietInk,
+    sand: d.quietInk,
+    inkSand: d.quietInk,
+    danger: fn.errorFg,
+    info: fn.infoFg,
+    success: fn.successFg,
+    warning: fn.warningFg,
+    cardHover: d.cardHover,
+    callout: d.callout,
+    tableHead: d.tableHead,
+    sheet: d.documentSurface,
+    sheetHover: d.sheetHover,
+    activeNav: d.activeNav,
+    hero: d.hero,
+    heroInk: d.heroInk || d.text,
+    heroInkSoft: A(d.heroInk || d.text, 0.78),
+    heroLine: A(d.frame.rail, dark ? 0.42 : 0.4),
+
+    shadow: dark
+      ? `0 0 0 1px ${A(d.text, 0.05)}, 0 2px 4px ${A(shadowInk, 0.36)}, 0 12px 30px -16px ${A(shadowInk, 0.6)}`
+      : `0 0 0 1px ${A(shadowInk, 0.04)}, 0 1px 2px ${A(shadowInk, 0.05)}, 0 8px 22px -12px ${A(shadowInk, 0.18)}`,
+    shadowLift: dark
+      ? `0 0 0 1px ${A(d.text, 0.07)}, 0 3px 8px ${A(shadowInk, 0.4)}, 0 24px 50px -22px ${A(shadowInk, 0.66)}`
+      : `0 0 0 1px ${A(shadowInk, 0.05)}, 0 2px 5px ${A(shadowInk, 0.06)}, 0 18px 40px -20px ${A(shadowInk, 0.24)}`,
+    shadowPop: dark
+      ? `0 0 0 1px ${A(d.text, 0.09)}, 0 4px 12px -5px ${A(shadowInk, 0.48)}, 0 28px 60px -26px ${A(shadowInk, 0.72)}`
+      : `0 0 0 1px ${A(shadowInk, 0.06)}, 0 3px 9px -4px ${A(shadowInk, 0.1)}, 0 20px 46px -22px ${A(shadowInk, 0.26)}`,
+    shadowSheet: dark
+      ? `0 0 0 1px ${A(d.text, 0.11)}, 0 6px 18px -8px ${A(shadowInk, 0.52)}, 0 36px 78px -30px ${A(shadowInk, 0.76)}`
+      : `0 0 0 1px ${A(shadowInk, 0.07)}, 0 5px 14px -7px ${A(shadowInk, 0.11)}, 0 28px 68px -30px ${A(shadowInk, 0.3)}`,
+    shadowDrag: dark
+      ? `0 0 0 1px ${A(d.interactive, 0.3)}, 0 8px 22px -10px ${A(shadowInk, 0.58)}, 0 34px 68px -28px ${A(shadowInk, 0.78)}`
+      : `0 0 0 1px ${A(d.interactive, 0.22)}, 0 8px 22px -10px ${A(shadowInk, 0.16)}, 0 30px 58px -28px ${A(shadowInk, 0.28)}`,
+
+    navText: d.nav.text,
+    navHeading: d.nav.accent,
+    navTextSec: d.nav.textSec,
+    navKicker: d.nav.kicker,
+    navIcon: d.nav.icon,
+    navMuted: d.nav.muted,
+    navAccent: d.nav.accent,
+    navAccentInk: d.nav.accent,
+    navActiveBg: d.nav.activeBg,
+    navHairline: d.nav.hairline,
+    navBorder: d.nav.border,
+    dockBg: d.dockBg,
+
+    frameOuter: d.frame.outer,
+    frameInner: d.frame.inner,
+    frameRail: d.frame.rail,
+    frameHighlight: d.frame.highlight,
+  };
+  out.divider = out.borderSoft;
+  out.scrim = out.overlay;
+  return Object.freeze(out);
+}
+
+/* ---- Břidlice a hlína · Pantone 7546 C / 7527 U / 420 U / 470 U ---------
+   Chladné redakční pole, tmavá břidlicová navigace, střední šeď na kartách,
+   hlína jen jako kolejnice, vybraný stav a graf. Dvojitá architektonická
+   linka na listu a vybraném panelu. Hlína nikdy nenese běžný text. */
+const SLATE = "#243746", WARMGREY = "#DBD6D1", MIDGREY = "#BDBDBD", CLAY = "#A57051";
+const DEF_SLATE_CLAY = {
+  id: "slate-clay-pantone",
+  labelCs: "Břidlice a hlína", labelEn: "Slate and Clay",
+  polarity: "light", statusMode: "light",
+  anchors: { "Pantone 7546 C": SLATE, "Pantone 7527 U": WARMGREY, "Pantone 420 U": MIDGREY, "Pantone 470 U": CLAY },
+  background: WARMGREY, navigation: SLATE, surface: WARMGREY, card: MIDGREY,
+  documentSurface: WARMGREY, elevatedSurface: MIDGREY,
+  text: SLATE, textSecondary: SLATE,
+  textMuted: A(SLATE, 0.87), textDisabled: A(SLATE, 0.68), placeholder: A(SLATE, 0.87),
+  border: A(SLATE, 0.3), borderStrong: SLATE, borderSoft: A(SLATE, 0.14),
+  interactive: SLATE, interactiveText: WARMGREY, focus: SLATE, link: SLATE,
+  selectionSurface: A(CLAY, 0.28),
+  quietInk: A(SLATE, 0.82),
+  cardHover: A(SLATE, 0.05), sheetHover: A(SLATE, 0.03),
+  callout: MIDGREY, tableHead: MIDGREY,
+  activeNav: A(CLAY, 0.22),
+  hero: MIDGREY, heroInk: SLATE,
+  overlay: A(SLATE, 0.45),
+  chart: [SLATE, CLAY, MIDGREY, WARMGREY, SLATE, CLAY],
+  chartSurface: WARMGREY, grid: A(SLATE, 0.15), axis: A(SLATE, 0.85),
+  atlasBorder: SLATE, shadowInk: SLATE, dockBg: SLATE,
+  nav: {
+    text: WARMGREY, textSec: A(WARMGREY, 0.85), kicker: A(WARMGREY, 0.7),
+    icon: A(WARMGREY, 0.78), muted: A(WARMGREY, 0.72), accent: WARMGREY,
+    activeBg: A(CLAY, 0.32), hairline: A(WARMGREY, 0.18), border: A(WARMGREY, 0.26),
+  },
+  frame: { outer: SLATE, inner: MIDGREY, rail: CLAY, highlight: CLAY },
+  themeColor: WARMGREY,
+  chrome: { frameGrammar: "architectural-double", radius: 10, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Monument · #26303B / #9A694E / #EBEBDD -----------------------------
+   Tmavá struktura, slonovinové pracovní plochy, hliněná kolejnice. Jedna
+   vědomá odchylka od tabulky specifikace: POLE JE SVĚTLÉ. Aplikace sází
+   běžný text přímo na pole a kontrakt má jeden inkoust — tmavé pole s tmavým
+   textem by rozbilo každou stránku. Tmavý plášť nesou navigace, dok a hero
+   pruh; monument-inset rám drží tmavou stavbu kolem světlé plochy.
+   Zapsáno v THEME-CONTRAST-REPORT.md. */
+const MON_D = "#26303B", MON_C = "#9A694E", MON_I = "#EBEBDD";
+const DEF_MONUMENT = {
+  id: "monument-clay",
+  labelCs: "Monument", labelEn: "Monument",
+  polarity: "light", statusMode: "light",
+  anchors: { "Monument Blue": MON_D, "Monument Clay": MON_C, Ivory: MON_I },
+  background: MON_I, navigation: MON_D, surface: MON_I, card: MON_I,
+  documentSurface: MON_I, elevatedSurface: MON_I,
+  text: MON_D, textSecondary: MON_D,
+  textMuted: A(MON_D, 0.84), textDisabled: A(MON_D, 0.56), placeholder: A(MON_D, 0.84),
+  border: A(MON_D, 0.3), borderStrong: MON_D, borderSoft: A(MON_D, 0.13),
+  interactive: MON_D, interactiveText: MON_I, focus: MON_C, link: MON_D,
+  selectionSurface: A(MON_C, 0.28),
+  quietInk: A(MON_D, 0.8),
+  cardHover: A(MON_D, 0.05), sheetHover: A(MON_D, 0.03),
+  callout: A(MON_D, 0.06), tableHead: A(MON_D, 0.08),
+  activeNav: A(MON_C, 0.2),
+  hero: MON_D, heroInk: MON_I,
+  overlay: A(MON_D, 0.5),
+  chart: [MON_D, MON_C, MON_I, MON_D, MON_C, MON_I],
+  chartSurface: MON_I, grid: A(MON_D, 0.14), axis: A(MON_D, 0.84),
+  atlasBorder: MON_D, shadowInk: MON_D, dockBg: MON_D,
+  nav: {
+    text: MON_I, textSec: A(MON_I, 0.85), kicker: A(MON_I, 0.68),
+    icon: A(MON_I, 0.78), muted: A(MON_I, 0.72), accent: MON_I,
+    activeBg: A(MON_C, 0.32), hairline: A(MON_I, 0.18), border: A(MON_I, 0.26),
+  },
+  frame: { outer: MON_D, inner: MON_I, rail: MON_C, highlight: MON_C },
+  themeColor: MON_D,
+  chrome: { frameGrammar: "monument-inset", radius: 16, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Písek a země · Areia / Azul / Terra Queimada / Verde Opaco ---------
+   Pískové pole, modrá stavba, pálená zem jako akce, oliva jako podpora.
+   Strata-rails: horní modrá linka, levá zemitá kolejnice, spodní olivová —
+   vrstvy jako geologické strata, žádné boho. */
+const SAND = "#D3C7AD", AZUL = "#28374A", TERRA = "#754437", VERDE = "#6B6751";
+const DEF_SAND_EARTH = {
+  id: "sand-burnt-earth",
+  labelCs: "Písek a země", labelEn: "Sand and Earth",
+  polarity: "light", statusMode: "light",
+  anchors: { Areia: SAND, Azul: AZUL, "Terra Queimada": TERRA, "Verde Opaco": VERDE },
+  background: SAND, navigation: AZUL, surface: SAND, card: SAND,
+  documentSurface: SAND, elevatedSurface: SAND,
+  text: AZUL, textSecondary: AZUL,
+  textMuted: A(AZUL, 0.85), textDisabled: A(AZUL, 0.68), placeholder: A(AZUL, 0.85),
+  border: A(AZUL, 0.32), borderStrong: VERDE, borderSoft: A(AZUL, 0.14),
+  interactive: TERRA, interactiveText: SAND, focus: VERDE, link: TERRA,
+  selectionSurface: A(TERRA, 0.2),
+  quietInk: A(AZUL, 0.8),
+  /* Tiché nádechy jsou o stupeň nižší než jinde: pálená zem drží na čistém
+     písku 4,75:1 a každé procento modrého nádechu jí ukusuje — odkaz musí
+     projít i na najeté kartě a v hlavičce tabulky. */
+  cardHover: A(AZUL, 0.02), sheetHover: A(AZUL, 0.02),
+  callout: A(AZUL, 0.02), tableHead: A(AZUL, 0.03),
+  activeNav: A(TERRA, 0.16),
+  hero: A(AZUL, 0.06), heroInk: AZUL,
+  overlay: A(AZUL, 0.45),
+  chart: [AZUL, TERRA, VERDE, SAND, AZUL, TERRA],
+  chartSurface: SAND, grid: A(AZUL, 0.15), axis: A(AZUL, 0.85),
+  atlasBorder: AZUL, shadowInk: AZUL, dockBg: AZUL,
+  nav: {
+    text: SAND, textSec: A(SAND, 0.85), kicker: A(SAND, 0.7),
+    icon: A(SAND, 0.78), muted: A(SAND, 0.72), accent: SAND,
+    activeBg: A(TERRA, 0.4), hairline: A(SAND, 0.18), border: A(SAND, 0.26),
+  },
+  frame: { outer: AZUL, inner: VERDE, rail: TERRA, highlight: VERDE },
+  themeColor: SAND,
+  chrome: { frameGrammar: "strata-rails", radius: 4, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Granát a břidlice · #6E2C29 / #F7DEC1 / #364857 --------------------
+   Krémové pole, břidlicová stavba, granát jako akce a vybraná výplň.
+   Rohové konzoly: vlevo nahoře a vpravo dole, nic víc. Granát a břidlice se
+   nikdy nedotýkají textem — vždycky je mezi nimi krém. */
+const GARNET = "#6E2C29", CREAM = "#F7DEC1", GSLATE = "#364857";
+const DEF_GARNET = {
+  id: "garnet-slate",
+  labelCs: "Granát a břidlice", labelEn: "Garnet and Slate",
+  polarity: "light", statusMode: "light",
+  anchors: { Garnet: GARNET, Cream: CREAM, Slate: GSLATE },
+  background: CREAM, navigation: GSLATE, surface: CREAM, card: CREAM,
+  documentSurface: CREAM, elevatedSurface: CREAM,
+  text: GSLATE, textSecondary: GSLATE,
+  textMuted: A(GSLATE, 0.85), textDisabled: A(GSLATE, 0.68), placeholder: A(GSLATE, 0.85),
+  border: A(GSLATE, 0.32), borderStrong: GARNET, borderSoft: A(GSLATE, 0.14),
+  interactive: GARNET, interactiveText: CREAM, focus: GSLATE, link: GARNET,
+  selectionSurface: A(GARNET, 0.16),
+  quietInk: A(GSLATE, 0.8),
+  cardHover: A(GSLATE, 0.05), sheetHover: A(GSLATE, 0.03),
+  callout: A(GSLATE, 0.05), tableHead: A(GSLATE, 0.07),
+  activeNav: A(GARNET, 0.14),
+  hero: A(GSLATE, 0.06), heroInk: GSLATE,
+  overlay: A(GSLATE, 0.45),
+  chart: [GARNET, GSLATE, CREAM, GARNET, GSLATE, CREAM],
+  chartSurface: CREAM, grid: A(GSLATE, 0.15), axis: A(GSLATE, 0.85),
+  atlasBorder: GSLATE, shadowInk: GSLATE, dockBg: GSLATE,
+  nav: {
+    text: CREAM, textSec: A(CREAM, 0.85), kicker: A(CREAM, 0.7),
+    icon: A(CREAM, 0.78), muted: A(CREAM, 0.72), accent: CREAM,
+    activeBg: A(GARNET, 0.45), hairline: A(CREAM, 0.18), border: A(CREAM, 0.26),
+  },
+  frame: { outer: GSLATE, inner: GARNET, rail: GARNET, highlight: GSLATE },
+  themeColor: CREAM,
+  chrome: { frameGrammar: "corner-brackets", radius: 4, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Šikon a fosilní písek · pět kotev z reference ----------------------
+   Teplá tma: šikonové pole, taupe plochy, fosilní písmo, allspice kolejnice.
+   Vnořená fosilie: vnější vlásečnice, vsazený taupe pás, u vybraného tenká
+   fosilní linka. Žádné zlato, žádný luxus. */
+const SHIKON = "#282227", TAUPE = "#493C3C", MLINK = "#6D5B57", ALLSPICE = "#9B7E6D", FOSSIL = "#D0B08F";
+const DEF_SHIKON = {
+  id: "shikon-fossil",
+  labelCs: "Šikon a fosilní písek", labelEn: "Shikon and Fossil",
+  polarity: "dark", statusMode: "dark",
+  anchors: { Shikon: SHIKON, "Dark Taupe": TAUPE, "Missing Link": MLINK, "Tempered Allspice": ALLSPICE, "Fossil Tan": FOSSIL },
+  background: SHIKON, navigation: TAUPE, surface: TAUPE, card: TAUPE,
+  documentSurface: SHIKON, elevatedSurface: TAUPE,
+  /* Fosilní písmo drží na taupe ploše 5,16:1 — hierarchie proto smí ubrat
+     jen málo krytí, jinak ztlumené písmo spadne pod 4,5 na kartě. */
+  text: FOSSIL, textSecondary: A(FOSSIL, 0.96),
+  textMuted: A(FOSSIL, 0.94), textDisabled: A(FOSSIL, 0.68), placeholder: A(FOSSIL, 0.94),
+  border: MLINK, borderStrong: ALLSPICE, borderSoft: A(FOSSIL, 0.14),
+  interactive: FOSSIL, interactiveText: SHIKON, focus: FOSSIL, link: FOSSIL,
+  selectionSurface: A(ALLSPICE, 0.35),
+  quietInk: A(FOSSIL, 0.8),
+  cardHover: A(FOSSIL, 0.02), sheetHover: A(FOSSIL, 0.02),
+  callout: TAUPE, tableHead: TAUPE,
+  activeNav: A(FOSSIL, 0.16),
+  hero: TAUPE, heroInk: FOSSIL,
+  overlay: A(SHIKON, 0.65),
+  chart: [FOSSIL, ALLSPICE, MLINK, TAUPE, SHIKON, FOSSIL],
+  chartSurface: TAUPE, grid: A(FOSSIL, 0.14), axis: A(FOSSIL, 0.85),
+  atlasBorder: MLINK, shadowInk: SHIKON, dockBg: SHIKON,
+  nav: {
+    text: FOSSIL, textSec: A(FOSSIL, 0.92), kicker: A(FOSSIL, 0.7),
+    icon: A(FOSSIL, 0.78), muted: A(FOSSIL, 0.72), accent: FOSSIL,
+    /* Vybraná položka na taupe navigaci TMAVNE (šikonový nádech) — světlý
+       nádech by fosilnímu písmu ubíral kontrast přesně tam, kde je vybrané. */
+    activeBg: A(SHIKON, 0.4), hairline: A(FOSSIL, 0.16), border: A(FOSSIL, 0.24),
+  },
+  frame: { outer: MLINK, inner: TAUPE, rail: ALLSPICE, highlight: FOSSIL },
+  themeColor: SHIKON,
+  chrome: { frameGrammar: "nested-fossil", radius: 12, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Sopečná šeď · pět šedí z reference ---------------------------------
+   Technický kámen: vrstvené šedi, hranatá geometrie, stupňovitý rám
+   s posunutým krokem. Žádné rozmazané stíny, žádný zelený nádech. */
+const VEND = "#292A2A", VULC = "#414445", BLACKGREEN = "#5C6263", FLINT = "#8F9295", NEOTOKYO = "#BEC0C2";
+const DEF_VOLCANIC = {
+  id: "volcanic-grey",
+  labelCs: "Sopečná šeď", labelEn: "Volcanic Grey",
+  polarity: "dark", statusMode: "dark",
+  anchors: { "The End": VEND, Vulcanised: VULC, "Blackish Green": BLACKGREEN, "Flint Shard": FLINT, "Neo Tokyo Grey": NEOTOKYO },
+  background: VEND, navigation: VULC, surface: VULC, card: VULC,
+  documentSurface: VEND, elevatedSurface: VULC,
+  text: NEOTOKYO, textSecondary: A(NEOTOKYO, 0.95),
+  textMuted: A(NEOTOKYO, 0.93), textDisabled: A(NEOTOKYO, 0.68), placeholder: A(NEOTOKYO, 0.93),
+  border: BLACKGREEN, borderStrong: FLINT, borderSoft: A(NEOTOKYO, 0.14),
+  interactive: NEOTOKYO, interactiveText: VEND, focus: FLINT, link: NEOTOKYO,
+  selectionSurface: A(FLINT, 0.3),
+  quietInk: A(NEOTOKYO, 0.8),
+  cardHover: A(NEOTOKYO, 0.04), sheetHover: A(NEOTOKYO, 0.03),
+  callout: VULC, tableHead: VULC,
+  activeNav: A(NEOTOKYO, 0.14),
+  hero: VULC, heroInk: NEOTOKYO,
+  overlay: A(VEND, 0.65),
+  chart: [NEOTOKYO, FLINT, BLACKGREEN, VULC, VEND, NEOTOKYO],
+  chartSurface: VULC, grid: A(NEOTOKYO, 0.14), axis: A(NEOTOKYO, 0.85),
+  atlasBorder: BLACKGREEN, shadowInk: VEND, dockBg: VEND,
+  nav: {
+    text: NEOTOKYO, textSec: A(NEOTOKYO, 0.92), kicker: A(NEOTOKYO, 0.7),
+    icon: A(NEOTOKYO, 0.78), muted: A(NEOTOKYO, 0.72), accent: NEOTOKYO,
+    activeBg: A(VEND, 0.45), hairline: A(NEOTOKYO, 0.16), border: A(NEOTOKYO, 0.24),
+  },
+  frame: { outer: BLACKGREEN, inner: VULC, rail: FLINT, highlight: NEOTOKYO },
+  themeColor: VEND,
+  chrome: { frameGrammar: "basalt-steps", radius: 4, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Americano a chai · pět kotev + servisní len ------------------------
+   Teplá noc, dřevo, pražený materiál. Dodaná paleta nemá jedinou světlou
+   barvu, která by na svých nejtmavších polích dosáhla 4,5:1 — běžné písmo si
+   proto půjčuje lněný servisní inkoust ze Signature (výslovná výjimka ze
+   specifikace). Všechna pole, kolejnice a rámy zůstávají přesné kotvy.
+   Neodvozuje se žádná nová béžová. */
+const AMERICANO = "#1E1D1D", MOCHA = "#5A4D41", CHAI = "#7E6957", ROAST = "#867C70", BREW = "#303031";
+const DEF_AMERICANO = {
+  id: "americano-chai",
+  labelCs: "Americano a chai", labelEn: "Americano and Chai",
+  polarity: "dark", statusMode: "dark",
+  anchors: { Americano: AMERICANO, Mocha: MOCHA, Chai: CHAI, Roast: ROAST, Brew: BREW },
+  background: AMERICANO, navigation: BREW, surface: MOCHA, card: BREW,
+  documentSurface: BREW, elevatedSurface: MOCHA,
+  text: UTILITY.linen, textSecondary: A(UTILITY.linen, 0.9),
+  textMuted: A(UTILITY.linen, 0.8), textDisabled: A(UTILITY.linen, 0.5), placeholder: A(UTILITY.linen, 0.8),
+  border: CHAI, borderStrong: ROAST, borderSoft: A(UTILITY.linen, 0.13),
+  interactive: UTILITY.linen, interactiveText: UTILITY.ink, focus: UTILITY.linen, link: UTILITY.linen,
+  selectionSurface: A(ROAST, 0.35),
+  quietInk: A(UTILITY.linen, 0.78),
+  cardHover: A(UTILITY.linen, 0.06), sheetHover: A(UTILITY.linen, 0.04),
+  callout: MOCHA, tableHead: MOCHA,
+  activeNav: A(UTILITY.linen, 0.12),
+  hero: MOCHA, heroInk: UTILITY.linen,
+  overlay: A(AMERICANO, 0.68),
+  chart: [ROAST, CHAI, MOCHA, BREW, AMERICANO, ROAST],
+  chartSurface: BREW, grid: A(UTILITY.linen, 0.13), axis: A(UTILITY.linen, 0.82),
+  atlasBorder: CHAI, shadowInk: AMERICANO, dockBg: AMERICANO,
+  nav: {
+    text: UTILITY.linen, textSec: A(UTILITY.linen, 0.88), kicker: A(UTILITY.linen, 0.68),
+    icon: A(UTILITY.linen, 0.78), muted: A(UTILITY.linen, 0.72), accent: UTILITY.linen,
+    activeBg: A(UTILITY.linen, 0.12), hairline: A(UTILITY.linen, 0.15), border: A(UTILITY.linen, 0.24),
+  },
+  frame: { outer: MOCHA, inner: BREW, rail: CHAI, highlight: ROAST },
+  themeColor: AMERICANO,
+  chrome: { frameGrammar: "woven-rails", radius: 10, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+const OPTIONAL_DEFS = Object.freeze({
+  "slate-clay-pantone": DEF_SLATE_CLAY,
+  "monument-clay": DEF_MONUMENT,
+  "sand-burnt-earth": DEF_SAND_EARTH,
+  "garnet-slate": DEF_GARNET,
+  "shikon-fossil": DEF_SHIKON,
+  "volcanic-grey": DEF_VOLCANIC,
+  "americano-chai": DEF_AMERICANO,
+});
 
 const FIXED = (() => {
   const out = {};
   /* Signature Day je jediný vzhled, který jde do stroje se zmrazenou
-     produkční tabulkou navrch — ta má poslední slovo, takže se den nemůže
-     pohnout ani o odstín, a přesto prochází stejnou cestou jako ostatní. */
+     produkční tabulkou navrch — den se nemůže pohnout ani o odstín. */
+  const dayPal = buildPalette("light", signatureBase(SIGNATURE_LIGHT), SIGNATURE_LIGHT);
   out["signature-day"] = Object.freeze({
     id: "signature-day",
-    kind: "fixed",
+    kind: "signature",
     labelCs: "Signature · Den",
     labelEn: "Signature · Day",
     polarity: "light",
     recommended: true,
     anchors: Object.freeze({ Linen: BRAND.linen, Ink: BRAND.forest, Copper: BRAND.copper }),
-    palette: buildPalette("light", signatureBase(SIGNATURE_LIGHT), SIGNATURE_LIGHT),
-    preview: null,
+    palette: dayPal,
+    preview: previewOf(dayPal),
     themeColor: SIGNATURE_LIGHT.bg,
+    chrome: Object.freeze({ frameGrammar: "none", radius: 0, density: "none", frameTargets: Object.freeze([]) }),
   });
-  // preview se doplní až po zmrazení palety (previewOf čte hotové role)
-  const day = out["signature-day"];
-  out["signature-day"] = Object.freeze({ ...day, preview: previewOf(day.palette) });
-
-  for (const id of FIXED_PRESET_IDS) {
-    if (id === "signature-day") continue;
-    const def = SPECS[id];
-    out[id] = makeFixed(id, def, buildPalette(def.polarity, def, null));
+  const nightDef = SPECS["signature-night"];
+  out["signature-night"] = Object.freeze({
+    ...makeFixed("signature-night", nightDef, buildPalette(nightDef.polarity, nightDef, null), "signature"),
+    recommended: true,
+  });
+  for (const id of OPTIONAL_PRESET_IDS) {
+    const def = OPTIONAL_DEFS[id];
+    out[id] = makeFixed(id, def, exactPalette(def), "optional");
   }
-  // Signature Night je doporučená noční polovina normy domu.
-  out["signature-night"] = Object.freeze({ ...out["signature-night"], recommended: true });
   return Object.freeze(out);
 })();
 
@@ -734,6 +1057,7 @@ const AUTO = Object.freeze({
     dark: FIXED["signature-night"].preview,
   }),
   themeColor: FIXED["signature-day"].themeColor,
+  chrome: Object.freeze({ frameGrammar: "none", radius: 0, density: "none", frameTargets: Object.freeze([]) }),
 });
 
 const REGISTRY = Object.freeze({ "signature-auto": AUTO, ...FIXED });
@@ -744,6 +1068,9 @@ export const APPEARANCE_PRESETS = Object.freeze(APPEARANCE_PRESET_IDS.map((id) =
 /** Jen pevné vzhledy, v pořadí. */
 export const FIXED_PRESETS = Object.freeze(FIXED_PRESET_IDS.map((id) => REGISTRY[id]));
 
+/** Jen sedm volitelných palet, v pořadí. */
+export const OPTIONAL_PRESETS = Object.freeze(OPTIONAL_PRESET_IDS.map((id) => REGISTRY[id]));
+
 /** Bezpečné id. Neznámé id nikdy nespadne — vrací výchozí. */
 export function resolvePresetId(id) {
   return Object.prototype.hasOwnProperty.call(REGISTRY, id) ? id : DEFAULT_PRESET;
@@ -752,11 +1079,15 @@ export function resolvePresetId(id) {
 /** Záznam vzhledu podle id (i automatiky). */
 export function appearancePreset(id) { return REGISTRY[resolvePresetId(id)]; }
 
+/** Patří id do Signature trojice? */
+export function isSignaturePreset(id) {
+  return SIGNATURE_PRESET_IDS.indexOf(resolvePresetId(id)) !== -1;
+}
+
 /**
  * JEDINÝ KANONICKÝ RESOLVER.
  * Vrací PEVNÝ vzhled: pro `signature-auto` podle přání systému, pro cokoli
- * jiného sebe sama. Fixní vzhled systém nikdy nepřepíše — to je celý rozdíl
- * mezi V1.1 a V2.
+ * jiného sebe sama. Volitelná paleta systém nikdy neposlouchá.
  */
 export function resolveAppearancePreset(id, systemDark) {
   const p = REGISTRY[resolvePresetId(id)];
@@ -773,21 +1104,36 @@ export function presetPolarity(id, systemDark) { return resolveAppearancePreset(
 /** Jen automatika poslouchá systém. */
 export function isSystemAware(id) { return REGISTRY[resolvePresetId(id)].kind === "auto"; }
 
+/** Řeč rámů vyřešeného vzhledu. Signature: „none". */
+export function frameChrome(id, systemDark) { return resolveAppearancePreset(id, systemDark).chrome; }
+
 /** Náhledové tokeny. Automatika vrací { light, dark }, pevný vzhled jeden set. */
 export function previewTokens(id) { return REGISTRY[resolvePresetId(id)].preview; }
 
-/** Barva prohlížeče a lišty telefonu. Pole aplikace, nic jiného. */
+/** Barva prohlížeče a lišty telefonu. Pole, u Monumentu navigace. */
 export function pwaThemeColor(id, systemDark) { return resolveAppearancePreset(id, systemDark).themeColor; }
 
 /** Atributy na <html>. CSS i pre-paint skript čtou totéž. */
 export function documentThemeAttrs(id, systemDark) {
   const p = resolveAppearancePreset(id, systemDark);
-  return { "data-appearance": p.id, "data-color-mode": p.polarity };
+  return { "data-appearance": p.id, "data-color-mode": p.polarity, "data-frame-grammar": p.chrome.frameGrammar };
 }
 
 /** Pole každého pevného vzhledu — mapa pro pre-paint skript v index.html. */
 export const PRESET_FIELDS = Object.freeze(FIXED_PRESET_IDS.reduce((acc, id) => {
+  acc[id] = REGISTRY[id].palette.background;
+  return acc;
+}, {}));
+
+/** Barva lišty prohlížeče — jen tam, kde se liší od pole (Monument). */
+export const PRESET_THEME_COLORS = Object.freeze(FIXED_PRESET_IDS.reduce((acc, id) => {
   acc[id] = REGISTRY[id].themeColor;
+  return acc;
+}, {}));
+
+/** Řeč rámů podle id — mapa pro pre-paint skript. */
+export const PRESET_GRAMMARS = Object.freeze(FIXED_PRESET_IDS.reduce((acc, id) => {
+  acc[id] = REGISTRY[id].chrome.frameGrammar;
   return acc;
 }, {}));
 
@@ -821,31 +1167,44 @@ export const DOCUMENT_THEME = FIXED["signature-day"].palette;
 // ----------------------------------------------------------------------
 // MIGRACE · nikdo se po nasazení nesmí probudit do jiné palety
 // ----------------------------------------------------------------------
-// Tři generace uložené volby:
+// Generace uložené volby:
 //
-//   v0   `tm-theme` = "light" | "dark"                     (před V1)
-//   v2   { version: 2, family, mode }                      (V1 a V1.1)
-//   v3   { version: 3, preset }                            (V2)
+//   v0   `tm-theme` = "light" | "dark"                        (před V1)
+//   v2   { version: 2, family, mode }                         (V1 a V1.1)
+//   v3   { version: 3, preset }                               (V2)
+//   v4   { version: 4, preset, signature }                    (V3)
 //
-// Převod je čistá funkce, aby se dal otestovat bez prohlížeče: uložený řetězec
-// dovnitř, platná volba ven. Druhý běh je no-op. Cokoli nesrozumitelného končí
-// na `signature-auto` — do rozbitého vzhledu se nikdo nesmí zavřít.
+// Čtvrtá generace nese DVĚ věci: zvolený vzhled a POSLEDNÍ SIGNATURE VOLBU.
+// Kdo si zapne volitelnou paletu a pak se vrátí, dostane zpátky přesně ten
+// Signature režim, který měl předtím — automatiku, den, nebo noc. Klíč
+// zůstává `tm-appearance-v3`: starší build V2 si z něj přečte neznámý preset
+// a bezpečně spadne na automatiku.
 //
-// ZRUŠENÉ RODINY SE NEZTRÁCEJÍ. Kdo měl Atlantik, dostane Břidlici a hlínu;
-// kdo měl Hlínu nebo Olivu, dostane Písek a zemi. Je to nejbližší dochovaný
-// vzhled, ne náhoda — a je to jednosměrné, protože zrušené palety už v běhu
-// neexistují.
-export const APPEARANCE_VERSION = 3;
+// ZRUŠENÉ PALETY V2 SE NEZTRÁCEJÍ. Mapují se na nejbližší dochovanou
+// identitu podle specifikace V3; Tyrkys v noci žádnou blízkou nemá, a tak
+// podle pravidla „když si nejsi jistý, Signature" končí na Signature · Noc —
+// tmavý zůstává tmavým a nikoho nepřekvapí neznámá paleta.
+export const APPEARANCE_VERSION = 4;
 
-/** Rodina × režim (v2) → preset (v3). Tabulka je ze specifikace. */
+/** Zrušený preset V2 → nejbližší dochovaná identita V3. */
+const LEGACY_PRESET_MIGRATION = Object.freeze({
+  "slate-clay": "slate-clay-pantone",
+  "sand-earth": "sand-burnt-earth",
+  "smoke-spice": "shikon-fossil",
+  "river-night": "volcanic-grey",
+  "mulberry-paper": "garnet-slate",
+  "teal-night": "signature-night",
+});
+
+/** Rodina × režim (V1/V1.1) → vzhled V3. */
 const FAMILY_MIGRATION = Object.freeze({
   signature: Object.freeze({ system: "signature-auto", light: "signature-day", dark: "signature-night" }),
-  "river-mist": "river-night",
-  "teal-parchment": "teal-night",
-  "mulberry-paper": "mulberry-paper",
-  "atlantic-sky": "slate-clay",
-  "clay-alabaster": "sand-earth",
-  "olive-gold": "sand-earth",
+  "river-mist": "volcanic-grey",
+  "teal-parchment": "signature-night",
+  "mulberry-paper": "garnet-slate",
+  "atlantic-sky": "slate-clay-pantone",
+  "clay-alabaster": "sand-burnt-earth",
+  "olive-gold": "sand-burnt-earth",
 });
 
 /** Starý klíč `tm-theme` (v0) → preset. */
@@ -855,13 +1214,26 @@ const LEGACY_MODE_MIGRATION = Object.freeze({
   system: "signature-auto",
 });
 
-/** Ať přijde cokoli, ven jde platná volba V3. */
+function migratePresetId(id) {
+  if (Object.prototype.hasOwnProperty.call(LEGACY_PRESET_MIGRATION, id)) return LEGACY_PRESET_MIGRATION[id];
+  return resolvePresetId(id);
+}
+
+/** Ať přijde cokoli, ven jde platná volba V4: { version, preset, signature }. */
 export function normalizeAppearance(value) {
-  if (typeof value === "string") return { version: APPEARANCE_VERSION, preset: resolvePresetId(value) };
+  if (typeof value === "string") {
+    const preset = migratePresetId(value);
+    return { version: APPEARANCE_VERSION, preset, signature: isSignaturePreset(preset) ? preset : DEFAULT_PRESET };
+  }
   const v = value && typeof value === "object" ? value : {};
-  if (typeof v.preset === "string") return { version: APPEARANCE_VERSION, preset: resolvePresetId(v.preset) };
-  if (typeof v.family === "string") return { version: APPEARANCE_VERSION, preset: presetFromFamily(v.family, v.mode) };
-  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET };
+  let preset = DEFAULT_PRESET;
+  if (typeof v.preset === "string") preset = migratePresetId(v.preset);
+  else if (typeof v.family === "string") preset = presetFromFamily(v.family, v.mode);
+  let signature = typeof v.signature === "string" && isSignaturePreset(v.signature) && v.signature !== undefined
+    ? resolvePresetId(v.signature)
+    : null;
+  if (!signature || !isSignaturePreset(signature)) signature = isSignaturePreset(preset) ? preset : DEFAULT_PRESET;
+  return { version: APPEARANCE_VERSION, preset, signature };
 }
 
 /** Rodina + režim → preset. Neznámá rodina končí na automatice. */
@@ -884,14 +1256,32 @@ export function migrateLegacyAppearance(raw, legacy) {
     } catch (e) { /* rozbitý JSON není důvod k pádu, je důvod k automatice */ }
   }
   if (Object.prototype.hasOwnProperty.call(LEGACY_MODE_MIGRATION, legacy)) {
-    return { version: APPEARANCE_VERSION, preset: LEGACY_MODE_MIGRATION[legacy] };
+    const preset = LEGACY_MODE_MIGRATION[legacy];
+    return { version: APPEARANCE_VERSION, preset, signature: preset };
   }
-  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET };
+  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: DEFAULT_PRESET };
 }
 
 /** Návrat na doporučený vzhled. */
 export function signatureAppearance() {
-  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET };
+  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: DEFAULT_PRESET };
+}
+
+/** Zvol vzhled. Signature volba se pamatuje, volitelná paleta ji nepřepíše. */
+export function selectAppearance(pref, id) {
+  const clean = normalizeAppearance(pref);
+  const preset = resolvePresetId(id);
+  return {
+    version: APPEARANCE_VERSION,
+    preset,
+    signature: isSignaturePreset(preset) ? preset : clean.signature,
+  };
+}
+
+/** „Použít Signature" — vrátí přesně tu Signature volbu, která tu byla. */
+export function returnToSignature(pref) {
+  const clean = normalizeAppearance(pref);
+  return { version: APPEARANCE_VERSION, preset: clean.signature, signature: clean.signature };
 }
 
 // ----------------------------------------------------------------------
