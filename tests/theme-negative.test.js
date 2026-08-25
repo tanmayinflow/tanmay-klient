@@ -155,6 +155,18 @@ test("zrušený název se nesmí vrátit do rozhraní", () => {
   }
 });
 
+test("Noční proud ani devátá paleta neexistují", () => {
+  assert.equal(OPTIONAL_PRESET_IDS.length, 8, "palet je přesně osm");
+  assert.equal(APPEARANCE_PRESET_IDS.length, 11, "vzhledů je přesně jedenáct");
+  for (const bad of ["night-stream", "nocni-proud", "quiet-ledger-day", "quiet-ledger-light"]) {
+    assert.equal(resolvePresetId(bad), DEFAULT_PRESET, bad);
+  }
+  assert.ok(!appCode.includes("Noční proud"), "Noční proud se nesmí objevit");
+  for (const p of APPEARANCE_PRESET_IDS) {
+    assert.ok(appearancePreset(p), p);
+  }
+});
+
 test("stará volba, kterou by nikdo nepřevedl, končí na Signature", () => {
   assert.equal(migrateLegacyAppearance(JSON.stringify({ version: 3, preset: "uplne-nova" }), null).preset, DEFAULT_PRESET);
   assert.equal(migrateLegacyAppearance(JSON.stringify({ version: 2, family: "neznama", mode: "dark" }), null).preset, DEFAULT_PRESET);

@@ -219,8 +219,8 @@ export function createAppearanceUI(useT, L) {
 
         <div style={label(true)}>{L("Volitelné palety", "Optional palettes")}</div>
         <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, lineHeight: 1.55, marginBottom: 12 }}>
-          {L("Sedm hotových palet s přesnými barvami z předloh a vlastní řečí rámů. Paleta nemá režim: je to jeden dokončený vzhled a systém s ním nehýbe.",
-             "Seven finished palettes with exact reference colours and their own frame language. A palette has no mode: it is one finished appearance, and the system never moves it.")}
+          {L("Osm hotových palet s přesnými barvami z předloh a vlastní řečí rámů. Paleta nemá režim: je to jeden dokončený vzhled a systém s ním nehýbe.",
+             "Eight finished palettes with exact reference colours and their own frame language. A palette has no mode: it is one finished appearance, and the system never moves it.")}
         </div>
         <Radios label={L("Volitelné palety", "Optional palettes")} items={optional}
           value={naPalete ? preset : ""} onPick={onPreset} />

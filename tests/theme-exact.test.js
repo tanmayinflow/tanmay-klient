@@ -22,8 +22,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  OPTIONAL_PRESET_IDS, appearancePreset, resolveTheme, FUNCTIONAL, BRAND, UTILITY,
+  OPTIONAL_PRESET_IDS, appearancePreset, resolveTheme, statusPalette,
+  FUNCTIONAL, BRAND, UTILITY,
 } from "../src/shared/ui/themeRegistry.js";
+import { ratio } from "../src/shared/ui/contrast.js";
 
 /* Značkové konstanty a stavové role jsou sdílený systém, ne barvy palety.
    Copper je značka (plát Atlasu, značkové stopy), stavová čtveřice nese
@@ -87,6 +89,8 @@ test("kotvy jsou doslova ty z referencí", () => {
     "shikon-fossil": ["#282227", "#493C3C", "#6D5B57", "#9B7E6D", "#D0B08F"],
     "volcanic-grey": ["#292A2A", "#414445", "#5C6263", "#8F9295", "#BEC0C2"],
     "americano-chai": ["#1E1D1D", "#5A4D41", "#7E6957", "#867C70", "#303031"],
+    "quiet-ledger-night": ["#191919", "#202020", "#252525", "#2F2F2F", "#373737",
+      "#F0EFED", "#ADA9A3", "#D3C7AD", "#28374A", "#754437", "#6B6751"],
   };
   for (const [id, anchors] of Object.entries(expect)) {
     const got = Object.values(appearancePreset(id).anchors).map((h) => h.toUpperCase()).sort();
@@ -122,6 +126,7 @@ test("hlína, allspice, blackish green a roast nenesou běžné písmo", () => {
     "shikon-fossil": ["#9B7E6D", "#6D5B57"],
     "volcanic-grey": ["#5C6263"],
     "americano-chai": ["#867C70", "#7E6957", "#5A4D41"],
+    "quiet-ledger-night": ["#754437", "#6B6751", "#28374A"],
   };
   for (const [id, hexes] of Object.entries(zakazane)) {
     const t = resolveTheme(id, false);
@@ -131,5 +136,34 @@ test("hlína, allspice, blackish green a roast nenesou běžné písmo", () => {
           `${id}.${role} nese ${bad} — ta barva na běžné písmo nestačí`);
       }
     }
+  }
+});
+
+test("Tichý zápis: žádný starý signál, jen čtyřbarevný jazyk reference", () => {
+  const FORBIDDEN = ["#2383E2", "#529CCA", "#4DAB9A", "#FFDC49", "#FF7369",
+    "#6A9FBA", "#72A37F", "#D6A347", "#D98470"];
+  const t = resolveTheme("quiet-ledger-night", false);
+  const s = statusPalette("quiet-ledger-night");
+  for (const [name, value] of [...Object.entries(t), ...Object.entries(s)]) {
+    if (typeof value !== "string") continue;
+    for (const base of basesOf(value)) {
+      assert.ok(FORBIDDEN.indexOf(base) === -1,
+        `quiet-ledger-night.${name}: ${base} je zakázaný starý signál`);
+    }
+  }
+  // A signální jazyk jsou přesně čtyři barvy — nic pátého.
+  const signals = new Set([s.infoBg, s.successBg, s.warningBg, s.errorBg].map((h) => h.toUpperCase()));
+  assert.deepEqual([...signals].sort(), ["#28374A", "#6B6751", "#754437", "#D3C7AD"]);
+});
+
+test("Tichý zápis: povinné přístupné páry drží AA", () => {
+  const pairs = [
+    ["#D3C7AD", "#28374A"], // Areia na Azulu — info, vybraný stav
+    ["#28374A", "#D3C7AD"], // Azul na Areii — varování
+    ["#D3C7AD", "#754437"], // Areia na Terra — chyba
+    ["#F0EFED", "#6B6751"], // světlé písmo na Verde — úspěch
+  ];
+  for (const [fg, bg] of pairs) {
+    assert.ok(ratio(fg, bg) >= 4.5, `${fg} na ${bg}: ${ratio(fg, bg)} < 4.5`);
   }
 });

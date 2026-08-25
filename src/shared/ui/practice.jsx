@@ -178,7 +178,7 @@ export function createPracticeUI(deps) {
       <div data-pv="zamer" style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "2px 0 4px" }}>
         {/* the quiet door · "Today I am" and its small ring open the Mandala —
             the room of selves you tune into before you name the day */}
-        <button data-pv="mandala" onClick={() => go && go("mandala")} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} title={L("Osobní mandala · aspekty self", "Personal mandala · aspects of self")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}>
+        <button data-pv="mandala" className="tm-tap-c" onClick={() => go && go("mandala")} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} title={L("Osobní mandala · aspekty self", "Personal mandala · aspects of self")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}>
           <span aria-hidden="true" style={{ position: "relative", width: 15, height: 15, flexShrink: 0, display: "inline-flex" }}>
             <span style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `1.5px solid ${hov ? t.accent : t.sand}`, transition: "border-color .3s ease, transform .4s ease", transform: hov ? "rotate(45deg)" : "none" }} />
             <span style={{ position: "absolute", left: "50%", top: 1.5, bottom: 1.5, width: 1, background: hov ? t.accent : t.borderSoft, transform: "translateX(-50%)", transition: "background .3s ease" }} />

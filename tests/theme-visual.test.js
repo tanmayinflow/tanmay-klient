@@ -108,13 +108,31 @@ test("Americano a chai · len píše, kotvy rámují, žádná kavárna", () => 
   const t = resolveTheme("americano-chai", false);
   assert.equal(t.text, "#F4F0EB", "běžné písmo je servisní len — hnědé písmo pod 4,5 sem nesmí");
   assert.equal(t.frameOuter, "#5A4D41", "vnější kolejnice je Mocha");
-  assert.equal(t.frameInner, "#303031");
+  assert.equal(t.frameInner, "#7E6957", "vnitřní linka je Chai — finální spec V3");
   assert.equal(t.documentSurface, "#303031", "dokument je Brew");
   for (const role of ["text", "textSecondary", "textMuted", "placeholder", "link"]) {
     for (const bad of ["#867C70", "#7E6957", "#5A4D41"]) {
       assert.ok(!String(t[role]).toUpperCase().startsWith(bad.toUpperCase()), `${role} nese ${bad}`);
     }
   }
+});
+
+test("Tichý zápis · skoro plochý: panel s linkou, otevřený dokument, azulový výběr", () => {
+  const t = resolveTheme("quiet-ledger-night", false);
+  assert.equal(t.background, "#191919", "pole je Ink");
+  assert.equal(t.surface, "#202020", "panel je o odstín výš");
+  assert.equal(t.documentSurface, "#191919", "dokument je otevřený — splývá s polem");
+  assert.equal(t.elevatedSurface, "#252525", "popover je Popover");
+  assert.equal(t.border, "#373737", "jediná linka je Divider");
+  assert.equal(t.frameOuter, "#373737", "rám je jen linka");
+  assert.equal(t.frameRail, "#28374A", "kolejnice výběru je Azul");
+  assert.equal(t.frameHighlight, "#D3C7AD", "vnější keyline vybraného je Areia");
+  assert.equal(t.selectionText, "#F0EFED");
+  const ql = frameGrammarCss().split("}")
+    .filter((r) => r.includes('data-frame-grammar="quiet-ledger"')).join("}");
+  assert.ok(/inset 0 0 0 1px/.test(ql), "quiet-ledger kreslí jen 1px keyline");
+  assert.ok(!/inset 0 0 0 [2-9]px/.test(ql), "žádná silná zeď — motiv je skoro plochý");
+  assert.ok(!ql.includes("tm-psani"), "psací plocha zůstává otevřená, bez rámu");
 });
 
 test("rámy jsou čisté CSS bez rozměrů, gradientů a záře", () => {

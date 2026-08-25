@@ -41,7 +41,7 @@
 // a sedm dodaných referencí. Odchylky jsou v THEME-CONTRAST-REPORT.md.
 
 import { hexA, mixHex } from "./color.js";
-import { contrast, luminance, grayscale, ratio, cvdDistance } from "./contrast.js";
+import { contrast, luminance, grayscale, ratio, cvdDistance, chroma } from "./contrast.js";
 
 /** Značkové body. Copper je značka, ne interakční barva. */
 export const BRAND = Object.freeze({ copper: "#B87333", linen: "#F4F0EB", forest: "#1C1C1A" });
@@ -67,6 +67,7 @@ export const APPEARANCE_PRESET_IDS = Object.freeze([
   "shikon-fossil",
   "volcanic-grey",
   "americano-chai",
+  "quiet-ledger-night",
 ]);
 
 /** Signature trojice — jediná část výběru, kde existuje režim. */
@@ -75,7 +76,7 @@ export const SIGNATURE_PRESET_IDS = Object.freeze(["signature-auto", "signature-
 /** Sedm volitelných palet. Pevné: systém s nimi nehýbe. */
 export const OPTIONAL_PRESET_IDS = Object.freeze([
   "slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate",
-  "shikon-fossil", "volcanic-grey", "americano-chai",
+  "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night",
 ]);
 
 /** Všechno kromě automatiky — vyřešené palety. */
@@ -577,7 +578,10 @@ function previewOf(p) {
     documentSurface: p.documentSurface,
     text: p.text, textMuted: p.textMuted, heading: p.heading,
     border: p.border, accent: p.interactiveAccent, onAccent: p.interactiveOnAccent,
-    success: p.successFg, error: p.errorFg,
+    /* Tečka stavu v náhledu nese IDENTITU stavu — u výplňových palet je to
+       výplň, u ostatních popředí. Rozhoduje sytost, ne jméno palety. */
+    success: chroma(p.successBg) > chroma(p.successFg) ? p.successBg : p.successFg,
+    error: chroma(p.errorBg) > chroma(p.errorFg) ? p.errorBg : p.errorFg,
     frameOuter: p.frameOuter, frameInner: p.frameInner,
     frameRail: p.frameRail, frameHighlight: p.frameHighlight,
   });
@@ -614,7 +618,12 @@ const A = hexA;
 /** Poskládá úplný kontrakt z doslovných rolí. Nic nedopočítává. */
 function exactPalette(d) {
   const dark = d.polarity === "dark";
-  const fn = FUNCTIONAL[d.statusMode];
+  /* Stavová čtveřice je sdílená — s jedinou výslovnou výjimkou: Tichý zápis
+     má ve specifikaci vlastní mapování VÝPLNÍ s párovým popředím. */
+  const fn = d.statusOverride || FUNCTIONAL[d.statusMode];
+  /* Holé stavové inkousty (t.danger…) kreslí písmo přímo na plochách;
+     paleta s výplňovými stavy si pro ně určí čitelné zástupce. */
+  const bare = d.statusInk || fn;
   const series = d.chart;
   const shadowInk = d.shadowInk;
   const out = {
@@ -684,10 +693,10 @@ function exactPalette(d) {
     sage: d.quietInk,
     sand: d.quietInk,
     inkSand: d.quietInk,
-    danger: fn.errorFg,
-    info: fn.infoFg,
-    success: fn.successFg,
-    warning: fn.warningFg,
+    danger: bare.errorFg,
+    info: bare.infoFg,
+    success: bare.successFg,
+    warning: bare.warningFg,
     cardHover: d.cardHover,
     callout: d.callout,
     tableHead: d.tableHead,
@@ -958,7 +967,7 @@ const DEF_VOLCANIC = {
     icon: A(NEOTOKYO, 0.78), muted: A(NEOTOKYO, 0.72), accent: NEOTOKYO,
     activeBg: A(VEND, 0.45), hairline: A(NEOTOKYO, 0.16), border: A(NEOTOKYO, 0.24),
   },
-  frame: { outer: BLACKGREEN, inner: VULC, rail: FLINT, highlight: NEOTOKYO },
+  frame: { outer: BLACKGREEN, inner: FLINT, rail: VULC, highlight: NEOTOKYO },
   themeColor: VEND,
   chrome: { frameGrammar: "basalt-steps", radius: 4, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
 };
@@ -996,9 +1005,68 @@ const DEF_AMERICANO = {
     icon: A(UTILITY.linen, 0.78), muted: A(UTILITY.linen, 0.72), accent: UTILITY.linen,
     activeBg: A(UTILITY.linen, 0.12), hairline: A(UTILITY.linen, 0.15), border: A(UTILITY.linen, 0.24),
   },
-  frame: { outer: MOCHA, inner: BREW, rail: CHAI, highlight: ROAST },
+  frame: { outer: MOCHA, inner: CHAI, rail: ROAST, highlight: ROAST },
   themeColor: AMERICANO,
   chrome: { frameGrammar: "woven-rails", radius: 10, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Tichý zápis · neutrální kniha záznamů se čtyřmi signály -----------
+   Skoro plochá noc: sedm přesných neutrál (#191919 … #F0EFED) a PŘESNĚ
+   čtyři signální barvy z reference — Areia, Azul, Terra Queimada, Verde
+   Opaco. Azul, Terra ani Verde nedají na tmavých polích 4,5:1, a tak jsou
+   to VÝPLNĚ s povinným párovým popředím, ne slabé barevné popisky. Žádné
+   další signální barvy neexistují a starší digitální signály (Notion modrá,
+   žlutá, korálová…) jsou v této paletě testem zakázané. */
+const QL_BG = "#191919", QL_PANEL = "#202020", QL_POP = "#252525",
+  QL_SEL = "#2F2F2F", QL_LINE = "#373737", QL_INK = "#F0EFED", QL_INK2 = "#ADA9A3";
+const DEF_QUIET_LEDGER = {
+  id: "quiet-ledger-night",
+  labelCs: "Tichý zápis", labelEn: "Quiet Ledger",
+  polarity: "dark", statusMode: "dark",
+  anchors: {
+    Ink: QL_BG, Panel: QL_PANEL, Popover: QL_POP, Selected: QL_SEL,
+    Divider: QL_LINE, Paper: QL_INK, Graphite: QL_INK2,
+    Areia: SAND, Azul: AZUL, "Terra Queimada": TERRA, "Verde Opaco": VERDE,
+  },
+  background: QL_BG, navigation: QL_PANEL, surface: QL_PANEL, card: QL_PANEL,
+  documentSurface: QL_BG, elevatedSurface: QL_POP,
+  text: QL_INK, textSecondary: QL_INK2,
+  textMuted: A(QL_INK2, 0.85), textDisabled: A(QL_INK2, 0.6), placeholder: A(QL_INK2, 0.9),
+  border: QL_LINE, borderStrong: QL_INK2, borderSoft: A(QL_LINE, 0.6),
+  /* Akcent je Areia: jediná signální barva, která unese písmo na tmavém poli.
+     Azul je výplň (aktivní navigace, výběr, informace) — spec ho pro běžné
+     písmo výslovně zakazuje; popisek na areiovém tlačítku je Azul (7,2:1). */
+  interactive: SAND, interactiveText: AZUL, focus: SAND, link: SAND,
+  selectionSurface: QL_SEL, selectionText: QL_INK,
+  quietInk: QL_INK2,
+  cardHover: A(QL_INK, 0.04), sheetHover: A(QL_INK, 0.03),
+  callout: QL_PANEL, tableHead: QL_PANEL,
+  activeNav: AZUL,
+  hero: QL_PANEL, heroInk: QL_INK,
+  overlay: A(QL_BG, 0.68),
+  chart: [AZUL, VERDE, SAND, TERRA, AZUL, VERDE],
+  chartSurface: QL_PANEL, grid: A(QL_INK, 0.1), axis: QL_INK2,
+  /* Rám plátu leží na lnu — světlá grafitová by na něm zmizela. */
+  atlasBorder: QL_LINE, shadowInk: QL_BG, dockBg: QL_PANEL,
+  /* Přesné sémantické mapování ze specifikace: výplň + párové popředí. */
+  statusOverride: {
+    successFg: QL_INK, successBg: VERDE,
+    warningFg: AZUL, warningBg: SAND,
+    errorFg: SAND, errorBg: TERRA,
+    infoFg: SAND, infoBg: AZUL,
+  },
+  /* Holé stavové inkousty: čitelný zástupce identity stavu na tmavém poli.
+     Terra ani Azul na neutrálu nečtou — písmo nese jejich párové popředí;
+     znak a slovo nesou význam (STATUS_CARRIERS). */
+  statusInk: { errorFg: SAND, warningFg: SAND, successFg: QL_INK, infoFg: SAND },
+  nav: {
+    text: QL_INK, textSec: QL_INK2, kicker: QL_INK2,
+    icon: QL_INK2, muted: QL_INK2, accent: SAND,
+    activeBg: AZUL, hairline: QL_LINE, border: QL_LINE,
+  },
+  frame: { outer: QL_LINE, inner: QL_LINE, rail: AZUL, highlight: SAND },
+  themeColor: QL_BG,
+  chrome: { frameGrammar: "quiet-ledger", radius: 8, density: "restrained", frameTargets: ["sheet", "selected"] },
 };
 
 const OPTIONAL_DEFS = Object.freeze({
@@ -1009,6 +1077,7 @@ const OPTIONAL_DEFS = Object.freeze({
   "shikon-fossil": DEF_SHIKON,
   "volcanic-grey": DEF_VOLCANIC,
   "americano-chai": DEF_AMERICANO,
+  "quiet-ledger-night": DEF_QUIET_LEDGER,
 });
 
 const FIXED = (() => {

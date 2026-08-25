@@ -275,12 +275,22 @@ ${sel("nested-fossil")} { box-shadow: inset 3px 0 0 0 var(--tm-frame-rail) !impo
 
 /* ---- Sopečná šeď · čedičové stupně · žádný rozmazaný stín -------------- */
 ${sheets("basalt-steps")} {
-  box-shadow: inset 0 0 0 2px var(--tm-frame-outer), 6px 6px 0 0 var(--tm-frame-inner) !important;
+  box-shadow: inset 0 0 0 2px var(--tm-frame-outer), inset 0 0 0 3px var(--tm-frame-inner),
+    6px 6px 0 0 var(--tm-frame-rail) !important;
 }
 ${writing("basalt-steps")} {
   box-shadow: inset 0 0 0 2px var(--tm-frame-outer);
 }
-${sel("basalt-steps")} { box-shadow: inset 3px 0 0 0 var(--tm-frame-rail) !important; }
+${sel("basalt-steps")} { box-shadow: inset 0 0 0 1px var(--tm-frame-inner) !important; }
+
+/* ---- Tichý zápis · skoro plochá kniha záznamů --------------------------
+   Žádný rám místnosti, žádné vnoření: list a popover nesou jedinou
+   vlásečnici #373737, psací pole zůstává otevřené a vybraná položka
+   navigace dostává k azulové výplni areiovou obrysovou linku. */
+${sheets("quiet-ledger")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-outer), var(--tm-shadow-sheet) !important;
+}
+${sel("quiet-ledger")} { box-shadow: inset 0 0 0 1px var(--tm-frame-highlight) !important; }
 
 /* ---- Americano a chai · tkané kolejnice -------------------------------- */
 ${sheets("woven-rails")} {

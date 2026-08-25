@@ -3,7 +3,7 @@
 // Change it there, then run `npm run shared:sync` in the outer workspace.
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
-// REJSTŘÍK VZHLEDŮ V3 · Signature trojice + sedm palet, jeden resolver,
+// REJSTŘÍK VZHLEDŮ V3 · Signature trojice + osm palet, jeden resolver,
 // jedna volba se zapamatovanou Signature, jedna řeč rámů na paletu.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -21,7 +21,7 @@ import { makeThemeFor, makeTagsFor } from "../src/shared/ui/theme.js";
 
 const ORDER = ["signature-auto", "signature-day", "signature-night",
   "slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate",
-  "shikon-fossil", "volcanic-grey", "americano-chai"];
+  "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night"];
 
 const GRAMMARS = {
   "signature-day": "none", "signature-night": "none",
@@ -32,6 +32,7 @@ const GRAMMARS = {
   "shikon-fossil": "nested-fossil",
   "volcanic-grey": "basalt-steps",
   "americano-chai": "woven-rails",
+  "quiet-ledger-night": "quiet-ledger",
 };
 
 const ROLES = [
@@ -54,12 +55,12 @@ const ROLES = [
   "frameOuter", "frameInner", "frameRail", "frameHighlight",
 ];
 
-test("deset vzhledů, v daném pořadí: Signature trojice a sedm palet", () => {
+test("jedenáct vzhledů, v daném pořadí: Signature trojice a osm palet", () => {
   assert.deepEqual([...APPEARANCE_PRESET_IDS], ORDER);
-  assert.equal(APPEARANCE_PRESETS.length, 10);
+  assert.equal(APPEARANCE_PRESETS.length, 11);
   assert.deepEqual([...SIGNATURE_PRESET_IDS], ORDER.slice(0, 3));
   assert.deepEqual([...OPTIONAL_PRESET_IDS], ORDER.slice(3));
-  assert.equal(OPTIONAL_PRESETS.length, 7);
+  assert.equal(OPTIONAL_PRESETS.length, 8);
   assert.equal(DEFAULT_PRESET, "signature-auto");
   assert.equal(RECOMMENDED_PRESET, "signature-auto");
   const cs = new Set(), en = new Set();
@@ -80,7 +81,7 @@ test("řeč rámů: každá paleta má svou, Signature žádnou, žádné dvě s
       seen.add(g);
     }
   }
-  assert.equal(seen.size, 7);
+  assert.equal(seen.size, 8);
   assert.equal(frameChrome("signature-auto", true).frameGrammar, "none");
   assert.deepEqual(PRESET_GRAMMARS["garnet-slate"], "corner-brackets");
   for (const id of OPTIONAL_PRESET_IDS) {
@@ -199,12 +200,20 @@ test("stav není nikdy jen barva a stavové role zůstávají sdílené", () => 
   }
   assert.equal(toneStyle("neznámý", "signature-day").role, "neutral");
   // Volitelná paleta stavy NEladí — Granát se nesmí stát chybou.
+  // Výjimka daná specem: Tichý zápis nese vlastní čtyřbarevný signální jazyk.
   for (const id of OPTIONAL_PRESET_IDS) {
+    if (id === "quiet-ledger-night") continue;
     const s = statusPalette(id);
     const mode = appearancePreset(id).polarity;
     assert.equal(s.errorFg, FUNCTIONAL[mode].errorFg, `${id}: stavová červeň se pohnula`);
     assert.equal(s.successFg, FUNCTIONAL[mode].successFg, id);
   }
+  // Tichý zápis: Azul informuje, Verde potvrzuje, Areia varuje, Terra chybuje.
+  const ql = statusPalette("quiet-ledger-night");
+  assert.deepEqual(
+    [ql.infoBg, ql.infoFg, ql.successBg, ql.successFg, ql.warningBg, ql.warningFg, ql.errorBg, ql.errorFg],
+    ["#28374A", "#D3C7AD", "#6B6751", "#F0EFED", "#D3C7AD", "#28374A", "#754437", "#D3C7AD"],
+  );
 });
 
 test("datová paleta má šest pozic a nebarevný nosič", () => {
