@@ -9952,6 +9952,37 @@ const tvName = (rec) => (rec ? (LANG === "cs" ? rec.displayCz : rec.displayEn) |
 
 const tvQuiet = (t) => ({ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 9, padding: "7px 12px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 13, minHeight: 38 });
 
+// ČÍSLO, KTERÉ SE DÁ NAPSAT · text nad číslem. Řízený vstup s hodnotou
+// „číslo" zahazoval desetinnou čárku i tečku ve chvíli, kdy ji člověk napsal:
+// „2," se přepsalo na „2", další klávesa udělala „25" a v záznamu stálo
+// 25 kg místo 2,5. Pole si drží text, číslo odchází, jen když je celé;
+// čárka i tečka platí, záporné číslo a písmena se nepustí dovnitř.
+function TvNumInput({ value, onChange, disabled, style, ...rest }) {
+  const [txt, setTxt] = useState(value == null ? "" : String(value));
+  const last = React.useRef(value);
+  React.useEffect(() => {
+    if (value !== last.current) { last.current = value; setTxt(value == null ? "" : String(value)); }
+  }, [value]);
+  const commit = (n) => { if (n !== last.current) { last.current = n; onChange(n); } };
+  const onInput = (e) => {
+    const raw = String(e.target.value);
+    if (!/^\d*[.,]?\d*$/.test(raw)) return;      // jen číslice a jeden oddělovač
+    setTxt(raw);
+    const norm = raw.replace(",", ".");
+    if (norm === "" ) { commit(null); return; }
+    if (/^\.|\.$/.test(norm) && !/^\d+\.\d+$/.test(norm)) return; // „2," ještě není číslo
+    const n = Number(norm);
+    if (Number.isFinite(n)) commit(n);
+  };
+  const onBlur = () => {
+    const norm = txt.replace(",", ".");
+    const n = norm === "" ? null : Number(norm);
+    if (n === null || Number.isFinite(n)) { setTxt(n == null ? "" : String(n)); commit(n); }
+    else setTxt(last.current == null ? "" : String(last.current));
+  };
+  return <input {...rest} inputMode="decimal" disabled={disabled} value={txt} onChange={onInput} onBlur={onBlur} style={style} />;
+}
+
 function TvField({ field, value, onChange, disabled }) {
   const { t } = useT();
   const spec = TV.FIELD[field] || TV.FIELD.reps;
@@ -9961,8 +9992,7 @@ function TvField({ field, value, onChange, disabled }) {
       <span style={{ fontFamily: FONT_TAG, fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted }}>
         {(tvCz() ? spec.cz : spec.en) + (unit ? " · " + unit : "")}
       </span>
-      <input inputMode="decimal" disabled={disabled} value={value == null ? "" : String(value)}
-        onChange={(e) => onChange(e.target.value === "" ? null : Number(String(e.target.value).replace(",", ".")))}
+      <TvNumInput disabled={disabled} value={value} onChange={onChange}
         style={{ width: 62, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "8px", color: t.heading, fontFamily: FONT_BODY, fontSize: 15, fontVariantNumeric: "tabular-nums", textAlign: "center", minHeight: 40 }} />
     </label>
   );
@@ -12325,6 +12355,70 @@ export default function App() {
   // Zapsaná série se nesmí tvářit jako odeslaná. Dokud se dokument neshoduje s
   // tím, co server naposledy potvrdil, je co odeslat — a je to vidět.
   const [syncPending, setSyncPending] = useState(false);
+  // ČÍSLO VERZE · aby jedno zařízení nepřepsalo druhé. Server u dokumentu
+  // drží číslo verze a vrací ho při každém čtení i zápisu. Před každým
+  // odesláním se ho zeptáme znovu; když je vyšší než to, které jsme naposledy
+  // četli nebo psali, mezitím psalo jiné zařízení — pak neodesíláme nic
+  // a necháme rozhodnout člověka. Dřív tu žádné porovnání nebylo: telefon
+  // s otevřenou aplikací poslal celý dokument a tiše přepsal to, co klient
+  // mezitím napsal na notebooku — a notebook si při dalším načtení vzal
+  // serverovou verzi, takže zápis zmizel odevšad. Táž ochrana, jakou má
+  // osobní aplikace.
+  const _ver = React.useRef(0);
+  const [conflict, setConflict] = useState(null); // { doc, ver, karta? } · verze odjinud
+  const _readServer = async () => {
+    try {
+      const r = await fetch("/api/state", { cache: "no-store" });
+      if (!r.ok) return null;
+      const b = await r.json();
+      return { doc: (b && b.doc) || null, ver: (b && b.version) || 0 };
+    } catch (e) { return null; }
+  };
+  const adoptServer = (sdoc, ver) => {
+    // Chybějící `edits` na druhé straně neznamená „smaž denní záznamy".
+    const se = (sdoc.edits && typeof sdoc.edits === "object") ? sdoc.edits : _editsRef.current;
+    setColl(sdoc.coll); saveColl(sdoc.coll);
+    setEdits(se); saveEdits(se);
+    _ver.current = ver || 0;
+    _lastSynced.current = _serializeDoc(sdoc.coll, se);
+    syncMarkSave(_ver.current, tmDocSig(_lastSynced.current));
+    _dirty.current = false;
+    setConflict(null); setSyncPending(false);
+  };
+  // Jedno odeslání. Vrátí true, když server dokument přijal. Bez kontroly
+  // verze jen tehdy, když ji volající sám právě provedl (vědomé přepsání).
+  const _push = async (opts) => {
+    const c = _collRef.current, e = _editsRef.current;
+    const cur = _serializeDoc(c, e);
+    if (!(opts && opts.force)) {
+      if (cur === _lastSynced.current) return true; // nic nového
+      const s = await _readServer();
+      if (s && s.doc && s.doc.coll && s.ver > _ver.current) { setConflict({ doc: s.doc, ver: s.ver }); return false; }
+      if (s) _ver.current = Math.max(_ver.current, s.ver);
+    }
+    try {
+      const r = await fetch("/api/state", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doc: { coll: c, edits: e }, share: _shareOf(c, e) }),
+      });
+      if (!r.ok) { setSyncErr(true); return false; }
+      let pv = 0; try { pv = ((await r.json()) || {}).version || 0; } catch (err) {}
+      _ver.current = pv || _ver.current + 1;
+      _lastSynced.current = cur;
+      syncMarkSave(_ver.current, tmDocSig(cur));
+      setSyncErr(false); setSyncPending(false);
+      return true;
+    } catch (err) { setSyncErr(true); return false; }
+  };
+  const _pushRef = React.useRef(_push); _pushRef.current = _push;
+  const keepMine = () => {
+    // vědomé přepsání · vezmeme si číslo serveru a hned pošleme svou verzi
+    if (conflict) _ver.current = Math.max(_ver.current, conflict.ver || 0);
+    setConflict(null);
+    _dirty.current = true;
+    _pushRef.current({ force: true });
+  };
   React.useEffect(() => {
     // Dokud nevíme, komu úložiště patří, neodesíláme nic a nic nepřijímáme.
     if (ownerId === null) return;
@@ -12345,6 +12439,7 @@ export default function App() {
         const mark = syncMarkLoad();
         const mine = _serializeDoc(_collRef.current, _editsRef.current);
         const nepreneseno = !!mark && mark.sig !== tmDocSig(mine);
+        const serverPosunut = !!mark && sver > (mark.v || 0);
         if (sdoc && typeof sdoc === "object" && sdoc.coll && !_dirty.current && !nepreneseno) {
           // server holds a real document AND we have no unsynced local work -> adopt it
           // Chybějící `edits` na serveru neznamená „smaž denní záznamy".
@@ -12353,7 +12448,13 @@ export default function App() {
           setEdits(se); saveEdits(se);
           const cur = _serializeDoc(sdoc.coll, se);
           _lastSynced.current = cur;
+          _ver.current = sver;
           syncMarkSave(sver, tmDocSig(cur));
+        } else if (sdoc && typeof sdoc === "object" && sdoc.coll && nepreneseno && serverPosunut) {
+          // obojí se pohnulo · tady se nerozhoduje za člověka
+          _ver.current = mark.v || 0;
+          _lastSynced.current = mine;
+          setConflict({ doc: sdoc, ver: sver });
         } else {
           // no valid server document yet, OR we hold local work the server has
           // not seen -> keep local and push it (never clobber the user's writes)
@@ -12365,8 +12466,11 @@ export default function App() {
             });
             if (!pr.ok) throw new Error("state PUT " + pr.status);
             let pv = 0; try { pv = ((await pr.json()) || {}).version || 0; } catch (e) {}
-            syncMarkSave(pv, tmDocSig(mine));
+            _ver.current = pv || sver + 1;
+            syncMarkSave(_ver.current, tmDocSig(mine));
             setSyncErr(false); setSyncPending(false);
+          } else {
+            _ver.current = sver;
           }
           _lastSynced.current = mine;
         }
@@ -12382,10 +12486,57 @@ export default function App() {
       }
     };
     syncOnce();
-    const onOnline = () => { syncOnce(); };
+    // Návrat sítě: buď první úspěšné čtení, nebo odeslání toho, co čeká.
+    // Dřív se po výpadku čekalo až na další úhoz — zapsaná série „čekala
+    // na odeslání", dokud klient něco dalšího nezměnil.
+    const onOnline = () => {
+      if (!_syncReady.current) { syncOnce(); return; }
+      if (_serializeDoc(_collRef.current, _editsRef.current) !== _lastSynced.current) _pushRef.current();
+    };
     window.addEventListener("online", onOnline);
     return () => { dead = true; window.removeEventListener("online", onOnline); if (gc) clearTimeout(gc); };
   }, [ownerId]);
+  // DVĚ OTEVŘENÉ KARTY · sdílejí jedno úložiště a o sobě nevěděly. Druhá karta
+  // držela stav z chvíle, kdy se otevřela, a prvním zápisem přepsala celý
+  // dokument zpátky. Cizí zápis se pozná a buď se tiše dorovná (nemáme co
+  // ztratit), nebo se zeptáme.
+  React.useEffect(() => {
+    const onStorage = (e) => {
+      if (!e || (e.key !== LS_COLL && e.key !== LS_KEY)) return;
+      if (e.newValue == null) return;
+      let c = null, ed = {};
+      try {
+        c = JSON.parse(window.localStorage.getItem(LS_COLL) || "null");
+        ed = JSON.parse(window.localStorage.getItem(LS_KEY) || "{}");
+      } catch (err) { return; }
+      if (!c || typeof c !== "object") return;
+      const jina = _serializeDoc(c, ed);
+      const moje = _serializeDoc(_collRef.current, _editsRef.current);
+      if (jina === moje) return;
+      if (moje === _lastSynced.current || !_dirty.current) {
+        setColl(c); setEdits(ed);            // v úložišti to už je, zapisovat netřeba
+        _lastSynced.current = jina;
+      } else if (!conflict) {
+        setConflict({ doc: { coll: c, edits: ed }, ver: _ver.current, karta: true });
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [conflict]);
+  // návrat k záložce · jiné zařízení mohlo mezitím psát. Když sami nemáme
+  // rozepsanou změnu, tiše dorovnáme; když máme, zeptáme se.
+  React.useEffect(() => {
+    const onVis = async () => {
+      if (document.visibilityState !== "visible" || !_syncReady.current || conflict) return;
+      const s = await _readServer();
+      if (!s || !s.doc || !s.doc.coll) return;
+      if (s.ver <= _ver.current) return;
+      const mine = _serializeDoc(_collRef.current, _editsRef.current);
+      if (mine === _lastSynced.current) adoptServer(s.doc, s.ver); else setConflict({ doc: s.doc, ver: s.ver });
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [conflict]);
   // ---- plán od trenéra ------------------------------------------------------
   // Plán leží mimo klientův stavový dokument schválně: klientská synchronizace je
   // poslední-zápis-vyhrává a plán by tím byla otázka času, kdy zmizí. Čte se sem,
@@ -12469,21 +12620,10 @@ export default function App() {
     _dirty.current = true; // real local change -> mark it, even before the initial read completes
     setSyncPending(true);
     if (!_syncReady.current) return; // not ready to push yet; the load effect will keep + push local
-    const h = setTimeout(() => {
-      fetch("/api/state", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doc: { coll, edits }, share: _shareOf(coll, edits) }),
-      }).then(async (r) => {
-        if (!r.ok) { setSyncErr(true); return; }
-        _lastSynced.current = cur;
-        let pv = 0; try { pv = ((await r.json()) || {}).version || 0; } catch (e) {}
-        syncMarkSave(pv, tmDocSig(cur));
-        setSyncErr(false); setSyncPending(false);
-      }).catch(() => setSyncErr(true));
-    }, 1500);
+    if (conflict) return; // čeká rozhodnutí člověka — dokud nepadne, neodesíláme nic
+    const h = setTimeout(() => { _pushRef.current(); }, 1500);
     return () => clearTimeout(h);
-  }, [coll, edits]);
+  }, [coll, edits, conflict]);
   const addEntry = (kind, entry) => persistColl((c) => ({ ...c, [kind]: [entry, ...(c[kind] || [])] }));
   const setFinCfg = (patch) => persistColl((c) => ({ ...c, finCfg: { ...(c.finCfg || {}), ...patch } }));
   const setMemento = (patch) => persistColl((c) => ({ ...c, memento: { ...(c.memento || {}), ...patch } }));
@@ -12729,7 +12869,8 @@ export default function App() {
   // dvě otázky ke krajině · důležitost proti prožitému týdnu
   const areaVlqOf = (name) => (coll.areaVlq || {})[name] || {};
   const setAreaVlq = (name, patch) => persistColl((c) => ({ ...c, areaVlq: { ...(c.areaVlq || {}), [name]: { ...((c.areaVlq || {})[name] || {}), ...patch } } }));
-  const monthsOf = (a) => { const seed = {}; if (a.rating != null && a.ratingMonth) seed[a.ratingMonth] = a.rating; return { ...seed, ...((coll.areaMonths || {})[a.name] || {}) }; };
+  // Hodnocení krajiny je jen to, které si klient sám zapsal. Žádné osivo.
+  const monthsOf = (a) => ({ ...((coll.areaMonths || {})[a.name] || {}) });
   const setAreaMonth = (name, rom, v) => persistColl((c) => ({ ...c, areaMonths: { ...(c.areaMonths || {}), [name]: { ...((c.areaMonths || {})[name] || {}), [rom]: v } } }));
   const goalMetaOf = (name) => (coll.goalMeta || {})[name] || {};
   const setGoalMeta = (name, patch) => persistColl((c) => ({ ...c, goalMeta: { ...(c.goalMeta || {}), [name]: { ...((c.goalMeta || {})[name] || {}), ...patch } } }));
@@ -13665,10 +13806,21 @@ export default function App() {
             <button onClick={() => setSaveErr(false)} style={{ background: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
           </div>
         )}
-        {syncErr && (
+        {syncErr && !conflict && (
           <div role="status" aria-live="polite" style={{ position: "fixed", top: saveErr ? 44 : 0, left: 0, right: 0, zIndex: 398, background: t.card, color: t.text, borderBottom: `1px solid ${t.border}`, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
             <span style={{ flex: 1, minWidth: 200 }}>{L("Změny jsou zatím jen v tomhle zařízení — na server se nedostaly.", "Your changes are on this device only — they have not reached the server.")}</span>
             <button onClick={() => setSyncErr(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
+          </div>
+        )}
+        {conflict && (
+          <div role="status" aria-live="polite" style={{ position: "fixed", top: saveErr ? 44 : 0, left: 0, right: 0, zIndex: 398, background: t.card, color: t.text, borderBottom: `1px solid ${t.border}`, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
+            <span style={{ flex: 1, minWidth: 200 }}>
+              {conflict.karta
+                ? L("Mezitím psala druhá otevřená karta. Neukládám přes ni nic, dokud nerozhodneš.", "Another open tab wrote in the meantime. Nothing is written over it until you decide.")
+                : L("Mezitím psalo jiné zařízení. Neodesílám nic, dokud nerozhodneš.", "Another device wrote in the meantime. Nothing is sent until you decide.")}
+            </span>
+            <button onClick={() => adoptServer(conflict.doc, conflict.ver)} style={{ background: "transparent", color: t.text, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Vzít verzi odtamtud", "Take that version")}</button>
+            <button onClick={keepMine} style={{ background: "transparent", color: t.text, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Nechat moji", "Keep mine")}</button>
           </div>
         )}
         {ownerSwitched && (

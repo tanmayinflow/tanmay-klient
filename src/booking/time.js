@@ -130,7 +130,15 @@ export function daysBetweenISO(a, b) {
   return Math.round((Date.UTC(pb[0], pb[1] - 1, pb[2]) - Date.UTC(pa[0], pa[1] - 1, pa[2])) / 86400000);
 }
 
-export const isDateISO = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
+// A date is a real day, not only ten characters in the right shape:
+// "2026-13-40" used to pass and write an override row nothing could ever match.
+export const isDateISO = (s) => {
+  const str = String(s || "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false;
+  const [y, m, d] = str.split("-").map(Number);
+  if (m < 1 || m > 12 || d < 1) return false;
+  return d <= new Date(Date.UTC(y, m, 0)).getUTCDate();
+};
 
 /**
  * The instant at which local `dateISO` + `minuteOfDay` happens in `tz`.

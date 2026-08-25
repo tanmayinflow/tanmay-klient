@@ -28,7 +28,8 @@
     "test:compass": "TM_ROLE=client node tests/browser/compass.mjs",
     "test:sources": "TM_ROLE=client node tests/browser/sources.mjs",
     "test:share": "node tests/browser/share.mjs",
-    "test:preview": "node tests/browser/preview.mjs"
+    "test:preview": "node tests/browser/preview.mjs",
+    "test:sync": "TM_ROLE=client node tests/browser/sync-conflict.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

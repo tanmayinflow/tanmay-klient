@@ -48,6 +48,9 @@ const MARKERS = [
   { name: "coach-goal-note",      re: /\bcoachPrivateNote\b|\bCOACH_PRIVATE_GOAL_FIELDS\b/, why: "trenérova poznámka u cíle" },
   { name: "coach-goal-validate",  re: /\bvalidateCoachGoals\b|\bvalidateCoachSources\b/, why: "server-side validace zadání trenéra" },
   { name: "coach-client-row",     re: /\bcoachClientRow\b/,     why: "trenérská projekce klientského řádku" },
+  // Audit 2026-08-25 · osobní známky krajin ležely ve sdíleném osivu a klientský
+  // Kompas je ukazoval každému jako jeho vlastní „poslední hodnocení".
+  { name: "personal-area-ratings", re: /\bAREA_RATING_SEED\b|rating:\s*\d+,\s*ratingMonth:\s*["'][IVX]+["']/, why: "osobní hodnocení krajin" },
 ];
 
 function files(dir) {

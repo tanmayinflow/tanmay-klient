@@ -116,8 +116,24 @@ test("offline příloha se pošle nahoru, až bude signál", () => {
 });
 
 test("selhání odeslání na server se neztratí", () => {
-  assert.match(app, /\.catch\(\(\) => setSyncErr\(true\)\)/);
-  assert.match(app, /\{syncErr && \(/);
+  assert.match(app, /if \(!r\.ok\) \{ setSyncErr\(true\); return false; \}/);
+  assert.match(app, /catch \(err\) \{ setSyncErr\(true\); return false; \}/);
+  assert.match(app, /\{syncErr && !conflict && \(/);
+});
+
+// Audit 2026-08-25: klientská aplikace odesílala celý dokument bez porovnání
+// verzí a druhé zařízení o svůj zápis přišlo. Verze se čte před každým
+// odesláním, cizí karta i návrat k záložce se poznají, a rozhoduje člověk.
+test("odeslání se ptá na verzi serveru a nikdy tiše nepřepisuje", () => {
+  assert.match(app, /const _readServer = async \(\) =>/);
+  assert.match(app, /if \(s && s\.doc && s\.doc\.coll && s\.ver > _ver\.current\) \{ setConflict\(\{ doc: s\.doc, ver: s\.ver \}\); return false; \}/);
+  assert.match(app, /else if \(sdoc && typeof sdoc === "object" && sdoc\.coll && nepreneseno && serverPosunut\)/);
+  assert.match(app, /window\.addEventListener\("storage", onStorage\)/);
+  assert.match(app, /document\.addEventListener\("visibilitychange", onVis\)/);
+  assert.match(app, /if \(conflict\) return; \/\/ čeká rozhodnutí člověka/);
+  assert.match(app, /Mezitím psalo jiné zařízení/);
+  assert.match(app, /Vzít verzi odtamtud/);
+  assert.match(app, /Nechat moji/);
 });
 
 test("zmenšení obrázku vždycky doběhne", () => {

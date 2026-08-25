@@ -132,6 +132,61 @@ try {
 
   check("bez chyby v konzoli", errs.length === 0, errs.slice(0, 3).join(" | "));
   await ctx.close();
+
+  // ---- desetinná čárka · 22,5 kg je 22,5, ne 225 ---------------------------
+  // Audit 2026-08-25: řízené pole s číselnou hodnotou zahazovalo čárku i tečku
+  // ve chvíli, kdy ji člověk napsal; „22,5" skončilo jako 225 kg v záznamu.
+  // Skutečné klávesy, ne dosazená hodnota — přesně tam ta chyba žila.
+  {
+    state.plan = {
+      at: 2, v: 2,
+      plans: [{ id: "pl2", cz: "Přidaná váha", en: "Added weight", goals: [], intro: null, progressionRule: "double",
+        sessions: [{ id: "ps2", w: 1, templateId: "tpl2", effortTarget: 85, date: today }] }],
+      templates: [{ id: "tpl2", cz: "Den B", en: "Day B", intro: null, aims: [],
+        blocks: [{ id: "b2", exId: "shyb", name: ["Shyb", "Pull-up"], measurementType: "ADDED_WEIGHT_REPS", restSec: 120,
+          groupId: null, groupMode: null, groupOrder: 0, rirEnabled: true, variant: null, coachNote: null,
+          sets: [{ id: "s1", type: "work", planned: { targetReps: 5, targetWeight: 10 }, restSec: null, side: null }] }] }],
+      exercises: [{ id: "shyb", cz: "Shyb", en: "Pull-up", pat: "tah_vert", eq: ["hrazda"], measurementType: "ADDED_WEIGHT_REPS",
+        defaultRestSec: 120, unilateral: false, sideMode: "none", focus: [], tier: "core" }],
+    };
+    const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page2 = await ctx2.newPage();
+    const errs2 = []; page2.on("pageerror", (e) => errs2.push(String(e).split("\n")[0]));
+    await page2.addInitScript(() => {
+      localStorage.setItem("tm-lang", "cs");
+      if (localStorage.getItem("tanmay_coll_v1")) return;
+      localStorage.setItem("tanmay_coll_v1", JSON.stringify({ modules: ["praxe", "trenink"], jmeno: "Test", share: { habits: false, goals: false, training: false } }));
+    });
+    await page2.goto(BASE, { waitUntil: "networkidle" });
+    await page2.waitForTimeout(1600);
+    await hit(page2, "Trénink");
+    await page2.waitForTimeout(2000);
+    check("desetinná · dá se začít", await hit(page2, "Začít"));
+    await page2.waitForTimeout(800);
+    const kg = page2.locator("[data-tm-stage] label", { hasText: /KG/i }).first().locator("input");
+    const found = await kg.count();
+    check("desetinná · pole v kilogramech je na scéně", found > 0);
+    const stored = async () => page2.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem("tanmay_coll_v1"));
+      const s = ((c.tv2 || {}).sessions || []).find((x) => x.templateId === "tpl2");
+      return s ? s.blocks[0].sets[0].actual : null;
+    });
+    if (found) {
+      await kg.click(); await page2.keyboard.type("22,5", { delay: 40 }); await page2.waitForTimeout(400);
+      const a = await stored();
+      check("desetinná · „22,5“ napsané po klávesách je 22,5", !!a && a.weight === 22.5, JSON.stringify(a));
+      check("desetinná · pole ukazuje, co člověk napsal", (await kg.inputValue()) === "22,5", await kg.inputValue());
+      await kg.click({ clickCount: 3 }); await page2.keyboard.press("Backspace");
+      await page2.keyboard.type("12.5", { delay: 40 }); await page2.waitForTimeout(400);
+      const b = await stored();
+      check("desetinná · tečka platí stejně", !!b && b.weight === 12.5, JSON.stringify(b));
+      await kg.click({ clickCount: 3 }); await page2.keyboard.press("Backspace");
+      await page2.keyboard.type("-3a", { delay: 40 }); await page2.waitForTimeout(300);
+      check("desetinná · záporné číslo a písmena se nepustí dovnitř", (await kg.inputValue()) === "3", await kg.inputValue());
+    }
+    check("desetinná · bez chyby v konzoli", errs2.length === 0, errs2.slice(0, 2).join(" | "));
+    await ctx2.close();
+  }
 } finally {
   await browser.close();
   srv.close();

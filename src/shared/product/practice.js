@@ -54,17 +54,21 @@ export const areaLabel = (n) => {
   return emo ? hit + " " + emo : hit;
 };
 
+// Krajiny života · jen jméno a znak. Hodnocení krajiny je hodnocení jednoho
+// člověka: do sdíleného osiva nepatří, protože by se ukázalo každému novému
+// klientovi jako jeho vlastní „poslední hodnocení". (Audit 2026-08-25: čtyři
+// osobní známky tu ležely od importu a klientský Kompas je vypisoval.)
 export const AREAS = [
-  { name: "Body", icon: "💪🏼", rating: 5, ratingMonth: "XI" },
-  { name: "General health", icon: "🌿", rating: 7, ratingMonth: "XI" },
+  { name: "Body", icon: "💪🏼" },
+  { name: "General health", icon: "🌿" },
   { name: "Mental Health", icon: "🫀" },
-  { name: "Partnership", icon: "❤️‍🔥", rating: 2, ratingMonth: "XII" },
+  { name: "Partnership", icon: "❤️‍🔥" },
   { name: "Blood Family wellfear", icon: "✨" },
   { name: "Friendship", icon: "✊🏼" },
   { name: "Finances", icon: "🌍" },
   { name: "Business", icon: "◈" },
   { name: "Adventure", icon: "🚐" },
-  { name: "Art", icon: "🎸", rating: 3, ratingMonth: "XI" },
+  { name: "Art", icon: "🎸" },
   { name: "Life mission", icon: "🌊" },
 ];
 
