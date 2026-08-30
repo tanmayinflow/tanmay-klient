@@ -10,35 +10,41 @@
 // značení jde s motivem (t.accent) a při nenačtení obrázku se vrací
 // stará procedurální silueta (`renderFallback`).
 //
-// Souřadnice jsou procenta čtverce obrázku (0–100). `mir: 1` zrcadlí
+// Figury jsou ořezané těsně na tělo (výška ≈ dvojnásobek šířky), takže
+// se v detailu kreslí velké jako na deskách. Souřadnice: x v procentech
+// šířky, y v týchž jednotkách (viewBox `0 0 100 A`); `mir: 1` zrcadlí
 // elipsu přes svislou osu — kreslí se obě strany těla.
 import React, { useState } from "react";
 
 export const TM_SVALY_REGIONY = {
   front: {
-    qua:  [{ e: [45.0, 61, 3.4, 10.0, 4], mir: 1 }],
-    abs:  [{ e: [50, 37.5, 3.6, 6.5, 0] }],
-    obl:  [{ e: [44.4, 37, 1.9, 5.0, 8], mir: 1 }],
-    che:  [{ e: [45.6, 27.8, 4.2, 3.4, -8], mir: 1 }],
-    sho:  [{ e: [39.5, 23.5, 2.6, 3.2, 20], mir: 1 }],
-    bic:  [{ e: [36.8, 30.5, 2.2, 4.4, 14], mir: 1 }],
-    fore: [{ e: [33.4, 44, 2.0, 5.2, 16], mir: 1 }],
-    add:  [{ e: [47.6, 57.5, 1.8, 4.4, -6], mir: 1 }],
-    hipflex: [{ e: [45.8, 48.5, 2.0, 2.8, 12], mir: 1 }],
-    serr: [{ e: [43.0, 33.5, 1.4, 2.4, 14], mir: 1 }],
+    sho: [{ e: [30.5, 41, 4.0, 5.0, 20], mir: 1 }],
+    che: [{ e: [43, 45.5, 6.2, 5.0, -8], mir: 1 }],
+    bic: [{ e: [26.5, 53, 3.8, 7.6, 12], mir: 1 }],
+    fore: [{ e: [18.5, 81, 3.5, 9.5, 14], mir: 1 }],
+    serr: [{ e: [38.5, 57, 2.2, 4.0, 12], mir: 1 }],
+    abs: [{ e: [50, 62, 5.2, 10, 0] }],
+    obl: [{ e: [41, 63, 3.2, 8.4, 6], mir: 1 }],
+    hipflex: [{ e: [43.5, 89, 3.6, 5, 10], mir: 1 }],
+    add: [{ e: [45.5, 108, 3.2, 8, -5], mir: 1 }],
+    qua: [{ e: [41.5, 117, 5.8, 16, 4], mir: 1 }],
   },
   back: {
-    ham:  [{ e: [45.4, 62, 3.0, 8.0, 3], mir: 1 }],
-    glu:  [{ e: [46.4, 49.5, 3.4, 4.0, 0], mir: 1 }],
-    cal:  [{ e: [45.2, 79, 2.2, 6.5, 3], mir: 1 }],
-    low:  [{ e: [50, 40.5, 3.2, 4.4, 0] }],
-    upb:  [{ e: [47.0, 29, 3.0, 5.4, -10], mir: 1 }],
-    tra:  [{ e: [47.6, 21.5, 2.6, 4.2, -16], mir: 1 }],
-    tri:  [{ e: [36.6, 31, 2.2, 4.6, 16], mir: 1 }],
-    rcuff: [{ e: [43.2, 24.5, 2.0, 2.4, 0], mir: 1 }],
-    neck: [{ e: [50, 16, 1.6, 3.0, 0] }],
+    neck: [{ e: [50, 24, 2.4, 4.5, 0] }],
+    tra: [{ e: [45.5, 39, 4.4, 7.0, -14], mir: 1 }],
+    rcuff: [{ e: [38, 47, 3.4, 4.2, 0], mir: 1 }],
+    upb: [{ e: [44.5, 58, 5.0, 9.6, -8], mir: 1 }],
+    tri: [{ e: [24, 61, 4, 8.6, 14], mir: 1 }],
+    low: [{ e: [50, 82, 5.6, 8.5, 0] }],
+    glu: [{ e: [43.5, 99, 6.2, 7.5, 0], mir: 1 }],
+    ham: [{ e: [42, 128, 5.4, 15, 3], mir: 1 }],
+    cal: [{ e: [41.5, 165, 4.2, 12, 3], mir: 1 }],
   },
 };
+
+/* Poměr stran ořezaných figur · viewBox je "0 0 100 A", souřadnice y
+   jsou v jednotkách šířky — elipsy tak drží tvar i rotaci. */
+export const TM_SVALY_POMER = { front: 190.33, back: 205.77 };
 
 export const TM_SVALY_SRC = {
   front: "/svaly/figura-predek.webp",
@@ -79,7 +85,7 @@ export function createMuscleFig(deps) {
           <img src={TM_SVALY_SRC[side]} alt="" loading="lazy" decoding="async" draggable={false}
             onError={() => setSelhalo(true)}
             style={{ width: "100%", height: "auto", display: "block", userSelect: "none" }} />
-          <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"
+          <svg viewBox={`0 0 100 ${TM_SVALY_POMER[side]}`} aria-hidden="true" focusable="false"
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
             <defs><filter id={blurId} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="0.6" /></filter></defs>
             <g fill={t.accent} filter={`url(#${blurId})`}>{shapes}</g>
@@ -87,12 +93,11 @@ export function createMuscleFig(deps) {
         </span>
       );
     };
-    const lab = { fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 12, color: t.sage, marginTop: 5, textAlign: "center" };
     return (
       <div>
         <div style={{ display: "flex", gap: fluid ? "6%" : 12, alignItems: "flex-start" }}>
-          <div style={fluid ? { flex: 1, minWidth: 0 } : { width: size * 0.62 }}>{view("front")}<div style={lab}>{L("zepředu", "front")}</div></div>
-          <div style={fluid ? { flex: 1, minWidth: 0 } : { width: size * 0.62 }}>{view("back")}<div style={lab}>{L("zezadu", "back")}</div></div>
+          <div style={fluid ? { flex: 1, minWidth: 0 } : { width: size * 0.62 }}>{view("front")}</div>
+          <div style={fluid ? { flex: 1, minWidth: 0 } : { width: size * 0.62 }}>{view("back")}</div>
         </div>
         <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 7 }}>
           <span style={{ color: t.accent }}>●</span> {L("hlavní", "primary")} &nbsp; <span style={{ color: t.accent, opacity: 0.4 }}>●</span> {L("vedlejší", "secondary")}
