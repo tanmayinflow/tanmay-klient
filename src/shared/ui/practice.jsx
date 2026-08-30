@@ -408,7 +408,19 @@ export function createPracticeUI(deps) {
     const cur = tmWbOf(st, date) || { sleep: null, mood: 0, energy: 0, well: 0, theme: "", grat: false, bodhi: false, wild: false };
     const set = (patch) => st.updateDay(date, (d) => ({ wb: { ...(d.wb || {}), ...patch } }));
     const sleepStep = (dir) => { const v = cur.sleep == null ? 8 : cur.sleep; set({ sleep: Math.max(0, Math.min(16, v + dir * 0.5)) }); };
-    const iconToggle = (on) => ({ background: "transparent", border: "none", cursor: "pointer", fontSize: 22, padding: "0 2px", opacity: on ? 1 : 0.25, transition: "opacity .12s ease" });
+    /* Nápověda znamení bydlí TADY, pod celým řádkem hodnocení — ne uvnitř
+       sloupce znamení. Sloupec je tak stejně vysoký jako Nálada a spol.,
+       zarovnaný na společnou účaří, a věta se objevuje dole na vlastním,
+       trvale vyhrazeném řádku (dvě řádky výšky), takže se při doteku ani
+       zápisu nikdy nic neposune. */
+    const [napoveda, setNapoveda] = useState("");
+    const hodiny = React.useRef(null);
+    React.useEffect(() => () => { if (hodiny.current) clearTimeout(hodiny.current); }, []);
+    const rekni = (z) => {
+      setNapoveda(z);
+      if (hodiny.current) clearTimeout(hodiny.current);
+      hodiny.current = setTimeout(() => setNapoveda(""), 3200);
+    };
     // Ikona je malá schválně · plochu k trefě přidá `tm-tap`, ne větší znak.
     return (
       <div style={{ margin: "14px 0" }}>
@@ -430,8 +442,11 @@ export function createPracticeUI(deps) {
             <DotTap label={L("Nálada", "Mood")} value={cur.mood} onChange={(v) => set({ mood: v })} color={t.sage} />
             <DotTap label={L("Energie", "Energy")} value={cur.energy} onChange={(v) => set({ energy: v })} color={t.sand} />
             <DotTap label={L("Potenciál dne", "Day potential")} value={cur.well} onChange={(v) => set({ well: v })} color={t.accent} />
-            <ZnameniDne cur={cur} set={set} />
+            <ZnameniDne cur={cur} set={set} rekni={rekni} />
           </div>
+          {/* Vyhrazený řádek nápovědy · má svou výšku pořád, i když mlčí,
+              takže znamení ani motiv dne nikdy neposkočí. */}
+          <span data-pv="znameni-napoveda" aria-hidden="true" style={{ display: "block", minHeight: 33, margin: "0 0 6px", fontFamily: "var(--tm-font-body)", fontSize: 12, lineHeight: 1.35, color: t.textMuted, opacity: napoveda ? 0.9 : 0, transition: "opacity .18s ease" }}>{napoveda}</span>
           <input data-pv="motiv" value={cur.theme || ""} onChange={(e) => set({ theme: e.target.value })} placeholder={L("Motiv dne. Jméno, které dnešek dostal…", "The day's motif. The name this day earned…")} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${t.border}`, color: t.sand, fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, padding: "3px 2px 6px", outline: "none" }} />
         </div>
       </div>
@@ -446,27 +461,19 @@ export function createPracticeUI(deps) {
      se o nich řekne. Samotný symbol na telefonu nestačí a tři trvalé popisky
      by z klidného řádku udělaly legendu — proto nese každý symbol přesný
      `aria-label`, `title` pro myš a klávesnici, `aria-pressed` pro stav, a na
-     dotek, najetí nebo zaostření se pod skupinou na dvě vteřiny ukáže jedna
-     věta. Ta věta je pohodlí navíc, nikdy jediná cesta k významu. */
+     dotek, najetí nebo zaostření se ukáže jedna věta. Věta se kreslí DOLE
+     pod celým řádkem hodnocení (`rekni` dodává WellbeingTracker) na trvale
+     vyhrazeném místě — sloupec znamení je díky tomu stejně stavěný jako
+     sloupce teček a nikdy se nehne. Věta je pohodlí navíc, nikdy jediná
+     cesta k významu. */
 
-  function ZnameniDne({ cur, set }) {
+  function ZnameniDne({ cur, set, rekni = () => {} }) {
     const { t } = useT();
-    const [napoveda, setNapoveda] = useState("");
-    const hodiny = React.useRef(null);
-    React.useEffect(() => () => { if (hodiny.current) clearTimeout(hodiny.current); }, []);
-    /* Vždycky jen jedna zpráva a vždycky tichý odchod. Žádný stoh oznámení,
-       žádné okno, žádná trvalá legenda. Místo pro řádek je vyhrazené pořád,
-       takže se pod ním nic neposune. */
-    const rekni = (z) => {
-      setNapoveda(z);
-      if (hodiny.current) clearTimeout(hodiny.current);
-      hodiny.current = setTimeout(() => setNapoveda(""), 2200);
-    };
     const iconToggle = (on) => ({ background: "transparent", border: "none", cursor: "pointer", fontSize: 22, padding: "0 2px", opacity: on ? 1 : 0.25, transition: "opacity .12s ease" });
     return (
       <div data-pv="znameni" style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <span style={metaLabel(t)}>{L("Znamení", "Marks")}</span>
-        <span>
+        <span style={{ display: "inline-flex", alignItems: "center" }}>
           {WB_ZNAMENI.map(({ k, Ic, cz, en, pCz, pEn }) => {
             const jmeno = L(cz, en);
             const veta = jmeno + " · " + L(pCz, pEn);
@@ -484,9 +491,6 @@ export function createPracticeUI(deps) {
             );
           })}
         </span>
-        {/* Řádek má vyhrazenou výšku i když mlčí · jinak by se pod ním
-            rozvržení pohnulo pokaždé, když se ho někdo dotkne. */}
-        <span aria-hidden="true" style={{ display: "block", minHeight: 16, marginTop: 2, maxWidth: 280, fontFamily: "var(--tm-font-body)", fontSize: 12, lineHeight: 1.35, color: t.textMuted, opacity: napoveda ? 0.9 : 0, transition: "opacity .18s ease" }}>{napoveda}</span>
       </div>
     );
   }

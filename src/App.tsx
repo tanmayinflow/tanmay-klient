@@ -12374,13 +12374,25 @@ export default function App() {
   // k přihlášení nepřesměruje), přerostlý dokument neopraví opakování —
   // tak ať proužek říká, co se opravdu stalo, a nabízí jen to, co zabere.
   const [syncErr, setSyncErr] = useState(null); // null | { druh, stav, bytes, limit }
-  const oznamSelhani = (v) => setSyncErr({
-    druh: v.druh,
-    stav: v.stav || 0,
-    bytes: (v.telo && v.telo.bytes) || 0,
-    limit: (v.telo && v.telo.limit) || 0,
-    kdy: Date.now(),
-  });
+  /* ODLOŽENÝ PROUŽEK. „Rozumím" dřív hlášku jen smazalo — a další selhání
+     téže příčiny (hlásí se při každém pokusu o odeslání) ji hned vrátilo,
+     takže proužek fakticky nešel zavřít. Kdo ho zavře, rozhodl se: táž
+     příčina už ho znovu nevytáhne. Stav zůstává v Nastavení → Synchronizace.
+     Proužek se vrátí, jen když se příčina změní nebo když mezitím odeslání
+     prošlo a selhalo znovu. */
+  const [syncOdlozeno, setSyncOdlozeno] = useState(false);
+  const _druhSelhani = React.useRef(null);
+  const oznamSelhani = (v) => {
+    if (_druhSelhani.current !== v.druh) setSyncOdlozeno(false);
+    _druhSelhani.current = v.druh;
+    setSyncErr({
+      druh: v.druh,
+      stav: v.stav || 0,
+      bytes: (v.telo && v.telo.bytes) || 0,
+      limit: (v.telo && v.telo.limit) || 0,
+      kdy: Date.now(),
+    });
+  };
   const [docBytes, setDocBytes] = useState(0);
   // Zapsaná série se nesmí tvářit jako odeslaná. Dokud se dokument neshoduje s
   // tím, co server naposledy potvrdil, je co odeslat — a je to vidět.
@@ -12454,6 +12466,7 @@ export default function App() {
     _lastSynced.current = cur;
     syncMarkSave(_ver.current, tmDocSig(cur));
     setSyncErr(null); setSyncPending(false);
+    setSyncOdlozeno(false); _druhSelhani.current = null; // prošlo · příští selhání je nová epizoda
     return true;
   };
   const _pushRef = React.useRef(_push); _pushRef.current = _push;
@@ -12525,6 +12538,7 @@ export default function App() {
             _ver.current = pv || sver + 1;
             syncMarkSave(_ver.current, tmDocSig(mine));
             setSyncErr(null); setSyncPending(false);
+            setSyncOdlozeno(false); _druhSelhani.current = null;
           } else {
             _ver.current = sver;
           }
@@ -13872,7 +13886,7 @@ export default function App() {
         {/* NEDOŠLO NA SERVER · proužek říká PROČ a nabízí jen to, co může zabrat.
             Dřív měl jednu větu pro čtyři příčiny a jediné tlačítko „Rozumím",
             kterým se dala hláška odklidit, ale ne spravit. */}
-        {syncErr && !conflict && (
+        {syncErr && !conflict && !syncOdlozeno && (
           <div role="status" aria-live="polite" style={{ position: "fixed", top: saveErr ? 44 : 0, left: 0, right: 0, zIndex: 398, background: t.card, color: t.text, borderBottom: `1px solid ${syncErr.druh === SYNC_SIT ? t.border : t.accent}`, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
             <span style={{ flex: 1, minWidth: 200 }}>{syncHlaska(syncErr.druh, L, syncErr)}</span>
             {syncErr.druh === SYNC_PRIHLASENI && (
@@ -13881,7 +13895,7 @@ export default function App() {
             {syncLzeZkusitZnovu(syncErr.druh) && (
               <button onClick={() => zkusOdeslat()} style={{ background: "transparent", color: t.text, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Zkusit znovu", "Try again")}</button>
             )}
-            <button onClick={() => setSyncErr(null)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
+            <button onClick={() => setSyncOdlozeno(true)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
           </div>
         )}
         {conflict && (
@@ -14061,6 +14075,9 @@ export default function App() {
               </div>
               {syncErr && (
                 <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textSec, lineHeight: 1.55, padding: "2px 0 4px" }}>{syncHlaska(syncErr.druh, L, syncErr)}</div>
+              )}
+              {syncErr && syncErr.druh === SYNC_PRIHLASENI && (
+                <button onClick={() => { try { window.location.reload(); } catch (e) {} }} style={{ background: t.accent, color: t.onAccent || t.bg, border: "none", borderRadius: 8, padding: "8px 14px", minHeight: 38, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, margin: "2px 0 6px" }}>{L("Načíst znovu a přihlásit", "Reload and sign in")}</button>
               )}
               {docBytes > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, padding: "3px 0" }}>

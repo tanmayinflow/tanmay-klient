@@ -117,7 +117,10 @@ test("offline příloha se pošle nahoru, až bude signál", () => {
 
 test("selhání odeslání na server se neztratí", () => {
   assert.match(app, /oznamSelhani\(v\)/, "každé selhání se musí ohlásit");
-  assert.match(app, /\{syncErr && !conflict && \(/);
+  assert.match(app, /\{syncErr && !conflict && !syncOdlozeno && \(/);
+  // 2026-08-30 · „Rozumím" je rozhodnutí: táž příčina proužek znovu nevytáhne.
+  assert.match(app, /if \(_druhSelhani\.current !== v\.druh\) setSyncOdlozeno\(false\);/);
+  assert.match(app, /setSyncOdlozeno\(false\); _druhSelhani\.current = null;/);
 });
 
 // 2026-08-30 · Proužek hlásil čtyři různé příčiny jednou větou a nabízel
