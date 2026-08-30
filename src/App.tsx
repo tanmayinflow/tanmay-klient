@@ -6383,11 +6383,14 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
       onDragLeave={() => setOver(false)}
       onDrop={drag ? (e) => { e.preventDefault(); setOver(false); const p = (e.dataTransfer.getData("text/plain") || "").split(":"); if (p[0] === "tex" && p[1] !== ex.id) st.reorderEntry("tEx", p[1], ex.id); } : undefined}
       style={{ position: "relative", display: "flex", borderRadius: 10, outline: over ? `2px solid ${t.accent}` : "none" }}>
-    <button onClick={selecting ? onToggleSel : onOpen} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : h ? t.cardHover : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: "14px 15px", transition: "all .18s ease", transform: h && !selecting ? "translateY(-2px)" : "none", boxShadow: h && !selecting ? t.shadowLift : t.shadow, display: "flex", gap: 12, alignItems: "flex-start" }}>
-      <div style={{ flexShrink: 0, opacity: 0.9 }}>
-        <TExArt ex={ex} size={58} stroke={t.sand} />
+    <button onClick={selecting ? onToggleSel : onOpen} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : h ? t.cardHover : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: 0, overflow: "hidden", transition: "all .18s ease", transform: h && !selecting ? "translateY(-2px)" : "none", boxShadow: h && !selecting ? t.shadowLift : t.shadow, display: "flex", flexDirection: "column", alignItems: "stretch" }}>
+      {/* DESKA PŘES CELOU KARTU · ilustrace sahá k okrajům rámečku cviku,
+          na telefonu i na počítači. Lněné pole plátu je čtvercové a vyplní
+          šířku beze zbytku; cvik bez plátu kreslí velkou procedurální figuru. */}
+      <div style={{ width: "100%", flexShrink: 0 }}>
+        <TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />
       </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
+      <div style={{ minWidth: 0, width: "100%", padding: "11px 15px 13px", boxSizing: "border-box" }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18.5, color: t.heading, lineHeight: 1.25, marginBottom: 4 }}>{tExName(ex)}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>{L(pat.cz, pat.en)}</span>
