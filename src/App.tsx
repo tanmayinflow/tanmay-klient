@@ -60,6 +60,7 @@ import {
 } from "./shared/ui/components.js";
 import { SHELL_ROOT_CSS, shellMobileCss, shellTabletCss, TmDok } from "./shared/ui/shell.jsx";
 import { createIconUI } from "./shared/ui/icons.jsx";
+import { createMuscleFig } from "./shared/ui/muscles.jsx";
 import { TmIcTerminy, TmIcMemento } from "./shared/ui/icons.jsx";
 import { SHARED_CORE_VERSION } from "./shared/version.js";
 import { SYNC_OK, SYNC_SIT, SYNC_PRIHLASENI, syncFetch, syncHlaska, syncLzeZkusitZnovu } from "./shared/product/sync.js";
@@ -110,6 +111,7 @@ let FONT_DISPLAY = LANG === "cs" ? FONT_DISPLAY_CS : FONT_DISPLAY_EN;
 const ThemeCtx = createContext(null);
 const useT = () => useContext(ThemeCtx);
 const TM_ICON_UI = createIconUI({ useT, L });
+const TM_SVALY = createMuscleFig({ useT, L });
 
 // ---- PROCEDURÁLNÍ POSTAVA · sdílené jádro -------------------------------
 // Klientská aplikace na tuhle kresbu sahala (`TM_POZY`, `<TmPostava/>`), ale
@@ -3275,7 +3277,11 @@ const T_MUSCLE_SHAPES = {
     add: () => null, hipflex: () => null, serr: () => null, rcuff: () => null,
   },
 };
-function TMuscleMap({ mp = [], ms = [], size = 150, fluid = false }) {
+// Figury místo siluety · stará kresba zůstává jako záchrana při nenačtení
+function TMuscleMap(props) {
+  return <TM_SVALY.TmSvalyFigura {...props} renderFallback={() => <TMuscleMapKresba {...props} />} />;
+}
+function TMuscleMapKresba({ mp = [], ms = [], size = 150, fluid = false }) {
   const { t } = useT();
   const body = t.mode === "dark" ? "#3B3B37" : "#D9D0BE";
   const lvl = (k) => (mp.includes(k) ? 0.85 : ms.includes(k) ? 0.35 : 0);
