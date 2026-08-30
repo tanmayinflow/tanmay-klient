@@ -33,6 +33,48 @@ test("bez vstupního slova není členství a nic se nezapíše", async () => {
   assert.equal(bad.status, 403);
 });
 
+// ---- 2026-08-30 · odeslání, které selže, musí říct proč ---------------------
+// D1 neuloží řetězec nad 2 000 000 B. Bez pojistky spadne zápis uvnitř
+// Workeru, klient dostane neurčitou pětistovku a aplikace ukáže „změny jsou
+// zatím jen v tomhle zařízení" — větu, ze které nejde poznat, že opakování
+// nepomůže nikdy.
+test("razítko dokumentu jde přečíst bez stažení celého dokumentu", async () => {
+  const env = makeEnv();
+  await joined(env, A);
+  await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: { coll: { journal: [{ id: "j", text: "x".repeat(5000) }] }, edits: {} } } }), env);
+  const m = await (await worker.fetch(req("/api/state?meta=1", { email: A }), env)).json();
+  assert.equal(m.ok, true);
+  assert.equal(m.meta, true);
+  assert.ok(m.version >= 1);
+  assert.equal(m.doc, undefined, "celý dokument se sem nesmí připlést");
+  assert.ok(m.bytes > 5000 && m.bytes < 6000, "velikost dokumentu (" + m.bytes + ")");
+  assert.equal(m.limit, 2000000);
+});
+
+test("razítko cizího prostoru se nedá přečíst", async () => {
+  const env = makeEnv();
+  await joined(env, A);
+  const r = await worker.fetch(req("/api/state?meta=1", { email: B }), env);
+  assert.equal(r.status, 403, "kdo není členem, nedostane ani velikost cizího dokumentu");
+});
+
+test("dokument nad strop úložiště se odmítne pojmenovaně a nic nepřepíše", async () => {
+  const env = makeEnv();
+  await joined(env, A);
+  const maly = { coll: { journal: [{ id: "j1", text: "drž se" }] }, edits: {} };
+  assert.equal((await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: maly } }), env)).status, 200);
+
+  const obr = { coll: { journal: [{ id: "j2", text: "y".repeat(1950000) }] }, edits: {} };
+  const r = await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: obr } }), env);
+  assert.equal(r.status, 413);
+  const b = await r.json();
+  assert.equal(b.ok, false);
+  assert.equal(b.code, "too-large");
+
+  const got = await (await worker.fetch(req("/api/state", { email: A }), env)).json();
+  assert.deepEqual(got.doc, maly, "odmítnutý zápis nesmí sáhnout na uložený dokument");
+});
+
 test("klient A nevidí a nepřepíše dokument klienta B", async () => {
   const env = makeEnv();
   await joined(env, A); await joined(env, B);

@@ -116,9 +116,35 @@ test("offline příloha se pošle nahoru, až bude signál", () => {
 });
 
 test("selhání odeslání na server se neztratí", () => {
-  assert.match(app, /if \(!r\.ok\) \{ setSyncErr\(true\); return false; \}/);
-  assert.match(app, /catch \(err\) \{ setSyncErr\(true\); return false; \}/);
+  assert.match(app, /oznamSelhani\(v\)/, "každé selhání se musí ohlásit");
   assert.match(app, /\{syncErr && !conflict && \(/);
+});
+
+// 2026-08-30 · Proužek hlásil čtyři různé příčiny jednou větou a nabízel
+// jediné tlačítko „Rozumím" — hlášku odklidilo, práci neodeslalo. Vypršelou
+// relaci Accessu fetch neobnoví: jediná cesta ven je načíst stránku znovu.
+test("odeslání jde přes jedno místo, které pozná proč selhalo", () => {
+  const hola = (app.match(/fetch\("\/api\/state/g) || []).length;
+  assert.equal(hola, 0, "všechna volání stavu jdou přes syncFetch");
+  assert.match(app, /syncFetch\("\/api\/state\?meta=1"\)/, "kontrola verze čte jen razítko");
+  assert.match(app, /import \{[^}]*syncFetch[^}]*\} from "\.\/shared\/product\/sync\.js"/);
+});
+
+test("proužek nabídne cestu ven, ne jen „Rozumím\"", () => {
+  assert.match(app, /syncErr\.druh === SYNC_PRIHLASENI && \(/);
+  assert.match(app, /window\.location\.reload\(\)/);
+  assert.match(app, /syncLzeZkusitZnovu\(syncErr\.druh\)/);
+  assert.match(app, /const zkusOdeslat = React\.useCallback/);
+});
+
+test("úklid souborů nepovažuje přihlašovací stránku za přečtený stav", () => {
+  // `stateOk = true` se dřív nastavilo i na 200 s HTML — tedy „stav přečten"
+  // bez jediné reference, a odsud vede cesta k mazání cizích příloh.
+  const i = app.indexOf("window.tmGcFiles = async");
+  assert.ok(i > 0);
+  const blok = app.slice(i, i + 1200);
+  assert.match(blok, /sv\.druh === SYNC_OK && sv\.telo && sv\.telo\.doc/);
+  assert.equal(/if \(sr\.ok\) \{[^}]*stateOk = true/.test(blok), false);
 });
 
 // Audit 2026-08-25: klientská aplikace odesílala celý dokument bez porovnání
@@ -127,6 +153,7 @@ test("selhání odeslání na server se neztratí", () => {
 test("odeslání se ptá na verzi serveru a nikdy tiše nepřepisuje", () => {
   assert.match(app, /const _readServer = async \(\) =>/);
   assert.match(app, /if \(s && s\.doc && s\.doc\.coll && s\.ver > _ver\.current\) \{ setConflict\(\{ doc: s\.doc, ver: s\.ver \}\); return false; \}/);
+  assert.match(app, /const _readVer = async \(\) =>/, "razítko verze se čte levně");
   assert.match(app, /else if \(sdoc && typeof sdoc === "object" && sdoc\.coll && nepreneseno && serverPosunut\)/);
   assert.match(app, /window\.addEventListener\("storage", onStorage\)/);
   assert.match(app, /document\.addEventListener\("visibilitychange", onVis\)/);

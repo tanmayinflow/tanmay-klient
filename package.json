@@ -29,7 +29,8 @@
     "test:sources": "TM_ROLE=client node tests/browser/sources.mjs",
     "test:share": "node tests/browser/share.mjs",
     "test:preview": "node tests/browser/preview.mjs",
-    "test:sync": "TM_ROLE=client node tests/browser/sync-conflict.mjs"
+    "test:sync": "TM_ROLE=client node tests/browser/sync-conflict.mjs",
+    "test:sync:fail": "TM_ROLE=client node tests/browser/sync-failure.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

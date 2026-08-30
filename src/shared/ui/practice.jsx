@@ -19,6 +19,7 @@
 // Písmo se bere z CSS proměnných (--tm-font-*), aby přepnutí jazyka
 // nemuselo procházet přes JS proměnnou, která by se v továrně zamrazila.
 import React, { useState } from "react";
+import { TmIcon, tmIconId, createIconUI } from "./icons.jsx";
 
 export function createPracticeUI(deps) {
   const {
@@ -34,6 +35,9 @@ export function createPracticeUI(deps) {
     // role a data, která jsou v každém domě jiná
     DenVPraxi = null, journalArchive = null, flow = null, caps = null,
   } = deps;
+
+  // Ikonový systém · jedna řeč pro glyfy návyků i výběr vlastní ikony
+  const { TmObjIcon, TmIconPickerButton } = createIconUI({ useT, L });
 
   function StatusCycle({ date }) {
     const { t } = useT();
@@ -601,8 +605,8 @@ export function createPracticeUI(deps) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 22, color: t.heading }}>{MN[Mo - 1]} {Y}</span>
           <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => setYm((m) => shiftYM(m, -1))} disabled={ym <= firstYM} style={calBtn(t, ym <= firstYM)}>‹</button>
-            <button onClick={() => setYm((m) => shiftYM(m, 1))} style={calBtn(t, false)}>›</button>
+            <button aria-label={L("Předchozí", "Previous")} onClick={() => setYm((m) => shiftYM(m, -1))} disabled={ym <= firstYM} style={calBtn(t, ym <= firstYM)}><TmIcon id="back" size={14} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+            <button aria-label={L("Další", "Next")} onClick={() => setYm((m) => shiftYM(m, 1))} style={calBtn(t, false)}><TmIcon id="forward" size={14} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             {ym !== curYM && <button onClick={() => setYm(curYM)} style={{ ...calBtn(t, false), fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, padding: "4px 10px", marginLeft: 6 }}>{L("dnes", "today")}</button>}
           </div>
         </div>
@@ -641,10 +645,10 @@ export function createPracticeUI(deps) {
     return (
       <div style={{ overflowX: "auto" }}>
         <div style={{ minWidth: 520 }}>
-          {st.activeHabits().map(({ icon, name, slot: j }) => (
+          {st.activeHabits().map(({ icon, iconId, name, slot: j }) => (
             <div key={name} style={{ display: "grid", gridTemplateColumns: `190px repeat(${N}, 1fr) 56px`, alignItems: "center", gap: 4, padding: "5px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
               <span style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text }}>
-                <HabitGlyph slot={j} icon={icon} size={16} />{name}
+                <HabitGlyph slot={j} icon={icon} iconId={iconId} size={16} />{name}
               </span>
               {recent.map((e, i) => (
                 // odloženo z rozhodnutí není díra · vlásek místo prázdna
@@ -958,7 +962,7 @@ export function createPracticeUI(deps) {
     const archived = defs.filter((x) => x.archived);
     return (
       <div>
-        <div style={{ ...subLabel(t), marginBottom: 6 }}>{L("Přepiš název přímo v dlaždici · ⠿ přetáhni pro změnu pořadí", "Rename directly in the tile · ⠿ drag to reorder")}</div>
+        <div style={{ ...subLabel(t), marginBottom: 6 }}>{L("Přepiš název přímo v dlaždici · za úchyt přetáhni pro změnu pořadí", "Rename directly in the tile · drag the handle to reorder")}</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px,1fr))", gap: 8 }}>
           {act.map((d) => (
             <div
@@ -966,7 +970,7 @@ export function createPracticeUI(deps) {
               onDragOver={(e) => { e.preventDefault(); setOverSlot(d.slot); }}
               onDragLeave={() => setOverSlot((x) => (x === d.slot ? null : x))}
               onDrop={(e) => { e.preventDefault(); dropOn(d.slot); }}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, background: t.card, border: `1px dashed ${overSlot === d.slot && dragSlot !== d.slot ? t.accent : t.border}`, opacity: dragSlot === d.slot ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
+              style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, background: t.card, border: `1px dashed ${overSlot === d.slot && dragSlot !== d.slot ? t.accent : t.border}`, opacity: dragSlot === d.slot ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
             >
               <span
                 draggable
@@ -974,19 +978,19 @@ export function createPracticeUI(deps) {
                 onDragEnd={() => { setDragSlot(null); setOverSlot(null); }}
                 title={L("Přetáhni pro změnu pořadí", "Drag to reorder")}
                 style={{ cursor: "grab", color: t.textMuted, fontSize: 13, padding: "2px 2px", userSelect: "none", touchAction: "none" }}
-              >⠿</span>
-              <input value={d.icon} onChange={(e) => upd(d.slot, { icon: e.target.value.slice(0, 4) })} style={{ width: 30, background: "transparent", border: "none", outline: "none", textAlign: "center", fontSize: 15 }} />
+              ><TmIcon id="drag" size={14} /></span>
+              <TmIconPickerButton obj={d} kind="habit" onPick={(id) => upd(d.slot, { iconId: id })} />
               <input value={d.name} onChange={(e) => upd(d.slot, { name: e.target.value })} placeholder={L("Název návyku…", "Habit name…")} style={{ flex: 1, minWidth: 60, background: "transparent", border: "none", outline: "none", borderBottom: `1px dashed ${t.borderSoft}`, fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, padding: "1px 0" }} />
-              <button title={L("Archivovat — historie zůstane", "Archive — history stays")} onClick={() => st.ask(L(`Archivovat návyk „${d.name}"?`, `Archive habit "${d.name}"?`), () => upd(d.slot, { archived: true }))} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 12, border: "none", color: t.textMuted }}>✕</button>
+              <button title={L("Archivovat — historie zůstane", "Archive — history stays")} onClick={() => st.ask(L(`Archivovat návyk „${d.name}"?`, `Archive habit "${d.name}"?`), () => upd(d.slot, { archived: true }))} style={{ ...iconBtn(t), width: 26, height: 26, minWidth: 26, padding: 0, border: "none", color: t.textMuted }}><TmIcon id="close" size={13} /></button>
             </div>
           ))}
-          <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13 }}>＋ {L("návyk", "habit")}</button>
+          <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><TmIcon id="add" size={14} /> {L("návyk", "habit")}</button>
         </div>
         {archived.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
             <span style={{ ...subLabel(t), marginBottom: 0 }}>{L("Archivované:", "Archived:")}</span>
             {archived.map((d) => (
-              <button key={d.slot} title={L("Obnovit", "Restore")} onClick={() => upd(d.slot, { archived: false })} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "2px 10px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{d.icon} {d.name} ↺</button>
+              <button key={d.slot} title={L("Obnovit", "Restore")} onClick={() => upd(d.slot, { archived: false })} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "2px 10px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 5 }}><TmObjIcon obj={d} kind="habit" size={13} /> {d.name} <TmIcon id="undo" size={12} /></button>
             ))}
           </div>
         )}
@@ -1076,7 +1080,7 @@ export function createPracticeUI(deps) {
       <div id="dayview" style={{ margin: "8px 0 0" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", rowGap: 8, minWidth: 0 }}>
-            <button onClick={() => st.setSelDate(shiftISO(date, -1))} style={calBtn(t, false)}>‹</button>
+            <button aria-label={L("Předchozí", "Previous")} onClick={() => st.setSelDate(shiftISO(date, -1))} style={calBtn(t, false)}><TmIcon id="back" size={14} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             <div>
               {/* klepnutí rozbalí kalendář · dlouhé podržení otevře memento mori */}
               <div role="button" title={L("kalendář · podržením memento mori", "calendar · hold for memento mori")}
@@ -1087,7 +1091,7 @@ export function createPracticeUI(deps) {
                 onClick={() => { if (drzDat.current.ok) { drzDat.current.ok = false; return; } onCal && onCal(); }}
                 style={{ fontFamily: "var(--tm-font-display)", fontSize: 22, color: t.heading, cursor: "pointer", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", borderBottom: calOpen ? `2px solid ${t.accent}` : "2px solid transparent" }}>{fmtCZ(date)}</div>
             </div>
-            <button onClick={() => st.setSelDate(shiftISO(date, 1))} style={calBtn(t, false)}>›</button>
+            <button aria-label={L("Další", "Next")} onClick={() => st.setSelDate(shiftISO(date, 1))} style={calBtn(t, false)}><TmIcon id="forward" size={14} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </div>
           <button onClick={() => st.setSelDate(todayISO())} style={{ ...calBtn(t, false), fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, padding: "5px 12px", marginLeft: 10 }}>{L("dnes", "today")}</button>
         </div>
@@ -1103,7 +1107,7 @@ export function createPracticeUI(deps) {
           <HabitInlineEditor />
         ) : (
         <div className="tm-habitgrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px,1fr))", gap: 8, marginTop: prah === "rano" ? 4 : 0 }}>
-          {st.activeHabits().map(({ icon, name, slot: j }) => (
+          {st.activeHabits().map(({ icon, iconId, name, slot: j }) => (
             <button key={j} onClick={() => toggle(j)} onPointerDown={() => dolu(j)} onPointerUp={pust} onPointerLeave={pust} onPointerCancel={pust}
               onContextMenu={(e) => e.preventDefault()} className="tm-nav-item tm-hbtn"
               title={day.h[j] === 2 ? L("Dnes ne, schválně · podrž a vrátí se", "Not today, on purpose · hold to undo") : L("Klepni · drž a odlož na dnešek", "Tap · hold to set aside for today")}
@@ -1116,7 +1120,7 @@ export function createPracticeUI(deps) {
               ) : (
                 <span className={"tmink" + (day.h[j] === 1 ? " on" : "")} style={{ width: 13, height: 13, borderRadius: "50%", flexShrink: 0, border: `1.5px solid ${day.h[j] === 1 ? "transparent" : t.border}`, background: day.h[j] === 1 ? (day.c >= DEN ? t.accent : t.sage) : "transparent", transition: "background .4s ease, border-color .4s ease" }} />
               )}
-              <HabitGlyph slot={j} icon={icon} size={19} />
+              <HabitGlyph slot={j} icon={icon} iconId={iconId} size={19} />
               <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: day.h[j] === 1 ? t.text : t.textSec, opacity: day.h[j] === 2 ? 0.55 : 1, textDecoration: "none", transition: "color .3s ease, opacity .3s ease" }}>{name}</span>
             </button>
           ))}
@@ -1253,8 +1257,11 @@ export function createPracticeUI(deps) {
     8: (s) => <TmRyt size={s}><path d="M4.5 12.5h15c0 4.1-3.4 7-7.5 7s-7.5-2.9-7.5-7Z" /><path d="M9 8.7c-.8-1-.8-2 0-3M12.8 9.2c-.8-1-.8-2.2 0-3.4M15.8 8.7c-.6-.8-.6-1.7 0-2.6" opacity=".55" /></TmRyt>,
   };
 
-  function HabitGlyph({ slot, icon, size = 17 }) {
+  function HabitGlyph({ slot, icon, iconId, size = 17 }) {
     const { t } = useT();
+    // 1. vybraná ikona z kurátorované řady · 2. rytina osiva · 3. starý znak
+    const chosen = tmIconId(iconId);
+    if (chosen) return <span style={{ display: "inline-flex", color: t.sand, flexShrink: 0 }}><TmIcon id={chosen} size={size} /></span>;
     const def = HABIT_DEFS[slot];
     const R = HABIT_RYT[slot];
     if (R && def && icon === def[0]) return <span style={{ display: "inline-flex", color: t.sand, flexShrink: 0 }}>{R(size)}</span>;

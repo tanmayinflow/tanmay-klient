@@ -11,7 +11,7 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css
   ".webmanifest": "application/manifest+json", ".png": "image/png", ".svg": "image/svg+xml",
   ".webp": "image/webp", ".ico": "image/x-icon", ".jpg": "image/jpeg" };
 
-export const state = { me: { member: true, name: "Test", owner: "aaaaaaaaaaaaaaaa" }, doc: null, version: 0, files: new Map(), plan: null, share: null, goals: null, sources: null };
+export const state = { me: { member: true, name: "Test", owner: "aaaaaaaaaaaaaaaa" }, doc: null, version: 0, files: new Map(), plan: null, share: null, goals: null, sources: null , force: { kod: "", metoda: "" } };
 
 export function createServer() {
   return http.createServer(async (req, res) => {
@@ -19,15 +19,47 @@ export function createServer() {
     const send = (code, body, type) => { res.writeHead(code, { "Content-Type": type || "application/json" }); res.end(body); };
     // řídicí cesty jen pro zkoušku — v nasazení neexistují
     if (u.pathname === "/__owner") { state.me = { ...state.me, owner: u.searchParams.get("tag") || "" }; state.doc = null; state.version = 0; return send(200, JSON.stringify(state.me)); }
+    // VYNUCENÉ SELHÁNÍ · aby šlo v prohlížeči vyzkoušet, co aplikace udělá,
+    // když relace vyprší nebo dokument přeroste úložiště. Bez toho se dá
+    // napodobit jen výpadek sítě, a právě ten aplikace uměla odjakživa.
+    //   /__force?v=302|401|413|html|""  &m=PUT|GET|"" (prázdné = obě)
+    if (u.pathname === "/__force") {
+      state.force = { kod: u.searchParams.get("v") || "", metoda: (u.searchParams.get("m") || "").toUpperCase() };
+      return send(200, JSON.stringify({ ok: true, force: state.force }));
+    }
     if (u.pathname === "/__peek") return send(200, JSON.stringify({ doc: state.doc, version: state.version }));
     if (u.pathname === "/api/me") return send(200, JSON.stringify(state.me));
+    if (u.pathname === "/api/state" && state.force.kod && (!state.force.metoda || state.force.metoda === req.method)) {
+      const f = state.force.kod;
+      if (f === "net") { res.socket.destroy(); return; }   // výpadek jen na /api/state
+      if (f === "302") { res.writeHead(302, { Location: "https://prihlaseni.example.invalid/cdn-cgi/access/login" }); return res.end(); }
+      if (f === "401") return send(401, JSON.stringify({ ok: false, error: "no authenticated identity" }));
+      if (f === "413") return send(413, JSON.stringify({ ok: false, code: "too-large", bytes: 2100000, limit: 2000000, safe: 1900000 }));
+      if (f === "500") return send(500, JSON.stringify({ ok: false, code: "db", error: "D1_ERROR" }));
+      if (f === "html") return send(200, "<!doctype html><html><body>prihlaseni</body></html>", "text/html; charset=utf-8");
+    }
     if (u.pathname === "/api/state") {
-      if (req.method === "GET") return send(200, JSON.stringify({ doc: state.doc, version: state.version, updated_at: Date.now() }));
+      // Napodobenina musí odpovídat Workeru i v tom, co dělá při selhání —
+      // jinak by se prohlížečová sada ptala něčeho jiného, než co běží.
+      const DOC_MAX = 2000000, DOC_SAFE = 1900000;
+      const bytesOf = () => (state.doc == null ? 0 : JSON.stringify(state.doc).length);
+      if (req.method === "GET") {
+        // ?meta=1 · jen razítko, ne celý dokument.
+        if (u.searchParams.get("meta") === "1") {
+          return send(200, JSON.stringify({ ok: true, meta: true, version: state.version, updated_at: Date.now(), bytes: bytesOf(), limit: DOC_MAX, safe: DOC_SAFE }));
+        }
+        return send(200, JSON.stringify({ ok: true, doc: state.doc, version: state.version, updated_at: Date.now(), bytes: bytesOf(), limit: DOC_MAX, safe: DOC_SAFE }));
+      }
       let b = ""; for await (const c of req) b += c;
       // Zpětný kanál · zkouška se na něj dívá stejně jako trenérská strana.
-      try { const body = JSON.parse(b); state.doc = body.doc; if ("share" in body) state.share = body.share; } catch (e) {}
+      let body;
+      try { body = JSON.parse(b); } catch (e) { return send(400, JSON.stringify({ ok: false, code: "bad-json" })); }
+      const velikost = JSON.stringify(body.doc == null ? null : body.doc).length;
+      if (velikost > DOC_SAFE) return send(413, JSON.stringify({ ok: false, code: "too-large", bytes: velikost, limit: DOC_MAX, safe: DOC_SAFE }));
+      state.doc = body.doc;
+      if ("share" in body) state.share = body.share;
       state.version++;
-      return send(200, JSON.stringify({ ok: true, version: state.version }));
+      return send(200, JSON.stringify({ ok: true, version: state.version, bytes: velikost, limit: DOC_MAX, safe: DOC_SAFE }));
     }
     if (u.pathname === "/__share") return send(200, JSON.stringify({ share: state.share || null }));
     if (u.pathname === "/__plan") { let b = ""; for await (const c of req) b += c; try { state.plan = JSON.parse(b); } catch (e) {} return send(200, JSON.stringify({ ok: true })); }

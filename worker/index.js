@@ -183,19 +183,60 @@ async function handleJoin(request, env, userId) {
   return Response.json({ ok: true });
 }
 
+// D1 neuloží jeden řetězec delší než 2 000 000 bajtů. Dokument roste s každým
+// zápisem, takže tenhle strop není teorie — je to datum, ke kterému se
+// aplikace sama zastaví. Pojistka je níž, aby se o něm člověk dozvěděl dřív,
+// než na něj narazí.
+const DOC_MAX = 2000000;
+const DOC_SAFE = 1900000;
+
 async function handleState(request, env, userId) {
-  await ensureSchema(env);
+  const url = new URL(request.url);
+  try {
+    await ensureSchema(env);
+  } catch (e) {
+    return Response.json({ ok: false, code: "db", error: String((e && e.message) || e) }, { status: 500 });
+  }
 
   if (request.method === "GET") {
-    const row = await env.DB
-      .prepare("SELECT doc, updated_at, version FROM state WHERE user_id = ?")
-      .bind(userId)
-      .first();
-    if (!row) return Response.json({ doc: null, updated_at: null, version: 0 });
+    // ?meta=1 · jen razítko, ne celý dokument. Kontrola „psalo mezitím jiné
+    // zařízení?" stahovala celý dokument před KAŽDÝM odesláním; na telefonu
+    // to je dvojnásobek dat na jeden uložený úhoz a nejčastější místo, kde
+    // spojení tiše selže.
+    if (url.searchParams.get("meta") === "1") {
+      try {
+        const m = await env.DB
+          .prepare("SELECT version, updated_at, length(doc) AS bytes FROM state WHERE user_id = ?")
+          .bind(userId)
+          .first();
+        if (!m) return Response.json({ ok: true, meta: true, version: 0, updated_at: null, bytes: 0, limit: DOC_MAX, safe: DOC_SAFE });
+        return Response.json({ ok: true, meta: true, version: m.version, updated_at: m.updated_at, bytes: m.bytes || 0, limit: DOC_MAX, safe: DOC_SAFE });
+      } catch (e) {
+        return Response.json({ ok: false, code: "db", error: String((e && e.message) || e) }, { status: 500 });
+      }
+    }
+    let row;
+    try {
+      row = await env.DB
+        .prepare("SELECT doc, updated_at, version FROM state WHERE user_id = ?")
+        .bind(userId)
+        .first();
+    } catch (e) {
+      return Response.json({ ok: false, code: "db", error: String((e && e.message) || e) }, { status: 500 });
+    }
+    if (!row) return Response.json({ ok: true, doc: null, updated_at: null, version: 0 });
+    let doc = null;
+    try { doc = JSON.parse(row.doc); } catch (e) {
+      return Response.json({ ok: false, code: "corrupt", error: "stored document is not valid JSON", bytes: String(row.doc).length }, { status: 500 });
+    }
     return Response.json({
-      doc: JSON.parse(row.doc),
+      ok: true,
+      doc,
       updated_at: row.updated_at,
       version: row.version,
+      bytes: String(row.doc).length,
+      limit: DOC_MAX,
+      safe: DOC_SAFE,
     });
   }
 
@@ -204,9 +245,17 @@ async function handleState(request, env, userId) {
     try {
       body = await request.json();
     } catch {
-      return Response.json({ ok: false, error: "invalid JSON body" }, { status: 400 });
+      return Response.json({ ok: false, code: "bad-json", error: "invalid JSON body" }, { status: 400 });
     }
     const docStr = JSON.stringify(body && "doc" in body ? body.doc : null);
+    // Nad stropem D1 by zápis spadl uvnitř Workeru a klient by dostal
+    // neurčitou pětistovku — tedy přesně to, co vypadá jako „nedá se nic dělat".
+    if (docStr.length > DOC_SAFE) {
+      return Response.json(
+        { ok: false, code: "too-large", error: "document too large for storage", bytes: docStr.length, limit: DOC_MAX, safe: DOC_SAFE },
+        { status: 413 }
+      );
+    }
     // Vědomé sdílení: klientská aplikace přibaluje snímek (nebo null = vypnuto).
     // Tvar se ověřuje tady. Když souhrn neprojde, sdílení se zneplatní —
     // radši ať trenér nevidí nic, než aby uviděl něco, co vidět nemá.
@@ -242,25 +291,29 @@ async function handleState(request, env, userId) {
       await env.DB.prepare("UPDATE members SET modules = ? WHERE user_id = ?").bind(mods, userId).run();
     }
     const now = Date.now();
-    await env.DB
-      .prepare(
-        `INSERT INTO state (user_id, doc, updated_at, version)
-         VALUES (?, ?, ?, 1)
-         ON CONFLICT(user_id) DO UPDATE SET
-           doc = excluded.doc,
-           updated_at = excluded.updated_at,
-           version = state.version + 1`
-      )
-      .bind(userId, docStr, now)
-      .run();
+    try {
+      await env.DB
+        .prepare(
+          `INSERT INTO state (user_id, doc, updated_at, version)
+           VALUES (?, ?, ?, 1)
+           ON CONFLICT(user_id) DO UPDATE SET
+             doc = excluded.doc,
+             updated_at = excluded.updated_at,
+             version = state.version + 1`
+        )
+        .bind(userId, docStr, now)
+        .run();
+    } catch (e) {
+      return Response.json({ ok: false, code: "db", error: String((e && e.message) || e), bytes: docStr.length }, { status: 500 });
+    }
     const row = await env.DB
       .prepare("SELECT version, updated_at FROM state WHERE user_id = ?")
       .bind(userId)
       .first();
-    return Response.json({ ok: true, version: row.version, updated_at: row.updated_at });
+    return Response.json({ ok: true, version: row.version, updated_at: row.updated_at, bytes: docStr.length, limit: DOC_MAX, safe: DOC_SAFE });
   }
 
-  return Response.json({ ok: false, error: "method not allowed" }, { status: 405 });
+  return Response.json({ ok: false, code: "method", error: "method not allowed" }, { status: 405 });
 }
 
 // ---- Hlavičky ------------------------------------------------------------

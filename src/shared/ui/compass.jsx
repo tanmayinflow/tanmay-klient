@@ -17,6 +17,7 @@
 //
 // Písmo se bere z CSS proměnných (--tm-font-*).
 import React, { useState } from "react";
+import { TmIcon, tmIconId, createIconUI } from "./icons.jsx";
 import { GOAL_OWNER, TM_UTEK, tmOtocFor, mayEditGoalField, goalOwnerLabel, G_VIEWS } from "../product/compass.js";
 
 export function createCompassUI(deps) {
@@ -40,6 +41,9 @@ export function createCompassUI(deps) {
     sideSlot = null,
     role = "owner",
   } = deps;
+
+  // Ikonový systém · glyfy cílů a krajin, výběr vlastní ikony
+  const { TmObjIcon, TmIconPickerButton, TmIconPicker } = createIconUI({ useT, L });
 
   const lang = () => (getLang ? getLang() : "cs");
 
@@ -77,10 +81,13 @@ export function createCompassUI(deps) {
     const { t } = useT();
     const st = useStore();
     const a = st.listAreas().find((x) => x.name === name);
-    const icon = (a && a.icon) || AREA_ICON[name] || "▦";
+    // 1. vybraná ikona · 2. rytina osiva · 3. starý znak (známý se překreslí)
+    const chosen = tmIconId(a && a.iconId);
+    if (chosen) return <span style={{ display: "inline-flex", color: t.sand, flexShrink: 0 }}><TmIcon id={chosen} size={size} /></span>;
     const R = AREA_RYT[areaClean(name)];
     if (R) return <span style={{ display: "inline-flex", color: t.sand, flexShrink: 0 }}>{R(size)}</span>;
-    return <span style={{ fontSize: Math.max(12, size - 2) }}>{icon}</span>;
+    const icon = (a && a.icon) || AREA_ICON[name] || "";
+    return <span style={{ display: "inline-flex", color: t.sand, flexShrink: 0 }}><TmObjIcon obj={{ icon }} kind="area" size={size + 1} /></span>;
   }
 
   // ---- Moje / Od Tanmaye --------------------------------------------------
@@ -112,7 +119,7 @@ export function createCompassUI(deps) {
     return (
       <div onClick={() => onOpen && onOpen(g.name)} style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: "var(--tm-r-md)", padding: "12px 14px", marginBottom: 10, cursor: "pointer", boxShadow: t.shadow }} className="tm-nav-item tm-lift">
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
-          <span style={{ color: t.textMuted, fontSize: 13, lineHeight: "20px" }}>◎</span>
+          <span style={{ color: t.textMuted, display: "inline-flex", marginTop: 2, flexShrink: 0 }}><TmObjIcon obj={g} kind="goal" size={16} /></span>
           <span style={{ flex: 1, minWidth: 0, fontFamily: "var(--tm-font-body)", fontSize: 15, fontWeight: 500, color: g.status === "Completed" ? t.textMuted : t.heading, textDecoration: g.status === "Completed" ? "line-through" : "none", lineHeight: 1.4 }}>{g.name}</span>
           <OwnerBadge g={g} />
         </div>
@@ -204,12 +211,13 @@ export function createCompassUI(deps) {
     const [area, setArea] = useState(areas[0] ? areas[0].name : "");
     const [prio, setPrio] = useState("Normal");
     const [target, setTarget] = useState("");
+    const [iconId, setIconId] = useState(null);
     const otoc = tmOtocFor(name);
     const otocLbl = otoc ? L(otoc.cz, otoc.en) : null;
     const ulozit = () => {
       if (!name.trim()) return;
-      st.addGoal({ id: uid(), name: name.trim(), area, areas: [area], status: "Not started", prio, ach: "", target });
-      setName(""); setTarget(""); setOpen(false);
+      st.addGoal({ id: uid(), name: name.trim(), area, areas: [area], status: "Not started", prio, ach: "", target, iconId: iconId || undefined });
+      setName(""); setTarget(""); setIconId(null); setOpen(false);
     };
     if (!open) return <button onClick={() => setOpen(true)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "10px 14px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left", marginBottom: 12 }}>＋ {L("Nový cíl", "New goal")}</button>;
     return (
@@ -221,6 +229,7 @@ export function createCompassUI(deps) {
           <Select value={area} onChange={setArea} style={{ maxWidth: 220, width: 220 }} options={areas.map((a) => ({ v: a.name, label: areaLabel(a.name) }))} />
           <Select value={prio} onChange={setPrio} style={{ maxWidth: 130, width: 130 }} options={PRIOS.map((x) => ({ v: x, label: PL(x) }))} />
           <input type="date" value={target} onChange={(e) => setTarget(e.target.value)} style={{ ...fieldStyle(t), maxWidth: 170, colorScheme: t.mode === "light" ? "light" : "dark" }} />
+          <TmIconPickerButton obj={{ iconId }} kind="goal" onPick={setIconId} />
         </div>
         {TM_UTEK.test(name) && (
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", margin: "-4px 0 12px" }}>
@@ -392,7 +401,7 @@ export function createCompassUI(deps) {
     return (
       <div>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
-          <div style={{ color: t.sand, display: "inline-flex" }}>{TmGeoCil(30)}</div>
+          <div style={{ color: t.sand, display: "inline-flex" }}>{tmIconId(g.iconId) ? <TmIcon id={tmIconId(g.iconId)} size={30} /> : TmGeoCil(30)}</div>
           {onExpand && <button title={L("Otevřít jako stránku", "Open as page")} aria-label={L("Otevřít jako stránku", "Open as page")} onClick={onExpand} style={{ ...iconBtn(t), border: "none", color: t.textMuted, fontSize: 13 }}>⤢</button>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}><OwnerBadge g={g} /></div>
@@ -406,6 +415,11 @@ export function createCompassUI(deps) {
         {!odTanmaye && (
           <PropRow icon={TmGeoAch(15)} label={L("Dosažitelnost", "Achievability")}>
             {pill(g.ach ? ACH_SHORT[g.ach] || g.ach : "—", "default", () => cycle(ACHIEVES, g.ach, (v) => st.editGoal(g.name, { ach: v })))}
+          </PropRow>
+        )}
+        {smiSmazat && (
+          <PropRow icon={<TmObjIcon obj={g} kind="goal" size={15} />} label={L("Ikona", "Icon")}>
+            <TmIconPickerButton obj={g} kind="goal" onPick={(id) => st.editGoal(g.name, { iconId: id })} size={17} />
           </PropRow>
         )}
         <PropRow icon={TmGeoStav(15)} label={L("Stav", "Status")}>
@@ -436,7 +450,7 @@ export function createCompassUI(deps) {
             )}
             {g.area && openArea && (
               <button onClick={() => openArea(g.area)} title={L("Otevřít krajinu", "Open the landscape")} aria-label={L("Otevřít krajinu", "Open the landscape")}
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "2px 4px", color: t.textMuted, fontSize: 13, lineHeight: 1 }}>›</button>
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "2px 4px", color: t.textMuted, fontSize: 13, lineHeight: 1 }}><TmIcon id="forward" size={14} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             )}
           </div>
         </PropRow>
