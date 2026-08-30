@@ -313,8 +313,9 @@ export function createIconUI(deps) {
     );
   }
 
-  /** Spouštěč výběru · ukazuje aktuální ikonu, otevírá mřížku pod sebou. */
-  function TmIconPickerButton({ obj, kind, onPick, size = 20 }) {
+  /** Spouštěč výběru · ukazuje aktuální ikonu, otevírá mřížku pod sebou.
+   *  `preview` může dodat vlastní kresbu aktuálního stavu (rytiny osiva). */
+  function TmIconPickerButton({ obj, kind, onPick, size = 20, preview }) {
     const { t } = useT();
     const [open, setOpen] = useState(false);
     return (
@@ -322,7 +323,7 @@ export function createIconUI(deps) {
         <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
           aria-label={L("Vybrat ikonu", "Choose an icon")} title={L("Vybrat ikonu", "Choose an icon")}
           style={{ width: 38, height: 38, display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px solid ${open ? t.accent : t.border}`, borderRadius: 9, color: t.text, cursor: "pointer", padding: 0, flexShrink: 0 }}>
-          <TmObjIcon obj={obj} kind={kind} size={size} />
+          {preview || <TmObjIcon obj={obj} kind={kind} size={size} />}
         </button>
         {open && (
           <div style={{ flexBasis: "100%", width: "100%", padding: "8px 2px 2px" }}>
@@ -337,10 +338,39 @@ export function createIconUI(deps) {
 }
 
 // ----------------------------------------------------------------------
-// MÍSTNOSTI, KTERÉ SI DRŽÍ STARÉ JMÉNO · zpětně kompatibilní obálky
+// IKONY MÍSTNOSTÍ · původní jemná kresba domu, mřížka 48, tah 1,6
 // ----------------------------------------------------------------------
-// Boční panel a dok volají tyhle komponenty jménem. Kreslí už kanonickou
-// mřížku 24; stará jemná kresba 48 žije v historii Gitu.
-export function TmIcTerminy({ size = 17 }) { return <TmIcon id="clock" size={size} />; }
-export function TmIcMemento({ size = 17 }) { return <TmIcon id="hourglass" size={size} />; }
-export function TmIcNastaveniRoom({ size = 17 }) { return <TmIcon id="settings" size={size} />; }
+// Boční panel a dok volají tyhle komponenty jménem. Kresba je táž jako
+// od začátku — registr nahoře slouží jen kurátorované řadě a výběru.
+export function TmIcTerminy({ size = 17 }) { // práh dne · slunce nad linií a hodina v ní
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+      <circle cx="24" cy="24" r="15.2" />
+      <path d="M24 14.6 V24 L30.4 27.8" />
+      <path d="M8.8 24 H12.2" opacity=".55" />
+      <path d="M35.8 24 H39.2" opacity=".55" />
+    </svg>
+  );
+}
+
+export function TmIcMemento({ size = 17 }) { // přesýpací hodiny · čas, který se nedá zastavit
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+      <path d="M14.5 8.5 H33.5" />
+      <path d="M14.5 39.5 H33.5" />
+      <path d="M16.6 8.5 C16.6 17.4 24 21.4 24 24 C24 26.6 16.6 30.6 16.6 39.5" />
+      <path d="M31.4 8.5 C31.4 17.4 24 21.4 24 24 C24 26.6 31.4 30.6 31.4 39.5" />
+      <path d="M19.4 35.6 C21.4 34.4 26.6 34.4 28.6 35.6" opacity=".55" />
+    </svg>
+  );
+}
+
+export function TmIcNastaveniRoom({ size = 17 }) { // klidné kolečko · nastavení domu
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+      <circle cx="24" cy="24" r="6.4" />
+      <path d="M24 6.8 V12 M24 36 V41.2 M6.8 24 H12 M36 24 H41.2" />
+      <path d="M11.6 11.6 L15.3 15.3 M32.7 32.7 L36.4 36.4 M36.4 11.6 L32.7 15.3 M15.3 32.7 L11.6 36.4" opacity=".55" />
+    </svg>
+  );
+}
