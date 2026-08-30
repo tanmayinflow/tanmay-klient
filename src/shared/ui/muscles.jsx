@@ -2,8 +2,9 @@
 // SVALOVÁ MAPA · kreslené referenční figury místo siluety
 // ----------------------------------------------------------------------
 // Dvě figury ve stylu desek Movement Atlasu (předek a zadek, generované
-// 2026-08-30, pozadí odstraněné programem, master v Assets aplikace,
-// v produkci webp v `public/svaly/`). Partie, které cvik posiluje,
+// 2026-08-30, dodané s vlastní průhledností — kresba se používá beze změny,
+// jen s těsným ořezem; master v Assets aplikace, v produkci webp
+// v `public/svaly/`). Partie, které cvik posiluje,
 // nekreslí obrázek — rozsvěcí je aplikace: nad figurou leží měkké měděné
 // elipsy zarovnané na kresbu, hlavní svaly plněji, vedlejší slabě.
 // Díky tomu jeden pár obrázků unese všechny kombinace 19 partií,
@@ -18,33 +19,33 @@ import React, { useState } from "react";
 
 export const TM_SVALY_REGIONY = {
   front: {
-    sho: [{ e: [30.5, 41, 4.0, 5.0, 20], mir: 1 }],
-    che: [{ e: [43, 45.5, 6.2, 5.0, -8], mir: 1 }],
-    bic: [{ e: [26.5, 53, 3.8, 7.6, 12], mir: 1 }],
-    fore: [{ e: [18.5, 81, 3.5, 9.5, 14], mir: 1 }],
-    serr: [{ e: [38.5, 57, 2.2, 4.0, 12], mir: 1 }],
-    abs: [{ e: [50, 62, 5.2, 10, 0] }],
-    obl: [{ e: [41, 63, 3.2, 8.4, 6], mir: 1 }],
-    hipflex: [{ e: [43.5, 89, 3.6, 5, 10], mir: 1 }],
-    add: [{ e: [45.5, 108, 3.2, 8, -5], mir: 1 }],
-    qua: [{ e: [41.5, 117, 5.8, 16, 4], mir: 1 }],
+    sho: [{ e: [29.7, 41.9, 4.2, 5.2, 20], mir: 1 }],
+    che: [{ e: [42.7, 46.6, 6.5, 5.2, -8], mir: 1 }],
+    bic: [{ e: [25.5, 54.4, 4.0, 7.9, 12], mir: 1 }],
+    fore: [{ e: [17.2, 83.6, 3.6, 9.9, 14], mir: 1 }],
+    serr: [{ e: [38.0, 58.6, 2.3, 4.2, 12], mir: 1 }],
+    abs: [{ e: [50, 63.8, 5.4, 10.4, 0] }],
+    obl: [{ e: [40.6, 64.8, 3.3, 8.7, 6], mir: 1 }],
+    hipflex: [{ e: [43.2, 91.9, 3.7, 5.2, 10], mir: 1 }],
+    add: [{ e: [45.3, 111.7, 3.3, 8.3, -5], mir: 1 }],
+    qua: [{ e: [41.1, 121.1, 6.0, 16.7, 4], mir: 1 }],
   },
   back: {
-    neck: [{ e: [50, 24, 2.4, 4.5, 0] }],
-    tra: [{ e: [45.5, 39, 4.4, 7.0, -14], mir: 1 }],
-    rcuff: [{ e: [38, 47, 3.4, 4.2, 0], mir: 1 }],
-    upb: [{ e: [44.5, 58, 5.0, 9.6, -8], mir: 1 }],
-    tri: [{ e: [24, 61, 4, 8.6, 14], mir: 1 }],
-    low: [{ e: [50, 82, 5.6, 8.5, 0] }],
-    glu: [{ e: [43.5, 99, 6.2, 7.5, 0], mir: 1 }],
-    ham: [{ e: [42, 128, 5.4, 15, 3], mir: 1 }],
-    cal: [{ e: [41.5, 165, 4.2, 12, 3], mir: 1 }],
+    neck: [{ e: [50, 23.6, 2.5, 4.7, 0] }],
+    tra: [{ e: [45.5, 39.2, 4.6, 7.3, -14], mir: 1 }],
+    rcuff: [{ e: [37.7, 47.4, 3.5, 4.4, 0], mir: 1 }],
+    upb: [{ e: [44.4, 58.8, 5.2, 9.9, -8], mir: 1 }],
+    tri: [{ e: [23.2, 62.0, 4.1, 8.9, 14], mir: 1 }],
+    low: [{ e: [50, 83.7, 5.8, 8.8, 0] }],
+    glu: [{ e: [43.4, 101.3, 6.4, 7.8, 0], mir: 1 }],
+    ham: [{ e: [41.8, 131.4, 5.6, 15.5, 3], mir: 1 }],
+    cal: [{ e: [41.3, 169.7, 4.4, 12.4, 3], mir: 1 }],
   },
 };
 
 /* Poměr stran ořezaných figur · viewBox je "0 0 100 A", souřadnice y
    jsou v jednotkách šířky — elipsy tak drží tvar i rotaci. */
-export const TM_SVALY_POMER = { front: 190.33, back: 205.77 };
+export const TM_SVALY_POMER = { front: 196.65, back: 210.15 };
 
 export const TM_SVALY_SRC = {
   front: "/svaly/figura-predek.webp",
