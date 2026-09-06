@@ -1084,7 +1084,8 @@ export function createPracticeUI(deps) {
       <div id="dayview" style={{ margin: "8px 0 0" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", rowGap: 8, minWidth: 0 }}>
-            <button onClick={() => st.setSelDate(shiftISO(date, -1))} style={calBtn(t, false)}>‹</button>
+            {/* šipky dne bez rámečku · tlačítkem zůstávají, jen se nekreslí jako pole */}
+            <button onClick={() => st.setSelDate(shiftISO(date, -1))} aria-label={L("předchozí den", "previous day")} style={{ ...calBtn(t, false), border: "none", fontSize: 20, color: t.textMuted }}>‹</button>
             <div>
               {/* klepnutí rozbalí kalendář · dlouhé podržení otevře memento mori */}
               <div role="button" title={L("kalendář · podržením memento mori", "calendar · hold for memento mori")}
@@ -1095,7 +1096,7 @@ export function createPracticeUI(deps) {
                 onClick={() => { if (drzDat.current.ok) { drzDat.current.ok = false; return; } onCal && onCal(); }}
                 style={{ fontFamily: "var(--tm-font-display)", fontSize: 22, color: t.heading, cursor: "pointer", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", borderBottom: calOpen ? `2px solid ${t.accent}` : "2px solid transparent" }}>{fmtCZ(date)}</div>
             </div>
-            <button onClick={() => st.setSelDate(shiftISO(date, 1))} style={calBtn(t, false)}>›</button>
+            <button onClick={() => st.setSelDate(shiftISO(date, 1))} aria-label={L("další den", "next day")} style={{ ...calBtn(t, false), border: "none", fontSize: 20, color: t.textMuted }}>›</button>
           </div>
           <button onClick={() => st.setSelDate(todayISO())} style={{ ...calBtn(t, false), fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, padding: "5px 12px", marginLeft: 10 }}>{L("dnes", "today")}</button>
         </div>

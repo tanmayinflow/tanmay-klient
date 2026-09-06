@@ -1,7 +1,7 @@
 {
   "generatedBy": "Shared/scripts/sync-product-core.mjs",
   "canonicalSource": "Work/web-application/Shared/product-core/",
-  "sharedCoreVersion": "1.8.0",
+  "sharedCoreVersion": "1.8.1",
   "note": "Zrcadlo sdíleného jádra. Needituj tyhle soubory v aplikačním repozitáři — `npm run shared:check` to pozná a build spadne.",
   "files": {
     "scripts/icon-catalog.mjs": "c4df842c86ada4b3974bf027007d58e0c297704cdfe3536f83d7e46af86492c8",
@@ -36,7 +36,7 @@
     "src/shared/ui/muscles.jsx": "1522231291681b091ef95e93dbd2ae378de81c24973d7759f244d5af6564bf62",
     "src/shared/ui/overlay.js": "5f40b18dd2c090f37a7bdef648d1836d5987b8f069b20dfdd8efd841ee991748",
     "src/shared/ui/overlay.jsx": "c7e17dc12a1d3448f24d104076722e696d36c7e743374e24bce28cb6c7fbc230",
-    "src/shared/ui/practice.jsx": "bcedced5894785d4206979b6258401c969b80deddaac0d17ecfe9c3277f621ff",
+    "src/shared/ui/practice.jsx": "7c8114054dbf5f181c8d5cb2824ceb44dd8e4f49c1c0fcc1d8994abaa65e8bf3",
     "src/shared/ui/shell.jsx": "d93dbc1151e8eb588de3156aef6ba97164170b0a8bd645fdbc8f13b60413cff6",
     "src/shared/ui/sources.jsx": "cc42ed4840a95e39cf32adb6bfea5b99adbba3079035b4907f378ea0a896bd48",
     "src/shared/ui/states.jsx": "b4479e32a5b3c0bc2de3d14a67af9a078175ccfffcd0469737b11fa0e3a60283",
@@ -44,7 +44,7 @@
     "src/shared/ui/themeRegistry.js": "95f2b85624e36d7b1274b07096ea4ab8eff750b1e5d0fcd6288db3febee894aa",
     "src/shared/ui/tokens.js": "1e0202236475d024755cb4cb9bacdf8275a9184ef1e1c5d8ef8d2f9d0aacaaa1",
     "src/shared/ui/type.js": "49b1fa9b43cf8493bd7c4caed9afcad83b5889206a0918ffdb3dc169e6e53171",
-    "src/shared/version.js": "ff1c54f282aae053169aa0ab4f3dab55601be41c8f35764e81ace50ba5799ef9",
+    "src/shared/version.js": "e0df31bf77fab25d140d66992305b564d8872755e20976afb2c30da57188cc74",
     "src/training/adapters.js": "67fb59eb381bebf62c63baea9758cec95794d144251c75468c51199fa76b69a5",
     "src/training/atlasResolver.js": "3f6c2f9885607dc35e1b9e05f0dfb8b796e607abe01d12410ed5c7a5a1b3c4e6",
     "src/training/catalog.js": "6cfaac3b5004ab5d886441203fc79f66920c8650b468566a494f6aea3282dbdb",
