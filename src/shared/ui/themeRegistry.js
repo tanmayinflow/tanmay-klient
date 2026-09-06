@@ -68,15 +68,20 @@ export const APPEARANCE_PRESET_IDS = Object.freeze([
   "volcanic-grey",
   "americano-chai",
   "quiet-ledger-night",
+  "nagtang-black",
+  "martang-red",
+  "sertang-gold",
+  "mineral-pigments",
 ]);
 
 /** Signature trojice — jediná část výběru, kde existuje režim. */
 export const SIGNATURE_PRESET_IDS = Object.freeze(["signature-auto", "signature-day", "signature-night"]);
 
-/** Sedm volitelných palet. Pevné: systém s nimi nehýbe. */
+/** Dvanáct volitelných palet · osm z dodaných referencí a čtyři thangky. Pevné: systém s nimi nehýbe. */
 export const OPTIONAL_PRESET_IDS = Object.freeze([
   "slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate",
   "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night",
+  "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments",
 ]);
 
 /** Všechno kromě automatiky — vyřešené palety. */
@@ -1069,6 +1074,168 @@ const DEF_QUIET_LEDGER = {
   chrome: { frameGrammar: "quiet-ledger", radius: 8, density: "restrained", frameTargets: ["sheet", "selected"] },
 };
 
+
+/* ======================================================================
+   THANGKA · čtyři vzhledy z minerálních pigmentů vadžrajánového malířství
+   ----------------------------------------------------------------------
+   Barvy jsou barvy thangky: saze lampy (nagtang, černá thangka se zlatou
+   linkou), rumělka (martang, červená thangka), plátkové zlato (sertang,
+   zlatá thangka) a plátno s lapisem, malachitem, rumělkou a auripigmentem
+   (pět pigmentů, pět buddhovských rodin). Žádný odvozený odstín: každá role
+   je doslovná kotva, nebo její průhlednost. Rám je „thangka-mount" —
+   hedvábná paspartа se zlatou paspulkou: vlásečnice zvýraznění, pás
+   brokátu, druhá vlásečnice. Kotvy nejsou z jedné dodané reference, ale
+   z pigmentové tradice; volené tak, aby prošly stejnou přísností jako
+   ostatních osm. Každá má vlastní rám: gold-keyline, thangka-mount,
+   brocade-band, pigment-rails. */
+
+/* ---- Nagtang · černá thangka ------------------------------------------
+   Sazové pole, zlatá linka jako jediná akce, rumělka jen jako kolejnice. */
+const NG_SOOT = "#141311", NG_PANEL = "#1C1A17", NG_RAISED = "#25221D", NG_LINE = "#2E2A24",
+  NG_SILK = "#EDE3CC", NG_AGED = "#C9BBA0", NG_GOLD = "#D4A54A", NG_CINN = "#B6402A",
+  NG_LAPIS = "#4F7FC4", NG_MALA = "#3E8B6A";
+const DEF_NAGTANG = {
+  id: "nagtang-black",
+  labelCs: "Nagtang · černá thangka", labelEn: "Nagtang · Black Thangka",
+  polarity: "dark", statusMode: "dark",
+  anchors: { Soot: NG_SOOT, Panel: NG_PANEL, Raised: NG_RAISED, Line: NG_LINE, Silk: NG_SILK, "Aged silk": NG_AGED,
+    "Gold leaf": NG_GOLD, Cinnabar: NG_CINN, Lapis: NG_LAPIS, Malachite: NG_MALA },
+  background: NG_SOOT, navigation: NG_PANEL, surface: NG_PANEL, card: NG_PANEL,
+  documentSurface: NG_SOOT, elevatedSurface: NG_RAISED,
+  text: NG_SILK, textSecondary: NG_AGED, heading: NG_GOLD,
+  textMuted: A(NG_AGED, 0.85), textDisabled: A(NG_AGED, 0.6), placeholder: A(NG_AGED, 0.9),
+  border: NG_LINE, borderStrong: NG_AGED, borderSoft: A(NG_LINE, 0.6),
+  interactive: NG_GOLD, interactiveText: NG_SOOT, focus: NG_GOLD, link: NG_GOLD,
+  selectionSurface: A(NG_GOLD, 0.24), selectionText: NG_SILK,
+  quietInk: NG_AGED,
+  cardHover: A(NG_SILK, 0.04), sheetHover: A(NG_SILK, 0.03),
+  callout: NG_PANEL, tableHead: NG_PANEL,
+  activeNav: A(NG_GOLD, 0.18),
+  hero: NG_PANEL, heroInk: NG_SILK,
+  overlay: A(NG_SOOT, 0.7),
+  chart: [NG_GOLD, NG_LAPIS, NG_CINN, NG_MALA, NG_SILK, NG_AGED],
+  chartSurface: NG_PANEL, grid: A(NG_SILK, 0.1), axis: NG_AGED,
+  atlasBorder: NG_LINE, shadowInk: NG_SOOT, dockBg: NG_PANEL,
+  nav: {
+    text: NG_SILK, textSec: NG_AGED, kicker: NG_AGED,
+    icon: NG_AGED, muted: NG_AGED, accent: NG_GOLD,
+    activeBg: A(NG_GOLD, 0.18), hairline: NG_LINE, border: NG_LINE,
+  },
+  frame: { outer: NG_RAISED, inner: NG_LINE, rail: NG_CINN, highlight: NG_GOLD },
+  themeColor: NG_SOOT,
+  chrome: { frameGrammar: "gold-keyline", radius: 8, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Martang · červená thangka ----------------------------------------
+   Lakově rumělkové pole, zlato píše i tlačí, vermilion je kolejnice. */
+const MT_LACQ = "#2A1210", MT_GROUND = "#3A1813", MT_RAISED = "#48201A", MT_LINE = "#5A2A22",
+  MT_SILK = "#F2E6CF", MT_SAND = "#D9C4A3", MT_GOLD = "#E0B356", MT_VERM = "#C8432B",
+  MT_LAPIS = "#5D8BD3", MT_MALA = "#4C9C79";
+const DEF_MARTANG = {
+  id: "martang-red",
+  labelCs: "Martang · červená thangka", labelEn: "Martang · Red Thangka",
+  polarity: "dark", statusMode: "dark",
+  anchors: { Lacquer: MT_LACQ, "Cinnabar ground": MT_GROUND, Raised: MT_RAISED, Line: MT_LINE, Silk: MT_SILK,
+    "Sand silk": MT_SAND, Gold: MT_GOLD, Vermilion: MT_VERM, Lapis: MT_LAPIS, Malachite: MT_MALA },
+  background: MT_LACQ, navigation: MT_GROUND, surface: MT_GROUND, card: MT_GROUND,
+  documentSurface: MT_LACQ, elevatedSurface: MT_RAISED,
+  text: MT_SILK, textSecondary: MT_SAND, heading: MT_GOLD,
+  textMuted: A(MT_SAND, 0.85), textDisabled: A(MT_SAND, 0.6), placeholder: A(MT_SAND, 0.9),
+  border: MT_LINE, borderStrong: MT_SAND, borderSoft: A(MT_LINE, 0.6),
+  interactive: MT_GOLD, interactiveText: MT_LACQ, focus: MT_GOLD, link: MT_GOLD,
+  selectionSurface: A(MT_GOLD, 0.24), selectionText: MT_SILK,
+  quietInk: MT_SAND,
+  cardHover: A(MT_SILK, 0.04), sheetHover: A(MT_SILK, 0.03),
+  callout: MT_GROUND, tableHead: MT_GROUND,
+  activeNav: A(MT_GOLD, 0.18),
+  hero: MT_GROUND, heroInk: MT_SILK,
+  overlay: A(MT_LACQ, 0.7),
+  chart: [MT_GOLD, MT_LAPIS, MT_VERM, MT_MALA, MT_SILK, MT_SAND],
+  chartSurface: MT_GROUND, grid: A(MT_SILK, 0.1), axis: MT_SAND,
+  atlasBorder: MT_LINE, shadowInk: MT_LACQ, dockBg: MT_GROUND,
+  nav: {
+    text: MT_SILK, textSec: MT_SAND, kicker: MT_SAND,
+    icon: MT_SAND, muted: MT_SAND, accent: MT_GOLD,
+    activeBg: A(MT_GOLD, 0.18), hairline: MT_LINE, border: MT_LINE,
+  },
+  frame: { outer: MT_RAISED, inner: MT_LINE, rail: MT_VERM, highlight: MT_GOLD },
+  themeColor: MT_LACQ,
+  chrome: { frameGrammar: "thangka-mount", radius: 8, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Sertang · zlatá thangka ------------------------------------------
+   Zlaté pole, rumělka kreslí linky i tlačítka, lapis nese nadpis. */
+const ST_GROUND = "#EADBAE", ST_DEEP = "#D9C58A", ST_CARD = "#F1E6C4", ST_PAPER = "#F6EED6", ST_RAISED = "#F8F2E0",
+  ST_INK = "#2B1E12", ST_UMBER = "#4A3A28", ST_CINN = "#A63A22", ST_LAPIS = "#244A86", ST_MALA = "#2E7A5B", ST_OCHRE = "#7A5A14";
+const DEF_SERTANG = {
+  id: "sertang-gold",
+  labelCs: "Sertang · zlatá thangka", labelEn: "Sertang · Gold Thangka",
+  polarity: "light", statusMode: "light",
+  anchors: { "Gold ground": ST_GROUND, "Deep gold": ST_DEEP, Card: ST_CARD, Paper: ST_PAPER, Raised: ST_RAISED,
+    Ink: ST_INK, Umber: ST_UMBER, Cinnabar: ST_CINN, Lapis: ST_LAPIS, Malachite: ST_MALA, Ochre: ST_OCHRE },
+  background: ST_GROUND, navigation: ST_DEEP, surface: ST_CARD, card: ST_CARD,
+  documentSurface: ST_PAPER, elevatedSurface: ST_RAISED,
+  text: ST_INK, textSecondary: ST_UMBER, heading: ST_LAPIS,
+  textMuted: A(ST_UMBER, 0.88), textDisabled: A(ST_UMBER, 0.6), placeholder: A(ST_UMBER, 0.9),
+  border: A(ST_INK, 0.28), borderStrong: ST_UMBER, borderSoft: A(ST_INK, 0.12),
+  interactive: ST_CINN, interactiveText: ST_PAPER, focus: ST_LAPIS, link: ST_CINN,
+  selectionSurface: A(ST_CINN, 0.2),
+  quietInk: ST_UMBER,
+  cardHover: A(ST_INK, 0.04), sheetHover: A(ST_INK, 0.03),
+  callout: ST_CARD, tableHead: ST_CARD,
+  activeNav: A(ST_CINN, 0.16),
+  hero: ST_DEEP, heroInk: ST_INK,
+  overlay: A(ST_INK, 0.45),
+  chart: [ST_LAPIS, ST_CINN, ST_MALA, ST_OCHRE, ST_INK, ST_UMBER],
+  chartSurface: ST_CARD, grid: A(ST_INK, 0.14), axis: ST_UMBER,
+  atlasBorder: ST_INK, shadowInk: ST_INK, dockBg: ST_DEEP,
+  nav: {
+    text: ST_INK, textSec: ST_UMBER, kicker: ST_UMBER,
+    icon: ST_UMBER, muted: ST_UMBER, accent: ST_INK,
+    activeBg: A(ST_CINN, 0.18), hairline: A(ST_INK, 0.16), border: A(ST_INK, 0.24),
+  },
+  frame: { outer: ST_DEEP, inner: ST_CARD, rail: ST_CINN, highlight: ST_CINN },
+  themeColor: ST_GROUND,
+  chrome: { frameGrammar: "brocade-band", radius: 8, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Minerály · plátno, lapis, malachit, rumělka, auripigment -----------
+   Nebělené plátno, lapisová navigace nad světlým polem (jako Monument),
+   malachit kolejnice, rumělka zvýraznění, auripigment jen v grafu. */
+const MN_CANVAS = "#F1EADB", MN_SURF = "#EAE1CD", MN_CARD = "#F8F3E8", MN_PAPER = "#FBF7EE", MN_RAISED = "#FFFDF7",
+  MN_INK = "#1F1A16", MN_UMBER = "#4B4238", MN_LAPIS = "#1E3F73", MN_MALA = "#2F7A5C", MN_CINN = "#B8402B", MN_OCHRE = "#9A7420";
+const DEF_MINERALY = {
+  id: "mineral-pigments",
+  labelCs: "Minerály · lapis a malachit", labelEn: "Minerals · Lapis and Malachite",
+  polarity: "light", statusMode: "light",
+  anchors: { Canvas: MN_CANVAS, Surface: MN_SURF, Card: MN_CARD, Paper: MN_PAPER, Raised: MN_RAISED,
+    Ink: MN_INK, Umber: MN_UMBER, Lapis: MN_LAPIS, Malachite: MN_MALA, Cinnabar: MN_CINN, Orpiment: MN_OCHRE },
+  background: MN_CANVAS, navigation: MN_LAPIS, surface: MN_SURF, card: MN_CARD,
+  documentSurface: MN_PAPER, elevatedSurface: MN_RAISED,
+  text: MN_INK, textSecondary: MN_UMBER, heading: MN_LAPIS,
+  textMuted: A(MN_UMBER, 0.88), textDisabled: A(MN_UMBER, 0.68), placeholder: A(MN_UMBER, 0.9),
+  border: A(MN_INK, 0.26), borderStrong: MN_UMBER, borderSoft: A(MN_INK, 0.11),
+  interactive: MN_LAPIS, interactiveText: MN_CANVAS, focus: MN_CINN, link: MN_LAPIS,
+  selectionSurface: A(MN_LAPIS, 0.18),
+  quietInk: MN_UMBER,
+  cardHover: A(MN_INK, 0.04), sheetHover: A(MN_INK, 0.03),
+  callout: MN_SURF, tableHead: MN_SURF,
+  activeNav: A(MN_MALA, 0.18),
+  hero: MN_LAPIS, heroInk: MN_CANVAS,
+  overlay: A(MN_INK, 0.45),
+  chart: [MN_LAPIS, MN_MALA, MN_CINN, MN_OCHRE, MN_INK, MN_UMBER],
+  chartSurface: MN_CARD, grid: A(MN_INK, 0.14), axis: MN_UMBER,
+  atlasBorder: MN_INK, shadowInk: MN_INK, dockBg: MN_LAPIS,
+  nav: {
+    text: MN_CANVAS, textSec: A(MN_CANVAS, 0.86), kicker: A(MN_CANVAS, 0.72),
+    icon: A(MN_CANVAS, 0.8), muted: A(MN_CANVAS, 0.74), accent: MN_CANVAS,
+    activeBg: A(MN_MALA, 0.4), hairline: A(MN_CANVAS, 0.18), border: A(MN_CANVAS, 0.26),
+  },
+  frame: { outer: MN_LAPIS, inner: MN_CARD, rail: MN_MALA, highlight: MN_CINN },
+  themeColor: MN_CANVAS,
+  chrome: { frameGrammar: "pigment-rails", radius: 8, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
 const OPTIONAL_DEFS = Object.freeze({
   "slate-clay-pantone": DEF_SLATE_CLAY,
   "monument-clay": DEF_MONUMENT,
@@ -1078,6 +1245,10 @@ const OPTIONAL_DEFS = Object.freeze({
   "volcanic-grey": DEF_VOLCANIC,
   "americano-chai": DEF_AMERICANO,
   "quiet-ledger-night": DEF_QUIET_LEDGER,
+  "nagtang-black": DEF_NAGTANG,
+  "martang-red": DEF_MARTANG,
+  "sertang-gold": DEF_SERTANG,
+  "mineral-pigments": DEF_MINERALY,
 });
 
 const FIXED = (() => {

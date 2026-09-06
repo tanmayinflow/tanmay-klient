@@ -25,7 +25,7 @@ let browser;
 try { browser = await chromium.launch({ executablePath: EXE, args: ["--no-sandbox"] }); }
 catch (e) { console.log("SKIP · Chromium se nepodařilo spustit: " + e.message); srv.close(); process.exit(0); }
 
-/* Pole, lišta a řeč rámů deseti pevných vzhledů — musí sedět na rejstřík. */
+/* Pole, lišta a řeč rámů čtrnácti pevných vzhledů — musí sedět na rejstřík. */
 const FIELDS = {
   "signature-day": "#F4F0EB",
   "signature-night": "#262725",
@@ -37,6 +37,10 @@ const FIELDS = {
   "volcanic-grey": "#292A2A",
   "americano-chai": "#1E1D1D",
   "quiet-ledger-night": "#191919",
+  "nagtang-black": "#141311",
+  "martang-red": "#2A1210",
+  "sertang-gold": "#EADBAE",
+  "mineral-pigments": "#F1EADB",
 };
 const THEMECOLOR = { "monument-clay": "#26303B" };
 const GRAMMAR = {
@@ -49,9 +53,13 @@ const GRAMMAR = {
   "volcanic-grey": "basalt-steps",
   "americano-chai": "woven-rails",
   "quiet-ledger-night": "quiet-ledger",
+  "nagtang-black": "gold-keyline",
+  "martang-red": "thangka-mount",
+  "sertang-gold": "brocade-band",
+  "mineral-pigments": "pigment-rails",
 };
-const DARK = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night"];
-const OPTIONAL = ["slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night"];
+const DARK = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red"];
+const OPTIONAL = ["slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments"];
 const rgb = (hex) => {
   const h = hex.replace("#", "");
   return `rgb(${parseInt(h.slice(0, 2), 16)}, ${parseInt(h.slice(2, 4), 16)}, ${parseInt(h.slice(4, 6), 16)})`;
@@ -262,7 +270,7 @@ try {
       });
       check("dvě skupiny: Signature a Volitelné palety", !!info && info.skupin === 2, info ? String(info.skupin) : "");
       check("Signature má tři volby", !!info && info.sig === 3, info ? String(info.sig) : "");
-      check("palet je osm", !!info && info.opt === 8, info ? String(info.opt) : "");
+      check("palet je dvanáct", !!info && info.opt === 12, info ? String(info.opt) : "");
       check("vybraná je automatika, žádná paleta", !!info && info.sigChecked === 1 && info.optChecked === 0,
         info ? `${info.sigChecked}/${info.optChecked}` : "");
       check("žádný zrušený název", !!info && !/Řeka v noci|Tyrkys|Moruše|Kouř a koření/.test(info.vse));

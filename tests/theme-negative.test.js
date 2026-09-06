@@ -155,9 +155,9 @@ test("zrušený název se nesmí vrátit do rozhraní", () => {
   }
 });
 
-test("Noční proud ani devátá paleta neexistují", () => {
-  assert.equal(OPTIONAL_PRESET_IDS.length, 8, "palet je přesně osm");
-  assert.equal(APPEARANCE_PRESET_IDS.length, 11, "vzhledů je přesně jedenáct");
+test("Noční proud ani třináctá paleta neexistují", () => {
+  assert.equal(OPTIONAL_PRESET_IDS.length, 12, "palet je přesně dvanáct · osm z referencí a čtyři thangky");
+  assert.equal(APPEARANCE_PRESET_IDS.length, 15, "vzhledů je přesně patnáct");
   for (const bad of ["night-stream", "nocni-proud", "quiet-ledger-day", "quiet-ledger-light"]) {
     assert.equal(resolvePresetId(bad), DEFAULT_PRESET, bad);
   }

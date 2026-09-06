@@ -5,4 +5,4 @@
 
 // Verze sdíleného jádra. Obě aplikace ji musí mít stejnou — `shared:check`
 // selže, když se rozejdou, protože pak už to není jeden dům.
-export const SHARED_CORE_VERSION = "1.8.1";
+export const SHARED_CORE_VERSION = "1.9.0";

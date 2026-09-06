@@ -91,6 +91,11 @@ test("kotvy jsou doslova ty z referencí", () => {
     "americano-chai": ["#1E1D1D", "#5A4D41", "#7E6957", "#867C70", "#303031"],
     "quiet-ledger-night": ["#191919", "#202020", "#252525", "#2F2F2F", "#373737",
       "#F0EFED", "#ADA9A3", "#D3C7AD", "#28374A", "#754437", "#6B6751"],
+    /* thangky · pigmenty, ne dodaná reference; kotvy jsou přesto pevné */
+    "nagtang-black": ["#141311", "#1C1A17", "#25221D", "#2E2A24", "#EDE3CC", "#C9BBA0", "#D4A54A", "#B6402A", "#4F7FC4", "#3E8B6A"],
+    "martang-red": ["#2A1210", "#3A1813", "#48201A", "#5A2A22", "#F2E6CF", "#D9C4A3", "#E0B356", "#C8432B", "#5D8BD3", "#4C9C79"],
+    "sertang-gold": ["#EADBAE", "#D9C58A", "#F1E6C4", "#F6EED6", "#F8F2E0", "#2B1E12", "#4A3A28", "#A63A22", "#244A86", "#2E7A5B", "#7A5A14"],
+    "mineral-pigments": ["#F1EADB", "#EAE1CD", "#F8F3E8", "#FBF7EE", "#FFFDF7", "#1F1A16", "#4B4238", "#1E3F73", "#2F7A5C", "#B8402B", "#9A7420"],
   };
   for (const [id, anchors] of Object.entries(expect)) {
     const got = Object.values(appearancePreset(id).anchors).map((h) => h.toUpperCase()).sort();
@@ -127,6 +132,11 @@ test("hlína, allspice, blackish green a roast nenesou běžné písmo", () => {
     "volcanic-grey": ["#5C6263"],
     "americano-chai": ["#867C70", "#7E6957", "#5A4D41"],
     "quiet-ledger-night": ["#754437", "#6B6751", "#28374A"],
+    /* rumělka, malachit ani auripigment nenesou běžné písmo — zlato smí jen v noci na sazích a laku */
+    "nagtang-black": ["#B6402A", "#3E8B6A", "#4F7FC4"],
+    "martang-red": ["#C8432B", "#4C9C79", "#5D8BD3"],
+    "sertang-gold": ["#2E7A5B", "#7A5A14", "#D9C58A"],
+    "mineral-pigments": ["#2F7A5C", "#B8402B", "#9A7420"],
   };
   for (const [id, hexes] of Object.entries(zakazane)) {
     const t = resolveTheme(id, false);

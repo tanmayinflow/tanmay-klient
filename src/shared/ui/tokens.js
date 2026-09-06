@@ -292,6 +292,50 @@ ${sheets("quiet-ledger")} {
 }
 ${sel("quiet-ledger")} { box-shadow: inset 0 0 0 1px var(--tm-frame-highlight) !important; }
 
+/* ---- Thangky · čtyři rámy z pigmentové tradice ---------------------------
+   Thangka visí v brokátovém rámu se zlatou paspulkou; každá ze čtyř palet
+   si z něj bere jinou část. Nagtang: dvojitá zlatá vlásečnice (kresba
+   zlatem na sazích). Martang: paspulka, pás hedvábí, paspulka. Sertang:
+   široký brokátový pás s rumělkovou kolejnicí. Minerály: tři pigmenty jako
+   tři linky — lapis nahoře, malachit vlevo, rumělka vpravo. */
+${sheets("gold-keyline")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-highlight), inset 0 0 0 2px var(--tm-frame-outer),
+    inset 0 0 0 3px var(--tm-frame-highlight), var(--tm-shadow-sheet) !important;
+}
+${writing("gold-keyline")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-highlight), inset 0 0 0 2px var(--tm-frame-outer),
+    inset 0 0 0 3px var(--tm-frame-highlight);
+}
+${sel("gold-keyline")} { box-shadow: inset 0 0 0 1px var(--tm-frame-highlight) !important; }
+
+${sheets("thangka-mount")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-highlight), inset 0 0 0 4px var(--tm-frame-outer),
+    inset 0 0 0 5px var(--tm-frame-highlight), var(--tm-shadow-sheet) !important;
+}
+${writing("thangka-mount")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-highlight), inset 0 0 0 4px var(--tm-frame-outer),
+    inset 0 0 0 5px var(--tm-frame-highlight);
+}
+${sel("thangka-mount")} { box-shadow: inset 4px 0 0 0 var(--tm-frame-rail) !important; }
+
+${sheets("brocade-band")} {
+  box-shadow: inset 0 0 0 6px var(--tm-frame-outer), inset 9px 0 0 0 var(--tm-frame-rail),
+    var(--tm-shadow-sheet) !important;
+}
+${writing("brocade-band")} {
+  box-shadow: inset 0 0 0 6px var(--tm-frame-outer), inset 9px 0 0 0 var(--tm-frame-rail);
+}
+${sel("brocade-band")} { box-shadow: inset 5px 0 0 0 var(--tm-frame-rail) !important; }
+
+${sheets("pigment-rails")} {
+  box-shadow: inset 0 3px 0 0 var(--tm-frame-outer), inset 4px 0 0 0 var(--tm-frame-rail),
+    inset -4px 0 0 0 var(--tm-frame-highlight), var(--tm-shadow-sheet) !important;
+}
+${writing("pigment-rails")} {
+  box-shadow: inset 4px 0 0 0 var(--tm-frame-rail), inset -4px 0 0 0 var(--tm-frame-highlight);
+}
+${sel("pigment-rails")} { box-shadow: inset 4px 0 0 0 var(--tm-frame-rail) !important; }
+
 /* ---- Americano a chai · tkané kolejnice -------------------------------- */
 ${sheets("woven-rails")} {
   box-shadow: inset 0 0 0 6px var(--tm-frame-outer), inset 0 0 0 8px var(--tm-frame-inner),
