@@ -13,7 +13,7 @@
 // Změna rádiusu tlačítka, výšky pole, odstupu doku nebo doby animace se dělá
 // TADY a projeví se v obou domech.
 
-import { FONT_DISPLAY_EN, FONT_DISPLAY_CS, FONT_LOGO, FONT_BODY, FONT_TAG } from "./type.js";
+import { STACK_DISPLAY_EN, STACK_DISPLAY_CS, STACK_LOGO, STACK_BODY, STACK_TAG } from "./type.js";
 
 /** Rádiusy. Dům má tři velikosti a jednu pilulku, ne dvanáct náhodných čísel. */
 export const RADII = Object.freeze({
@@ -49,14 +49,23 @@ export const MOTION = Object.freeze({
  * @param {"cs"|"en"} lang jazyk · rozhoduje o displejovém řezu
  */
 export function tokensCss(t, lang) {
-  const display = lang === "en" ? FONT_DISPLAY_EN : FONT_DISPLAY_CS;
+  const house = lang === "en" ? STACK_DISPLAY_EN : STACK_DISPLAY_CS;
+  /* ŘEZ JE ROLE, NE KONSTANTA. Dům mlčí a dostane svůj Garamond a DM Sans;
+     paleta, která si nese vlastní typografii (`type` v rejstříku), ji tady
+     přebije a propíše se do každého inline stylu, protože komponenty píšou
+     `var(--tm-font-body)`, ne řez. Jazyk rozhoduje jen tam, kde paleta mlčí
+     — vlastní displejový řez si diakritiku řeší sám. */
+  const display = t.fontDisplay || house;
+  const logo = t.fontLogo || STACK_LOGO;
+  const body = t.fontBody || STACK_BODY;
+  const tag = t.fontTag || STACK_TAG;
   return `
 :root {
   /* písmo */
   --tm-font-display: ${display};
-  --tm-font-logo: ${FONT_LOGO};
-  --tm-font-body: ${FONT_BODY};
-  --tm-font-tag: ${FONT_TAG};
+  --tm-font-logo: ${logo};
+  --tm-font-body: ${body};
+  --tm-font-tag: ${tag};
 
   /* rádius */
   --tm-r-tag: ${RADII.tag}px;
@@ -147,6 +156,9 @@ export function tokensCss(t, lang) {
   --tm-frame-inner: ${t.frameInner};
   --tm-frame-rail: ${t.frameRail};
   --tm-frame-highlight: ${t.frameHighlight};
+  /* rastr pole a záře rámečku · čte je jen skinCss() té palety, která je má */
+  --tm-scanline: ${t.scanline || "transparent"};
+  --tm-frame-glow: ${t.frameGlow || "transparent"};
 
   --tm-brand-copper: ${t.brandCopper};
   --tm-brand-linen: ${t.brandLinen};
@@ -191,6 +203,7 @@ export function tokensCss(t, lang) {
   }
 }
 ${frameGrammarCss()}
+${skinCss()}
 `;
 }
 
@@ -345,5 +358,81 @@ ${writing("woven-rails")} {
   box-shadow: inset 0 0 0 6px var(--tm-frame-outer), inset 0 0 0 8px var(--tm-frame-inner);
 }
 ${sel("woven-rails")} { box-shadow: inset 0 3px 0 0 var(--tm-frame-highlight), inset 3px 0 0 0 var(--tm-frame-highlight) !important; }
+
+/* ---- Signál v temnu · jedna vlásečnice a řeřavá kolejnice --------------
+   Nejtišší řeč rámů v domě, a je to záměr. Předloha nezná dvojitou linku
+   ani vsazený monument — list má JEDNU linku po obvodu, vybraný panel
+   dvoupixelovou řeřavou kolejnici. Výška je ta plochá z palety (prstenec,
+   ne rozostření), takže se linka a stín nepobijí. */
+${sheets("signal-hairline")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-outer), var(--tm-shadow-sheet) !important;
+}
+${writing("signal-hairline")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-outer);
+}
+${sel("signal-hairline")} { box-shadow: inset 2px 0 0 0 var(--tm-frame-rail) !important; }
+`;
+}
+
+// ----------------------------------------------------------------------
+// SKIN · to, co paleta říct neumí
+// ----------------------------------------------------------------------
+// Barvu nese kontrakt, rám nese gramatika. Zůstává ale třetí vrstva, bez
+// které se některý vzhled nedá dodržet: TYPOGRAFIE A GEOMETRIE. Zaoblení
+// je v aplikaci napsané v inline stylech (`borderRadius: 8`), prostrkání
+// majuskulí taky — token je nepřebije, protože inline styl vyhrává. Jedno
+// pravidlo s `!important`, střežené `data-appearance`, ano.
+//
+// PRAVIDLA TÉHLE VRSTVY (jinak by z toho byl druhý design systém):
+//   1 · Každý selektor je střežený `html[data-appearance="…"]`. Signature
+//       ani kterákoli jiná paleta o téhle vrstvě nesmí vědět.
+//   2 · Jen typografie, geometrie a plošná textura. Žádná barva, kterou
+//       kontrakt umí říct sám — ta patří do palety a měří se v testech.
+//   3 · Nic, co mění rozměr komponenty. Rádius, prostrkání a pozadí ano;
+//       padding, šířka a výška ne.
+//   4 · Vždycky přes token (`var(--tm-…)`), ne přes napsanou barvu.
+//
+// Vzhled bez skinu je pořád úplný vzhled — tahle funkce je prázdná pro
+// všechny palety kromě těch, které bez ní nedávají smysl.
+export function skinCss() {
+  const a = (name) => `html[data-appearance="${name}"]`;
+  const S = a("signal-dark");
+  /* Displejový a značkový řez pozná podle toho, že si komponenta do inline
+     stylu napsala odkaz na token — jiný způsob, jak je odsud rozeznat,
+     není a nebude: aplikace si řez píše do inline stylu, ne do třídy. */
+  const display = `${S} [style*="--tm-font-display"]`;
+  return `
+/* ---- Signál v temnu ---------------------------------------------------- */
+/* 1 · NIC NENÍ ZAOBLENÉ. Předloha nemá jediný zaoblený roh — ani tlačítko,
+   ani kartu, ani pilulku. Je to ta nejsilnější jednotlivá věc na celém
+   vzhledu, a v aplikaci je zaoblení v pěti stech inline stylech. */
+${S} *, ${S} *::before, ${S} *::after { border-radius: 0 !important; }
+
+/* 2 · RASTR POLE. Vodorovná linka po sedmi pixelech, sotva viditelná —
+   dělá z plochy obraz, ne papír. Leží v pozadí těla, ne jako vrstva přes
+   obsah, takže nemůže nic zakrýt ani chytit ukazatel. „!important“ je tu
+   proto, že pole zapisuje applyDocumentTheme inline. */
+${S} body {
+  background-image: repeating-linear-gradient(180deg,
+    var(--tm-scanline) 0, var(--tm-scanline) 1px, transparent 1px, transparent 7px) !important;
+  background-attachment: fixed !important;
+}
+
+/* 3 · NADPIS SVÍTÍ. Titul předlohy je maska s měkkou září kolem písmen.
+   Tady je to jeden text-shadow v barvě rámečkové záře — bez rozostřovacího
+   filtru, aby to neplatila každá vrstva stránky výkonem.
+
+   PROSTRKÁNÍ TU NEBUDE, i když ho předloha má velké. Prostrkání mění ŠÍŘKU
+   textu, a tím i šířku tlačítka: prohlížečový test invariance přistihl
+   „letter-spacing: 0.24em“ na značkách při Δ3px proti Signature. Vzhled
+   smí měnit, jak dům vypadá, ne kde co je — a je to správné pravidlo, ne
+   překážka. Charakter nese řez a verzálky, které aplikace sází sama. */
+${display} { text-shadow: 0 0 18px var(--tm-frame-glow); }
+
+/* 4 · TLAČÍTKO SE ROZSVÍTÍ. Předloha nemá u akce výplň — má rámeček, který
+   při najetí zazáří. Kontrakt umí barvu rámečku, ne tuhle reakci. */
+${S} .tm-cta:hover, ${S} .tm-cta:focus-visible {
+  box-shadow: 0 0 22px var(--tm-frame-glow), inset 0 0 0 1px var(--tm-frame-highlight);
+}
 `;
 }

@@ -22,7 +22,7 @@ import { makeThemeFor, makeTagsFor } from "../src/shared/ui/theme.js";
 const ORDER = ["signature-auto", "signature-day", "signature-night",
   "slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate",
   "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night",
-  "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments"];
+  "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments", "signal-dark"];
 
 const GRAMMARS = {
   "signature-day": "none", "signature-night": "none",
@@ -38,6 +38,7 @@ const GRAMMARS = {
   "martang-red": "thangka-mount",
   "sertang-gold": "brocade-band",
   "mineral-pigments": "pigment-rails",
+  "signal-dark": "signal-hairline",
 };
 
 const ROLES = [
@@ -60,12 +61,12 @@ const ROLES = [
   "frameOuter", "frameInner", "frameRail", "frameHighlight",
 ];
 
-test("jedenáct vzhledů, v daném pořadí: Signature trojice a osm palet", () => {
+test("šestnáct vzhledů, v daném pořadí: Signature trojice a třináct palet", () => {
   assert.deepEqual([...APPEARANCE_PRESET_IDS], ORDER);
-  assert.equal(APPEARANCE_PRESETS.length, 15);
+  assert.equal(APPEARANCE_PRESETS.length, 16);
   assert.deepEqual([...SIGNATURE_PRESET_IDS], ORDER.slice(0, 3));
   assert.deepEqual([...OPTIONAL_PRESET_IDS], ORDER.slice(3));
-  assert.equal(OPTIONAL_PRESETS.length, 12);
+  assert.equal(OPTIONAL_PRESETS.length, 13);
   assert.equal(DEFAULT_PRESET, "signature-auto");
   assert.equal(RECOMMENDED_PRESET, "signature-auto");
   const cs = new Set(), en = new Set();
@@ -86,7 +87,7 @@ test("řeč rámů: každá paleta má svou, Signature žádnou, žádné dvě s
       seen.add(g);
     }
   }
-  assert.equal(seen.size, 12);
+  assert.equal(seen.size, 13);
   assert.equal(frameChrome("signature-auto", true).frameGrammar, "none");
   assert.deepEqual(PRESET_GRAMMARS["garnet-slate"], "corner-brackets");
   for (const id of OPTIONAL_PRESET_IDS) {

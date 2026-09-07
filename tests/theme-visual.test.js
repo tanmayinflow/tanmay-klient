@@ -18,7 +18,7 @@ import { dirname, join } from "node:path";
 import {
   OPTIONAL_PRESET_IDS, resolveTheme, appearancePreset, frameChrome,
 } from "../src/shared/ui/themeRegistry.js";
-import { frameGrammarCss } from "../src/shared/ui/tokens.js";
+import { frameGrammarCss, skinCss } from "../src/shared/ui/tokens.js";
 import { chroma, tint, ratio, luminance, hueDeg, readsGreen } from "../src/shared/ui/contrast.js";
 
 const app = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "src/App.tsx"), "utf8");
@@ -133,6 +133,66 @@ test("Tichý zápis · skoro plochý: panel s linkou, otevřený dokument, azulo
   assert.ok(/inset 0 0 0 1px/.test(ql), "quiet-ledger kreslí jen 1px keyline");
   assert.ok(!/inset 0 0 0 [2-9]px/.test(ql), "žádná silná zeď — motiv je skoro plochý");
   assert.ok(!ql.includes("tm-psani"), "psací plocha zůstává otevřená, bez rámu");
+});
+
+test("Signál v temnu · čtyři barvy, nula zaoblení, řeřavá nikdy nepíše", () => {
+  const t = resolveTheme("signal-dark", false);
+  assert.equal(t.background, "#0C0B09", "pole je Field");
+  assert.equal(t.surface, "#0C0B09", "karta má TOTÉŽ pole — hierarchii dělá linka, ne odstín");
+  assert.equal(t.documentSurface, "#0C0B09");
+  assert.equal(t.text, "#D4CBB3", "písmo je kost");
+  assert.equal(t.heading, "#EAE4D8", "nadpis je jasná kost");
+  assert.equal(t.interactiveAccent, "#D4CBB3", "akce je kost, ne řeřavá");
+  assert.equal(t.interactiveOnAccent, "#0C0B09");
+  assert.equal(t.focusRing, "#C14A2E", "řeřavá je ohnisko");
+  assert.equal(t.borderStrong, "#C14A2E", "řeřavá je silná hrana");
+  assert.equal(t.frameRail, "#C14A2E", "řeřavá je kolejnice");
+  /* ŘEŘAVÁ NIKDY NENESE BĚŽNÉ PÍSMO. Na poli měří 4,02:1 — dost na hranu
+     a ohnisko, málo na odstavec. Tenhle test to drží, i kdyby někoho v
+     budoucnu lákalo „oživit" jí text. */
+  for (const role of ["text", "textSecondary", "textMuted", "heading", "link", "placeholder"]) {
+    assert.notEqual(t[role], "#C14A2E", `řeřavá se dostala do role ${role}`);
+  }
+  /* Výška je prstenec, ne rozostření — předloha stín nezná. */
+  for (const sh of ["shadow", "shadowLift", "shadowPop", "shadowSheet"]) {
+    assert.match(t[sh], /^0 0 0 1px /, `${sh} má být vlásečnice, ne stín`);
+    assert.ok(!/px -?\d+px/.test(t[sh].replace("0 0 0 1px ", "")), `${sh} rozostřuje`);
+  }
+  /* Typografie je součást vzhledu, ne náhoda. */
+  assert.match(t.fontBody, /JetBrains Mono/, "rozhraní píše strojopisem");
+  assert.match(t.fontTag, /JetBrains Mono/);
+  assert.match(t.fontDisplay, /Cinzel/, "nadpis nese Cinzel");
+  const sd = frameGrammarCss().split("}")
+    .filter((r) => r.includes('data-frame-grammar="signal-hairline"')).join("}");
+  assert.ok(/inset 0 0 0 1px/.test(sd), "list obtahuje jedna vlásečnice");
+  assert.ok(!/inset 0 0 0 [2-9]px/.test(sd), "žádná zeď — vzhled stojí na lince");
+});
+
+test("skin je střežený vzhledem a nesahá na rozměr", () => {
+  const css = skinCss();
+  /* Měří se DEKLARACE, ne poznámky. Poznámka smí pojmenovat vlastnost,
+     kterou tam schválně nedáváme — a právě taková poznámka je cennější
+     než ta vlastnost. */
+  const decl = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  /* Stejná disciplína jako u rámů: kdyby existoval nestřežený selektor,
+     dostala by skin i Signature — a to je jediná věc, která se hýbat nesmí. */
+  for (const sel of css.match(/^[^\s@/][^{]*\{/gm) || []) {
+    assert.ok(sel.includes("data-appearance"), "nestřežený selektor skinu: " + sel.slice(0, 70));
+  }
+  /* Nic, co posouvá obdélník. Prostrkání a velikost písma mění ŠÍŘKU
+     textu a s ní i tlačítko — prohlížečový test invariance na to přijde
+     až v běhu, tenhle na to přijde hned. */
+  for (const bad of ["padding", "margin:", "margin-", "width:", "height:", "display:", "position:",
+    "font-size", "font-weight", "letter-spacing", "word-spacing", "line-height", "z-index", "text-transform"]) {
+    assert.ok(!decl.includes(bad), `skin nese ${bad} — to už není vzhled, to je rozvržení`);
+  }
+  /* Barvu říká kontrakt, ne skin. */
+  assert.ok(!/#[0-9A-Fa-f]{6}|rgba?\(/.test(decl), "skin píše barvu místo tokenu");
+  /* A žádná paleta bez skinu o něm nesmí vědět. */
+  for (const id of OPTIONAL_PRESET_IDS) {
+    if (id === "signal-dark") continue;
+    assert.ok(!css.includes(`data-appearance="${id}"`), `${id} má skin, ale nikdo o něm neví`);
+  }
 });
 
 test("rámy jsou čisté CSS bez rozměrů, gradientů a záře", () => {

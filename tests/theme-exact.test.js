@@ -96,6 +96,8 @@ test("kotvy jsou doslova ty z referencí", () => {
     "martang-red": ["#2A1210", "#3A1813", "#48201A", "#5A2A22", "#F2E6CF", "#D9C4A3", "#E0B356", "#C8432B", "#5D8BD3", "#4C9C79"],
     "sertang-gold": ["#EADBAE", "#D9C58A", "#F1E6C4", "#F6EED6", "#F8F2E0", "#2B1E12", "#4A3A28", "#A63A22", "#244A86", "#2E7A5B", "#7A5A14"],
     "mineral-pigments": ["#F1EADB", "#EAE1CD", "#F8F3E8", "#FBF7EE", "#FFFDF7", "#1F1A16", "#4B4238", "#1E3F73", "#2F7A5C", "#B8402B", "#9A7420"],
+    /* odečteno ze živé předlohy, ne z obrázku · pole, kost, jasná kost, řeřavá */
+    "signal-dark": ["#0C0B09", "#D4CBB3", "#EAE4D8", "#C14A2E"],
   };
   for (const [id, anchors] of Object.entries(expect)) {
     const got = Object.values(appearancePreset(id).anchors).map((h) => h.toUpperCase()).sort();

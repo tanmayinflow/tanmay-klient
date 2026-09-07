@@ -58,8 +58,10 @@ const GRAMMAR = {
   "sertang-gold": "brocade-band",
   "mineral-pigments": "pigment-rails",
 };
-const DARK = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red"];
-const OPTIONAL = ["slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments"];
+const DARK = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "signal-dark"];
+const OPTIONAL = ["slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments", "signal-dark"];
+/* Palety, které si nesou vlastní řez písma. Jiný řez = jiná šířka znaku. */
+const TYPED = ["signal-dark"];
 const rgb = (hex) => {
   const h = hex.replace("#", "");
   return `rgb(${parseInt(h.slice(0, 2), 16)}, ${parseInt(h.slice(2, 4), 16)}, ${parseInt(h.slice(4, 6), 16)})`;
@@ -205,6 +207,16 @@ try {
   }
 
   // ---- 5 · invariance rozvržení: rám nesmí pohnout geometrií --------------
+  // A JEDNA VÝSLOVNÁ VÝJIMKA. Test vznikl proti RÁMŮM: rám je stín nebo
+  // pseudo-prvek a nesmí posunout ani pixel. Od jádra 1.10.0 ale existuje
+  // paleta, která si nese VLASTNÍ ŘEZ PÍSMA (Signál v temnu · strojopis a
+  // Cinzel), a jiný řez má prostě jinou šířku znaku — tlačítko široké podle
+  // svého textu se o pár pixelů liší z definice, ne z chyby.
+  //
+  // Co proto platí dál i pro paletu s vlastním řezem: STAVBA se nehne
+  // (postranní panel, stránka, horní lišta na pixel) a stránka NEPŘETÉKÁ.
+  // Co se povoluje: prvek, který se sám měří podle textu, smí dýchat do
+  // osmi pixelů. Kdyby řez rozhodil rozvržení, chytí to obojí.
   {
     const boxes = {};
     for (const id of ["signature-day", ...OPTIONAL]) {
@@ -232,15 +244,28 @@ try {
     const ref = boxes["signature-day"];
     for (const id of OPTIONAL) {
       const b = boxes[id];
-      let worst = 0, where = "";
-      for (const k of ["sidebar", "page", "topbar", "firstButton"]) {
-        if (!ref[k] || !b[k]) continue;
-        for (let i = 0; i < 4; i++) {
-          const d = Math.abs(ref[k][i] - b[k][i]);
-          if (d > worst) { worst = d; where = `${k}[${i}]`; }
+      const vlastniRez = TYPED.indexOf(id) !== -1;
+      /* Stavba stránky se nesmí hnout nikdy. Prvek měřený podle textu smí
+         u palety s vlastním řezem dýchat — a jen ten. */
+      const strukt = ["sidebar", "page", "topbar"];
+      const obsah = ["firstButton"];
+      const nejhorsi = (keys) => {
+        let worst = 0, where = "";
+        for (const k of keys) {
+          if (!ref[k] || !b[k]) continue;
+          for (let i = 0; i < 4; i++) {
+            const d = Math.abs(ref[k][i] - b[k][i]);
+            if (d > worst) { worst = d; where = `${k}[${i}]`; }
+          }
         }
-      }
-      check(`invariance · ${id} · obdélníky do 1 px od Signature`, worst <= 1, `${where} Δ${worst}px`);
+        return { worst, where };
+      };
+      const S = nejhorsi(strukt), O = nejhorsi(obsah);
+      const worst = Math.max(S.worst, O.worst);
+      const where = S.worst >= O.worst ? S.where : O.where;
+      check(`invariance · ${id} · stavba do 1 px od Signature`, S.worst <= 1, `${S.where} Δ${S.worst}px`);
+      check(`invariance · ${id} · obdélníky do ${vlastniRez ? 8 : 1} px od Signature`,
+        vlastniRez ? O.worst <= 8 : worst <= 1, `${where} Δ${worst}px`);
       check(`invariance · ${id} · žádný vodorovný přesah`, b.scrollW <= b.clientW, `${b.scrollW}>${b.clientW}`);
     }
   }
@@ -270,7 +295,7 @@ try {
       });
       check("dvě skupiny: Signature a Volitelné palety", !!info && info.skupin === 2, info ? String(info.skupin) : "");
       check("Signature má tři volby", !!info && info.sig === 3, info ? String(info.sig) : "");
-      check("palet je dvanáct", !!info && info.opt === 12, info ? String(info.opt) : "");
+      check("palet je třináct", !!info && info.opt === 13, info ? String(info.opt) : "");
       check("vybraná je automatika, žádná paleta", !!info && info.sigChecked === 1 && info.optChecked === 0,
         info ? `${info.sigChecked}/${info.optChecked}` : "");
       check("žádný zrušený název", !!info && !/Řeka v noci|Tyrkys|Moruše|Kouř a koření/.test(info.vse));

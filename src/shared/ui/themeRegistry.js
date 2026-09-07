@@ -72,6 +72,7 @@ export const APPEARANCE_PRESET_IDS = Object.freeze([
   "martang-red",
   "sertang-gold",
   "mineral-pigments",
+  "signal-dark",
 ]);
 
 /** Signature trojice — jediná část výběru, kde existuje režim. */
@@ -82,6 +83,7 @@ export const OPTIONAL_PRESET_IDS = Object.freeze([
   "slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate",
   "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night",
   "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments",
+  "signal-dark",
 ]);
 
 /** Všechno kromě automatiky — vyřešené palety. */
@@ -713,19 +715,33 @@ function exactPalette(d) {
     heroInkSoft: A(d.heroInk || d.text, 0.78),
     heroLine: A(d.frame.rail, dark ? 0.42 : 0.4),
 
-    shadow: dark
+    /* PLOCHÁ VÝŠKA. Paleta, která staví na linkách, nesmí pod kartu podložit
+       rozostřený stín — předloha vyvýšení kreslí vlásečnicí a ničím jiným.
+       `flat` proto nahradí celou stupnici stínů jedním prstencem, který jen
+       houstne. Ostatní palety se toho nedotknou. */
+    shadow: d.flat
+      ? `0 0 0 1px ${A(d.text, 0.1)}`
+      : dark
       ? `0 0 0 1px ${A(d.text, 0.05)}, 0 2px 4px ${A(shadowInk, 0.36)}, 0 12px 30px -16px ${A(shadowInk, 0.6)}`
       : `0 0 0 1px ${A(shadowInk, 0.04)}, 0 1px 2px ${A(shadowInk, 0.05)}, 0 8px 22px -12px ${A(shadowInk, 0.18)}`,
-    shadowLift: dark
+    shadowLift: d.flat
+      ? `0 0 0 1px ${A(d.text, 0.14)}`
+      : dark
       ? `0 0 0 1px ${A(d.text, 0.07)}, 0 3px 8px ${A(shadowInk, 0.4)}, 0 24px 50px -22px ${A(shadowInk, 0.66)}`
       : `0 0 0 1px ${A(shadowInk, 0.05)}, 0 2px 5px ${A(shadowInk, 0.06)}, 0 18px 40px -20px ${A(shadowInk, 0.24)}`,
-    shadowPop: dark
+    shadowPop: d.flat
+      ? `0 0 0 1px ${A(d.text, 0.18)}`
+      : dark
       ? `0 0 0 1px ${A(d.text, 0.09)}, 0 4px 12px -5px ${A(shadowInk, 0.48)}, 0 28px 60px -26px ${A(shadowInk, 0.72)}`
       : `0 0 0 1px ${A(shadowInk, 0.06)}, 0 3px 9px -4px ${A(shadowInk, 0.1)}, 0 20px 46px -22px ${A(shadowInk, 0.26)}`,
-    shadowSheet: dark
+    shadowSheet: d.flat
+      ? `0 0 0 1px ${A(d.text, 0.22)}`
+      : dark
       ? `0 0 0 1px ${A(d.text, 0.11)}, 0 6px 18px -8px ${A(shadowInk, 0.52)}, 0 36px 78px -30px ${A(shadowInk, 0.76)}`
       : `0 0 0 1px ${A(shadowInk, 0.07)}, 0 5px 14px -7px ${A(shadowInk, 0.11)}, 0 28px 68px -30px ${A(shadowInk, 0.3)}`,
-    shadowDrag: dark
+    shadowDrag: d.flat
+      ? `0 0 0 1px ${d.interactive}`
+      : dark
       ? `0 0 0 1px ${A(d.interactive, 0.3)}, 0 8px 22px -10px ${A(shadowInk, 0.58)}, 0 34px 68px -28px ${A(shadowInk, 0.78)}`
       : `0 0 0 1px ${A(d.interactive, 0.22)}, 0 8px 22px -10px ${A(shadowInk, 0.16)}, 0 30px 58px -28px ${A(shadowInk, 0.28)}`,
 
@@ -746,6 +762,19 @@ function exactPalette(d) {
     frameInner: d.frame.inner,
     frameRail: d.frame.rail,
     frameHighlight: d.frame.highlight,
+
+    /* ŘEZ PATŘÍ VZHLEDU. Skoro každá paleta mlčí a dostane dům (`tokensCss`
+       doplní STACK_*); paleta, která si nese vlastní typografii, ji řekne
+       tady a propíše se do každého řádku přes `--tm-font-*`. */
+    /* Rastr pole · vodorovná linka po sedmi pixelech. Kdo mlčí, nemá rastr
+       — a pravidlo v `skinCss()` pak nekreslí nic. */
+    scanline: d.scanline || "transparent",
+    frameGlow: d.frameGlow || "transparent",
+
+    fontDisplay: (d.type && d.type.display) || "",
+    fontLogo: (d.type && d.type.logo) || "",
+    fontBody: (d.type && d.type.body) || "",
+    fontTag: (d.type && d.type.tag) || "",
   };
   out.divider = out.borderSoft;
   out.scrim = out.overlay;
@@ -1236,6 +1265,80 @@ const DEF_MINERALY = {
   chrome: { frameGrammar: "pigment-rails", radius: 8, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
 };
 
+/* ---- Signál v temnu · #0C0B09 / #D4CBB3 / #EAE4D8 / #C14A2E -------------
+   Vizuální předloha: dokumentární stránka realityrevolt.com (odečteno ze
+   živé stránky 7. 9. 2026 — pole rgb(12,11,9), inkoust rgb(212,203,179),
+   jasný inkoust rgb(234,228,216), signál rgb(193,74,46), vlásečnice
+   inkoust @10 %). Jméno je naše: cizí značka nepatří do voliče vzhledu.
+
+   Celá stránka stojí na ČTYŘECH barvách a průhlednosti jedné z nich. Pole
+   je skoro černé a teplé, ne modročerné. Inkoust je kost, ne bílá. Signál
+   je řeřavá — a POUZE tam, kde nenese běžné písmo: měří na poli 4,02:1,
+   což je dost na ohnisko, silnou hranu a kolejnici, ne na odstavec. Písmo
+   proto nese kost (12,17:1) a nadpis jasná kost (15,54:1) — přesně tak,
+   jak to dělá předloha.
+
+   ŘEZ JE SOUČÁST VZHLEDU. Předloha píše celé rozhraní strojopisem
+   (JetBrains Mono) a nadpisy majuskulí s velkým prostrkáním (Cinzel). Bez
+   toho by z toho byla jen tmavá paleta, ne ten vzhled — proto tahle paleta
+   jako první nese `type` a vydá ho do `--tm-font-*`.
+
+   RÁMY JSOU LINKY. Nula zaoblení, jedna vlásečnice, žádný měkký stín;
+   `signal-hairline` obtahuje list jednou linkou a vybraný panel řeřavou
+   kolejnicí. Zbytek řeči (nulový rádius, řádkování, prostrkání majuskulí,
+   rastr) nese `skinCss()` v tokens.js — je to typografie a geometrie, ne
+   barva, a do rozpočtu rámů nepatří. */
+const RR_FIELD = "#0C0B09", RR_BONE = "#D4CBB3", RR_SIGNAL = "#EAE4D8", RR_EMBER = "#C14A2E";
+const RR_MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+const RR_CINZEL = "'Cinzel', 'Cormorant Garamond', Georgia, serif";
+const DEF_SIGNAL_DARK = {
+  id: "signal-dark",
+  labelCs: "Signál v temnu", labelEn: "Signal in the Dark",
+  polarity: "dark", statusMode: "dark",
+  anchors: { Field: RR_FIELD, Bone: RR_BONE, Signal: RR_SIGNAL, Ember: RR_EMBER },
+  /* Jedno pole na všechno. Předloha nemá „kartu jiné barvy" — hierarchii
+     dělá linka a prostor, ne další odstín. Vyvýšení nese vlásečnice. */
+  background: RR_FIELD, navigation: RR_FIELD, surface: RR_FIELD, card: RR_FIELD,
+  documentSurface: RR_FIELD, elevatedSurface: RR_FIELD,
+  text: RR_BONE, heading: RR_SIGNAL, textSecondary: RR_BONE,
+  textMuted: A(RR_BONE, 0.78), textDisabled: A(RR_BONE, 0.52), placeholder: A(RR_BONE, 0.78),
+  /* Vlásečnice je doslova ta z předlohy: inkoust na deseti procentech.
+     Silná hrana je řeřavá — 4,02:1 na poli, tedy nad 3:1 pro nepísmo. */
+  border: A(RR_BONE, 0.1), borderStrong: RR_EMBER, borderSoft: A(RR_BONE, 0.06),
+  /* Akce je kost, ne řeřavá: na tlačítku s výplní by řeřavá s polem dala
+     4,02:1 a popisek musí mít 4,5:1. Předloha to dělá stejně — tlačítko
+     WATCH je kostěný rámeček, řeřavá je jen ▶, číslo a značka odstavce. */
+  interactive: RR_BONE, interactiveText: RR_FIELD, focus: RR_EMBER, link: RR_SIGNAL,
+  selectionSurface: A(RR_EMBER, 0.32), selectionText: RR_SIGNAL,
+  quietInk: A(RR_BONE, 0.78),
+  /* Tiché nádechy jsou skoro neviditelné — přesně jako na předloze, kde
+     najetí nemění plochu, jen linku a záři rámečku. */
+  cardHover: A(RR_BONE, 0.03), sheetHover: A(RR_BONE, 0.03),
+  callout: A(RR_BONE, 0.03), tableHead: A(RR_BONE, 0.04),
+  activeNav: A(RR_EMBER, 0.22),
+  hero: A(RR_BONE, 0.03), heroInk: RR_SIGNAL,
+  overlay: A(RR_FIELD, 0.78),
+  /* Řady grafu střídají kost a řeřavou; pole mezi ně nepatří, na tmavém
+     plátně by zmizelo. */
+  chart: [RR_BONE, RR_EMBER, RR_SIGNAL, RR_EMBER, RR_BONE, RR_EMBER],
+  chartSurface: RR_FIELD, grid: A(RR_BONE, 0.1), axis: A(RR_BONE, 0.78),
+  /* Plát Movement Atlasu zůstává lněný ve všech vzhledech — rám na něm
+     proto musí být tmavý, ne kostěný. */
+  atlasBorder: RR_FIELD, shadowInk: RR_FIELD, dockBg: RR_FIELD,
+  nav: {
+    text: RR_BONE, textSec: A(RR_BONE, 0.85), kicker: A(RR_BONE, 0.62),
+    icon: A(RR_BONE, 0.78), muted: A(RR_BONE, 0.7), accent: RR_SIGNAL,
+    activeBg: A(RR_EMBER, 0.22), hairline: A(RR_BONE, 0.1), border: A(RR_BONE, 0.1),
+  },
+  frame: { outer: A(RR_BONE, 0.28), inner: A(RR_BONE, 0.1), rail: RR_EMBER, highlight: RR_SIGNAL },
+  flat: true,
+  scanline: A(RR_BONE, 0.03),
+  frameGlow: A(RR_BONE, 0.22),
+  type: { display: RR_CINZEL, logo: RR_CINZEL, body: RR_MONO, tag: RR_MONO },
+  themeColor: RR_FIELD,
+  chrome: { frameGrammar: "signal-hairline", radius: 0, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
 const OPTIONAL_DEFS = Object.freeze({
   "slate-clay-pantone": DEF_SLATE_CLAY,
   "monument-clay": DEF_MONUMENT,
@@ -1249,6 +1352,7 @@ const OPTIONAL_DEFS = Object.freeze({
   "martang-red": DEF_MARTANG,
   "sertang-gold": DEF_SERTANG,
   "mineral-pigments": DEF_MINERALY,
+  "signal-dark": DEF_SIGNAL_DARK,
 });
 
 const FIXED = (() => {
