@@ -359,18 +359,29 @@ ${writing("woven-rails")} {
 }
 ${sel("woven-rails")} { box-shadow: inset 0 3px 0 0 var(--tm-frame-highlight), inset 3px 0 0 0 var(--tm-frame-highlight) !important; }
 
-/* ---- Signál v temnu · jedna vlásečnice a řeřavá kolejnice --------------
-   Nejtišší řeč rámů v domě, a je to záměr. Předloha nezná dvojitou linku
-   ani vsazený monument — list má JEDNU linku po obvodu, vybraný panel
-   dvoupixelovou řeřavou kolejnici. Výška je ta plochá z palety (prstenec,
-   ne rozostření), takže se linka a stín nepobijí. */
-${sheets("signal-hairline")} {
-  box-shadow: inset 0 0 0 1px var(--tm-frame-outer), var(--tm-shadow-sheet) !important;
+/* ---- Černý písek · písečná římsa ---------------------------------------
+   Jedna písková linka po obvodu a dole třípixelová ječmenová římsa, na
+   které list stojí. Vybraný panel má ječmenovou kolejnici vlevo. */
+${sheets("dune-ledge")} {
+  box-shadow: inset 0 0 0 1px var(--tm-frame-outer), inset 0 -3px 0 0 var(--tm-frame-rail),
+    var(--tm-shadow-sheet) !important;
 }
-${writing("signal-hairline")} {
-  box-shadow: inset 0 0 0 1px var(--tm-frame-outer);
+${writing("dune-ledge")} {
+  box-shadow: inset 0 -3px 0 0 var(--tm-frame-rail);
 }
-${sel("signal-hairline")} { box-shadow: inset 2px 0 0 0 var(--tm-frame-rail) !important; }
+${sel("dune-ledge")} { box-shadow: inset 3px 0 0 0 var(--tm-frame-rail) !important; }
+
+/* ---- Hluboká voda · přílivová linka ------------------------------------
+   Třípixelová břidlicová linka nahoře a mlžná vlásečnice po obvodu — jako
+   čára, kam dosáhl příliv. Vybraný panel má mlžnou linku dole. */
+${sheets("tide-line")} {
+  box-shadow: inset 0 3px 0 0 var(--tm-frame-rail), inset 0 0 0 1px var(--tm-frame-outer),
+    var(--tm-shadow-sheet) !important;
+}
+${writing("tide-line")} {
+  box-shadow: inset 0 3px 0 0 var(--tm-frame-rail);
+}
+${sel("tide-line")} { box-shadow: inset 0 -2px 0 0 var(--tm-frame-highlight) !important; }
 `;
 }
 
@@ -395,44 +406,9 @@ ${sel("signal-hairline")} { box-shadow: inset 2px 0 0 0 var(--tm-frame-rail) !im
 // Vzhled bez skinu je pořád úplný vzhled — tahle funkce je prázdná pro
 // všechny palety kromě těch, které bez ní nedávají smysl.
 export function skinCss() {
-  const a = (name) => `html[data-appearance="${name}"]`;
-  const S = a("signal-dark");
-  /* Displejový a značkový řez pozná podle toho, že si komponenta do inline
-     stylu napsala odkaz na token — jiný způsob, jak je odsud rozeznat,
-     není a nebude: aplikace si řez píše do inline stylu, ne do třídy. */
-  const display = `${S} [style*="--tm-font-display"]`;
-  return `
-/* ---- Signál v temnu ---------------------------------------------------- */
-/* 1 · NIC NENÍ ZAOBLENÉ. Předloha nemá jediný zaoblený roh — ani tlačítko,
-   ani kartu, ani pilulku. Je to ta nejsilnější jednotlivá věc na celém
-   vzhledu, a v aplikaci je zaoblení v pěti stech inline stylech. */
-${S} *, ${S} *::before, ${S} *::after { border-radius: 0 !important; }
-
-/* 2 · RASTR POLE. Vodorovná linka po sedmi pixelech, sotva viditelná —
-   dělá z plochy obraz, ne papír. Leží v pozadí těla, ne jako vrstva přes
-   obsah, takže nemůže nic zakrýt ani chytit ukazatel. „!important“ je tu
-   proto, že pole zapisuje applyDocumentTheme inline. */
-${S} body {
-  background-image: repeating-linear-gradient(180deg,
-    var(--tm-scanline) 0, var(--tm-scanline) 1px, transparent 1px, transparent 7px) !important;
-  background-attachment: fixed !important;
+  /* Vrstva je připravená, ale prázdná: vzhled Signál v temnu, který ji jako
+     jediný používal, byl 8. 9. 2026 na přání odstraněn. Pravidla pro ni
+     platí dál (viz výše) a hlídá je theme-visual. */
+  return "";
 }
 
-/* 3 · NADPIS SVÍTÍ. Titul předlohy je maska s měkkou září kolem písmen.
-   Tady je to jeden text-shadow v barvě rámečkové záře — bez rozostřovacího
-   filtru, aby to neplatila každá vrstva stránky výkonem.
-
-   PROSTRKÁNÍ TU NEBUDE, i když ho předloha má velké. Prostrkání mění ŠÍŘKU
-   textu, a tím i šířku tlačítka: prohlížečový test invariance přistihl
-   „letter-spacing: 0.24em“ na značkách při Δ3px proti Signature. Vzhled
-   smí měnit, jak dům vypadá, ne kde co je — a je to správné pravidlo, ne
-   překážka. Charakter nese řez a verzálky, které aplikace sází sama. */
-${display} { text-shadow: 0 0 18px var(--tm-frame-glow); }
-
-/* 4 · TLAČÍTKO SE ROZSVÍTÍ. Předloha nemá u akce výplň — má rámeček, který
-   při najetí zazáří. Kontrakt umí barvu rámečku, ne tuhle reakci. */
-${S} .tm-cta:hover, ${S} .tm-cta:focus-visible {
-  box-shadow: 0 0 22px var(--tm-frame-glow), inset 0 0 0 1px var(--tm-frame-highlight);
-}
-`;
-}

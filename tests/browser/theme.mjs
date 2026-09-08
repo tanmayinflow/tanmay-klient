@@ -58,10 +58,10 @@ const GRAMMAR = {
   "sertang-gold": "brocade-band",
   "mineral-pigments": "pigment-rails",
 };
-const DARK = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "signal-dark"];
-const OPTIONAL = ["slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments", "signal-dark"];
+const DARK = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "black-sand", "deep-water"];
+const OPTIONAL = ["slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments", "black-sand", "deep-water"];
 /* Palety, které si nesou vlastní řez písma. Jiný řez = jiná šířka znaku. */
-const TYPED = ["signal-dark"];
+const TYPED = [];
 const rgb = (hex) => {
   const h = hex.replace("#", "");
   return `rgb(${parseInt(h.slice(0, 2), 16)}, ${parseInt(h.slice(2, 4), 16)}, ${parseInt(h.slice(4, 6), 16)})`;
@@ -295,7 +295,7 @@ try {
       });
       check("dvě skupiny: Signature a Volitelné palety", !!info && info.skupin === 2, info ? String(info.skupin) : "");
       check("Signature má tři volby", !!info && info.sig === 3, info ? String(info.sig) : "");
-      check("palet je třináct", !!info && info.opt === 13, info ? String(info.opt) : "");
+      check("palet je čtrnáct", !!info && info.opt === 14, info ? String(info.opt) : "");
       check("vybraná je automatika, žádná paleta", !!info && info.sigChecked === 1 && info.optChecked === 0,
         info ? `${info.sigChecked}/${info.optChecked}` : "");
       check("žádný zrušený název", !!info && !/Řeka v noci|Tyrkys|Moruše|Kouř a koření/.test(info.vse));

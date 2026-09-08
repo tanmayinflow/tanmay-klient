@@ -174,5 +174,5 @@ test("zrušené palety V2 v aktivním výběru nejsou a migrují", () => {
     assert.equal(FIXED_PRESET_IDS.indexOf(old), -1, `${old} se vrátil do výběru`);
     assert.equal(normalizeAppearance({ version: 3, preset: old }).preset, cil, `${old} se nepřevedl`);
   }
-  assert.equal(OPTIONAL_PRESET_IDS.length, 13);
+  assert.equal(OPTIONAL_PRESET_IDS.length, 14);
 });

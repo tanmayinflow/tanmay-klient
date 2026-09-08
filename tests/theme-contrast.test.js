@@ -164,6 +164,6 @@ test("sousední řady grafu se od sebe poznají v šedi nebo v barvosleposti", (
 
 test("dost měření, aby to něco znamenalo", () => {
   assert.ok(measured > 900, `měření je jen ${measured}`);
-  assert.equal(FIXED_PRESET_IDS.length, 15);
+  assert.equal(FIXED_PRESET_IDS.length, 16);
   for (const id of OPTIONAL_PRESET_IDS) assert.equal(appearancePreset(id).kind, "optional");
 });

@@ -72,7 +72,8 @@ export const APPEARANCE_PRESET_IDS = Object.freeze([
   "martang-red",
   "sertang-gold",
   "mineral-pigments",
-  "signal-dark",
+  "black-sand",
+  "deep-water",
 ]);
 
 /** Signature trojice — jediná část výběru, kde existuje režim. */
@@ -83,7 +84,8 @@ export const OPTIONAL_PRESET_IDS = Object.freeze([
   "slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate",
   "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night",
   "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments",
-  "signal-dark",
+  "black-sand",
+  "deep-water",
 ]);
 
 /** Všechno kromě automatiky — vyřešené palety. */
@@ -1265,78 +1267,103 @@ const DEF_MINERALY = {
   chrome: { frameGrammar: "pigment-rails", radius: 8, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
 };
 
-/* ---- Signál v temnu · #0C0B09 / #D4CBB3 / #EAE4D8 / #C14A2E -------------
-   Vizuální předloha: dokumentární stránka realityrevolt.com (odečteno ze
-   živé stránky 7. 9. 2026 — pole rgb(12,11,9), inkoust rgb(212,203,179),
-   jasný inkoust rgb(234,228,216), signál rgb(193,74,46), vlásečnice
-   inkoust @10 %). Jméno je naše: cizí značka nepatří do voliče vzhledu.
+/* ---- Černý písek · #2D2D2D / #D7C9AE / #A68763 / #EAE0D2 ---------------
+   Dodaná paleta (8. 9. 2026): Mine Shaft a Akaroa jako primární, Barley
+   Corn a White Rock jako sekundární. Čtyři kotvy, žádná pátá.
 
-   Celá stránka stojí na ČTYŘECH barvách a průhlednosti jedné z nich. Pole
-   je skoro černé a teplé, ne modročerné. Inkoust je kost, ne bílá. Signál
-   je řeřavá — a POUZE tam, kde nenese běžné písmo: měří na poli 4,02:1,
-   což je dost na ohnisko, silnou hranu a kolejnici, ne na odstavec. Písmo
-   proto nese kost (12,17:1) a nadpis jasná kost (15,54:1) — přesně tak,
-   jak to dělá předloha.
+   PROČ TMAVÁ POLARITA. Paleta má dvě primární barvy: skoro černou a písek.
+   Kdyby pole byl světlý White Rock, ječmen (Barley Corn) by na něm měřil
+   2,57:1 — málo i na ohnisko a hranu — a jedna ze čtyř barev by zůstala
+   jen na ozdobu. Na Mine Shaft měří ječmen 4,11:1: dost na kolejnici,
+   ohnisko, silnou hranu a vybraný panel, málo na běžné písmo. Písmo proto
+   nese Akaroa (8,43:1), nadpis a odkaz White Rock (10,55:1), akce je
+   Akaroa s popiskem Mine Shaft (8,43:1). Každá kotva má svou práci:
+   Mine Shaft = pole a plášť, Akaroa = písmo a akce, Barley Corn = stavba
+   (kolejnice, hrana, výběr, tichá výplň), White Rock = důraz.
 
-   ŘEZ JE SOUČÁST VZHLEDU. Předloha píše celé rozhraní strojopisem
-   (JetBrains Mono) a nadpisy majuskulí s velkým prostrkáním (Cinzel). Bez
-   toho by z toho byla jen tmavá paleta, ne ten vzhled — proto tahle paleta
-   jako první nese `type` a vydá ho do `--tm-font-*`.
-
-   RÁMY JSOU LINKY. Nula zaoblení, jedna vlásečnice, žádný měkký stín;
-   `signal-hairline` obtahuje list jednou linkou a vybraný panel řeřavou
-   kolejnicí. Zbytek řeči (nulový rádius, řádkování, prostrkání majuskulí,
-   rastr) nese `skinCss()` v tokens.js — je to typografie a geometrie, ne
-   barva, a do rozpočtu rámů nepatří. */
-const RR_FIELD = "#0C0B09", RR_BONE = "#D4CBB3", RR_SIGNAL = "#EAE4D8", RR_EMBER = "#C14A2E";
-const RR_MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
-const RR_CINZEL = "'Cinzel', 'Cormorant Garamond', Georgia, serif";
-const DEF_SIGNAL_DARK = {
-  id: "signal-dark",
-  labelCs: "Signál v temnu", labelEn: "Signal in the Dark",
+   RÁM: písečná římsa. List obtahuje jedna písková linka a dole ho podpírá
+   třípixelová ječmenová římsa; vybraný panel má ječmenovou kolejnici. */
+const BS_MINE = "#2D2D2D", BS_AKAROA = "#D7C9AE", BS_BARLEY = "#A68763", BS_ROCK = "#EAE0D2";
+const DEF_BLACK_SAND = {
+  id: "black-sand",
+  labelCs: "Černý písek", labelEn: "Black Sand",
   polarity: "dark", statusMode: "dark",
-  anchors: { Field: RR_FIELD, Bone: RR_BONE, Signal: RR_SIGNAL, Ember: RR_EMBER },
-  /* Jedno pole na všechno. Předloha nemá „kartu jiné barvy" — hierarchii
-     dělá linka a prostor, ne další odstín. Vyvýšení nese vlásečnice. */
-  background: RR_FIELD, navigation: RR_FIELD, surface: RR_FIELD, card: RR_FIELD,
-  documentSurface: RR_FIELD, elevatedSurface: RR_FIELD,
-  text: RR_BONE, heading: RR_SIGNAL, textSecondary: RR_BONE,
-  textMuted: A(RR_BONE, 0.78), textDisabled: A(RR_BONE, 0.52), placeholder: A(RR_BONE, 0.78),
-  /* Vlásečnice je doslova ta z předlohy: inkoust na deseti procentech.
-     Silná hrana je řeřavá — 4,02:1 na poli, tedy nad 3:1 pro nepísmo. */
-  border: A(RR_BONE, 0.1), borderStrong: RR_EMBER, borderSoft: A(RR_BONE, 0.06),
-  /* Akce je kost, ne řeřavá: na tlačítku s výplní by řeřavá s polem dala
-     4,02:1 a popisek musí mít 4,5:1. Předloha to dělá stejně — tlačítko
-     WATCH je kostěný rámeček, řeřavá je jen ▶, číslo a značka odstavce. */
-  interactive: RR_BONE, interactiveText: RR_FIELD, focus: RR_EMBER, link: RR_SIGNAL,
-  selectionSurface: A(RR_EMBER, 0.32), selectionText: RR_SIGNAL,
-  quietInk: A(RR_BONE, 0.78),
-  /* Tiché nádechy jsou skoro neviditelné — přesně jako na předloze, kde
-     najetí nemění plochu, jen linku a záři rámečku. */
-  cardHover: A(RR_BONE, 0.03), sheetHover: A(RR_BONE, 0.03),
-  callout: A(RR_BONE, 0.03), tableHead: A(RR_BONE, 0.04),
-  activeNav: A(RR_EMBER, 0.22),
-  hero: A(RR_BONE, 0.03), heroInk: RR_SIGNAL,
-  overlay: A(RR_FIELD, 0.78),
-  /* Řady grafu střídají kost a řeřavou; pole mezi ně nepatří, na tmavém
-     plátně by zmizelo. */
-  chart: [RR_BONE, RR_EMBER, RR_SIGNAL, RR_EMBER, RR_BONE, RR_EMBER],
-  chartSurface: RR_FIELD, grid: A(RR_BONE, 0.1), axis: A(RR_BONE, 0.78),
-  /* Plát Movement Atlasu zůstává lněný ve všech vzhledech — rám na něm
-     proto musí být tmavý, ne kostěný. */
-  atlasBorder: RR_FIELD, shadowInk: RR_FIELD, dockBg: RR_FIELD,
+  anchors: { "Mine Shaft": BS_MINE, Akaroa: BS_AKAROA, "Barley Corn": BS_BARLEY, "White Rock": BS_ROCK },
+  /* Jedno pole i pro kartu — hierarchii dělá písková linka a ječmenová
+     římsa, ne další odstín; alfa-plocha pod alfa-plochou by se nedala měřit. */
+  background: BS_MINE, navigation: BS_MINE, surface: BS_MINE, card: BS_MINE,
+  documentSurface: BS_MINE, elevatedSurface: BS_MINE,
+  text: BS_AKAROA, heading: BS_ROCK, textSecondary: BS_AKAROA,
+  textMuted: A(BS_AKAROA, 0.78), textDisabled: A(BS_AKAROA, 0.5), placeholder: A(BS_AKAROA, 0.78),
+  border: A(BS_AKAROA, 0.16), borderStrong: BS_BARLEY, borderSoft: A(BS_AKAROA, 0.09),
+  interactive: BS_AKAROA, interactiveText: BS_MINE, focus: BS_BARLEY, link: BS_ROCK,
+  selectionSurface: A(BS_BARLEY, 0.35), selectionText: BS_ROCK,
+  quietInk: A(BS_AKAROA, 0.78),
+  cardHover: A(BS_AKAROA, 0.06), sheetHover: A(BS_AKAROA, 0.04),
+  callout: A(BS_BARLEY, 0.14), tableHead: A(BS_BARLEY, 0.12),
+  activeNav: A(BS_BARLEY, 0.3),
+  hero: A(BS_BARLEY, 0.18), heroInk: BS_ROCK,
+  overlay: A(BS_MINE, 0.75),
+  chart: [BS_AKAROA, BS_BARLEY, BS_ROCK, BS_BARLEY, BS_AKAROA, BS_BARLEY],
+  chartSurface: BS_MINE, grid: A(BS_AKAROA, 0.12), axis: A(BS_AKAROA, 0.78),
+  /* Plát Movement Atlasu je lněný ve všech vzhledech — rám musí být tmavý. */
+  atlasBorder: BS_MINE, shadowInk: BS_MINE, dockBg: BS_MINE,
   nav: {
-    text: RR_BONE, textSec: A(RR_BONE, 0.85), kicker: A(RR_BONE, 0.62),
-    icon: A(RR_BONE, 0.78), muted: A(RR_BONE, 0.7), accent: RR_SIGNAL,
-    activeBg: A(RR_EMBER, 0.22), hairline: A(RR_BONE, 0.1), border: A(RR_BONE, 0.1),
+    text: BS_AKAROA, textSec: A(BS_AKAROA, 0.85), kicker: A(BS_AKAROA, 0.65),
+    icon: A(BS_AKAROA, 0.78), muted: A(BS_AKAROA, 0.7), accent: BS_ROCK,
+    activeBg: A(BS_BARLEY, 0.3), hairline: A(BS_AKAROA, 0.14), border: A(BS_AKAROA, 0.22),
   },
-  frame: { outer: A(RR_BONE, 0.28), inner: A(RR_BONE, 0.1), rail: RR_EMBER, highlight: RR_SIGNAL },
-  flat: true,
-  scanline: A(RR_BONE, 0.03),
-  frameGlow: A(RR_BONE, 0.22),
-  type: { display: RR_CINZEL, logo: RR_CINZEL, body: RR_MONO, tag: RR_MONO },
-  themeColor: RR_FIELD,
-  chrome: { frameGrammar: "signal-hairline", radius: 0, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+  frame: { outer: A(BS_AKAROA, 0.3), inner: A(BS_AKAROA, 0.14), rail: BS_BARLEY, highlight: BS_ROCK },
+  themeColor: BS_MINE,
+  chrome: { frameGrammar: "dune-ledge", radius: 12, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
+};
+
+/* ---- Hluboká voda · #143D4A / #7B8187 / #F2F1EC / #1E1E1E ---------------
+   Dodaná reference (8. 9. 2026): Deep Teal, Slate Grey, Mist White, Basalt
+   Black. Bouřkové nebe, tmavé moře, čedič, mlha.
+
+   KAŽDÁ KOTVA MÁ SVOU PRÁCI. Čedič je pole. Petrolej je PLÁŠŤ a AKCE —
+   navigace, dok, hrdina, tlačítko (mlha na petroleji 10,34:1) a tichá
+   výplň pod vybraným. Mlha píše (14,74:1 na čediči). Břidlice je stavba:
+   silná hrana, ohnisko, přílivová linka na listu (4,23:1 na čediči — dost
+   na nepísmo, málo na odstavec, proto nikdy nenese text).
+
+   PETROLEJ NA ČEDIČI MĚŘÍ 1,43:1. Proto nikdy nekreslí čáru ani řadu grafu
+   na poli — je to plocha, na které něco leží, ne linka. Řady grafu proto
+   střídají mlhu a břidlici; petrolej nese vzor a legenda.
+
+   RÁM: přílivová linka. Třípixelová břidlicová linka nahoře, mlžná
+   vlásečnice po obvodu; vybraný panel má mlžnou linku dole. */
+const DW_TEAL = "#143D4A", DW_SLATE = "#7B8187", DW_MIST = "#F2F1EC", DW_BASALT = "#1E1E1E";
+const DEF_DEEP_WATER = {
+  id: "deep-water",
+  labelCs: "Hluboká voda", labelEn: "Deep Water",
+  polarity: "dark", statusMode: "dark",
+  anchors: { "Deep Teal": DW_TEAL, "Slate Grey": DW_SLATE, "Mist White": DW_MIST, "Basalt Black": DW_BASALT },
+  background: DW_BASALT, navigation: DW_TEAL, surface: DW_BASALT, card: DW_BASALT,
+  documentSurface: DW_BASALT, elevatedSurface: DW_BASALT,
+  text: DW_MIST, heading: DW_MIST, textSecondary: A(DW_MIST, 0.85),
+  textMuted: A(DW_MIST, 0.78), textDisabled: A(DW_MIST, 0.5), placeholder: A(DW_MIST, 0.78),
+  border: A(DW_MIST, 0.16), borderStrong: DW_SLATE, borderSoft: A(DW_MIST, 0.09),
+  interactive: DW_TEAL, interactiveText: DW_MIST, focus: DW_SLATE, link: DW_MIST,
+  selectionSurface: A(DW_TEAL, 0.6), selectionText: DW_MIST,
+  quietInk: A(DW_MIST, 0.78),
+  cardHover: A(DW_MIST, 0.05), sheetHover: A(DW_MIST, 0.04),
+  callout: A(DW_TEAL, 0.45), tableHead: A(DW_TEAL, 0.35),
+  activeNav: A(DW_TEAL, 0.6),
+  hero: DW_TEAL, heroInk: DW_MIST,
+  overlay: A(DW_BASALT, 0.75),
+  chart: [DW_MIST, DW_SLATE, DW_MIST, DW_SLATE, DW_MIST, DW_SLATE],
+  chartSurface: DW_BASALT, grid: A(DW_MIST, 0.12), axis: A(DW_MIST, 0.78),
+  atlasBorder: DW_BASALT, shadowInk: DW_BASALT, dockBg: DW_TEAL,
+  nav: {
+    text: DW_MIST, textSec: A(DW_MIST, 0.85), kicker: A(DW_MIST, 0.6),
+    icon: A(DW_MIST, 0.78), muted: A(DW_MIST, 0.7), accent: DW_MIST,
+    activeBg: A(DW_MIST, 0.14), hairline: A(DW_MIST, 0.14), border: A(DW_MIST, 0.22),
+  },
+  frame: { outer: A(DW_MIST, 0.22), inner: DW_SLATE, rail: DW_SLATE, highlight: DW_MIST },
+  themeColor: DW_TEAL,
+  chrome: { frameGrammar: "tide-line", radius: 10, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
 };
 
 const OPTIONAL_DEFS = Object.freeze({
@@ -1352,7 +1379,8 @@ const OPTIONAL_DEFS = Object.freeze({
   "martang-red": DEF_MARTANG,
   "sertang-gold": DEF_SERTANG,
   "mineral-pigments": DEF_MINERALY,
-  "signal-dark": DEF_SIGNAL_DARK,
+  "black-sand": DEF_BLACK_SAND,
+  "deep-water": DEF_DEEP_WATER,
 });
 
 const FIXED = (() => {

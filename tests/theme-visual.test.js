@@ -135,37 +135,39 @@ test("Tichý zápis · skoro plochý: panel s linkou, otevřený dokument, azulo
   assert.ok(!ql.includes("tm-psani"), "psací plocha zůstává otevřená, bez rámu");
 });
 
-test("Signál v temnu · čtyři barvy, nula zaoblení, řeřavá nikdy nepíše", () => {
-  const t = resolveTheme("signal-dark", false);
-  assert.equal(t.background, "#0C0B09", "pole je Field");
-  assert.equal(t.surface, "#0C0B09", "karta má TOTÉŽ pole — hierarchii dělá linka, ne odstín");
-  assert.equal(t.documentSurface, "#0C0B09");
-  assert.equal(t.text, "#D4CBB3", "písmo je kost");
-  assert.equal(t.heading, "#EAE4D8", "nadpis je jasná kost");
-  assert.equal(t.interactiveAccent, "#D4CBB3", "akce je kost, ne řeřavá");
-  assert.equal(t.interactiveOnAccent, "#0C0B09");
-  assert.equal(t.focusRing, "#C14A2E", "řeřavá je ohnisko");
-  assert.equal(t.borderStrong, "#C14A2E", "řeřavá je silná hrana");
-  assert.equal(t.frameRail, "#C14A2E", "řeřavá je kolejnice");
-  /* ŘEŘAVÁ NIKDY NENESE BĚŽNÉ PÍSMO. Na poli měří 4,02:1 — dost na hranu
-     a ohnisko, málo na odstavec. Tenhle test to drží, i kdyby někoho v
-     budoucnu lákalo „oživit" jí text. */
+test("Černý písek · čtyři kotvy, ječmen je stavba a nikdy nepíše", () => {
+  const t = resolveTheme("black-sand", false);
+  assert.equal(t.background, "#2D2D2D", "pole je Mine Shaft");
+  assert.equal(t.text, "#D7C9AE", "písmo je Akaroa");
+  assert.equal(t.heading, "#EAE0D2", "nadpis je White Rock");
+  assert.equal(t.interactiveAccent, "#D7C9AE");
+  assert.equal(t.interactiveOnAccent, "#2D2D2D");
+  assert.equal(t.frameRail, "#A68763", "kolejnice je Barley Corn");
+  assert.equal(t.borderStrong, "#A68763");
   for (const role of ["text", "textSecondary", "textMuted", "heading", "link", "placeholder"]) {
-    assert.notEqual(t[role], "#C14A2E", `řeřavá se dostala do role ${role}`);
+    assert.notEqual(t[role], "#A68763", `ječmen se dostal do role ${role}`);
   }
-  /* Výška je prstenec, ne rozostření — předloha stín nezná. */
-  for (const sh of ["shadow", "shadowLift", "shadowPop", "shadowSheet"]) {
-    assert.match(t[sh], /^0 0 0 1px /, `${sh} má být vlásečnice, ne stín`);
-    assert.ok(!/px -?\d+px/.test(t[sh].replace("0 0 0 1px ", "")), `${sh} rozostřuje`);
+  const g = frameGrammarCss().split("}").filter((r) => r.includes('data-frame-grammar="dune-ledge"')).join("}");
+  assert.ok(/inset 0 -3px 0 0/.test(g), "list stojí na třípixelové římse");
+});
+
+test("Hluboká voda · petrolej je plášť a akce, nikdy čára na poli", () => {
+  const t = resolveTheme("deep-water", false);
+  assert.equal(t.background, "#1E1E1E", "pole je Basalt");
+  assert.equal(t.navigation, "#143D4A", "plášť je Deep Teal");
+  assert.equal(t.interactiveAccent, "#143D4A");
+  assert.equal(t.interactiveOnAccent, "#F2F1EC");
+  assert.equal(t.text, "#F2F1EC", "písmo je Mist");
+  assert.equal(t.borderStrong, "#7B8187", "silná hrana je Slate");
+  assert.equal(t.focusRing, "#7B8187");
+  for (const k of ["chart1", "chart2", "chart3", "chart4", "chart5", "chart6"]) {
+    assert.notEqual(t[k], "#143D4A", `petrolej v řadě grafu ${k} by na čediči zmizel`);
   }
-  /* Typografie je součást vzhledu, ne náhoda. */
-  assert.match(t.fontBody, /JetBrains Mono/, "rozhraní píše strojopisem");
-  assert.match(t.fontTag, /JetBrains Mono/);
-  assert.match(t.fontDisplay, /Cinzel/, "nadpis nese Cinzel");
-  const sd = frameGrammarCss().split("}")
-    .filter((r) => r.includes('data-frame-grammar="signal-hairline"')).join("}");
-  assert.ok(/inset 0 0 0 1px/.test(sd), "list obtahuje jedna vlásečnice");
-  assert.ok(!/inset 0 0 0 [2-9]px/.test(sd), "žádná zeď — vzhled stojí na lince");
+  for (const role of ["text", "textSecondary", "textMuted", "heading", "link", "placeholder"]) {
+    assert.notEqual(t[role], "#7B8187", `břidlice se dostala do role ${role}`);
+  }
+  const g = frameGrammarCss().split("}").filter((r) => r.includes('data-frame-grammar="tide-line"')).join("}");
+  assert.ok(/inset 0 3px 0 0/.test(g), "přílivová linka nahoře");
 });
 
 test("skin je střežený vzhledem a nesahá na rozměr", () => {
@@ -188,9 +190,8 @@ test("skin je střežený vzhledem a nesahá na rozměr", () => {
   }
   /* Barvu říká kontrakt, ne skin. */
   assert.ok(!/#[0-9A-Fa-f]{6}|rgba?\(/.test(decl), "skin píše barvu místo tokenu");
-  /* A žádná paleta bez skinu o něm nesmí vědět. */
+  /* Dnes nemá skin žádná paleta; kdo ho jednou dostane, ať to řekne tady. */
   for (const id of OPTIONAL_PRESET_IDS) {
-    if (id === "signal-dark") continue;
     assert.ok(!css.includes(`data-appearance="${id}"`), `${id} má skin, ale nikdo o něm neví`);
   }
 });

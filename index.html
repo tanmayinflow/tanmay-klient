@@ -18,7 +18,7 @@
     <meta name="apple-mobile-web-app-title" content="tanmay" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=EB+Garamond:ital,wght@0,400;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@300;400;500&family=Cinzel:wght@400;500;600&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=EB+Garamond:ital,wght@0,400;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@300;400;500&display=swap" rel="stylesheet" />
     <style>
       html, body, #root { margin: 0; padding: 0; min-height: 100%; }
       /* Linen je výchozí pole domu · skript níž ho přepne na Forest Night,
@@ -55,14 +55,15 @@
           "martang-red": "#2A1210",
           "sertang-gold": "#EADBAE",
           "mineral-pigments": "#F1EADB",
-          "signal-dark": "#0C0B09"
+          "black-sand": "#2D2D2D",
+          "deep-water": "#1E1E1E"
         };
         /* lišta prohlížeče, kde se liší od pole (Monument má tmavý plášť) */
-        var TC = { "monument-clay": "#26303B" };
+        var TC = { "monument-clay": "#26303B", "deep-water": "#143D4A" };
         /* noční vzhledy · týž seznam jako polarita v rejstříku */
-        var N = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "signal-dark"];
+        var N = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "black-sand", "deep-water"];
         /* řeč rámů · týž seznam jako chrome v rejstříku */
-        var G = { "slate-clay-pantone": "architectural-double", "monument-clay": "monument-inset", "sand-burnt-earth": "strata-rails", "garnet-slate": "corner-brackets", "shikon-fossil": "nested-fossil", "volcanic-grey": "basalt-steps", "americano-chai": "woven-rails", "quiet-ledger-night": "quiet-ledger", "nagtang-black": "gold-keyline", "martang-red": "thangka-mount", "sertang-gold": "brocade-band", "mineral-pigments": "pigment-rails", "signal-dark": "signal-hairline" };
+        var G = { "slate-clay-pantone": "architectural-double", "monument-clay": "monument-inset", "sand-burnt-earth": "strata-rails", "garnet-slate": "corner-brackets", "shikon-fossil": "nested-fossil", "volcanic-grey": "basalt-steps", "americano-chai": "woven-rails", "quiet-ledger-night": "quiet-ledger", "nagtang-black": "gold-keyline", "martang-red": "thangka-mount", "sertang-gold": "brocade-band", "mineral-pigments": "pigment-rails", "black-sand": "dune-ledge", "deep-water": "tide-line" };
         /* zrušený preset V2 → nejbližší dochovaná identita V3 */
         var P = {
           "slate-clay": "slate-clay-pantone",
