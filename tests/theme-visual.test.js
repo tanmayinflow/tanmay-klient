@@ -151,12 +151,14 @@ test("Černý písek · čtyři kotvy, ječmen je stavba a nikdy nepíše", () =
   assert.ok(/inset 0 -3px 0 0/.test(g), "list stojí na třípixelové římse");
 });
 
-test("Hluboká voda · petrolej je plášť a akce, nikdy čára na poli", () => {
+test("Hluboká voda · petrolej je plášť, nikdy čára ani inkoust na poli", () => {
   const t = resolveTheme("deep-water", false);
   assert.equal(t.background, "#1E1E1E", "pole je Basalt");
   assert.equal(t.navigation, "#143D4A", "plášť je Deep Teal");
-  assert.equal(t.interactiveAccent, "#143D4A");
-  assert.equal(t.interactiveOnAccent, "#F2F1EC");
+  /* Akcent píše v aplikaci desítky štítků přímo na pole. Petrolej na čediči
+     měří 1,43:1 — proto je akce mlha s petrolejovým písmem, ne naopak. */
+  assert.equal(t.interactiveAccent, "#F2F1EC", "akce je Mist, aby akcent četl i jako písmo");
+  assert.equal(t.interactiveOnAccent, "#143D4A");
   assert.equal(t.text, "#F2F1EC", "písmo je Mist");
   assert.equal(t.borderStrong, "#7B8187", "silná hrana je Slate");
   assert.equal(t.focusRing, "#7B8187");

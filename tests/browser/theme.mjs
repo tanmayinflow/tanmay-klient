@@ -41,8 +41,10 @@ const FIELDS = {
   "martang-red": "#2A1210",
   "sertang-gold": "#EADBAE",
   "mineral-pigments": "#F1EADB",
+  "black-sand": "#2D2D2D",
+  "deep-water": "#1E1E1E",
 };
-const THEMECOLOR = { "monument-clay": "#26303B" };
+const THEMECOLOR = { "monument-clay": "#26303B", "deep-water": "#143D4A" };
 const GRAMMAR = {
   "signature-day": "none", "signature-night": "none",
   "slate-clay-pantone": "architectural-double",
@@ -57,6 +59,8 @@ const GRAMMAR = {
   "martang-red": "thangka-mount",
   "sertang-gold": "brocade-band",
   "mineral-pigments": "pigment-rails",
+  "black-sand": "dune-ledge",
+  "deep-water": "tide-line",
 };
 const DARK = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "black-sand", "deep-water"];
 const OPTIONAL = ["slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments", "black-sand", "deep-water"];
@@ -357,7 +361,7 @@ try {
     await ctx.close();
   }
 
-  // ---- 9 · devět vzhledů na skutečné stránce ------------------------------
+  // ---- 9 · všech sedmnáct vzhledů na skutečné stránce ------------------------------
   for (const id of Object.keys(FIELDS)) {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const { page, errs } = await openApp(ctx, v4(id));

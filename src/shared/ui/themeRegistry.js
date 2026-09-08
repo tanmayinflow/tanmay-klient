@@ -1322,15 +1322,18 @@ const DEF_BLACK_SAND = {
    Dodaná reference (8. 9. 2026): Deep Teal, Slate Grey, Mist White, Basalt
    Black. Bouřkové nebe, tmavé moře, čedič, mlha.
 
-   KAŽDÁ KOTVA MÁ SVOU PRÁCI. Čedič je pole. Petrolej je PLÁŠŤ a AKCE —
-   navigace, dok, hrdina, tlačítko (mlha na petroleji 10,34:1) a tichá
-   výplň pod vybraným. Mlha píše (14,74:1 na čediči). Břidlice je stavba:
-   silná hrana, ohnisko, přílivová linka na listu (4,23:1 na čediči — dost
-   na nepísmo, málo na odstavec, proto nikdy nenese text).
+   KAŽDÁ KOTVA MÁ SVOU PRÁCI. Čedič je pole. Petrolej je PLÁŠŤ — navigace,
+   dok, hrdina, výplň pod vybraným a pod odvolávkou. Mlha píše (14,74:1 na
+   čediči) a je i AKCE: tlačítko je mlha s petrolejovým písmem (10,34:1),
+   odkaz mlha. Břidlice je stavba: silná hrana, ohnisko, přílivová linka na
+   listu (4,23:1 na čediči — dost na nepísmo, málo na odstavec, proto nikdy
+   nenese text).
 
-   PETROLEJ NA ČEDIČI MĚŘÍ 1,43:1. Proto nikdy nekreslí čáru ani řadu grafu
-   na poli — je to plocha, na které něco leží, ne linka. Řady grafu proto
-   střídají mlhu a břidlici; petrolej nese vzor a legenda.
+   PETROLEJ NA ČEDIČI MĚŘÍ 1,43:1. Proto na poli nikdy nekreslí čáru, řadu
+   grafu ANI PÍSMO — aplikace píše akcentem sedmdesát štítků a kickerů, a
+   ty musejí být čitelné. Petrolej je plocha, na které něco leží, ne inkoust.
+   Prohlížečový test to chytil na skutečné stránce (PŘEHLED 1,43:1), proto
+   akce nese mlha. Řady grafu střídají mlhu a břidlici.
 
    RÁM: přílivová linka. Třípixelová břidlicová linka nahoře, mlžná
    vlásečnice po obvodu; vybraný panel má mlžnou linku dole. */
@@ -1345,7 +1348,7 @@ const DEF_DEEP_WATER = {
   text: DW_MIST, heading: DW_MIST, textSecondary: A(DW_MIST, 0.85),
   textMuted: A(DW_MIST, 0.78), textDisabled: A(DW_MIST, 0.5), placeholder: A(DW_MIST, 0.78),
   border: A(DW_MIST, 0.16), borderStrong: DW_SLATE, borderSoft: A(DW_MIST, 0.09),
-  interactive: DW_TEAL, interactiveText: DW_MIST, focus: DW_SLATE, link: DW_MIST,
+  interactive: DW_MIST, interactiveText: DW_TEAL, focus: DW_SLATE, link: DW_MIST,
   selectionSurface: A(DW_TEAL, 0.6), selectionText: DW_MIST,
   quietInk: A(DW_MIST, 0.78),
   cardHover: A(DW_MIST, 0.05), sheetHover: A(DW_MIST, 0.04),
