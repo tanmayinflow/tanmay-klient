@@ -1268,53 +1268,59 @@ const DEF_MINERALY = {
 };
 
 /* ---- Černý písek · #2D2D2D / #D7C9AE / #A68763 / #EAE0D2 ---------------
-   Dodaná paleta (8. 9. 2026): Mine Shaft a Akaroa jako primární, Barley
-   Corn a White Rock jako sekundární. Čtyři kotvy, žádná pátá.
+   Dodaná paleta (8. 9. 2026): Mine Shaft, Akaroa, Barley Corn, White Rock.
+   Čtyři kotvy, žádná pátá. Tanmay chtěl, aby vládly SVĚTLÉ barvy (9. 9.
+   2026 — první verze byla tmavá; předělána).
 
-   PROČ TMAVÁ POLARITA. Paleta má dvě primární barvy: skoro černou a písek.
-   Kdyby pole byl světlý White Rock, ječmen (Barley Corn) by na něm měřil
-   2,57:1 — málo i na ohnisko a hranu — a jedna ze čtyř barev by zůstala
-   jen na ozdobu. Na Mine Shaft měří ječmen 4,11:1: dost na kolejnici,
-   ohnisko, silnou hranu a vybraný panel, málo na běžné písmo. Písmo proto
-   nese Akaroa (8,43:1), nadpis a odkaz White Rock (10,55:1), akce je
-   Akaroa s popiskem Mine Shaft (8,43:1). Každá kotva má svou práci:
-   Mine Shaft = pole a plášť, Akaroa = písmo a akce, Barley Corn = stavba
-   (kolejnice, hrana, výběr, tichá výplň), White Rock = důraz.
+   SVĚTLÁ POLARITA: PÍSEK JE POLE, SKÁLA JE LIST. Pole je Akaroa, každý list,
+   karta a dokument je White Rock — papír položený na písku. Obě světlé
+   kotvy jsou tak vidět celé a pořád, hierarchii dělá jejich rozdíl (1,25:1,
+   jen na plochy) a vlásečnice, ne stín. Mine Shaft je INKOUST a AKCE:
+   písmo (8,43:1 na písku, 10,55:1 na skále), tlačítko s popiskem White Rock
+   (10,55:1), ohnisko, silná hrana v 60 % (3,51:1 na skále, 3,23:1 na
+   písku). Navigace a dok jsou písek se skalním listem vedle — plášť nesmí
+   být tmavší než stránka, jinak by černá vládla.
 
-   RÁM: písečná římsa. List obtahuje jedna písková linka a dole ho podpírá
+   JEČMEN NIKDY NEPÍŠE A NIKDY NEDĚLÁ HRANU. Na skále měří 2,57:1, na písku
+   2,05:1 — málo i na ohnisko. Je to jediná teplá barva a má práci ploch:
+   třípixelová římsa pod každým listem, kolejnice vybraného panelu,
+   hrdina (v 50 % nad pískem, inkoust Mine Shaft 6,0:1), vybraná navigace,
+   odvolávka, hlava tabulky, výběr, druhá řada grafu (vzor a legenda nesou
+   zbytek). Každá kotva má svou práci: Akaroa = pole a plášť, White Rock =
+   list, Mine Shaft = inkoust a akce, Barley Corn = římsa a teplo.
+
+   RÁM: písečná římsa. List obtahuje inkoustová vlásečnice a dole ho podpírá
    třípixelová ječmenová římsa; vybraný panel má ječmenovou kolejnici. */
 const BS_MINE = "#2D2D2D", BS_AKAROA = "#D7C9AE", BS_BARLEY = "#A68763", BS_ROCK = "#EAE0D2";
 const DEF_BLACK_SAND = {
   id: "black-sand",
   labelCs: "Černý písek", labelEn: "Black Sand",
-  polarity: "dark", statusMode: "dark",
+  polarity: "light", statusMode: "light",
   anchors: { "Mine Shaft": BS_MINE, Akaroa: BS_AKAROA, "Barley Corn": BS_BARLEY, "White Rock": BS_ROCK },
-  /* Jedno pole i pro kartu — hierarchii dělá písková linka a ječmenová
-     římsa, ne další odstín; alfa-plocha pod alfa-plochou by se nedala měřit. */
-  background: BS_MINE, navigation: BS_MINE, surface: BS_MINE, card: BS_MINE,
-  documentSurface: BS_MINE, elevatedSurface: BS_MINE,
-  text: BS_AKAROA, heading: BS_ROCK, textSecondary: BS_AKAROA,
-  textMuted: A(BS_AKAROA, 0.78), textDisabled: A(BS_AKAROA, 0.5), placeholder: A(BS_AKAROA, 0.78),
-  border: A(BS_AKAROA, 0.16), borderStrong: BS_BARLEY, borderSoft: A(BS_AKAROA, 0.09),
-  interactive: BS_AKAROA, interactiveText: BS_MINE, focus: BS_BARLEY, link: BS_ROCK,
-  selectionSurface: A(BS_BARLEY, 0.35), selectionText: BS_ROCK,
-  quietInk: A(BS_AKAROA, 0.78),
-  cardHover: A(BS_AKAROA, 0.06), sheetHover: A(BS_AKAROA, 0.04),
-  callout: A(BS_BARLEY, 0.14), tableHead: A(BS_BARLEY, 0.12),
-  activeNav: A(BS_BARLEY, 0.3),
-  hero: A(BS_BARLEY, 0.18), heroInk: BS_ROCK,
-  overlay: A(BS_MINE, 0.75),
-  chart: [BS_AKAROA, BS_BARLEY, BS_ROCK, BS_BARLEY, BS_AKAROA, BS_BARLEY],
-  chartSurface: BS_MINE, grid: A(BS_AKAROA, 0.12), axis: A(BS_AKAROA, 0.78),
+  background: BS_AKAROA, navigation: BS_AKAROA, surface: BS_ROCK, card: BS_ROCK,
+  documentSurface: BS_ROCK, elevatedSurface: BS_ROCK,
+  text: BS_MINE, heading: BS_MINE, textSecondary: A(BS_MINE, 0.85),
+  textMuted: A(BS_MINE, 0.82), textDisabled: A(BS_MINE, 0.6), placeholder: A(BS_MINE, 0.82),
+  border: A(BS_MINE, 0.16), borderStrong: A(BS_MINE, 0.6), borderSoft: A(BS_MINE, 0.08),
+  interactive: BS_MINE, interactiveText: BS_ROCK, focus: BS_MINE, link: BS_MINE,
+  selectionSurface: A(BS_BARLEY, 0.45), selectionText: BS_MINE,
+  quietInk: A(BS_MINE, 0.78),
+  cardHover: A(BS_MINE, 0.04), sheetHover: A(BS_MINE, 0.03),
+  callout: A(BS_BARLEY, 0.22), tableHead: A(BS_BARLEY, 0.18),
+  activeNav: A(BS_BARLEY, 0.4),
+  hero: A(BS_BARLEY, 0.5), heroInk: BS_MINE,
+  overlay: A(BS_MINE, 0.5),
+  chart: [BS_MINE, BS_BARLEY, BS_MINE, BS_BARLEY, BS_MINE, BS_BARLEY],
+  chartSurface: BS_ROCK, grid: A(BS_MINE, 0.12), axis: A(BS_MINE, 0.78),
   /* Plát Movement Atlasu je lněný ve všech vzhledech — rám musí být tmavý. */
-  atlasBorder: BS_MINE, shadowInk: BS_MINE, dockBg: BS_MINE,
+  atlasBorder: BS_MINE, shadowInk: BS_MINE, dockBg: BS_AKAROA,
   nav: {
-    text: BS_AKAROA, textSec: A(BS_AKAROA, 0.85), kicker: A(BS_AKAROA, 0.65),
-    icon: A(BS_AKAROA, 0.78), muted: A(BS_AKAROA, 0.7), accent: BS_ROCK,
-    activeBg: A(BS_BARLEY, 0.3), hairline: A(BS_AKAROA, 0.14), border: A(BS_AKAROA, 0.22),
+    text: BS_MINE, textSec: A(BS_MINE, 0.85), kicker: A(BS_MINE, 0.78),
+    icon: A(BS_MINE, 0.78), muted: A(BS_MINE, 0.72), accent: BS_MINE,
+    activeBg: A(BS_BARLEY, 0.4), hairline: A(BS_MINE, 0.14), border: A(BS_MINE, 0.22),
   },
-  frame: { outer: A(BS_AKAROA, 0.3), inner: A(BS_AKAROA, 0.14), rail: BS_BARLEY, highlight: BS_ROCK },
-  themeColor: BS_MINE,
+  frame: { outer: A(BS_MINE, 0.22), inner: A(BS_MINE, 0.1), rail: BS_BARLEY, highlight: BS_MINE },
+  themeColor: BS_AKAROA,
   chrome: { frameGrammar: "dune-ledge", radius: 12, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
 };
 

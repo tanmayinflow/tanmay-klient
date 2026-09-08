@@ -135,16 +135,19 @@ test("Tichý zápis · skoro plochý: panel s linkou, otevřený dokument, azulo
   assert.ok(!ql.includes("tm-psani"), "psací plocha zůstává otevřená, bez rámu");
 });
 
-test("Černý písek · čtyři kotvy, ječmen je stavba a nikdy nepíše", () => {
+test("Černý písek · světlé kotvy vládnou, ječmen je římsa a nikdy nepíše", () => {
   const t = resolveTheme("black-sand", false);
-  assert.equal(t.background, "#2D2D2D", "pole je Mine Shaft");
-  assert.equal(t.text, "#D7C9AE", "písmo je Akaroa");
-  assert.equal(t.heading, "#EAE0D2", "nadpis je White Rock");
-  assert.equal(t.interactiveAccent, "#D7C9AE");
-  assert.equal(t.interactiveOnAccent, "#2D2D2D");
-  assert.equal(t.frameRail, "#A68763", "kolejnice je Barley Corn");
-  assert.equal(t.borderStrong, "#A68763");
-  for (const role of ["text", "textSecondary", "textMuted", "heading", "link", "placeholder"]) {
+  assert.equal(t.background, "#D7C9AE", "pole je Akaroa");
+  assert.equal(t.navigation, "#D7C9AE", "plášť není tmavší než stránka");
+  assert.equal(t.documentSurface, "#EAE0D2", "list je White Rock");
+  assert.equal(t.card, "#EAE0D2");
+  assert.equal(t.text, "#2D2D2D", "inkoust je Mine Shaft");
+  assert.equal(t.interactiveAccent, "#2D2D2D");
+  assert.equal(t.interactiveOnAccent, "#EAE0D2");
+  assert.equal(t.frameRail, "#A68763", "římsa je Barley Corn");
+  /* Ječmen měří 2,57:1 na skále a 2,05:1 na písku — nesmí psát ani dělat
+     hranu nebo ohnisko. Je plocha: římsa, hrdina, výběr. */
+  for (const role of ["text", "textSecondary", "textMuted", "heading", "link", "placeholder", "borderStrong", "focusRing"]) {
     assert.notEqual(t[role], "#A68763", `ječmen se dostal do role ${role}`);
   }
   const g = frameGrammarCss().split("}").filter((r) => r.includes('data-frame-grammar="dune-ledge"')).join("}");

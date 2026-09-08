@@ -41,7 +41,7 @@ const FIELDS = {
   "martang-red": "#2A1210",
   "sertang-gold": "#EADBAE",
   "mineral-pigments": "#F1EADB",
-  "black-sand": "#2D2D2D",
+  "black-sand": "#D7C9AE",
   "deep-water": "#1E1E1E",
 };
 const THEMECOLOR = { "monument-clay": "#26303B", "deep-water": "#143D4A" };
@@ -62,7 +62,7 @@ const GRAMMAR = {
   "black-sand": "dune-ledge",
   "deep-water": "tide-line",
 };
-const DARK = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "black-sand", "deep-water"];
+const DARK = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "deep-water"];
 const OPTIONAL = ["slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments", "black-sand", "deep-water"];
 /* Palety, které si nesou vlastní řez písma. Jiný řez = jiná šířka znaku. */
 const TYPED = [];
