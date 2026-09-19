@@ -326,7 +326,7 @@ async function handleState(request, env, userId) {
 // je povolený otiskem, ne plošným 'unsafe-inline' — a test hlídá, že otisk
 // pořád sedí. Styly vložené zůstávají: aplikace je psaná inline styly a
 // hodnotami motivu, tvrdit u nich přísnost by bylo nepřesné.
-const INDEX_INLINE_SCRIPT_HASH = "sha256-ICmNPE/OA8+7S4ueYlZ1OM0vIvtP+ioksSO8sAQLgEs=";
+const INDEX_INLINE_SCRIPT_HASH = "sha256-IYTG0FL4TnKbAOG2dhulrdAOsvSVUUtefPNTVCS27d0=";
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",

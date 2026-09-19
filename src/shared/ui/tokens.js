@@ -228,7 +228,6 @@ export function frameGrammarCss() {
   const sel = (name) => `${g(name)} .tm-sidebar .tm-nav-active`;
   return `
 ${sheets("landscape-paper")}, ${sheets("landscape-ash")} { box-shadow: var(--tm-shadow-sheet) !important; }
-${sel("landscape-paper")}, ${sel("landscape-ash")} { outline: 1px solid var(--tm-frame-rail); outline-offset: -1px; }
 /* ---- Břidlice a hlína · dvojitá architektonická linka ------------------ */
 ${sheets("architectural-double")} {
   box-shadow: inset 0 0 0 1px var(--tm-frame-outer), inset 0 0 0 4px var(--tm-bg),
@@ -415,4 +414,3 @@ export function skinCss() {
      platí dál (viz výše) a hlídá je theme-visual. */
   return "";
 }
-

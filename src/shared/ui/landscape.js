@@ -3,9 +3,9 @@
 export function landscapeDefinition(night = false) {
   const linen = "#F4F0EB", ink = "#1C1C1A", earth = "#754437";
   // Exact website anchors only; no additional beige/copper/charcoal palette.
-  const paper = linen, sand = "#E5D8C4", muted = ink;
+  const sand = "#E5D8C4", paper = sand, muted = ink;
   const coal = ink, raised = ink, pale = "#C5B49A", copper = "#B87333";
-  const bg = night ? ink : linen, surface = night ? coal : paper;
+  const bg = night ? ink : paper, surface = night ? coal : paper;
   const text = night ? linen : ink, secondary = night ? pale : muted;
   const action = night ? pale : earth;
   return {
@@ -32,11 +32,11 @@ export function landscapeDefinition(night = false) {
     chartSurface: surface, grid: night ? raised : sand, axis: secondary,
     atlasBorder: ink, shadowInk: ink, dockBg: ink,
     nav: { text: linen, textSec: pale, kicker: pale, icon: pale, muted: pale,
-      accent: linen, activeBg: earth, hairline: raised, border: pale },
+      accent: linen, activeBg: ink, hairline: raised, border: pale },
     frame: { outer: night ? muted : pale, inner: surface, rail: action, highlight: action },
     themeColor: bg,
     chrome: { frameGrammar: night ? "landscape-ash" : "landscape-paper", radius: 8,
-      density: "restrained", frameTargets: ["sheet", "selected"] },
+      density: "restrained", frameTargets: ["sheet", "panel", "dock"] },
   };
 }
 
