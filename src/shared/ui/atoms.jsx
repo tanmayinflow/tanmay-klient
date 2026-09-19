@@ -9,6 +9,7 @@
 // Písmo se bere z CSS proměnných (--tm-font-*), takže přepnutí jazyka
 // nemusí projít přes proměnnou zamrzlou v továrně.
 import React, { useState } from "react";
+import { LANDSCAPE_ART } from "./landscape.js";
 
 export function createAtoms(deps) {
   const {
@@ -72,6 +73,20 @@ export function createAtoms(deps) {
     const h1Style = { fontFamily: "var(--tm-font-display)", fontWeight: 300, fontSize: 46, lineHeight: 1.1, color: t.heading, margin: 0, display: "flex", alignItems: "center", gap: 14 };
     const titleStyle = right ? { ...h1Style, minWidth: 0 } : h1Style;
     const iconNode = icon && (typeof icon === "string" ? <span style={{ fontSize: 36 }}>{icon}</span> : icon);
+    if (t.material === "landscape") {
+      const art = LANDSCAPE_ART[pageKey] || LANDSCAPE_ART.kompas;
+      return <header className="tm-material-title" data-room={pageKey || "other"}>
+        <div className="tm-material-title__copy">
+          <h1 style={{ color: t.heading, fontFamily: "var(--tm-font-display)", margin: 0 }}>
+            {editable ? <BufferedInput value={typeof title === "string" ? title : ""} onCommit={(v) => st.setPageMeta(pageKey, { title: v })} placeholder={L("Název stránky…", "Page title…")} style={{ font: "inherit", color: "inherit" }} /> : title}
+          </h1>
+          {editable ? <BufferedInput value={kick || ""} onCommit={(v) => st.setPageMeta(pageKey, { kicker: v })} placeholder={L("Popis stránky…", "Page description…")} style={{ fontFamily: "var(--tm-font-body)", fontSize: 14, color: t.textSec }} />
+            : kick && <p className="tm-material-title__subtitle">{onKicker ? <button onClick={onKicker}>{kick}</button> : kick}</p>}
+          {right && <div className="tm-material-title__tools">{right}</div>}
+        </div>
+        <img className={"tm-material-art tm-material-art--" + art.shape} src={"/media/landscape/" + art.image} alt="" aria-hidden="true" decoding="async" />
+      </header>;
+    }
     return (
       <div>
         <div style={{ marginBottom: 8 }}>

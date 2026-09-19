@@ -136,7 +136,13 @@ export function createAppearanceUI(useT, L) {
         }}
       >
         <span style={{ display: "flex", height: 78, borderRadius: 6, overflow: "hidden", border: `1px solid ${t.borderSoft}` }}>
-          {auto
+          {preset.material === "landscape"
+            ? <span aria-hidden="true" style={{ display: "flex", position: "relative", width: "100%", background: `${tok.background} url('/media/landscape/${preset.polarity === "dark" ? "ashes" : "linen"}.webp') center/240px auto` }}>
+                <span style={{ width: 16, background: `url('/media/landscape/earth.webp') center/160px auto` }} />
+                <span style={{ padding: "14px 8px", fontFamily: "var(--tm-font-display)", fontSize: 26, color: tok.heading }}>Praxe</span>
+                <img src="/media/landscape/pine-rings.webp" alt="" style={{ position: "absolute", width: 48, height: 72, right: 4, top: 3, objectFit: "contain", filter: preset.polarity === "dark" ? "invert(1)" : "none" }} />
+              </span>
+            : auto
             ? <><Snippet tok={tok.light} grammar="none" label={L("Den", "Day")} /><Snippet tok={tok.dark} grammar="none" label={L("Noc", "Night")} /></>
             : <Snippet tok={tok} grammar={grammar} label={name} />}
         </span>
@@ -199,7 +205,8 @@ export function createAppearanceUI(useT, L) {
   function VzhledSekce({ preset, signature, onPreset, onSignature }) {
     const { t } = useT();
     const sig = APPEARANCE_PRESETS.filter((p) => SIGNATURE_PRESET_IDS.indexOf(p.id) !== -1);
-    const optional = OPTIONAL_PRESETS;
+    const landscape = OPTIONAL_PRESETS.filter((p) => p.palette.material === "landscape");
+    const optional = OPTIONAL_PRESETS.filter((p) => p.palette.material !== "landscape");
     const naPalete = !isSignaturePreset(preset);
     const label = (extra) => ({
       fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.2em",
@@ -213,7 +220,10 @@ export function createAppearanceUI(useT, L) {
              "An appearance is only how this app looks on this device. It changes nothing about what is visible, what is shared, or what a status means.")}
         </div>
 
-        <div style={label(false)}>{L("Signature", "Signature")}</div>
+        <div style={label(false)}>{L("Krajina", "Landscape")}</div>
+        <p style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, lineHeight: 1.6, color: t.textSec }}>{L("Len, popel a zemina. Materiály a kresby z webu v prostoru pro každodenní praxi.", "Linen, ash and earth. The website’s materials and drawings, made for everyday practice.")}</p>
+        <Radios label={L("Krajina", "Landscape")} items={landscape} value={preset} onPick={onPreset} />
+        <div style={label(true)}>{L("Signature", "Signature")}</div>
         <Radios label={L("Signature", "Signature")} items={sig}
           value={isSignaturePreset(preset) ? preset : ""} onPick={onPreset} />
 

@@ -10768,7 +10768,7 @@ function TmGround() {
      ground — povrch se má odlišit světlostí, hranou a odstupem, ne šumem.
      Vrstva zůstává, protože drží pole i pod přetaženým rolováním, kde by
      jinak prosvítala systémová barva. */
-  return <div aria-hidden="true" style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", background: t.bg }} />;
+  return <div className="tm-ground" aria-hidden="true" style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", background: t.bg }} />;
 }
 
 // ----------------------------------------------------------------------
@@ -13695,7 +13695,6 @@ export default function App() {
    EB Garamond POUZE 400 — těžší požadavek pak sedne na Regular, přesně jak to
    značka žádá a jak to slibuje poznámka u FONT_DISPLAY. DM Sans 400/500/600
    plus 700, které nese tučné písmo v editoru. */
-          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=EB+Garamond:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500&display=swap');
           ${SHELL_ROOT_CSS}
           ${tokensCss(t, lang)}
           ${componentsCss(t)}

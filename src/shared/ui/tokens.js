@@ -1,3 +1,4 @@
+import { landscapeCss } from "./landscapeCss.js";
 // GENERATED · SHARED PRODUCT CORE — do not edit inside an application repository.
 // Canonical source: Work/web-application/Shared/product-core/ui/tokens.js
 // Change it there, then run `npm run shared:sync` in the outer workspace.
@@ -204,6 +205,7 @@ export function tokensCss(t, lang) {
 }
 ${frameGrammarCss()}
 ${skinCss()}
+${landscapeCss()}
 `;
 }
 
@@ -225,6 +227,8 @@ export function frameGrammarCss() {
   const writing = (name) => `${g(name)} body.tm-psani .tm-page`;
   const sel = (name) => `${g(name)} .tm-sidebar .tm-nav-active`;
   return `
+${sheets("landscape-paper")}, ${sheets("landscape-ash")} { box-shadow: var(--tm-shadow-sheet) !important; }
+${sel("landscape-paper")}, ${sel("landscape-ash")} { outline: 1px solid var(--tm-frame-rail); outline-offset: -1px; }
 /* ---- Břidlice a hlína · dvojitá architektonická linka ------------------ */
 ${sheets("architectural-double")} {
   box-shadow: inset 0 0 0 1px var(--tm-frame-outer), inset 0 0 0 4px var(--tm-bg),

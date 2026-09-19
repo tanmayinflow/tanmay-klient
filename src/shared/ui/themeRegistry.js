@@ -40,6 +40,7 @@
 // Barevná autorita: tanmay_theme_system_v3_exact_palettes_frame_spec.md
 // a sedm dodaných referencí. Odchylky jsou v THEME-CONTRAST-REPORT.md.
 
+import { landscapeDefinition } from "./landscape.js";
 import { hexA, mixHex } from "./color.js";
 import { contrast, luminance, grayscale, ratio, cvdDistance, chroma } from "./contrast.js";
 
@@ -74,6 +75,8 @@ export const APPEARANCE_PRESET_IDS = Object.freeze([
   "mineral-pigments",
   "black-sand",
   "deep-water",
+  "landscape-day",
+  "landscape-night",
 ]);
 
 /** Signature trojice — jediná část výběru, kde existuje režim. */
@@ -86,6 +89,8 @@ export const OPTIONAL_PRESET_IDS = Object.freeze([
   "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments",
   "black-sand",
   "deep-water",
+  "landscape-day",
+  "landscape-night",
 ]);
 
 /** Všechno kromě automatiky — vyřešené palety. */
@@ -636,6 +641,7 @@ function exactPalette(d) {
   const series = d.chart;
   const shadowInk = d.shadowInk;
   const out = {
+    ...(d.material ? { material: d.material } : {}),
     mode: d.polarity,
     polarity: d.polarity,
 
@@ -1390,6 +1396,8 @@ const OPTIONAL_DEFS = Object.freeze({
   "mineral-pigments": DEF_MINERALY,
   "black-sand": DEF_BLACK_SAND,
   "deep-water": DEF_DEEP_WATER,
+  "landscape-day": landscapeDefinition(false),
+  "landscape-night": landscapeDefinition(true),
 });
 
 const FIXED = (() => {

@@ -297,7 +297,7 @@ try {
           vse: (sig ? sig.innerText : "") + (opt ? opt.innerText : ""),
         };
       });
-      check("dvě skupiny: Signature a Volitelné palety", !!info && info.skupin === 2, info ? String(info.skupin) : "");
+      check("tři skupiny: Krajina, Signature a Volitelné palety", !!info && info.skupin === 3, info ? String(info.skupin) : "");
       check("Signature má tři volby", !!info && info.sig === 3, info ? String(info.sig) : "");
       check("palet je čtrnáct", !!info && info.opt === 14, info ? String(info.opt) : "");
       check("vybraná je automatika, žádná paleta", !!info && info.sigChecked === 1 && info.optChecked === 0,

@@ -1,7 +1,7 @@
 // Soukromí. Klient A a klient B existují jen proto, aby se dalo doopravdy
 // vyzkoušet, co se stane, když si jeden pošle cizí identifikátor — protože
 // skrytý button není oprávnění a dřív nebo později to někdo zkusí.
-import { test } from "node:test";
+import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, req } from "./helpers/env.js";
 import { seedBooking, givePackage, at } from "./helpers/seed.js";
@@ -10,6 +10,8 @@ import * as E from "../worker/booking/engine.js";
 
 const A = "a@example.test", B = "b@example.test";
 const NOW_BOOK = at("2026-09-07", "10:00"); // pondělí, daleko za storno hranicí
+// Keep the fixed booking fixtures ahead of the test clock as calendar time advances.
+beforeEach((t) => t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-09-01T08:00:00Z") }));
 
 async function stage() {
   const env = makeEnv({ INVITE_WORD: "prah" });
