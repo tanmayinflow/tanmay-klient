@@ -2,11 +2,12 @@
 // Separate presets: existing Signature and saved choices remain intact.
 export function landscapeDefinition(night = false) {
   const linen = "#F4F0EB", ink = "#1C1C1A", earth = "#754437";
-  const paper = "#FAF6EF", sand = "#E8DDC9", muted = "#62594D";
-  const coal = "#282723", raised = "#34312B", pale = "#D4C7B2", copper = "#E3A17A";
+  // Exact website anchors only; no additional beige/copper/charcoal palette.
+  const paper = linen, sand = "#E5D8C4", muted = ink;
+  const coal = ink, raised = ink, pale = "#C5B49A", copper = "#B87333";
   const bg = night ? ink : linen, surface = night ? coal : paper;
   const text = night ? linen : ink, secondary = night ? pale : muted;
-  const action = night ? copper : earth;
+  const action = night ? pale : earth;
   return {
     id: night ? "landscape-night" : "landscape-day",
     labelCs: night ? "Krajina · Noc" : "Krajina · Den",
@@ -19,19 +20,19 @@ export function landscapeDefinition(night = false) {
     documentSurface: surface, elevatedSurface: night ? raised : paper,
     text, heading: text, textSecondary: secondary, textMuted: secondary,
     textDisabled: secondary, placeholder: secondary,
-    border: night ? "#62594D" : "#D4C7B2", borderStrong: secondary,
-    borderSoft: night ? "#34312B" : "#E8DDC9",
+    border: pale, borderStrong: secondary,
+    borderSoft: night ? "rgba(244,240,235,0.18)" : "rgba(28,28,26,0.15)",
     interactive: action, interactiveText: night ? ink : linen,
-    focus: action, link: action, selectionSurface: night ? raised : sand, selectionText: text,
+    focus: action, link: action, selectionSurface: night ? pale : sand, selectionText: night ? ink : text,
     quietInk: secondary, cardHover: night ? raised : sand,
     sheetHover: night ? raised : sand, callout: night ? raised : sand,
     tableHead: night ? raised : sand, activeNav: night ? raised : sand,
     hero: night ? coal : sand, heroInk: text, overlay: "rgba(28,28,26,0.65)",
-    chart: night ? [linen, copper, pale, linen, copper, pale] : [ink, earth, ink, muted, ink, earth],
+    chart: night ? [linen, pale, linen, pale, linen, pale] : [ink, earth, ink, muted, ink, earth],
     chartSurface: surface, grid: night ? raised : sand, axis: secondary,
     atlasBorder: ink, shadowInk: ink, dockBg: ink,
     nav: { text: linen, textSec: pale, kicker: pale, icon: pale, muted: pale,
-      accent: linen, activeBg: earth, hairline: raised, border: muted },
+      accent: linen, activeBg: earth, hairline: raised, border: pale },
     frame: { outer: night ? muted : pale, inner: surface, rail: action, highlight: action },
     themeColor: bg,
     chrome: { frameGrammar: night ? "landscape-ash" : "landscape-paper", radius: 8,

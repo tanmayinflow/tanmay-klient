@@ -297,9 +297,9 @@ try {
           vse: (sig ? sig.innerText : "") + (opt ? opt.innerText : ""),
         };
       });
-      check("tři skupiny: Krajina, Signature a Volitelné palety", !!info && info.skupin === 3, info ? String(info.skupin) : "");
+      check("dvě skupiny: Signature a Volitelné palety", !!info && info.skupin === 2, info ? String(info.skupin) : "");
       check("Signature má tři volby", !!info && info.sig === 3, info ? String(info.sig) : "");
-      check("palet je čtrnáct", !!info && info.opt === 14, info ? String(info.opt) : "");
+      check("palet je šestnáct", !!info && info.opt === 16, info ? String(info.opt) : "");
       check("vybraná je automatika, žádná paleta", !!info && info.sigChecked === 1 && info.optChecked === 0,
         info ? `${info.sigChecked}/${info.optChecked}` : "");
       check("žádný zrušený název", !!info && !/Řeka v noci|Tyrkys|Moruše|Kouř a koření/.test(info.vse));
