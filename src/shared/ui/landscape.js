@@ -1,3 +1,5 @@
+import { ROOM_ART } from "./roomArt.js";
+
 // Material palette derived from the owner's current website, September 2026.
 // Separate presets: existing Signature and saved choices remain intact.
 export function landscapeDefinition(night = false) {
@@ -49,17 +51,8 @@ export const LANDSCAPE_DIRECTION_INKS = Object.freeze({
 
 // Asset names are public artwork only. Private content never enters the core.
 export const LANDSCAPE_ART = Object.freeze({
-  praxe: { image: "vajra-bell-website.svg", shape: "vajra-bell" },
-  trenink: { image: "equipment.webp", shape: "equipment" },
-  denik: { image: "journal-feather.png", shape: "feather" },
-  kompas: { image: "strata.svg", shape: "horizon" },
+  ...Object.fromEntries(Object.entries(ROOM_ART).map(([room, image]) => [room, { image: '../icons/' + image, shape: 'object' }])),
   oblasti: { image: "strata.svg", shape: "horizon" },
   cile: { image: "strata.svg", shape: "horizon" },
-  zapisnik: { image: "pine.webp", shape: "pine" },
-  prameny: { image: "book-study.png", shape: "book" },
-  klienti: { image: "equipment.webp", shape: "equipment" },
-  hospodareni: { image: "strata.svg", shape: "horizon" },
-  socsite: { image: "terrain.svg", shape: "horizon" },
-  kos: { image: "terrain.svg", shape: "horizon" },
   atomic: { image: "pine-rings.webp", shape: "branch" },
 });

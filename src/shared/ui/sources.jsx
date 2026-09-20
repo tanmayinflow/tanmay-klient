@@ -1,3 +1,4 @@
+import { TmIcon as FamilyIcon } from "./icons.jsx";
 // ----------------------------------------------------------------------
 // PRAMENY · dva původy, jedna místnost
 // ----------------------------------------------------------------------
@@ -136,7 +137,7 @@ export function createSourcesUI(deps) {
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <button onClick={() => upd({ score: String(Math.max(0, (scoreN == null ? 5 : scoreN) - 1)) })} aria-label={L("Ubrat bod", "Remove a point")} style={{ ...iconBtn(t), width: 26, height: 26 }}>−</button>
             <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 17, color: scoreN != null ? t.heading : t.textMuted, minWidth: 26, textAlign: "center" }}>{scoreN != null ? scoreN : "—"}</span>
-            <button onClick={() => upd({ score: String(Math.min(10, (scoreN == null ? 5 : scoreN) + 1)) })} aria-label={L("Přidat bod", "Add a point")} style={{ ...iconBtn(t), width: 26, height: 26 }}>＋</button>
+            <button onClick={() => upd({ score: String(Math.min(10, (scoreN == null ? 5 : scoreN) + 1)) })} aria-label={L("Přidat bod", "Add a point")} style={{ ...iconBtn(t), width: 26, height: 26 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </span>
         </PropRow>}
         <PropRow icon="„" label={L("Věta, kterou si nesu", "A line I carry")}><input value={e.carry || ""} onChange={(ev) => upd({ carry: ev.target.value })} placeholder={L("jedna věta z tohoto pramene…", "one line from this source…")} style={{ width: "100%", background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none" }} /></PropRow>
@@ -144,7 +145,7 @@ export function createSourcesUI(deps) {
         {!odTanmaye && <PropRow icon="⊙" label={L("Žánr", "Genre")}><Select small value={e.category || ""} onChange={(v) => upd({ category: v })} placeholder="—" style={{ maxWidth: 170, width: 170 }} options={(C_CATS_BY_TYPE[e.type] || C_CATS).map((c) => ({ v: c, label: C_CAT_LABEL(c) }))} /></PropRow>}
         {!odTanmaye && (
         <PropRow icon="▤" label={L("Archiv", "Archive")}>
-          <button onClick={() => upd({ archive: !e.archive })} title={e.archive ? L("Vrátit z archivu", "Restore from archive") : L("Archivovat", "Archive")} aria-label={e.archive ? L("Vrátit z archivu", "Restore from archive") : L("Archivovat", "Archive")} style={{ width: 26, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 4, border: `1.5px solid ${e.archive ? t.accent : t.border}`, background: e.archive ? t.accent : "transparent", cursor: "pointer", color: t.bg, fontSize: 12, lineHeight: 1, padding: 0 }}>{e.archive ? "✓" : ""}</button>
+          <button onClick={() => upd({ archive: !e.archive })} title={e.archive ? L("Vrátit z archivu", "Restore from archive") : L("Archivovat", "Archive")} aria-label={e.archive ? L("Vrátit z archivu", "Restore from archive") : L("Archivovat", "Archive")} style={{ width: 26, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 4, border: `1.5px solid ${e.archive ? t.accent : t.border}`, background: e.archive ? t.accent : "transparent", cursor: "pointer", color: t.bg, fontSize: 12, lineHeight: 1, padding: 0 }}>{e.archive ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</button>
         </PropRow>)}
 
         {odTanmaye && (e.why || e.instruction || e.excerpt) && (
@@ -215,7 +216,7 @@ export function createSourcesUI(deps) {
         onClick={selecting ? () => onToggleSel(e.id) : () => onOpen(e.id)}
         style={{ display: "flex", alignItems: "center", gap: 12, border: `1px solid ${selected || dragging ? t.accent : t.borderSoft}`, borderRadius: 10, margin: "8px 0", padding: "10px 12px", cursor: "pointer", background: selected ? hexA(t.accent, 0.07) : dragging ? hexA(t.accent, 0.08) : t.card, boxShadow: dragging ? t.shadowLift : t.shadow, transform: dragging ? "scale(1.008)" : "none", transition: "transform .12s ease, box-shadow .12s ease", userSelect: dragging ? "none" : "auto" }}
       >
-        {selecting && <span className="tm-selmark" style={{ width: 22, height: 22, flexShrink: 0, borderRadius: 7, border: `1.5px solid ${selected ? t.accent : t.border}`, background: selected ? t.accent : "transparent", color: t.onAccent, fontSize: 12, lineHeight: "19px", textAlign: "center", touchAction: "none" }}>{selected ? "✓" : ""}</span>}
+        {selecting && <span className="tm-selmark" style={{ width: 22, height: 22, flexShrink: 0, borderRadius: 7, border: `1.5px solid ${selected ? t.accent : t.border}`, background: selected ? t.accent : "transparent", color: t.onAccent, fontSize: 12, lineHeight: "19px", textAlign: "center", touchAction: "none" }}>{selected ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>}
         {e.icon
           ? <img src={imgSrc(e.icon)} alt="" style={{ width: 30, height: 40, objectFit: "cover", borderRadius: 5, flexShrink: 0, border: `1px solid ${t.borderSoft}` }} />
           : <span style={{ width: 30, flexShrink: 0, display: "inline-flex", justifyContent: "center", color: t.sand }}>{React.createElement(glyfTypu(e.type), { size: 19 })}</span>}
@@ -320,7 +321,7 @@ export function createSourcesUI(deps) {
     if (full) {
       return (
         <>
-          <button onClick={() => setFull(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "0 0 16px", display: "inline-flex", alignItems: "center", gap: 6 }}>‹ {L("Prameny", "Sources")}</button>
+          <button onClick={() => setFull(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "0 0 16px", display: "inline-flex", alignItems: "center", gap: 6 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Prameny", "Sources")}</button>
           <ContentDetail id={full} wide onClose={() => setFull(null)} />
         </>
       );
@@ -455,7 +456,7 @@ export function createSourcesUI(deps) {
             <button onClick={() => setAdding(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{L("Zrušit", "Cancel")}</button>
           </div>
         ) : (
-          <button onClick={() => setAdding(true)} className="tm-dash" style={{ background: "transparent", border: "none", borderRadius: 8, padding: "10px 2px", cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left", marginBottom: 12 }}>＋ {L("Nový titul", "New title")}</button>
+          <button onClick={() => setAdding(true)} className="tm-dash" style={{ background: "transparent", border: "none", borderRadius: 8, padding: "10px 2px", cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left", marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nový titul", "New title")}</button>
         )}
 
         <div ref={listRefC} className="tm-scroll tm-dnolist" style={{ marginTop: 6, maxHeight: "min(620px, calc(62 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${holdingC ? t.accent : t.borderSoft}`, borderRadius: 20, padding: "4px 10px 10px", transition: "border-color .15s ease" }}>
@@ -501,7 +502,7 @@ export function createSourcesUI(deps) {
             {ExportBtn && selIds.length > 0 && <ExportBtn label={L("Sdílet", "Share")} pocet={selIds.length} jmeno={L("prameny-vyber", "sources-selection")} docs={() => sourcesOf(st).filter((e) => selIds.includes(e.id)).map(tmDocPramene)} />}
             {selIds.length > 0 && <button onClick={() => bulkArchC(view !== "Archiv")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, minHeight: 32, padding: "6px 14px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{view === "Archiv" ? L("Z archivu", "Unarchive") : L("Do archivu", "Archive")}</button>}
             {selIds.length > 0 && <button onClick={() => st.ask(L(`Přesunout ${selIds.length} titulů do koše?`, `Move ${selIds.length} titles to trash?`), bulkTrashC)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, minHeight: 32, padding: "6px 14px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{L("Do koše", "To trash")}</button>}
-            <button onClick={exitSelectC} title={L("Zrušit výběr", "Cancel selection")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, width: 30, height: 32 }}>×</button>
+            <button onClick={exitSelectC} title={L("Zrušit výběr", "Cancel selection")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, width: 30, height: 32 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </div>
         )}
         {!selecting && <UndoBar bar={undoBarC} onClose={() => setUndoBarC(null)} />}

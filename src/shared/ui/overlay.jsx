@@ -1,3 +1,4 @@
+import { TmIcon as FamilyIcon } from "./icons.jsx";
 // GENERATED · SHARED PRODUCT CORE — do not edit inside an application repository.
 // Canonical source: Work/web-application/Shared/product-core/ui/overlay.jsx
 // Change it there, then run `npm run shared:sync` in the outer workspace.
@@ -66,7 +67,7 @@ export function createOverlay(useT, L) {
      vzhled i tam, kde se stav drží zvenčí — šipka, která se otáčí, a řádek
      s dotykovým cílem jako všude jinde. */
   const TmSipka = ({ open, t, barva }) => (
-    <span aria-hidden="true" style={{ transition: "transform 0.18s ease", transform: open ? "rotate(90deg)" : "rotate(0deg)", color: barva || t.sage, fontSize: 12, display: "inline-block", flexShrink: 0, lineHeight: 1 }}>▶</span>
+    <span aria-hidden="true" style={{ transition: "transform 0.18s ease", transform: open ? "rotate(90deg)" : "rotate(0deg)", color: barva || t.sage, fontSize: 12, display: "inline-block", flexShrink: 0, lineHeight: 1 }}><FamilyIcon id="play" size={16} label={L("Spustit","Play")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
   );
 
   const tmDvirka = (t, barva) => ({ width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "12px 0", minHeight: 44, display: "flex", alignItems: "center", gap: 10, color: barva || t.text, fontFamily: "var(--tm-font-body)", fontSize: 15, fontWeight: 500 });
@@ -118,7 +119,7 @@ export function createOverlay(useT, L) {
               style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: "none", padding: 0, margin: 0, minHeight: 30, cursor: "pointer", fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
             >{title}</button>
             {naradi}
-            <button onClick={close} title="Esc" aria-label={L("Zavřít", "Close")} style={{ flexShrink: 0, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 34, height: 34, cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1 }}>×</button>
+            <button onClick={close} title="Esc" aria-label={L("Zavřít", "Close")} style={{ flexShrink: 0, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 34, height: 34, cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </div>
           <div className="tm-cs-body">{children}</div>
         </div>
@@ -197,7 +198,7 @@ export function createOverlay(useT, L) {
             <span />
           </div>
           <div style={{ padding: "22px 26px calc(40px + env(safe-area-inset-bottom))" }}>
-            <button onClick={onClose} title={L("Zavřít", "Close")} aria-label={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 15, width: 34, height: 34, padding: 0, float: "right" }}>✕</button>
+            <button onClick={onClose} title={L("Zavřít", "Close")} aria-label={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 15, width: 34, height: 34, padding: 0, float: "right" }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             <div style={{ clear: "none" }}>{children}</div>
           </div>
         </div>

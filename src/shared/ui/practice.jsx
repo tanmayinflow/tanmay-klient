@@ -1,3 +1,4 @@
+import { TmIcon as FamilyIcon } from "./icons.jsx";
 // GENERATED · SHARED PRODUCT CORE — do not edit inside an application repository.
 // Canonical source: Work/web-application/Shared/product-core/ui/practice.jsx
 // Change it there, then run `npm run shared:sync` in the outer workspace.
@@ -146,11 +147,11 @@ export function createPracticeUI(deps) {
               className="tm-goallink" style={{ flex: 1, minWidth: 0, minHeight: 34, display: "flex", alignItems: "center", textAlign: "left", background: "transparent", border: "none", padding: "4px 0", cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13, color: task.done ? t.textMuted : t.text, textDecoration: task.done ? "line-through" : "none" }}>
               {(task.goal || goalNames.indexOf(task.text) >= 0) && <span style={{ color: t.accent, marginRight: 6 }}>◎</span>}<span className="tm-goallink-t">{task.text}</span>
             </button>
-            <button title={L("Odebrat", "Remove")} aria-label={L("Odebrat ", "Remove ") + task.text} onClick={() => zmen((list) => list.filter((x) => x.id !== task.id))} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 13, width: 40, height: 40, margin: "-8px -10px -8px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
+            <button title={L("Odebrat", "Remove")} aria-label={L("Odebrat ", "Remove ") + task.text} onClick={() => zmen((list) => list.filter((x) => x.id !== task.id))} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 13, width: 40, height: 40, margin: "-8px -10px -8px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </div>
         ))}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
-          <span style={{ width: 18, textAlign: "center", color: t.sand, fontSize: 13 }}>＋</span>
+          <span style={{ width: 18, textAlign: "center", color: t.sand, fontSize: 13 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
           <input value={txt} onChange={(e) => setTxt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} onBlur={add} placeholder={L("Nový cíl dne… (Enter)", "New goal for today… (Enter)")} aria-label={L("Nový cíl dne", "New goal for today")} style={{ flex: 1, minHeight: "var(--tm-tap-compact)", background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none" }} />
         </div>
         {tasks.length === 0 && <div style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted }}>{L("Cíle dne se propisují i do Kompasu.", "Today's goals also flow into the Compass.")}</div>}
@@ -293,7 +294,7 @@ export function createPracticeUI(deps) {
       <button onClick={klik} aria-expanded={otevreno} aria-controls={rizeny} className="tm-nav-item"
         style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "13px 2px", minHeight: 44, fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 12, color: t.textMuted }}>
         <span style={{ flex: 1 }}>{popis}</span>
-        <span aria-hidden="true" style={{ flexShrink: 0, fontSize: 12, display: "inline-block", transform: otevreno ? "rotate(90deg)" : "none", transition: "transform .15s ease" }}>›</span>
+        <span aria-hidden="true" style={{ flexShrink: 0, fontSize: 12, display: "inline-block", transform: otevreno ? "rotate(90deg)" : "none", transition: "transform .15s ease" }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
       </button>
     );
     /* JEDNA ČTECÍ OSA. Na širokém monitoru se řádek reflexe neroztahuje přes
@@ -344,7 +345,7 @@ export function createPracticeUI(deps) {
           <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 17, color: t.heading, flexShrink: 0 }}>{title}</span>
           {tags}
           {!isOpen && <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{preview(text)}</span>}
-          <span style={{ color: t.textMuted, fontSize: 12, flexShrink: 0, marginLeft: "auto", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s ease", display: "inline-block" }}>›</span>
+          <span style={{ color: t.textMuted, fontSize: 12, flexShrink: 0, marginLeft: "auto", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s ease", display: "inline-block" }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
         </button>
         {isOpen && <div style={{ padding: "2px 14px 14px" }}>{body}</div>}
       </div>
@@ -357,7 +358,7 @@ export function createPracticeUI(deps) {
         </div>
         {/* prázdný dnešek podává pero · založí TENTÝŽ zápis, který otevírá Deník — jedna entita dne */}
         {empty && date === todayISO() && (
-          <button className="tm-dash" onClick={() => { const id = uid(); st.addEntry("journal", { id, date, title: "", tag: "Den", text: "" }); setSel(id); }} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left" }}>＋ {L("Zápis dne…", "Today's entry…")}</button>
+          <button className="tm-dash" onClick={() => { const id = uid(); st.addEntry("journal", { id, date, title: "", tag: "Den", text: "" }); setSel(id); }} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left" }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Zápis dne…", "Today's entry…")}</button>
         )}
         {empty && date !== todayISO() && <div style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("K tomuto dni není zápisek. Nechat to tak je taky odpověď.", "No entry for this day. Leaving it be is also an answer.")}</div>}
         {mine.map((e) => row(
@@ -436,7 +437,7 @@ export function createPracticeUI(deps) {
               <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                 <button className="tm-iconbtn" onClick={() => sleepStep(-1)} aria-label={L("O půl hodiny míň", "Half an hour less")} style={iconBtn(t)}>−</button>
                 <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 22, color: t.heading, minWidth: 52, textAlign: "center" }}>{cur.sleep == null ? "—" : cur.sleep + " h"}</span>
-                <button className="tm-iconbtn" onClick={() => sleepStep(1)} aria-label={L("O půl hodiny víc", "Half an hour more")} style={iconBtn(t)}>＋</button>
+                <button className="tm-iconbtn" onClick={() => sleepStep(1)} aria-label={L("O půl hodiny víc", "Half an hour more")} style={iconBtn(t)}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
               </span>
             </div>
             <DotTap label={L("Nálada", "Mood")} value={cur.mood} onChange={(v) => set({ mood: v })} color={t.sage} />
@@ -609,8 +610,8 @@ export function createPracticeUI(deps) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 22, color: t.heading }}>{MN[Mo - 1]} {Y}</span>
           <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => setYm((m) => shiftYM(m, -1))} disabled={ym <= firstYM} style={calBtn(t, ym <= firstYM)}>‹</button>
-            <button onClick={() => setYm((m) => shiftYM(m, 1))} style={calBtn(t, false)}>›</button>
+            <button onClick={() => setYm((m) => shiftYM(m, -1))} disabled={ym <= firstYM} style={calBtn(t, ym <= firstYM)}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+            <button onClick={() => setYm((m) => shiftYM(m, 1))} style={calBtn(t, false)}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             {ym !== curYM && <button onClick={() => setYm(curYM)} style={{ ...calBtn(t, false), fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, padding: "4px 10px", marginLeft: 6 }}>{L("dnes", "today")}</button>}
           </div>
         </div>
@@ -867,7 +868,7 @@ export function createPracticeUI(deps) {
             {!drzi && vybrany && (
               <>
                 {spanOf(vybrany) > 1 && <button onClick={() => { set(vybrany, { span: 1 }); }} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 999, padding: "3px 10px", minHeight: 30, cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12 }}>{L("Na hodinu", "One hour")}</button>}
-                <button onClick={() => setVybrany(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, minHeight: 30, width: 26 }}>×</button>
+                <button onClick={() => setVybrany(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, minHeight: 30, width: 26 }}><FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
               </>
             )}
           </div>
@@ -911,7 +912,7 @@ export function createPracticeUI(deps) {
                     style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", color: cur.done ? t.textMuted : t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none", textDecorationLine: cur.done ? "line-through" : "none", marginTop: 1,
                       userSelect: pisu === h ? "text" : "none", WebkitUserSelect: pisu === h ? "text" : "none", WebkitTouchCallout: "none" }} />
                   {psano && drzi && drzi.hour === h && drzi.mode === "move" && (
-                    <span aria-hidden="true" style={{ flexShrink: 0, color: t.accent, fontSize: 12, letterSpacing: "0.1em" }}>⠿</span>
+                    <span aria-hidden="true" style={{ flexShrink: 0, color: t.accent, fontSize: 12, letterSpacing: "0.1em" }}><FamilyIcon id="drag" size={16} label={L("Přesunout","Move")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
                   )}
                   {/* úchyt na délku · ukáže se až u drženého bloku.
                       Ťuknutí = o hodinu, tažení = kam se dotáhne. */}
@@ -982,13 +983,13 @@ export function createPracticeUI(deps) {
                 onDragEnd={() => { setDragSlot(null); setOverSlot(null); }}
                 title={L("Přetáhni pro změnu pořadí", "Drag to reorder")}
                 style={{ cursor: "grab", color: t.textMuted, fontSize: 13, padding: "2px 2px", userSelect: "none", touchAction: "none" }}
-              >⠿</span>
+              ><FamilyIcon id="drag" size={16} label={L("Přesunout","Move")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
               <TmIconPickerButton obj={d} kind="habit" onPick={(id) => upd(d.slot, { iconId: id })} preview={<HabitGlyph slot={d.slot} icon={d.icon} iconId={d.iconId} size={18} />} />
               <input value={d.name} onChange={(e) => upd(d.slot, { name: e.target.value })} placeholder={L("Název návyku…", "Habit name…")} style={{ flex: 1, minWidth: 60, background: "transparent", border: "none", outline: "none", borderBottom: `1px dashed ${t.borderSoft}`, fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, padding: "1px 0" }} />
-              <button title={L("Archivovat — historie zůstane", "Archive — history stays")} onClick={() => st.ask(L(`Archivovat návyk „${d.name}"?`, `Archive habit "${d.name}"?`), () => upd(d.slot, { archived: true }))} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 12, border: "none", color: t.textMuted }}>✕</button>
+              <button title={L("Archivovat — historie zůstane", "Archive — history stays")} onClick={() => st.ask(L(`Archivovat návyk „${d.name}"?`, `Archive habit "${d.name}"?`), () => upd(d.slot, { archived: true }))} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 12, border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             </div>
           ))}
-          <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13 }}>＋ {L("návyk", "habit")}</button>
+          <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("návyk", "habit")}</button>
         </div>
         {archived.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
@@ -1082,7 +1083,7 @@ export function createPracticeUI(deps) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", rowGap: 8, minWidth: 0 }}>
             {/* šipky dne bez rámečku · tlačítkem zůstávají, jen se nekreslí jako pole */}
-            <button onClick={() => st.setSelDate(shiftISO(date, -1))} aria-label={L("předchozí den", "previous day")} style={{ ...calBtn(t, false), border: "none", fontSize: 20, color: t.textMuted }}>‹</button>
+            <button onClick={() => st.setSelDate(shiftISO(date, -1))} aria-label={L("předchozí den", "previous day")} style={{ ...calBtn(t, false), border: "none", fontSize: 20, color: t.textMuted }}><FamilyIcon id="back" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             <div>
               {/* klepnutí rozbalí kalendář · dlouhé podržení otevře memento mori */}
               <div role="button" title={L("kalendář · podržením memento mori", "calendar · hold for memento mori")}
@@ -1093,7 +1094,7 @@ export function createPracticeUI(deps) {
                 onClick={() => { if (drzDat.current.ok) { drzDat.current.ok = false; return; } onCal && onCal(); }}
                 style={{ fontFamily: "var(--tm-font-display)", fontSize: 22, color: t.heading, cursor: "pointer", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", borderBottom: calOpen ? `2px solid ${t.accent}` : "2px solid transparent" }}>{fmtCZ(date)}</div>
             </div>
-            <button onClick={() => st.setSelDate(shiftISO(date, 1))} aria-label={L("další den", "next day")} style={{ ...calBtn(t, false), border: "none", fontSize: 20, color: t.textMuted }}>›</button>
+            <button onClick={() => st.setSelDate(shiftISO(date, 1))} aria-label={L("další den", "next day")} style={{ ...calBtn(t, false), border: "none", fontSize: 20, color: t.textMuted }}><FamilyIcon id="forward" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </div>
           <button onClick={() => st.setSelDate(todayISO())} style={{ ...calBtn(t, false), fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, padding: "5px 12px", marginLeft: 10 }}>{L("dnes", "today")}</button>
         </div>
@@ -1241,23 +1242,9 @@ export function createPracticeUI(deps) {
   // Kytara a nota vycházejí z geometrie Lucide (ISC), přepsané do tahu domu.
   // Trénink těla nese tutéž horu jako místnost Trénink; Tělo je střední kanál
   // se dvěma nádí; drak Podnikání je jen proud, který stoupá (zadání 27. 7.).
-  function TmRyt({ size = 17, children }) {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>{children}</svg>
-    );
-  }
+  function TmRyt({ size = 17 }) { return <TmIcon id="bindu" size={size} />; }
 
-  const HABIT_RYT = {
-    0: (s) => <TmRyt size={s}><path d="M2.5 13c2.2 0 2.6-2.4 5-2.4s2.6 2.4 5 2.4 2.6-2.4 5-2.4 2.4 2.4 4 2.4" /><path d="M4 17.5c1.8 0 2.2-1.8 4.2-1.8s2.2 1.8 4.2 1.8 2.2-1.8 4.2-1.8 2 1.8 3.4 1.8" opacity=".55" /></TmRyt>,
-    1: (s) => <TmRyt size={s}><path d="M12 20.5V9" /><path d="M12 12c-3 .2-5-1.6-5.2-4.6C9.8 7.2 11.8 9 12 12Z" /><path d="M12 9c.2-3 2.2-4.8 5.2-4.6C17 7.4 15 9.2 12 9Z" /><path d="M8.5 20.5h7" opacity=".55" /></TmRyt>,
-    2: (s) => <TmRyt size={s}><path d="m11.9 12.1 4.514-4.514" /><path d="M20.1 2.3a1 1 0 0 0-1.4 0l-1.114 1.114A2 2 0 0 0 17 4.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 17.828 7h1.344a2 2 0 0 0 1.414-.586L21.7 5.3a1 1 0 0 0 0-1.4z" /><path d="m6 16 2 2" /><path d="M8.23 9.85A3 3 0 0 1 11 8a5 5 0 0 1 5 5 3 3 0 0 1-1.85 2.77l-.92.38A2 2 0 0 0 12 18a4 4 0 0 1-4 4 6 6 0 0 1-6-6 4 4 0 0 1 4-4 2 2 0 0 0 1.85-1.23z" /></TmRyt>,
-    3: (s) => <TmRyt size={s}><path d="M3.3 19.3 10.4 6.6l3.7 6.6 2.6-4.4 4.05 10.5" /><path d="M3.3 19.3h17.45" opacity=".6" /><path d="M5.1 18.6 10.75 8.6" opacity=".4" /></TmRyt>, // táž hora jako Trénink, překreslená do tahu 1,5 (jednotná tloušťka sady)
-    4: (s) => <TmRyt size={s}><rect x="7.5" y="3.5" width="9" height="17" rx="2.2" /><path d="M14.6 10.8a2.9 2.9 0 1 1-3.4-3.9 3.3 3.3 0 0 0 3.4 3.9Z" opacity=".6" /></TmRyt>,
-    5: (s) => <TmRyt size={s}><path d="M12 6.5c-1.8-1.6-4.4-2-7.5-1.4v12.4c3.1-.6 5.7-.2 7.5 1.4 1.8-1.6 4.4-2 7.5-1.4V5.1c-3.1-.6-5.7-.2-7.5 1.4Z" /><path d="M12 6.5v12.4" opacity=".55" /></TmRyt>,
-    6: (s) => <TmRyt size={s}><path d="M12 4.5c1.8 2.2 1.8 4.8 0 7-1.8-2.2-1.8-4.8 0-7Z" /><path d="M6.5 8.5c2.6.6 4.2 2.6 4.4 5.2-2.7-.3-4.5-2.4-4.4-5.2Z" /><path d="M17.5 8.5c.1 2.8-1.7 4.9-4.4 5.2.2-2.6 1.8-4.6 4.4-5.2Z" /><path d="M5.5 16.5c4 2 9 2 13 0" opacity=".55" /></TmRyt>,
-    7: (s) => <TmRyt size={s}><path d="M12 3.5c.6 2.8 3.4 4.2 4.4 6.8.9 2.4.3 5.2-1.7 7-2.6 2.3-6.8 2.1-9-.6-1.7-2.1-1.8-5.2-.2-7.4.5 1 1.3 1.7 2.4 2-.9-2.6.4-5.9 4.1-7.8Z" /></TmRyt>,
-    8: (s) => <TmRyt size={s}><path d="M4.5 12.5h15c0 4.1-3.4 7-7.5 7s-7.5-2.9-7.5-7Z" /><path d="M9 8.7c-.8-1-.8-2 0-3M12.8 9.2c-.8-1-.8-2.2 0-3.4M15.8 8.7c-.6-.8-.6-1.7 0-2.6" opacity=".55" /></TmRyt>,
-  };
+  const HABIT_RYT = {"0": (s) => <TmIcon id="water" size={s} />,"1": (s) => <TmIcon id="sprout" size={s} />,"2": (s) => <TmIcon id="guitar" size={s} />,"3": (s) => <TmIcon id="training" size={s} />,"4": (s) => <TmIcon id="phone-rest" size={s} />,"5": (s) => <TmIcon id="book" size={s} />,"6": (s) => <TmIcon id="lotus" size={s} />,"7": (s) => <TmIcon id="fire" size={s} />,"8": (s) => <TmIcon id="food" size={s} />};
 
   function HabitGlyph({ slot, icon, iconId, size = 17 }) {
     const { t } = useT();

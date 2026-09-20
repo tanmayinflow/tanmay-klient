@@ -1,3 +1,5 @@
+import { TmIcon as FamilyIcon } from "./icons.jsx";
+import { TmIcon } from "./icons.jsx";
 // ----------------------------------------------------------------------
 // SEZNAMY MÍSTNOSTÍ · jedna generace pro oba domy
 // ----------------------------------------------------------------------
@@ -25,14 +27,8 @@ export function createListUI(deps) {
   // Volba se pamatuje zvlášť pro každou místnost: Zápisník má jiný rytmus
   // než Prameny a nutit je do jednoho by byla úspora na špatném místě.
   // ————————————————————————————————————————————————————————————
-  const vwSvg = (kids) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{kids}</svg>;
-  const TM_VW_IC = {
-    seznam: vwSvg(<path d="M4 7h16M4 12h16M4 17h16" />),
-    rows: vwSvg(<><rect x="3.5" y="5" width="4.5" height="4.5" rx="1.2" /><path d="M11 6h9.5M11 8.6h6" opacity=".9" /><rect x="3.5" y="14.5" width="4.5" height="4.5" rx="1.2" /><path d="M11 15.5h9.5M11 18.1h6" opacity=".9" /></>),
-    cards: vwSvg(<><rect x="4" y="4.5" width="7" height="7" rx="1.4" /><rect x="13" y="4.5" width="7" height="7" rx="1.4" /><rect x="4" y="13" width="7" height="7" rx="1.4" /><rect x="13" y="13" width="7" height="7" rx="1.4" /></>),
-    gal: vwSvg(<><rect x="4" y="5" width="16" height="14" rx="2" /><circle cx="9" cy="10" r="1.4" /><path d="m5.5 16.5 4-4.2 3.2 3.2 2.4-2.2 3.4 3.7" opacity=".8" /></>),
-  };
-  const TmIcFiltr = ({ size = 17 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 6.5h16M7 12h10M10 17.5h4" /></svg>;
+  const TM_VW_IC = {"seznam": <TmIcon id="view-list" size={18} />,"rows": <TmIcon id="view-rows" size={18} />,"cards": <TmIcon id="view-cards" size={18} />,"gal": <TmIcon id="view-gallery" size={18} />};
+  const TmIcFiltr = ({ size = 17 }) => <TmIcon id="filter" size={size} />;
   const TM_VIEWS = [{ k: "seznam", cz: "Seznam", en: "List" }, { k: "rows", cz: "Řádky", en: "Rows" }, { k: "cards", cz: "Karty", en: "Cards" }, { k: "gal", cz: "Galerie", en: "Gallery" }];
   const tmViewOk = (k) => TM_VIEWS.some((v) => v.k === k) ? k : "rows";
   const tmViewLabel = (k) => { const v = TM_VIEWS.find((x) => x.k === tmViewOk(k)); return L(v.cz, v.en); };
@@ -55,8 +51,8 @@ export function createListUI(deps) {
   function VwMark({ on, corner }) {
     const { t } = useT();
     const base = { touchAction: "none", width: 18, height: 18, borderRadius: 6, flexShrink: 0, border: `1.5px solid ${on ? t.accent : t.border}`, background: on ? t.accent : hexA(t.bg, 0.7), color: t.bg, fontSize: 12, lineHeight: "16px", textAlign: "center" };
-    if (corner) return <span className="tm-selmark" style={{ ...base, position: "absolute", top: 8, right: 8, zIndex: 2 }}>{on ? "✓" : ""}</span>;
-    return <span className="tm-selmark" style={base}>{on ? "✓" : ""}</span>;
+    if (corner) return <span className="tm-selmark" style={{ ...base, position: "absolute", top: 8, right: 8, zIndex: 2 }}>{on ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>;
+    return <span className="tm-selmark" style={base}>{on ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>;
   }
 
   // Seznam / Karty / Galerie nad normalizovanou položkou. „Řádky" si obě
@@ -175,7 +171,7 @@ export function createListUI(deps) {
       <div className="tm-selbar" style={{ position: "sticky", bottom: 16, display: "flex", alignItems: "center", gap: 10, background: t.bg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 14px", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", zIndex: 50, marginTop: 10, animation: "tmsettle .3s ease-out" }}>
         <span style={{ flex: 1, minWidth: 0, fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bar.text}</span>
         <button onClick={() => { bar.fn(); onClose(); }} style={{ background: "transparent", border: `1px solid ${t.accent}`, borderRadius: 999, minHeight: 32, padding: "5px 15px", cursor: "pointer", color: t.accent, fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, flexShrink: 0 }}>{L("Vrátit", "Undo")}</button>
-        <button onClick={onClose} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, width: 28, height: 32, flexShrink: 0 }}>×</button>
+        <button onClick={onClose} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, width: 28, height: 32, flexShrink: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
       </div>
     );
   }

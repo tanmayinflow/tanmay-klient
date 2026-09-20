@@ -1,3 +1,4 @@
+import { TmIcon as FamilyIcon } from "./icons.jsx";
 // ----------------------------------------------------------------------
 // ATOMY · značka, výběr, pruh, zápisky, řádek vlastnosti, chrom stránky
 // ----------------------------------------------------------------------
@@ -37,7 +38,7 @@ export function createAtoms(deps) {
     const [h, setH] = useState(false);
     return (
       <button className="tm-pill" onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{ display: "inline-flex", alignItems: "center", gap: 7, cursor: "pointer", background: h ? t.cardHover : "transparent", border: `1px solid ${t.border}`, borderRadius: 20, padding: "6px 14px", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, transition: "background .15s ease" }}>
-        <span>{icon}</span>{label}<span className="tm-arrow" style={{ color: t.accent }}>→</span>
+        <span>{icon}</span>{label}<span className="tm-arrow" style={{ color: t.accent }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
       </button>
     );
   }
@@ -62,7 +63,7 @@ export function createAtoms(deps) {
     );
   }
 
-  function PageTitle({ icon, children, kicker, pageKey, right, onKicker }) {
+  function PageTitle({ icon, children, kicker, pageKey, artKey, right, onKicker }) {
     const { t } = useT();
     const st = useStore();
     const meta = pageKey ? st.pageMetaOf(pageKey) : {};
@@ -73,7 +74,7 @@ export function createAtoms(deps) {
     const titleStyle = right ? { ...h1Style, minWidth: 0 } : h1Style;
     const iconNode = icon && (typeof icon === "string" ? <span style={{ fontSize: 36 }}>{icon}</span> : icon);
     return (
-      <div className="tm-page-title" data-art-room={pageKey || "other"}>
+      <div className="tm-page-title" data-art-room={artKey || pageKey || "other"}>
         <div style={{ marginBottom: 8 }}>
           {editable
             ? <div style={{ marginBottom: 14 }}><BufferedInput value={kick || ""} onCommit={(v) => st.setPageMeta(pageKey, { kicker: v })} placeholder="kicker…" style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, borderBottom: `1px dashed ${t.borderSoft}` }} /></div>
@@ -135,7 +136,7 @@ export function createAtoms(deps) {
       <div ref={wrapRef} style={{ position: "relative", display: "inline-block", ...(style && style.maxWidth ? { maxWidth: style.maxWidth } : {}), width: (style && style.width) || "auto" }}>
         <button type="button" onClick={() => setOpen((x) => !x)} style={trigStyle}>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: ghost ? t.textMuted : (cur || value) ? t.text : t.textMuted }}>{cur ? cur.label : (value || placeholder || "—")}</span>
-          <span style={{ color: t.textMuted, fontSize: 12, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
+          <span style={{ color: t.textMuted, fontSize: 12, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}><FamilyIcon id="expand" size={12} label={L("Rozbalit","Expand")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
         </button>
         {open && (
           <div style={{ animation: "tmsettle .18s ease both", position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: "100%", maxWidth: "min(320px, calc(86 * var(--tm-vw)))", maxHeight: 280, overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-sm)", boxShadow: "0 10px 24px rgba(0,0,0,0.18)", zIndex: 60, padding: 4 }}>
@@ -172,7 +173,7 @@ export function createAtoms(deps) {
         <RichArea value={meta.text || ""} onChange={(v) => onPatch({ text: v })} placeholder={placeholder || L("Piš…", "Write…")} />
         <div style={{ marginTop: 10 }}>
           <input ref={fileRef} type="file" multiple onChange={(e) => attach(e.target.files)} style={{ display: "none" }} />
-          <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "6px 12px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>＋ {L("Přiložit soubor", "Attach file")}</button>
+          <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "6px 12px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Přiložit soubor", "Attach file")}</button>
           <AttachmentStrip att={meta.att} onRemove={st.editMode ? ((id) => onPatch({ att: (meta.att || []).filter((x) => x.id !== id) })) : undefined} />
         </div>
       </div>

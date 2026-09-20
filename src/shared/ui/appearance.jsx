@@ -1,3 +1,5 @@
+import { TmIcon as FamilyIcon } from "./icons.jsx";
+import { TmIcon } from "./icons.jsx";
 // GENERATED · SHARED PRODUCT CORE — do not edit inside an application repository.
 // Canonical source: Work/web-application/Shared/product-core/ui/appearance.jsx
 // Change it there, then run `npm run shared:sync` in the outer workspace.
@@ -53,30 +55,7 @@ function frameShadow(grammar, tok) {
 
 export function createAppearanceUI(useT, L) {
   /** Slunce a měsíc jako tvar, ne jako barva — polarita se pozná i v šedi. */
-  function Polarity({ kind, color }) {
-    if (kind === "dark") {
-      return (
-        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
-          <path d="M9.6 7.6A4.2 4.2 0 0 1 4.4 2.4 4.4 4.4 0 1 0 9.6 7.6Z" fill={color} />
-        </svg>
-      );
-    }
-    if (kind === "auto") {
-      return (
-        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
-          <circle cx="6" cy="6" r="4.1" fill="none" stroke={color} strokeWidth="1.2" />
-          <path d="M6 1.9A4.1 4.1 0 0 1 6 10.1Z" fill={color} />
-        </svg>
-      );
-    }
-    return (
-      <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
-        <circle cx="6" cy="6" r="2.5" fill="none" stroke={color} strokeWidth="1.2" />
-        <path d="M6 0.6v1.6M6 9.8v1.6M0.6 6h1.6M9.8 6h1.6M2.2 2.2l1.1 1.1M8.7 8.7l1.1 1.1M9.8 2.2 8.7 3.3M3.3 8.7 2.2 9.8"
-          stroke={color} strokeWidth="1.1" strokeLinecap="round" />
-      </svg>
-    );
-  }
+  function Polarity({ kind, color }) { return <TmIcon id={kind === "dark" ? "moon" : kind === "auto" ? "appearance-auto" : "sun"} size={11} style={{ color }} />; }
 
   /* Kus skutečného rozhraní: pole, navigační pruh, RÁMOVANÝ panel (skutečná
      gramatika palety), dokumentová plocha, akcent s popiskem a dva stavy. */
@@ -141,7 +120,7 @@ export function createAppearanceUI(useT, L) {
             : <Snippet tok={tok} grammar={grammar} label={name} />}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-          <span aria-hidden="true" style={{ width: 12, flexShrink: 0, color: t.interactiveAccent || t.accent, fontFamily: "var(--tm-font-tag)", fontSize: 12, lineHeight: 1 }}>{selected ? "✓" : ""}</span>
+          <span aria-hidden="true" style={{ width: 12, flexShrink: 0, color: t.interactiveAccent || t.accent, fontFamily: "var(--tm-font-tag)", fontSize: 12, lineHeight: 1 }}>{selected ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>
           <span aria-hidden="true" style={{ display: "inline-flex", flexShrink: 0, alignItems: "center" }}>
             <Polarity kind={auto ? "auto" : preset.polarity} color={t.textMuted} />
           </span>

@@ -1,3 +1,4 @@
+import { roomArtCss } from "./roomArt.js";
 import { landscapeCss } from "./landscapeCss.js";
 // GENERATED · SHARED PRODUCT CORE — do not edit inside an application repository.
 // Canonical source: Work/web-application/Shared/product-core/ui/tokens.js
@@ -206,6 +207,7 @@ export function tokensCss(t, lang) {
 ${frameGrammarCss()}
 ${skinCss()}
 ${landscapeCss()}
+${roomArtCss()}
 `;
 }
 

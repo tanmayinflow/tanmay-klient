@@ -1,3 +1,4 @@
+import { TmIcon as FamilyIcon } from "./shared/ui/icons.jsx";
 import React, { useState, useContext, createContext } from "react";
 import { createPortal } from "react-dom";
 import * as BK from "./booking/index.js";
@@ -570,7 +571,7 @@ function Toggle({ summary, color = "green", children, open: openProp = false }) 
   return (
     <div style={{ borderRadius: 8, background: open ? t.card : "transparent", border: `1px solid ${t.borderSoft}`, margin: "8px 0", overflow: "hidden" }}>
       <button onClick={() => setOpen((o) => !o)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, color: tc.fg, fontFamily: FONT_BODY, fontSize: 15, fontWeight: 500 }}>
-        <span style={{ transition: "transform 0.18s ease", transform: open ? "rotate(90deg)" : "rotate(0deg)", color: t.sage, fontSize: 11 }}>▶</span>
+        <span style={{ transition: "transform 0.18s ease", transform: open ? "rotate(90deg)" : "rotate(0deg)", color: t.sage, fontSize: 11 }}><FamilyIcon id="play" size={16} label={L("Spustit","Play")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
         {summary}
       </button>
       {open && <div style={{ padding: "0 16px 16px 38px", color: t.textSec, fontFamily: FONT_BODY, fontSize: 14.5, lineHeight: 1.7, animation: "tmsettle .24s ease-out" }}>{children}</div>}
@@ -648,7 +649,7 @@ function Check({ done }) {
   const { t } = useT();
   return (
     <span className={"tm-check" + (done ? " on" : "")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${done ? t.accent : t.border}`, background: done ? t.accent : "transparent", color: t.bg, fontSize: 12, flexShrink: 0 }}>
-      {done ? "✓" : ""}
+      {done ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}
     </span>
   );
 }
@@ -786,7 +787,7 @@ function PageMemento({ go }) {
   };
   return (
     <div className="tm-view" style={{ maxWidth: 680, margin: "0 auto" }}>
-      <button onClick={() => go("praxe")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 0 10px", display: "inline-flex", alignItems: "center", gap: 6 }}>‹ {L("Praxe", "Practice")}</button>
+      <button onClick={() => go("praxe")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 0 10px", display: "inline-flex", alignItems: "center", gap: 6 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Praxe", "Practice")}</button>
       <div style={{ textAlign: "center", margin: "26px 0 0" }}>
         <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.34em", fontSize: 11, color: t.sage }}>memento mori</div>
         <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 22, lineHeight: 1.55, color: t.heading, maxWidth: 560, margin: "22px auto 0" }}>{L(q.cz, q.en)}</div>
@@ -921,7 +922,7 @@ function PageAtomic() {
         {loop.map(([cz, en], i) => (
           <React.Fragment key={cz}>
             <span style={chip}>{L(cz, en)}</span>
-            <span style={{ color: t.sand, fontSize: 15 }}>{i < loop.length - 1 ? "→" : "↺"}</span>
+            <span style={{ color: t.sand, fontSize: 15 }}>{i < loop.length - 1 ? <FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : "↺"}</span>
           </React.Fragment>
         ))}
       </div>
@@ -997,153 +998,37 @@ function PageAtomic() {
 
 
 
-function ClipIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M21.4 11.05 12.2 20.25a6 6 0 0 1-8.49-8.49l9.2-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-    </svg>
-  );
-}
+function ClipIcon({ size = 15 }) { return <FamilyIcon id="attach" size={size} />; }
 
-function PenIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z" />
-      <line x1="16" y1="8" x2="2" y2="22" />
-      <line x1="17.5" y1="15" x2="9" y2="15" />
-    </svg>
-  );
-}
+function PenIcon({ size = 15 }) { return <FamilyIcon id="edit" size={size} />; }
 
-function TrashIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M4 7h16" />
-      <path d="M9 7V4.8h6V7" />
-      <path d="M6.4 7l.9 12.4h9.4L17.6 7" />
-      <path d="M10 10.5v6M14 10.5v6" opacity=".6" />
-    </svg>
-  );
-}
+function TrashIcon({ size = 15 }) { return <FamilyIcon id="trash" size={size} />; }
 
-function BookIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-    </svg>
-  );
-}
+function BookIcon({ size = 15 }) { return <FamilyIcon id="book" size={size} />; }
 
-function JarIcon({ size = 15 }) {
-  // jar with a coin-seed inside · bindu sits where the value settles
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M8 3h8" />
-      <path d="M9.5 3v2.1C7 6.7 6 9 6 11.7V17a3.5 3.5 0 0 0 3.5 3.5h5A3.5 3.5 0 0 0 18 17v-5.3c0-2.7-1-5-3.5-6.6V3" />
-      <circle cx="12" cy="14.4" r="1.7" fill="var(--tm-accent, #B87333)" stroke="none" />
-    </svg>
-  );
-}
+function JarIcon({ size = 15 }) { return <FamilyIcon id="jar" size={size} />; }
 
-function ArrowOutIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M7 17 17 7" /><path d="M9 7h8v8" />
-    </svg>
-  );
-}
+function ArrowOutIcon({ size = 15 }) { return <FamilyIcon id="arrow-out" size={size} />; }
 
-function ArrowInIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M17 7 7 17" /><path d="M15 17H7V9" />
-    </svg>
-  );
-}
+function ArrowInIcon({ size = 15 }) { return <FamilyIcon id="arrow-in" size={size} />; }
 
-function SproutIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M12 20v-7" />
-      <path d="M12 13C12 9.7 9.6 7.2 6.2 7c.2 3.4 2.6 6 5.8 6z" />
-      <path d="M12 13c0-3.3 2.4-5.8 5.8-6-.2 3.4-2.6 6-5.8 6z" />
-      <circle cx="12" cy="20" r="0.4" fill="var(--tm-accent, #B87333)" stroke="var(--tm-accent, #B87333)" />
-    </svg>
-  );
-}
+function SproutIcon({ size = 15 }) { return <FamilyIcon id="sprout" size={size} />; }
 
-function TmIcLupa({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="10.5" cy="10.5" r="6" />
-      <path d="m15.2 15.2 4.8 4.8" />
-    </svg>
-  );
-}
+function TmIcLupa({ size = 15 }) { return <FamilyIcon id="search" size={size} />; }
 
-function TmIcSlunce({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="4.1" />
-      <path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6" />
-    </svg>
-  );
-}
+function TmIcSlunce({ size = 15 }) { return <FamilyIcon id="sun" size={size} />; }
 
-function TmIcMesic({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 14.6A8.6 8.6 0 0 1 9.4 4a8.6 8.6 0 1 0 10.6 10.6Z" />
-    </svg>
-  );
-}
+function TmIcMesic({ size = 15 }) { return <FamilyIcon id="moon" size={size} />; }
 
-function TmIcSdileni({ size = 15 }) {
-  // dva kruhy, které se protínají · sdílí se jen průnik, který klient zapne
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="9.2" cy="12" r="5.6" />
-      <circle cx="14.8" cy="12" r="5.6" />
-    </svg>
-  );
-}
+function TmIcSdileni({ size = 15 }) { return <FamilyIcon id="share" size={size} />; }
 
-function TmIcNastaveni({ size = 18 }) {
-  // two quiet sliders · settings in the house voice, no cog teeth
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 8h4.3M12.7 8H20" /><circle cx="10.5" cy="8" r="2.2" />
-      <path d="M4 16h7.3M15.7 16H20" /><circle cx="13.5" cy="16" r="2.2" />
-    </svg>
-  );
-}
+function TmIcNastaveni({ size = 18 }) { return <FamilyIcon id="settings" size={size} />; }
 
-function TmIcPruvodce({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8.8 8.6a3.2 3.2 0 1 1 5 2.7c-1.1.8-1.8 1.4-1.8 2.7v.6" />
-      <circle cx="12" cy="19" r="0.4" fill="currentColor" />
-    </svg>
-  );
-}
+function TmIcPruvodce({ size = 15 }) { return <FamilyIcon id="guide" size={size} />; }
 
-function TmIcChev({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 5 7 7-7 7" />
-    </svg>
-  );
-}
+function TmIcChev({ size = 13 }) { return <FamilyIcon id="forward" size={size} />; }
 
-function TrendIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M3 17l6-6 4 4 8-8" />
-      <path d="M15 7h6v6" />
-    </svg>
-  );
-}
+function TrendIcon({ size = 15 }) { return <FamilyIcon id="trend" size={size} />; }
 
 // hold ~0.4s on touch, then drag over rows carrying `attr` to reorder
 function useHoldReorder(ref, id, attr, onOverRef, disabledRef) {
@@ -1193,7 +1078,7 @@ function AudioRow({ a, onRemove }) {
         ? <audio controls src={src} style={{ height: 34, maxWidth: "100%", flex: 1 }} />
         : <span style={{ flex: 1, fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, fontStyle: "italic" }}>{L("Načítám audio…", "Loading audio…")}</span>}
       <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: t.textMuted, flexShrink: 0 }}>{a.name} · {fmtSize(a.size)}</span>
-      {onRemove && <button title="Odebrat" onClick={() => { if (a.idb) idbDel(a.id); if (a.r2) r2Del(a.id); onRemove(a.id); }} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 12, padding: 0 }}>✕</button>}
+      {onRemove && <button title="Odebrat" onClick={() => { if (a.idb) idbDel(a.id); if (a.r2) r2Del(a.id); onRemove(a.id); }} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 12, padding: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
     </div>
   );
 }
@@ -1216,7 +1101,7 @@ function AttachmentStrip({ att, onRemove }) {
                 style={{ display: "block", borderRadius: 8, border: `1px solid ${t.borderSoft}`, cursor: "zoom-in", ...(zoom === a.id ? { maxWidth: "100%", height: "auto" } : { height: 96, width: "auto", maxWidth: 200, objectFit: "cover" }) }}
               />
               {onRemove && (
-                <button title={L("Odebrat přílohu", "Remove attachment")} onClick={() => { if (a.r2) r2Del(a.id); onRemove(a.id); }} style={{ ...iconBtn(t), position: "absolute", top: 4, right: 4, background: t.bg }}>✕</button>
+                <button title={L("Odebrat přílohu", "Remove attachment")} onClick={() => { if (a.r2) r2Del(a.id); onRemove(a.id); }} style={{ ...iconBtn(t), position: "absolute", top: 4, right: 4, background: t.bg }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
               )}
             </div>
           ))}
@@ -1231,7 +1116,7 @@ function AttachmentStrip({ att, onRemove }) {
             <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${t.border}`, borderRadius: 20, padding: "4px 12px", background: t.card }}>
               <a href={attUrl(a)} download={a.name} style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.sand, textDecoration: "none" }}>📎 {a.name}</a>
               <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: t.textMuted }}>{fmtSize(a.size)}</span>
-              {onRemove && <button title="Odebrat" onClick={() => { if (a.r2) r2Del(a.id); onRemove(a.id); }} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 12, padding: 0 }}>✕</button>}
+              {onRemove && <button title="Odebrat" onClick={() => { if (a.r2) r2Del(a.id); onRemove(a.id); }} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 12, padding: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
             </span>
           ))}
         </div>
@@ -1289,7 +1174,7 @@ function AddEntry({ kind, tags, label }) {
   const st = useStore();
   const [open, setOpen] = useState(false);
   if (open) return <EntryForm tags={tags} onSave={(e) => { st.addEntry(kind, { id: uid(), date: todayISO(), ...e }); setOpen(false); }} onCancel={() => setOpen(false)} />;
-  return <button onClick={() => setOpen(true)} className="tm-dash" style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "11px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, width: "100%", textAlign: "left" }}>＋ {label}</button>;
+  return <button onClick={() => setOpen(true)} className="tm-dash" style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "11px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, width: "100%", textAlign: "left" }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{label}</button>;
 }
 
 
@@ -1387,17 +1272,17 @@ function AreaInlineEditor() {
               onDragEnd={() => { setDragN(null); setOverN(null); }}
               title={L("Přetáhni pro změnu pořadí", "Drag to reorder")}
               style={{ cursor: "grab", color: t.textMuted, fontSize: 13, padding: "2px 2px", userSelect: "none", touchAction: "none" }}
-            >⠿</span>
+            ><FamilyIcon id="drag" size={16} label={L("Přesunout","Move")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
             <TM_ICON_UI.TmIconPickerButton obj={a} kind="area" onPick={(id) => st.setAreaIconId(a.name, id)} size={18} preview={<AreaGlyph name={a.name} size={18} />} />
             <AreaTileName name={a.name} onCommit={(nw) => st.renameArea(a.name, nw)} />
-            <button title={L("Do koše", "To trash")} onClick={() => remove(a)} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 11, border: "none", color: t.textMuted }}>✕</button>
+            <button title={L("Do koše", "To trash")} onClick={() => remove(a)} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 11, border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </div>
         ))}
         {adding ? (
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, border: `1px dashed ${t.accent}` }}>
             <TM_ICON_UI.TmIconPickerButton obj={{ iconId: newIconId }} kind="area" onPick={setNewIconId} size={18} />
             <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); if (e.key === "Escape") setAdding(false); }} placeholder={L("Nová oblast…", "New area…")} style={{ flex: 1, minWidth: 70, background: "transparent", border: "none", outline: "none", fontFamily: FONT_BODY, fontSize: 13.5, color: t.text }} />
-            <button onClick={add} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 11, color: t.accent }}>✓</button>
+            <button onClick={add} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 11, color: t.accent }}><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </div>
         ) : (
           <button onClick={() => setAdding(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13 }}>＋ oblast</button>
@@ -1566,7 +1451,7 @@ function MdToolbar({ exec, onImage }) {
       <span style={{ position: "relative", display: "inline-flex" }}>
         <button type="button" title={L("Barva textu", "Text colour")} onPointerDown={(e) => { e.preventDefault(); setPalOpen((x) => !x); }} style={{ ...btn(curInk !== null), padding: "2px 6px", gap: 4 }}>
           <span style={{ width: 13, height: 13, borderRadius: "50%", background: curInk === "copper" ? t.accent : curInk === "sage" ? t.sage : curInk === "sand" ? t.sand : t.text, border: `1px solid ${t.borderSoft}` }} />
-          <span style={{ fontSize: 9 }}>▾</span>
+          <span style={{ fontSize: 9 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
         </button>
         {palOpen && (
           <span style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, zIndex: 30, display: "inline-flex", gap: 6, alignItems: "center", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "6px 9px", boxShadow: t.shadow }}>
@@ -1579,7 +1464,7 @@ function MdToolbar({ exec, onImage }) {
         )}
       </span>
       {onImage && <><span style={{ width: 1, height: 16, background: t.borderSoft, margin: "0 2px" }} />
-      <button type="button" title={L("Vložit obrázek", "Insert image")} onPointerDown={(e) => { e.preventDefault(); onImage(); }} style={{ ...btn(false), padding: "2px 7px" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9.5" r="1.5" /><path d="M21 16l-5-5L5 21" /></svg></button></>}
+      <button type="button" title={L("Vložit obrázek", "Insert image")} onPointerDown={(e) => { e.preventDefault(); onImage(); }} style={{ ...btn(false), padding: "2px 7px" }}><FamilyIcon id="image" size={14} /></button></>}
     </div>
   );
 }
@@ -1744,7 +1629,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 12px 12px 14px" }}>
         {selecting && (
-          <span style={{ width: 17, height: 17, marginTop: 3, borderRadius: 6, flexShrink: 0, border: `1.5px solid ${selected ? t.accent : t.border}`, background: selected ? t.accent : "transparent", color: t.bg, fontSize: 11, lineHeight: "15px", textAlign: "center" }}>{selected ? "✓" : ""}</span>
+          <span style={{ width: 17, height: 17, marginTop: 3, borderRadius: 6, flexShrink: 0, border: `1.5px solid ${selected ? t.accent : t.border}`, background: selected ? t.accent : "transparent", color: t.bg, fontSize: 11, lineHeight: "15px", textAlign: "center" }}>{selected ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>
         )}
         {effOpen && !selecting ? (
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1778,11 +1663,11 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
         {!selecting && (
           <span style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
             {full && <PinToggle entry={entry} />}
-            {open && !full && <button title="Sbalit" onClick={() => { setOpen(false); setTagPick(false); }} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}>▴</button>}
+            {open && !full && <button title="Sbalit" onClick={() => { setOpen(false); setTagPick(false); }} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="collapse" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
             <button title={entry.star ? L("Odebrat hvězdičku", "Remove star") : L("Označit hvězdičkou", "Star it")} onClick={() => st.updateEntry(kind, entry.id, { star: !entry.star })} style={{ ...iconBtn(t), border: "none", color: entry.star ? t.accent : t.textMuted, opacity: entry.star ? 1 : 0.55, fontSize: 14 }}>{entry.star ? "★" : "☆"}</button>
             <input ref={fileRef} type="file" multiple onChange={(e) => attachFiles(e.target.files)} style={{ display: "none" }} />
             <button title={L("Přiložit obrázek / soubor", "Attach image / file")} onClick={() => fileRef.current && fileRef.current.click()} className={kind === "journal" && !effOpen ? "tm-mhide" : undefined} style={{ ...iconBtn(t), border: "none", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ClipIcon /></button>
-            {(st.editMode || full) && <button title={L("Do koše", "To trash")} onClick={() => st.ask(L(`Přesunout „${entry.title}" do koše?`, `Move "${entry.title}" to trash?`), () => st.removeEntry(kind, entry.id))} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}>✕</button>}
+            {(st.editMode || full) && <button title={L("Do koše", "To trash")} onClick={() => st.ask(L(`Přesunout „${entry.title}" do koše?`, `Move "${entry.title}" to trash?`), () => st.removeEntry(kind, entry.id))} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
           </span>
         )}
       </div>
@@ -1817,13 +1702,13 @@ function NbTagRow({ n, c, ops, renaming, setRenaming, newName, setNewName }) {
       {renaming === n ? (
         <>
           <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && newName.trim()) { ops.rename(n, newName.trim()); setRenaming(null); } if (e.key === "Escape") setRenaming(null); }} style={{ ...fieldStyle(t), padding: "4px 8px", fontSize: 13, flex: 1 }} />
-          <button onClick={() => { if (newName.trim()) { ops.rename(n, newName.trim()); } setRenaming(null); }} style={{ ...iconBtn(t), border: "none", color: t.sand }}>✓</button>
+          <button onClick={() => { if (newName.trim()) { ops.rename(n, newName.trim()); } setRenaming(null); }} style={{ ...iconBtn(t), border: "none", color: t.sand }}><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         </>
       ) : (
         <>
           <span style={{ flex: 1 }}><Tag label={n} color={c} /></span>
-          {n !== ops.protectedName && <button title={L("Přejmenovat", "Rename")} onClick={() => { setRenaming(n); setNewName(n); }} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}>✎</button>}
-          {n !== ops.protectedName && <button title={L(`Smazat kategorii — položky přejdou do ${ops.protectedName}`, `Delete category — items move to ${ops.protectedName}`)} onClick={() => st.ask(L(`Smazat kategorii „${n}"? Položky přejdou do ${ops.protectedName}.`, `Delete category "${n}"? Items move to ${ops.protectedName}.`), () => ops.remove(n))} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}>✕</button>}
+          {n !== ops.protectedName && <button title={L("Přejmenovat", "Rename")} onClick={() => { setRenaming(n); setNewName(n); }} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="edit" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+          {n !== ops.protectedName && <button title={L(`Smazat kategorii — položky přejdou do ${ops.protectedName}`, `Delete category — items move to ${ops.protectedName}`)} onClick={() => st.ask(L(`Smazat kategorii „${n}"? Položky přejdou do ${ops.protectedName}.`, `Delete category "${n}"? Items move to ${ops.protectedName}.`), () => ops.remove(n))} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
         </>
       )}
     </div>
@@ -1927,7 +1812,7 @@ function PageNotebook() {
         ))}
         <span style={{ flex: 1 }} />
         <button className="tm-monly" onClick={() => setQOpen((x) => !x)} title={L("Hledat", "Search")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: qOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: qOpen ? t.accent : t.textMuted }}><TmIcLupa size={15} /></button>
-        <button className="tm-monly" onClick={() => setFOpen((x) => !x)} title={L("Filtry a řazení", "Filters and sorting")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: fOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: fOpen ? t.accent : t.textMuted, fontSize: 13 }}>▾</button>
+        <button className="tm-monly" onClick={() => setFOpen((x) => !x)} title={L("Filtry a řazení", "Filters and sorting")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: fOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: fOpen ? t.accent : t.textMuted, fontSize: 13 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         <span className="tm-deskonly" style={{ display: "contents" }}>
         <button onClick={() => setOfflineOnly((x) => !x)} title={L("Zobrazit jen offline uložené", "Show only offline-saved")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: offlineOnly ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${offlineOnly ? t.accent : "transparent"}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: offlineOnly ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: offlineOnly ? t.accent : t.textMuted, flexShrink: 0 }} />offline</button>
         <Select ghost value={sortBy} onChange={setSortBy} style={{ width: "auto" }} options={[{ v: "manual", label: L("vlastní pořadí", "custom order") }, { v: "dateDesc", label: L("nejnovější", "newest") }, { v: "dateAsc", label: L("nejstarší", "oldest") }]} />
@@ -2092,7 +1977,7 @@ function PageJournal() {
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}`, margin: "10px 0 12px", paddingBottom: 8 }}>
         <button className="tm-monly" onClick={() => setQOpen((x) => !x)} title={L("Hledat", "Search")} style={{ display: "none", alignItems: "center", gap: 7, background: "transparent", border: "none", borderBottom: `1px solid ${qOpen ? t.accent : t.borderSoft}`, borderRadius: 0, cursor: "pointer", color: qOpen ? t.accent : t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "5px 4px 6px", minWidth: 120 }}><TmIcLupa size={14} />{L("hledat v deníku…", "search the journal…")}</button>
-        <button className="tm-monly" onClick={() => setFOpen((x) => !x)} title={L("Filtry", "Filters")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, background: fOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: fOpen ? t.accent : t.textMuted, fontSize: 13 }}>▾</button>
+        <button className="tm-monly" onClick={() => setFOpen((x) => !x)} title={L("Filtry", "Filters")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, background: fOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: fOpen ? t.accent : t.textMuted, fontSize: 13 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         <input className={"tm-jsearch" + (qOpen ? " open" : "")} value={q} onChange={(e) => { setQ(e.target.value); }} placeholder={L("Hledat v deníku…", "Search the journal…")} style={{ background: "transparent", border: "none", borderBottom: `1px solid ${q ? t.accent : t.borderSoft}`, color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, outline: "none", padding: "4px 2px", width: 150 }} />
         <div className={"tm-jfilters" + (fOpen ? " open" : "")} style={{ display: "contents" }}>
         <Select ghost value={view} onChange={setView} style={{ width: "auto" }} options={[{ v: "Vše", label: LV("Vše") }, ...tags.map(([n]) => ({ v: n, label: n }))]} />
@@ -2197,7 +2082,7 @@ function PageTrash() {
   const ago = (ts) => { const d = Math.round((Date.now() - ts) / 86400000); if (d === 0) return L("dnes", "today"); if (d === 1) return L("včera", "yesterday"); if (d < 30) return L(`před ${d} dny`, `${d} days ago`); return L(`před ${Math.round(d / 30)} měs.`, `${Math.round(d / 30)} mo. ago`); };
   return (
     <>
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcKos size={38} /></span>} kicker={L("Odstraněné položky", "Deleted items")}>{L("Koš", "Trash")}</PageTitle>
+      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcKos size={38} /></span>} artKey="kos" kicker={L("Odstraněné položky", "Deleted items")}>{L("Koš", "Trash")}</PageTitle>
       <p style={pProse(t)}>{L("Smazané položky zůstávají v koši, dokud je odsud nevrátíš nebo trvale nesmažeš.", "Deleted items stay in the trash until you restore them or delete them permanently.")} <span style={{ color: t.textMuted }}>{L("Obnovení vrátí položku na původní místo.", "Restoring puts the item back where it was.")}</span></p>
       {items.length === 0 ? (
         <div style={{ padding: "40px 0", textAlign: "center", fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 14, color: t.textMuted }}>{L("Koš je prázdný.", "The trash is empty.")}</div>
@@ -2218,7 +2103,7 @@ function PageTrash() {
                   <span style={{ flex: 1, fontFamily: FONT_BODY, fontSize: 14, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, flexShrink: 0 }}>{ago(it.trashedAt)}</span>
                   <button title={L("Obnovit", "Restore")} onClick={() => st.restoreTrash(it.tid)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 12, padding: "3px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12 }}>↺ obnovit</button>
-                  <button title={L("Trvale smazat", "Delete permanently")} onClick={() => st.ask(L("Trvale smazat? Nelze vrátit.", "Delete permanently? Cannot be undone."), () => st.purgeTrash(it.tid))} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 12 }}>✕</button>
+                  <button title={L("Trvale smazat", "Delete permanently")} onClick={() => st.ask(L("Trvale smazat? Nelze vrátit.", "Delete permanently? Cannot be undone."), () => st.purgeTrash(it.tid))} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 12 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
                 </div>
               ))}
             </div>
@@ -3212,34 +3097,9 @@ function TPatArt({ pat, size = 120, stroke, dot, dotColor }) {
 // ---- little icons · drawn, so they take the colour of the text around them ----
 // ◀ ▶ 🔍 and friends are emoji code points: the system paints them blue and
 // glossy no matter what the theme says. A stroked path obeys currentColor.
-function CaretIcon({ dir = "up", size = 9 }) {
-  const rot = { up: 0, down: 180, left: -90, right: 90 }[dir] || 0;
-  return (
-    <svg width={size} height={size} viewBox="0 0 12 12" fill="none" style={{ display: "block", transform: `rotate(${rot}deg)` }} aria-hidden="true">
-      <path d="M2.5 7.5 L6 4 L9.5 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function SearchIcon({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" style={{ display: "block" }} aria-hidden="true">
-      <circle cx="6.8" cy="6.8" r="4.3" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M10.1 10.1 L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-function TrainIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <circle cx="9.2" cy="6.4" r="2.1" />
-      <path d="M9.6 8.6 C10.2 10.6 10.2 12 9.2 13.6" />
-      <path d="M10 9.8 L15 10.8" />
-      <path d="M9.2 13.6 C8.4 14.8 7 15.6 6.2 17.2 L6.2 20" />
-      <path d="M9.2 13.6 C11 14.4 12.2 15.6 12.4 17.2 L12.5 20" />
-      <path d="M4.6 20 L8 20 M10.8 20 L14.2 20" />
-    </svg>
-  );
-}
+function CaretIcon({ dir = "up", size = 9 }) { return <FamilyIcon id={({up:"collapse",down:"expand",left:"back",right:"forward"})[dir] || "collapse"} size={size} />; }
+function SearchIcon({ size = 13 }) { return <FamilyIcon id="search" size={size} />; }
+function TrainIcon({ size = 15 }) { return <FamilyIcon id="movement" size={size} />; }
 
 // ---- anatomical muscle map · front + back silhouettes (approved mockup v2) ----
 // solid body silhouette, primary muscles full copper, secondary muted copper
@@ -5989,7 +5849,7 @@ function TMultiSel({ label, values, onChange, options }) {
     <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
       <button onClick={() => setOpen((x) => !x)} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: active ? t.activeNav : t.card, border: `1px solid ${active ? t.accent : t.border}`, borderRadius: 8, color: active ? t.heading : t.text, fontFamily: FONT_BODY, cursor: "pointer", padding: "5px 9px", fontSize: 12.5 }}>
         <span>{label}{active ? " · " + values.length : ""}</span>
-        <span style={{ color: t.textMuted, fontSize: 10, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</span>
+        <span style={{ color: t.textMuted, fontSize: 10, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}><FamilyIcon id="expand" size={12} label={L("Rozbalit","Expand")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
       </button>
       {open && (
         <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 170, maxHeight: 280, overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 24px rgba(0,0,0,0.18)", zIndex: 60, padding: 4 }}>
@@ -5997,7 +5857,7 @@ function TMultiSel({ label, values, onChange, options }) {
             const on = values.includes(o.v);
             return (
               <button key={String(o.v)} onClick={() => toggle(o.v)} className="tm-nav-item" style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", color: t.text, fontFamily: FONT_BODY, fontSize: 12.5, padding: "6px 9px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                <span style={{ width: 14, height: 14, borderRadius: 4, border: `1.5px solid ${on ? t.accent : t.border}`, background: on ? t.accent : "transparent", color: t.bg, fontSize: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on ? "✓" : ""}</span>
+                <span style={{ width: 14, height: 14, borderRadius: 4, border: `1.5px solid ${on ? t.accent : t.border}`, background: on ? t.accent : "transparent", color: t.bg, fontSize: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{on ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>
                 {o.label}
               </button>
             );
@@ -6071,7 +5931,7 @@ function TChain({ ex, all, onOpen }) {
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, rowGap: 8 }}>
         {chain.map((x, i) => (
           <React.Fragment key={x.id}>
-            {i > 0 && <span style={{ color: t.border, fontSize: 12, padding: "0 2px" }}>→</span>}
+            {i > 0 && <span style={{ color: t.border, fontSize: 12, padding: "0 2px" }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>}
             <button onClick={() => onOpen(x.id)} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: x.id === ex.id ? t.activeNav : "transparent", border: `1px solid ${x.id === ex.id ? t.accent : t.borderSoft}`, borderRadius: 16, padding: "3px 10px", cursor: "pointer", color: x.id === ex.id ? t.heading : t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 }}>
               {x.id === ex.id && <Bindu size={5} />}
               {tExName(x)}
@@ -6157,7 +6017,7 @@ function TInfoSheet({ title, text, onClose }) {
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(20,18,15,0.45)", zIndex: 240, animation: "tmDim .22s ease both" }} />
       <div role="dialog" aria-label={title} style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "min(400px, 92vw)", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 12, boxShadow: "0 24px 60px rgba(0,0,0,0.4)", zIndex: 241, padding: "20px 22px 18px" }}>
-        <button onClick={onClose} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 15, padding: 4, float: "right", marginTop: -6, marginRight: -8 }}>✕</button>
+        <button onClick={onClose} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 15, padding: 4, float: "right", marginTop: -6, marginRight: -8 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.accent, marginBottom: 6 }}>{title}</div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.7, color: t.text }}>{text}</div>
       </div>
@@ -6184,7 +6044,7 @@ function TPickShell({ title, onClose, children, foot }) {
       <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "min(700px, 95vw)", maxHeight: "86vh", display: "flex", flexDirection: "column", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: "0 28px 70px rgba(0,0,0,0.4)", zIndex: 230, padding: "18px 20px 8px" }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
           <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 24, color: t.heading }}>{title}</span>
-          <button onClick={onClose} style={{ marginLeft: "auto", background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 16, padding: 4 }}>✕</button>
+          <button onClick={onClose} style={{ marginLeft: "auto", background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 16, padding: 4 }}><FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         </div>
         {children}
         {foot}
@@ -6246,7 +6106,7 @@ function TExPick({ onPick, onClose, onNew }) {
         {list.length === 0 && (
           <div style={{ padding: "18px 14px", fontFamily: FONT_BODY, fontSize: 13.5, fontStyle: "italic", color: t.textMuted }}>
             {L("Nic takového v knihovně není.", "The library holds nothing like that.")}
-            {onNew && q ? <button onClick={() => onNew(q)} style={{ marginLeft: 8, background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}>＋ {L("Založit", "Create")} „{q}"</button> : null}
+            {onNew && q ? <button onClick={() => onNew(q)} style={{ marginLeft: 8, background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Založit", "Create")} „{q}"</button> : null}
           </div>
         )}
       </div>
@@ -6417,7 +6277,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
     </button>
     {selecting
       ? <span style={{ position: "absolute", top: 10, right: 10, zIndex: 2 }}><Check done={!!selected} /></span>
-      : onDelete && <button title={L("Do koše", "To trash")} onClick={onDelete} style={tDelBtn(t)}>✕</button>}
+      : onDelete && <button title={L("Do koše", "To trash")} onClick={onDelete} style={tDelBtn(t)}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
     </div>
   );
 }
@@ -6507,12 +6367,12 @@ function TExDetail({ exId, onClose, onOpen }) {
             <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>{L("Lehčí", "Easier")}</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, maxWidth: 190 }}>
               <TPickField label={ex.ez ? tExName(all.find((x) => x.id === ex.ez)) : ""} placeholder="—" onOpen={() => setPickChain("ez")} style={{ minWidth: 130 }} />
-              {ex.ez && <button title={L("Odpojit", "Unlink")} onClick={() => patch({ ez: null })} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0 }}>✕</button>}
+              {ex.ez && <button title={L("Odpojit", "Unlink")} onClick={() => patch({ ez: null })} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
             </span>
             <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>{L("Těžší", "Harder")}</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, maxWidth: 190 }}>
               <TPickField label={ex.hd ? tExName(all.find((x) => x.id === ex.hd)) : ""} placeholder="—" onOpen={() => setPickChain("hd")} style={{ minWidth: 130 }} />
-              {ex.hd && <button title={L("Odpojit", "Unlink")} onClick={() => patch({ hd: null })} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0 }}>✕</button>}
+              {ex.hd && <button title={L("Odpojit", "Unlink")} onClick={() => patch({ hd: null })} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 11, padding: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
             </span>
           </div>
         </>
@@ -6546,7 +6406,7 @@ function TExDetail({ exId, onClose, onOpen }) {
       ) : null}
       <div>
         <input ref={fileRef} type="file" multiple onChange={(e) => attach(e.target.files)} style={{ display: "none" }} />
-        {edit && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}>＋ {L("Přiložit foto / video", "Attach photo / video")}</button>}
+        {edit && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Přiložit foto / video", "Attach photo / video")}</button>}
         <AttachmentStrip att={ex.att} onRemove={edit ? ((id) => patch({ att: (ex.att || []).filter((x) => x.id !== id) })) : undefined} />
       </div>
       <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.borderSoft}` }}>
@@ -7263,28 +7123,7 @@ function useTmEngine(compiled, cfg, onFinish) {
 // Every glyph below is drawn, not typed. An emoji ▶ would come out of the system
 // font blue and glossy and would be the only thing on the page that isn't ours.
 // ======================================================================
-const TmIcon = ({ name, size = 18 }) => {
-  const p = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round" };
-  const paths = {
-    play: <path d="M6.5 4.2 L15.5 10 L6.5 15.8 Z" {...p} fill="currentColor" />,
-    pause: <><path d="M7.5 4.5 V15.5" {...p} strokeWidth="2.2" /><path d="M12.5 4.5 V15.5" {...p} strokeWidth="2.2" /></>,
-    prev: <><path d="M13.5 4.5 L6.5 10 L13.5 15.5 Z" {...p} fill="currentColor" /><path d="M4.5 4.5 V15.5" {...p} /></>,
-    next: <><path d="M6.5 4.5 L13.5 10 L6.5 15.5 Z" {...p} fill="currentColor" /><path d="M15.5 4.5 V15.5" {...p} /></>,
-    restart: <><path d="M16 10 A6 6 0 1 1 10 4 L13 4" {...p} /><path d="M13 1.5 L13 6.5 L8.5 4" {...p} /></>,
-    close: <><path d="M5 5 L15 15" {...p} /><path d="M15 5 L5 15" {...p} /></>,
-    lock: <><rect x="4.5" y="8.5" width="11" height="7.5" rx="1.6" {...p} /><path d="M7 8.5 V6.4 A3 3 0 0 1 13 6.4 V8.5" {...p} /></>,
-    unlock: <><rect x="4.5" y="8.5" width="11" height="7.5" rx="1.6" {...p} /><path d="M7 8.5 V6.4 A3 3 0 0 1 12.6 5" {...p} /></>,
-    expand: <><path d="M4 7.5 V4 H7.5" {...p} /><path d="M12.5 4 H16 V7.5" {...p} /><path d="M16 12.5 V16 H12.5" {...p} /><path d="M7.5 16 H4 V12.5" {...p} /></>,
-    shrink: <><path d="M7.5 4 V7.5 H4" {...p} /><path d="M16 7.5 H12.5 V4" {...p} /><path d="M12.5 16 V12.5 H16" {...p} /><path d="M4 12.5 H7.5 V16" {...p} /></>,
-    sound: <><path d="M4 8 H6.5 L10 4.8 V15.2 L6.5 12 H4 Z" {...p} /><path d="M12.8 7.6 A3.4 3.4 0 0 1 12.8 12.4" {...p} /><path d="M14.8 5.5 A6.4 6.4 0 0 1 14.8 14.5" {...p} /></>,
-    mute: <><path d="M4 8 H6.5 L10 4.8 V15.2 L6.5 12 H4 Z" {...p} /><path d="M13 8 L16.5 12" {...p} /><path d="M16.5 8 L13 12" {...p} /></>,
-    plus: <><path d="M10 4.5 V15.5" {...p} /><path d="M4.5 10 H15.5" {...p} /></>,
-    check: <path d="M4.5 10.5 L8.2 14 L15.5 6" {...p} strokeWidth="2" />,
-    copy: <><rect x="4.5" y="4.5" width="8" height="8" rx="1.4" {...p} /><path d="M7.5 15.5 H15.5 V7.5" {...p} /></>,
-    timer: <><circle cx="10" cy="11" r="6.2" {...p} /><path d="M10 7.6 V11 L12.3 12.4" {...p} /><path d="M8 2.6 H12" {...p} /></>,
-  };
-  return <svg width={size} height={size} viewBox="0 0 20 20" style={{ display: "block" }} aria-hidden="true">{paths[name] || null}</svg>;
-};
+const TmIcon = ({ name, size = 18 }) => { return <FamilyIcon id={({plus:"add",expand:"fullscreen"})[name] || name} size={size} />; };
 
 // ---- the ring · one arc, no gradient, no glow -------------------------------
 // Segment progress on the outer arc; the whole run as a hairline inside it. The
@@ -8808,7 +8647,7 @@ function KBGraph({ k, t }) {
               <rect x={x} y="30" width="116" height="62" rx="9" fill={pane} stroke={line} strokeWidth="1" />
               <text x={x + 58} y="56" textAnchor="middle" fill={head} style={{ ...dsp, fontSize: 13 }}>{st[0]}</text>
               <text x={x + 58} y="76" textAnchor="middle" fill={mut} style={{ fontFamily: FONT_BODY, fontSize: 9 }}>{st[1]}</text>
-              {i < 3 && <text x={x + 126} y="66" textAnchor="middle" fill={cop} style={{ fontSize: 16 }}>→</text>}
+              {i < 3 && <text x={x + 126} y="66" textAnchor="middle" fill={cop} style={{ fontSize: 16 }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></text>}
             </g>
           );
         })}
@@ -9269,7 +9108,7 @@ function KBChapter({ ch, n }) {
       <button onClick={() => setOpen((o) => !o)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 13, padding: "13px 2px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
         <span style={{ fontFamily: FONT_TAG, color: t.accent, fontSize: 13, letterSpacing: "0.12em", minWidth: 20 }}>{String(n).padStart(2, "0")}</span>
         <span style={{ fontFamily: FONT_DISPLAY, fontSize: 17, color: open ? t.heading : t.text, flex: 1, lineHeight: 1.35 }}>{L(ch.cz, ch.en)}</span>
-        <span style={{ color: open ? t.accent : t.textMuted, fontFamily: FONT_BODY, fontSize: 13, transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</span>
+        <span style={{ color: open ? t.accent : t.textMuted, fontFamily: FONT_BODY, fontSize: 13, transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
       </button>
       {open && (
         <div style={{ padding: "2px 2px 20px 33px" }}>
@@ -9808,7 +9647,7 @@ function KBDoc({ doc, onBack }) {
       {doc.sources && (
         <div style={{ marginTop: 18 }}>
           <button onClick={() => setSrcOpen((o) => !o)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 11, padding: "4px 0" }}>
-            {L("Zdroje", "Sources") + " · " + doc.sources.length} {srcOpen ? "▾" : "▸"}
+            {L("Zdroje", "Sources") + " · " + doc.sources.length} {srcOpen ? <FamilyIcon id="expand" size={12} label={L("Rozbalit","Expand")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : "▸"}
           </button>
           {srcOpen && (
             <ol style={{ margin: "8px 0 0", padding: "0 0 0 18px", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5, lineHeight: 1.9 }}>
@@ -9862,7 +9701,7 @@ function KBPlanCard({ p, t, klienti, onOpen, onDelete, onSchedule, rec }) {
   const nextS = (p.sessions || []).filter((x) => !x.done && x.date && x.date >= todayISO()).sort((a, b) => (a.date < b.date ? -1 : 1))[0];
   return (
     <div style={{ position: "relative", display: "flex", flexDirection: "column", background: t.card, border: `1px solid ${rec ? t.accent : t.border}`, borderRadius: 10, boxShadow: t.shadow, overflow: "hidden" }}>
-      <button title={L("Do koše", "To trash")} onClick={() => onDelete(p.id)} style={tDelBtn(t)}>✕</button>
+      <button title={L("Do koše", "To trash")} onClick={() => onDelete(p.id)} style={tDelBtn(t)}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
       <button onClick={() => onOpen(p.id)} className="tm-nav-item" style={{ textAlign: "left", cursor: "pointer", background: "transparent", border: "none", padding: "15px 17px 12px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 5, paddingRight: 18 }}>
           <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.accent }}>{cName || L("můj plán", "my plan")}</span>
@@ -9895,7 +9734,7 @@ function KBPlanGroup({ group, t, defaultOpen, onBuild, genPanel, recId, klienti,
         <Bindu size={5} />
         <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading, flex: 1 }}>{group.name}</span>
         <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{(group.plans || []).length}</span>
-        <span style={{ color: open ? t.accent : t.textMuted, fontFamily: FONT_BODY, fontSize: 14, transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</span>
+        <span style={{ color: open ? t.accent : t.textMuted, fontFamily: FONT_BODY, fontSize: 14, transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
       </button>
       {open && (
         <div style={{ padding: "14px 16px 16px" }}>
@@ -10063,7 +9902,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
               <button onClick={() => (sset.completed ? onSession((x) => TV.reopenSet(x, block.id, sset.id)) : complete(sset.id))}
                 aria-label={sset.completed ? L("Znovu otevřít sérii", "Reopen the set") : L("Série hotová", "Set done")}
                 style={{ width: 36, height: 36, borderRadius: 999, border: `1.5px solid ${sset.completed ? t.accent : t.borderSoft}`, background: sset.completed ? t.accent : "transparent", color: sset.completed ? t.onAccent : t.textMuted, cursor: "pointer", padding: 0 }}>
-                {sset.completed ? "✓" : ""}
+                {sset.completed ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}
               </button>
             </span>
           </div>
@@ -10078,7 +9917,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
               let n = x;
               for (const y of block.sets || []) if (y.completed) n = TV.setRir(n, block.id, y.id, v);
               return n;
-            })} style={tvQuiet(t)}>{v}{v === 5 ? "+" : ""}</button>
+            })} style={tvQuiet(t)}>{v}{v === 5 ? <FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</button>
           ))}
         </div>
       ) : null}
@@ -10270,7 +10109,7 @@ function TvClientPlan({ onRun }) {
                             <div key={b.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "4px 0", fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>
                               <span style={{ flex: 1, minWidth: 0 }}>{tvName(r) || TL(b.name)}</span>
                               <span style={{ color: t.sand, fontVariantNumeric: "tabular-nums" }}>
-                                {(b.sets || []).length}× {tvFmtP(b.measurementType, (b.sets || [])[0] ? (b.sets || [])[0].planned : null)}
+                                {(b.sets || []).length}<FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} />{tvFmtP(b.measurementType, (b.sets || [])[0] ? (b.sets || [])[0].planned : null)}
                               </span>
                             </div>
                           );
@@ -10520,219 +10359,28 @@ function PageTrenink() {
 // inner layers of ink at 22–80 %. currentColor throughout: sand in the nav,
 // copper only where attention flows. The drop is the one calligraphic shape:
 // a filled band, thick at the base, vanishing toward the tip.
-function TmIcPraxe({ size = 17 }) { // vadžra · nezničitelnost praxe
-  const { t } = useT();
-  if (t.material === "landscape") return <span className="tm-practice-vajra" aria-hidden="true" style={{ display: "block", width: size, height: size, background: "currentColor", mask: "url(/media/landscape/vajra-website.svg) center/contain no-repeat", WebkitMask: "url(/media/landscape/vajra-website.svg) center/contain no-repeat" }} />;
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <circle cx="24" cy="24" r="3.4" />
-      <circle cx="24" cy="24" r="1.3" opacity=".55" />
-      <circle cx="19.3" cy="24" r=".6" fill="currentColor" stroke="none" opacity=".5" />
-      <circle cx="28.7" cy="24" r=".6" fill="currentColor" stroke="none" opacity=".5" />
-      <path d="M20 19.8 C21.3 18.9 26.7 18.9 28 19.8" opacity=".7" />
-      <path d="M21 19.4 L20.6 18.2 M24 19 L24 17.8 M27 19.4 L27.4 18.2" opacity=".5" />
-      <path d="M20 28.2 C21.3 29.1 26.7 29.1 28 28.2" opacity=".7" />
-      <path d="M21 28.6 L20.6 29.8 M24 29 L24 30.2 M27 28.6 L27.4 29.8" opacity=".5" />
-      <path d="M23.2 17.9 C23.2 14.3 23.4 10.7 24 7" />
-      <path d="M24.8 17.9 C24.8 14.3 24.6 10.7 24 7" />
-      <path d="M20.6 18.4 C17.4 16.2 16 12.8 16.8 9.4 C17.4 7.4 19.6 6.4 22.6 6.7" />
-      <path d="M21.4 17.6 C19 15.7 17.9 13.1 18.5 10.5 C19 8.7 20.7 7.9 23 8" opacity=".4" />
-      <path d="M27.4 18.4 C30.6 16.2 32 12.8 31.2 9.4 C30.6 7.4 28.4 6.4 25.4 6.7" />
-      <path d="M26.6 17.6 C29 15.7 30.1 13.1 29.5 10.5 C29 8.7 27.3 7.9 25 8" opacity=".4" />
-      <path d="M20.6 18.4 C20 17.7 19.9 17 20.3 16.3" opacity=".45" />
-      <path d="M27.4 18.4 C28 17.7 28.1 17 27.7 16.3" opacity=".45" />
-      <path d="M23.2 30.1 C23.2 33.7 23.4 37.3 24 41" />
-      <path d="M24.8 30.1 C24.8 33.7 24.6 37.3 24 41" />
-      <path d="M20.6 29.6 C17.4 31.8 16 35.2 16.8 38.6 C17.4 40.6 19.6 41.6 22.6 41.3" />
-      <path d="M21.4 30.4 C19 32.3 17.9 34.9 18.5 37.5 C19 39.3 20.7 40.1 23 40" opacity=".4" />
-      <path d="M27.4 29.6 C30.6 31.8 32 35.2 31.2 38.6 C30.6 40.6 28.4 41.6 25.4 41.3" />
-      <path d="M26.6 30.4 C29 32.3 30.1 34.9 29.5 37.5 C29 39.3 27.3 40.1 25 40" opacity=".4" />
-      <path d="M20.6 29.6 C20 30.3 19.9 31 20.3 31.7" opacity=".45" />
-      <path d="M27.4 29.6 C28 30.3 28.1 31 27.7 31.7" opacity=".45" />
-    </svg>
-  );
-}
-function TmIcTrenink({ size = 17 }) { // hora · terén, kde tělo trénuje
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M6.5 38.5 L20.8 13.2 L28.2 26.4 L33.4 17.6 L41.5 38.5" />
-      <path d="M6.5 38.5 H41.5" opacity=".6" />
-      <path d="M17.7 18.6 C18.8 19.6 19.9 19.7 21 18.9 C21.8 19.9 22.8 20.2 23.8 19.5" opacity=".6" />
-      <path d="M31.4 21 C32.1 21.7 33 21.8 33.8 21.2" opacity=".6" />
-      <path d="M10.2 37.2 L21.5 17.2" opacity=".4" />
-    </svg>
-  );
-}
-function TmIcDenik({ size = 17 }) { // pero a řádky · píše se sem, ne o tom
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M18.5 3.2 L9.3 12.4" />
-      <path d="M20.2 4.9 L11 14.1" />
-      <path d="M18.5 3.2 L20.2 4.9" />
-      <path d="M19.35 4.05 L10.7 12.7" opacity=".55" />
-      <path d="M9.3 12.4 L7.6 15.8 L11 14.1 Z" />
-      <path d="M7.6 15.8 L9.6 13.7" />
-      <path d="M4.2 18.6 C6.7 18.1 9.2 18.9 11.7 18.4 C14.2 17.9 16.7 18.7 19.8 18.3" opacity=".8" />
-      <path d="M4.2 21 C6.2 20.6 8.2 21.2 10.8 20.8" opacity=".8" />
-    </svg>
-  );
-}
-function TmIcKompas({ size = 17 }) { // růžice · orientace, ne hra
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <circle cx="24" cy="24" r="19" />
-      <circle cx="24" cy="24" r="17.2" opacity=".5" />
-      <circle cx="24" cy="24" r="18.1" opacity=".55" strokeDasharray="0.5 3.06" />
-      <path d="M24 6.6 V10 M24 38 V41.4 M6.6 24 H10 M38 24 H41.4" />
-      <path d="M37.4 10.6 L35.2 12.8 M10.6 10.6 L12.8 12.8 M37.4 37.4 L35.2 35.2 M10.6 37.4 L12.8 35.2" opacity=".7" />
-      <path d="M24 8.6 L26.4 24 L21.6 24 Z" />
-      <path d="M24 39.4 L26.4 24 L21.6 24 Z" opacity=".8" />
-      <path d="M39.4 24 L24 26.4 L24 21.6 Z" opacity=".8" />
-      <path d="M8.6 24 L24 26.4 L24 21.6 Z" opacity=".8" />
-      <path d="M31.1 16.9 L26.6 23.2 L24.8 21.4 Z" opacity=".6" />
-      <path d="M16.9 16.9 L21.4 23.2 L23.2 21.4 Z" opacity=".6" />
-      <path d="M31.1 31.1 L26.6 24.8 L24.8 26.6 Z" opacity=".6" />
-      <path d="M16.9 31.1 L21.4 24.8 L23.2 26.6 Z" opacity=".6" />
-      <path d="M24 8.6 V39.4" opacity=".35" />
-      <path d="M8.6 24 H39.4" opacity=".35" />
-      <path d="M22.9 14 L23.5 20" opacity=".5" />
-      <path d="M25.1 34 L24.5 28" opacity=".5" />
-      <circle cx="24" cy="24" r="2.2" />
-      <circle cx="24" cy="24" r=".8" fill="currentColor" stroke="none" opacity=".9" />
-    </svg>
-  );
-}
-function TmIcZapisnik({ size = 17 }) { // šitá vazba · myšlenky mají hřbet
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <rect x="5.8" y="3.4" width="12.6" height="17.2" rx="1.6" />
-      <path d="M8.3 3.4 V20.6" />
-      <path d="M7.4 6.3 H9.2 M7.4 10 H9.2 M7.4 13.7 H9.2 M7.4 17.4 H9.2" opacity=".8" />
-      <path d="M15.9 3.4 V20.6" opacity=".65" />
-      <path d="M19.6 5 V19.6" opacity=".7" />
-      <path d="M20.5 6.1 V18.6" opacity=".45" />
-    </svg>
-  );
-}
-function TmIcPrameny({ size = 17 }) { // kapka · kaligrafický tah, dole plný, k špičce mizí
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" style={{ display: "block" }}>
-      <path fillRule="evenodd" fill="currentColor" stroke="none" d="M24 6.6 C19.5 13.6 15.2 20.2 15.2 27.6 C15.2 34.6 19.1 39.4 24 39.4 C28.9 39.4 32.8 34.6 32.8 27.6 C32.8 20.2 28.5 13.6 24 6.6 Z M24 9 C27.5 15 31.2 21 31.2 27.7 C31.2 33.5 28.1 36.8 24 36.8 C19.9 36.8 16.8 33.5 16.8 27.7 C16.8 21 20.5 15 24 9 Z" />
-    </svg>
-  );
-}
+function TmIcPraxe({ size = 17 }) { return <FamilyIcon id="practice" size={size} />; }
+function TmIcTrenink({ size = 17 }) { return <FamilyIcon id="training" size={size} />; }
+function TmIcDenik({ size = 17 }) { return <FamilyIcon id="journal" size={size} />; }
+function TmIcKompas({ size = 17 }) { return <FamilyIcon id="compass" size={size} />; }
+function TmIcZapisnik({ size = 17 }) { return <FamilyIcon id="notebook" size={size} />; }
+function TmIcPrameny({ size = 17 }) { return <FamilyIcon id="sources" size={size} />; }
 // ---- glyfy titulů · tenká linka místo emoji (Kniha · Film · Podcast) ----
-function TmIcKniha({ size = 16 }) { // otevřená kniha · dvě křídla, hřbet uprostřed
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M12 5.6 C10 4.2 7.2 3.9 4.4 4.5 V18.3 C7.2 17.7 10 18 12 19.4 C14 18 16.8 17.7 19.6 18.3 V4.5 C16.8 3.9 14 4.2 12 5.6 Z" />
-      <path d="M12 5.6 V19.4" opacity=".55" />
-    </svg>
-  );
-}
-function TmIcFilm({ size = 16 }) { // okno záběru · jeden rám, perforace po stranách
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <rect x="4.4" y="5.4" width="15.2" height="13.2" rx="1.6" />
-      <path d="M8.6 5.4 V18.6 M15.4 5.4 V18.6" opacity=".55" />
-      <path d="M4.4 12 H8.6 M15.4 12 H19.6" opacity=".4" />
-    </svg>
-  );
-}
-function TmIcPoslech({ size = 16 }) { // sluchátka · oblouk a dvě mušle
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M5 14.6 V12 C5 8.1 8.1 5 12 5 C15.9 5 19 8.1 19 12 V14.6" />
-      <rect x="4.2" y="13.6" width="3" height="5" rx="1.4" />
-      <rect x="16.8" y="13.6" width="3" height="5" rx="1.4" />
-    </svg>
-  );
-}
-function TmIcClanek({ size = 16 }) { // list · text ve sloupci
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M6.6 3.8 H13.8 L17.6 7.6 V20.2 H6.6 Z" />
-      <path d="M13.8 3.8 V7.6 H17.6" opacity=".55" />
-      <path d="M9 11 H15.2 M9 13.7 H15.2 M9 16.4 H12.4" opacity=".8" />
-    </svg>
-  );
-}
-function TmIcProud({ size = 16 }) { // proud · vrstvy, co plynou kolem
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M4.6 8 C8.2 6.3 15.8 6.3 19.4 8" />
-      <path d="M4.6 12 C8.2 10.3 15.8 10.3 19.4 12" opacity=".8" />
-      <path d="M4.6 16 C8.2 14.3 15.8 14.3 19.4 16" opacity=".6" />
-    </svg>
-  );
-}
+function TmIcKniha({ size = 16 }) { return <FamilyIcon id="book" size={size} />; }
+function TmIcFilm({ size = 16 }) { return <FamilyIcon id="film" size={size} />; }
+function TmIcPoslech({ size = 16 }) { return <FamilyIcon id="listen" size={size} />; }
+function TmIcClanek({ size = 16 }) { return <FamilyIcon id="article" size={size} />; }
+function TmIcProud({ size = 16 }) { return <FamilyIcon id="stream" size={size} />; }
 const C_TYPE_GLYPH = { Book: TmIcKniha, Movie: TmIcFilm, Podcast: TmIcPoslech, Article: TmIcClanek, Feed: TmIcProud };
-function TmIcKos({ size = 17 }) { // pletený koš · i odkládání je řemeslo
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M14 12.4 C14.2 8.9 17.5 7 20.1 8.4" opacity=".8" />
-      <path d="M34 12.4 C33.8 8.9 30.5 7 27.9 8.4" opacity=".8" />
-      <path d="M9.4 14.6 C13.6 13.1 34.4 13.1 38.6 14.6" />
-      <path d="M10.2 16.9 C14 15.5 34 15.5 37.8 16.9" opacity=".7" />
-      <path d="M12.6 14.3 L12.1 16.5 M16.5 13.9 L16.1 16.2 M20.4 13.7 L20.2 16 M24 13.65 L24 15.95 M27.6 13.7 L27.8 16 M31.5 13.9 L31.9 16.2 M35.4 14.3 L35.9 16.5" opacity=".4" />
-      <path d="M9.8 15.7 L13 40" />
-      <path d="M38.2 15.7 L35 40" />
-      <path d="M13 40 C16.2 41.6 31.8 41.6 35 40" />
-      <path d="M11 21.6 C15 23 33 23 37 21.6" opacity=".7" />
-      <path d="M11.9 27.6 C15.6 28.9 32.4 28.9 36.1 27.6" opacity=".7" />
-      <path d="M12.8 33.6 C16.2 34.8 31.8 34.8 35.2 33.6" opacity=".7" />
-      <path d="M15.4 17.3 V22.3 M19.7 17.1 V22.6 M24 17 V22.7 M28.3 17.1 V22.6 M32.6 17.3 V22.3" opacity=".4" />
-      <path d="M17 23.4 V28.6 M21.3 23.6 V28.9 M26.7 23.6 V28.9 M31 23.4 V28.6" opacity=".4" />
-      <path d="M15.5 29.4 V34.5 M19.8 29.7 V34.9 M24 29.8 V35 M28.2 29.7 V34.9 M32.5 29.4 V34.5" opacity=".4" />
-      <path d="M18 35.6 V40.5 M22 35.8 V40.9 M26 35.8 V40.9 M30 35.6 V40.5" opacity=".4" />
-    </svg>
-  );
-}
+function TmIcKos({ size = 17 }) { return <FamilyIcon id="basket" size={size} />; }
 // Wellbeing · three geometric marks instead of emoji: an open bowl for
 // gratitude (receiving), a diamond with a core for bodhicitta (the vajra
 // mind), a plain circle for practice in the world (the whole, the contact).
-function TmWbMiska({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" style={{ display: "block" }}>
-      <path d="M2.8 5.8 C2.8 10 5.1 12.2 8 12.2 C10.9 12.2 13.2 10 13.2 5.8" />
-      <path d="M5.6 14.3 H10.4" opacity=".65" />
-    </svg>
-  );
-}
-function TmWbDiamant({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
-      <path d="M8 2.4 L13.3 8 L8 13.6 L2.7 8 Z" />
-      <circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-function TmWbKruh({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" style={{ display: "block" }}>
-      <circle cx="8" cy="8" r="5.5" />
-    </svg>
-  );
-}
-function TmIcOblasti({ size = 15 }) { // mřížka polí · the landscape in plots
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" style={{ display: "block" }}>
-      <rect x="4" y="4" width="7" height="7" rx="1.4" />
-      <rect x="13" y="4" width="7" height="7" rx="1.4" opacity=".8" />
-      <rect x="4" y="13" width="7" height="7" rx="1.4" opacity=".8" />
-      <rect x="13" y="13" width="7" height="7" rx="1.4" opacity=".55" />
-    </svg>
-  );
-}
-function TmIcCile({ size = 15 }) { // terč · aim held lightly
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" style={{ display: "block" }}>
-      <circle cx="12" cy="12" r="8.2" />
-      <circle cx="12" cy="12" r="4.8" opacity=".6" />
-      <circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
+function TmWbMiska({ size = 15 }) { return <FamilyIcon id="gratitude" size={size} />; }
+function TmWbDiamant({ size = 15 }) { return <FamilyIcon id="bodhicitta" size={size} />; }
+function TmWbKruh({ size = 15 }) { return <FamilyIcon id="world-practice" size={size} />; }
+function TmIcOblasti({ size = 15 }) { return <FamilyIcon id="areas" size={size} />; }
+function TmIcCile({ size = 15 }) { return <FamilyIcon id="target" size={size} />; }
 const NAV_ICONS = { praxe: TmIcPraxe, trenink: TmIcTrenink, terminy: TmIcTerminy, denik: TmIcDenik, kompas: TmIcKompas, zapisnik: TmIcZapisnik, prameny: TmIcPrameny, memento: TmIcMemento, kos: TmIcKos };
 
 // ---- MAPA DOMU · boční panel je mapa života, ne seznam aplikací -----------
@@ -10872,7 +10520,7 @@ function TmGuide({ onClose }) {
   );
   const VisNotes = (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
-      <div style={bx({ width: 160, height: 16, boxShadow: "none", borderStyle: "dashed", display: "flex", alignItems: "center", paddingLeft: 8 })}><span style={{ color: t.sand, fontSize: 10, lineHeight: 1 }}>＋</span></div>
+      <div style={bx({ width: 160, height: 16, boxShadow: "none", borderStyle: "dashed", display: "flex", alignItems: "center", paddingLeft: 8 })}><span style={{ color: t.sand, fontSize: 10, lineHeight: 1 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span></div>
       <div style={bx({ width: 160, height: 20, boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px" })}>
         <span style={{ width: 54, height: 5, borderRadius: 3, background: t.borderSoft }} />
         <span style={{ fontFamily: FONT_TAG, fontSize: 8, letterSpacing: "0.1em", color: t.sage }}>8/10</span>
@@ -10887,18 +10535,18 @@ function TmGuide({ onClose }) {
   );
   const VisDock = (
     <div style={{ display: "flex", flexDirection: "column", gap: 7, alignItems: "center" }}>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, display: "flex", gap: 10, alignItems: "center" }}>←<div style={bx({ width: 56, height: 30, boxShadow: t.shadowLift })} />→</div>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, display: "flex", gap: 10, alignItems: "center" }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} /><div style={bx({ width: 56, height: 30, boxShadow: t.shadowLift })} /><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></div>
       <div style={bx({ borderRadius: 999, padding: "6px 12px", display: "flex", gap: 9, alignItems: "center" })}>
         {[0, 1, 2, 3].map((i) => <span key={i} style={{ position: "relative", width: 13, height: 13, borderRadius: 4, background: i === 1 ? hexA(t.accent, 0.8) : t.borderSoft }}>{i === 1 && <span style={{ position: "absolute", top: -7, left: "50%", transform: "translateX(-50%)", width: 12, height: 2, borderRadius: 2, background: t.accent }} />}</span>)}
         <span style={{ width: 1, height: 14, background: t.borderSoft }} />
-        <span style={{ fontSize: 10, color: t.textMuted, lineHeight: 1 }}>☰</span>
+        <span style={{ fontSize: 10, color: t.textMuted, lineHeight: 1 }}><FamilyIcon id="menu" size={16} label={L("Nabídka","Menu")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
       </div>
     </div>
   );
   const VisLock = (
     <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
       <div style={bx({ borderRadius: 999, padding: "4px 12px", boxShadow: "none", display: "flex", gap: 6, alignItems: "center" })}><span style={{ fontSize: 9, color: t.textMuted }}>●</span><span style={{ width: 34, height: 5, borderRadius: 3, background: t.borderSoft }} /></div>
-      <div style={bx({ borderRadius: 999, padding: "4px 12px", boxShadow: "none", borderColor: t.accent, background: t.activeNav, display: "flex", gap: 6, alignItems: "center" })}><span style={{ fontSize: 10, color: t.accent }}>✎</span><span style={{ width: 34, height: 5, borderRadius: 3, background: hexA(t.accent, 0.4) }} /></div>
+      <div style={bx({ borderRadius: 999, padding: "4px 12px", boxShadow: "none", borderColor: t.accent, background: t.activeNav, display: "flex", gap: 6, alignItems: "center" })}><span style={{ fontSize: 10, color: t.accent }}><FamilyIcon id="edit" size={16} label={L("Upravit","Edit")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span><span style={{ width: 34, height: 5, borderRadius: 3, background: hexA(t.accent, 0.4) }} /></div>
     </div>
   );
 
@@ -11065,7 +10713,7 @@ function TmGuide({ onClose }) {
       <div onClick={(e) => e.stopPropagation()} className="tm-scroll tm-centersheet" style={{ width: "min(560px, 96vw)", maxHeight: "min(86vh, 680px)", overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 18, boxShadow: t.shadowLift, padding: "22px clamp(18px, 3vw, 30px) 22px", animation: "tmSheetIn .38s cubic-bezier(.23,.62,.22,.99) both", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent }}>{L("Průvodce", "Guide")} · {gi + 1} / {n}</span>
-          <button onClick={close} title="Esc" style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 30, height: 30, cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1 }}>×</button>
+          <button onClick={close} title="Esc" style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 30, height: 30, cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         </div>
         <div key={gi} className="tm-view" style={{ flex: 1, minHeight: 230 }}>
           {Ic && <div style={{ display: "flex", justifyContent: "center", marginBottom: 8, color: t.sand }}>{React.createElement(Ic, { size: 30 })}</div>}
@@ -11347,7 +10995,7 @@ function BkcRezervace({ ctx, onClose, onDone }) {
     <div style={{ border: `1px solid ${t.border}`, borderRadius: 16, padding: "16px 16px 20px", marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <span style={{ fontFamily: FONT_DISPLAY, fontSize: 20, color: t.heading }}>{L("Rezervovat", "Book a session")}</span>
-        <button onClick={onClose} aria-label={L("Zavřít", "Close")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: t.textMuted }}>✕</button>
+        <button onClick={onClose} aria-label={L("Zavřít", "Close")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
       </div>
 
       <Krok n="1" label={L("Co", "What")} hotovo={!!sid}>
@@ -11688,7 +11336,7 @@ function TmNovaVerze() {
       <span style={{ width: 7, height: 7, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
       <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.textMuted }}>{L("Nová verze", "New version")}</span>
       <button onClick={() => location.reload()} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 999, padding: "4px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}>{L("Načíst", "Reload")}</button>
-      <button onClick={() => setNova(false)} title={L("Skrýt do příště", "Hide until next time")} aria-label={L("Skrýt", "Hide")} style={{ background: "transparent", color: t.textMuted, border: "none", borderRadius: 999, width: 24, height: 24, cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>
+      <button onClick={() => setNova(false)} title={L("Skrýt do příště", "Hide until next time")} aria-label={L("Skrýt", "Hide")} style={{ background: "transparent", color: t.textMuted, border: "none", borderRadius: 999, width: 24, height: 24, cursor: "pointer", fontSize: 15, lineHeight: 1 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
     </div>
   );
 }
@@ -11860,7 +11508,7 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
                     <div style={{ marginBottom: 10 }}>
                       <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text }}>{L("Návyky", "Habits")} · {snimek.habits.days} {L("dní z posledních", "days out of the last")} {snimek.habits.window}</div>
                       {(snimek.habits.rows || []).map((r) => (
-                        <div key={r.name} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, paddingLeft: 12 }}>{r.name} · {r.done}×</div>
+                        <div key={r.name} style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, paddingLeft: 12 }}>{r.name} · {r.done}<FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} /></div>
                       ))}
                     </div>
                   )}
@@ -13955,7 +13603,7 @@ export default function App() {
           </div>
           <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.navHairline}` }}>
             <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
-              <span style={{ fontSize: 15, width: 20, textAlign: "center", color: t.navAccent }}>＋</span>{L("Místnosti", "Rooms")}
+              <span style={{ fontSize: 15, width: 20, textAlign: "center", color: t.navAccent }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>{L("Místnosti", "Rooms")}
             </button>
             <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
               <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}><TmIcSdileni size={15} /></span>{L("Sdílení", "Sharing")}
@@ -13976,7 +13624,7 @@ export default function App() {
           style={{ flex: 1, minWidth: 0, position: "relative", zIndex: 1 }}>
           <div className="tm-topbar" style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderBottom: `1px solid ${t.borderSoft}` }}>
             <button className="tm-sidetoggle" onClick={toggleSide} title={sideHidden ? L("Zobrazit panel", "Show panel") : L("Schovat panel", "Hide panel")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.textMuted, cursor: "pointer", padding: "6px 10px", fontSize: 13, lineHeight: 1 }}>{sideHidden ? "»" : "«"}</button>
-            <button className="tm-burger" onClick={() => setMenuOpen(true)} style={{ display: "none", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.text, cursor: "pointer", padding: "6px 10px", fontSize: 16 }}>☰</button>
+            <button className="tm-burger" onClick={() => setMenuOpen(true)} style={{ display: "none", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.text, cursor: "pointer", padding: "6px 10px", fontSize: 16 }}><FamilyIcon id="menu" size={16} label={L("Nabídka","Menu")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.textMuted, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(() => { const d = new Date(); return `${d.toLocaleDateString(LANG === "cs" ? "cs-CZ" : "en-GB", { weekday: "long" })} · ${d.getDate()}. ${d.getMonth() + 1}.`; })()}</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 10.5, color: t.textMuted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>☾ {moonName(moonPhaseOf(todayISO()))}{(() => { const su = sunsetOf(todayISO()); return su ? ` · ${L("západ", "sunset")} ${su}` : ""; })()}</div>
@@ -13986,7 +13634,7 @@ export default function App() {
               title={editMode ? L("Zamknout — zpět do režimu praxe", "Lock — back to practice mode") : L("Odemknout strukturu — mazání, přejmenování, správa návyků, tagů a kategorií", "Unlock structure — deleting, renaming, managing habits, tags and categories")}
               style={{ background: editMode ? t.activeNav : "transparent", border: `1px solid ${editMode ? t.accent : t.borderSoft}`, borderRadius: 20, color: editMode ? t.accent : t.textSec, cursor: "pointer", padding: "7px 14px", minHeight: 34, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}
             >
-              <span>{editMode ? "✎" : "●"}</span>{editMode ? L("Editace", "Editing") : L("Zamčeno", "Locked")}
+              <span>{editMode ? <FamilyIcon id="edit" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : "●"}</span>{editMode ? L("Editace", "Editing") : L("Zamčeno", "Locked")}
             </button>
             <button onClick={toggleLang} title={L("Přepnout do angličtiny", "Switch to Czech")} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 20, color: t.textSec, cursor: "pointer", padding: "7px 14px", minHeight: 34, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}>
               <span key={lang} className="tm-turn" style={{ color: t.accent }}>{lang === "cs" ? "CZ" : "EN"}</span>{lang === "cs" ? "· EN" : "· CZ"}
@@ -14018,7 +13666,7 @@ export default function App() {
               </div>
             </div>
             <button onClick={() => setMenuOpen(true)} style={{ flex: "0 0 62px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "transparent", border: "none", borderLeft: `1px solid ${t.navHairline}`, cursor: "pointer", padding: "4px 2px", minHeight: 48, color: menuOpen ? t.navAccent : t.navMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.07em", fontSize: 9.5 }}>
-              <span style={{ fontSize: 17, height: 21, display: "inline-flex", alignItems: "center" }}>☰</span>
+              <span style={{ fontSize: 17, height: 21, display: "inline-flex", alignItems: "center" }}><FamilyIcon id="menu" size={16} label={L("Nabídka","Menu")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
               {L("Vše", "All")}
             </button>
           </nav>

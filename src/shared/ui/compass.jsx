@@ -1,3 +1,4 @@
+import { TmIcon as FamilyIcon } from "./icons.jsx";
 // ----------------------------------------------------------------------
 // KOMPAS · jedna orientace pro oba domy
 // ----------------------------------------------------------------------
@@ -51,31 +52,14 @@ export function createCompassUI(deps) {
   // Rytina má přednost před emoji vždycky, když pro krajinu existuje. Dřív se
   // brala jen při přesné shodě uložené ikony se zárodečnou — a u Business se
   // pak ukázala dračí hlava, která do tohohle domu nepatří.
-  const AREA_RYT = {
-    "Body": (s) => <TmRyt size={s}><path d="M12 3.5v17" /><path d="M9.2 6.3v11.4" opacity=".55" /><path d="M14.8 6.3v11.4" opacity=".55" /></TmRyt>,
-    "General health": (s) => <TmRyt size={s}><path d="M5 19C5 10.2 11 4.5 19.5 4.5c0 8.5-6 14.5-14.5 14.5Z" /><path d="M5 19C8.5 15.5 12.5 11.5 16.2 8.2" opacity=".55" /></TmRyt>,
-    "Mental Health": (s) => <TmRyt size={s}><path d="M12 19.5c-4.6-3.2-7.5-6-7.5-9.2 0-2.3 1.8-4 4-4 1.4 0 2.7.7 3.5 1.9.8-1.2 2.1-1.9 3.5-1.9 2.2 0 4 1.7 4 4 0 3.2-2.9 6-7.5 9.2Z" /><circle cx="12" cy="11.2" r="1.05" fill="currentColor" stroke="none" /></TmRyt>,
-    "Partnership": (s) => <TmRyt size={s}><circle cx="9.4" cy="12" r="5.2" /><circle cx="14.6" cy="12" r="5.2" opacity=".65" /></TmRyt>,
-    "Blood Family wellfear": (s) => <TmRyt size={s}><path d="M4.5 19c0-6.6 3.3-11.4 7.5-11.4s7.5 4.8 7.5 11.4" /><path d="M3.5 19h17" opacity=".4" /><circle cx="8.6" cy="16.9" r="1.15" fill="currentColor" stroke="none" opacity=".9" /><circle cx="15.4" cy="16.9" r="1.15" fill="currentColor" stroke="none" opacity=".9" /><circle cx="12" cy="15.1" r=".8" fill="currentColor" stroke="none" opacity=".9" /></TmRyt>,
-    "Friendship": (s) => <TmRyt size={s}><path d="m5.5 20.5 13-4M5.5 16.5l13 4" opacity=".6" /><path d="M12 5.5c.4 1.9 2.3 2.9 3 4.7.6 1.7.2 3.6-1.2 4.8-1.8 1.6-4.7 1.5-6.2-.4-1.2-1.5-1.2-3.6-.2-5.1.4.7.9 1.2 1.7 1.4-.6-1.8.3-4 2.9-5.4Z" /></TmRyt>,
-    "Finances": (s) => <TmRyt size={s}><circle cx="12" cy="12" r="7.6" /><rect x="9.7" y="9.7" width="4.6" height="4.6" rx=".9" opacity=".7" /></TmRyt>,
-    "Business": (s) => <TmRyt size={s}><path d="M4 20c2.6-.3 3.9-1.7 4.2-3.5.3-1.8 1.5-3.1 3.2-3.4 1.7-.3 3-1.6 3.3-3.3.3-1.7 1.5-3 3.2-3.4 1-.2 1.8-.7 2.4-1.4" /></TmRyt>,
-    "Adventure": (s) => <TmRyt size={s}><path d="M4.2 16.3v-4.9c0-.9.7-1.6 1.6-1.6h6.9c.5 0 1 .2 1.3.6l2.5 3h2c.9 0 1.6.7 1.6 1.6v1.3h-1.5" /><path d="M9.9 16.4h4.2" /><circle cx="7.6" cy="16.6" r="1.7" /><circle cx="16.4" cy="16.6" r="1.7" /><path d="M13 10.3l2 2.5H4.6" opacity=".55" /></TmRyt>,
-    "Art": (s) => <TmRyt size={s}><circle cx="8" cy="18" r="4" /><path d="M12 18V2l7 4" /></TmRyt>,
-    "Life mission": (s) => <TmRyt size={s}><circle cx="12" cy="12" r="7.7" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" /></TmRyt>,
-  };
-
-  const TmGeo = ({ size = 15, children }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block" }}>{children}</svg>
-  );
-  const TmGeoAch = (s) => <TmGeo size={s}><circle cx="12" cy="12" r="8.4" opacity=".5" /><path d="M12 5.1 18 15.6H6L12 5.1Z" /></TmGeo>;
-  const TmGeoStav = (s) => <TmGeo size={s}><circle cx="12" cy="12" r="8.4" /><path d="M12 12V3.6A8.4 8.4 0 0 1 19.3 15.9Z" fill="currentColor" stroke="none" opacity=".55" /></TmGeo>;
-  const TmGeoTerm = (s) => <TmGeo size={s}><circle cx="12" cy="12" r="8.4" /><path d="M4.4 14.6h15.2" /><circle cx="12" cy="9.1" r="2.5" opacity=".55" /></TmGeo>;
-  const TmGeoArch = (s) => <TmGeo size={s}><circle cx="12" cy="12" r="8.4" opacity=".5" /><rect x="6.1" y="6.1" width="11.8" height="11.8" rx="1" /></TmGeo>;
-  const TmGeoCil = (s) => <TmGeo size={s}><circle cx="9.2" cy="12" r="5.8" /><circle cx="14.8" cy="12" r="5.8" opacity=".62" /></TmGeo>;
+  const AREA_RYT = {"Body": (s) => <TmIcon id="body-channel" size={s} />,"General health": (s) => <TmIcon id="leaf" size={s} />,"Mental Health": (s) => <TmIcon id="heart" size={s} />,"Partnership": (s) => <TmIcon id="repetition" size={s} />,"Blood Family wellfear": (s) => <TmIcon id="family" size={s} />,"Friendship": (s) => <TmIcon id="campfire" size={s} />,"Finances": (s) => <TmIcon id="coin" size={s} />,"Business": (s) => <TmIcon id="enterprise" size={s} />,"Adventure": (s) => <TmIcon id="adventure" size={s} />,"Art": (s) => <TmIcon id="music" size={s} />,"Life mission": (s) => <TmIcon id="bindu" size={s} />};
+  const TmGeoAch = (s) => <TmIcon id="achievement" size={s} />;
+  const TmGeoStav = (s) => <TmIcon id="state" size={s} />;
+  const TmGeoTerm = (s) => <TmIcon id="appointment" size={s} />;
+  const TmGeoArch = (s) => <TmIcon id="archetype" size={s} />;
+  const TmGeoCil = (s) => <TmIcon id="relationship" size={s} />;
   // Komentář · z jednoho bodu se šíří dva oblouky. Řeč jako kruhy na vodě.
-  const TmGeoSlovo = (s) => <TmGeo size={s}><circle cx="7.4" cy="12" r="1.9" fill="currentColor" stroke="none" /><path d="M12.1 7.4a6.5 6.5 0 0 1 0 9.2" /><path d="M16.1 4.6a11 11 0 0 1 0 14.8" opacity=".5" /></TmGeo>;
+  const TmGeoSlovo = (s) => <TmIcon id="comment" size={s} />;
 
   function AreaGlyph({ name, size = 15 }) {
     const { t } = useT();
@@ -218,7 +202,7 @@ export function createCompassUI(deps) {
       st.addGoal({ id: uid(), name: name.trim(), area, areas: [area], status: "Not started", prio, ach: "", target });
       setName(""); setTarget(""); setOpen(false);
     };
-    if (!open) return <button onClick={() => setOpen(true)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "10px 14px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left", marginBottom: 12 }}>＋ {L("Nový cíl", "New goal")}</button>;
+    if (!open) return <button onClick={() => setOpen(true)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "10px 14px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left", marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nový cíl", "New goal")}</button>;
     return (
       <div style={{ background: t.callout, border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-md)", padding: 12, marginBottom: 12, boxShadow: t.shadow }}>
         <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") ulozit(); }} placeholder={L("Název cíle…", "Goal name…")} style={{ ...fieldStyle(t), marginBottom: 8 }} />
@@ -294,7 +278,7 @@ export function createCompassUI(deps) {
             </button>
           );
         })}
-        {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-pill)", minWidth: 38, minHeight: 38, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}>＋</button>}
+        {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-pill)", minWidth: 38, minHeight: 38, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
       </div>
     );
   }
@@ -443,7 +427,7 @@ export function createCompassUI(deps) {
             )}
             {g.area && openArea && (
               <button onClick={() => openArea(g.area)} title={L("Otevřít krajinu", "Open the landscape")} aria-label={L("Otevřít krajinu", "Open the landscape")}
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "2px 4px", color: t.textMuted, fontSize: 13, lineHeight: 1 }}>›</button>
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "2px 4px", color: t.textMuted, fontSize: 13, lineHeight: 1 }}><FamilyIcon id="forward" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             )}
           </div>
         </PropRow>
@@ -476,7 +460,7 @@ export function createCompassUI(deps) {
               <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 6, lineHeight: 1.5 }}>{L("Místo nebo chvíle, ne hodina. Bez údaje, jak dlouho — ten účinek srazí.", "A cue or a moment, not a clock hour. No duration — that halves the effect.")}</div>
             </div>
             <PropRow icon={TmGeoArch(15)} label={L("Archiv", "Archive")}>
-              <button onClick={() => st.editGoal(g.name, { archive: !g.archive })} title={L("Archivovat / vrátit", "Archive / restore")} aria-label={L("Archivovat / vrátit", "Archive / restore")} style={{ width: 26, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 4, border: `1.5px solid ${g.archive ? t.accent : t.border}`, background: g.archive ? t.accent : "transparent", cursor: "pointer", color: t.bg, fontSize: 12, lineHeight: 1, padding: 0 }}>{g.archive ? "✓" : ""}</button>
+              <button onClick={() => st.editGoal(g.name, { archive: !g.archive })} title={L("Archivovat / vrátit", "Archive / restore")} aria-label={L("Archivovat / vrátit", "Archive / restore")} style={{ width: 26, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 4, border: `1.5px solid ${g.archive ? t.accent : t.border}`, background: g.archive ? t.accent : "transparent", cursor: "pointer", color: t.bg, fontSize: 12, lineHeight: 1, padding: 0 }}>{g.archive ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</button>
             </PropRow>
           </>
         )}
@@ -484,7 +468,7 @@ export function createCompassUI(deps) {
           {g.status !== "Completed" && !inToday && (
             <button onClick={() => st.pushGoalToDay(g.name)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-pill)", padding: "6px 14px", minHeight: 38, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{L("→ poslat do dnešních cílů", "→ send to today's goals")}</button>
           )}
-          {inToday && <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.sage }}>✓ {L("v dnešním plánu", "in today's plan")}</span>}
+          {inToday && <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.sage }}><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("v dnešním plánu", "in today's plan")}</span>}
           {odTanmaye && g.status !== "Completed" && (
             <button onClick={() => st.editGoal(g.name, { requestDone: !g.requestDone })} style={{ marginLeft: 12, background: g.requestDone ? hexA(t.sage, 0.14) : "transparent", border: `1px solid ${g.requestDone ? hexA(t.sage, 0.5) : t.border}`, borderRadius: "var(--tm-r-pill)", padding: "6px 14px", minHeight: 38, cursor: "pointer", color: g.requestDone ? t.sage : t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>
               {g.requestDone ? L("✓ označeno jako hotové · čeká na Tanmaye", "✓ marked done · waiting for Tanmay") : L("Označit jako hotové", "Mark as done")}
@@ -507,7 +491,7 @@ export function createCompassUI(deps) {
                 <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{fmtCZ(n.date)}</div>
                 <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{n.text}</div>
               </div>
-              <button onClick={() => st.ask(L("Smazat komentář?", "Delete comment?"), () => st.removeGoalNote(g.name, n.id))} title={L("Smazat", "Delete")} aria-label={L("Smazat komentář", "Delete comment")} style={{ ...iconBtn(t), border: "none", color: t.textMuted, fontSize: 12 }}>✕</button>
+              <button onClick={() => st.ask(L("Smazat komentář?", "Delete comment?"), () => st.removeGoalNote(g.name, n.id))} title={L("Smazat", "Delete")} aria-label={L("Smazat komentář", "Delete comment")} style={{ ...iconBtn(t), border: "none", color: t.textMuted, fontSize: 12 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             </div>
           ))}
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 6 }}>
@@ -752,12 +736,12 @@ export function createCompassUI(deps) {
                       <OwnerBadge g={g} />
                       {/* položit zpátky · zvednutí musí jít vzít zpět, jinak je to jednosměrka */}
                       <button title={L("Položit zpět mezi čekající", "Put back among the waiting")} aria-label={L("Položit zpět mezi čekající", "Put back among the waiting")} onClick={() => st.editGoal(g.name, { status: "Not started" })}
-                        style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 15, minWidth: 40, minHeight: 40, margin: "-6px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: 0.75 }}>↓</button>
+                        style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 15, minWidth: 40, minHeight: 40, margin: "-6px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: 0.75 }}><FamilyIcon id="download" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
                       {/* přepínač · druhé klepnutí cíl z dneška zase sundá */}
                       <button title={inToday ? L("Je v dnešním plánu · klepnutím odebrat", "In today's plan · tap to remove") : L("→ do dneška · pošle cíl do dnešního plánu", "→ into today · sends the goal into today's plan")}
                         aria-label={inToday ? L("Odebrat z dnešního plánu", "Remove from today's plan") : L("Poslat do dnešního plánu", "Send into today's plan")}
                         onClick={() => inToday ? st.pullGoalFromDay(g.name) : st.pushGoalToDay(g.name)}
-                        style={{ background: inToday ? hexA(t.sage, 0.16) : "transparent", border: `1px solid ${inToday ? hexA(t.sage, 0.5) : t.borderSoft}`, borderRadius: "var(--tm-r-pill)", color: inToday ? t.sage : t.sand, cursor: "pointer", fontSize: 13, minWidth: 44, minHeight: 40, margin: "-6px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "border-color .2s ease, color .2s ease, background .2s ease" }}>{inToday ? "✓" : "→"}</button>
+                        style={{ background: inToday ? hexA(t.sage, 0.16) : "transparent", border: `1px solid ${inToday ? hexA(t.sage, 0.5) : t.borderSoft}`, borderRadius: "var(--tm-r-pill)", color: inToday ? t.sage : t.sand, cursor: "pointer", fontSize: 13, minWidth: 44, minHeight: 40, margin: "-6px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "border-color .2s ease, color .2s ease, background .2s ease" }}>{inToday ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : <FamilyIcon id="forward" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} />}</button>
                     </div>
                   );
                 })}
@@ -771,7 +755,7 @@ export function createCompassUI(deps) {
                   <span style={{ flex: 1, fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted }}>
                     {shown.length > 0 ? L("Čekají · zvedni další, kdykoliv chceš", "Waiting · lift another whenever you want") : L("Nic není v pohybu. Tyhle čekají — zvedni jeden.", "Nothing is in motion. These are waiting — lift one.")}
                   </span>
-                  {waiting.length > waitN && <button onClick={() => setWaitN(waiting.length)} className="tm-tap-c" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12, padding: "6px 0", minHeight: 30, flexShrink: 0 }}>{L("všech", "all")} {waiting.length} ›</button>}
+                  {waiting.length > waitN && <button onClick={() => setWaitN(waiting.length)} className="tm-tap-c" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12, padding: "6px 0", minHeight: 30, flexShrink: 0 }}>{L("všech", "all")} {waiting.length} <FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
                 </div>
                 {waiting.slice(0, waitN).map((g, i) => (
                   <div key={g.name} className="tm-motionrow" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", margin: "0 -6px", borderRadius: 8, borderBottom: i < Math.min(waiting.length, waitN) - 1 ? `1px solid ${t.borderSoft}` : "none" }}>
@@ -831,11 +815,11 @@ export function createCompassUI(deps) {
     }
     return (
       <>
-        {go && <button onClick={() => go("kompas")} className="tm-nav-item" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "0 8px 14px 0", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 8 }}>‹ {L("Kompas", "Compass")}</button>}
+        {go && <button onClick={() => go("kompas")} className="tm-nav-item" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "0 8px 14px 0", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 8 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Kompas", "Compass")}</button>}
         <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcOblasti size={34} /></span>} pageKey="oblasti" kicker={L("Kompas", "Compass")}>{L("Krajiny", "Landscapes")}</PageTitle>
         <p className="tm-prose" style={pProse(t)}>{st.listAreas().length} {L("krajin života · poslední hodnocení · splněné cíle včetně archivovaných.", "life landscapes · latest ratings · completed goals including archived.")}{st.editMode && <span style={{ color: t.textMuted }}>{L(" Klikni na krajinu a otevři detail s měsíčním hodnocením.", " Click a landscape to open its detail with monthly ratings.")}</span>}</p>
         {adding ? <AddAreaForm onDone={() => setAdding(false)} /> : (
-          <button onClick={() => setAdding(true)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "11px 13px", minHeight: 40, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, marginBottom: 12 }}>＋ {L("Nová krajina", "New landscape")}</button>
+          <button onClick={() => setAdding(true)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "11px 13px", minHeight: 40, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nová krajina", "New landscape")}</button>
         )}
         <AreaTable onOpen={(name) => setSel({ type: "area", id: name })} />
         <Drawer open={!!sel} onClose={() => setSel(null)}>
@@ -855,7 +839,7 @@ export function createCompassUI(deps) {
     const nDone = live.filter((g) => g.status === "Completed").length;
     return (
       <>
-        {go && <button onClick={() => go("kompas")} className="tm-nav-item" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "0 8px 14px 0", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 8 }}>‹ {L("Kompas", "Compass")}</button>}
+        {go && <button onClick={() => go("kompas")} className="tm-nav-item" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "0 8px 14px 0", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 8 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Kompas", "Compass")}</button>}
         <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcCile size={34} /></span>} pageKey="cile" kicker={L("Kompas", "Compass")}>{L("Cíle", "Goals")}</PageTitle>
         <p className="tm-prose" style={pProse(t)}>{live.length} {L("cílů", "goals")} · {nProg} {L("rozpracovaných", "in progress")} · {nDone} {L("hotových.", "done.")}{st.editMode && <span style={{ color: t.textMuted }}>{L(" Klikni na kartu a otevři detail.", " Click a card to open its detail.")}</span>}</p>
         <GoalWorkspace />
