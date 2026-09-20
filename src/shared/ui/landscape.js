@@ -7,7 +7,8 @@ export function landscapeDefinition(night = false) {
   const coal = ink, raised = ink, pale = "#C5B49A", copper = "#B87333";
   const bg = night ? ink : paper, surface = night ? coal : paper;
   const text = night ? linen : ink, secondary = night ? pale : muted;
-  const action = night ? pale : earth;
+  // Current website accent on Linen; the Earth material keeps its own anchor.
+  const redEarth = "#743627", action = night ? pale : redEarth;
   return {
     id: night ? "landscape-night" : "landscape-day",
     labelCs: night ? "Krajina · Noc" : "Krajina · Den",
@@ -15,7 +16,7 @@ export function landscapeDefinition(night = false) {
     polarity: night ? "dark" : "light", statusMode: night ? "dark" : "light",
     material: "landscape",
     anchors: { Linen: linen, Ink: ink, Earth: earth, Paper: paper, Sand: sand,
-      Muted: muted, Coal: coal, Raised: raised, Pale: pale, Copper: copper },
+      Muted: muted, Coal: coal, Raised: raised, Pale: pale, Copper: copper, RedEarth: redEarth },
     background: bg, navigation: ink, surface, card: surface,
     documentSurface: surface, elevatedSurface: night ? raised : paper,
     text, heading: text, textSecondary: secondary, textMuted: secondary,

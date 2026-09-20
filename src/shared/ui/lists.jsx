@@ -12,6 +12,11 @@ import React, { useState } from "react";
 
 export function createListUI(deps) {
   const { useT, L, hexA, TmIcLupa } = deps;
+  const onGesture = deps.onGesture || (() => {});
+  const makeGhost = deps.makeGhost || (() => null);
+  const isHaptics = deps.isHaptics || (() => false);
+  // Gesture state is owned here; the host may also suppress its room swipe.
+  let gesture = 0;
 
   // ————————————————————————————————————————————————————————————
   // ZOBRAZENÍ MÍSTNOSTI · jedno tlačítko, čtyři hustoty
@@ -236,11 +241,11 @@ export function createListUI(deps) {
       const arm = () => {
         if (!s || s.armed) return;
         s.armed = true;
-        TM_GESTURE = 1;
+        gesture = 1; onGesture(1);
         const st0 = stateRef.current || {};
         s.ids = (st0.selecting && (st0.sel || []).includes(s.id)) ? [...(st0.sel || [])] : [s.id];
-        try { if (!s.mouse && TM_HAPTICS) navigator.vibrate && navigator.vibrate(14); } catch (err) {}
-        ghost = tmMkGhost(actionsRef.current.label(s.id), s.ids.length, s.x, s.y);
+        try { if (!s.mouse && isHaptics()) navigator.vibrate && navigator.vibrate(14); } catch (err) {}
+        ghost = makeGhost(actionsRef.current.label(s.id), s.ids.length, s.x, s.y);
         if (s.mouse) document.body.classList.add("tm-nosel");
         setDragging(s.id);
       };
@@ -296,7 +301,7 @@ export function createListUI(deps) {
         if (paint) { paint = null; eatKlik = Date.now() + 900; }
         winOff();
         document.body.classList.remove("tm-nosel");
-        if (TM_GESTURE) setTimeout(() => { TM_GESTURE = 0; }, 0);
+        if (gesture) setTimeout(() => { gesture = 0; onGesture(0); }, 0);
         if (!s) { stop(); return; }
         clearTimeout(s.timer);
         const done = s; s = null;

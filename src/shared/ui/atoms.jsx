@@ -25,11 +25,11 @@ export function createAtoms(deps) {
     );
   }
 
-  function Divider() {
+  function Divider({ className }) {
     const { t } = useT();
     // vlásečnice, ne plot · nižší krytí a víc vzduchu z obou stran
     // vlas, ne přechod · Brand V2 nepoužívá gradient ani na oddělovníku
-    return <div style={{ height: 1, background: t.borderSoft, margin: "32px 0" }} />;
+    return <div className={className} style={{ height: 1, background: t.borderSoft, margin: "32px 0" }} />;
   }
 
   function LinkPill({ icon, label, onClick }) {

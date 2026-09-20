@@ -714,12 +714,12 @@ export function createCompassUI(deps) {
       <>
         <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcKompas size={40} /></span>} pageKey="kompas" kicker={L("Orientace", "Orientation")}>{L("Kompas", "Compass")}</PageTitle>
         <p className="tm-prose" style={pProse(t)}>{L("Dnešní krok. Širší směr. Celá krajina.", "Today's step. The wider direction. The whole landscape.")}</p>
-        <Divider />
+        <Divider className="tm-compass-divider" />
         <Eyebrow>{L("Dnešní krok", "Today's step")}</Eyebrow>
         <div style={twoCol}>
           <div>
             {/* „Dnešní cíle · datum" se sneslo · nadpis stránky ho už řekl */}
-            <div style={{ borderTop: `1px solid ${t.borderSoft}`, paddingTop: 10 }}>
+            <div className="tm-compass-daytasks" style={{ borderTop: `1px solid ${t.borderSoft}`, paddingTop: 10 }}>
               <DayTasks date={todayISO()} onOpenGoal={(n) => setSel({ type: "goal", id: n })} />
             </div>
             <div style={{ height: 10 }} />
