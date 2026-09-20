@@ -43,14 +43,14 @@ export function landscapeDefinition(night = false) {
 
 // Asset names are public artwork only. Private content never enters the core.
 export const LANDSCAPE_ART = Object.freeze({
-  praxe: { image: "pine-rings.webp", shape: "branch" },
+  praxe: { image: "vajra-website.svg", shape: "vajra" },
   trenink: { image: "equipment.webp", shape: "equipment" },
-  denik: { image: "terrain.svg", shape: "horizon" },
+  denik: { image: "journal-feather.png", shape: "feather" },
   kompas: { image: "strata.svg", shape: "horizon" },
   oblasti: { image: "strata.svg", shape: "horizon" },
   cile: { image: "strata.svg", shape: "horizon" },
   zapisnik: { image: "pine.webp", shape: "pine" },
-  prameny: { image: "pine.webp", shape: "pine" },
+  prameny: { image: "book-study.png", shape: "book" },
   klienti: { image: "equipment.webp", shape: "equipment" },
   hospodareni: { image: "strata.svg", shape: "horizon" },
   socsite: { image: "terrain.svg", shape: "horizon" },
