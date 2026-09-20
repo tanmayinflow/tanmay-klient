@@ -10521,6 +10521,8 @@ function PageTrenink() {
 // copper only where attention flows. The drop is the one calligraphic shape:
 // a filled band, thick at the base, vanishing toward the tip.
 function TmIcPraxe({ size = 17 }) { // vadžra · nezničitelnost praxe
+  const { t } = useT();
+  if (t.material === "landscape") return <span className="tm-practice-vajra" aria-hidden="true" style={{ display: "block", width: size, height: size, background: "currentColor", mask: "url(/media/landscape/vajra-website.svg) center/contain no-repeat", WebkitMask: "url(/media/landscape/vajra-website.svg) center/contain no-repeat" }} />;
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
       <circle cx="24" cy="24" r="3.4" />

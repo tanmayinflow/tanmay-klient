@@ -41,9 +41,15 @@ export function landscapeDefinition(night = false) {
   };
 }
 
+// Owner-requested nearby directional tints for the personal mandala, not status colors.
+export const LANDSCAPE_DIRECTION_INKS = Object.freeze({
+  light: Object.freeze({ sage: "#394338", sand: "#68502D", accent: "#743627", textMuted: "#4B3D4E" }),
+  dark: Object.freeze({ sage: "#A9B49C", sand: "#C5B49A", accent: "#BC9281", textMuted: "#AEA0B5" }),
+});
+
 // Asset names are public artwork only. Private content never enters the core.
 export const LANDSCAPE_ART = Object.freeze({
-  praxe: { image: "vajra-website.svg", shape: "vajra" },
+  praxe: { image: "vajra-bell-website.svg", shape: "vajra-bell" },
   trenink: { image: "equipment.webp", shape: "equipment" },
   denik: { image: "journal-feather.png", shape: "feather" },
   kompas: { image: "strata.svg", shape: "horizon" },

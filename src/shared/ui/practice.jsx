@@ -1002,7 +1002,7 @@ export function createPracticeUI(deps) {
     );
   }
 
-  function TmPasPrahu({ prah, onPrah, day }) {
+  function TmPasPrahu({ prah, onPrah }) {
     const { t } = useT();
     const polozky = [
       { k: "rano", cz: "Ráno", en: "Morning" },
@@ -1021,9 +1021,6 @@ export function createPracticeUI(deps) {
                 color: on ? (t.accentInk || t.accent) : t.textMuted, transition: "color .18s ease, border-color .18s ease" }}>
               {on && <Bindu size={5} />}
               {L(x.cz, x.en)}
-              {/* TEČKA · tenhle práh v tomhle dni něco nese. Bez ní vypadá karta
-                  otevřená v poledne, jako by ráno a večer nikdy nebyly. */}
-              {!on && tmPrahMa(day, x.k) && <span title={L("něco tu je", "something here")} style={{ width: 4, height: 4, borderRadius: "50%", background: t.sand, opacity: 0.85, marginLeft: -2 }} />}
             </button>
           );
         })}

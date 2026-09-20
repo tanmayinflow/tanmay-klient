@@ -657,7 +657,7 @@ export function createCompassUI(deps) {
             <AreaChips onOpen={openArea} onAdd={() => setAddingArea(true)} />
           </div>
         )}
-        <div style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}` }}>
+        <div className="tm-tab-rail" style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}` }}>
           {G_VIEWS.map((v) => (
             <button key={v} onClick={() => setView(v)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "10px 11px 11px", minHeight: 40, fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: view === v ? t.accent : t.textMuted, borderBottom: view === v ? `2px solid ${t.accent}` : "2px solid transparent", marginBottom: -1 }}>{LV(v)}</button>
           ))}

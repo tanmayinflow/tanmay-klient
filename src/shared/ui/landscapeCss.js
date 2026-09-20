@@ -17,6 +17,12 @@ ${s}:has(.tm-page[data-room="praxe"]) .tm-ground::after { content: ''; position:
 ${s} :is(.tm-sidebar,.tm-tabbar) { background-image: var(--land-ash) !important; background-size: 768px auto !important; }
 ${s} .tm-sidebar .tm-logo > span { color: var(--tm-nav-text) !important; }
 ${s} .tm-sidebar-search { border-color: #754437 !important; }
+/* Scroll remains native; it no longer reserves a pale gutter beside the material. */
+${s}, ${s} body, ${s} .tm-scroll { scrollbar-width: none !important; scrollbar-gutter: auto !important; }
+${s}::-webkit-scrollbar, ${s} body::-webkit-scrollbar, ${s} .tm-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
+${s} .tm-tabbar { left: 0 !important; right: 0 !important; border: 0 !important; border-radius: 0 !important; overflow: visible !important; isolation: isolate; }
+${s} .tm-tabbar::before { content: ''; position: absolute; left: 0; right: 0; top: -23px; height: 24px; z-index: -1; background: #1C1C1A var(--land-ash) center top/768px auto; mask: url('/media/landscape/edge-wide.png') center 76%/160% 130px no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center 76%/160% 130px no-repeat; transform: scaleY(-1); pointer-events: none; }
+@media (max-width: 820px) { ${s} .tm-tabbar { padding-left: max(6px, env(safe-area-inset-left)) !important; padding-right: max(6px, env(safe-area-inset-right)) !important; } }
 ${s} .tm-sidebar .tm-nav-active { background: transparent !important; border-left-color: transparent !important; box-shadow: none !important; color: var(--tm-nav-text-sec) !important; }
 ${s} .tm-sidebar .tm-nav-active > span:first-child { color: var(--tm-nav-accent) !important; }
 ${s} .tm-sidebar .tm-nav-active > img:first-child { filter: brightness(1.3); }
@@ -31,13 +37,22 @@ ${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; 
 ${s} :is(.tm-cs-head,.tm-nahled-head) :is(button,span,svg) { color: #F4F0EB !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) button { background: transparent !important; border-color: rgba(244,240,235,.45) !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) button:focus-visible { outline-color: #F4F0EB !important; }
-${s} .tm-cs-body { padding-top: 28px !important; }
-${s} .tm-nahled-head { top: 0 !important; left: 0 !important; right: 0 !important; padding: calc(13px + env(safe-area-inset-top)) 18px 10px; }
-${s} .tm-nahled-telo { top: calc(86px + env(safe-area-inset-top)) !important; }
+${s} .tm-cs { --land-sheet-pad: clamp(18px, calc(3 * var(--tm-vw)), 34px); padding: 0 !important; }
+${s} .tm-cs-head { top: 0 !important; margin: 0 !important; padding: 18px var(--land-sheet-pad) 12px !important; }
+${s} .tm-cs-body { padding: 28px var(--land-sheet-pad) 34px !important; }
+@media (max-width: 820px) {
+  ${s} .tm-cs { --land-sheet-pad: 16px; }
+  ${s} .tm-cs-head { padding: calc(env(safe-area-inset-top) + 11px) 16px 9px !important; }
+  ${s} .tm-cs-body { padding-bottom: var(--tm-kraj) !important; }
+}
+${s} .tm-nahled-head { z-index: 2; top: 0 !important; left: 0 !important; right: 0 !important; padding: calc(13px + env(safe-area-inset-top)) 18px 10px; }
+/* The scroll viewport reaches behind the fixed header; padding sets only its initial position. */
+${s} .tm-nahled-telo { top: 0 !important; padding-top: calc(86px + env(safe-area-inset-top)) !important; }
 ${s} .tm-pomo-backdrop { background: #1C1C1A var(--land-ash) center/768px auto !important; }
 ${s} .tm-wb-dot[aria-pressed="true"] { background: var(--tm-accent) !important; border-color: var(--tm-accent) !important; }
 /* Category strips sit directly on the field, including their fixed controls. */
 ${s} :is(.tm-tabsrow,.tm-typerow,.tm-tabsctrl), ${s} .tm-tabsctrl::before, ${s} .tm-tabsctrl > button { background: transparent !important; }
+${s} :is(.tm-tabsrow,.tm-tab-rail,[role="tablist"]) { border-bottom-color: transparent !important; }
 ${s} .tm-page { --land-bleed: clamp(28px, calc(4 * var(--tm-vw)), 72px); --land-line-height: clamp(40px, calc(15.63 * var(--tm-vw)), 70px); }
 @media (max-width: 820px) { ${s} .tm-page { --land-bleed: 14px; } }
 ${s} .tm-page-title { position: relative; isolation: isolate; --land-art: none; margin-bottom: calc(var(--land-line-height) + 8px); }
@@ -63,27 +78,28 @@ ${s} .tm-page-title[data-art-room="zapisnik"] { min-height: 118px; }
 ${s} .tm-page-title[data-art-room="zapisnik"]::before { inset: 0 54px auto auto; width: 100px; height: 144px; background-size: contain; background-position: right top; opacity: .5; }
 ${s} .tm-page-title:is([data-art-room="prameny"],[data-art-room="denik"]) { min-height: 116px; }
 ${s} .tm-page-title:is([data-art-room="prameny"],[data-art-room="denik"])::before { inset: -4px 52px auto auto; width: 152px; height: 106px; background-size: contain; background-position: right top; opacity: .5; }
+${s} .tm-page-title[data-art-room="prameny"]::before { top: -8px; width: 126px; height: 88px; transform: rotate(9deg); }
 ${s} .tm-page-title[data-art-room="praxe"] { min-height: 104px; }
-${s} .tm-page-title[data-art-room="praxe"]::before { inset: 0 8px auto auto; width: 152px; height: 92px; background-size: contain; background-position: right top; opacity: .28; }
+${s} .tm-page-title[data-art-room="praxe"]::before { inset: 0 8px auto auto; width: 142px; height: 100px; background-size: contain; background-position: right top; opacity: .28; }
 ${s} .tm-page-title[data-art-room="trenink"] { min-height: 144px; }
 ${s} .tm-page-title[data-art-room="trenink"]::before { inset: 0 0 auto auto; width: 194px; height: 124px; background-size: contain; background-position: right top; opacity: .65; }
-${s} .tm-page[data-room="klienti"] .tm-page-title { min-height: 160px; }
+${s} .tm-page[data-room="klienti"] .tm-page-title { min-height: 140px; }
 ${s} .tm-page[data-room="klienti"] .tm-page-title::before { inset: 0 0 auto auto; width: 218px; height: 140px; background-size: contain; background-position: right top; opacity: .55; }
 @media (min-width: 371px) and (max-width: 410px) {
-  ${s} .tm-page-title[data-art-room="prameny"]::before { width: 102px; height: 80px; }
+  ${s} .tm-page-title[data-art-room="prameny"]::before { right: 48px; width: 94px; height: 68px; }
   ${s} .tm-page-title[data-art-room="trenink"]::before { width: 164px; height: 108px; }
   ${s} .tm-page[data-room="klienti"] .tm-page-title::before { width: 184px; height: 122px; }
 }
 @media (max-width: 370px) {
   ${s} .tm-page-title[data-art-room="zapisnik"]::before { right: 44px; width: 60px; height: 90px; }
   ${s} .tm-page-title[data-art-room="denik"]::before { right: 44px; width: 88px; height: 66px; }
-  ${s} .tm-page-title[data-art-room="prameny"]::before { top: 0; right: 44px; width: 92px; height: 64px; }
+  ${s} .tm-page-title[data-art-room="prameny"]::before { top: 0; right: 48px; width: 84px; height: 60px; }
   ${s} .tm-page-title[data-art-room="prameny"] h1 { padding-top: 30px; }
   ${s} .tm-page-title[data-art-room="praxe"]::before { width: 128px; }
   ${s} .tm-page-title[data-art-room="trenink"]::before { width: 165px; }
   ${s} .tm-page[data-room="klienti"] .tm-page-title::before { width: 186px; }
   ${s} .tm-page-title[data-art-room="trenink"] h1, ${s} .tm-page[data-room="klienti"] .tm-page-title h1 { padding-top: 96px; }
 }
-@media print { ${s} .tm-page-title::before, ${s} .tm-page-title::after, ${s} .tm-ground::after, ${s} .tm-prose::after, ${s} .tm-compass-divider::after, ${s} .tm-cs-head::after { content: none; } }
+@media print { ${s} .tm-page-title::before, ${s} .tm-page-title::after, ${s} .tm-ground::after, ${s} .tm-prose::after, ${s} .tm-compass-divider::after, ${s} .tm-cs-head::after, ${s} .tm-tabbar::before { content: none; } }
 `;
 }
