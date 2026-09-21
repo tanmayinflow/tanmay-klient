@@ -180,10 +180,10 @@ export function createPracticeUI(deps) {
     const setP = (k, v) => st.updateDay(date, (d) => ({ plan: { ...(d.plan || {}), [k]: v } }));
     const [hov, setHov] = useState(false);
     return (
-      <div data-pv="zamer" style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "2px 0 4px" }}>
+      <div data-pv="zamer" style={{ display: "flex", alignItems: "center", gap: 16, margin: "2px 0 4px" }}>
         {/* the quiet door · "Today I am" and its small ring open the Mandala —
             the room of selves you tune into before you name the day */}
-        <button data-pv="mandala" className="tm-tap-c" onClick={() => go && go("mandala")} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} title={L("Osobní mandala · aspekty self", "Personal mandala · aspects of self")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}>
+        <button data-pv="mandala" className="tm-tap-c" onClick={() => go && go("mandala")} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} title={L("Osobní mandala · aspekty self", "Personal mandala · aspects of self")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", padding: 0, flexShrink: 0, lineHeight: "1.4", whiteSpace: "nowrap" }}>
           <span aria-hidden="true" style={{ position: "relative", width: 15, height: 15, flexShrink: 0, display: "inline-flex" }}>
             <span style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `1.5px solid ${hov ? t.accent : t.sand}`, transition: "border-color .3s ease, transform .4s ease", transform: hov ? "rotate(45deg)" : "none" }} />
             <span style={{ position: "absolute", left: "50%", top: 1.5, bottom: 1.5, width: 1, background: hov ? t.accent : t.borderSoft, transform: "translateX(-50%)", transition: "background .3s ease" }} />
@@ -192,7 +192,7 @@ export function createPracticeUI(deps) {
           </span>
           <span style={{ fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, color: hov ? t.accent : t.sand, transition: "color .3s ease" }}>{L("Dnes jsem", "Today I am")}</span>
         </button>
-        <input value={plan.iam || ""} onChange={(e) => setP("iam", e.target.value)} aria-label={L("Dnes jsem", "Today I am")} placeholder={L("charakter a příběhy, které držím…", "the character and stories I carry…")} className="tm-navod" style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: "none", color: t.heading, fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, padding: "2px 2px 4px", outline: "none", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }} />
+        <input value={plan.iam || ""} onChange={(e) => setP("iam", e.target.value)} aria-label={L("Dnes jsem", "Today I am")} placeholder={L("charakter a příběhy, které držím…", "the character and stories I carry…")} className="tm-navod" style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: "none", color: t.heading, fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, lineHeight: "1.4", padding: 0, outline: "none", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }} />
       </div>
     );
   }

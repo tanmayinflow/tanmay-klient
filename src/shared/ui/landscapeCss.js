@@ -21,7 +21,7 @@ ${s} .tm-sidebar-search { border-color: #754437 !important; }
 ${s}, ${s} body, ${s} .tm-scroll { scrollbar-width: none !important; scrollbar-gutter: auto !important; }
 ${s}::-webkit-scrollbar, ${s} body::-webkit-scrollbar, ${s} .tm-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
 ${s} .tm-tabbar { left: 0 !important; right: 0 !important; border: 0 !important; border-radius: 0 !important; overflow: visible !important; isolation: isolate; }
-${s} .tm-tabbar::before { content: ''; position: absolute; left: 0; right: 0; top: -23px; height: 24px; z-index: -1; background: #1C1C1A var(--land-ash) center top/768px auto; mask: url('/media/landscape/edge-wide.png') center 76%/160% 130px no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center 76%/160% 130px no-repeat; transform: scaleY(-1); pointer-events: none; }
+${s} .tm-tabbar::before { content: ''; position: absolute; left: 0; right: 0; top: -42px; height: 130px; z-index: -1; background: #1C1C1A var(--land-ash) center top/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; transform: scaleY(-1); pointer-events: none; }
 @media (max-width: 820px) { ${s} .tm-tabbar { padding-left: max(6px, env(safe-area-inset-left)) !important; padding-right: max(6px, env(safe-area-inset-right)) !important; } }
 ${s} .tm-sidebar .tm-nav-active { background: transparent !important; border-left-color: transparent !important; box-shadow: none !important; color: var(--tm-nav-text-sec) !important; }
 ${s} .tm-sidebar .tm-nav-active > span:first-child { color: var(--tm-nav-accent) !important; }

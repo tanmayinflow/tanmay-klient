@@ -1,3 +1,4 @@
+import { SidebarLines } from "./shared/ui/sidebarLines.jsx";
 import { TmIcon as FamilyIcon } from "./shared/ui/icons.jsx";
 import React, { useState, useContext, createContext } from "react";
 import { createPortal } from "react-dom";
@@ -13580,6 +13581,7 @@ export default function App() {
 
         <TmGround />
         <aside className={`tm-sidebar${menuOpen ? " open" : ""}${sideHidden ? " collapsed" : ""}`} style={{ width: 268, flexShrink: 0, background: t.bgSidebar, borderRight: `1px solid ${t.navBorder}`, padding: "26px 16px", overflowY: "auto", position: "relative", zIndex: 1 }}>
+          <SidebarLines />
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button className="tm-logo" onClick={() => go("praxe")} title={L("Zpět do dneška", "Back to today")} aria-label={L("Zpět do dneška", "Back to today")} style={{ display: "block", flex: "1 1 auto", minWidth: 0, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "0 8px 22px" }}>
             <span style={{ fontFamily: FONT_LOGO, fontWeight: 300, fontSize: 30, color: t.heading, letterSpacing: "0.04em" }}>
