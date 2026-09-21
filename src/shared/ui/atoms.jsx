@@ -72,7 +72,7 @@ export function createAtoms(deps) {
     const editable = pageKey && st.editMode;
     const h1Style = { fontFamily: "var(--tm-font-display)", fontWeight: 300, fontSize: 46, lineHeight: 1.1, color: t.heading, margin: 0, display: "flex", alignItems: "center", gap: 14 };
     const titleStyle = right ? { ...h1Style, minWidth: 0 } : h1Style;
-    const iconNode = icon && (typeof icon === "string" ? <span style={{ fontSize: 36 }}>{icon}</span> : icon);
+    const iconNode = icon && <span className="tm-page-icon">{typeof icon === "string" ? <span style={{ fontSize: 48 }}>{icon}</span> : React.isValidElement(icon) && typeof icon.type !== "string" ? React.cloneElement(icon, { size: 48 }) : icon}</span>;
     return (
       <div className="tm-page-title" data-art-room={artKey || pageKey || "other"}>
         <div style={{ marginBottom: 8 }}>

@@ -192,7 +192,7 @@ export function createPracticeUI(deps) {
           </span>
           <span style={{ fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, color: hov ? t.accent : t.sand, transition: "color .3s ease" }}>{L("Dnes jsem", "Today I am")}</span>
         </button>
-        <input value={plan.iam || ""} onChange={(e) => setP("iam", e.target.value)} aria-label={L("Dnes jsem", "Today I am")} placeholder={L("charakter a příběhy, které držím…", "the character and stories I carry…")} className="tm-navod" style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: `1px solid ${t.border}`, color: t.heading, fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, padding: "2px 2px 4px", outline: "none", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }} />
+        <input value={plan.iam || ""} onChange={(e) => setP("iam", e.target.value)} aria-label={L("Dnes jsem", "Today I am")} placeholder={L("charakter a příběhy, které držím…", "the character and stories I carry…")} className="tm-navod" style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: "none", color: t.heading, fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, padding: "2px 2px 4px", outline: "none", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }} />
       </div>
     );
   }

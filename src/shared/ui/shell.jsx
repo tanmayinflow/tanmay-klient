@@ -66,7 +66,8 @@ export const SHELL_ROOT_CSS = `
   --tm-dok-boky: 0px;       /* strany se dotýkají hran */
   --tm-dok-spod: min(var(--tm-safe-b), 10px);   /* jen mimo pruh gesta */
   --tm-dok-v: calc(var(--tm-dok-tl) + var(--tm-dok-pad) * 2 + var(--tm-dok-spod));
-  --tm-dok-misto: calc(var(--tm-dok-dno) + var(--tm-dok-v) + 10px);
+  --tm-dok-edge: 24px;
+  --tm-dok-misto: calc(var(--tm-dok-dno) + var(--tm-dok-v) + var(--tm-dok-edge) + 24px);
   --tm-kraj: calc(var(--tm-safe-b) + 12px);
 }
 `;
@@ -143,6 +144,8 @@ export function shellMobileCss(t) {
      nezabírá místo v proudu — bez ní by poslední karta končila
      pod ním. */
   .tm-page { padding: calc(16px + env(safe-area-inset-top)) 14px var(--tm-dok-misto) !important; }
+  main { scroll-padding-bottom: var(--tm-dok-misto); }
+  .tm-page :is(input,button,textarea) { scroll-margin-bottom: var(--tm-dok-misto); }
   /* při psaní dok mizí · rezerva po něm nesmí zůstat */
   body.tm-psani .tm-page { padding-bottom: var(--tm-kraj) !important; }
   /* PWA · content slides under the iPhone status bar; the glass bar

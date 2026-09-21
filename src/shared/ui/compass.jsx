@@ -44,7 +44,7 @@ export function createCompassUI(deps) {
   } = deps;
 
   // Ikonový systém · glyfy cílů a krajin, výběr vlastní ikony
-  const { TmObjIcon } = createIconUI({ useT, L });
+  const { TmObjIcon, TmIconPickerButton } = createIconUI({ useT, L });
 
   const lang = () => (getLang ? getLang() : "cs");
 
@@ -234,25 +234,25 @@ export function createCompassUI(deps) {
     const { t } = useT();
     const st = useStore();
     const [name, setName] = useState("");
-    const [icon, setIcon] = useState("");
+    const [iconId, setIconId] = useState(null);
     const save = () => {
       const v = name.trim();
       if (!v) return;
       if (st.listAreas().some((a) => a.name.toLowerCase() === v.toLowerCase())) { st.ask(L("Krajina s tímto jménem už existuje.", "A landscape with this name already exists."), null); return; }
-      st.addArea({ name: v, icon: icon.trim() || "▦" });
+      st.addArea({ name: v, icon: "▦", iconId: iconId || undefined });
       onDone && onDone();
     };
     return (
       <div style={{ background: t.callout, border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-md)", padding: 12, marginBottom: 14, boxShadow: t.shadow }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-          <input value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="◈" maxLength={4} aria-label={L("Ikona krajiny", "Landscape icon")} style={{ ...fieldStyle(t), width: 60, textAlign: "center", fontSize: 15 }} />
+          <TmIconPickerButton obj={{ iconId }} kind="area" onPick={setIconId} />
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") save(); }} placeholder={L("Název krajiny…", "Landscape name…")} style={{ ...fieldStyle(t), flex: 1, minWidth: 180 }} />
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={save} style={{ background: t.accent, color: t.onAccent || t.bg, border: "none", borderRadius: "var(--tm-r-sm)", padding: "7px 15px", cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13, fontWeight: 500 }}>{L("Vytvořit", "Create")}</button>
           <button onClick={onDone} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "7px 15px", cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{L("Zrušit", "Cancel")}</button>
         </div>
-        <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, fontStyle: "italic", marginTop: 8 }}>{L("Ikona: emoji nebo znak. Krajina se objeví ve všech filtrech a odznacích.", "Icon: an emoji or a symbol. The landscape appears in all filters and chips.")}</div>
+        <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, fontStyle: "italic", marginTop: 8 }}>{L("Vyber si ikonu. Krajina se objeví ve všech filtrech a odznacích.", "Choose an icon. The landscape appears in all filters and chips.")}</div>
       </div>
     );
   }

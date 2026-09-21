@@ -30,9 +30,12 @@ test('every shipped icon renders at small and regular sizes without exposing dec
   assert.ok(html.includes('aria-hidden="true"'));assert.ok(!/undefined|NaN/.test(html));
  }
 });
-test('optical variants change at 20px and retain inherited color and accessible labels',()=>{
- assert.match(render({id:'search',size:20}),/stroke-width="2.05"/);
- assert.match(render({id:'search',size:24}),/stroke-width="1.7"/);
+test('optical detail changes at 20px but displayed line weight stays constant',()=>{
+ for (const size of [12,16,20,24,40]) {
+  const width=Number(render({id:"search",size}).match(/stroke-width="([^"]+)"/)[1]);
+  assert.ok(Math.abs(width*size/24-1)<1e-9);
+ }
+ assert.match(render({id:"search",size:24}),/stroke-width="1"/);
  assert.match(render({id:'training',size:17}),/training-icon-small-v2.png/);
  assert.match(render({id:'training',size:38}),/training-icon-v2.png/);
  for(const id of ['search','practice']){
@@ -67,4 +70,14 @@ test('legacy standalone icon components no longer carry inline SVG drawings',()=
   ts.forEachChild(n,c=>walk(c,owner));
  }
  walk(sf);assert.deepEqual(violations,[]);
+});
+
+test('aspect image upload keeps successful files and reports failures without mixing galleries',async()=>{
+ const {uploadAspectImages}=jsxModule('src/shared/ui/aspectImages.jsx');
+ const stored=[]; let n=0;
+ const result=await uploadAspectImages([{type:'image/png',name:'one'},{type:'text/plain',name:'skip'},{type:'image/jpeg',name:'bad'}],{
+  uid:()=>String(++n),resize:async f=>{if(f.name==='bad')throw Error('decode');return f;},put:async(id,blob,name)=>stored.push({id,name})
+ });
+ assert.deepEqual(result,{added:[{id:'1m',r2id:'1m'}],failed:2});
+ assert.deepEqual(stored,[{id:'1m',name:'one'}]);
 });

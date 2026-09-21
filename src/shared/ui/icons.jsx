@@ -25,7 +25,7 @@ import { ICON_DRAWINGS, ICON_OPTICS } from "./iconDrawings.jsx";
 
 /** Kanonický kontrakt. Render: 16 mikro · 20 kompakt · 24 výchozí · 32 výběr. */
 export const TM_ICON_CONTRACT = Object.freeze({
-  viewBox: 24, stroke: 1.7, smallStroke: 2.05, smallMax: 20,
+  viewBox: 24, stroke: 1, smallStroke: 1, smallMax: 20,
   sizes: Object.freeze({ micro: 16, compact: 20, default: 24, prominent: 32 }),
 });
 
@@ -52,11 +52,11 @@ export function TmIcon({ id, size = 24, strokeWidth, label, className, style, ..
   const small = Number(size) <= ICON_OPTICS.smallMax;
   const body = ICON_DRAWINGS[key][small ? "small" : "regular"];
   const a11y = { role: label ? "img" : undefined, "aria-label": label || undefined, "aria-hidden": label ? undefined : true };
-  const base = { display: "block", flexShrink: 0, width: size, height: size, ...style };
+  const base = { display: "block", flexShrink: 0, width: `calc(${Number(size) || 24}px * var(--tm-read, 1))`, height: `calc(${Number(size) || 24}px * var(--tm-read, 1))`, ...style };
   if (typeof body === "string") return <span {...rest} {...a11y} className={className} data-tm-icon={key} data-icon-variant={small ? "small" : "regular"}
-    style={{ ...base, backgroundColor: "currentColor", mask: `url("${body}") center/contain no-repeat`, WebkitMask: `url("${body}") center/contain no-repeat` }} />;
+    style={{ ...base, backgroundColor: "currentColor", mask: `url("${body}") center/contain no-repeat`, WebkitMask: `url("${body}") center/contain no-repeat`, ...(key === "clients" || key === "notebook" ? { filter: "drop-shadow(.18px 0 currentColor) drop-shadow(-.18px 0 currentColor) drop-shadow(0 .18px currentColor) drop-shadow(0 -.18px currentColor)" } : {}) }} />;
   return <svg {...rest} {...a11y} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth={strokeWidth ?? (small ? ICON_OPTICS.smallStroke : ICON_OPTICS.regularStroke)} strokeLinecap="round" strokeLinejoin="round"
+    strokeWidth={24 / (Number(size) || 24)} strokeLinecap="round" strokeLinejoin="round"
     focusable="false" className={className} style={base} data-tm-icon={key} data-icon-variant={small ? "small" : "regular"}>{body}</svg>;
 }
 
