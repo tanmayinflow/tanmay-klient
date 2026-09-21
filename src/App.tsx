@@ -1,3 +1,4 @@
+import { editorInk, editorHighlight, EDITOR_INKS } from "./shared/ui/editorPalette.js";
 import { LifeDots } from "./shared/ui/lifeDots.jsx";
 import { SidebarLines } from "./shared/ui/sidebarLines.jsx";
 import { TmIcon as FamilyIcon } from "./shared/ui/icons.jsx";
@@ -1270,7 +1271,7 @@ const BRAND_INK = {
   sage: ["7c8c6e", "57684a", "566a45", "98a47f"],
   sand: ["c5b49a", "9a8763", "8f7a55", "d2be97"],
 };
-function inkHex(name, t) { return name === "copper" ? t.accent : name === "sage" ? t.sage : name === "sand" ? t.sand : null; }
+function inkHex(name, t) { return editorInk(name, t); }
 function normHex(c) {
   if (!c) return "";
   const s = String(c).trim().toLowerCase();
@@ -1278,18 +1279,20 @@ function normHex(c) {
   if (m) return [1, 2, 3].map((i) => (+m[i]).toString(16).padStart(2, "0")).join("");
   return s.replace(/[^0-9a-f]/g, "");
 }
-function inkName(color) { const h = normHex(color); if (!h) return null; for (const k in BRAND_INK) if (BRAND_INK[k].includes(h)) return k; return null; }
+function inkName(color, t) { const h = normHex(color); if (!h) return null; if(t) for(const k of ["copper","sage","sand"]) if(normHex(inkHex(k,t))===h)return k; for (const palette of Object.values(EDITOR_INKS)) for (const k in palette) if (normHex(palette[k]) === h) return k;
+  for (const k in BRAND_INK) if (BRAND_INK[k].includes(h)) return k; return null; }
 
 // inline renderer · recursive over {c|name}…{/c}, **bold**, *italic* (any nesting order)
 function richInline(s, t) {
   const out = [];
-  const re = /\{c\|(copper|sage|sand)\}([\s\S]*?)\{\/c\}|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*/g;
+  const re = /\{c\|(copper|sage|sand)\}([\s\S]*?)\{\/c\}|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|\{h\|(copper|sage|sand)\}([\s\S]*?)\{\/h\}/g;
   let last = 0, m, key = 0;
   while ((m = re.exec(String(s)))) {
     if (m.index > last) out.push(<React.Fragment key={key++}>{String(s).slice(last, m.index)}</React.Fragment>);
     if (m[1] != null) out.push(<span key={key++} style={{ color: inkHex(m[1], t) }}>{richInline(m[2], t)}</span>);
     else if (m[3] != null) out.push(<strong key={key++} style={{ fontWeight: 700 }}>{richInline(m[3], t)}</strong>);
     else if (m[4] != null) out.push(<em key={key++}>{richInline(m[4], t)}</em>);
+    else if (m[5] != null) out.push(<mark key={key++} style={{ background: editorHighlight(m[5], t), color: "inherit", borderRadius: 3, padding: "0 2px" }}>{richInline(m[6], t)}</mark>);
     last = re.lastIndex;
   }
   if (last < String(s).length) out.push(<React.Fragment key={key++}>{String(s).slice(last)}</React.Fragment>);
@@ -1333,13 +1336,14 @@ function mdToHtml(md, t) {
   const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const inline = (s) => {
     let html = "", last = 0, m;
-    const re = /\{c\|(copper|sage|sand)\}([\s\S]*?)\{\/c\}|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*/g;
+    const re = /\{c\|(copper|sage|sand)\}([\s\S]*?)\{\/c\}|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|\{h\|(copper|sage|sand)\}([\s\S]*?)\{\/h\}/g;
     while ((m = re.exec(s))) {
       if (m.index > last) html += esc(s.slice(last, m.index));
       if (m[1] != null) html += '<span style="color:' + (inkHex(m[1], t) || "") + '">' + inline(m[2]) + "</span>";
       else if (m[3] != null) html += "<b>" + inline(m[3]) + "</b>";
       else if (m[4] != null) html += "<i>" + inline(m[4]) + "</i>";
-      last = re.lastIndex;
+        else if (m[5] != null) html += '<mark class="tm-hl" data-highlight="' + m[5] + '" style="background:' + editorHighlight(m[5], t) + '">' + inline(m[6]) + '</mark>';
+    last = re.lastIndex;
     }
     html += esc(s.slice(last));
     return html;
@@ -1370,6 +1374,7 @@ function htmlToMd(root) {
       let inner = inline(n);
       if (isB && inner.trim()) inner = "**" + inner + "**";
       if (isI && inner.trim()) inner = "*" + inner + "*";
+      if (n.tagName === "MARK" && inner.trim()) { const h=n.getAttribute("data-highlight") || "sand"; if (["copper","sage","sand"].includes(h)) inner="{h|"+h+"}"+inner+"{/h}"; }
       if (cName && inner.trim()) inner = "{c|" + cName + "}" + inner + "{/c}";
       out += inner;
     });
@@ -1391,6 +1396,12 @@ function htmlToMd(root) {
   return lines.join("\n").replace(/\n+$/, "");
 }
 
+function tmHilite(name, theme) {
+    const sel=window.getSelection(); if(!sel?.rangeCount || sel.isCollapsed)return;
+    const r=sel.getRangeAt(0), mark=document.createElement("mark");
+    mark.setAttribute("data-highlight",name); mark.style.background=editorHighlight(name,theme);
+    mark.appendChild(r.extractContents()); r.insertNode(mark); r.selectNodeContents(mark); sel.removeAllRanges(); sel.addRange(r);
+  }
 function MdToolbar({ exec, onImage }) {
   const { t } = useT();
   const [, force] = useState(0);
@@ -1402,13 +1413,13 @@ function MdToolbar({ exec, onImage }) {
   }, []);
   const state = (c) => { try { return document.queryCommandState(c); } catch (err) { return false; } };
   const blockOn = (tag) => { try { return (document.queryCommandValue("formatBlock") || "").toLowerCase() === tag; } catch (err) { return false; } };
-  const curInk = (() => { try { return inkName(document.queryCommandValue("foreColor")); } catch (err) { return null; } })();
+  const curInk = (() => { try { return inkName(document.queryCommandValue("foreColor"), t); } catch (err) { return null; } })();
   const btn = (on) => ({ background: on ? hexA(t.accent, 0.16) : "transparent", border: `1px solid ${on ? t.accent : t.borderSoft}`, borderRadius: 8, cursor: "pointer", color: on ? t.accent : t.textSec, padding: "2px 9px", minWidth: 30, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center" });
   const block = (tag) => () => {
     const cur = (document.queryCommandValue("formatBlock") || "").toLowerCase();
     document.execCommand("formatBlock", false, cur === tag ? "div" : tag.toUpperCase());
   };
-  const inks = [["copper", t.accent], ["sage", t.sage], ["sand", t.sand]];
+  const inks = ["copper", "sage", "sand"].map(name => [name, inkHex(name, t)]);
   return (
     <div style={{ display: "flex", gap: 5, alignItems: "center", marginBottom: 7, flexWrap: "wrap" }}>
       <button type="button" title="Nadpis" onPointerDown={exec(block("h1"))} style={{ ...btn(blockOn("h1")), fontFamily: FONT_DISPLAY, fontSize: 14 }}>Aa</button>
@@ -1418,14 +1429,16 @@ function MdToolbar({ exec, onImage }) {
       <span style={{ width: 1, height: 16, background: t.borderSoft, margin: "0 2px" }} />
       <span style={{ position: "relative", display: "inline-flex" }}>
         <button type="button" title={L("Barva textu", "Text colour")} onPointerDown={(e) => { e.preventDefault(); setPalOpen((x) => !x); }} style={{ ...btn(curInk !== null), padding: "2px 6px", gap: 4 }}>
-          <span style={{ width: 13, height: 13, borderRadius: "50%", background: curInk === "copper" ? t.accent : curInk === "sage" ? t.sage : curInk === "sand" ? t.sand : t.text, border: `1px solid ${t.borderSoft}` }} />
+          <span style={{ width: 13, height: 13, borderRadius: "50%", background: inkHex(curInk, t) || t.text, border: `1px solid ${t.borderSoft}` }} />
           <span style={{ fontSize: 9 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
         </button>
         {palOpen && (
-          <span style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, zIndex: 30, display: "inline-flex", gap: 6, alignItems: "center", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "6px 9px", boxShadow: t.shadow }}>
+          <span style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, zIndex: 30, display: "inline-flex", flexWrap: "wrap", width: 270, gap: 6, alignItems: "center", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "6px 9px", boxShadow: t.shadow }}>
             {inks.map(([name, hex]) => (
               <button key={name} type="button" title={name} onPointerDown={(e) => { exec(() => document.execCommand("foreColor", false, hex))(e); setPalOpen(false); }} style={{ width: 20, height: 20, borderRadius: "50%", cursor: "pointer", background: hex, border: curInk === name ? `2px solid ${t.text}` : `1px solid ${t.borderSoft}`, padding: 0 }} />
             ))}
+            <span>{L("Zvýraznit", "Highlight")}</span>
+            {inks.map(([name]) => <button key={"h-"+name} type="button" title={L("Zvýraznit: ", "Highlight: ")+name} aria-label={L("Zvýraznit: ", "Highlight: ")+name} onPointerDown={exec(() => tmHilite(name,t))} style={{width:32,height:32,borderRadius:5,border:`1px solid ${t.border}`,background:editorHighlight(name,t),color:t.text,cursor:"pointer"}}>Aa</button>)}
             <span style={{ width: 1, height: 16, background: t.borderSoft }} />
             <button type="button" onPointerDown={(e) => { exec(() => document.execCommand("foreColor", false, t.text))(e); setPalOpen(false); }} style={{ ...btn(curInk === null), fontFamily: FONT_BODY, fontSize: 11, minWidth: 30, padding: "2px 8px" }}>{L("výchozí", "default")}</button>
           </span>
@@ -1458,7 +1471,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…") }) {
   const cleanup = (el) => {
     el.querySelectorAll("font").forEach((f) => {
       if (f.closest && f.closest("figure.tm-fig")) return;
-      const cName = inkName(f.getAttribute("color"));
+      const cName = inkName(f.getAttribute("color"), t);
       f.removeAttribute("color"); f.removeAttribute("size"); f.removeAttribute("face");
       if (cName) f.style.color = inkHex(cName, t);
     });
@@ -1467,11 +1480,12 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…") }) {
       const stAttr = n.getAttribute("style") || "";
       const keepB = /font-weight:\s*(bold|[6-9]00)/i.test(stAttr);
       const keepI = /font-style:\s*italic/i.test(stAttr);
-      const cName = inkName(n.style && n.style.color);
+      const cName = inkName(n.style && n.style.color, t);
       n.removeAttribute("style");
       if (keepB) n.style.fontWeight = "700";
       if (keepI) n.style.fontStyle = "italic";
       if (cName) n.style.color = inkHex(cName, t);
+      if (n.tagName === "MARK" && ["copper","sage","sand"].includes(n.getAttribute("data-highlight"))) n.style.background = editorHighlight(n.getAttribute("data-highlight"), t);
     });
   };
   const sync = () => {
@@ -13555,7 +13569,7 @@ export default function App() {
               t<span style={{ position: "relative" }}>a<Bindu size={5} style={{ position: "absolute", top: 4, left: 3.5 }} /></span>nmay
             </span>
           </button>
-            <button className="tm-gear" onClick={() => setSetsOpen(true)} title={L("Nastavení", "Settings")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, marginTop: -12, background: "transparent", border: "none", borderRadius: 10, color: t.navIcon, cursor: "pointer", flexShrink: 0 }}><TmIcNastaveni size={19} /></button>
+            <button className="tm-gear" onClick={() => { setMenuOpen(false); setSetsOpen(true); }} title={L("Nastavení", "Settings")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, marginTop: -12, background: "transparent", border: "none", borderRadius: 10, color: t.navIcon, cursor: "pointer", flexShrink: 0 }}><TmIcNastaveni size={19} /></button>
           </div>
           {NAV_GROUPS_ALL.map((g) => {
             const items = g.items.filter((f) => isEnabled(f.key));

@@ -59,7 +59,7 @@ function storage(store) {
 /** Přečte volbu. Nikdy nevyhodí výjimku a nikdy nevrátí nesmysl. */
 export function readAppearance(store) {
   const s = storage(store);
-  if (!s) return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: DEFAULT_PRESET };
+  if (!s) return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: "signature-auto" };
   let raw = null, v2 = null, legacy = null;
   try { raw = s.getItem(APPEARANCE_KEY); } catch (e) { /* soukromý režim */ }
   try { v2 = s.getItem(LEGACY_APPEARANCE_KEY); } catch (e) { /* soukromý režim */ }

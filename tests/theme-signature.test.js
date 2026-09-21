@@ -122,5 +122,5 @@ test("starší volání pořád ukazuje na Signature", () => {
   assert.equal(makeTheme("dark"), THEME_TANMAY.dark);
   assert.equal(THEME_TANMAY.light, resolveTheme("signature-day", false));
   assert.equal(THEME_TANMAY.dark, resolveTheme("signature-night", false));
-  assert.equal(DEFAULT_PRESET, "signature-auto");
+  assert.equal(DEFAULT_PRESET, "landscape-day");
 });

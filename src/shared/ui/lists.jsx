@@ -104,12 +104,12 @@ export function createListUI(deps) {
               {/* tvář · obrázek, jinak útržek stránky, jinak iniciála. Nikdy
                   dvakrát tentýž glyf — z toho se nedá nic vyčíst. */}
               <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", height: 108, borderBottom: `1px solid ${t.borderSoft}`, background: t.callout, overflow: "hidden" }}>
-                {f.img
+                {f.cover || (f.img
                   ? <img src={f.img} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                   : f.text
                     ? <><span className="tm-clamp5" style={{ alignSelf: "stretch", width: "100%", padding: "10px 11px 0", fontFamily: "var(--tm-font-body)", fontSize: 12, lineHeight: 1.62, color: t.textMuted, textAlign: "left" }}>{f.text}</span>
                       <span style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 26, background: `linear-gradient(${hexA(t.callout, 0)}, ${t.callout})` }} /></>
-                    : <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 36, color: t.sand, opacity: 0.5, lineHeight: 1 }}>{f.ini || "·"}</span>}
+                    : <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 36, color: t.sand, opacity: 0.5, lineHeight: 1 }}>{f.ini || "·"}</span>)}
                 {f.glyph && <span style={{ position: "absolute", left: 8, bottom: 7, color: t.sand, opacity: 0.5, display: "inline-flex" }}>{React.createElement(f.glyph, { size: 15 })}</span>}
                 {f.badge && <span style={{ position: "absolute", right: 9, bottom: 5, fontFamily: "var(--tm-font-display)", fontSize: 15, color: t.sand }}>{f.badge}</span>}
               </span>

@@ -33,13 +33,13 @@ ${s} :is(.tm-drawer,.tm-calcard,.tm-card,.tm-topbar) { background-image: var(--l
 ${s} :is(.tm-cs,.tm-nahled,.tm-zen) { background: var(--tm-document) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 /* Earth headers carry the website's actual outgoing contour; controls stay outside the mask. */
 ${s} :is(.tm-cs-head,.tm-nahled-head) { isolation: isolate; background: #754437 var(--land-earth) center top/768px auto !important; color: #F4F0EB !important; border-bottom-color: transparent !important; }
-${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -23px; height: 24px; z-index: -1; background: #754437 var(--land-earth) center bottom/768px auto; mask: url('/media/landscape/edge-wide.png') center 76%/160% 130px no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center 76%/160% 130px no-repeat; pointer-events: none; }
+${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -34px; height: 130px; z-index: -1; background: #754437 var(--land-earth) center bottom/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; pointer-events: none; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) :is(button,span,svg) { color: #F4F0EB !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) button { background: transparent !important; border-color: rgba(244,240,235,.45) !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) button:focus-visible { outline-color: #F4F0EB !important; }
 ${s} .tm-cs { --land-sheet-pad: clamp(18px, calc(3 * var(--tm-vw)), 34px); padding: 0 !important; }
 ${s} .tm-cs-head { top: 0 !important; margin: 0 !important; padding: 18px var(--land-sheet-pad) 12px !important; }
-${s} .tm-cs-body { padding: 28px var(--land-sheet-pad) 34px !important; }
+${s} .tm-cs-body { padding: 40px var(--land-sheet-pad) 34px !important; }
 @media (max-width: 820px) {
   ${s} .tm-cs { --land-sheet-pad: 16px; }
   ${s} .tm-cs-head { padding: calc(env(safe-area-inset-top) + 11px) 16px 9px !important; }
@@ -47,7 +47,7 @@ ${s} .tm-cs-body { padding: 28px var(--land-sheet-pad) 34px !important; }
 }
 ${s} .tm-nahled-head { z-index: 2; top: 0 !important; left: 0 !important; right: 0 !important; padding: calc(13px + env(safe-area-inset-top)) 18px 10px; }
 /* The scroll viewport reaches behind the fixed header; padding sets only its initial position. */
-${s} .tm-nahled-telo { top: 0 !important; padding-top: calc(86px + env(safe-area-inset-top)) !important; }
+${s} .tm-nahled-telo { top: 0 !important; padding-top: calc(98px + env(safe-area-inset-top)) !important; }
 ${s} .tm-pomo-backdrop { background: #1C1C1A var(--land-ash) center/768px auto !important; }
 ${s} .tm-wb-dot[aria-pressed="true"] { background: var(--tm-accent) !important; border-color: var(--tm-accent) !important; }
 /* Category strips sit directly on the field, including their fixed controls. */
@@ -78,17 +78,20 @@ ${s} .tm-page-title[data-art-room="zapisnik"] { min-height: 118px; }
 ${s} .tm-page-title[data-art-room="zapisnik"]::before { inset: 0 54px auto auto; width: 100px; height: 144px; background-size: contain; background-position: right top; opacity: .5; }
 ${s} .tm-page-title:is([data-art-room="prameny"],[data-art-room="denik"]) { min-height: 116px; }
 ${s} .tm-page-title:is([data-art-room="prameny"],[data-art-room="denik"])::before { inset: -4px 52px auto auto; width: 152px; height: 106px; background-size: contain; background-position: right top; opacity: .5; }
+${s} .tm-page-title[data-art-room="denik"]::before { top: 18px; }
 ${s} .tm-page-title[data-art-room="prameny"]::before { top: -8px; width: 126px; height: 88px; transform: rotate(9deg); }
 ${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"]) { min-height: 104px; }
 ${s} .tm-page-title:is([data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"])::before { inset: 0 8px auto auto; width: 128px; height: 100px; opacity: .32; }
 ${s} .tm-page-title[data-art-room="praxe"]::before { inset: 0 8px auto auto; width: 142px; height: 100px; background-size: contain; background-position: right top; opacity: .28; }
+${s} .tm-page-title[data-art-room="hospodareni"]::before { inset: 62px -8px auto auto; width: 80px; height: 60px; }
+${s} .tm-page-title[data-art-room="hospodareni"] { min-height: 138px; }
 ${s} .tm-page-title[data-art-room="trenink"] { min-height: 144px; }
 ${s} .tm-page-title[data-art-room="trenink"]::before { inset: 0 0 auto auto; width: 194px; height: 124px; background-size: contain; background-position: right top; opacity: .65; }
 ${s} .tm-page[data-room="klienti"] .tm-page-title { min-height: 140px; }
 ${s} .tm-page[data-room="klienti"] .tm-page-title::before { inset: 0 0 auto auto; width: 218px; height: 140px; background-size: contain; background-position: right top; opacity: .55; }
 @media (min-width: 371px) and (max-width: 410px) {
   ${s} .tm-page-title[data-art-room="prameny"]::before { right: 48px; width: 94px; height: 68px; }
-  ${s} .tm-page-title[data-art-room="trenink"]::before { width: 164px; height: 108px; }
+  ${s} .tm-page-title[data-art-room="trenink"]::before { width: 132px; height: 96px; }
   ${s} .tm-page[data-room="klienti"] .tm-page-title::before { width: 184px; height: 122px; }
 }
 @media (max-width: 370px) {

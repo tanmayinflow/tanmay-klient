@@ -69,8 +69,8 @@ test("devatenáct vzhledů: Signature, čtrnáct palet a Krajina ve dvou světle
   assert.deepEqual([...SIGNATURE_PRESET_IDS], ORDER.slice(0, 3));
   assert.deepEqual([...OPTIONAL_PRESET_IDS], ORDER.slice(3));
   assert.equal(OPTIONAL_PRESETS.length, 16);
-  assert.equal(DEFAULT_PRESET, "signature-auto");
-  assert.equal(RECOMMENDED_PRESET, "signature-auto");
+  assert.equal(DEFAULT_PRESET, "landscape-day");
+  assert.equal(RECOMMENDED_PRESET, "landscape-day");
   const cs = new Set(), en = new Set();
   for (const p of APPEARANCE_PRESETS) {
     assert.ok(p.labelCs && p.labelEn, `${p.id} nemá oba popisky`);

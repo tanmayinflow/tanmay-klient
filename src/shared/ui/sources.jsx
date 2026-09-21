@@ -1,4 +1,5 @@
 import { TmIcon as FamilyIcon } from "./icons.jsx";
+import { SourceCover } from "./sourceCover.jsx";
 // ----------------------------------------------------------------------
 // PRAMENY · dva původy, jedna místnost
 // ----------------------------------------------------------------------
@@ -116,11 +117,15 @@ export function createSourcesUI(deps) {
         <input ref={coverRef} type="file" accept="image/*" onChange={(ev) => pickCover(ev.target.files && ev.target.files[0])} style={{ display: "none" }} />
         {odTanmaye && <div style={{ marginBottom: 10 }}><OriginBadge s={e} /></div>}
         <button title={L("Nahrát obálku", "Upload cover")} disabled={odTanmaye} onClick={() => { if (!odTanmaye && coverRef.current) coverRef.current.click(); }} style={{ background: "transparent", border: "none", cursor: odTanmaye ? "default" : "pointer", padding: 0, marginBottom: 12, display: "block" }}>
-          {e.icon
-            ? <img src={imgSrc(e.icon)} alt="" style={{ width: 92, height: 128, objectFit: "cover", borderRadius: 8, border: `1px solid ${t.border}`, boxShadow: "0 8px 20px rgba(0,0,0,0.3)", display: "block" }} />
-            : <span style={{ width: 92, height: 128, borderRadius: 8, border: `1px dashed ${t.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 6, color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12 }}><span style={{ color: t.sand }}>{React.createElement(glyfTypu(e.type), { size: 26 })}</span>{L("nahrát obálku", "upload cover")}<span onClick={(ev) => { ev.stopPropagation(); findCover(); }} title={L("Otevře Google obrázky s názvem — obrázek stáhni a nahraj", "Opens Google Images for the title — download and upload it")} style={{ marginTop: 4, paddingTop: 6, borderTop: `1px dashed ${t.borderSoft}`, width: "72%", textAlign: "center", color: t.sand, fontSize: 12 }}>{L("Najít obálku", "Find cover")}</span></span>}
+          <span style={{ width: 92, height: 128, borderRadius: 8, border: `1px solid ${t.border}`, display: "block", overflow: "hidden" }}>
+            <SourceCover src={imgSrc(e.icon)} category={e.category} theme={t} glyph={glyfTypu(e.type)} variant="detail" />
+          </span>
         </button>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 }}>
+          {!odTanmaye && <>
+            <button onClick={() => coverRef.current?.click()} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textSec, fontFamily: "var(--tm-font-body)", fontSize: 12, minHeight: 32 }}>{L("Nahrát obálku", "Upload cover")}</button>
+            <button onClick={findCover} title={L("Otevře Google obrázky s názvem", "Opens Google Images for the title")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textSec, fontFamily: "var(--tm-font-body)", fontSize: 12, minHeight: 32 }}>{L("Najít obálku", "Find cover")}</button>
+          </>}
           {e.icon && !odTanmaye && <button onClick={() => { if (e.icon && e.icon.r2id) r2Del(e.icon.r2id); upd({ icon: null }); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{L("Odebrat", "Remove")}</button>}
         </div>
         <div style={{ marginBottom: 14 }}>
@@ -217,9 +222,9 @@ export function createSourcesUI(deps) {
         style={{ display: "flex", alignItems: "center", gap: 12, border: `1px solid ${selected || dragging ? t.accent : t.borderSoft}`, borderRadius: 10, margin: "8px 0", padding: "10px 12px", cursor: "pointer", background: selected ? hexA(t.accent, 0.07) : dragging ? hexA(t.accent, 0.08) : t.card, boxShadow: dragging ? t.shadowLift : t.shadow, transform: dragging ? "scale(1.008)" : "none", transition: "transform .12s ease, box-shadow .12s ease", userSelect: dragging ? "none" : "auto" }}
       >
         {selecting && <span className="tm-selmark" style={{ width: 22, height: 22, flexShrink: 0, borderRadius: 7, border: `1.5px solid ${selected ? t.accent : t.border}`, background: selected ? t.accent : "transparent", color: t.onAccent, fontSize: 12, lineHeight: "19px", textAlign: "center", touchAction: "none" }}>{selected ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>}
-        {e.icon
-          ? <img src={imgSrc(e.icon)} alt="" style={{ width: 30, height: 40, objectFit: "cover", borderRadius: 5, flexShrink: 0, border: `1px solid ${t.borderSoft}` }} />
-          : <span style={{ width: 30, flexShrink: 0, display: "inline-flex", justifyContent: "center", color: t.sand }}>{React.createElement(glyfTypu(e.type), { size: 19 })}</span>}
+        <span style={{ width: 30, height: 40, borderRadius: 5, flexShrink: 0, overflow: "hidden" }}>
+          <SourceCover src={imgSrc(e.icon)} category={e.category} theme={t} glyph={glyfTypu(e.type)} variant="row" />
+        </span>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 17, color: t.heading, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</span>
@@ -392,10 +397,7 @@ export function createSourcesUI(deps) {
         {e.origin === SOURCE_ORIGIN.COACH ? <OriginBadge s={e} /> : null}
       </>,
       face: {
-        img: e.icon ? imgSrc(e.icon) : null,
-        ini: (e.title || "·").trim().charAt(0).toUpperCase(),
-        glyph: e.icon ? null : (glyfTypu(e.type)),
-        badge: e.icon ? null : (e.score || null),
+        cover: <SourceCover src={imgSrc(e.icon)} category={e.category} theme={t} glyph={glyfTypu(e.type)} score={e.score} />,
       },
     });
 

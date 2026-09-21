@@ -3,7 +3,7 @@ export function ownerRefinementsCss() {
   return `
 :root { --tm-earth: #754437; --tm-on-earth: #F4F0EB; --tm-earth-nav-ink: #D69E87; }
 .tm-sidebar { isolation: isolate; overflow-x: hidden !important; scrollbar-width: none; scrollbar-gutter: auto !important; }
-.tm-sidebar .tm-gear { transform: translateX(var(--tm-gear-shift, -32px)); }
+.tm-sidebar .tm-gear { position: relative; left: var(--tm-gear-shift, -32px); transform: none !important; z-index: 2; }
 .tm-sidebar .tm-sidebar-search { width: var(--tm-search-width, calc(100% - 48px)); box-sizing: border-box; }
 .tm-sidebar .tm-sbdno { border-top: 0 !important; }
 .tm-sidebar .tm-history { position: relative; }
@@ -32,15 +32,15 @@ html[data-appearance] .tm-page-title[data-art-room="prameny"]::before { top: 18p
 @media (max-width: 370px) { .tm-page-title h1 { gap: 10px !important; } }
 @media print { .tm-sidebar-lines { display: none; } }
 .tm-morning-spells { margin: 36px auto 20px; max-width: 620px; color: var(--tm-heading); }
-.tm-morning-spells h2 { margin: 0 0 16px; text-align: center; font: 400 calc(25px * var(--tm-read, 1))/1.2 var(--tm-font-display); }
-.tm-spell-composition { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; gap: 14px; }
+.tm-morning-spells h2 { margin: 0 0 16px; text-align: center; font: 400 calc(20px * var(--tm-read, 1))/1.2 var(--tm-font-display); }
+.tm-spell-composition { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: start; gap: 14px; }
 .tm-spell-sword { display: block; width: 100%; height: 220px; background: currentColor; opacity: .52; mask: url('/media/icons/manjushri-sword.png') center/auto 100% no-repeat; -webkit-mask: url('/media/icons/manjushri-sword.png') center/auto 100% no-repeat; }
 .tm-spell-reading { min-width: 0; text-align: center; }
-.tm-spell-reading p { margin: 0; min-height: 0; font: italic 400 calc(21px * var(--tm-read, 1))/1.4 var(--tm-font-display); text-wrap: pretty; }
+.tm-spell-reading p { margin: 0; min-height: 0; font: italic 400 calc(17px * var(--tm-read, 1))/1.4 var(--tm-font-display); text-wrap: pretty; }
 .tm-spell-controls { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 18px; }
 .tm-spell-controls button { display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--tm-link); cursor: pointer; }
 .tm-spell-controls span { font: 400 12px/1.3 var(--tm-font-tag); letter-spacing: .12em; }
-@media (max-width: 370px) { .tm-spell-composition { grid-template-columns: 56px minmax(0, 1fr); gap: 10px; } .tm-spell-reading p { font-size: calc(19px * var(--tm-read, 1)); } }
+@media (max-width: 370px) { .tm-spell-composition { grid-template-columns: 56px minmax(0, 1fr); gap: 10px; } .tm-spell-reading p { font-size: calc(17px * var(--tm-read, 1)); } }
 
 `;
 }

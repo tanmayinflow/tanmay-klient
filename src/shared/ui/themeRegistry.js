@@ -96,12 +96,12 @@ export const OPTIONAL_PRESET_IDS = Object.freeze([
 /** Všechno kromě automatiky — vyřešené palety. */
 export const FIXED_PRESET_IDS = Object.freeze(APPEARANCE_PRESET_IDS.filter((id) => id !== "signature-auto"));
 
-/* Výchozí je automatika: kdo si nikdy nic nezvolil, má Signature podle
-   systému (rozhodnutí V2, V3 ho nemění). */
-export const DEFAULT_PRESET = "signature-auto";
+/* Nová instalace používá Krajina · Den (zadání 2026-09-21).
+   Uložené volby a návrat k dříve zvolené Signature zůstávají zachované. */
+export const DEFAULT_PRESET = "landscape-day";
 
-/** Doporučený vzhled. Signature zůstává normou domu. */
-export const RECOMMENDED_PRESET = "signature-auto";
+/** Aktuálně doporučený vzhled aplikace. */
+export const RECOMMENDED_PRESET = "landscape-day";
 
 // ----------------------------------------------------------------------
 // FUNKČNÍ BARVY · význam, ne dekorace
@@ -1612,7 +1612,7 @@ function migratePresetId(id) {
 export function normalizeAppearance(value) {
   if (typeof value === "string") {
     const preset = migratePresetId(value);
-    return { version: APPEARANCE_VERSION, preset, signature: isSignaturePreset(preset) ? preset : DEFAULT_PRESET };
+    return { version: APPEARANCE_VERSION, preset, signature: isSignaturePreset(preset) ? preset : "signature-auto" };
   }
   const v = value && typeof value === "object" ? value : {};
   let preset = DEFAULT_PRESET;
@@ -1621,7 +1621,7 @@ export function normalizeAppearance(value) {
   let signature = typeof v.signature === "string" && isSignaturePreset(v.signature) && v.signature !== undefined
     ? resolvePresetId(v.signature)
     : null;
-  if (!signature || !isSignaturePreset(signature)) signature = isSignaturePreset(preset) ? preset : DEFAULT_PRESET;
+  if (!signature || !isSignaturePreset(signature)) signature = isSignaturePreset(preset) ? preset : "signature-auto";
   return { version: APPEARANCE_VERSION, preset, signature };
 }
 
@@ -1648,12 +1648,12 @@ export function migrateLegacyAppearance(raw, legacy) {
     const preset = LEGACY_MODE_MIGRATION[legacy];
     return { version: APPEARANCE_VERSION, preset, signature: preset };
   }
-  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: DEFAULT_PRESET };
+  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: "signature-auto" };
 }
 
 /** Návrat na doporučený vzhled. */
 export function signatureAppearance() {
-  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: DEFAULT_PRESET };
+  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: "signature-auto" };
 }
 
 /** Zvol vzhled. Signature volba se pamatuje, volitelná paleta ji nepřepíše. */
