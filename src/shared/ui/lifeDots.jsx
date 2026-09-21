@@ -46,7 +46,7 @@ export function LifeDots({ total, lived, t, L }) {
     };
     art.onload = draw;
     art.onerror = draw;
-    art.src = "/media/landscape/memento-art-v2.png";
+    art.src = "/media/landscape/memento-art-v3.png";
     const observer = new ResizeObserver(draw);
     observer.observe(container);
     window.addEventListener("resize", draw);
@@ -54,7 +54,7 @@ export function LifeDots({ total, lived, t, L }) {
     return () => { disposed = true; art.onload = null; art.onerror = null; observer.disconnect(); window.removeEventListener("resize", draw); };
   }, [total, lived, t.text, t.accent]);
   return <div ref={wrap} className="tm-life-dots"><canvas ref={canvas} role="img" aria-label={L(
-    `${lived} prožitých dní z přibližně ${total}. Každá tečka je jeden den. Tmavší tečky značí prožitý čas. V tečkách vystupuje strom, pod ním zdobená lebka a níže dvojice tančících kostlivců.`,
-    `${lived} days lived out of approximately ${total}. Each dot is one day. Darker dots mark lived time. The dots form a tree, an ornate skull below it, then a pair of dancing skeletons.`
+    `${lived} prožitých dní z přibližně ${total}. Každá tečka je jeden den. Tmavší tečky značí prožitý čas. V tečkách vystupuje strom, pod ním zdobená lebka a níže slabika HUNG.`,
+    `${lived} days lived out of approximately ${total}. Each dot is one day. Darker dots mark lived time. The dots form a tree, an ornate skull below it, then the HUNG syllable.`
   )} style={{ display: "block", margin: "0 auto" }} /></div>;
 }
