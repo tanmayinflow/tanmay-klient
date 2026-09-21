@@ -7,13 +7,13 @@ export function landscapeCss() {
   const rooms = Object.entries(LANDSCAPE_ART).filter(([, art]) => art.shape !== 'horizon').map(([room, art]) =>
     `${s} .tm-page-title[data-art-room="${room}"] { --land-art: url('/media/landscape/${art.image}'); }`).join('\n');
   return `
-${s} { --land-paper: url('/media/landscape/linen.webp'); --land-ash: url('/media/landscape/ashes.webp'); --land-earth: url('/media/landscape/earth.webp'); --land-field: var(--land-paper); }
+${s} { --tm-action-material: url('/media/landscape/earth.webp'); --land-paper: url('/media/landscape/linen.webp'); --land-ash: url('/media/landscape/ashes.webp'); --land-earth: url('/media/landscape/earth.webp'); --land-field: var(--land-paper); }
 ${s} ::selection { background: var(--tm-selection) !important; color: var(--tm-selection-text) !important; }
 html[data-appearance="landscape-night"] { --land-field: var(--land-ash); }
 ${s} body, ${s} .tm-ground { background-image: var(--land-field) !important; background-size: 768px auto !important; }
 /* The terrain field now belongs only to Practice. Its fixed box clips the rotated art. */
 ${s} .tm-ground { overflow: hidden; }
-${s}:has(.tm-page[data-room="praxe"]) .tm-ground::after { content: ''; position: absolute; inset: auto -5% 0; height: clamp(110px, 25vh, 240px); background: var(--tm-link); mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; opacity: .12; transform: rotate(9deg); pointer-events: none; }
+${s}:has(.tm-page[data-room="praxe"] [data-practice-phase="rano"]) .tm-ground::after { content: ''; position: absolute; inset: auto -5% 0; height: clamp(110px, 25vh, 240px); background: var(--tm-link); mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; opacity: .12; transform: rotate(9deg); pointer-events: none; }
 ${s} :is(.tm-sidebar,.tm-tabbar) { background-image: var(--land-ash) !important; background-size: 768px auto !important; }
 ${s} .tm-sidebar .tm-logo > span { color: var(--tm-nav-text) !important; }
 ${s} .tm-sidebar-search { border-color: #754437 !important; }
@@ -21,7 +21,7 @@ ${s} .tm-sidebar-search { border-color: #754437 !important; }
 ${s}, ${s} body, ${s} .tm-scroll { scrollbar-width: none !important; scrollbar-gutter: auto !important; }
 ${s}::-webkit-scrollbar, ${s} body::-webkit-scrollbar, ${s} .tm-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
 ${s} .tm-tabbar { left: 0 !important; right: 0 !important; border: 0 !important; border-radius: 0 !important; overflow: visible !important; isolation: isolate; }
-${s} .tm-tabbar::before { content: ''; position: absolute; left: 0; right: 0; top: -42px; height: 130px; z-index: -1; background: #1C1C1A var(--land-ash) center top/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; transform: scaleY(-1); pointer-events: none; }
+${s} .tm-tabbar::before { content: ''; position: absolute; left: 0; right: 0; top: -42px; height: 130px; z-index: -1; background: #1C1C1A var(--land-ash) center top/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; transform: scaleY(-1) skewY(-1.3deg); pointer-events: none; }
 @media (max-width: 820px) { ${s} .tm-tabbar { padding-left: max(6px, env(safe-area-inset-left)) !important; padding-right: max(6px, env(safe-area-inset-right)) !important; } }
 ${s} .tm-sidebar .tm-nav-active { background: transparent !important; border-left-color: transparent !important; box-shadow: none !important; color: var(--tm-nav-text-sec) !important; }
 ${s} .tm-sidebar .tm-nav-active > span:first-child { color: var(--tm-nav-accent) !important; }

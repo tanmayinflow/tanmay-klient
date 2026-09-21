@@ -28,10 +28,10 @@ export function MorningSpells({ items, L }) {
   const index = wrapIndex(dailyIndex(new Date(day), items.length) + offset, items.length);
   const step = (direction) => setOffset((value) => wrapIndex(value + direction, items.length));
   return <section className="tm-morning-spells" aria-label={L("Věty proti zmaru", "Anti-doom spells")}>
-    <h2>{L("Věty proti zmaru", "Anti-doom spells")}</h2>
     <div className="tm-spell-composition">
       <span className="tm-spell-sword" role="img" aria-label={L("Maňdžušrího hořící meč moudrosti", "Manjushri’s flaming sword of wisdom")} />
       <div className="tm-spell-reading">
+        <h2>{L("Věty proti zmaru", "Anti-doom spells")}</h2>
         <p aria-live="polite" aria-atomic="true">{L(items[index].cs, items[index].en)}</p>
         <div className="tm-spell-controls">
           <button type="button" onClick={() => step(-1)} aria-label={L("Předchozí věta", "Previous statement")}><TmIcon id="back" size={18} /></button>

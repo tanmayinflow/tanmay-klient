@@ -35,7 +35,7 @@ export function tmButton(t, variant, opts) {
     opacity: o.disabled ? 0.45 : 1,
     transition: "background var(--tm-dur-fast) var(--tm-ease), border-color var(--tm-dur-fast) var(--tm-ease)",
   };
-  if (variant === "primary") return { ...zaklad, background: t.accent, color: t.onAccent, border: "none" };
+  if (variant === "primary") return { ...zaklad, background: t.accent, backgroundImage: "var(--tm-action-material, none)", backgroundSize: "768px auto", color: t.onAccent, border: "none" };
   if (variant === "danger") return { ...zaklad, background: "transparent", color: t.danger, border: `1px solid ${hexA(t.danger, 0.5)}` };
   if (variant === "ghost") return { ...zaklad, background: "transparent", color: t.textSec, border: "none" };
   return { ...zaklad, background: "transparent", color: t.text, border: `1px solid ${t.border}` };

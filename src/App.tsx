@@ -1,3 +1,4 @@
+import { LifeDots } from "./shared/ui/lifeDots.jsx";
 import { SidebarLines } from "./shared/ui/sidebarLines.jsx";
 import { TmIcon as FamilyIcon } from "./shared/ui/icons.jsx";
 import React, { useState, useContext, createContext } from "react";
@@ -746,40 +747,6 @@ function PageMemento({ go }) {
   const lived = birth ? Math.max(0, Math.min(total, Math.floor((new Date(todayISO() + "T12:00:00Z").getTime() - new Date(birth + "T12:00:00Z").getTime()) / 86400000) + 1)) : 0;
   const springs = birth ? Math.max(0, span - Math.floor((lived - 1) / 365.25)) : 0;
   const q = MEMENTO_QUOTES[qi];
-  const wrapRef = React.useRef(null);
-  const cvRef = React.useRef(null);
-  React.useEffect(() => {
-    if (!birth || editing) return;
-    const cv = cvRef.current, wrap = wrapRef.current;
-    if (!cv || !wrap) return;
-    const draw = () => {
-      const wCss = Math.max(240, Math.min(680, wrap.clientWidth || 320));
-      const cell = 4; // one day · a fine grain, drawn once, never moving
-      const cols = Math.floor(wCss / cell);
-      const rows = Math.ceil(total / cols);
-      const hCss = rows * cell + 2;
-      const dpr = (typeof window !== "undefined" && window.devicePixelRatio) || 1;
-      cv.width = Math.round(wCss * dpr); cv.height = Math.round(hCss * dpr);
-      cv.style.width = wCss + "px"; cv.style.height = hCss + "px";
-      const ctx = cv.getContext("2d");
-      if (!ctx) return;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, wCss, hCss);
-      for (let i = 0; i < total; i++) {
-        const x = (i % cols) * cell + cell / 2;
-        const y = Math.floor(i / cols) * cell + cell / 2;
-        ctx.beginPath();
-        if (i === lived - 1) { ctx.globalAlpha = 1; ctx.fillStyle = t.accent; ctx.arc(x, y, 1.9, 0, 6.2832); }
-        else if (i < lived) { ctx.globalAlpha = 0.55; ctx.fillStyle = t.text; ctx.arc(x, y, 1.05, 0, 6.2832); }
-        else { ctx.globalAlpha = 0.16; ctx.fillStyle = t.textMuted; ctx.arc(x, y, 1.05, 0, 6.2832); }
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    };
-    draw();
-    window.addEventListener("resize", draw);
-    return () => window.removeEventListener("resize", draw);
-  }, [birth, span, editing, t.mode, lived, total]);
   const saveCfg = () => {
     const b = (birthDraft || "").trim();
     if (!b) return;
@@ -808,8 +775,8 @@ function PageMemento({ go }) {
           </div>
         </div>
       ) : (
-        <div ref={wrapRef}>
-          <canvas ref={cvRef} style={{ display: "block", margin: "0 auto" }} />
+        <div>
+          <LifeDots total={total} lived={lived} t={t} L={L} />
           <div style={{ textAlign: "center", marginTop: 18 }}>
             <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{L("Den", "Day")} {lived.toLocaleString(L("cs-CZ", "en-GB"))} {L("z asi", "of about")} {total.toLocaleString(L("cs-CZ", "en-GB"))}.</div>
             <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5, color: t.textMuted, marginTop: 3 }}>{L(`Před tebou ještě asi ${springs} jar.`, `About ${springs} springs still ahead.`)}</div>

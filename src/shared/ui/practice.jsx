@@ -1079,7 +1079,7 @@ export function createPracticeUI(deps) {
       }
     };
     return (
-      <div id="dayview" style={{ margin: "8px 0 0" }}>
+      <div id="dayview" data-practice-phase={prah} style={{ margin: "8px 0 0" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", rowGap: 8, minWidth: 0 }}>
             {/* šipky dne bez rámečku · tlačítkem zůstávají, jen se nekreslí jako pole */}
