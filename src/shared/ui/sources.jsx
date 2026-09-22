@@ -1,3 +1,4 @@
+import { SourceLinks } from "./sourceLinks.jsx";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
 import { SourceCover } from "./sourceCover.jsx";
 // ----------------------------------------------------------------------
@@ -61,7 +62,7 @@ export function createSourcesUI(deps) {
     );
   }
 
-  function ContentDetail({ id, onClose, onExpand, wide }) {
+  function ContentDetail({ id, onClose, onExpand, wide, study = false, onStudy }) {
     const { t } = useT();
     const st = useStore();
     const e = sourcesOf(st).find((x) => x.id === id);
@@ -112,6 +113,7 @@ export function createSourcesUI(deps) {
       if (fileRef.current) fileRef.current.value = "";
     };
     const scoreN = e.score === "" || e.score == null ? null : +e.score;
+    if (study) return <article style={{maxWidth:720,margin:"0 auto",paddingBottom:80}}><h1 style={{fontFamily:"var(--tm-font-display)",fontWeight:400,fontSize:30,lineHeight:1.2}}>{e.title}</h1><p style={{color:t.textSec,fontFamily:"var(--tm-font-body)",fontSize:13}}>{[e.author,L("Postřehy ke studiu","Study notes")].filter(Boolean).join(" · ")}</p><RichArea value={odTanmaye?(e.note||""):(e.text||"")} onChange={v=>upd(odTanmaye?{note:v}:{text:v})} placeholder={L("Co si z toho odnáším…","What I take from it…")}/></article>;
     return (
       <div style={wide ? { maxWidth: 640 } : undefined}>
         <input ref={coverRef} type="file" accept="image/*" onChange={(ev) => pickCover(ev.target.files && ev.target.files[0])} style={{ display: "none" }} />
@@ -137,7 +139,6 @@ export function createSourcesUI(deps) {
         <PropRow icon="≡" label={L("Autor", "Author")}>{odTanmaye
           ? <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: e.author ? t.text : t.textMuted }}>{e.author || "—"}</span>
           : <input value={e.author || ""} onChange={(ev) => upd({ author: ev.target.value })} placeholder="—" aria-label={L("Autor", "Author")} style={{ width: "100%", background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none" }} />}</PropRow>
-        {!odTanmaye && <PropRow icon="▦" label={L("Dokončeno dne", "Date finished")}><input type="date" aria-label={L("Dokončeno dne", "Date finished")} value={e.dateFinished || ""} onChange={(ev) => upd({ dateFinished: ev.target.value })} style={{ background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none", colorScheme: t.mode === "light" ? "light" : "dark" }} /></PropRow>}
         {!odTanmaye && <PropRow icon="#" label={L("Skóre /10", "Score /10")}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <button onClick={() => upd({ score: String(Math.max(0, (scoreN == null ? 5 : scoreN) - 1)) })} aria-label={L("Ubrat bod", "Remove a point")} style={{ ...iconBtn(t), width: 26, height: 26 }}>−</button>
@@ -145,6 +146,8 @@ export function createSourcesUI(deps) {
             <button onClick={() => upd({ score: String(Math.min(10, (scoreN == null ? 5 : scoreN) + 1)) })} aria-label={L("Přidat bod", "Add a point")} style={{ ...iconBtn(t), width: 26, height: 26 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </span>
         </PropRow>}
+        <details style={{marginTop:12}}><summary style={{cursor:"pointer",fontFamily:"var(--tm-font-body)",fontSize:13,padding:"10px 0",color:t.textSec}}>{L("Další údaje a možnosti", "More details and options")}</summary>
+        {!odTanmaye && <PropRow icon="▦" label={L("Dokončeno dne", "Date finished")}><input type="date" aria-label={L("Dokončeno dne", "Date finished")} value={e.dateFinished || ""} onChange={(ev) => upd({ dateFinished: ev.target.value })} style={{ background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none", colorScheme: t.mode === "light" ? "light" : "dark" }} /></PropRow>}
         <PropRow icon="„" label={L("Věta, kterou si nesu", "A line I carry")}><input value={e.carry || ""} onChange={(ev) => upd({ carry: ev.target.value })} placeholder={L("jedna věta z tohoto pramene…", "one line from this source…")} style={{ width: "100%", background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none" }} /></PropRow>
         {!odTanmaye && <PropRow icon="⊙" label={L("Typ", "Type")}><button onClick={() => cycle(C_TYPES, e.type, "type")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Tag label={e.type ? C_TYPE_LABEL(e.type) : "—"} color={C_TYPE_COLOR[e.type] || "default"} /></button></PropRow>}
         {!odTanmaye && <PropRow icon="⊙" label={L("Žánr", "Genre")}><Select small value={e.category || ""} onChange={(v) => upd({ category: v })} placeholder="—" style={{ maxWidth: 170, width: 170 }} options={(C_CATS_BY_TYPE[e.type] || C_CATS).map((c) => ({ v: c, label: C_CAT_LABEL(c) }))} /></PropRow>}
@@ -153,6 +156,8 @@ export function createSourcesUI(deps) {
           <button onClick={() => upd({ archive: !e.archive })} title={e.archive ? L("Vrátit z archivu", "Restore from archive") : L("Archivovat", "Archive")} aria-label={e.archive ? L("Vrátit z archivu", "Restore from archive") : L("Archivovat", "Archive")} style={{ width: 26, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 4, border: `1.5px solid ${e.archive ? t.accent : t.border}`, background: e.archive ? t.accent : "transparent", cursor: "pointer", color: t.bg, fontSize: 12, lineHeight: 1, padding: 0 }}>{e.archive ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</button>
         </PropRow>)}
 
+        </details>
+        <SourceLinks key={e.id} entry={e} onUpdate={upd} theme={t} L={L} readOnly={odTanmaye}/>
         {odTanmaye && (e.why || e.instruction || e.excerpt) && (
           <div style={{ borderLeft: `2px solid ${hexA(t.accent, 0.4)}`, paddingLeft: 12, margin: "14px 0 4px" }}>
             {e.why && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 14, color: t.textSec, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{e.why}</div>}
@@ -183,6 +188,7 @@ export function createSourcesUI(deps) {
         <div style={{ borderTop: `1px solid ${t.borderSoft}`, marginTop: 14, paddingTop: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <div style={{ flex: 1, fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.sage }}>{L("Postřehy", "Notes")}</div>
+            {onStudy && <button type="button" onClick={onStudy} style={{...iconBtn(t),width:"auto",padding:"6px 10px",fontFamily:"var(--tm-font-body)",fontSize:12}}><FamilyIcon id="expand" size={15}/>{L("Studovat", "Study")}</button>}
             {ExportBtn && <ExportBtn small doc={() => ({
               title: e.title || L("Titul", "Title"),
               sub: [e.author, C_TYPE_LABEL(e.type)].filter(Boolean).join(" · "),
@@ -264,6 +270,7 @@ export function createSourcesUI(deps) {
     const setSortBy = (v) => st.setPageMeta("prameny", { sort: v });
     const [sel, setSel] = useState(null);   // drawer id
     const [full, setFull] = useState(null); // full-page id
+    const [study,setStudy] = useState(false);
     React.useEffect(() => { if (full) tmToTop(); }, [full]);
     // Prameny, které Tanmay odebral ze sdílení · poznámka po nich zůstává.
     const sirotci = typeof st.orphanSourceNotes === "function" ? st.orphanSourceNotes() : [];
@@ -326,8 +333,8 @@ export function createSourcesUI(deps) {
     if (full) {
       return (
         <>
-          <button onClick={() => setFull(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "0 0 16px", display: "inline-flex", alignItems: "center", gap: 6 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Prameny", "Sources")}</button>
-          <ContentDetail id={full} wide onClose={() => setFull(null)} />
+          <button onClick={() => {setFull(null);setStudy(false);}} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "0 0 16px", display: "inline-flex", alignItems: "center", gap: 6 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Prameny", "Sources")}</button>
+          <ContentDetail id={full} wide study={study} onStudy={()=>{setStudy(true);tmToTop();}} onClose={() => setFull(null)} />
         </>
       );
     }
@@ -393,11 +400,14 @@ export function createSourcesUI(deps) {
         {e.origin === SOURCE_ORIGIN.COACH ? <OriginBadge s={e} /> : null}
       </>,
       metaGal: <>
+        <span style={{display:"inline-flex",color:t.textSec}}>{React.createElement(glyfTypu(e.type),{size:14})}</span>
         <Tag label={C_PROG_LABEL(e.progress, e.type)} color={C_PROG_COLOR[e.progress] || "default"} />
         {e.origin === SOURCE_ORIGIN.COACH ? <OriginBadge s={e} /> : null}
+        {e.score !== "" && e.score != null && <span style={{marginLeft:"auto",fontFamily:"var(--tm-font-display)",fontSize:15,color:t.textSec}}>{e.score}<small style={{fontSize:10}}> /10</small></span>}
       </>,
       face: {
-        cover: <SourceCover src={imgSrc(e.icon)} category={e.category} theme={t} glyph={glyfTypu(e.type)} score={e.score} />,
+        noDivider: true,
+        cover: <SourceCover src={imgSrc(e.icon)} category={e.category} theme={t} glyph={glyfTypu(e.type)} />,
       },
     });
 
@@ -511,7 +521,7 @@ export function createSourcesUI(deps) {
 
         {sel && (
           <CenterSheet center title={((sourcesOf(st).find((x) => x.id === sel) || {}).title) || L("Titul", "Title")} onClose={() => setSel(null)}>
-            <ContentDetail id={sel} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />
+            <ContentDetail id={sel} onStudy={()=>{setStudy(true);setFull(sel);setSel(null);}} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />
           </CenterSheet>
         )}
       </>

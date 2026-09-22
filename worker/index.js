@@ -337,9 +337,9 @@ const CSP = [
   "script-src 'self' '" + INDEX_INLINE_SCRIPT_HASH + "'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://covers.openlibrary.org https://m.media-amazon.com",
   "media-src 'self' data: blob:",
-  "connect-src 'self'",
+  "connect-src 'self' https://openlibrary.org https://www.omdbapi.com",
   "worker-src 'self'",
   "manifest-src 'self'",
 ].join("; ");

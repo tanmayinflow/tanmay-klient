@@ -79,7 +79,7 @@ ${s} .tm-page-title[data-art-room="zapisnik"]::before { inset: 0 54px auto auto;
 ${s} .tm-page-title:is([data-art-room="prameny"],[data-art-room="denik"]) { min-height: 116px; }
 ${s} .tm-page-title:is([data-art-room="prameny"],[data-art-room="denik"])::before { inset: -4px 52px auto auto; width: 152px; height: 106px; background-size: contain; background-position: right top; opacity: .5; }
 ${s} .tm-page-title[data-art-room="denik"]::before { top: 18px; }
-${s} .tm-page-title[data-art-room="prameny"]::before { top: -8px; width: 126px; height: 88px; transform: rotate(9deg); }
+${s} .tm-page-title[data-art-room="prameny"]::before { top: -8px; width: 126px; height: 88px; transform: none; }
 ${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"]) { min-height: 104px; }
 ${s} .tm-page-title:is([data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"])::before { inset: 0 8px auto auto; width: 128px; height: 100px; opacity: .32; }
 ${s} .tm-page-title[data-art-room="praxe"]::before { inset: 0 8px auto auto; width: 142px; height: 100px; background-size: contain; background-position: right top; opacity: .28; }

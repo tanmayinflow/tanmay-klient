@@ -20,15 +20,11 @@ function CoverImage({ src, category, theme, glyph: Glyph, score, variant = "gall
       {image ? <img key={image} src={image} alt="" loading={variant === "detail" ? "eager" : "lazy"} decoding="async"
         onError={() => real ? setRealFailed(true) : setArtFailed(true)}
         style={{ display: "block", width: "100%", height: "100%", boxSizing: "border-box", objectFit: real ? "cover" : "contain",
-          padding: real ? 0 : gallery ? "6px 12px 24px" : small ? 1 : 5,
+          padding: real ? 0 : gallery ? "8px 12px" : small ? 1 : 5,
           opacity: real ? 1 : 0 }} />
         : Glyph && <span style={{ display: "inline-flex", color: theme.textMuted }}><Glyph size={small ? 19 : 32} /></span>}
-      {image && !real && <span aria-hidden="true" style={{ position: "absolute", inset: gallery ? "6px 12px 24px" : small ? 1 : 5,
+      {image && !real && <span aria-hidden="true" style={{ position: "absolute", inset: gallery ? "8px 12px" : small ? 1 : 5,
         background: theme.text, opacity: .54, mask: `url("${image}") center / contain no-repeat`, WebkitMask: `url("${image}") center / contain no-repeat`, pointerEvents: "none" }} />}
-      {!real && gallery && <>
-        {image && Glyph && <span style={{ position: "absolute", left: 8, bottom: 6, display: "inline-flex", color: theme.textMuted }}><Glyph size={15} /></span>}
-        {score !== "" && score != null && <span style={{ position: "absolute", right: 9, bottom: 4, fontFamily: "var(--tm-font-display)", fontSize: 15, lineHeight: 1, color: theme.textSec }}>{score}</span>}
-      </>}
     </span>
   );
 }

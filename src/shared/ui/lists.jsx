@@ -103,7 +103,7 @@ export function createListUI(deps) {
               {selecting && <VwMark on={on(it.id)} corner />}
               {/* tvář · obrázek, jinak útržek stránky, jinak iniciála. Nikdy
                   dvakrát tentýž glyf — z toho se nedá nic vyčíst. */}
-              <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", height: 108, borderBottom: `1px solid ${t.borderSoft}`, background: t.callout, overflow: "hidden" }}>
+              <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", height: 108, borderBottom: f.noDivider ? "none" : `1px solid ${t.borderSoft}`, background: t.callout, overflow: "hidden" }}>
                 {f.cover || (f.img
                   ? <img src={f.img} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                   : f.text

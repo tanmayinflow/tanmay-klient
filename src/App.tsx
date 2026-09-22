@@ -1,4 +1,4 @@
-import { editorInk, editorHighlight, EDITOR_INKS } from "./shared/ui/editorPalette.js";
+import { editorInk, editorHighlight, EDITOR_INKS, EDITOR_CHOICES, EDITOR_NAMES, EDITOR_LABELS } from "./shared/ui/editorPalette.js";
 import { LifeDots } from "./shared/ui/lifeDots.jsx";
 import { SidebarLines } from "./shared/ui/sidebarLines.jsx";
 import { TmIcon as FamilyIcon } from "./shared/ui/icons.jsx";
@@ -1279,13 +1279,13 @@ function normHex(c) {
   if (m) return [1, 2, 3].map((i) => (+m[i]).toString(16).padStart(2, "0")).join("");
   return s.replace(/[^0-9a-f]/g, "");
 }
-function inkName(color, t) { const h = normHex(color); if (!h) return null; if(t) for(const k of ["copper","sage","sand"]) if(normHex(inkHex(k,t))===h)return k; for (const palette of Object.values(EDITOR_INKS)) for (const k in palette) if (normHex(palette[k]) === h) return k;
+function inkName(color, t) { const h = normHex(color); if (!h) return null; if(t) for(const k of EDITOR_NAMES) if(normHex(inkHex(k,t))===h)return k; for (const palette of Object.values(EDITOR_INKS)) for (const k in palette) if (normHex(palette[k]) === h) return k;
   for (const k in BRAND_INK) if (BRAND_INK[k].includes(h)) return k; return null; }
 
 // inline renderer · recursive over {c|name}…{/c}, **bold**, *italic* (any nesting order)
 function richInline(s, t) {
   const out = [];
-  const re = /\{c\|(copper|sage|sand)\}([\s\S]*?)\{\/c\}|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|\{h\|(copper|sage|sand)\}([\s\S]*?)\{\/h\}/g;
+  const re = /\{c\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/c\}|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|\{h\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/h\}/g;
   let last = 0, m, key = 0;
   while ((m = re.exec(String(s)))) {
     if (m.index > last) out.push(<React.Fragment key={key++}>{String(s).slice(last, m.index)}</React.Fragment>);
@@ -1336,7 +1336,7 @@ function mdToHtml(md, t) {
   const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const inline = (s) => {
     let html = "", last = 0, m;
-    const re = /\{c\|(copper|sage|sand)\}([\s\S]*?)\{\/c\}|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|\{h\|(copper|sage|sand)\}([\s\S]*?)\{\/h\}/g;
+    const re = /\{c\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/c\}|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|\{h\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/h\}/g;
     while ((m = re.exec(s))) {
       if (m.index > last) html += esc(s.slice(last, m.index));
       if (m[1] != null) html += '<span style="color:' + (inkHex(m[1], t) || "") + '">' + inline(m[2]) + "</span>";
@@ -1374,7 +1374,7 @@ function htmlToMd(root) {
       let inner = inline(n);
       if (isB && inner.trim()) inner = "**" + inner + "**";
       if (isI && inner.trim()) inner = "*" + inner + "*";
-      if (n.tagName === "MARK" && inner.trim()) { const h=n.getAttribute("data-highlight") || "sand"; if (["copper","sage","sand"].includes(h)) inner="{h|"+h+"}"+inner+"{/h}"; }
+      if (n.tagName === "MARK" && inner.trim()) { const h=n.getAttribute("data-highlight") || "sand"; if (EDITOR_NAMES.includes(h)) inner="{h|"+h+"}"+inner+"{/h}"; }
       if (cName && inner.trim()) inner = "{c|" + cName + "}" + inner + "{/c}";
       out += inner;
     });
@@ -1419,7 +1419,7 @@ function MdToolbar({ exec, onImage }) {
     const cur = (document.queryCommandValue("formatBlock") || "").toLowerCase();
     document.execCommand("formatBlock", false, cur === tag ? "div" : tag.toUpperCase());
   };
-  const inks = ["copper", "sage", "sand"].map(name => [name, inkHex(name, t)]);
+  const inks = EDITOR_CHOICES.map(name => [name, inkHex(name, t)]);
   return (
     <div style={{ display: "flex", gap: 5, alignItems: "center", marginBottom: 7, flexWrap: "wrap" }}>
       <button type="button" title="Nadpis" onPointerDown={exec(block("h1"))} style={{ ...btn(blockOn("h1")), fontFamily: FONT_DISPLAY, fontSize: 14 }}>Aa</button>
@@ -1435,10 +1435,10 @@ function MdToolbar({ exec, onImage }) {
         {palOpen && (
           <span style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, zIndex: 30, display: "inline-flex", flexWrap: "wrap", width: 270, gap: 6, alignItems: "center", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "6px 9px", boxShadow: t.shadow }}>
             {inks.map(([name, hex]) => (
-              <button key={name} type="button" title={name} onPointerDown={(e) => { exec(() => document.execCommand("foreColor", false, hex))(e); setPalOpen(false); }} style={{ width: 20, height: 20, borderRadius: "50%", cursor: "pointer", background: hex, border: curInk === name ? `2px solid ${t.text}` : `1px solid ${t.borderSoft}`, padding: 0 }} />
+              <button key={name} type="button" title={L(...EDITOR_LABELS[name])} aria-label={L(...EDITOR_LABELS[name])} onPointerDown={(e) => { exec(() => document.execCommand("foreColor", false, hex))(e); setPalOpen(false); }} style={{ width: 20, height: 20, borderRadius: "50%", cursor: "pointer", background: hex, border: curInk === name ? `2px solid ${t.text}` : `1px solid ${t.borderSoft}`, padding: 0 }} />
             ))}
             <span>{L("Zvýraznit", "Highlight")}</span>
-            {inks.map(([name]) => <button key={"h-"+name} type="button" title={L("Zvýraznit: ", "Highlight: ")+name} aria-label={L("Zvýraznit: ", "Highlight: ")+name} onPointerDown={exec(() => tmHilite(name,t))} style={{width:32,height:32,borderRadius:5,border:`1px solid ${t.border}`,background:editorHighlight(name,t),color:t.text,cursor:"pointer"}}>Aa</button>)}
+            {inks.map(([name]) => <button key={"h-"+name} type="button" title={L("Zvýraznit: ", "Highlight: ")+L(...EDITOR_LABELS[name])} aria-label={L("Zvýraznit: ", "Highlight: ")+L(...EDITOR_LABELS[name])} onPointerDown={exec(() => tmHilite(name,t))} style={{width:32,height:32,borderRadius:5,border:`1px solid ${t.border}`,background:editorHighlight(name,t),color:t.text,cursor:"pointer"}}>Aa</button>)}
             <span style={{ width: 1, height: 16, background: t.borderSoft }} />
             <button type="button" onPointerDown={(e) => { exec(() => document.execCommand("foreColor", false, t.text))(e); setPalOpen(false); }} style={{ ...btn(curInk === null), fontFamily: FONT_BODY, fontSize: 11, minWidth: 30, padding: "2px 8px" }}>{L("výchozí", "default")}</button>
           </span>
@@ -1485,7 +1485,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…") }) {
       if (keepB) n.style.fontWeight = "700";
       if (keepI) n.style.fontStyle = "italic";
       if (cName) n.style.color = inkHex(cName, t);
-      if (n.tagName === "MARK" && ["copper","sage","sand"].includes(n.getAttribute("data-highlight"))) n.style.background = editorHighlight(n.getAttribute("data-highlight"), t);
+      if (n.tagName === "MARK" && EDITOR_NAMES.includes(n.getAttribute("data-highlight"))) n.style.background = editorHighlight(n.getAttribute("data-highlight"), t);
     });
   };
   const sync = () => {

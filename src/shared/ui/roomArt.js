@@ -5,7 +5,7 @@ export const ROOM_ART = Object.freeze({
   denik: 'journal-illustration-v3.png',
   kompas: 'compass-illustration-v1.png',
   zapisnik: 'reference-pine.webp',
-  prameny: 'sources-illustration-v1.png',
+  prameny: 'sources-tree-v2.png',
   klienti: 'clients-hand-v2.png',
   hospodareni: 'finance-illustration-v1.png',
   socsite: 'content-illustration-v1.png',
