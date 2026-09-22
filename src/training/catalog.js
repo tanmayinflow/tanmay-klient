@@ -103,6 +103,7 @@ export function warmupPolicyOf(row, meta) {
 
 // ---- sides -----------------------------------------------------------
 export function sideModeOf(row) {
+  if (row && ["none", "perSide", "alternating"].includes(row.sideMode)) return row.sideMode;
   const id = row && row.id;
   if (ALTERNATING.includes(id)) return "alternating";
   if (UNILATERAL.includes(id)) return "perSide";
