@@ -1,3 +1,4 @@
+import { TrainingGoals } from "./shared/ui/trainingGoals.jsx";
 import { editorInk, editorHighlight, EDITOR_INKS, EDITOR_CHOICES, EDITOR_NAMES, EDITOR_LABELS } from "./shared/ui/editorPalette.js";
 import { LifeDots } from "./shared/ui/lifeDots.jsx";
 import { SidebarLines } from "./shared/ui/sidebarLines.jsx";
@@ -33,7 +34,7 @@ import {
 } from "./shared/product/roles.js";
 import { habitSummary, goalSummary, validateShareSnapshot, SHARE_WINDOW_DAYS } from "./shared/product/visibility.js";
 import { createFigure } from "./shared/ui/figure.jsx";
-import { createOverlay } from "./shared/ui/overlay.jsx";
+import { useVrstva, createOverlay } from "./shared/ui/overlay.jsx";
 import { tmToTop } from "./shared/ui/overlay.js";
 import { createStates } from "./shared/ui/states.jsx";
 import { createPracticeUI } from "./shared/ui/practice.jsx";
@@ -6015,15 +6016,12 @@ const tPickInp = (t) => ({ background: t.sheet, border: `1px solid ${t.borderSof
 
 function TPickShell({ title, onClose, children, foot }) {
   const { t } = useT();
-  React.useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  return (
+  const panelRef = React.useRef(null);
+  useVrstva({ close: onClose, ref: panelRef });
+  return createPortal(
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(20,18,15,0.55)", zIndex: 220 }} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "min(700px, 95vw)", maxHeight: "86vh", display: "flex", flexDirection: "column", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: "0 28px 70px rgba(0,0,0,0.4)", zIndex: 230, padding: "18px 20px 8px" }}>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "min(700px, 95vw)", maxHeight: "86vh", display: "flex", flexDirection: "column", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: "0 28px 70px rgba(0,0,0,0.4)", zIndex: 230, padding: "18px 20px 8px" }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
           <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 24, color: t.heading }}>{title}</span>
           <button onClick={onClose} style={{ marginLeft: "auto", background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 16, padding: 4 }}><FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
@@ -6031,7 +6029,7 @@ function TPickShell({ title, onClose, children, foot }) {
         {children}
         {foot}
       </div>
-    </>
+    </>, document.body
   );
 }
 
@@ -9836,7 +9834,8 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   const st = useStore();
   const rec = tvClientRec(st, block.exId);
   const m = TV.measurementOf(block.measurementType);
-  const fields = m.fields.concat(m.secondary ? [m.secondary] : []);
+  const [extraLoad, setExtraLoad] = useState((block.sets || []).some(s => s.actual?.addedWeight > 0));
+  const fields = m.fields.concat(m.secondary && extraLoad ? [m.secondary] : []);
   const [open, setOpen] = useState(false);
   const complete = (sid) => onSession((s) => {
     const done = TV.completeSet(s, block.id, sid, Date.now());
@@ -9887,22 +9886,17 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
                 {sset.completed ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}
               </button>
             </span>
+            {block.rirEnabled && sset.type !== "warmup" ? <label style={{gridColumn:"2 / -1",fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,display:"flex",alignItems:"center",gap:8}}>
+              {L("Rezerva po této sérii", "Reserve after this set")}
+              <select aria-label={L("Rezerva série ", "Set reserve ")+(i+1)} value={sset.rir??""} onChange={e=>onSession(x=>TV.setRir(x,block.id,sset.id,e.target.value===""?null:Number(e.target.value)))} style={{...tvQuiet(t),minHeight:40}}>
+                <option value="">—</option>{[0,1,2,3,4,5].map(v=><option key={v} value={v}>{v===5?"5+":v}</option>)}
+              </select>
+            </label> : null}
           </div>
         ))}
       </div>
-
-      {block.rirEnabled ? (
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted }}>{L("Kolik ti zbývalo", "How much was left")}</span>
-          {[0, 1, 2, 3, 4, 5].map((v) => (
-            <button key={v} onClick={() => onSession((x) => {
-              let n = x;
-              for (const y of block.sets || []) if (y.completed) n = TV.setRir(n, block.id, y.id, v);
-              return n;
-            })} style={tvQuiet(t)}>{v}{v === 5 ? <FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</button>
-          ))}
-        </div>
-      ) : null}
+      {block.rirEnabled?<p style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,margin:0}}>{L("Rezerva = kolik dalších čistých opakování bys ještě zvládl. Cílovou rezervu drž podle předpisu, obvykle 2.", "Reserve = how many more clean repetitions you could do. Follow the prescribed reserve, usually 2.")}</p>:null}
+      {m.secondary?<label style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted}}><input type="checkbox" checked={extraLoad} onChange={e=>setExtraLoad(e.target.checked)}/>{L("Cvičím s přidanou zátěží", "I am adding extra load")}</label>:null}
 
       {rec && (rec.execution || rec.watchFor) ? (
         <>
@@ -9951,8 +9945,10 @@ function TvClientRunner({ sessionId, onClose }) {
   const all = st.tvSessions();
   const [rest, setRest] = useState(null);
   const [done, setDone] = useState(false);
-  const [eff, setEff] = useState(85);
-  const [note, setNote] = useState("");
+  const [eff, setEff] = useState(ses?.effort ?? 85);
+  const [pain,setPain]=useState(!!ses?.painJoints?.length);
+  const [technique,setTechnique]=useState((ses?.blocks||[]).filter(b=>b.techniqueFlagged).map(b=>b.id));
+  const [note, setNote] = useState(ses?.note || "");
   const nonce = React.useRef(0);
   React.useEffect(() => {
     const h = (e) => { if (e.key === "Escape") onClose(); };
@@ -9963,7 +9959,7 @@ function TvClientRunner({ sessionId, onClose }) {
   const counts = TV.countSets(ses);
   const patch = (fn) => st.tvEditSession(sessionId, fn);
   const finish = () => {
-    st.tvEditSession(sessionId, (x) => TV.finishSession(x, { effort: eff, note, now: Date.now() }));
+    st.tvEditSession(sessionId, (x) => TV.finishSession({...x,blocks:x.blocks.map(b=>({...b,techniqueFlagged:technique.includes(b.id)}))}, { effort: eff, note, painJoints: pain ? ["reported"] : [], now: Date.now() }));
     onClose();
   };
   return createPortal(
@@ -9992,6 +9988,9 @@ function TvClientRunner({ sessionId, onClose }) {
               <div style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted, marginBottom: 6 }}>{L("Úsilí dne", "Effort today")}</div>
               <TEffort value={eff} onChange={setEff} />
             </div>
+            <label style={{fontFamily:FONT_BODY,color:t.textSec}}><input type="checkbox" checked={pain} onChange={e=>setPain(e.target.checked)}/>{L("Při cvičení se objevila bolest", "I experienced pain while exercising")}</label>
+            {pain?<p>{L("Bolestivý cvik neopakuj. Do poznámky napiš, kde a při čem se bolest objevila, a domluv úpravu s trenérem.", "Do not repeat the painful exercise. Note where and when it occurred and agree on an adjustment with your coach.")}</p>:null}
+            <details><summary>{L("Technika k probrání", "Technique to discuss")}</summary>{ses.blocks.map(b=><label key={b.id} style={{display:"block",padding:"7px 0"}}><input type="checkbox" checked={technique.includes(b.id)} onChange={()=>setTechnique(v=>v.includes(b.id)?v.filter(id=>id!==b.id):[...v,b.id])}/>{TL(b.name)}</label>)}</details>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={L("Poznámka pro trenéra", "A note for your coach")}
               style={{ width: "100%", background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 10, color: t.textSec, fontFamily: FONT_BODY, fontSize: 14 }} />
             <button onClick={finish} className="tm-cta" style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 12, padding: "14px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 50 }}>
@@ -10184,6 +10183,8 @@ function PageTrenink() {
   const st = useStore();
   React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, []);
   const [tab, setTab] = useState("dnes");
+  const [planStatus,setPlanStatus] = useState({state:""});
+  React.useEffect(()=>{const fn=e=>setPlanStatus(e.detail);window.addEventListener("tm-plan-status",fn);window.dispatchEvent(new Event("tm-plan-refresh"));return ()=>window.removeEventListener("tm-plan-status",fn);},[]);
   const [run, setRun] = useState(null);
   const [clock, setClock] = useState(null);
   const [openEx, setOpenEx] = useState(null);
@@ -10237,8 +10238,8 @@ function PageTrenink() {
 
   const tabs = [
     { k: "dnes", cz: "Dnes", en: "Today" },
-    { k: "plan", cz: "Plán", en: "Plan" },
-    { k: "zaznam", cz: "Záznam", en: "Record" },
+    { k: "plan", cz: "Můj plán", en: "My plan" },
+    { k: "zaznam", cz: "Můj pokrok", en: "My progress" },
     { k: "knihovna", cz: "Knihovna", en: "Library" },
     { k: "casovac", cz: "Časovač", en: "Timer" },
   ];
@@ -10260,9 +10261,15 @@ function PageTrenink() {
       ) : null}
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18 }}>
-        {tabs.map((x) => <TChip key={x.k} label={L(x.cz, x.en)} active={tab === x.k} onClick={() => setTab(x.k)} />)}
+        {tabs.slice(0,3).map((x) => <TChip key={x.k} label={L(x.cz, x.en)} active={tab === x.k} onClick={() => setTab(x.k)} />)}
       </div>
 
+      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,marginBottom:12}}>
+        <button style={tvQuiet(t)} disabled={planStatus.state==="loading"} onClick={()=>window.dispatchEvent(new Event("tm-plan-refresh"))}>{L("Obnovit plán", "Refresh plan")}</button>
+        <span role="status">{planStatus.state==="error"?L("Aktualizaci se nepodařilo ověřit. Poslední uložený plán zůstává dostupný.", "Could not check updates. The last saved plan remains available."):planStatus.state==="loading"?L("Ověřuji plán…", "Checking plan…"):planStatus.at?L("Plán ověřen", "Plan checked")+" · "+new Date(planStatus.at).toLocaleTimeString():""}</span>
+        <details><summary>{L("Další nástroje", "More tools")}</summary>{tabs.slice(3).map(x=><button key={x.k} style={tvQuiet(t)} onClick={()=>setTab(x.k)}>{L(x.cz,x.en)}</button>)}</details>
+      </div>
+      {(tab === "plan" || tab === "zaznam") && <TrainingGoals t={t} plans={del?.plans || []} sessions={sessions} />}
       {tab === "dnes" && (
         <div className="tm-view" style={{ padding: "20px 18px", textAlign: "center" }}>
           {todays.length ? (
@@ -10287,7 +10294,7 @@ function PageTrenink() {
             <>
               <Bindu size={7} style={{ margin: "0 auto 10px" }} />
               <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 28, color: t.heading }}>{L("Odtrénováno.", "Done for today.")}</div>
-              <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, marginTop: 6 }}>{L("Zítra tu bude další.", "Tomorrow there will be another.")}</div>
+              <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, marginTop: 6 }}>{L("Další trénink najdeš ve svém plánu.", "Find the next session in your plan.")}</div>
             </>
           ) : (
             <>
@@ -12240,30 +12247,29 @@ export default function App() {
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [conflict]);
-  // ---- plán od trenéra ------------------------------------------------------
-  // Plán leží mimo klientův stavový dokument schválně: klientská synchronizace je
-  // poslední-zápis-vyhrává a plán by tím byla otázka času, kdy zmizí. Čte se sem,
-  // ukládá se jako doručený balík a klient ho nikdy nepřepisuje.
+  // Delivered plans refresh independently of private client state.
   React.useEffect(() => {
     if (ownerId === null) return;
-    let dead = false;
-    const pull = () => {
-      fetch("/api/plan", { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((b) => {
-          if (dead || !b) return;
-          const doc = b.doc || null;
-          const cur = (TV.trainingOf(_collRef.current) || {}).delivered || null;
-          const same = JSON.stringify(cur && cur.at) === JSON.stringify(doc && doc.at);
-          if (!same) persistColl((c) => TV.patchTraining(c, { delivered: doc, deliveredAt: Date.now() }));
-        })
-        .catch(() => { /* offline · doručený plán zůstává ten, co už tu je */ });
+    let dead=false, sequence=0;
+    const announce = detail => window.dispatchEvent(new CustomEvent("tm-plan-status",{detail}));
+    const pull = async () => {
+      const requestId=++sequence; announce({state:"loading"});
+      try {
+        const r=await fetch("/api/plan",{cache:"no-store"});
+        if(!r.ok)throw Error(); const b=await r.json();
+        if(dead||requestId!==sequence)return;
+        if(TV.deliveryIssues(b.doc).length)throw Error();
+        const old=TV.trainingOf(_collRef.current)||{};
+        if((old.deliveredRevision||0)>(b.updated_at||0))return;
+        if(TV.planContent(old.delivered)!==TV.planContent(b.doc)||old.deliveredRevision!==b.updated_at) persistColl(c=>TV.patchTraining(c,{delivered:b.doc||null,deliveredRevision:b.updated_at,deliveredAt:Date.now()}));
+        announce({state:"ready",at:Date.now()});
+        if(b.updated_at) fetch("/api/plan/received",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({revision:b.updated_at})}).catch(()=>{});
+      } catch {if(!dead&&requestId===sequence)announce({state:"error"});}
     };
-    pull();
-    const onOnline = () => pull();
-    window.addEventListener("online", onOnline);
-    return () => { dead = true; window.removeEventListener("online", onOnline); };
-  }, [ownerId]);
+    const visible=()=>{if(document.visibilityState==="visible")pull();};
+    pull();window.addEventListener("online",pull);window.addEventListener("tm-plan-refresh",pull);document.addEventListener("visibilitychange",visible);
+    return ()=>{dead=true;window.removeEventListener("online",pull);window.removeEventListener("tm-plan-refresh",pull);document.removeEventListener("visibilitychange",visible);};
+  },[ownerId]);
 
   // ---- cíle od Tanmaye ------------------------------------------------------
   // Týž kanál jako plán: leží mimo klientův stavový dokument, klient je nikdy

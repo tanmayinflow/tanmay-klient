@@ -41,14 +41,17 @@ export function rangeOf(planned) {
 export function evaluateBlock(block, opts) {
   const o = opts || {};
   const m = measurementOf(block.measurementType);
-  const working = setsOf(block).filter((s) => s.completed && isWorkingSet(s));
-  if (!working.length) return null;
+  const prescribed = setsOf(block).filter(isWorkingSet);
+  const working = prescribed.filter((s) => s.completed);
 
   const why = [];
   const rirTarget = o.rirTarget == null ? 1 : o.rirTarget;
 
   // Pain reported on a joint this exercise loads outranks everything.
-  if (o.painNow) return mk("hold", block, ["Bolest je čerstvá. Dneska se nic nepřidává.", "The pain is recent. Nothing goes up today."], null);
+  if (o.painNow) return {...mk("hold", block, ["Bolest je čerstvá. Dneska se nic nepřidává.", "The pain is recent. Nothing goes up today."], null), safety: true};
+  if (o.techniqueFlagged || block.techniqueFlagged) return {...mk("hold", block, ["Technika potřebuje zkontrolovat. Nejdřív ji prober s trenérem, zátěž teď nepřidávej.", "Technique needs a review. Check it with your coach before adding load."], null), safety: true};
+  if (!working.length) return null;
+  if (working.length !== prescribed.length) return mk("hold", block, ["Část předepsaných sérií chybí. Z neúplného záznamu zátěž nezvyšujeme.", "Some prescribed sets are missing. An incomplete record cannot justify increasing load."], null);
 
   // A coordination skill's numbers swing from day to day. That is what
   // practice looks like; it is not a plateau and it is not fatigue.
@@ -68,9 +71,14 @@ export function evaluateBlock(block, opts) {
   if (!usesReps) {
     // Holds and distances have their own rule: reached the prescription
     // twice in a row, so ask for a little more.
-    const target = n(working[0].planned.targetDurationSec) || n(working[0].planned.targetDistanceM);
-    const got = m.k === "DURATION" || m.k === "WEIGHT_DURATION" ? n(working[working.length - 1].actual.durationSec) : n(working[working.length - 1].actual.distanceM);
-    if (target && got != null && got >= target && (o.streakAtPrescription || 0) >= 1) {
+    const timed = m.k === "DURATION" || m.k === "WEIGHT_DURATION";
+    const allMet = working.every((s) => {
+      const target = n((s.planned || {})[timed ? "targetDurationSec" : "targetDistanceM"]);
+      const got = n((s.actual || {})[timed ? "durationSec" : "distanceM"]);
+      const load=n((s.planned||{}).targetWeight), actualLoad=n((s.actual||{}).weight);
+      return target > 0 && got != null && got >= target && (m.k!=="WEIGHT_DURATION" || (actualLoad!=null && (load==null || actualLoad>=load)));
+    });
+    if (allMet && (o.streakAtPrescription || 0) >= 1) {
       return mk("advance", block, ["Předpis sedí už podruhé. Příště o kousek víc.", "The prescription has held twice. A little more next time."], suggestFor(block, m, +1));
     }
     return mk("repeat", block, ["Zůstaň u téhle dávky, dokud nesedí v klidu.", "Stay with this dose until it sits calmly."], null);
@@ -79,15 +87,19 @@ export function evaluateBlock(block, opts) {
   if (!range) return mk("measure", block, ["Bez předepsaného rozsahu se nedá říct, jestli je čas přidat.", "Without a prescribed range there is nothing to judge against."], null);
 
   const [lo, hi] = range;
-  const reps = working.map((s) => n(s.actual.reps) || 0);
-  const allTop = reps.every((r) => r >= hi);
-  const anyBelow = reps.some((r) => r < lo);
-  const rirs = working.map((s) => s.rir).filter((v) => v != null);
-  const lastRir = rirs.length ? rirs[rirs.length - 1] : null;
-  const avgRir = rirs.length ? rirs.reduce((a, b) => a + b, 0) / rirs.length : null;
-  const rirOk = rirs.length === 0 ? true : (avgRir != null && avgRir >= rirTarget) || (lastRir != null && lastRir >= rirTarget);
-
-  if (o.techniqueFlagged) return mk("hold", block, ["Technika byla označená. Nejdřív tvar, potom váha.", "The technique was flagged. Shape first, then load."], null);
+  const allTop = working.every((s) => n((s.actual || {}).reps) >= (rangeOf(s.planned) || [lo, hi])[1]);
+  const anyBelow = working.some((s) => n((s.actual || {}).reps) < (rangeOf(s.planned) || [lo, hi])[0]);
+  const rirKnown = working.every((s) => s.rir != null && Number.isFinite(Number(s.rir)));
+  const rirOk = rirKnown && working.every((s) => Number(s.rir) >= Math.max(rirTarget, n((s.planned || {}).targetRir) || 0));
+  const loadField = m.k === "ASSISTED_REPS" ? ["targetAssistance", "assistance"] : ["targetWeight", "weight"];
+  const loadMet = working.every((s) => {
+    const target = n((s.planned || {})[loadField[0]]);
+    const actual = n((s.actual || {})[loadField[1]]);
+    if (target == null) return !["WEIGHT_REPS","ADDED_WEIGHT_REPS","ASSISTED_REPS"].includes(m.k) || actual != null;
+    return actual != null && (m.k === "ASSISTED_REPS" ? actual <= target : actual >= target);
+  });
+  if (allTop && !loadMet) return mk("repeat", block, ["Opakování sedí, ale předepsaná zátěž nebo dopomoc není potvrzená. Nejdřív ověř záznam.", "Repetitions are met, but the prescribed load or assistance is not confirmed. Check the record first."], null);
+  if (allTop && !rirKnown) return mk("measure", block, ["Opakování jsou splněná, rezerva ale není zapsaná u všech sérií. Pro zvýšení zátěže ji nejdřív ověř s trenérem.", "Repetitions are met, but reserve is not recorded for every set. Check it with your coach before increasing load."], null);
 
   if (allTop && rirOk) {
     why.push(o.assisted
@@ -113,19 +125,19 @@ function mk(k, block, why, suggestion) {
 // still a change is the one that keeps working for months.
 export function suggestFor(block, m, dir, opts) {
   const o = opts || {};
-  const first = setsOf(block)[0] || {};
+  const first = setsOf(block).find(isWorkingSet) || {};
   const p = first.planned || {};
   const range = rangeOf(p);
   switch (m.k) {
     case "WEIGHT_REPS":
     case "ADDED_WEIGHT_REPS": {
-      const cur = n(p.targetWeight) || 0;
+      const cur = n(p.targetWeight) ?? n((first.actual||{}).weight) ?? 0;
       const step = o.step || (cur >= 60 ? 5 : cur >= 20 ? 2.5 : 1.25);
       const next = Math.max(0, cur + dir * step);
       return { targetWeight: next, targetRepsMin: range ? range[0] : undefined, targetRepsMax: range ? range[1] : undefined, note: ["Zpátky na spodní hranici rozsahu.", "Back to the bottom of the range."] };
     }
     case "ASSISTED_REPS": {
-      const cur = n(p.targetAssistance) || 0;
+      const cur = n(p.targetAssistance) ?? n((first.actual||{}).assistance) ?? 0;
       const step = o.step || 5;
       // Down is forward here.
       return { targetAssistance: Math.max(0, cur - dir * step), targetRepsMin: range ? range[0] : undefined, targetRepsMax: range ? range[1] : undefined };
@@ -162,8 +174,8 @@ export function evaluateSession(session, ctx) {
     const v = evaluateBlock(b, per);
     if (v) out.push(v);
   }
-  const rank = { advance: 0, reduce: 1, hold: 2, measure: 3, practice: 4, repeat: 5 };
-  return out.sort((a, b) => (rank[a.k] - rank[b.k]));
+  const rank = { hold: 0, reduce: 1, measure: 2, practice: 3, repeat: 4, advance: 5 };
+  return out.sort((a, b) => Number(!!b.safety)-Number(!!a.safety) || (rank[a.k] - rank[b.k]));
 }
 
 export { compareSets };

@@ -1,3 +1,4 @@
+import { readDelivery, writeDelivery, receiveDelivery } from "../src/training/deliveryStore.js";
 // tanmay-klient — Worker (client edition).
 //
 // Client Operations V1 adds the client half of the booking domain. It reads
@@ -117,15 +118,13 @@ async function ensureSchema(env) {
 // ---- Plán od Tanyho · jen ke čtení ----------------------------------------
 // Klient plán neupravuje. Co s ním udělal, se vrací kanálem share, ne sem.
 async function handlePlan(request, env, userId) {
-  if (request.method !== "GET") {
-    return Response.json({ ok: false, error: "method not allowed" }, { status: 405 });
+  if (new URL(request.url).pathname.endsWith("/received") && request.method === "POST") {
+    let body; try { body=await request.json(); } catch { return Response.json({ok:false,error:"invalid JSON body"},{status:400}); }
+    const result=await receiveDelivery(env.DB,userId,body.revision);
+    return Response.json(result,{status:result.status});
   }
-  await ensureSchema(env);
-  const row = await env.DB.prepare("SELECT doc, updated_at FROM plans WHERE user_id = ?").bind(userId).first();
-  if (!row) return Response.json({ doc: null, updated_at: null });
-  let doc = null;
-  try { doc = JSON.parse(row.doc); } catch (e) {}
-  return Response.json({ doc, updated_at: row.updated_at });
+  if (request.method !== "GET") return Response.json({ok:false,error:"method not allowed"},{status:405});
+  return Response.json(await readDelivery(env.DB,userId));
 }
 
 // ---- Cíle a prameny od Tanyho · jen ke čtení ------------------------------
@@ -531,7 +530,7 @@ export default {
       if (url.pathname === "/api/sources") {
         return withSecurityHeaders(await handleKlientDoc(request, env, userId, "sources"));
       }
-      if (url.pathname === "/api/plan") {
+      if (url.pathname === "/api/plan" || url.pathname === "/api/plan/received") {
         return handlePlan(request, env, userId);
       }
       if (url.pathname === "/api/files") {

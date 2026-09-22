@@ -179,7 +179,7 @@ const UPPER = [
     wat: ["Ramena zůstávají dole. Krk klidný.", "The shoulders stay down. The neck stays quiet."] },
 
   { id: "machinechestpress", cz: "Tlak na prsa na stroji", en: "Machine Chest Press", pat: "tlak", S: 2, C: 1, J: { ram: 1, lok: 1 }, pop: 3, eq: ["stroj"], mode: "reps", mp: ["che", "tri"], ms: ["sho"], dot: [88, 110], ez: null, hd: "bench",
-    foc: ["Dráha je daná, tak se dá jít blízko k selhání bezpečně.", "The path is fixed, so you can work close to failure safely."],
+    foc: ["Nastav sed a úchop. Tlač plynule v pohodlném rozsahu a nech rezervu; pevná dráha sama nezaručuje bezpečnost.", "Adjust the seat and grip. Press smoothly through a comfortable range and keep reserve; a fixed path alone does not guarantee safety."],
     pos: ["Sed, madla ve výšce středu hrudníku, chodidla na zemi.", "Sit with the handles at mid-chest height, feet on the floor."],
     exe: ["Tlač vpřed do napnutí, zpět pomalu do protažení.", "Press forward to length, return slowly into the stretch."],
     wat: ["Ramena zůstávají na opoře. Nezvedej je k uším.", "The shoulders stay on the pad. Do not shrug them up."] },

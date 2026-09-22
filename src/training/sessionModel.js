@@ -17,6 +17,7 @@
 
 import { TRAINING_SCHEMA_VERSION, SET_TYPES, GROUP_MODES, SESSION_STATES, WORKING_SET_TYPES } from "./types.js";
 import { measurementOf, normalizeActual, normalizePlanned, hasActual } from "./measurements.js";
+import { publicMilestones } from './delivery.js';
 
 let seq = 0;
 // Ids only have to be unique inside one document. A counter plus a base-36
@@ -76,6 +77,7 @@ export function makeBlock(o) {
     variant: opt.variant || null,
     // Whether this block asks for RIR at all. A mobility drill does not.
     rirEnabled: !!opt.rirEnabled,
+    techniqueFlagged: !!opt.techniqueFlagged,
     sets: Array.isArray(opt.sets) ? opt.sets.map((s) => makeSet(measurementType, s)) : [],
     focus: opt.focus ? pairOf(opt.focus) : null,
     note: opt.note || "",
@@ -108,6 +110,7 @@ export function makePlan(o) {
     en: opt.en || "",
     intro: pairOf(opt.intro),
     goals: Array.isArray(opt.goals) ? opt.goals.slice() : [],
+    milestones: publicMilestones(opt.milestones),
     // "" is the coach's own plan. Anything else is a client key.
     client: opt.client || "",
     clientName: opt.clientName || "",

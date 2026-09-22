@@ -52,7 +52,7 @@ export const STARTER_PATHS = [
     weeks: 8, daysPerWeek: 2, minutes: 55,
     equipment: ["telo", "zavazi", "lavice", "hrazda"],
     progressionRule: "double",
-    boundary: ["Dvakrát týdně stačí na základ. Na víc než základ ne.", "Twice a week is enough for a base. It is not enough for more than a base."],
+    boundary: ["Dva dny týdně mohou dlouhodobě rozvíjet sílu. Dávku a frekvenci uprav podle cíle a zotavení.", "Two days a week can build strength long term. Adapt dose and frequency to the goal and recovery."],
     days: [
       { cz: "A · tlak a dřep", en: "A · push and squat", blocks: [
         B("goblet", 4, { targetRepsMin: 5, targetRepsMax: 8 }, 150, { rirEnabled: true }),
@@ -111,7 +111,7 @@ export const STARTER_PATHS = [
     weeks: 6, daysPerWeek: 3, minutes: 45,
     equipment: ["stroj", "kladka", "zavazi", "telo"],
     progressionRule: "double",
-    boundary: ["Stroje jsou na naučení tvaru. Až tvar sedí, má smysl jít k činkám.", "Machines are for learning the shape. Once the shape holds, free weights make sense."],
+    boundary: ["Stroje i činky jsou plnohodnotné možnosti. Vyber podle cíle, dostupnosti a toho, co klient zvládá.", "Machines and free weights are both valid options. Choose for the goal, availability and client capability."],
     days: [
       { cz: "A · stroje", en: "A · machines", blocks: [
         B("legpress", 3, { targetRepsMin: 10, targetRepsMax: 15 }, 120),

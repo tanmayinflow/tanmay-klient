@@ -246,6 +246,9 @@ export function shellMobileCss(t) {
   .tm-plrow > *:nth-child(4) { grid-column: 3 / -1; grid-row: 2; justify-self: end; }
   .tm-plrow > *:nth-child(5) { grid-column: 3; grid-row: 1; }
   .tm-plrow > *:nth-child(6) { grid-column: 4; grid-row: 1; }
+  .tm-coach-planrow > *:nth-child(3) { grid-column: 3; grid-row: 1; }
+  .tm-coach-planrow > *:nth-child(4) { grid-column: 2; grid-row: 2; justify-self: start; }
+  .tm-coach-planrow > *:nth-child(5) { grid-column: 3; grid-row: 2; }
 
   /* session · tick and name, then what was planned against what was done */
   .tm-srow { grid-template-columns: 26px minmax(0,1fr) minmax(0,1fr) !important; }

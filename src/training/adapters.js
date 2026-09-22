@@ -1,3 +1,4 @@
+import { publicMilestones } from './delivery.js';
 // ======================================================================
 // ADAPTERS · the old shape, read once, on the way in
 // ----------------------------------------------------------------------
@@ -149,6 +150,7 @@ export function clientBundle(plans, templates, resolve, opts) {
     outPlans.push({
       id: p.id, cz: p.cz, en: p.en, goals: p.goals || [], intro: p.intro || null,
       progressionRule: p.progressionRule || null,
+      milestones: publicMilestones(p.milestones),
       sessions: (p.sessions || []).map((s) => ({
         id: s.id, w: s.w, templateId: s.templateId, effortTarget: s.effortTarget,
         // What the client has done comes back the other way. Sending it
@@ -209,9 +211,10 @@ export function fulfilmentFrom(sessions, opts) {
       .filter((s) => s.state === "done")
       .map((s) => ({
         id: s.id, date: s.date, planId: s.planId, planSessionId: s.planSessionId, templateId: s.templateId,
-        startedAt: s.startedAt, endedAt: s.endedAt, effort: s.effort, note: s.note,
+        startedAt: s.startedAt, endedAt: s.endedAt, effort: s.effort, note: s.note, painJoints: s.painJoints || [],
         blocks: (s.blocks || []).map((b) => ({
           id: b.id, exId: b.exId, measurementType: b.measurementType,
+          techniqueFlagged: !!b.techniqueFlagged,
           sets: (b.sets || []).map((x) => ({ id: x.id, type: x.type, planned: x.planned, actual: x.actual, completed: x.completed, completedAt: x.completedAt, rir: x.rir, note: x.note, side: x.side })),
         })),
       })),
