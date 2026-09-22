@@ -62,7 +62,7 @@ export function createStates(useT, L) {
         )}
         {/* Hotovo nedostane tlačítko · uklizeno je cíl, ne rozdělaná práce */}
         {action && actionLabel && kind === "prvni" && (
-          <button onClick={action} className="tm-dash" style={{ marginTop: 18, background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 999, padding: "9px 20px", minHeight: 44, cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{actionLabel}</button>
+          <button onClick={action} className="tm-dash" style={{ marginTop: 18, background: "transparent", border: `1px solid transparent`, borderRadius: 999, padding: "9px 20px", minHeight: 44, cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{actionLabel}</button>
         )}
       </div>
     );

@@ -19,7 +19,7 @@ function CoverImage({ src, category, theme, glyph: Glyph, score, variant = "gall
       style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", overflow: "hidden", background: theme.callout }}>
       {image ? <img key={image} src={image} alt="" loading={variant === "detail" ? "eager" : "lazy"} decoding="async"
         onError={() => real ? setRealFailed(true) : setArtFailed(true)}
-        style={{ display: "block", width: "100%", height: "100%", boxSizing: "border-box", objectFit: real ? "cover" : "contain",
+        style={{ display: "block", width: "100%", height: "100%", boxSizing: "border-box", objectFit: "contain",
           padding: real ? 0 : gallery ? "8px 12px" : small ? 1 : 5,
           opacity: real ? 1 : 0 }} />
         : Glyph && <span style={{ display: "inline-flex", color: theme.textMuted }}><Glyph size={small ? 19 : 32} /></span>}

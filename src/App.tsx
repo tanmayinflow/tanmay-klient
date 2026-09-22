@@ -806,7 +806,7 @@ function PageHabit({ go }) {
           </div>
           <div style={{ width: 44, height: 1, background: t.heroLine, margin: "14px 0" }} />
           {st.editMode
-            ? <BufferedInput value={st.pageMetaOf("praxe").sub || L("Ráno záměr. Přes den praxe. Večer ohlédnutí. Den po dni.", "Intention in the morning. Practice through the day. Review at night. One day at a time.")} onCommit={(v) => st.setPageMeta("praxe", { sub: v })} style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heroInkSoft, margin: 0, lineHeight: 1.65, maxWidth: 520, borderBottom: `1px dashed ${t.heroLine}` }} />
+            ? <BufferedInput value={st.pageMetaOf("praxe").sub || L("Ráno záměr. Přes den praxe. Večer ohlédnutí. Den po dni.", "Intention in the morning. Practice through the day. Review at night. One day at a time.")} onCommit={(v) => st.setPageMeta("praxe", { sub: v })} style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heroInkSoft, margin: 0, lineHeight: 1.65, maxWidth: 520, borderBottom: `1px solid transparent` }} />
             : <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heroInkSoft, margin: 0, lineHeight: 1.65, maxWidth: 520 }}>{st.pageMetaOf("praxe").sub || L("Ráno záměr. Přes den praxe. Večer ohlédnutí. Den po dni.", "Intention in the morning. Practice through the day. Review at night. One day at a time.")}</p>}
         </div>
       </div>
@@ -1124,7 +1124,7 @@ function EntryForm({ tags, initial, onSave, onCancel }) {
       </div>
       <input ref={fileRef} type="file" multiple onChange={(e) => addFiles(e.target.files)} style={{ display: "none" }} />
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: att.length ? 0 : 10 }}>
-        <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 7 }}>
+        <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 7 }}>
           <ClipIcon size={13} />{busy ? L("Načítám…", "Loading…") : L("Přiložit soubor / obrázek", "Attach file / image")}
         </button>
         {att.length > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{att.length} {L("příloh", "attachments")} · {fmtSize(att.reduce((s, a) => s + (a.size || 0), 0))}</span>}
@@ -1143,7 +1143,7 @@ function AddEntry({ kind, tags, label }) {
   const st = useStore();
   const [open, setOpen] = useState(false);
   if (open) return <EntryForm tags={tags} onSave={(e) => { st.addEntry(kind, { id: uid(), date: todayISO(), ...e }); setOpen(false); }} onCancel={() => setOpen(false)} />;
-  return <button onClick={() => setOpen(true)} className="tm-dash" style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "11px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, width: "100%", textAlign: "left" }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{label}</button>;
+  return <button onClick={() => setOpen(true)} className="tm-dash" style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "11px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, width: "100%", textAlign: "left" }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{label}</button>;
 }
 
 
@@ -1201,7 +1201,7 @@ function AreaTileName({ name, onCommit }) {
       onBlur={commit}
       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setV(name); e.currentTarget.blur(); } }}
       placeholder={L("Název oblasti…", "Area name…")}
-      style={{ flex: 1, minWidth: 70, background: "transparent", border: "none", outline: "none", borderBottom: `1px dashed ${t.borderSoft}`, fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, padding: "1px 0" }}
+      style={{ flex: 1, minWidth: 70, background: "transparent", border: "none", outline: "none", borderBottom: `1px solid transparent`, fontFamily: FONT_BODY, fontSize: 13.5, color: t.text, padding: "1px 0" }}
     />
   );
 }
@@ -1233,7 +1233,7 @@ function AreaInlineEditor() {
             onDragOver={(e) => { e.preventDefault(); setOverN(a.name); }}
             onDragLeave={() => setOverN((x) => (x === a.name ? null : x))}
             onDrop={(e) => { e.preventDefault(); if (dragN && dragN !== a.name) st.reorderArea(dragN, a.name); setDragN(null); setOverN(null); }}
-            style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, background: t.card, border: `1px dashed ${overN === a.name && dragN !== a.name ? t.accent : t.border}`, opacity: dragN === a.name ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
+            style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, background: t.card, border: `1px solid transparent`, opacity: dragN === a.name ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
           >
             <span
               draggable
@@ -1248,13 +1248,13 @@ function AreaInlineEditor() {
           </div>
         ))}
         {adding ? (
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, border: `1px dashed ${t.accent}` }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, border: `1px solid transparent` }}>
             <TM_ICON_UI.TmIconPickerButton obj={{ iconId: newIconId }} kind="area" onPick={setNewIconId} size={18} />
             <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); if (e.key === "Escape") setAdding(false); }} placeholder={L("Nová oblast…", "New area…")} style={{ flex: 1, minWidth: 70, background: "transparent", border: "none", outline: "none", fontFamily: FONT_BODY, fontSize: 13.5, color: t.text }} />
             <button onClick={add} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 11, color: t.accent }}><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </div>
         ) : (
-          <button onClick={() => setAdding(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13 }}>＋ oblast</button>
+          <button onClick={() => setAdding(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px solid transparent`, cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13 }}>＋ oblast</button>
         )}
       </div>
     </div>
@@ -1616,7 +1616,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
         {effOpen && !selecting ? (
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <input value={entry.title} onChange={(e) => st.updateEntry(kind, entry.id, { title: e.target.value })} placeholder={kind === "journal" ? L("Název (nepovinný)…", "Title (optional)…") : L("Název…", "Title…")} style={{ flex: 1, minWidth: 160, background: "transparent", border: "none", borderBottom: `1px dashed ${hexA(t.textMuted, 0.35)}`, fontFamily: FONT_DISPLAY, fontSize: full ? 26 : 18, color: t.heading, outline: "none", padding: "0 0 2px" }} />
+              <input value={entry.title} onChange={(e) => st.updateEntry(kind, entry.id, { title: e.target.value })} placeholder={kind === "journal" ? L("Název (nepovinný)…", "Title (optional)…") : L("Název…", "Title…")} style={{ flex: 1, minWidth: 160, background: "transparent", border: "none", borderBottom: `1px solid transparent`, fontFamily: FONT_DISPLAY, fontSize: full ? 26 : 18, color: t.heading, outline: "none", padding: "0 0 2px" }} />
               <button onClick={() => setTagPick((x) => !x)} title={L("Změnit kategorie", "Change categories")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", gap: 5, flexWrap: "wrap" }}>{selTags.length ? selTags.map((n) => <Tag key={n} label={n} color={colorOf(n)} />) : <Tag label={L("+ štítek", "+ tag")} color="default" />}</button>
               <input type="date" value={entry.date || ""} onChange={(e) => st.updateEntry(kind, entry.id, { date: e.target.value })} title={L("Datum poznámky — podle něj se řadí", "Note date — used for sorting")} style={{ background: "transparent", border: "none", color: entry.date ? t.textMuted : hexA(t.textMuted, 0.5), fontFamily: FONT_BODY, fontSize: 11.5, outline: "none", padding: 0, colorScheme: t.mode === "light" ? "light" : "dark", width: 110 }} />
             </div>
@@ -2002,7 +2002,7 @@ function PageJournal() {
           return out;
         })()}
         {!q.trim() && shown.length > limit && (
-          <button onClick={() => setLimit((l) => l + 40)} className="tm-dash" style={{ width: "100%", background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13.5, margin: "8px 0 4px" }}>{L("Načíst starší · zbývá", "Load older · remaining")} {shown.length - limit}</button>
+          <button onClick={() => setLimit((l) => l + 40)} className="tm-dash" style={{ width: "100%", background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13.5, margin: "8px 0 4px" }}>{L("Načíst starší · zbývá", "Load older · remaining")} {shown.length - limit}</button>
         )}
         {shown.length === 0 && <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.textMuted, padding: "18px 0" }}>{L("V tomto pohledu zatím nic není.", "Nothing in this view yet.")}</p>}
       </div>
@@ -2925,7 +2925,7 @@ const tTargetEligible = (ex) => !!ex && tStatusOf(ex) === "active"
 // the Movement Atlas keys its production documents on those two strings in the Main
 // App, and the two libraries must not drift apart. So the same override, resolved
 // the same way, and no second system of names anywhere.
-const tExNameCz = (ex) => (ex ? ((tMetaOf(ex) || {}).dcz || ex.cz || "") : "");
+const tExNameCz = (ex) => (ex ? ((tMetaOf(ex) || {}).dcz || ex.cz || "") : "").replace(/\s*\(Bikram\)/gi, "");
 const tExNameEn = (ex) => (ex ? ((tMetaOf(ex) || {}).den || ex.en || ex.cz || "") : "");
 // Every string a search must match: both display names, both catalogue names, the
 // Sanskrit, and the legacy id itself.
@@ -6074,7 +6074,7 @@ function TExPick({ onPick, onClose, onNew }) {
       <div className="tm-scroll" style={{ overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 10, flex: 1, minHeight: 120 }}>
         {list.map((ex, i) => (
           <button key={ex.id} onClick={() => onPick(ex.id)} className="tm-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderBottom: i < list.length - 1 ? `1px solid ${t.borderSoft}` : "none", cursor: "pointer", padding: "9px 12px" }}>
-            <span style={{ color: t.sand, flexShrink: 0 }}><TExArt ex={ex} size={30} stroke="currentColor" showDot={false} /></span>
+            <span style={{ color: t.sand, flexShrink: 0 }}><TExArt ex={ex} size={48} stroke="currentColor" showDot={false} /></span>
             <span style={{ minWidth: 0, flex: 1 }}>
               <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tExName(ex)}</span>
               <span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 2 }}>
@@ -6088,7 +6088,7 @@ function TExPick({ onPick, onClose, onNew }) {
         {list.length === 0 && (
           <div style={{ padding: "18px 14px", fontFamily: FONT_BODY, fontSize: 13.5, fontStyle: "italic", color: t.textMuted }}>
             {L("Nic takového v knihovně není.", "The library holds nothing like that.")}
-            {onNew && q ? <button onClick={() => onNew(q)} style={{ marginLeft: 8, background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Založit", "Create")} „{q}"</button> : null}
+            {onNew && q ? <button onClick={() => onNew(q)} style={{ marginLeft: 8, background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Založit", "Create")} „{q}"</button> : null}
           </div>
         )}
       </div>
@@ -6300,8 +6300,8 @@ function TExDetail({ exId, onClose, onOpen }) {
       </div>
       {edit ? (
         <div style={{ marginBottom: 6 }}>
-          <BufferedInput value={ex.cz} onCommit={(v) => patch({ cz: v })} placeholder="Název CZ…" style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, color: t.heading, borderBottom: `1px dashed ${t.borderSoft}` }} />
-          <BufferedInput value={ex.en} onCommit={(v) => patch({ en: v })} placeholder="Name EN…" style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, borderBottom: `1px dashed ${t.borderSoft}`, marginTop: 4 }} />
+          <BufferedInput value={ex.cz} onCommit={(v) => patch({ cz: v })} placeholder="Název CZ…" style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, color: t.heading, borderBottom: `1px solid transparent` }} />
+          <BufferedInput value={ex.en} onCommit={(v) => patch({ en: v })} placeholder="Name EN…" style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, borderBottom: `1px solid transparent`, marginTop: 4 }} />
         </div>
       ) : (
         <>
@@ -6388,7 +6388,7 @@ function TExDetail({ exId, onClose, onOpen }) {
       ) : null}
       <div>
         <input ref={fileRef} type="file" multiple onChange={(e) => attach(e.target.files)} style={{ display: "none" }} />
-        {edit && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Přiložit foto / video", "Attach photo / video")}</button>}
+        {edit && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Přiložit foto / video", "Attach photo / video")}</button>}
         <AttachmentStrip att={ex.att} onRemove={edit ? ((id) => patch({ att: (ex.att || []).filter((x) => x.id !== id) })) : undefined} />
       </div>
       <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.borderSoft}` }}>
@@ -9665,7 +9665,7 @@ function KBView() {
             <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage, marginTop: 11 }}>{d.chapters.length} {L("kapitol", "chapters")} · {d.tag}</div>
           </button>
         ))}
-        <div style={{ border: `1px dashed ${t.border}`, borderRadius: 12, padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 120 }}>
+        <div style={{ border: `1px solid transparent`, borderRadius: 12, padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 120 }}>
           <span style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5, color: t.textMuted, textAlign: "center", lineHeight: 1.6 }}>{L("Prostor pro další přístupy a vědomosti.", "Room for more approaches and knowledge.")}</span>
         </div>
       </div>
@@ -10583,8 +10583,8 @@ function TmGuide({ onClose }) {
     {
       kicker: L("Tělo", "Body"),
       title: L("Tři znamení", "Three marks"),
-      body: L("Miska znamená vděčnost. Diamant bódhičittu, tedy záměr nebo čin, který zahrnoval i dobro druhých. Kruh znamená praxi ve světě, která se promítla do vztahů nebo jednání.",
-              "The bowl means gratitude. The diamond means bodhicitta, an intention or an act that included the good of others. The circle means practice in the world, reaching into relationships or action."),
+      body: L("Miska připomíná soustředění na vděčnost a spojení s ní. Diamant kultivování vznešeného záměru — bódhičitty. Kruh chvíli, kdy se záměr a vnitřní kontemplace projevily ve skutečném jednání.",
+              "The bowl recalls connecting with gratitude. The diamond recalls cultivating the noble intention of bodhicitta. The circle marks intention and inner contemplation taking form in real action."),
       tips: [L("Nejsou to úkoly ani skóre. Jen tiché značky, že se to dnes stalo.", "They are not tasks and not scores. Just quiet marks that it happened today.")],
     },
     {
@@ -11476,7 +11476,7 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
         </div>
         <div style={{ textAlign: "left", marginTop: 14 }}>
           <button onClick={() => setNahledOtevren((x) => !x)} aria-expanded={nahledOtevren}
-            style={{ background: "transparent", border: `1px dashed ${nahledOtevren ? t.accent : t.border}`, borderRadius: 100, minHeight: 40, padding: "9px 18px", cursor: "pointer", color: nahledOtevren ? (t.accentInk || t.accent) : t.textSec, fontFamily: FONT_BODY, fontSize: 13 }}>
+            style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 100, minHeight: 40, padding: "9px 18px", cursor: "pointer", color: nahledOtevren ? (t.accentInk || t.accent) : t.textSec, fontFamily: FONT_BODY, fontSize: 13 }}>
             {nahledOtevren ? L("Skrýt, co přesně odejde", "Hide exactly what will be sent") : L("Ukázat, co přesně odejde", "Show exactly what will be sent")}
           </button>
           {nahledOtevren && (

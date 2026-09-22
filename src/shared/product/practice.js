@@ -382,11 +382,11 @@ export const tmWbDates = (st, detailsBy) => Array.from(new Set([
 export function makeWbZnameni(icons) {
   return [
     { k: "grat", Ic: icons.TmWbMiska, cz: "Vděčnost", en: "Gratitude",
-      pCz: "Něco jsem dnes přijal s vděčností.", pEn: "I received something today with gratitude." },
+      pCz: "Zaměřil jsem pozornost na vděčnost a spojil se s ní.", pEn: "I brought my attention to gratitude and connected with it." },
     { k: "bodhi", Ic: icons.TmWbDiamant, cz: "Bódhičitta", en: "Bodhicitta",
-      pCz: "Můj záměr nebo čin zahrnoval i dobro druhých.", pEn: "My intention or act included the good of others." },
+      pCz: "Kultivoval jsem vznešený záměr — bódhičittu, přání dobra všem bytostem.", pEn: "I cultivated a noble intention — bodhicitta, the wish for the good of all beings." },
     { k: "wild", Ic: icons.TmWbKruh, cz: "Praxe ve světě", en: "Practice in the world",
-      pCz: "Promítla se do vztahů nebo jednání.", pEn: "It reached into relationships or action." },
+      pCz: "Můj záměr a vnitřní kontemplace se projevily ve skutečném jednání.", pEn: "My intention and inner contemplation took form in real action." },
   ];
 }
 

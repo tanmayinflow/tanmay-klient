@@ -7,6 +7,12 @@ export function landscapeCss() {
   const rooms = Object.entries(LANDSCAPE_ART).filter(([, art]) => art.shape !== 'horizon').map(([room, art]) =>
     `${s} .tm-page-title[data-art-room="${room}"] { --land-art: url('/media/landscape/${art.image}'); }`).join('\n');
   return `
+.tm-session-actions > button, .tm-session-actions > span > button { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.tm-session-actions > span { flex: 1; justify-content: space-between; gap: 5px !important; }
+.tm-session-actions > span:first-child { flex: 4; flex-wrap: nowrap !important; }
+.tm-session-actions button { flex: 1; }
+.tm-library-tab { font-weight: 600 !important; font-size: 12px !important; margin-right: 0 !important; color: var(--tm-text) !important; }
+
 ${s} { --tm-action-material: url('/media/landscape/earth.webp'); --land-paper: url('/media/landscape/linen.webp'); --land-ash: url('/media/landscape/ashes.webp'); --land-earth: url('/media/landscape/earth.webp'); --land-field: var(--land-paper); }
 ${s} ::selection { background: var(--tm-selection) !important; color: var(--tm-selection-text) !important; }
 html[data-appearance="landscape-night"] { --land-field: var(--land-ash); }
@@ -59,7 +65,7 @@ ${s} .tm-page-title { position: relative; isolation: isolate; --land-art: none; 
 ${s} .tm-page-title::before { content: ''; position: absolute; inset: 0; z-index: -1; background: currentColor; mask: var(--land-art) right center/contain no-repeat; -webkit-mask: var(--land-art) right center/contain no-repeat; opacity: .38; pointer-events: none; }
 html[data-appearance="landscape-night"] .tm-page-title::before { opacity: .3; }
 /* Original three-contour source; its SVG alpha stroke stays legible at phone width. */
-${s} .tm-page-title::after, ${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="denik"]) + .tm-prose::after, ${s} .tm-compass-divider::after { content: ''; display: block; height: var(--land-line-height); background: var(--tm-link); mask: url('/media/landscape/terrain-divider.svg') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/terrain-divider.svg') center/100% 100% no-repeat; pointer-events: none; }
+${s} .tm-page-title::after, ${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="denik"]) + .tm-prose::after, ${s} .tm-compass-divider::after { content: ''; display: block; height: var(--land-line-height); background: var(--tm-link); mask: url('/media/landscape/terrain-divider.svg?v=20260922') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/terrain-divider.svg?v=20260922') center/100% 100% no-repeat; pointer-events: none; }
 ${s} .tm-page-title::after { position: absolute; left: calc(-1 * var(--land-bleed)); right: calc(-1 * var(--land-bleed)); top: calc(100% + 4px); z-index: -1; }
 ${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="kompas"],[data-art-room="denik"],[data-art-room="hospodareni"],[data-art-room="zapisnik"],[data-art-room="prameny"]) { margin-bottom: 0; }
 ${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="kompas"],[data-art-room="denik"],[data-art-room="hospodareni"],[data-art-room="zapisnik"],[data-art-room="prameny"])::after { content: none; }

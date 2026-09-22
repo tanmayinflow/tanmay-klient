@@ -68,16 +68,18 @@ self.addEventListener("fetch", (event) => {
 });
 
 async function networkFirstDoc(req) {
+  const address = new URL(req.url);
+  const key = address.pathname === "/" || address.pathname === "/index.html" ? "/index.html" : address.pathname + address.search;
   try {
     const res = await fetch(req);
     if (cacheable(res) && isHtml(res)) {
       const c = await caches.open(SHELL);
-      c.put("/index.html", res.clone());
+      await c.put(key, res.clone());
     }
     return res;
   } catch (e) {
     const c = await caches.open(SHELL);
-    const cached = await c.match("/index.html");
+    const cached = await c.match(key);
     if (cached) return cached;
     throw e;
   }

@@ -34,7 +34,7 @@ export function createPracticeUI(deps) {
     WB_ZNAMENI, tmWbOf, tmWbDates, usePraxeStats,
     fmtCZ, todayISO, shiftISO, moonPhaseOf, moonName, sunsetOf,
     // role a data, která jsou v každém domě jiná
-    DenVPraxi = null, journalArchive = null, flow = null, caps = null,
+    AllDayEvents = null, DenVPraxi = null, journalArchive = null, flow = null, caps = null,
   } = deps;
 
   // Ikonový systém · jedna řeč pro glyfy návyků i výběr vlastní ikony
@@ -93,7 +93,7 @@ export function createPracticeUI(deps) {
               {statuses.map((s, i) => (
                 <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 9 }}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: colors[i], flexShrink: 0 }} />
-                  <BufferedInput value={s.label} onCommit={(v) => st.setDayStatusLabel(s.key, v)} placeholder={L(DAY_STATUS_DEFS[i].cz, DAY_STATUS_DEFS[i].en)} style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: `1px dashed ${t.borderSoft}`, color: t.text, fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 15, padding: "2px 0", outline: "none" }} />
+                  <BufferedInput value={s.label} onCommit={(v) => st.setDayStatusLabel(s.key, v)} placeholder={L(DAY_STATUS_DEFS[i].cz, DAY_STATUS_DEFS[i].en)} style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: `1px solid transparent`, color: t.text, fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 15, padding: "2px 0", outline: "none" }} />
                   {(custom[s.key] || "").trim() && <button title={L("Vrátit výchozí", "Restore default")} onClick={() => st.setDayStatusLabel(s.key, "")} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 12, border: "none", color: t.textMuted }}>↺</button>}
                 </div>
               ))}
@@ -358,7 +358,7 @@ export function createPracticeUI(deps) {
         </div>
         {/* prázdný dnešek podává pero · založí TENTÝŽ zápis, který otevírá Deník — jedna entita dne */}
         {empty && date === todayISO() && (
-          <button className="tm-dash" onClick={() => { const id = uid(); st.addEntry("journal", { id, date, title: "", tag: "Den", text: "" }); setSel(id); }} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left" }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Zápis dne…", "Today's entry…")}</button>
+          <button className="tm-dash" onClick={() => { const id = uid(); st.addEntry("journal", { id, date, title: "", tag: "Den", text: "" }); setSel(id); }} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left" }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Zápis dne…", "Today's entry…")}</button>
         )}
         {empty && date !== todayISO() && <div style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 13, color: t.textMuted }}>{L("K tomuto dni není zápisek. Nechat to tak je taky odpověď.", "No entry for this day. Leaving it be is also an answer.")}</div>}
         {mine.map((e) => row(
@@ -527,7 +527,7 @@ export function createPracticeUI(deps) {
         </svg>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 14px", marginTop: 4, marginBottom: 12 }}>
           <span style={{ ...subLabel(t), marginBottom: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 2, background: t.accent, display: "inline-block" }} />{L("Potenciál", "Potential")}{prumer ? " · ø " + prumer : ""}</span>
-          <span style={{ ...subLabel(t), marginBottom: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 0, borderTop: `2px dashed ${t.sand}`, display: "inline-block" }} />{L("Energie", "Energy")}</span>
+          <span style={{ ...subLabel(t), marginBottom: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 0, borderTop: `2px solid transparent`, display: "inline-block" }} />{L("Energie", "Energy")}</span>
           <span style={{ ...subLabel(t), marginBottom: 0 }}>{L("posledních", "last")} {last30.length} {L("zaznamenaných dní", "recorded days")}</span>
         </div>
 
@@ -975,7 +975,7 @@ export function createPracticeUI(deps) {
               onDragOver={(e) => { e.preventDefault(); setOverSlot(d.slot); }}
               onDragLeave={() => setOverSlot((x) => (x === d.slot ? null : x))}
               onDrop={(e) => { e.preventDefault(); dropOn(d.slot); }}
-              style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, background: t.card, border: `1px dashed ${overSlot === d.slot && dragSlot !== d.slot ? t.accent : t.border}`, opacity: dragSlot === d.slot ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
+              style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, background: t.card, border: `1px solid transparent`, opacity: dragSlot === d.slot ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
             >
               <span
                 draggable
@@ -985,11 +985,11 @@ export function createPracticeUI(deps) {
                 style={{ cursor: "grab", color: t.textMuted, fontSize: 13, padding: "2px 2px", userSelect: "none", touchAction: "none" }}
               ><FamilyIcon id="drag" size={16} label={L("Přesunout","Move")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
               <TmIconPickerButton obj={d} kind="habit" onPick={(id) => upd(d.slot, { iconId: id })} preview={<HabitGlyph slot={d.slot} icon={d.icon} iconId={d.iconId} size={18} />} />
-              <input value={d.name} onChange={(e) => upd(d.slot, { name: e.target.value })} placeholder={L("Název návyku…", "Habit name…")} style={{ flex: 1, minWidth: 60, background: "transparent", border: "none", outline: "none", borderBottom: `1px dashed ${t.borderSoft}`, fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, padding: "1px 0" }} />
+              <input value={d.name} onChange={(e) => upd(d.slot, { name: e.target.value })} placeholder={L("Název návyku…", "Habit name…")} style={{ flex: 1, minWidth: 60, background: "transparent", border: "none", outline: "none", borderBottom: `1px solid transparent`, fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, padding: "1px 0" }} />
               <button title={L("Archivovat — historie zůstane", "Archive — history stays")} onClick={() => st.ask(L(`Archivovat návyk „${d.name}"?`, `Archive habit "${d.name}"?`), () => upd(d.slot, { archived: true }))} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 12, border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             </div>
           ))}
-          <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px dashed ${t.border}`, cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("návyk", "habit")}</button>
+          <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px solid transparent`, cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("návyk", "habit")}</button>
         </div>
         {archived.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
@@ -1160,6 +1160,7 @@ export function createPracticeUI(deps) {
           <div data-pv="cile" style={{ marginTop: 6 }}>
             {DenVPraxi ? <DenVPraxi date={date} /> : null}
             <Toggle summary={L("Plán", "Plan")} color="orange" centered bezHrany><EditableSchedule date={date} /></Toggle>
+            {AllDayEvents && <AllDayEvents date={date} />}
             <div style={{ height: 20 }} />
             <div style={{ ...subLabel(t), marginBottom: 4 }}>{L("Dnešní cíle", "Today's goals")}</div>
             <DayTasks date={date} />

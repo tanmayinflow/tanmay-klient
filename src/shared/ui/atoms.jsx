@@ -77,14 +77,14 @@ export function createAtoms(deps) {
       <div className="tm-page-title" data-art-room={artKey || pageKey || "other"}>
         <div style={{ marginBottom: 8 }}>
           {editable
-            ? <div style={{ marginBottom: 14 }}><BufferedInput value={kick || ""} onCommit={(v) => st.setPageMeta(pageKey, { kicker: v })} placeholder="kicker…" style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, borderBottom: `1px dashed ${t.borderSoft}` }} /></div>
+            ? <div style={{ marginBottom: 14 }}><BufferedInput value={kick || ""} onCommit={(v) => st.setPageMeta(pageKey, { kicker: v })} placeholder="kicker…" style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, borderBottom: `1px solid transparent` }} /></div>
             : (kick && (onKicker
                 ? <button onClick={onKicker} style={{ display: "block", background: "transparent", border: "none", padding: 0, margin: 0, cursor: "pointer", textAlign: "left" }}><Eyebrow>{kick}</Eyebrow></button>
                 : <Eyebrow>{kick}</Eyebrow>))}
           <h1 style={titleStyle}>
             {iconNode}
             {editable
-              ? <BufferedInput value={typeof title === "string" ? title : ""} onCommit={(v) => st.setPageMeta(pageKey, { title: v })} placeholder={L("Název stránky…", "Page title…")} style={{ ...h1Style, display: "block", borderBottom: `1px dashed ${t.borderSoft}` }} />
+              ? <BufferedInput value={typeof title === "string" ? title : ""} onCommit={(v) => st.setPageMeta(pageKey, { title: v })} placeholder={L("Název stránky…", "Page title…")} style={{ ...h1Style, display: "block", borderBottom: `1px solid transparent` }} />
               : title}
             {right && <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>{right}</span>}
           </h1>
@@ -173,7 +173,7 @@ export function createAtoms(deps) {
         <RichArea value={meta.text || ""} onChange={(v) => onPatch({ text: v })} placeholder={placeholder || L("Piš…", "Write…")} />
         <div style={{ marginTop: 10 }}>
           <input ref={fileRef} type="file" multiple onChange={(e) => attach(e.target.files)} style={{ display: "none" }} />
-          <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "6px 12px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Přiložit soubor", "Attach file")}</button>
+          <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: "var(--tm-r-sm)", padding: "6px 12px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Přiložit soubor", "Attach file")}</button>
           <AttachmentStrip att={meta.att} onRemove={st.editMode ? ((id) => onPatch({ att: (meta.att || []).filter((x) => x.id !== id) })) : undefined} />
         </div>
       </div>

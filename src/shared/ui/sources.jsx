@@ -156,8 +156,8 @@ export function createSourcesUI(deps) {
           <button onClick={() => upd({ archive: !e.archive })} title={e.archive ? L("Vrátit z archivu", "Restore from archive") : L("Archivovat", "Archive")} aria-label={e.archive ? L("Vrátit z archivu", "Restore from archive") : L("Archivovat", "Archive")} style={{ width: 26, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 4, border: `1.5px solid ${e.archive ? t.accent : t.border}`, background: e.archive ? t.accent : "transparent", cursor: "pointer", color: t.bg, fontSize: 12, lineHeight: 1, padding: 0 }}>{e.archive ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</button>
         </PropRow>)}
 
-        </details>
         <SourceLinks key={e.id} entry={e} onUpdate={upd} theme={t} L={L} readOnly={odTanmaye}/>
+        </details>
         {odTanmaye && (e.why || e.instruction || e.excerpt) && (
           <div style={{ borderLeft: `2px solid ${hexA(t.accent, 0.4)}`, paddingLeft: 12, margin: "14px 0 4px" }}>
             {e.why && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 14, color: t.textSec, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{e.why}</div>}
@@ -167,9 +167,8 @@ export function createSourcesUI(deps) {
         )}
         <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px 0 6px", flexWrap: "wrap" }}>
           <input ref={fileRef} type="file" multiple accept=".pdf,audio/*,image/*,.doc,.docx,.txt" onChange={(ev) => attach(ev.target.files)} style={{ display: "none" }} />
-          {!odTanmaye && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: 8, padding: "8px 12px", minHeight: 38, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 7 }}><ClipIcon size={13} />{L("PDF · audio shrnutí · soubor", "PDF · audio summary · file")}</button>}
-          {gdEmbed && !odTanmaye && <button onClick={() => setGdOpen(!gdOpen)} style={{ background: "transparent", border: `1px dashed ${gdOpen ? t.accent : t.border}`, borderRadius: 8, padding: "8px 12px", minHeight: 38, cursor: "pointer", color: gdOpen ? (t.accentInk || t.accent) : (t.inkSand || t.sand), fontFamily: "var(--tm-font-body)", fontSize: 12 }}>Google Drive</button>}
-          {onExpand && <button title={L("Otevřít jako stránku", "Open as page")} onClick={onExpand} style={{ ...iconBtn(t), border: "none", color: t.textMuted, fontSize: 13 }}>⤢</button>}
+          {!odTanmaye && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "8px 12px", minHeight: 38, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 7 }}><ClipIcon size={13} />{L("PDF · audio shrnutí · soubor", "PDF · audio summary · file")}</button>}
+          {gdEmbed && !odTanmaye && <button onClick={() => setGdOpen(!gdOpen)} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "8px 12px", minHeight: 38, cursor: "pointer", color: gdOpen ? (t.accentInk || t.accent) : (t.inkSand || t.sand), fontFamily: "var(--tm-font-body)", fontSize: 12 }}>Google Drive</button>}
           {wide && <PinToggle entry={e} />}
           <span style={{ flex: 1 }} />
           {odTanmaye && <button onClick={() => { const nid = st.forkCoachSource(e.id); if (nid) { onClose && onClose(); } }} title={L("Udělá kopii, která je od té chvíle tvoje", "Makes a copy that is yours from then on")} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "8px 14px", minHeight: 38, cursor: "pointer", color: t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{L("Udělat vlastní kopii", "Make my own copy")}</button>}

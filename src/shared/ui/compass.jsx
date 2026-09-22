@@ -119,7 +119,7 @@ export function createCompassUI(deps) {
           {g.status !== "Completed" && (
             inToday
               ? <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.sage, marginLeft: "auto" }}>{L("✓ dnes", "✓ today")}</span>
-              : <button onClick={(e) => { e.stopPropagation(); st.pushGoalToDay(g.name); }} title={L("Přidat do dnešních cílů", "Add to today's goals")} style={{ marginLeft: "auto", background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-pill)", padding: "1px 9px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{L("→ dnes", "→ today")}</button>
+              : <button onClick={(e) => { e.stopPropagation(); st.pushGoalToDay(g.name); }} title={L("Přidat do dnešních cílů", "Add to today's goals")} style={{ marginLeft: "auto", background: "transparent", border: `1px solid transparent`, borderRadius: "var(--tm-r-pill)", padding: "1px 9px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{L("→ dnes", "→ today")}</button>
           )}
         </div>
       </div>
@@ -202,7 +202,7 @@ export function createCompassUI(deps) {
       st.addGoal({ id: uid(), name: name.trim(), area, areas: [area], status: "Not started", prio, ach: "", target });
       setName(""); setTarget(""); setOpen(false);
     };
-    if (!open) return <button onClick={() => setOpen(true)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "10px 14px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left", marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nový cíl", "New goal")}</button>;
+    if (!open) return <button onClick={() => setOpen(true)} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: "var(--tm-r-sm)", padding: "10px 14px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left", marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nový cíl", "New goal")}</button>;
     return (
       <div style={{ background: t.callout, border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-md)", padding: 12, marginBottom: 12, boxShadow: t.shadow }}>
         <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") ulozit(); }} placeholder={L("Název cíle…", "Goal name…")} style={{ ...fieldStyle(t), marginBottom: 8 }} />
@@ -268,7 +268,7 @@ export function createCompassUI(deps) {
           const gs = all.filter((g) => g.area === a.name || (g.areas || []).includes(a.name));
           const done = gs.filter((g) => g.status === "Completed").length;
           return (
-            <button key={a.name} onClick={() => onOpen(a.name)} title={`${done} / ${gs.length} ${L("cílů", "goals")}`} className="tm-nav-item tm-lift" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: "var(--tm-r-pill)", padding: "6px 13px", minHeight: 38, cursor: "pointer" }}>
+            <button key={a.name} onClick={() => onOpen(a.name)} title={`${done} / ${gs.length} ${L("cílů", "goals")}`} className="tm-nav-item tm-lift" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: "3px 12px 3px 12px", padding: "6px 13px", minHeight: 38, cursor: "pointer" }}>
               <AreaGlyph name={a.name} size={15} />
               <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text }}>{areaLabel(a.name)}</span>
               <span style={{ width: 34, height: 3, borderRadius: 2, background: t.borderSoft, position: "relative", overflow: "hidden" }}>
@@ -278,7 +278,7 @@ export function createCompassUI(deps) {
             </button>
           );
         })}
-        {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-pill)", minWidth: 38, minHeight: 38, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+        {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px solid transparent`, borderRadius: "3px 12px 3px 12px", minWidth: 38, minHeight: 38, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
       </div>
     );
   }
@@ -466,7 +466,7 @@ export function createCompassUI(deps) {
         )}
         <div style={{ padding: "10px 0 4px" }}>
           {g.status !== "Completed" && !inToday && (
-            <button onClick={() => st.pushGoalToDay(g.name)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-pill)", padding: "6px 14px", minHeight: 38, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{L("→ poslat do dnešních cílů", "→ send to today's goals")}</button>
+            <button onClick={() => st.pushGoalToDay(g.name)} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: "var(--tm-r-pill)", padding: "6px 14px", minHeight: 38, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{L("→ poslat do dnešních cílů", "→ send to today's goals")}</button>
           )}
           {inToday && <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.sage }}><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("v dnešním plánu", "in today's plan")}</span>}
           {odTanmaye && g.status !== "Completed" && (
@@ -819,7 +819,7 @@ export function createCompassUI(deps) {
         <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcOblasti size={34} /></span>} pageKey="oblasti" kicker={L("Kompas", "Compass")}>{L("Krajiny", "Landscapes")}</PageTitle>
         <p className="tm-prose" style={pProse(t)}>{st.listAreas().length} {L("krajin života · poslední hodnocení · splněné cíle včetně archivovaných.", "life landscapes · latest ratings · completed goals including archived.")}{st.editMode && <span style={{ color: t.textMuted }}>{L(" Klikni na krajinu a otevři detail s měsíčním hodnocením.", " Click a landscape to open its detail with monthly ratings.")}</span>}</p>
         {adding ? <AddAreaForm onDone={() => setAdding(false)} /> : (
-          <button onClick={() => setAdding(true)} style={{ background: "transparent", border: `1px dashed ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "11px 13px", minHeight: 40, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nová krajina", "New landscape")}</button>
+          <button onClick={() => setAdding(true)} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: "var(--tm-r-sm)", padding: "11px 13px", minHeight: 40, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nová krajina", "New landscape")}</button>
         )}
         <AreaTable onOpen={(name) => setSel({ type: "area", id: name })} />
         <Drawer open={!!sel} onClose={() => setSel(null)}>
