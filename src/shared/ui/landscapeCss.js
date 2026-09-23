@@ -15,19 +15,22 @@ export function landscapeCss() {
 
 ${s} { --tm-action-material: url('/media/landscape/earth.webp'); --land-paper: url('/media/landscape/linen.webp'); --land-ash: url('/media/landscape/ashes.webp'); --land-earth: url('/media/landscape/earth.webp'); --land-field: var(--land-paper); }
 ${s} ::selection { background: var(--tm-selection) !important; color: var(--tm-selection-text) !important; }
-html[data-appearance="landscape-night"] { --land-field: var(--land-ash); }
+html[data-appearance="landscape-night"] { --land-field: var(--land-ash); --tm-earth-nav-ink: #743627; }
 ${s} body, ${s} .tm-ground { background-image: var(--land-field) !important; background-size: 768px auto !important; }
 /* The terrain field now belongs only to Practice. Its fixed box clips the rotated art. */
 ${s} .tm-ground { overflow: hidden; }
 ${s}:has(.tm-page[data-room="praxe"] [data-practice-phase="rano"]) .tm-ground::after { content: ''; position: absolute; inset: auto -5% 0; height: clamp(110px, 25vh, 240px); background: var(--tm-link); mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; opacity: .12; transform: rotate(9deg); pointer-events: none; }
 ${s} :is(.tm-sidebar,.tm-tabbar) { background-image: var(--land-ash) !important; background-size: 768px auto !important; }
+html[data-appearance="landscape-night"] :is(.tm-sidebar,.tm-tabbar) { background-color: #F4F0EB !important; background-image: var(--land-paper) !important; color: #1C1C1A; }
+html[data-appearance="landscape-night"] .tm-sidebar-lines > span { background: #743627; }
 ${s} .tm-sidebar .tm-logo > span { color: var(--tm-nav-text) !important; }
 ${s} .tm-sidebar-search { border-color: #754437 !important; }
 /* Scroll remains native; it no longer reserves a pale gutter beside the material. */
 ${s}, ${s} body, ${s} .tm-scroll { scrollbar-width: none !important; scrollbar-gutter: auto !important; }
 ${s}::-webkit-scrollbar, ${s} body::-webkit-scrollbar, ${s} .tm-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
 ${s} .tm-tabbar { left: 0 !important; right: 0 !important; border: 0 !important; border-radius: 0 !important; overflow: visible !important; isolation: isolate; }
-${s} .tm-tabbar::before { content: ''; position: absolute; left: 0; right: 0; top: -42px; height: 130px; z-index: -1; background: #1C1C1A var(--land-ash) center top/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; transform: scaleY(-1) skewY(-1.3deg); pointer-events: none; }
+${s} .tm-tabbar::before { content: ''; position: absolute; left: 0; right: 0; top: -48px; height: 130px; z-index: -1; background: #1C1C1A var(--land-ash) center top/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; transform: scaleY(-1); pointer-events: none; }
+html[data-appearance="landscape-night"] .tm-tabbar::before { background: #F4F0EB var(--land-paper) center top/768px auto; }
 @media (max-width: 820px) { ${s} .tm-tabbar { padding-left: max(6px, env(safe-area-inset-left)) !important; padding-right: max(6px, env(safe-area-inset-right)) !important; } }
 ${s} .tm-sidebar .tm-nav-active { background: transparent !important; border-left-color: transparent !important; box-shadow: none !important; color: var(--tm-nav-text-sec) !important; }
 ${s} .tm-sidebar .tm-nav-active > span:first-child { color: var(--tm-nav-accent) !important; }
@@ -39,7 +42,7 @@ ${s} :is(.tm-drawer,.tm-calcard,.tm-card,.tm-topbar) { background-image: var(--l
 ${s} :is(.tm-cs,.tm-nahled,.tm-zen) { background: var(--tm-document) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 /* Earth headers carry the website's actual outgoing contour; controls stay outside the mask. */
 ${s} :is(.tm-cs-head,.tm-nahled-head) { isolation: isolate; background: #754437 var(--land-earth) center top/768px auto !important; color: #F4F0EB !important; border-bottom-color: transparent !important; }
-${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -34px; height: 130px; z-index: -1; background: #754437 var(--land-earth) center bottom/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; pointer-events: none; }
+${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -46px; height: 130px; z-index: -1; background: #754437 var(--land-earth) center bottom/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; pointer-events: none; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) :is(button,span,svg) { color: #F4F0EB !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) button { background: transparent !important; border-color: rgba(244,240,235,.45) !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) button:focus-visible { outline-color: #F4F0EB !important; }

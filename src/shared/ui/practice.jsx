@@ -885,6 +885,9 @@ export function createPracticeUI(deps) {
               const jeCil = drzi && drzi.mode === "move" && cil === h && cil !== drzi.hour;
               const nahled = drzi && drzi.mode === "resize" && drzi.hour === h && cil ? Math.max(1, idxOf(cil) - idxOf(h) + 1) : sp;
               const konecH = HOD[Math.min(HOD.length - 1, idxOf(h) + nahled)] || "24:00";
+              const calendarTime = !drzi && cur.calHour === h && cur.calTime && Math.ceil(cur.calMinutes / 60) === sp;
+              const calendarEnd = calendarTime ? Number(cur.calTime.split(":")[0]) * 60 + Number(cur.calTime.split(":")[1]) + cur.calMinutes : 0;
+              const timeLabel = calendarTime ? cur.calTime + "–" + String(Math.floor(calendarEnd / 60)).padStart(2,"0") + ":" + String(calendarEnd % 60).padStart(2,"0") : h + (nahled > 1 ? "–" + konecH : "");
               const jeNyni = nyni != null && nyni >= parseInt(h, 10) && nyni < parseInt(h, 10) + nahled;
               return (
                 <div key={h} ref={(el) => { rowsRef.current[h] = el; }}
@@ -902,8 +905,8 @@ export function createPracticeUI(deps) {
                   <button onClick={() => set(h, { done: !cur.done })} title={L("Hotovo", "Done")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, marginTop: 1, flexShrink: 0 }}><Check done={!!cur.done} /></button>
                   {/* bindu i čas mají stejnou výšku řádku · jinak tečka plave nad linkou */}
                   <span style={{ width: 9, height: 18, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>{jeNyni && <Bindu size={5} />}</span>
-                  <span style={{ fontFamily: "var(--tm-font-tag)", fontSize: 13, lineHeight: "18px", letterSpacing: "0.05em", color: t.sage, width: nahled > 1 ? 84 : 46, flexShrink: 0, marginTop: 1, whiteSpace: "nowrap" }}>
-                    {h}{nahled > 1 ? "–" + konecH : ""}
+                  <span style={{ fontFamily: "var(--tm-font-tag)", fontSize: 13, lineHeight: "18px", letterSpacing: "0.05em", color: t.sage, width: calendarTime || nahled > 1 ? 84 : 46, flexShrink: 0, marginTop: 1, whiteSpace: "nowrap" }}>
+                    {timeLabel}
                   </span>
                   <input value={cur.text || ""} onChange={(e) => set(h, { text: e.target.value })} placeholder="…"
                     onFocus={() => { setVybrany(null); setPisu(h); }} onBlur={() => setPisu((x) => (x === h ? null : x))}

@@ -21,10 +21,8 @@ function CoverImage({ src, category, theme, glyph: Glyph, score, variant = "gall
         onError={() => real ? setRealFailed(true) : setArtFailed(true)}
         style={{ display: "block", width: "100%", height: "100%", boxSizing: "border-box", objectFit: "contain",
           padding: real ? 0 : gallery ? "8px 12px" : small ? 1 : 5,
-          opacity: real ? 1 : 0 }} />
+          opacity: real ? 1 : .8, filter: real ? undefined : theme.mode === "dark" ? "brightness(0) invert(1)" : undefined }} />
         : Glyph && <span style={{ display: "inline-flex", color: theme.textMuted }}><Glyph size={small ? 19 : 32} /></span>}
-      {image && !real && <span aria-hidden="true" style={{ position: "absolute", inset: gallery ? "8px 12px" : small ? 1 : 5,
-        background: theme.text, opacity: .54, mask: `url("${image}") center / contain no-repeat`, WebkitMask: `url("${image}") center / contain no-repeat`, pointerEvents: "none" }} />}
     </span>
   );
 }

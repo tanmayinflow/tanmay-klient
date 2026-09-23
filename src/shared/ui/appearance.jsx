@@ -175,7 +175,7 @@ export function createAppearanceUI(useT, L) {
    * @param {function} p.onPreset  zvol vzhled (Signature i paletu)
    * @param {function} p.onSignature  „Použít Signature" — návrat k poslední volbě
    */
-  function VzhledSekce({ preset, signature, onPreset, onSignature }) {
+  function VzhledSekce({ preset, signature, onPreset, onSignature, open = false, onToggle }) {
     const { t } = useT();
     const sig = APPEARANCE_PRESETS.filter((p) => SIGNATURE_PRESET_IDS.indexOf(p.id) !== -1);
     const optional = OPTIONAL_PRESETS;
@@ -186,7 +186,12 @@ export function createAppearanceUI(useT, L) {
     });
     return (
       <div id="tm-vzhled" style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${t.borderSoft}` }}>
-        <div style={label(false)}>{L("Vzhled", "Appearance")}</div>
+        <button type="button" aria-expanded={open} aria-controls="tm-vzhled-content" onClick={onToggle}
+          style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 50, padding: "13px 8px", border: 0, background: "transparent", textAlign: "left", cursor: "pointer", color: t.text }}>
+          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={{ transform: open ? "rotate(90deg)" : "none", flexShrink: 0 }}><path d="M4 2 8 6 4 10" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
+          <span style={{ ...label(false), marginBottom: 0 }}>{L("Vzhled", "Appearance")}</span>
+        </button>
+        {open && <div id="tm-vzhled-content">
         <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, lineHeight: 1.55, marginBottom: 12 }}>
           {L("Vzhled je jen to, jak tahle aplikace vypadá na tomhle zařízení. Nemění, co je vidět, co se sdílí ani co znamenají stavy.",
              "An appearance is only how this app looks on this device. It changes nothing about what is visible, what is shared, or what a status means.")}
@@ -215,6 +220,7 @@ export function createAppearanceUI(useT, L) {
           }}>
           {L("Použít Signature", "Use Signature")}
         </button>
+        </div>}
       </div>
     );
   }

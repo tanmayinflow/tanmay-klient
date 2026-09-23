@@ -11558,6 +11558,7 @@ export default function App() {
      účtu jde do karantény spolu se zbytkem cizího úložiště, takže klient B
      nezdědí motiv klienta A. */
   const [appearance, setAppearance] = useState(() => readAppearance());
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [sysDark, setSysDark] = useState(() => systemPrefersDark());
   React.useEffect(() => watchSystemMode(setSysDark), []);
   const mode = appearanceMode(appearance, sysDark);
@@ -11579,6 +11580,7 @@ export default function App() {
   }, []);
   const otevriVzhled = React.useCallback(() => {
     setSetsOpen(true);
+    setAppearanceOpen(true);
     setTimeout(() => {
       try {
         const el = document.getElementById("tm-vzhled");
@@ -13575,7 +13577,7 @@ export default function App() {
               t<span style={{ position: "relative" }}>a<Bindu size={5} style={{ position: "absolute", top: 4, left: 3.5 }} /></span>nmay
             </span>
           </button>
-            <button className="tm-gear" onClick={() => { setMenuOpen(false); setSetsOpen(true); }} title={L("Nastavení", "Settings")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, marginTop: -12, background: "transparent", border: "none", borderRadius: 10, color: t.navIcon, cursor: "pointer", flexShrink: 0 }}><TmIcNastaveni size={19} /></button>
+            <button className="tm-gear" onClick={() => { setMenuOpen(false); setAppearanceOpen(false); setSetsOpen(true); }} title={L("Nastavení", "Settings")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, marginTop: -12, background: "transparent", border: "none", borderRadius: 10, color: t.navIcon, cursor: "pointer", flexShrink: 0 }}><TmIcNastaveni size={19} /></button>
           </div>
           {NAV_GROUPS_ALL.map((g) => {
             const items = g.items.filter((f) => isEnabled(f.key));
@@ -13671,7 +13673,6 @@ export default function App() {
             {[
               { ic: editMode ? "✎" : "●", lbl: editMode ? L("Editace zapnuta — klepni pro zamčení", "Editing on — tap to lock") : L("Zamčeno — klepni pro editaci", "Locked — tap to edit"), act: editMode, on: () => setEditMode((e) => !e) },
               { ic: lang === "cs" ? "CZ" : "EN", lbl: L("Jazyk · čeština / angličtina", "Language · Czech / English"), on: toggleLang },
-              { icn: mode === "dark" ? TmIcMesic : TmIcSlunce, lbl: L("Vzhled · ", "Appearance · ") + vzhledNazev, on: otevriVzhled },
               { icn: TmIcSdileni, lbl: L("Místnosti a sdílení", "Rooms and sharing"), on: () => { setSetsOpen(false); setPickerOpen(true); } },
               { ic: mementoZap ? "◉" : "○", act: mementoZap,
                 lbl: mementoZap
@@ -13687,6 +13688,7 @@ export default function App() {
             ))}
 
             <VzhledSekce
+              open={appearanceOpen} onToggle={() => setAppearanceOpen(v => !v)}
               preset={appearance.preset}
               signature={appearance.signature}
               onPreset={setPreset}
