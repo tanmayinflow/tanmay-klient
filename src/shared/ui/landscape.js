@@ -13,8 +13,8 @@ export function landscapeDefinition(night = false) {
   const redEarth = "#743627", action = night ? pale : redEarth;
   return {
     id: night ? "landscape-night" : "landscape-day",
-    labelCs: night ? "Krajina · Noc" : "Krajina · Den",
-    labelEn: night ? "Landscape · Night" : "Landscape · Day",
+    labelCs: night ? "Signature · Noc" : "Signature · Den",
+    labelEn: night ? "Signature · Night" : "Signature · Day",
     polarity: night ? "dark" : "light", statusMode: night ? "dark" : "light",
     material: "landscape",
     anchors: { Linen: linen, Ink: ink, Earth: earth, Paper: paper, Sand: sand,

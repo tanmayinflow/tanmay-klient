@@ -920,7 +920,7 @@ const FIXED = (() => {
     navIcon: linen, navMuted: linen, navAccent: linen, navAccentInk: linen,
     navActiveBg: ink, navHairline: hexA(linen,.2), navBorder: hexA(linen,.3) });
   out["signature-day"] = makeFixed("signature-day", {
-    labelCs: "Signature · Den", labelEn: "Signature · Day", polarity: "light",
+    labelCs: "Krajina · Den", labelEn: "Landscape · Day", polarity: "light",
     anchors: { Linen: linen, Ink: ink, Copper: BRAND.copper }, chrome: LANDSCAPE_CHROME,
   }, dayPal, "signature");
   for (const id of OPTIONAL_PRESET_IDS) {
