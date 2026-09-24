@@ -1,4 +1,5 @@
 import { cleanTogether, emptyTogether, togetherProjection, TOGETHER_SCOPES, validDate, dateKey, dayNumber } from "./together.js";
+import {cleanPartnerPages,PARTNER_ROOMS} from "./togetherPages.js";
 
 const reply=(data,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store, private","X-Content-Type-Options":"nosniff","Vary":"Cookie"}});
 const fail=(error,status=400)=>reply({ok:false,error},status);
@@ -10,8 +11,14 @@ export async function ensureTogether(db) {
   await db.prepare("CREATE TABLE IF NOT EXISTS together_links (id TEXT PRIMARY KEY, owner TEXT NOT NULL UNIQUE, partner TEXT UNIQUE, token_hash TEXT, expires INTEGER NOT NULL, status TEXT NOT NULL, scopes TEXT NOT NULL DEFAULT '[]', revision INTEGER NOT NULL DEFAULT 0)").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_plans (id TEXT PRIMARY KEY, link_id TEXT NOT NULL, doc TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_answers (link_id TEXT NOT NULL, day TEXT NOT NULL, actor TEXT NOT NULL, answer TEXT NOT NULL, PRIMARY KEY(link_id,day,actor))").run();
+  await db.prepare("CREATE TABLE IF NOT EXISTS together_pages (link_id TEXT PRIMARY KEY, rooms TEXT NOT NULL DEFAULT '[]', doc TEXT NOT NULL DEFAULT '{}', revision INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL DEFAULT 0)").run();
 }
 const linkFor=(db,actor)=>db.prepare("SELECT * FROM together_links WHERE (owner = ? OR partner = ?) AND status != 'revoked'").bind(actor,actor).first();
+async function pagesFor(db,link){
+  const row=link?.status==="active"?await db.prepare("SELECT * FROM together_pages WHERE link_id = ?").bind(link.id).first():null;
+  const rooms=decode(row?.rooms,[]).filter(id=>PARTNER_ROOMS.some(r=>r.id===id));
+  return {rooms,pages:cleanPartnerPages(decode(row?.doc,{}),rooms),revision:row?.revision||0,updated:row?.updated||0};
+}
 async function person(db,actor) {
   const row=await db.prepare("SELECT * FROM together_people WHERE actor = ?").bind(actor).first();
   return {doc:decode(row?.doc,null)||emptyTogether(),revision:row?.revision||0};
@@ -19,7 +26,7 @@ async function person(db,actor) {
 function publicLink(link,actor) {
   return link?{id:link.id,status:link.status,owner:link.owner===actor,scopes:decode(link.scopes,[]),revision:link.revision,expires:link.expires}:null;
 }
-// Authenticated actor comes from the Worker, never the URL/body. Main is only a recipient.
+// Authenticated actor comes from the Worker, never the URL/body. Main may publish only its reduced page projections.
 export async function handleTogether(request,db,actor,{owner=false,now=Date.now()}={}) {
   if(!db)return fail("unavailable",503);
   if(!actor)return fail("unauthorized",401);
@@ -52,9 +59,17 @@ export async function handleTogether(request,db,actor,{owner=false,now=Date.now(
     const plans=active?(await db.prepare("SELECT id,doc,revision FROM together_plans WHERE link_id = ?").bind(link.id).all()).results.map(p=>({...decode(p.doc,{}),id:p.id,revision:p.revision})):[];
     const answers=active?(await db.prepare("SELECT actor,answer FROM together_answers WHERE link_id = ? AND day = ?").bind(link.id,localToday).all()).results:[];
     const myAnswer=answers.find(a=>a.actor===actor)?.answer||"";
+    const pages=await pagesFor(db,link);
     const latest=await linkFor(db,actor);
     if(latest?.id!==link?.id||latest?.revision!==link?.revision)return fail("conflict",409);
-    return reply({ok:true,self,link:publicLink(link,actor),partner,plans,answer:{mine:myAnswer,partner:myAnswer?(answers.find(a=>a.actor===other)?.answer||""):"",waiting:!!answers.find(a=>a.actor===other)},canTrack:owner,today:localToday});
+    if((await pagesFor(db,latest)).revision!==pages.revision)return fail("conflict",409);
+    return reply({ok:true,self,link:publicLink(link,actor),partner,plans,sharedPages:pages,answer:{mine:myAnswer,partner:myAnswer?(answers.find(a=>a.actor===other)?.answer||""):"",waiting:!!answers.find(a=>a.actor===other)},canTrack:owner,today:localToday});
+  }
+  if(action==="/pages"&&method==="GET") {
+    if(!link||link.status!=="active")return fail("not-connected",403);
+    const pages=await pagesFor(db,link),latest=await linkFor(db,actor);
+    if(latest?.id!==link.id||latest?.revision!==link.revision||(await pagesFor(db,latest)).revision!==pages.revision)return fail("conflict",409);
+    return reply({ok:true,...pages,linkId:link.id,linkRevision:link.revision});
   }
   if(action==="/self"&&method==="PUT") {
     let doc;
@@ -96,6 +111,18 @@ export async function handleTogether(request,db,actor,{owner=false,now=Date.now(
     return changeCount(r)?reply({ok:true}):fail("conflict",409);
   }
   if(!link||link.status!=="active")return fail("not-connected",403);
+  if((action==="/pages-sharing"||action==="/pages")&&method==="PUT") {
+    if(owner||actor!==link.partner||actor!=="coach:tanmay")return fail("read-only",403);
+    if(body.linkId!==link.id||body.linkRevision!==link.revision)return fail("conflict",409);
+    const current=await pagesFor(db,link);
+    const rooms=action==="/pages-sharing"?body.rooms:current.rooms;
+    if(!Array.isArray(rooms)||rooms.some(id=>!PARTNER_ROOMS.some(r=>r.id===id)))return fail("invalid-rooms");
+    let pages;try{pages=cleanPartnerPages(body.pages,[...new Set(rooms)]);}catch(e){return fail(e.message);}
+    if(!Number.isInteger(body.revision)||body.revision!==current.revision)return fail("conflict",409);
+    await db.prepare("INSERT OR IGNORE INTO together_pages (link_id) VALUES (?)").bind(link.id).run();
+    const result=await db.prepare("UPDATE together_pages SET rooms = ?, doc = ?, revision = revision + 1, updated = ? WHERE link_id = ? AND revision = ? AND EXISTS (SELECT 1 FROM together_links WHERE id = ? AND status = 'active' AND revision = ? AND partner = ?)").bind(JSON.stringify([...new Set(rooms)]),JSON.stringify(pages),now,link.id,body.revision,link.id,link.revision,actor).run();
+    return changeCount(result)?reply({ok:true}):fail("conflict",409);
+  }
   if(action==="/answer"&&method==="PUT") {
     const answer=typeof body.answer==="string"?body.answer.trim().slice(0,1500):"";
     const written=await db.prepare("INSERT INTO together_answers (link_id,day,actor,answer) SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM together_links WHERE id = ? AND status = 'active' AND revision = ?) ON CONFLICT(link_id,day,actor) DO UPDATE SET answer=excluded.answer").bind(link.id,localToday,actor,answer,link.id,link.revision).run();

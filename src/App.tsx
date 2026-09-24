@@ -13320,7 +13320,7 @@ export default function App() {
 
   const render = () => {
     switch (page) {
-      case "spolu": return <TogetherPage t={t} lang={lang} Header={PageTitle} role="client"/>;
+      case "spolu": return <TogetherPage t={t} lang={lang} Header={PageTitle} Sheet={CenterSheet} role="client"/>;
       case "__navigation": return <div><h1>{L("Stránky", "Pages")}</h1><button onClick={()=>setSetsOpen(true)}>{L("Otevřít nastavení", "Open settings")}</button></div>;
       case "kompas": return <PageDivine go={go} />;
       case "praxe": return <PageHabit go={go} />;

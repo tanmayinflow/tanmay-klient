@@ -33,6 +33,7 @@
     "test:sync:fail": "TM_ROLE=client node tests/browser/sync-failure.mjs"
   },
   "dependencies": {
+    "astronomy-engine": "2.1.19",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

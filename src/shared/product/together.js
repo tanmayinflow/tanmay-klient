@@ -1,5 +1,6 @@
-// Spolu: calendar estimates, never fertility/contraception or phase-based prescriptions.
-export const TOGETHER_SCOPES = ["cycle", "wellbeing", "support"];
+// Calendar education and optional estimates, never fertility/contraception prescriptions.
+import {cyclePhase} from "./togetherGuidance.js";
+export const TOGETHER_SCOPES = ["cycle", "wellbeing", "support", "phase"];
 export const dateKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 export function validDate(s) { return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)) && new Date(s+"T12:00:00Z").toISOString().slice(0,10) === s; }
 export const dayNumber = s => Math.floor(Date.parse(s+"T12:00:00Z")/86400000);
@@ -38,7 +39,7 @@ export function cycleSummary(doc, today = dateKey()) {
   const observedBleeding=!!(last.end&&last.end>=today) || last.start===today;
   const base={day,observedBleeding,lastStart:last.start,cycles:intervals.length,median};
   if(doc.mode!=="estimate") return {...base,next:null,reason:doc.mode==="paused"?"paused":"observe"};
-  if(intervals.some(n=>n<21||n>35) || (sorted.length>1&&sorted.at(-1)-sorted[0]>7)) return {...base,next:null,reason:"variable"};
+  if(median<21||median>35||intervals.some(n=>n<21||n>35) || (sorted.length>1&&sorted.at(-1)-sorted[0]>7)) return {...base,next:null,reason:"variable"};
   const spread=sorted.length>1?Math.max(3,Math.ceil((sorted.at(-1)-sorted[0])/2)):4;
   const next={from:addDays(last.start,median-spread),to:addDays(last.start,median+spread),basedOn:intervals.length?"history":"manual"};
   if(today>next.to) return {...base,next:null,reason:"outdated"};
@@ -48,6 +49,7 @@ export function cycleSummary(doc, today = dateKey()) {
 export function togetherProjection(doc, scopes, today=dateKey()) {
   const out={}; const d=doc.days?.[today];
   if(scopes.includes("cycle")) { const {day,next,reason,cycles}=cycleSummary(doc,today); out.cycle={day,next,reason,cycles}; }
+  if(scopes.includes("phase")) out.phase=cyclePhase(doc,cycleSummary(doc,today),today);
   if(scopes.includes("wellbeing")&&d) out.wellbeing={date:today,energy:d.energy,mood:d.mood};
   if(scopes.includes("support")&&d) out.support={date:today,text:d.support};
   return out;

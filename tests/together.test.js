@@ -5,6 +5,9 @@ import { handleTogether } from '../src/shared/product/togetherApi.js';
 import { cleanTogether,emptyTogether,cycleSummary,addDays,validDate,togetherProjection } from '../src/shared/product/together.js';
 import { navigationRooms,updatePlacement,MAIN_ROOMS,CLIENT_ROOMS } from '../src/shared/product/navigation.js';
 import worker from '../worker/index.js';
+import {cyclePhase} from '../src/shared/product/togetherGuidance.js';
+import {moonToday} from '../src/shared/product/togetherMoon.js';
+import {cleanPartnerPages} from '../src/shared/product/togetherPages.js';
 
 const now=Date.parse('2026-09-24T12:00:00Z');
 function fixture(){
@@ -18,6 +21,46 @@ function fixture(){
   const pair=async(scopes=[])=>{const invite=await call('client:a','invite',{});assert.equal(invite.status,200);assert.equal((await call('coach:tanmay','claim',{code:invite.code})).status,200);const d=await call('client:a');assert.equal((await call('client:a','sharing',{scopes,revision:d.link.revision})).status,200);return invite;};
   return {sql,db,call,pair};
 }
+test('phases distinguish recorded bleeding, optional estimates and unknown states',()=>{
+  const doc={...emptyTogether(),mode:'estimate',periods:[{start:'2026-09-01',end:'2026-09-05'}]};
+  const phase=date=>cyclePhase(doc,cycleSummary(doc,date),date);
+  assert.deepEqual(phase('2026-09-03'),{id:'menstrual',basis:'recorded'});
+  assert.equal(phase('2026-09-08').id,'follicular');assert.equal(phase('2026-09-14').id,'ovulatory');assert.equal(phase('2026-09-22').id,'luteal');
+  assert.equal(phase('2026-10-10').id,null);doc.mode='observe';assert.equal(phase('2026-09-14').id,null);doc.mode='paused';assert.equal(phase('2026-09-03').id,null);
+  doc.mode='estimate';doc.usualLength=80;assert.equal(phase('2026-09-14').id,null);
+  assert.equal(togetherProjection(doc,['cycle'],'2026-09-03').phase,undefined);
+  assert.equal(togetherProjection(doc,['phase'],'2026-09-03').phase.id,'menstrual');
+  assert.equal(togetherProjection(doc,['phase'],'2026-09-03').cycle,undefined);
+});
+test('astronomical lunar model follows known new/full moons and advances dates',()=>{
+  const eclipse=moonToday(new Date('2024-04-08T18:21:00Z'));
+  assert.ok(eclipse.phase<.002||eclipse.phase>.998);assert.equal(eclipse.light,0);
+  const full=moonToday(new Date('2024-03-25T07:00:00Z'));
+  assert.ok(Math.abs(full.phase-.5)<.002);assert.equal(full.light,100);assert.equal(full.index,4);
+  assert.ok(new Date(full.next)>new Date('2024-03-25T07:00:00Z'));
+  assert.notEqual(moonToday(new Date('2026-09-24T12:00:00Z')).index,moonToday(new Date('2026-10-05T12:00:00Z')).index);
+});
+test('page access is explicitly granted, read only, scoped to a pair and revocable',async()=>{
+  const {call,pair}=fixture();await pair();
+  let coach=await call('coach:tanmay');assert.deepEqual(coach.sharedPages.rooms,[]);
+  const payload={rooms:['praxe'],pages:{praxe:[{title:'Walk',detail:'done',note:'SECRET',lines:['7 days']}],journal:[{title:'SECRET'}]},revision:0,linkId:coach.link.id,linkRevision:coach.link.revision};
+  assert.equal((await call('client:a','pages-sharing',payload)).status,403);
+  assert.equal((await call('coach:tanmay','pages-sharing',payload)).status,200);
+  let partner=await call('client:a');assert.deepEqual(partner.sharedPages.rooms,['praxe']);assert.equal(JSON.stringify(partner.sharedPages).includes('SECRET'),false);
+  assert.equal((await call('client:b','pages')).status,403);assert.deepEqual((await call('client:b')).sharedPages.rooms,[]);
+  assert.equal((await call('client:a','pages',{...payload,revision:1})).status,403);
+  assert.equal((await call('coach:tanmay','pages-sharing',payload)).status,409);
+  const old={...payload,revision:1};
+  assert.equal((await call('coach:tanmay','pages-sharing',{...old,rooms:[],pages:{}})).status,200);
+  assert.deepEqual((await call('client:a')).sharedPages.pages,{});
+  assert.equal((await call('coach:tanmay','pages',old)).status,409);
+  assert.equal((await call('coach:tanmay','pages-sharing',{...payload,revision:2,rooms:['journal']})).status,400);
+  assert.equal((await call('client:a','disconnect',{revision:partner.link.revision})).status,200);
+  assert.equal((await call('coach:tanmay','pages',old)).status,403);
+  await pair();assert.deepEqual((await call('client:a')).sharedPages.rooms,[]);
+  assert.equal((await call('coach:tanmay','pages-sharing',old)).status,409);
+  assert.throws(()=>cleanPartnerPages({praxe:'bad'},['praxe']));
+});
 test('actual dates, leap days and cycle variability have explicit limits',()=>{
   assert.equal(validDate('2026-02-29'),false);assert.equal(addDays('2024-02-28',1),'2024-02-29');assert.equal(addDays('2026-03-28',2),'2026-03-30');
   const d=emptyTogether();d.periods=[{start:'2026-08-01',end:'2026-08-05'},{start:'2026-08-29',end:'2026-09-02'}];
