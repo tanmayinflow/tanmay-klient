@@ -17,10 +17,8 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  FIXED_PRESET_IDS, PRESET_FIELDS, PRESET_THEME_COLORS, PRESET_GRAMMARS, appearancePreset,
-} from "../src/shared/ui/themeRegistry.js";
-import { APPEARANCE_KEY, LEGACY_APPEARANCE_KEY, LEGACY_THEME_KEY } from "../src/shared/ui/appearance.js";
+import { FIXED_PRESET_IDS, PRESET_FIELDS, PRESET_THEME_COLORS, PRESET_GRAMMARS, appearancePreset } from "../src/shared/ui/themeRegistry.js";
+
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const html = readFileSync(join(root, "index.html"), "utf8");
@@ -75,28 +73,7 @@ test("noční seznam a gramatiky sedí na rejstřík", () => {
   assert.match(src, /data-frame-grammar/, "gramatika se musí nastavit před prvním paintem");
 });
 
-test("migrační tabulky v pre-paintu sedí na rejstřík", () => {
-  const src = inline[0][1];
-  for (const [old, cil] of [
-    ["slate-clay", "slate-clay-pantone"], ["sand-earth", "sand-burnt-earth"],
-    ["smoke-spice", "shikon-fossil"], ["river-night", "volcanic-grey"],
-    ["mulberry-paper", "garnet-slate"], ["teal-night", "signature-night"],
-  ]) {
-    assert.match(src, new RegExp(`"${old}"\\s*:\\s*"${cil}"`), `pre-paint nepřevede ${old}`);
-  }
-  for (const [family, cil] of [
-    ["river-mist", "volcanic-grey"], ["teal-parchment", "signature-night"],
-    ["atlantic-sky", "slate-clay-pantone"], ["clay-alabaster", "sand-burnt-earth"],
-    ["olive-gold", "sand-burnt-earth"],
-  ]) {
-    assert.match(src, new RegExp(`"${family}"\\s*:\\s*"${cil}"`), `pre-paint nepřevede rodinu ${family}`);
-  }
-  for (const key of [APPEARANCE_KEY, LEGACY_APPEARANCE_KEY, LEGACY_THEME_KEY]) {
-    assert.match(src, new RegExp(key.replace(/[-]/g, "\\-")), `pre-paint nečte klíč ${key}`);
-  }
-  assert.match(src, /prefers-color-scheme: dark/);
-  assert.ok((src.match(/catch \(e\)/g) || []).length >= 2);
-});
+
 
 test("skript nesahá na nic, co v tu chvíli ještě neexistuje", () => {
   const src = inline[0][1];

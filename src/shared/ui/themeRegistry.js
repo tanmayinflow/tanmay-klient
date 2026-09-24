@@ -3,42 +3,9 @@
 // Change it there, then run `npm run shared:sync` in the outer workspace.
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
-// ----------------------------------------------------------------------
-// REJSTŘÍK VZHLEDŮ · Signature + sedm přesných palet s vlastní řečí rámů
-// ----------------------------------------------------------------------
-// V2 zavedla kurátorované presety a jeden resolver. V3 na tom staví a mění
-// dvě věci:
-//
-// 1 · SIGNATURE JE NORMA A NEHÝBE SE. Automaticky / Den / Noc zůstávají
-//     přesně tak, jak je dům nosí — stejné hodnoty, stejné chování, žádné
-//     rámy. Otisky to hlídají znak po znaku.
-//
-// 2 · SEDM VOLITELNÝCH PALET S PŘESNÝMI KOTVAMI. Každá pochází z jedné
-//     dodané barevné reference a nese JEN její hexy: žádné odvozené rampy,
-//     žádná HSL rotace, žádný color-mix uložený jako token. Jediné povolené
-//     doplňky jsou průhlednost přesné kotvy (dekorace, hierarchie písma),
-//     servisní Ink a Linen ze Signature tam, kde dodaná paleta nemá
-//     přístupnou dvojici pro běžný text (výslovně: Americano a chai),
-//     a sdílené stavové barvy.
-//
-// KAŽDÁ VOLITELNÁ PALETA MÁ VLASTNÍ ŘEČ RÁMŮ. Nejde o monolitické
-// přebarvení: paleta se pozná podle toho, jak rámuje list, zásuvku a vybraný
-// prvek — dvojitá linka, vsazený monument, vrstvy strat, rohové konzoly,
-// vnořená fosilie, čedičové stupně, tkané kolejnice. Rámy jsou čisté CSS
-// (pseudo-prvky, vnitřní stíny, obrysy), nemění rozměry komponent a Signature
-// se jich nikdy nedotkne.
-//
-// DVOJÍ POLARITA NAVIGACE. Čtyři z dodaných palet mají tmavou navigaci nad
-// světlým polem. Kontrakt proto nese NAV-TOKENY (`navText`, `navIcon`,
-// `navKicker`, …): postranní panel a dok čtou je, ne globální inkousty.
-// V Signature se rovnají přesně dosavadním hodnotám, takže se nezměnil
-// jediný pixel.
-//
-// Komponenty se nikdy neptají, JAKÁ paleta je zapnutá. Ptají se na roli
-// (`t.card`, `t.navText`, `t.frameRail`) a na `data-frame-grammar` na kořeni.
-//
-// Barevná autorita: tanmay_theme_system_v3_exact_palettes_frame_spec.md
-// a sedm dodaných referencí. Odchylky jsou v THEME-CONTRAST-REPORT.md.
+// Eight owner-selected themes share the Landscape Day construction.
+// 24 September 2026 supersedes the old independent frame grammars and Signature freeze.
+// Palette roles remain semantic; status meaning and local-only persistence are unchanged.
 
 import { landscapeDefinition } from "./landscape.js";
 import { hexA, mixHex } from "./color.js";
@@ -55,53 +22,15 @@ export const BRAND = Object.freeze({ copper: "#B87333", linen: "#F4F0EB", forest
  */
 export const UTILITY = Object.freeze({ ink: BRAND.forest, linen: BRAND.linen });
 
-/* Pořadí je pořadí v Nastavení: Signature (automatika, den, noc) a pak sedm
-   volitelných palet v pořadí ze specifikace. */
 export const APPEARANCE_PRESET_IDS = Object.freeze([
-  "signature-auto",
-  "signature-day",
-  "signature-night",
-  "slate-clay-pantone",
-  "monument-clay",
-  "sand-burnt-earth",
-  "garnet-slate",
-  "shikon-fossil",
-  "volcanic-grey",
-  "americano-chai",
-  "quiet-ledger-night",
-  "nagtang-black",
-  "martang-red",
-  "sertang-gold",
-  "mineral-pigments",
-  "black-sand",
-  "deep-water",
-  "landscape-day",
-  "landscape-night",
+  "landscape-day", "landscape-night", "monument-clay", "sand-burnt-earth",
+  "garnet-slate", "nagtang-black", "mineral-pigments", "signature-day",
 ]);
-
-/** Signature trojice — jediná část výběru, kde existuje režim. */
-export const SIGNATURE_PRESET_IDS = Object.freeze(["signature-auto", "signature-day", "signature-night"]);
-
-/** Dvanáct volitelných palet · osm z dodaných referencí a čtyři thangky. Pevné: systém s nimi nehýbe. */
-export const OPTIONAL_PRESET_IDS = Object.freeze([
-  "slate-clay-pantone", "monument-clay", "sand-burnt-earth", "garnet-slate",
-  "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night",
-  "nagtang-black", "martang-red", "sertang-gold", "mineral-pigments",
-  "black-sand",
-  "deep-water",
-  "landscape-day",
-  "landscape-night",
-]);
-
-/** Všechno kromě automatiky — vyřešené palety. */
-export const FIXED_PRESET_IDS = Object.freeze(APPEARANCE_PRESET_IDS.filter((id) => id !== "signature-auto"));
-
-/* Nová instalace používá Krajina · Den (zadání 2026-09-21).
-   Uložené volby a návrat k dříve zvolené Signature zůstávají zachované. */
+export const SIGNATURE_PRESET_IDS = Object.freeze(["signature-day"]);
+export const OPTIONAL_PRESET_IDS = Object.freeze(APPEARANCE_PRESET_IDS.filter(id => id !== "signature-day"));
+export const FIXED_PRESET_IDS = APPEARANCE_PRESET_IDS;
 export const DEFAULT_PRESET = "landscape-day";
-
-/** Aktuálně doporučený vzhled aplikace. */
-export const RECOMMENDED_PRESET = "landscape-day";
+export const RECOMMENDED_PRESET = DEFAULT_PRESET;
 
 // ----------------------------------------------------------------------
 // FUNKČNÍ BARVY · význam, ne dekorace
@@ -154,11 +83,7 @@ export const CHART_PATTERNS = Object.freeze([
 ]);
 
 // ----------------------------------------------------------------------
-// SIGNATURE DAY · doslovný přepis současné produkční palety
-// ----------------------------------------------------------------------
-// Tenhle objekt se nesmí „vylepšit". Jsou to hodnoty, které dům nosí, a
-// jediný důvod, proč tu jsou, je že rejstřík je jejich domov. §7 zadání V2:
-// Signature Day nesmí vizuálně změnit ani o odstín.
+// Signature Day retains its content palette; navigation now follows Landscape.
 const SIGNATURE_LIGHT = {
   bg: "#F4F0EB",
   bgSidebar: "#EBE6E0",
@@ -208,26 +133,7 @@ const SIGNATURE_LIGHT = {
 // ty, které tu stály ve V1.1 jako `river-mist.dark`, `teal-parchment.dark`
 // a `mulberry-paper.light`. Nepřepisovaly se, jen se přejmenovaly na
 // samostatné vzhledy — proto z nich vypadne přesně táž paleta jako dřív.
-const SPECS = {
-  "signature-night": {
-    polarity: "dark",
-    labelCs: "Signature · Noc", labelEn: "Signature · Night",
-    anchors: { "Soft Charcoal": "#262725", Linen: "#F4F0EB", Copper: "#B87333" },
-    background: "#262725", navigation: "#1E1F1D", surface: "#30312E", card: "#383A35",
-    documentSurface: "#2B2C29", elevatedSurface: "#414445",
-    text: "#F4F0EB", textSecondary: "#D0C9BE", textMuted: "#AAA399", placeholder: "#B7AFA4",
-    border: "#464740", borderStrong: "#5A5B53",
-    interactiveAccent: "#B87333", interactiveAccentHover: "#CC8043", interactiveOnAccent: "#171815",
-    focusRing: "#C5B49A", selectionSurface: "#4A382B",
-    // Nadpis zůstává prostý len — měď v nadpisu by v noci křičela.
-    heading: "#F4F0EB",
-    // Copper a Sand jsou v noci dvě značkové stopy, ne dekorace.
-    sand: "#C5B49A", inkSand: "#D8C7AE",
-    status: { success: "#82AA8B", warning: "#D4A45E", error: "#DF7C83", info: "#83A9BA" },
-    chart: ["#B87333", "#C5B49A", "#8F9295", "#5C6263", "#7C8C6E", "#E4D9C6"],
-    themeColor: "#262725",
-  },
-};
+
 
 // ----------------------------------------------------------------------
 // ODVOZENÍ · jedno pravidlo pro všech osm vzhledů
@@ -789,42 +695,6 @@ function exactPalette(d) {
   return Object.freeze(out);
 }
 
-/* ---- Břidlice a hlína · Pantone 7546 C / 7527 U / 420 U / 470 U ---------
-   Chladné redakční pole, tmavá břidlicová navigace, střední šeď na kartách,
-   hlína jen jako kolejnice, vybraný stav a graf. Dvojitá architektonická
-   linka na listu a vybraném panelu. Hlína nikdy nenese běžný text. */
-const SLATE = "#243746", WARMGREY = "#DBD6D1", MIDGREY = "#BDBDBD", CLAY = "#A57051";
-const DEF_SLATE_CLAY = {
-  id: "slate-clay-pantone",
-  labelCs: "Břidlice a hlína", labelEn: "Slate and Clay",
-  polarity: "light", statusMode: "light",
-  anchors: { "Pantone 7546 C": SLATE, "Pantone 7527 U": WARMGREY, "Pantone 420 U": MIDGREY, "Pantone 470 U": CLAY },
-  background: WARMGREY, navigation: SLATE, surface: WARMGREY, card: MIDGREY,
-  documentSurface: WARMGREY, elevatedSurface: MIDGREY,
-  text: SLATE, textSecondary: SLATE,
-  textMuted: A(SLATE, 0.87), textDisabled: A(SLATE, 0.68), placeholder: A(SLATE, 0.87),
-  border: A(SLATE, 0.3), borderStrong: SLATE, borderSoft: A(SLATE, 0.14),
-  interactive: SLATE, interactiveText: WARMGREY, focus: SLATE, link: SLATE,
-  selectionSurface: A(CLAY, 0.28),
-  quietInk: A(SLATE, 0.82),
-  cardHover: A(SLATE, 0.05), sheetHover: A(SLATE, 0.03),
-  callout: MIDGREY, tableHead: MIDGREY,
-  activeNav: A(CLAY, 0.22),
-  hero: MIDGREY, heroInk: SLATE,
-  overlay: A(SLATE, 0.45),
-  chart: [SLATE, CLAY, MIDGREY, WARMGREY, SLATE, CLAY],
-  chartSurface: WARMGREY, grid: A(SLATE, 0.15), axis: A(SLATE, 0.85),
-  atlasBorder: SLATE, shadowInk: SLATE, dockBg: SLATE,
-  nav: {
-    text: WARMGREY, textSec: A(WARMGREY, 0.85), kicker: A(WARMGREY, 0.7),
-    icon: A(WARMGREY, 0.78), muted: A(WARMGREY, 0.72), accent: WARMGREY,
-    activeBg: A(CLAY, 0.32), hairline: A(WARMGREY, 0.18), border: A(WARMGREY, 0.26),
-  },
-  frame: { outer: SLATE, inner: MIDGREY, rail: CLAY, highlight: CLAY },
-  themeColor: WARMGREY,
-  chrome: { frameGrammar: "architectural-double", radius: 10, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
-};
-
 /* ---- Monument · #26303B / #9A694E / #EBEBDD -----------------------------
    Tmavá struktura, slonovinové pracovní plochy, hliněná kolejnice. Jedna
    vědomá odchylka od tabulky specifikace: POLE JE SVĚTLÉ. Aplikace sází
@@ -939,179 +809,6 @@ const DEF_GARNET = {
   chrome: { frameGrammar: "corner-brackets", radius: 4, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
 };
 
-/* ---- Šikon a fosilní písek · pět kotev z reference ----------------------
-   Teplá tma: šikonové pole, taupe plochy, fosilní písmo, allspice kolejnice.
-   Vnořená fosilie: vnější vlásečnice, vsazený taupe pás, u vybraného tenká
-   fosilní linka. Žádné zlato, žádný luxus. */
-const SHIKON = "#282227", TAUPE = "#493C3C", MLINK = "#6D5B57", ALLSPICE = "#9B7E6D", FOSSIL = "#D0B08F";
-const DEF_SHIKON = {
-  id: "shikon-fossil",
-  labelCs: "Šikon a fosilní písek", labelEn: "Shikon and Fossil",
-  polarity: "dark", statusMode: "dark",
-  anchors: { Shikon: SHIKON, "Dark Taupe": TAUPE, "Missing Link": MLINK, "Tempered Allspice": ALLSPICE, "Fossil Tan": FOSSIL },
-  background: SHIKON, navigation: TAUPE, surface: TAUPE, card: TAUPE,
-  documentSurface: SHIKON, elevatedSurface: TAUPE,
-  /* Fosilní písmo drží na taupe ploše 5,16:1 — hierarchie proto smí ubrat
-     jen málo krytí, jinak ztlumené písmo spadne pod 4,5 na kartě. */
-  text: FOSSIL, textSecondary: A(FOSSIL, 0.96),
-  textMuted: A(FOSSIL, 0.94), textDisabled: A(FOSSIL, 0.68), placeholder: A(FOSSIL, 0.94),
-  border: MLINK, borderStrong: ALLSPICE, borderSoft: A(FOSSIL, 0.14),
-  interactive: FOSSIL, interactiveText: SHIKON, focus: FOSSIL, link: FOSSIL,
-  selectionSurface: A(ALLSPICE, 0.35),
-  quietInk: A(FOSSIL, 0.8),
-  cardHover: A(FOSSIL, 0.02), sheetHover: A(FOSSIL, 0.02),
-  callout: TAUPE, tableHead: TAUPE,
-  activeNav: A(FOSSIL, 0.16),
-  hero: TAUPE, heroInk: FOSSIL,
-  overlay: A(SHIKON, 0.65),
-  chart: [FOSSIL, ALLSPICE, MLINK, TAUPE, SHIKON, FOSSIL],
-  chartSurface: TAUPE, grid: A(FOSSIL, 0.14), axis: A(FOSSIL, 0.85),
-  atlasBorder: MLINK, shadowInk: SHIKON, dockBg: SHIKON,
-  nav: {
-    text: FOSSIL, textSec: A(FOSSIL, 0.92), kicker: A(FOSSIL, 0.7),
-    icon: A(FOSSIL, 0.78), muted: A(FOSSIL, 0.72), accent: FOSSIL,
-    /* Vybraná položka na taupe navigaci TMAVNE (šikonový nádech) — světlý
-       nádech by fosilnímu písmu ubíral kontrast přesně tam, kde je vybrané. */
-    activeBg: A(SHIKON, 0.4), hairline: A(FOSSIL, 0.16), border: A(FOSSIL, 0.24),
-  },
-  frame: { outer: MLINK, inner: TAUPE, rail: ALLSPICE, highlight: FOSSIL },
-  themeColor: SHIKON,
-  chrome: { frameGrammar: "nested-fossil", radius: 12, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
-};
-
-/* ---- Sopečná šeď · pět šedí z reference ---------------------------------
-   Technický kámen: vrstvené šedi, hranatá geometrie, stupňovitý rám
-   s posunutým krokem. Žádné rozmazané stíny, žádný zelený nádech. */
-const VEND = "#292A2A", VULC = "#414445", BLACKGREEN = "#5C6263", FLINT = "#8F9295", NEOTOKYO = "#BEC0C2";
-const DEF_VOLCANIC = {
-  id: "volcanic-grey",
-  labelCs: "Sopečná šeď", labelEn: "Volcanic Grey",
-  polarity: "dark", statusMode: "dark",
-  anchors: { "The End": VEND, Vulcanised: VULC, "Blackish Green": BLACKGREEN, "Flint Shard": FLINT, "Neo Tokyo Grey": NEOTOKYO },
-  background: VEND, navigation: VULC, surface: VULC, card: VULC,
-  documentSurface: VEND, elevatedSurface: VULC,
-  text: NEOTOKYO, textSecondary: A(NEOTOKYO, 0.95),
-  textMuted: A(NEOTOKYO, 0.93), textDisabled: A(NEOTOKYO, 0.68), placeholder: A(NEOTOKYO, 0.93),
-  border: BLACKGREEN, borderStrong: FLINT, borderSoft: A(NEOTOKYO, 0.14),
-  interactive: NEOTOKYO, interactiveText: VEND, focus: FLINT, link: NEOTOKYO,
-  selectionSurface: A(FLINT, 0.3),
-  quietInk: A(NEOTOKYO, 0.8),
-  cardHover: A(NEOTOKYO, 0.04), sheetHover: A(NEOTOKYO, 0.03),
-  callout: VULC, tableHead: VULC,
-  activeNav: A(NEOTOKYO, 0.14),
-  hero: VULC, heroInk: NEOTOKYO,
-  overlay: A(VEND, 0.65),
-  chart: [NEOTOKYO, FLINT, BLACKGREEN, VULC, VEND, NEOTOKYO],
-  chartSurface: VULC, grid: A(NEOTOKYO, 0.14), axis: A(NEOTOKYO, 0.85),
-  atlasBorder: BLACKGREEN, shadowInk: VEND, dockBg: VEND,
-  nav: {
-    text: NEOTOKYO, textSec: A(NEOTOKYO, 0.92), kicker: A(NEOTOKYO, 0.7),
-    icon: A(NEOTOKYO, 0.78), muted: A(NEOTOKYO, 0.72), accent: NEOTOKYO,
-    activeBg: A(VEND, 0.45), hairline: A(NEOTOKYO, 0.16), border: A(NEOTOKYO, 0.24),
-  },
-  frame: { outer: BLACKGREEN, inner: FLINT, rail: VULC, highlight: NEOTOKYO },
-  themeColor: VEND,
-  chrome: { frameGrammar: "basalt-steps", radius: 4, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
-};
-
-/* ---- Americano a chai · pět kotev + servisní len ------------------------
-   Teplá noc, dřevo, pražený materiál. Dodaná paleta nemá jedinou světlou
-   barvu, která by na svých nejtmavších polích dosáhla 4,5:1 — běžné písmo si
-   proto půjčuje lněný servisní inkoust ze Signature (výslovná výjimka ze
-   specifikace). Všechna pole, kolejnice a rámy zůstávají přesné kotvy.
-   Neodvozuje se žádná nová béžová. */
-const AMERICANO = "#1E1D1D", MOCHA = "#5A4D41", CHAI = "#7E6957", ROAST = "#867C70", BREW = "#303031";
-const DEF_AMERICANO = {
-  id: "americano-chai",
-  labelCs: "Americano a chai", labelEn: "Americano and Chai",
-  polarity: "dark", statusMode: "dark",
-  anchors: { Americano: AMERICANO, Mocha: MOCHA, Chai: CHAI, Roast: ROAST, Brew: BREW },
-  background: AMERICANO, navigation: BREW, surface: MOCHA, card: BREW,
-  documentSurface: BREW, elevatedSurface: MOCHA,
-  text: UTILITY.linen, textSecondary: A(UTILITY.linen, 0.9),
-  textMuted: A(UTILITY.linen, 0.8), textDisabled: A(UTILITY.linen, 0.5), placeholder: A(UTILITY.linen, 0.8),
-  border: CHAI, borderStrong: ROAST, borderSoft: A(UTILITY.linen, 0.13),
-  interactive: UTILITY.linen, interactiveText: UTILITY.ink, focus: UTILITY.linen, link: UTILITY.linen,
-  selectionSurface: A(ROAST, 0.35),
-  quietInk: A(UTILITY.linen, 0.78),
-  cardHover: A(UTILITY.linen, 0.06), sheetHover: A(UTILITY.linen, 0.04),
-  callout: MOCHA, tableHead: MOCHA,
-  activeNav: A(UTILITY.linen, 0.12),
-  hero: MOCHA, heroInk: UTILITY.linen,
-  overlay: A(AMERICANO, 0.68),
-  chart: [ROAST, CHAI, MOCHA, BREW, AMERICANO, ROAST],
-  chartSurface: BREW, grid: A(UTILITY.linen, 0.13), axis: A(UTILITY.linen, 0.82),
-  atlasBorder: CHAI, shadowInk: AMERICANO, dockBg: AMERICANO,
-  nav: {
-    text: UTILITY.linen, textSec: A(UTILITY.linen, 0.88), kicker: A(UTILITY.linen, 0.68),
-    icon: A(UTILITY.linen, 0.78), muted: A(UTILITY.linen, 0.72), accent: UTILITY.linen,
-    activeBg: A(UTILITY.linen, 0.12), hairline: A(UTILITY.linen, 0.15), border: A(UTILITY.linen, 0.24),
-  },
-  frame: { outer: MOCHA, inner: CHAI, rail: ROAST, highlight: ROAST },
-  themeColor: AMERICANO,
-  chrome: { frameGrammar: "woven-rails", radius: 10, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
-};
-
-/* ---- Tichý zápis · neutrální kniha záznamů se čtyřmi signály -----------
-   Skoro plochá noc: sedm přesných neutrál (#191919 … #F0EFED) a PŘESNĚ
-   čtyři signální barvy z reference — Areia, Azul, Terra Queimada, Verde
-   Opaco. Azul, Terra ani Verde nedají na tmavých polích 4,5:1, a tak jsou
-   to VÝPLNĚ s povinným párovým popředím, ne slabé barevné popisky. Žádné
-   další signální barvy neexistují a starší digitální signály (Notion modrá,
-   žlutá, korálová…) jsou v této paletě testem zakázané. */
-const QL_BG = "#191919", QL_PANEL = "#202020", QL_POP = "#252525",
-  QL_SEL = "#2F2F2F", QL_LINE = "#373737", QL_INK = "#F0EFED", QL_INK2 = "#ADA9A3";
-const DEF_QUIET_LEDGER = {
-  id: "quiet-ledger-night",
-  labelCs: "Tichý zápis", labelEn: "Quiet Ledger",
-  polarity: "dark", statusMode: "dark",
-  anchors: {
-    Ink: QL_BG, Panel: QL_PANEL, Popover: QL_POP, Selected: QL_SEL,
-    Divider: QL_LINE, Paper: QL_INK, Graphite: QL_INK2,
-    Areia: SAND, Azul: AZUL, "Terra Queimada": TERRA, "Verde Opaco": VERDE,
-  },
-  background: QL_BG, navigation: QL_PANEL, surface: QL_PANEL, card: QL_PANEL,
-  documentSurface: QL_BG, elevatedSurface: QL_POP,
-  text: QL_INK, textSecondary: QL_INK2,
-  textMuted: A(QL_INK2, 0.85), textDisabled: A(QL_INK2, 0.6), placeholder: A(QL_INK2, 0.9),
-  border: QL_LINE, borderStrong: QL_INK2, borderSoft: A(QL_LINE, 0.6),
-  /* Akcent je Areia: jediná signální barva, která unese písmo na tmavém poli.
-     Azul je výplň (aktivní navigace, výběr, informace) — spec ho pro běžné
-     písmo výslovně zakazuje; popisek na areiovém tlačítku je Azul (7,2:1). */
-  interactive: SAND, interactiveText: AZUL, focus: SAND, link: SAND,
-  selectionSurface: QL_SEL, selectionText: QL_INK,
-  quietInk: QL_INK2,
-  cardHover: A(QL_INK, 0.04), sheetHover: A(QL_INK, 0.03),
-  callout: QL_PANEL, tableHead: QL_PANEL,
-  activeNav: AZUL,
-  hero: QL_PANEL, heroInk: QL_INK,
-  overlay: A(QL_BG, 0.68),
-  chart: [AZUL, VERDE, SAND, TERRA, AZUL, VERDE],
-  chartSurface: QL_PANEL, grid: A(QL_INK, 0.1), axis: QL_INK2,
-  /* Rám plátu leží na lnu — světlá grafitová by na něm zmizela. */
-  atlasBorder: QL_LINE, shadowInk: QL_BG, dockBg: QL_PANEL,
-  /* Přesné sémantické mapování ze specifikace: výplň + párové popředí. */
-  statusOverride: {
-    successFg: QL_INK, successBg: VERDE,
-    warningFg: AZUL, warningBg: SAND,
-    errorFg: SAND, errorBg: TERRA,
-    infoFg: SAND, infoBg: AZUL,
-  },
-  /* Holé stavové inkousty: čitelný zástupce identity stavu na tmavém poli.
-     Terra ani Azul na neutrálu nečtou — písmo nese jejich párové popředí;
-     znak a slovo nesou význam (STATUS_CARRIERS). */
-  statusInk: { errorFg: SAND, warningFg: SAND, successFg: QL_INK, infoFg: SAND },
-  nav: {
-    text: QL_INK, textSec: QL_INK2, kicker: QL_INK2,
-    icon: QL_INK2, muted: QL_INK2, accent: SAND,
-    activeBg: AZUL, hairline: QL_LINE, border: QL_LINE,
-  },
-  frame: { outer: QL_LINE, inner: QL_LINE, rail: AZUL, highlight: SAND },
-  themeColor: QL_BG,
-  chrome: { frameGrammar: "quiet-ledger", radius: 8, density: "restrained", frameTargets: ["sheet", "selected"] },
-};
-
-
 /* ======================================================================
    THANGKA · čtyři vzhledy z minerálních pigmentů vadžrajánového malířství
    ----------------------------------------------------------------------
@@ -1163,79 +860,6 @@ const DEF_NAGTANG = {
   chrome: { frameGrammar: "gold-keyline", radius: 8, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
 };
 
-/* ---- Martang · červená thangka ----------------------------------------
-   Lakově rumělkové pole, zlato píše i tlačí, vermilion je kolejnice. */
-const MT_LACQ = "#2A1210", MT_GROUND = "#3A1813", MT_RAISED = "#48201A", MT_LINE = "#5A2A22",
-  MT_SILK = "#F2E6CF", MT_SAND = "#D9C4A3", MT_GOLD = "#E0B356", MT_VERM = "#C8432B",
-  MT_LAPIS = "#5D8BD3", MT_MALA = "#4C9C79";
-const DEF_MARTANG = {
-  id: "martang-red",
-  labelCs: "Martang · červená thangka", labelEn: "Martang · Red Thangka",
-  polarity: "dark", statusMode: "dark",
-  anchors: { Lacquer: MT_LACQ, "Cinnabar ground": MT_GROUND, Raised: MT_RAISED, Line: MT_LINE, Silk: MT_SILK,
-    "Sand silk": MT_SAND, Gold: MT_GOLD, Vermilion: MT_VERM, Lapis: MT_LAPIS, Malachite: MT_MALA },
-  background: MT_LACQ, navigation: MT_GROUND, surface: MT_GROUND, card: MT_GROUND,
-  documentSurface: MT_LACQ, elevatedSurface: MT_RAISED,
-  text: MT_SILK, textSecondary: MT_SAND, heading: MT_GOLD,
-  textMuted: A(MT_SAND, 0.85), textDisabled: A(MT_SAND, 0.6), placeholder: A(MT_SAND, 0.9),
-  border: MT_LINE, borderStrong: MT_SAND, borderSoft: A(MT_LINE, 0.6),
-  interactive: MT_GOLD, interactiveText: MT_LACQ, focus: MT_GOLD, link: MT_GOLD,
-  selectionSurface: A(MT_GOLD, 0.24), selectionText: MT_SILK,
-  quietInk: MT_SAND,
-  cardHover: A(MT_SILK, 0.04), sheetHover: A(MT_SILK, 0.03),
-  callout: MT_GROUND, tableHead: MT_GROUND,
-  activeNav: A(MT_GOLD, 0.18),
-  hero: MT_GROUND, heroInk: MT_SILK,
-  overlay: A(MT_LACQ, 0.7),
-  chart: [MT_GOLD, MT_LAPIS, MT_VERM, MT_MALA, MT_SILK, MT_SAND],
-  chartSurface: MT_GROUND, grid: A(MT_SILK, 0.1), axis: MT_SAND,
-  atlasBorder: MT_LINE, shadowInk: MT_LACQ, dockBg: MT_GROUND,
-  nav: {
-    text: MT_SILK, textSec: MT_SAND, kicker: MT_SAND,
-    icon: MT_SAND, muted: MT_SAND, accent: MT_GOLD,
-    activeBg: A(MT_GOLD, 0.18), hairline: MT_LINE, border: MT_LINE,
-  },
-  frame: { outer: MT_RAISED, inner: MT_LINE, rail: MT_VERM, highlight: MT_GOLD },
-  themeColor: MT_LACQ,
-  chrome: { frameGrammar: "thangka-mount", radius: 8, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
-};
-
-/* ---- Sertang · zlatá thangka ------------------------------------------
-   Zlaté pole, rumělka kreslí linky i tlačítka, lapis nese nadpis. */
-const ST_GROUND = "#EADBAE", ST_DEEP = "#D9C58A", ST_CARD = "#F1E6C4", ST_PAPER = "#F6EED6", ST_RAISED = "#F8F2E0",
-  ST_INK = "#2B1E12", ST_UMBER = "#4A3A28", ST_CINN = "#A63A22", ST_LAPIS = "#244A86", ST_MALA = "#2E7A5B", ST_OCHRE = "#7A5A14";
-const DEF_SERTANG = {
-  id: "sertang-gold",
-  labelCs: "Sertang · zlatá thangka", labelEn: "Sertang · Gold Thangka",
-  polarity: "light", statusMode: "light",
-  anchors: { "Gold ground": ST_GROUND, "Deep gold": ST_DEEP, Card: ST_CARD, Paper: ST_PAPER, Raised: ST_RAISED,
-    Ink: ST_INK, Umber: ST_UMBER, Cinnabar: ST_CINN, Lapis: ST_LAPIS, Malachite: ST_MALA, Ochre: ST_OCHRE },
-  background: ST_GROUND, navigation: ST_DEEP, surface: ST_CARD, card: ST_CARD,
-  documentSurface: ST_PAPER, elevatedSurface: ST_RAISED,
-  text: ST_INK, textSecondary: ST_UMBER, heading: ST_LAPIS,
-  textMuted: A(ST_UMBER, 0.88), textDisabled: A(ST_UMBER, 0.6), placeholder: A(ST_UMBER, 0.9),
-  border: A(ST_INK, 0.28), borderStrong: ST_UMBER, borderSoft: A(ST_INK, 0.12),
-  interactive: ST_CINN, interactiveText: ST_PAPER, focus: ST_LAPIS, link: ST_CINN,
-  selectionSurface: A(ST_CINN, 0.2),
-  quietInk: ST_UMBER,
-  cardHover: A(ST_INK, 0.04), sheetHover: A(ST_INK, 0.03),
-  callout: ST_CARD, tableHead: ST_CARD,
-  activeNav: A(ST_CINN, 0.16),
-  hero: ST_DEEP, heroInk: ST_INK,
-  overlay: A(ST_INK, 0.45),
-  chart: [ST_LAPIS, ST_CINN, ST_MALA, ST_OCHRE, ST_INK, ST_UMBER],
-  chartSurface: ST_CARD, grid: A(ST_INK, 0.14), axis: ST_UMBER,
-  atlasBorder: ST_INK, shadowInk: ST_INK, dockBg: ST_DEEP,
-  nav: {
-    text: ST_INK, textSec: ST_UMBER, kicker: ST_UMBER,
-    icon: ST_UMBER, muted: ST_UMBER, accent: ST_INK,
-    activeBg: A(ST_CINN, 0.18), hairline: A(ST_INK, 0.16), border: A(ST_INK, 0.24),
-  },
-  frame: { outer: ST_DEEP, inner: ST_CARD, rail: ST_CINN, highlight: ST_CINN },
-  themeColor: ST_GROUND,
-  chrome: { frameGrammar: "brocade-band", radius: 8, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
-};
-
 /* ---- Minerály · plátno, lapis, malachit, rumělka, auripigment -----------
    Nebělené plátno, lapisová navigace nad světlým polem (jako Monument),
    malachit kolejnice, rumělka zvýraznění, auripigment jen v grafu. */
@@ -1273,183 +897,39 @@ const DEF_MINERALY = {
   chrome: { frameGrammar: "pigment-rails", radius: 8, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
 };
 
-/* ---- Černý písek · #2D2D2D / #D7C9AE / #A68763 / #EAE0D2 ---------------
-   Dodaná paleta (8. 9. 2026): Mine Shaft, Akaroa, Barley Corn, White Rock.
-   Čtyři kotvy, žádná pátá. Tanmay chtěl, aby vládly SVĚTLÉ barvy (9. 9.
-   2026 — první verze byla tmavá; předělána).
-
-   SVĚTLÁ POLARITA: PÍSEK JE POLE, SKÁLA JE LIST. Pole je Akaroa, každý list,
-   karta a dokument je White Rock — papír položený na písku. Obě světlé
-   kotvy jsou tak vidět celé a pořád, hierarchii dělá jejich rozdíl (1,25:1,
-   jen na plochy) a vlásečnice, ne stín. Mine Shaft je INKOUST a AKCE:
-   písmo (8,43:1 na písku, 10,55:1 na skále), tlačítko s popiskem White Rock
-   (10,55:1), ohnisko, silná hrana v 60 % (3,51:1 na skále, 3,23:1 na
-   písku). Navigace a dok jsou písek se skalním listem vedle — plášť nesmí
-   být tmavší než stránka, jinak by černá vládla.
-
-   JEČMEN NIKDY NEPÍŠE A NIKDY NEDĚLÁ HRANU. Na skále měří 2,57:1, na písku
-   2,05:1 — málo i na ohnisko. Je to jediná teplá barva a má práci ploch:
-   třípixelová římsa pod každým listem, kolejnice vybraného panelu,
-   hrdina (v 50 % nad pískem, inkoust Mine Shaft 6,0:1), vybraná navigace,
-   odvolávka, hlava tabulky, výběr, druhá řada grafu (vzor a legenda nesou
-   zbytek). Každá kotva má svou práci: Akaroa = pole a plášť, White Rock =
-   list, Mine Shaft = inkoust a akce, Barley Corn = římsa a teplo.
-
-   RÁM: písečná římsa. List obtahuje inkoustová vlásečnice a dole ho podpírá
-   třípixelová ječmenová římsa; vybraný panel má ječmenovou kolejnici. */
-const BS_MINE = "#2D2D2D", BS_AKAROA = "#D7C9AE", BS_BARLEY = "#A68763", BS_ROCK = "#EAE0D2";
-const DEF_BLACK_SAND = {
-  id: "black-sand",
-  labelCs: "Černý písek", labelEn: "Black Sand",
-  polarity: "light", statusMode: "light",
-  anchors: { "Mine Shaft": BS_MINE, Akaroa: BS_AKAROA, "Barley Corn": BS_BARLEY, "White Rock": BS_ROCK },
-  background: BS_AKAROA, navigation: BS_AKAROA, surface: BS_ROCK, card: BS_ROCK,
-  documentSurface: BS_ROCK, elevatedSurface: BS_ROCK,
-  text: BS_MINE, heading: BS_MINE, textSecondary: A(BS_MINE, 0.85),
-  textMuted: A(BS_MINE, 0.82), textDisabled: A(BS_MINE, 0.6), placeholder: A(BS_MINE, 0.82),
-  border: A(BS_MINE, 0.16), borderStrong: A(BS_MINE, 0.6), borderSoft: A(BS_MINE, 0.08),
-  interactive: BS_MINE, interactiveText: BS_ROCK, focus: BS_MINE, link: BS_MINE,
-  selectionSurface: A(BS_BARLEY, 0.45), selectionText: BS_MINE,
-  quietInk: A(BS_MINE, 0.78),
-  cardHover: A(BS_MINE, 0.04), sheetHover: A(BS_MINE, 0.03),
-  callout: A(BS_BARLEY, 0.22), tableHead: A(BS_BARLEY, 0.18),
-  activeNav: A(BS_BARLEY, 0.4),
-  hero: A(BS_BARLEY, 0.5), heroInk: BS_MINE,
-  overlay: A(BS_MINE, 0.5),
-  chart: [BS_MINE, BS_BARLEY, BS_MINE, BS_BARLEY, BS_MINE, BS_BARLEY],
-  chartSurface: BS_ROCK, grid: A(BS_MINE, 0.12), axis: A(BS_MINE, 0.78),
-  /* Plát Movement Atlasu je lněný ve všech vzhledech — rám musí být tmavý. */
-  atlasBorder: BS_MINE, shadowInk: BS_MINE, dockBg: BS_AKAROA,
-  nav: {
-    text: BS_MINE, textSec: A(BS_MINE, 0.85), kicker: A(BS_MINE, 0.78),
-    icon: A(BS_MINE, 0.78), muted: A(BS_MINE, 0.72), accent: BS_MINE,
-    activeBg: A(BS_BARLEY, 0.4), hairline: A(BS_MINE, 0.14), border: A(BS_MINE, 0.22),
-  },
-  frame: { outer: A(BS_MINE, 0.22), inner: A(BS_MINE, 0.1), rail: BS_BARLEY, highlight: BS_MINE },
-  themeColor: BS_AKAROA,
-  chrome: { frameGrammar: "dune-ledge", radius: 12, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
-};
-
-/* ---- Hluboká voda · #143D4A / #7B8187 / #F2F1EC / #1E1E1E ---------------
-   Dodaná reference (8. 9. 2026): Deep Teal, Slate Grey, Mist White, Basalt
-   Black. Bouřkové nebe, tmavé moře, čedič, mlha.
-
-   KAŽDÁ KOTVA MÁ SVOU PRÁCI. Čedič je pole. Petrolej je PLÁŠŤ — navigace,
-   dok, hrdina, výplň pod vybraným a pod odvolávkou. Mlha píše (14,74:1 na
-   čediči) a je i AKCE: tlačítko je mlha s petrolejovým písmem (10,34:1),
-   odkaz mlha. Břidlice je stavba: silná hrana, ohnisko, přílivová linka na
-   listu (4,23:1 na čediči — dost na nepísmo, málo na odstavec, proto nikdy
-   nenese text).
-
-   PETROLEJ NA ČEDIČI MĚŘÍ 1,43:1. Proto na poli nikdy nekreslí čáru, řadu
-   grafu ANI PÍSMO — aplikace píše akcentem sedmdesát štítků a kickerů, a
-   ty musejí být čitelné. Petrolej je plocha, na které něco leží, ne inkoust.
-   Prohlížečový test to chytil na skutečné stránce (PŘEHLED 1,43:1), proto
-   akce nese mlha. Řady grafu střídají mlhu a břidlici.
-
-   RÁM: přílivová linka. Třípixelová břidlicová linka nahoře, mlžná
-   vlásečnice po obvodu; vybraný panel má mlžnou linku dole. */
-const DW_TEAL = "#143D4A", DW_SLATE = "#7B8187", DW_MIST = "#F2F1EC", DW_BASALT = "#1E1E1E";
-const DEF_DEEP_WATER = {
-  id: "deep-water",
-  labelCs: "Hluboká voda", labelEn: "Deep Water",
-  polarity: "dark", statusMode: "dark",
-  anchors: { "Deep Teal": DW_TEAL, "Slate Grey": DW_SLATE, "Mist White": DW_MIST, "Basalt Black": DW_BASALT },
-  background: DW_BASALT, navigation: DW_TEAL, surface: DW_BASALT, card: DW_BASALT,
-  documentSurface: DW_BASALT, elevatedSurface: DW_BASALT,
-  text: DW_MIST, heading: DW_MIST, textSecondary: A(DW_MIST, 0.85),
-  textMuted: A(DW_MIST, 0.78), textDisabled: A(DW_MIST, 0.5), placeholder: A(DW_MIST, 0.78),
-  border: A(DW_MIST, 0.16), borderStrong: DW_SLATE, borderSoft: A(DW_MIST, 0.09),
-  interactive: DW_MIST, interactiveText: DW_TEAL, focus: DW_SLATE, link: DW_MIST,
-  selectionSurface: A(DW_TEAL, 0.6), selectionText: DW_MIST,
-  quietInk: A(DW_MIST, 0.78),
-  cardHover: A(DW_MIST, 0.05), sheetHover: A(DW_MIST, 0.04),
-  callout: A(DW_TEAL, 0.45), tableHead: A(DW_TEAL, 0.35),
-  activeNav: A(DW_TEAL, 0.6),
-  hero: DW_TEAL, heroInk: DW_MIST,
-  overlay: A(DW_BASALT, 0.75),
-  chart: [DW_MIST, DW_SLATE, DW_MIST, DW_SLATE, DW_MIST, DW_SLATE],
-  chartSurface: DW_BASALT, grid: A(DW_MIST, 0.12), axis: A(DW_MIST, 0.78),
-  atlasBorder: DW_BASALT, shadowInk: DW_BASALT, dockBg: DW_TEAL,
-  nav: {
-    text: DW_MIST, textSec: A(DW_MIST, 0.85), kicker: A(DW_MIST, 0.6),
-    icon: A(DW_MIST, 0.78), muted: A(DW_MIST, 0.7), accent: DW_MIST,
-    activeBg: A(DW_MIST, 0.14), hairline: A(DW_MIST, 0.14), border: A(DW_MIST, 0.22),
-  },
-  frame: { outer: A(DW_MIST, 0.22), inner: DW_SLATE, rail: DW_SLATE, highlight: DW_MIST },
-  themeColor: DW_TEAL,
-  chrome: { frameGrammar: "tide-line", radius: 10, density: "restrained", frameTargets: ["document", "sheet", "selected"] },
-};
-
 const OPTIONAL_DEFS = Object.freeze({
-  "slate-clay-pantone": DEF_SLATE_CLAY,
   "monument-clay": DEF_MONUMENT,
   "sand-burnt-earth": DEF_SAND_EARTH,
   "garnet-slate": DEF_GARNET,
-  "shikon-fossil": DEF_SHIKON,
-  "volcanic-grey": DEF_VOLCANIC,
-  "americano-chai": DEF_AMERICANO,
-  "quiet-ledger-night": DEF_QUIET_LEDGER,
-  "nagtang-black": DEF_NAGTANG,
-  "martang-red": DEF_MARTANG,
-  "sertang-gold": DEF_SERTANG,
-  "mineral-pigments": DEF_MINERALY,
-  "black-sand": DEF_BLACK_SAND,
-  "deep-water": DEF_DEEP_WATER,
+  "nagtang-black": { ...DEF_NAGTANG, labelCs: "Nagtang", labelEn: "Nagtang",
+    navigation: NG_SILK, dockBg: NG_SILK, documentSurface: NG_RAISED,
+    nav: { text: NG_SOOT, textSec: NG_SOOT, kicker: NG_SOOT, icon: NG_SOOT,
+      muted: NG_SOOT, accent: NG_SOOT, activeBg: NG_SILK, hairline: NG_AGED, border: NG_SOOT } },
+  "mineral-pigments": { ...DEF_MINERALY, labelCs: "Minerály", labelEn: "Minerals" },
   "landscape-day": landscapeDefinition(false),
   "landscape-night": landscapeDefinition(true),
 });
-
+const LANDSCAPE_CHROME = Object.freeze({ frameGrammar: "landscape", radius: 8,
+  density: "restrained", frameTargets: Object.freeze(["sheet", "panel", "dock"]) });
 const FIXED = (() => {
   const out = {};
-  /* Signature Day je jediný vzhled, který jde do stroje se zmrazenou
-     produkční tabulkou navrch — den se nemůže pohnout ani o odstín. */
-  const dayPal = buildPalette("light", signatureBase(SIGNATURE_LIGHT), SIGNATURE_LIGHT);
-  out["signature-day"] = Object.freeze({
-    id: "signature-day",
-    kind: "signature",
-    labelCs: "Signature · Den",
-    labelEn: "Signature · Day",
-    polarity: "light",
-    recommended: true,
-    anchors: Object.freeze({ Linen: BRAND.linen, Ink: BRAND.forest, Copper: BRAND.copper }),
-    palette: dayPal,
-    preview: previewOf(dayPal),
-    themeColor: SIGNATURE_LIGHT.bg,
-    chrome: Object.freeze({ frameGrammar: "none", radius: 0, density: "none", frameTargets: Object.freeze([]) }),
-  });
-  const nightDef = SPECS["signature-night"];
-  out["signature-night"] = Object.freeze({
-    ...makeFixed("signature-night", nightDef, buildPalette(nightDef.polarity, nightDef, null), "signature"),
-    recommended: true,
-  });
+  const original = buildPalette("light", signatureBase(SIGNATURE_LIGHT), SIGNATURE_LIGHT);
+  const ink = BRAND.forest, linen = BRAND.linen;
+  const dayPal = Object.freeze({ ...original, navigation: ink, bgSidebar: ink, dockBg: ink,
+    navText: linen, navHeading: linen, navTextSec: linen, navKicker: linen,
+    navIcon: linen, navMuted: linen, navAccent: linen, navAccentInk: linen,
+    navActiveBg: ink, navHairline: hexA(linen,.2), navBorder: hexA(linen,.3) });
+  out["signature-day"] = makeFixed("signature-day", {
+    labelCs: "Signature · Den", labelEn: "Signature · Day", polarity: "light",
+    anchors: { Linen: linen, Ink: ink, Copper: BRAND.copper }, chrome: LANDSCAPE_CHROME,
+  }, dayPal, "signature");
   for (const id of OPTIONAL_PRESET_IDS) {
-    const def = OPTIONAL_DEFS[id];
-    out[id] = makeFixed(id, def, exactPalette(def), "optional");
+    const def = { ...OPTIONAL_DEFS[id], chrome: LANDSCAPE_CHROME };
+    out[id] = Object.freeze({ ...makeFixed(id, def, exactPalette(def), "fixed"), recommended: id === DEFAULT_PRESET });
   }
   return Object.freeze(out);
 })();
-
-/** Automatika. Není to paleta — je to odkaz na dvě poloviny Signature. */
-const AUTO = Object.freeze({
-  id: "signature-auto",
-  kind: "auto",
-  labelCs: "Automaticky · Signature",
-  labelEn: "Automatic · Signature",
-  polarity: "auto",
-  recommended: true,
-  anchors: Object.freeze({ Linen: BRAND.linen, Ink: BRAND.forest, Copper: BRAND.copper }),
-  resolves: Object.freeze({ light: "signature-day", dark: "signature-night" }),
-  palette: null,
-  preview: Object.freeze({
-    light: FIXED["signature-day"].preview,
-    dark: FIXED["signature-night"].preview,
-  }),
-  themeColor: FIXED["signature-day"].themeColor,
-  chrome: Object.freeze({ frameGrammar: "none", radius: 0, density: "none", frameTargets: Object.freeze([]) }),
-});
-
-const REGISTRY = Object.freeze({ "signature-auto": AUTO, ...FIXED });
+const REGISTRY = FIXED;
 
 /** Všechny vzhledy v pořadí, ve kterém se nabízejí. Automatika první. */
 export const APPEARANCE_PRESETS = Object.freeze(APPEARANCE_PRESET_IDS.map((id) => REGISTRY[id]));
@@ -1473,15 +953,10 @@ export function isSignaturePreset(id) {
   return SIGNATURE_PRESET_IDS.indexOf(resolvePresetId(id)) !== -1;
 }
 
-/**
- * JEDINÝ KANONICKÝ RESOLVER.
- * Vrací PEVNÝ vzhled: pro `signature-auto` podle přání systému, pro cokoli
- * jiného sebe sama. Volitelná paleta systém nikdy neposlouchá.
- */
+/** Resolve a retained fixed theme, or the default. */
 export function resolveAppearancePreset(id, systemDark) {
   const p = REGISTRY[resolvePresetId(id)];
-  if (p.kind !== "auto") return p;
-  return REGISTRY[systemDark ? p.resolves.dark : p.resolves.light];
+  return p;
 }
 
 /** Vyřešená paleta. */
@@ -1491,7 +966,7 @@ export function resolveTheme(id, systemDark) { return resolveAppearancePreset(id
 export function presetPolarity(id, systemDark) { return resolveAppearancePreset(id, systemDark).polarity; }
 
 /** Jen automatika poslouchá systém. */
-export function isSystemAware(id) { return REGISTRY[resolvePresetId(id)].kind === "auto"; }
+export function isSystemAware(id) { return false; }
 
 /** Řeč rámů vyřešeného vzhledu. Signature: „none". */
 export function frameChrome(id, systemDark) { return resolveAppearancePreset(id, systemDark).chrome; }
@@ -1554,26 +1029,8 @@ export function chartPalette(idOrMode, systemDark) {
 export const DOCUMENT_THEME = FIXED["signature-day"].palette;
 
 // ----------------------------------------------------------------------
-// MIGRACE · nikdo se po nasazení nesmí probudit do jiné palety
-// ----------------------------------------------------------------------
-// Generace uložené volby:
-//
-//   v0   `tm-theme` = "light" | "dark"                        (před V1)
-//   v2   { version: 2, family, mode }                         (V1 a V1.1)
-//   v3   { version: 3, preset }                               (V2)
-//   v4   { version: 4, preset, signature }                    (V3)
-//
-// Čtvrtá generace nese DVĚ věci: zvolený vzhled a POSLEDNÍ SIGNATURE VOLBU.
-// Kdo si zapne volitelnou paletu a pak se vrátí, dostane zpátky přesně ten
-// Signature režim, který měl předtím — automatiku, den, nebo noc. Klíč
-// zůstává `tm-appearance-v3`: starší build V2 si z něj přečte neznámý preset
-// a bezpečně spadne na automatiku.
-//
-// ZRUŠENÉ PALETY V2 SE NEZTRÁCEJÍ. Mapují se na nejbližší dochovanou
-// identitu podle specifikace V3; Tyrkys v noci žádnou blízkou nemá, a tak
-// podle pravidla „když si nejsi jistý, Signature" končí na Signature · Noc —
-// tmavý zůstává tmavým a nikoho nepřekvapí neznámá paleta.
-export const APPEARANCE_VERSION = 4;
+// Migration preserves the eight retained ids. Retired choices use Landscape Day.
+export const APPEARANCE_VERSION = 5;
 
 /** Zrušený preset V2 → nejbližší dochovaná identita V3. */
 const LEGACY_PRESET_MIGRATION = Object.freeze({
@@ -1604,7 +1061,7 @@ const LEGACY_MODE_MIGRATION = Object.freeze({
 });
 
 function migratePresetId(id) {
-  if (Object.prototype.hasOwnProperty.call(LEGACY_PRESET_MIGRATION, id)) return LEGACY_PRESET_MIGRATION[id];
+  if (Object.prototype.hasOwnProperty.call(LEGACY_PRESET_MIGRATION, id)) return resolvePresetId(LEGACY_PRESET_MIGRATION[id]);
   return resolvePresetId(id);
 }
 
@@ -1612,7 +1069,7 @@ function migratePresetId(id) {
 export function normalizeAppearance(value) {
   if (typeof value === "string") {
     const preset = migratePresetId(value);
-    return { version: APPEARANCE_VERSION, preset, signature: isSignaturePreset(preset) ? preset : "signature-auto" };
+    return { version: APPEARANCE_VERSION, preset, signature: isSignaturePreset(preset) ? preset : "signature-day" };
   }
   const v = value && typeof value === "object" ? value : {};
   let preset = DEFAULT_PRESET;
@@ -1621,7 +1078,7 @@ export function normalizeAppearance(value) {
   let signature = typeof v.signature === "string" && isSignaturePreset(v.signature) && v.signature !== undefined
     ? resolvePresetId(v.signature)
     : null;
-  if (!signature || !isSignaturePreset(signature)) signature = isSignaturePreset(preset) ? preset : "signature-auto";
+  if (!signature || !isSignaturePreset(signature)) signature = isSignaturePreset(preset) ? preset : "signature-day";
   return { version: APPEARANCE_VERSION, preset, signature };
 }
 
@@ -1629,8 +1086,8 @@ export function normalizeAppearance(value) {
 export function presetFromFamily(family, mode) {
   const m = FAMILY_MIGRATION[family];
   if (!m) return DEFAULT_PRESET;
-  if (typeof m === "string") return m;
-  return m[mode === "light" || mode === "dark" ? mode : "system"];
+  if (typeof m === "string") return resolvePresetId(m);
+  return resolvePresetId(m[mode === "light" || mode === "dark" ? mode : "system"]);
 }
 
 /**
@@ -1645,15 +1102,15 @@ export function migrateLegacyAppearance(raw, legacy) {
     } catch (e) { /* rozbitý JSON není důvod k pádu, je důvod k automatice */ }
   }
   if (Object.prototype.hasOwnProperty.call(LEGACY_MODE_MIGRATION, legacy)) {
-    const preset = LEGACY_MODE_MIGRATION[legacy];
-    return { version: APPEARANCE_VERSION, preset, signature: preset };
+    const preset = resolvePresetId(LEGACY_MODE_MIGRATION[legacy]);
+    return normalizeAppearance(preset);
   }
-  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: "signature-auto" };
+  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: "signature-day" };
 }
 
 /** Návrat na doporučený vzhled. */
 export function signatureAppearance() {
-  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: "signature-auto" };
+  return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: "signature-day" };
 }
 
 /** Zvol vzhled. Signature volba se pamatuje, volitelná paleta ji nepřepíše. */
@@ -1667,10 +1124,9 @@ export function selectAppearance(pref, id) {
   };
 }
 
-/** „Použít Signature" — vrátí přesně tu Signature volbu, která tu byla. */
+/** Legacy API name: reset to the current default. */
 export function returnToSignature(pref) {
-  const clean = normalizeAppearance(pref);
-  return { version: APPEARANCE_VERSION, preset: clean.signature, signature: clean.signature };
+  return signatureAppearance();
 }
 
 // ----------------------------------------------------------------------

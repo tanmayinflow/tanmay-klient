@@ -1,9 +1,12 @@
+import { APPEARANCE_PRESETS } from "./themeRegistry.js";
+import { themeMaterialVars } from "./themeMaterials.js";
 import { LANDSCAPE_ART } from "./landscape.js";
 
 // The original app owns its structure. Only the owner's named header refinements
 // adjust local spacing; artwork never receives pointer input.
 export function landscapeCss() {
-  const s = 'html:is([data-appearance="landscape-day"],[data-appearance="landscape-night"])';
+  const s = 'html[data-frame-grammar="landscape"]';
+  const materials = APPEARANCE_PRESETS.map(p => `html[data-appearance="${p.id}"] { ${Object.entries(themeMaterialVars(p.id,p.palette)).map(([k,v]) => `${k}: ${v};`).join(" ")} }`).join("\n");
   const rooms = Object.entries(LANDSCAPE_ART).filter(([, art]) => art.shape !== 'horizon').map(([room, art]) =>
     `${s} .tm-page-title[data-art-room="${room}"] { --land-art: url('/media/landscape/${art.image}'); }`).join('\n');
   return `
@@ -13,24 +16,23 @@ export function landscapeCss() {
 .tm-session-actions button { flex: 1; }
 .tm-library-tab { font-weight: 600 !important; font-size: 12px !important; margin-right: 0 !important; color: var(--tm-text) !important; }
 
-${s} { --tm-action-material: url('/media/landscape/earth.webp'); --land-paper: url('/media/landscape/linen.webp'); --land-ash: url('/media/landscape/ashes.webp'); --land-earth: url('/media/landscape/earth.webp'); --land-field: var(--land-paper); }
+${materials}
 ${s} ::selection { background: var(--tm-selection) !important; color: var(--tm-selection-text) !important; }
-html[data-appearance="landscape-night"] { --land-field: var(--land-ash); --tm-earth-nav-ink: #743627; }
+
 ${s} body, ${s} .tm-ground { background-image: var(--land-field) !important; background-size: 768px auto !important; }
 /* The terrain field now belongs only to Practice. Its fixed box clips the rotated art. */
 ${s} .tm-ground { overflow: hidden; }
 ${s}:has(.tm-page[data-room="praxe"] [data-practice-phase="rano"]) .tm-ground::after { content: ''; position: absolute; inset: auto -5% 0; height: clamp(110px, 25vh, 240px); background: var(--tm-link); mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; opacity: .12; transform: rotate(9deg); pointer-events: none; }
-${s} :is(.tm-sidebar,.tm-tabbar) { background-image: var(--land-ash) !important; background-size: 768px auto !important; }
-html[data-appearance="landscape-night"] :is(.tm-sidebar,.tm-tabbar) { background-color: #F4F0EB !important; background-image: var(--land-paper) !important; color: #1C1C1A; }
-html[data-appearance="landscape-night"] .tm-sidebar-lines > span { background: #743627; }
+${s} :is(.tm-sidebar,.tm-tabbar) { color: var(--tm-nav-text); background-color: var(--land-nav-bg) !important; background-image: var(--land-nav-material) !important; background-size: 768px auto !important; }
+${s} .tm-sidebar-lines > span { background: var(--tm-nav-text); }
 ${s} .tm-sidebar .tm-logo > span { color: var(--tm-nav-text) !important; }
-${s} .tm-sidebar-search { border-color: #754437 !important; }
+${s} .tm-sidebar-search { border-color: var(--tm-nav-border) !important; }
 /* Scroll remains native; it no longer reserves a pale gutter beside the material. */
 ${s}, ${s} body, ${s} .tm-scroll { scrollbar-width: none !important; scrollbar-gutter: auto !important; }
 ${s}::-webkit-scrollbar, ${s} body::-webkit-scrollbar, ${s} .tm-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
 ${s} .tm-tabbar { left: 0 !important; right: 0 !important; border: 0 !important; border-radius: 0 !important; overflow: visible !important; isolation: isolate; }
-${s} .tm-tabbar::before { content: ''; position: absolute; left: 0; right: 0; top: -48px; height: 130px; z-index: -1; background: #1C1C1A var(--land-ash) center top/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; transform: scaleY(-1); pointer-events: none; }
-html[data-appearance="landscape-night"] .tm-tabbar::before { background: #F4F0EB var(--land-paper) center top/768px auto; }
+${s} .tm-tabbar::before { content: ''; position: absolute; left: 0; right: 0; top: -48px; height: 130px; z-index: -1; background-color: var(--land-nav-bg); background-image: var(--land-nav-material); background-size: 768px auto; background-position: center top; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; transform: scaleY(-1); pointer-events: none; }
+
 @media (max-width: 820px) { ${s} .tm-tabbar { padding-left: max(6px, env(safe-area-inset-left)) !important; padding-right: max(6px, env(safe-area-inset-right)) !important; } }
 ${s} .tm-sidebar .tm-nav-active { background: transparent !important; border-left-color: transparent !important; box-shadow: none !important; color: var(--tm-nav-text-sec) !important; }
 ${s} .tm-sidebar .tm-nav-active > span:first-child { color: var(--tm-nav-accent) !important; }
@@ -38,14 +40,14 @@ ${s} .tm-sidebar .tm-nav-active > img:first-child { filter: brightness(1.3); }
 ${s} .tm-tabbar button[aria-current="page"] { background: transparent !important; color: var(--tm-nav-muted) !important; }
 ${s} .tm-tabbar button[aria-current="page"] > span:first-child { color: var(--tm-nav-accent) !important; }
 ${s} :is(.tm-sidebar,.tm-tabbar) button:focus-visible { outline-color: var(--tm-nav-accent) !important; }
-${s} :is(.tm-drawer,.tm-calcard,.tm-card,.tm-topbar) { background-image: var(--land-field) !important; background-size: 768px auto !important; }
-${s} :is(.tm-cs,.tm-nahled,.tm-zen) { background: var(--tm-document) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+${s} :is(.tm-drawer,.tm-calcard,.tm-card,.tm-topbar) { background-image: var(--land-card-material) !important; background-size: 768px auto !important; }
+${s} :is(.tm-cs,.tm-nahled,.tm-zen) { background-color: var(--tm-document) !important; background-image: var(--land-panel-material) !important; background-size: 768px auto !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 /* Earth headers carry the website's actual outgoing contour; controls stay outside the mask. */
-${s} :is(.tm-cs-head,.tm-nahled-head) { isolation: isolate; background: #754437 var(--land-earth) center top/768px auto !important; color: #F4F0EB !important; border-bottom-color: transparent !important; }
-${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -46px; height: 130px; z-index: -1; background: #754437 var(--land-earth) center bottom/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; pointer-events: none; }
-${s} :is(.tm-cs-head,.tm-nahled-head) :is(button,span,svg) { color: #F4F0EB !important; }
-${s} :is(.tm-cs-head,.tm-nahled-head) button { background: transparent !important; border-color: rgba(244,240,235,.45) !important; }
-${s} :is(.tm-cs-head,.tm-nahled-head) button:focus-visible { outline-color: #F4F0EB !important; }
+${s} :is(.tm-cs-head,.tm-nahled-head) { isolation: isolate; background-color: var(--land-header-bg) !important; background-image: var(--land-header-material) !important; background-position: center top; background-size: 768px auto; color: var(--land-header-ink) !important; border-bottom-color: transparent !important; }
+${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -46px; height: 130px; z-index: -1; background-color: var(--land-header-bg); background-image: var(--land-header-material); background-position: center bottom; background-size: 768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; pointer-events: none; }
+${s} :is(.tm-cs-head,.tm-nahled-head) :is(button,span,svg) { color: var(--land-header-ink) !important; }
+${s} :is(.tm-cs-head,.tm-nahled-head) button { background: transparent !important; border-color: currentColor !important; }
+${s} :is(.tm-cs-head,.tm-nahled-head) button:focus-visible { outline-color: var(--land-header-ink) !important; }
 ${s} .tm-cs { --land-sheet-pad: clamp(18px, calc(3 * var(--tm-vw)), 34px); padding: 0 !important; }
 ${s} .tm-cs-head { top: 0 !important; margin: 0 !important; padding: 18px var(--land-sheet-pad) 12px !important; }
 ${s} .tm-cs-body { padding: 40px var(--land-sheet-pad) 34px !important; }
@@ -57,7 +59,7 @@ ${s} .tm-cs-body { padding: 40px var(--land-sheet-pad) 34px !important; }
 ${s} .tm-nahled-head { z-index: 2; top: 0 !important; left: 0 !important; right: 0 !important; padding: calc(13px + env(safe-area-inset-top)) 18px 10px; }
 /* The scroll viewport reaches behind the fixed header; padding sets only its initial position. */
 ${s} .tm-nahled-telo { top: 0 !important; padding-top: calc(98px + env(safe-area-inset-top)) !important; }
-${s} .tm-pomo-backdrop { background: #1C1C1A var(--land-ash) center/768px auto !important; }
+${s} .tm-pomo-backdrop { background-color: var(--tm-bg) !important; background-image: var(--land-field) !important; background-size: 768px auto !important; }
 ${s} .tm-wb-dot[aria-pressed="true"] { background: var(--tm-accent) !important; border-color: var(--tm-accent) !important; }
 /* Category strips sit directly on the field, including their fixed controls. */
 ${s} :is(.tm-tabsrow,.tm-typerow,.tm-tabsctrl), ${s} .tm-tabsctrl::before, ${s} .tm-tabsctrl > button { background: transparent !important; }
@@ -113,21 +115,22 @@ ${s} .tm-page[data-room="klienti"] .tm-page-title::before { inset: 0 0 auto auto
   ${s} .tm-page[data-room="klienti"] .tm-page-title::before { width: 186px; }
   ${s} .tm-page-title[data-art-room="trenink"] h1, ${s} .tm-page[data-room="klienti"] .tm-page-title h1 { padding-top: 96px; }
 }
-/* Clear Sand illustrations throughout Night; real covers/photos retain their colors. */
-html[data-appearance="landscape-night"] { --land-art-ink: #E5D8C4; }
-html[data-appearance="landscape-night"] .tm-page[data-room] .tm-page-title::before {
-  background: var(--land-art-ink); opacity: .9;
+/* Every theme gives decorative ink its own high-contrast role. Real photos stay intact. */
+${s} .tm-page[data-room] .tm-page-title::before {
+  background: var(--land-art-ink); opacity: var(--land-art-opacity);
 }
-html[data-appearance="landscape-night"] .tm-spell-sword {
-  color: var(--land-art-ink); opacity: .9;
+${s} .tm-spell-sword {
+  color: var(--land-art-ink); opacity: var(--land-art-opacity);
 }
-html[data-appearance="landscape-night"] [data-source-cover="category"] > img { opacity: 0 !important; }
-html[data-appearance="landscape-night"] [data-source-cover="category"]::after {
+${s} [data-source-cover="category"] > img { opacity: 0 !important; }
+${s} [data-source-cover="category"]::after {
   content: ''; position: absolute; inset: var(--tm-cover-inset); pointer-events: none;
   background: var(--land-art-ink);
   mask: var(--tm-cover-art) center/contain no-repeat;
   -webkit-mask: var(--tm-cover-art) center/contain no-repeat;
 }
+${s} :is(.tm-earth-action,.tm-cta) { background-color: var(--tm-accent) !important; background-image: var(--tm-action-material) !important; background-size: 768px auto !important; color: var(--tm-on-accent) !important; }
+${s} .tm-page h1 { color: var(--tm-heading); }
 @media print { ${s} .tm-page-title::before, ${s} .tm-page-title::after, ${s} .tm-ground::after, ${s} .tm-prose::after, ${s} .tm-compass-divider::after, ${s} .tm-cs-head::after, ${s} .tm-tabbar::before { content: none; } }
 `;
 }

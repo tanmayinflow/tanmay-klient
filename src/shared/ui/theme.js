@@ -3,28 +3,8 @@
 // Change it there, then run `npm run shared:sync` in the outer workspace.
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
-// ----------------------------------------------------------------------
-// VZHLED · devět kurátorovaných presetů
-// ----------------------------------------------------------------------
-// Dům měl jednu paletu ve dvou světlech. Theme System V1 z ní udělal sedm
-// rodin krát dva režimy; V2 to zjednodušuje na DEVĚT HOTOVÝCH VZHLEDŮ, kde
-// systémem hýbe jediná položka (`signature-auto`). SIGNATURE zůstává normou
-// domu — Signature Day je znak po znaku ta paleta, kterou dům nosí, Signature
-// Night je její měkčí uhlová noc. Ostatních šest jsou VOLITELNÉ PRODUKTOVÉ
-// ATMOSFÉRY, ne nové veřejné identity značky: nemění web, Brand Book, logo,
-// Movement Atlas, export ani význam stavových barev.
-//
-// Data i pravidla odvození žijí v ui/themeRegistry.js. Tenhle soubor je
-// vstup, na který sahá aplikace, a drží zpětně kompatibilní tvar:
-//
-//     makeThemeFor(preset, systemDark)  → paleta zvoleného vzhledu
-//     makeTheme(mode)                   → Signature Day / Night (starší volání)
-//     THEME_TANMAY                      → { light, dark } Signature
-//
-// ODVOZENÉ HODNOTY. Kotevní barvy jsou autorita odstínu. Povrchy, hover,
-// varianty písma a stavy jsou produktové tokeny — Brand Book je sám posílá
-// do produktového design systému a Canonical se jimi nemění.
-
+// Eight fixed themes share Landscape Day construction (owner decision 2026-09-24).
+// Appearance stays local to this device; it never alters sharing or content.
 import {
   APPEARANCE_PRESETS, APPEARANCE_PRESET_IDS, FIXED_PRESETS, FIXED_PRESET_IDS,
   SIGNATURE_PRESET_IDS, OPTIONAL_PRESET_IDS, OPTIONAL_PRESETS,
@@ -58,12 +38,12 @@ export {
    pro rozpoznání barev v uložených poznámkách. Není to volba vzhledu. */
 export const THEME_TANMAY = Object.freeze({
   light: resolveTheme("signature-day", false),
-  dark: resolveTheme("signature-night", false),
+  dark: resolveTheme("landscape-night", false),
 });
 
 /** Starší volání: samotný režim znamená Signature Day / Signature Night. */
 export function makeTheme(mode) {
-  return resolveTheme(mode === "dark" ? "signature-night" : "signature-day", false);
+  return resolveTheme(mode === "dark" ? "landscape-night" : "signature-day", false);
 }
 
 /**

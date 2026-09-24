@@ -3,39 +3,8 @@
 // Change it there, then run `npm run shared:sync` in the outer workspace.
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
-// ----------------------------------------------------------------------
-// VZHLED · co si člověk zvolil a kde to leží
-// ----------------------------------------------------------------------
-// Od V2 je volba JEDNA hodnota: id hotového vzhledu. Ukládá se verzovaně,
-// aby se dala v budoucnu rozšířit bez hádání, a čte se odolně: rozbitý JSON,
-// zrušená rodina ani zmizelé úložiště nesmí shodit start aplikace — skončí
-// na `signature-auto`, protože do rozbitého vzhledu se nikdo nesmí zavřít.
-//
-// GENERACE KLÍČŮ ŽIJÍ VEDLE SEBE:
-//
-//   `tm-theme`          "light" | "dark"                 před V1
-//   `tm-appearance-v2`  { version: 2, family, mode }      V1 a V1.1
-//   `tm-appearance-v3`  { version: 3, preset }            V2
-//   `tm-appearance-v3`  { version: 4, preset, signature } V3 · týž klíč
-//
-// V3 nese v témže klíči i POSLEDNÍ SIGNATURE VOLBU: kdo si zapne volitelnou
-// paletu a vrátí se, dostane zpátky přesně tu automatiku, den, nebo noc,
-// kterou měl. Starší build V2 si z hodnoty přečte neznámý preset a bezpečně
-// spadne na automatiku.
-//
-// Čtení sáhne po nejnovějším, který najde, a starší jen PŘEVEDE. Nic se
-// nemaže: starší nasazený build na témže zařízení své klíče pořád chce, a
-// odinstalovaná verze se pak chová jako dřív. Kdy se smí kompatibilní čtení
-// odstranit, je zapsané v THEME-SYSTEM-V2.md.
-//
-// PREFERENCE JE MÍSTNÍ, NA ZAŘÍZENÍ. Nedělá se pro ni serverový koncový bod
-// a necestuje s dokumentem: trenér ji neřídí, nevidí a nepotřebuje vidět,
-// a v žádném sdílení ani exportu se neobjevuje.
-//
-// Při střídání účtu na jednom zařízení jde volba do karantény spolu se
-// zbytkem cizího úložiště (klientská aplikace, `ownerQuarantine`), takže
-// klient B nezdědí vzhled klienta A.
-
+// Eight fixed themes share Landscape Day construction (owner decision 2026-09-24).
+// Appearance stays local to this device; it never alters sharing or content.
 import {
   APPEARANCE_VERSION, DEFAULT_PRESET,
   migrateLegacyAppearance, normalizeAppearance, resolvePresetId,
@@ -56,10 +25,21 @@ function storage(store) {
   try { return typeof localStorage === "undefined" ? null : localStorage; } catch (e) { return null; }
 }
 
+// Explicit local review control; never accepted on a deployed origin.
+export function localPreviewAppearance(win = typeof window === "undefined" ? null : window) {
+  try {
+    if (!win || !["127.0.0.1", "localhost", "[::1]"].includes(win.location.hostname)) return null;
+    const id = new URLSearchParams(win.location.search).get("previewAppearance");
+    return id && resolvePresetId(id) === id ? id : null;
+  } catch (e) { return null; }
+}
+
 /** Přečte volbu. Nikdy nevyhodí výjimku a nikdy nevrátí nesmysl. */
 export function readAppearance(store) {
+  const preview = !store && localPreviewAppearance();
+  if (preview) return normalizeAppearance(preview);
   const s = storage(store);
-  if (!s) return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: "signature-auto" };
+  if (!s) return { version: APPEARANCE_VERSION, preset: DEFAULT_PRESET, signature: "signature-day" };
   let raw = null, v2 = null, legacy = null;
   try { raw = s.getItem(APPEARANCE_KEY); } catch (e) { /* soukromý režim */ }
   try { v2 = s.getItem(LEGACY_APPEARANCE_KEY); } catch (e) { /* soukromý režim */ }

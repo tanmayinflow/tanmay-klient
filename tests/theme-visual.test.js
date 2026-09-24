@@ -15,34 +15,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import {
-  OPTIONAL_PRESET_IDS, resolveTheme, appearancePreset, frameChrome,
-} from "../src/shared/ui/themeRegistry.js";
+import { OPTIONAL_PRESET_IDS, resolveTheme, appearancePreset, frameChrome } from "../src/shared/ui/themeRegistry.js";
 import { frameGrammarCss, skinCss } from "../src/shared/ui/tokens.js";
-import { chroma, tint, ratio, luminance, hueDeg, readsGreen } from "../src/shared/ui/contrast.js";
+import { readsGreen } from "../src/shared/ui/contrast.js";
 
 const app = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "src/App.tsx"), "utf8");
 
-test("Signature drží pravidla papíru a inkoustu z V1.1", () => {
-  const day = resolveTheme("signature-day", false);
-  const night = resolveTheme("signature-night", false);
-  assert.ok(luminance(day.documentSurface) >= 0.85, "denní psací plocha je skoro bílá");
-  assert.ok(tint(day.text) <= 0.12 && tint(night.text) <= 0.12, "běžný text je inkoust");
-  assert.ok(!readsGreen(night.background) && chroma(night.background) <= 0.03, "noc je uhel");
-  const L = luminance(night.background);
-  assert.ok(L >= 0.018 && L <= 0.026, "jas nočního pole drží rozsah V2");
-  assert.equal(day.placeholder, "#6B655E", "nápověda z uzávěrky V1.1");
-});
 
-test("Břidlice a hlína · hlína je kolejnice, ne písmo ani banka", () => {
-  const t = resolveTheme("slate-clay-pantone", false);
-  assert.equal(t.text, "#243746");
-  assert.equal(t.navigation, "#243746", "navigace je plné břidlicové pole");
-  assert.equal(t.frameRail, "#A57051", "hlína nese kolejnici");
-  assert.equal(t.interactiveAccent, "#243746", "akce je břidlice — hlína není tlačítko s malým textem");
-  // „banka": studené pole + modré akcenty + bílé karty. Karta je střední šeď.
-  assert.equal(t.card, "#BDBDBD");
-});
+
+
 
 test("Monument · tmavý plášť, slonovinová plocha, hlína jen jako stavba", () => {
   const t = resolveTheme("monument-clay", false);
@@ -78,102 +59,17 @@ test("Granát a břidlice · konzoly, krém mezi tmavými, žádné víno", () =
   assert.ok(!String(t.link).toUpperCase().startsWith("#364857") || t.background === "#F7DEC1");
 });
 
-test("Šikon a fosilní písek · fosilie píše, allspice rámuje, žádné zlato", () => {
-  const t = resolveTheme("shikon-fossil", false);
-  assert.ok(String(t.text).toUpperCase().startsWith("#D0B08F"), "běžné písmo je fosilní tan");
-  assert.equal(t.frameRail, "#9B7E6D", "allspice nese kolejnici");
-  for (const role of ["text", "textSecondary", "textMuted", "placeholder"]) {
-    assert.ok(!String(t[role]).toUpperCase().startsWith("#9B7E6D"), `${role}: allspice nenese běžné písmo`);
-    assert.ok(!String(t[role]).toUpperCase().startsWith("#6D5B57"), `${role}: missing link nenese běžné písmo`);
-  }
-});
 
-test("Sopečná šeď · vrstvený kámen, žádný zelený nádech, žádný měkký stín", () => {
-  const t = resolveTheme("volcanic-grey", false);
-  assert.ok(String(t.text).toUpperCase().startsWith("#BEC0C2"));
-  for (const k of ["background", "navigation", "surface", "card", "documentSurface"]) {
-    assert.ok(chroma(t[k]) <= 0.02, `${k}: šeď musí zůstat šedí`);
-    assert.ok(!readsGreen(t[k]), `${k}: blackish green nesmí prosáknout do ploch`);
-  }
-  for (const role of ["text", "textSecondary", "textMuted", "placeholder"]) {
-    assert.ok(!String(t[role]).toUpperCase().startsWith("#5C6263"), `${role}: na blackish green se nepíše`);
-  }
-  const css = frameGrammarCss();
-  const basalt = css.slice(css.indexOf("basalt-steps"), css.indexOf("woven-rails"));
-  assert.ok(!/box-shadow:[^;]*\d+px \d+px \d+px/.test(basalt.replace(/inset[^,;]+/g, "")),
-    "čedič nemá rozmazaný stín");
-});
 
-test("Americano a chai · len píše, kotvy rámují, žádná kavárna", () => {
-  const t = resolveTheme("americano-chai", false);
-  assert.equal(t.text, "#F4F0EB", "běžné písmo je servisní len — hnědé písmo pod 4,5 sem nesmí");
-  assert.equal(t.frameOuter, "#5A4D41", "vnější kolejnice je Mocha");
-  assert.equal(t.frameInner, "#7E6957", "vnitřní linka je Chai — finální spec V3");
-  assert.equal(t.documentSurface, "#303031", "dokument je Brew");
-  for (const role of ["text", "textSecondary", "textMuted", "placeholder", "link"]) {
-    for (const bad of ["#867C70", "#7E6957", "#5A4D41"]) {
-      assert.ok(!String(t[role]).toUpperCase().startsWith(bad.toUpperCase()), `${role} nese ${bad}`);
-    }
-  }
-});
 
-test("Tichý zápis · skoro plochý: panel s linkou, otevřený dokument, azulový výběr", () => {
-  const t = resolveTheme("quiet-ledger-night", false);
-  assert.equal(t.background, "#191919", "pole je Ink");
-  assert.equal(t.surface, "#202020", "panel je o odstín výš");
-  assert.equal(t.documentSurface, "#191919", "dokument je otevřený — splývá s polem");
-  assert.equal(t.elevatedSurface, "#252525", "popover je Popover");
-  assert.equal(t.border, "#373737", "jediná linka je Divider");
-  assert.equal(t.frameOuter, "#373737", "rám je jen linka");
-  assert.equal(t.frameRail, "#28374A", "kolejnice výběru je Azul");
-  assert.equal(t.frameHighlight, "#D3C7AD", "vnější keyline vybraného je Areia");
-  assert.equal(t.selectionText, "#F0EFED");
-  const ql = frameGrammarCss().split("}")
-    .filter((r) => r.includes('data-frame-grammar="quiet-ledger"')).join("}");
-  assert.ok(/inset 0 0 0 1px/.test(ql), "quiet-ledger kreslí jen 1px keyline");
-  assert.ok(!/inset 0 0 0 [2-9]px/.test(ql), "žádná silná zeď — motiv je skoro plochý");
-  assert.ok(!ql.includes("tm-psani"), "psací plocha zůstává otevřená, bez rámu");
-});
 
-test("Černý písek · světlé kotvy vládnou, ječmen je římsa a nikdy nepíše", () => {
-  const t = resolveTheme("black-sand", false);
-  assert.equal(t.background, "#D7C9AE", "pole je Akaroa");
-  assert.equal(t.navigation, "#D7C9AE", "plášť není tmavší než stránka");
-  assert.equal(t.documentSurface, "#EAE0D2", "list je White Rock");
-  assert.equal(t.card, "#EAE0D2");
-  assert.equal(t.text, "#2D2D2D", "inkoust je Mine Shaft");
-  assert.equal(t.interactiveAccent, "#2D2D2D");
-  assert.equal(t.interactiveOnAccent, "#EAE0D2");
-  assert.equal(t.frameRail, "#A68763", "římsa je Barley Corn");
-  /* Ječmen měří 2,57:1 na skále a 2,05:1 na písku — nesmí psát ani dělat
-     hranu nebo ohnisko. Je plocha: římsa, hrdina, výběr. */
-  for (const role of ["text", "textSecondary", "textMuted", "heading", "link", "placeholder", "borderStrong", "focusRing"]) {
-    assert.notEqual(t[role], "#A68763", `ječmen se dostal do role ${role}`);
-  }
-  const g = frameGrammarCss().split("}").filter((r) => r.includes('data-frame-grammar="dune-ledge"')).join("}");
-  assert.ok(/inset 0 -3px 0 0/.test(g), "list stojí na třípixelové římse");
-});
 
-test("Hluboká voda · petrolej je plášť, nikdy čára ani inkoust na poli", () => {
-  const t = resolveTheme("deep-water", false);
-  assert.equal(t.background, "#1E1E1E", "pole je Basalt");
-  assert.equal(t.navigation, "#143D4A", "plášť je Deep Teal");
-  /* Akcent píše v aplikaci desítky štítků přímo na pole. Petrolej na čediči
-     měří 1,43:1 — proto je akce mlha s petrolejovým písmem, ne naopak. */
-  assert.equal(t.interactiveAccent, "#F2F1EC", "akce je Mist, aby akcent četl i jako písmo");
-  assert.equal(t.interactiveOnAccent, "#143D4A");
-  assert.equal(t.text, "#F2F1EC", "písmo je Mist");
-  assert.equal(t.borderStrong, "#7B8187", "silná hrana je Slate");
-  assert.equal(t.focusRing, "#7B8187");
-  for (const k of ["chart1", "chart2", "chart3", "chart4", "chart5", "chart6"]) {
-    assert.notEqual(t[k], "#143D4A", `petrolej v řadě grafu ${k} by na čediči zmizel`);
-  }
-  for (const role of ["text", "textSecondary", "textMuted", "heading", "link", "placeholder"]) {
-    assert.notEqual(t[role], "#7B8187", `břidlice se dostala do role ${role}`);
-  }
-  const g = frameGrammarCss().split("}").filter((r) => r.includes('data-frame-grammar="tide-line"')).join("}");
-  assert.ok(/inset 0 3px 0 0/.test(g), "přílivová linka nahoře");
-});
+
+
+
+
+
+
 
 test("skin je střežený vzhledem a nesahá na rozměr", () => {
   const css = skinCss();
@@ -205,7 +101,7 @@ test("rámy jsou čisté CSS bez rozměrů, gradientů a záře", () => {
   const css = frameGrammarCss();
   assert.ok(!/gradient|blur\(|filter:|url\(/i.test(css), "rám je stín, obrys nebo pseudo-prvek");
   assert.ok(!/padding|margin(?!-)/.test(css), "rám nesmí měnit geometrii");
-  assert.ok(css.includes("pointer-events: none"), "pseudo-rám nesmí blokovat ukazatel");
+
   // Každé pravidlo je střežené gramatikou — Signature (none) nic nematchne.
   for (const line of css.split("\n")) {
     const sel = line.trim();

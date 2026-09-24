@@ -13,7 +13,6 @@ export function ownerRefinementsCss() {
 .tm-sidebar .tm-history .tm-redo { left: var(--tm-redo-left, 78%); }
 html[data-appearance] .tm-sidebar .tm-nav-item { transition: color .18s ease !important; }
 @media (hover: hover) { html[data-appearance] .tm-sidebar .tm-nav-item:hover { background: transparent !important; box-shadow: none !important; color: var(--tm-earth-nav-ink) !important; transform: none !important; } html[data-appearance] .tm-sidebar .tm-nav-item:hover > span:first-child { color: var(--tm-earth-nav-ink) !important; } html[data-appearance] .tm-sidebar .tm-history :is(.tm-undo,.tm-redo):hover { transform: translateY(-50%) !important; } }
-html:is([data-appearance="landscape-day"],[data-appearance="landscape-night"]) :is(.tm-earth-action,.tm-cta) { background: #754437 url('/media/landscape/earth.webp') center/768px auto !important; color: #F4F0EB !important; }
 .tm-sidebar::-webkit-scrollbar { display: none; width: 0; }
 .tm-sidebar-lines { position: absolute; inset: 0 0 auto; pointer-events: none; z-index: -1; overflow: hidden; }
 .tm-sidebar-lines > span { position: absolute; top: 50%; left: calc(100% - 45px); transform: translate(-50%, -50%) rotate(90deg); background: #C5B49A; opacity: .36; mask: url('/media/landscape/sidebar-line.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/sidebar-line.png') center/100% 100% no-repeat; }

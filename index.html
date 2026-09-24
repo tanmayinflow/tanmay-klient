@@ -24,104 +24,50 @@
       /* Linen je výchozí pole domu · skript níž ho přepne na Forest Night,
          když si člověk naposledy zvolil noc. Bez toho blikne při každém
          startu opačný režim. */
-      body { background: #F4F0EB; }
+      body { background: #E5D8C4; }
     </style>
   </head>
   <body>
     <div id="root"></div>
     <script>
       (function () {
-        /* PŘED PRVNÍM VYKRESLENÍM. Bez tohohle blikne při každém startu
-           Signature Day a teprve pak naskočí uložený vzhled. Mapy jsou jen
-           POLE, barva lišty a řeč rámů každého pevného vzhledu; zbytek
-           přinese aplikace. Sdílené jádro je autorita — `theme-bootstrap.test.js`
-           shodí build, jakmile se čísla rozejdou.
-
-           Skript rozumí VŠEM generacím uložené volby (V3 přidala do téhož
-           klíče zapamatovanou Signature volbu a zrušila palety V2), protože
-           jinak by v den nasazení bliklo napříč instalovanou základnou. */
-        var F = {
-          "signature-day": "#F4F0EB",
-          "signature-night": "#262725",
-          "slate-clay-pantone": "#DBD6D1",
-          "monument-clay": "#EBEBDD",
-          "sand-burnt-earth": "#D3C7AD",
-          "garnet-slate": "#F7DEC1",
-          "shikon-fossil": "#282227",
-          "volcanic-grey": "#292A2A",
-          "americano-chai": "#1E1D1D",
-          "quiet-ledger-night": "#191919",
-          "nagtang-black": "#141311",
-          "martang-red": "#2A1210",
-          "sertang-gold": "#EADBAE",
-          "mineral-pigments": "#F1EADB",
-          "black-sand": "#D7C9AE",
-          "deep-water": "#1E1E1E",
-          "landscape-day": "#E5D8C4",
-          "landscape-night": "#1C1C1A"
-        };
-        /* lišta prohlížeče, kde se liší od pole (Monument má tmavý plášť) */
-        var TC = { "monument-clay": "#26303B", "deep-water": "#143D4A" };
-        /* noční vzhledy · týž seznam jako polarita v rejstříku */
-        var N = ["signature-night", "shikon-fossil", "volcanic-grey", "americano-chai", "quiet-ledger-night", "nagtang-black", "martang-red", "deep-water", "landscape-night"];
-        /* řeč rámů · týž seznam jako chrome v rejstříku */
-        var G = { "slate-clay-pantone": "architectural-double", "monument-clay": "monument-inset", "sand-burnt-earth": "strata-rails", "garnet-slate": "corner-brackets", "shikon-fossil": "nested-fossil", "volcanic-grey": "basalt-steps", "americano-chai": "woven-rails", "quiet-ledger-night": "quiet-ledger", "nagtang-black": "gold-keyline", "martang-red": "thangka-mount", "sertang-gold": "brocade-band", "mineral-pigments": "pigment-rails", "black-sand": "dune-ledge", "deep-water": "tide-line", "landscape-day": "landscape-paper", "landscape-night": "landscape-ash" };
-        /* zrušený preset V2 → nejbližší dochovaná identita V3 */
-        var P = {
-          "slate-clay": "slate-clay-pantone",
-          "sand-earth": "sand-burnt-earth",
-          "smoke-spice": "shikon-fossil",
-          "river-night": "volcanic-grey",
-          "mulberry-paper": "garnet-slate",
-          "teal-night": "signature-night"
-        };
-        /* rodina × režim (V1, V1.1) → vzhled V3 */
-        var M = {
-          "signature": { "system": "auto", "light": "signature-day", "dark": "signature-night" },
-          "river-mist": "volcanic-grey",
-          "teal-parchment": "signature-night",
-          "mulberry-paper": "garnet-slate",
-          "atlantic-sky": "slate-clay-pantone",
-          "clay-alabaster": "sand-burnt-earth",
-          "olive-gold": "sand-burnt-earth"
-        };
+        // Eight themes, Landscape Day default. Preserve valid saved choices.
+        var F = {"landscape-day": "#E5D8C4", "landscape-night": "#1C1C1A", "monument-clay": "#EBEBDD", "sand-burnt-earth": "#D3C7AD", "garnet-slate": "#F7DEC1", "nagtang-black": "#141311", "mineral-pigments": "#F1EADB", "signature-day": "#F4F0EB"};
+        var TC = { "monument-clay": "#26303B" };
+        var N = ["landscape-night", "nagtang-black"];
+        var G = {"landscape-day": "landscape", "landscape-night": "landscape", "monument-clay": "landscape", "sand-burnt-earth": "landscape", "garnet-slate": "landscape", "nagtang-black": "landscape", "mineral-pigments": "landscape", "signature-day": "landscape"};
+        var P = { "slate-clay": "landscape-day", "sand-earth": "sand-burnt-earth", "smoke-spice": "landscape-day", "river-night": "landscape-day", "mulberry-paper": "garnet-slate", "teal-night": "landscape-day" };
+        var M = { "river-mist": "landscape-day", "teal-parchment": "landscape-day", "mulberry-paper": "garnet-slate", "atlantic-sky": "landscape-day", "clay-alabaster": "sand-burnt-earth", "olive-gold": "sand-burnt-earth" };
+        function preset(value) {
+          var id = typeof value === "string" ? value : value && value.preset;
+          if (!id && value && value.family) id = value.family === "signature" ? (value.mode === "light" ? "signature-day" : "landscape-day") : M[value.family];
+          id = P[id] || id;
+          return Object.prototype.hasOwnProperty.call(F,id) ? id : "landscape-day";
+        }
+        var id = "landscape-day";
         try {
-          var vzhled = "landscape-day";
-          try {
-            var raw = localStorage.getItem("tm-appearance-v3");
-            var p = raw ? JSON.parse(raw) : null;
-            var id = p && p.preset;
-            if (id && P[id]) id = P[id];
-            if (id === "signature-auto") vzhled = "auto";
-            else if (id && F[id]) vzhled = id;
-            else {
-              var raw2 = localStorage.getItem("tm-appearance-v2");
-              var q = raw2 ? JSON.parse(raw2) : null;
-              var m = q ? M[q.family] : null;
-              if (typeof m === "string") vzhled = m;
-              else if (m) vzhled = m[q.mode === "light" || q.mode === "dark" ? q.mode : "system"];
-              else {
-                var old = localStorage.getItem("tm-theme");
-                if (old === "dark") vzhled = "signature-night";
-                else if (old === "light") vzhled = "signature-day";
-              }
-            }
-          } catch (e) {}
-          if (vzhled === "auto") {
-            vzhled = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "signature-night" : "signature-day";
+          var raw = localStorage.getItem("tm-appearance-v3") || localStorage.getItem("tm-appearance-v2");
+          var value = raw ? JSON.parse(raw) : null;
+          if (value && (typeof value === "string" || typeof value === "object")) id = preset(value);
+          else id = localStorage.getItem("tm-theme") === "light" ? "signature-day" : "landscape-day";
+        } catch (e) {
+          try { id = localStorage.getItem("tm-theme") === "light" ? "signature-day" : "landscape-day"; } catch (e) {}
+        }
+        try {
+          if (["127.0.0.1","localhost","[::1]"].indexOf(window.location.hostname) >= 0) {
+            var preview = new URLSearchParams(window.location.search).get("previewAppearance");
+            if (preview && Object.prototype.hasOwnProperty.call(F,preview)) id = preview;
           }
-          var pole = F[vzhled] || F["signature-day"];
-          var noc = N.indexOf(vzhled) >= 0;
-          var h = document.documentElement;
-          h.setAttribute("data-appearance", vzhled);
-          h.setAttribute("data-color-mode", noc ? "dark" : "light");
-          h.setAttribute("data-frame-grammar", G[vzhled] || "none");
-          h.style.setProperty("color-scheme", noc ? "dark" : "light");
-          document.body.style.background = pole;
-          var m2 = document.querySelector('meta[name="theme-color"]');
-          if (m2) m2.setAttribute("content", TC[vzhled] || pole);
         } catch (e) {}
+        var dark = N.indexOf(id) >= 0;
+        var h = document.documentElement;
+        h.setAttribute("data-appearance", id);
+        h.setAttribute("data-color-mode", dark ? "dark" : "light");
+        h.setAttribute("data-frame-grammar", G[id]);
+        h.style.setProperty("color-scheme", dark ? "dark" : "light");
+        document.body.style.background = F[id];
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", TC[id] || F[id]);
       })();
     </script>
     <script type="module" src="/src/main.tsx"></script>

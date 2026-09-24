@@ -299,7 +299,7 @@ test("balík má správnou identitu", () => {
   const man = JSON.parse(readFileSync(join(root, "public/manifest.webmanifest"), "utf8"));
   assert.equal(/^#[0-9A-Fa-f]{6}$/.test(man.background_color), true, "barva pozadí musí být platná barva");
   assert.equal(/^#[0-9A-Fa-f]{6}$/.test(man.theme_color), true, "barva motivu musí být platná barva");
-  assert.equal(man.background_color, "#F4F0EB");
+  assert.equal(man.background_color, "#E5D8C4");
   assert.doesNotMatch(JSON.stringify(man), /tanmay-web|Notion/);
 });
 

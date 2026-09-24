@@ -14,9 +14,7 @@
 // panel nad světlým polem a globální inkoust na něj nikdy nepatří.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  FIXED_PRESET_IDS, OPTIONAL_PRESET_IDS, resolveTheme, statusPalette, chartPalette, appearancePreset,
-} from "../src/shared/ui/themeRegistry.js";
+import { FIXED_PRESET_IDS, OPTIONAL_PRESET_IDS, resolveTheme, statusPalette, chartPalette, appearancePreset } from "../src/shared/ui/themeRegistry.js";
 import { makeTagsFor } from "../src/shared/ui/theme.js";
 import { ratio, grayscale, cvdDistance, composite, contrast, AA } from "../src/shared/ui/contrast.js";
 
@@ -164,6 +162,6 @@ test("sousední řady grafu se od sebe poznají v šedi nebo v barvosleposti", (
 
 test("dost měření, aby to něco znamenalo", () => {
   assert.ok(measured > 900, `měření je jen ${measured}`);
-  assert.equal(FIXED_PRESET_IDS.length, 18);
-  for (const id of OPTIONAL_PRESET_IDS) assert.equal(appearancePreset(id).kind, "optional");
+  assert.equal(FIXED_PRESET_IDS.length, 8);
+  for (const id of OPTIONAL_PRESET_IDS) assert.equal(appearancePreset(id).kind, "fixed");
 });

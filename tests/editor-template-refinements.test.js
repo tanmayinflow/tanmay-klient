@@ -9,8 +9,8 @@ import vm from 'node:vm';
 test('fresh installations use Landscape Day while saved choices survive',()=>{
  const fresh=migrateLegacyAppearance(null,null);
  assert.equal(fresh.preset,'landscape-day');
- assert.equal(returnToSignature(fresh).preset,'signature-auto');
- for(const preset of ['signature-night','landscape-night','sand-burnt-earth'])assert.equal(migrateLegacyAppearance(JSON.stringify({preset}),null).preset,preset);
+ assert.equal(returnToSignature(fresh).preset,'landscape-day');
+ for(const preset of ['signature-day','landscape-night','sand-burnt-earth'])assert.equal(migrateLegacyAppearance(JSON.stringify({preset}),null).preset,preset);
 });
 test('semantic editor colors follow both Landscape lights',()=>{
  for(const id of ['landscape-day','landscape-night']){
