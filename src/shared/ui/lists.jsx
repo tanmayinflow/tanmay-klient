@@ -81,7 +81,7 @@ export function createListUI(deps) {
     if (view === "cards") return (
       <div className="tm-vgrid">
         {items.map((it) => (
-          <button key={it.id} data-pick={it.id} onClick={hit(it.id)} className="tm-lift" style={{ ...cardBase(it.id), display: "flex", flexDirection: "column", minHeight: 130, padding: "13px 13px 11px" }}>
+          <button key={it.id} data-pick={it.id} onClick={hit(it.id)} className="tm-lift tm-material-card" style={{ ...cardBase(it.id), display: "flex", flexDirection: "column", minHeight: 130, padding: "13px 13px 11px" }}>
             {selecting && <VwMark on={on(it.id)} corner />}
             <span style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
               {it.star && <span style={{ color: t.accent, fontSize: 12, marginTop: 3 }}>★</span>}
@@ -99,7 +99,7 @@ export function createListUI(deps) {
         {items.map((it) => {
           const f = it.face || {};
           return (
-            <button key={it.id} data-pick={it.id} onClick={hit(it.id)} className="tm-lift" style={cardBase(it.id)}>
+            <button key={it.id} data-pick={it.id} onClick={hit(it.id)} className="tm-lift tm-material-card" style={cardBase(it.id)}>
               {selecting && <VwMark on={on(it.id)} corner />}
               {/* tvář · obrázek, jinak útržek stránky, jinak iniciála. Nikdy
                   dvakrát tentýž glyf — z toho se nedá nic vyčíst. */}

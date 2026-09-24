@@ -40,6 +40,31 @@ ${s} .tm-tabbar button[aria-current="page"] > span:first-child { color: var(--tm
 ${s} :is(.tm-sidebar,.tm-tabbar) button:focus-visible { outline-color: var(--tm-nav-accent) !important; }
 ${s} :is(.tm-drawer,.tm-calcard,.tm-card,.tm-topbar) { background-image: var(--land-field) !important; background-size: 768px auto !important; }
 ${s} :is(.tm-cs,.tm-nahled,.tm-zen) { background: var(--tm-document) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+/* Night materials: byte-identical production textures, gently lifted with a solid Linen tint.
+   These roles never target navigation, photographs, status chips or action fills. */
+html[data-appearance="landscape-night"] {
+  --land-wood: url('/media/landscape/wood.webp');
+  --land-felt: url('/media/landscape/felt.webp');
+  --land-card-material: linear-gradient(#F4F0EB08, #F4F0EB08), var(--land-wood);
+  --land-panel-material: linear-gradient(#F4F0EB19, #F4F0EB19), var(--land-felt);
+}
+html[data-appearance="landscape-night"] :is(.tm-material-card,.tm-calcard,.tm-card,[data-tv-tpl],[data-tv-plan],[data-tex] > button) {
+  background-image: var(--land-card-material) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+html[data-appearance="landscape-night"] :is(.tm-cs,.tm-nahled,.tm-zen,.tm-drawer,.tm-pop) {
+  background-color: var(--tm-document) !important;
+  background-image: var(--land-panel-material) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+html[data-appearance="landscape-night"] :is(.tm-material-card,[data-tv-tpl],[data-tv-plan]):focus-visible {
+  outline: 2px solid var(--tm-accent);
+  outline-offset: 3px;
+}
 /* Earth headers carry the website's actual outgoing contour; controls stay outside the mask. */
 ${s} :is(.tm-cs-head,.tm-nahled-head) { isolation: isolate; background: #754437 var(--land-earth) center top/768px auto !important; color: #F4F0EB !important; border-bottom-color: transparent !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -46px; height: 130px; z-index: -1; background: #754437 var(--land-earth) center bottom/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; pointer-events: none; }

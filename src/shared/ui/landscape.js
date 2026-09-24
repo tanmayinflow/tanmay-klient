@@ -4,9 +4,9 @@ import { ROOM_ART } from "./roomArt.js";
 // Separate presets: existing Signature and saved choices remain intact.
 export function landscapeDefinition(night = false) {
   const linen = "#F4F0EB", ink = "#1C1C1A", earth = "#754437";
-  // Exact website anchors only; no additional beige/copper/charcoal palette.
+  // Website anchors plus owner-requested night material levels (24 September 2026).
   const sand = "#E5D8C4", paper = sand, muted = ink;
-  const coal = ink, raised = ink, pale = "#C5B49A", copper = "#B87333";
+  const coal = "#2E2D2B", raised = "#373530", pale = "#C5B49A", copper = "#B87333";
   const bg = night ? ink : paper, surface = night ? coal : paper;
   const text = night ? linen : ink, secondary = night ? pale : muted;
   // Current website accent on Linen; the Earth material keeps its own anchor.
@@ -20,7 +20,7 @@ export function landscapeDefinition(night = false) {
     anchors: { Linen: linen, Ink: ink, Earth: earth, Paper: paper, Sand: sand,
       Muted: muted, Coal: coal, Raised: raised, Pale: pale, Copper: copper, RedEarth: redEarth },
     background: bg, navigation: night ? linen : ink, surface, card: surface,
-    documentSurface: surface, elevatedSurface: night ? raised : paper,
+    documentSurface: night ? raised : surface, elevatedSurface: night ? raised : paper,
     text, heading: text, textSecondary: secondary, textMuted: secondary,
     textDisabled: secondary, placeholder: secondary,
     border: pale, borderStrong: secondary,
@@ -38,7 +38,7 @@ export function landscapeDefinition(night = false) {
       ? { text: ink, textSec: ink, kicker: ink, icon: ink, muted: ink,
           accent: redEarth, activeBg: linen, hairline: pale, border: ink }
       : { text: linen, textSec: pale, kicker: pale, icon: pale, muted: pale,
-          accent: linen, activeBg: ink, hairline: raised, border: pale },
+          accent: linen, activeBg: ink, hairline: ink, border: pale },
     frame: { outer: night ? muted : pale, inner: surface, rail: action, highlight: action },
     themeColor: bg,
     chrome: { frameGrammar: night ? "landscape-ash" : "landscape-paper", radius: 8,
