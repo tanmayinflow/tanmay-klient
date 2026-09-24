@@ -21,7 +21,7 @@ export const ROLES = Object.freeze({ COACH: "coach", CLIENT: "client" });
 export const CLIENT_ALWAYS = Object.freeze(["praxe", "trenink", "terminy", "kompas", "prameny"]);
 
 /** Místnosti, které si klient zapíná sám a které jsou ve výchozím stavu vypnuté. */
-export const CLIENT_OPTIONAL = Object.freeze(["denik", "zapisnik", "memento"]);
+export const CLIENT_OPTIONAL = Object.freeze(["denik", "zapisnik", "memento", "spolu"]);
 
 /** Místnosti, které v klientské aplikaci nikdy nejsou. Ne skryté — nejsou. */
 export const CLIENT_NEVER = Object.freeze([
@@ -34,7 +34,7 @@ export const CLIENT_INFRA = Object.freeze(["nastaveni", "pruvodce", "kos"]);
 const CAP_KEYS = Object.freeze([
   // místnosti
   "practice", "training", "booking", "compass", "sources",
-  "journal", "notebook", "memento",
+  "journal", "notebook", "memento", "together",
   // činnosti
   "editTrainingPrescription", "viewTrainingResults",
   "manageClients", "manageAvailability", "managePackages",
@@ -94,6 +94,7 @@ export function deriveCapabilities(input) {
   caps.journal = on("denik");
   caps.notebook = on("zapisnik");
   caps.memento = on("memento");
+  caps.together = on("spolu");
 
   caps.viewTrainingResults = true;   // vlastní výsledky, ne cizí
   caps.editTrainingPrescription = false;
@@ -124,6 +125,7 @@ export const ROOM_CAPABILITY = Object.freeze({
   denik: "journal",
   zapisnik: "notebook",
   memento: "memento",
+  spolu: "together",
   klienti: "manageClients",
   hospodareni: "manageFinances",
   socsite: "manageContent",

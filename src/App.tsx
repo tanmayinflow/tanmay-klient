@@ -1,3 +1,6 @@
+import { TogetherPage, TogetherIcon } from "./shared/ui/together.jsx";
+import { NavigationSettings } from "./shared/ui/navigationSettings.jsx";
+import { CLIENT_ROOMS, navigationRooms, roomPlacement, navigationLabel } from "./shared/product/navigation.js";
 import { TrainingGoals } from "./shared/ui/trainingGoals.jsx";
 import { editorInk, editorHighlight, EDITOR_INKS, EDITOR_CHOICES, EDITOR_NAMES, EDITOR_LABELS } from "./shared/ui/editorPalette.js";
 import { LifeDots } from "./shared/ui/lifeDots.jsx";
@@ -10370,7 +10373,7 @@ function TmWbDiamant({ size = 15 }) { return <FamilyIcon id="bodhicitta" size={s
 function TmWbKruh({ size = 15 }) { return <FamilyIcon id="world-practice" size={size} />; }
 function TmIcOblasti({ size = 15 }) { return <FamilyIcon id="areas" size={size} />; }
 function TmIcCile({ size = 15 }) { return <FamilyIcon id="target" size={size} />; }
-const NAV_ICONS = { praxe: TmIcPraxe, trenink: TmIcTrenink, terminy: TmIcTerminy, denik: TmIcDenik, kompas: TmIcKompas, zapisnik: TmIcZapisnik, prameny: TmIcPrameny, memento: TmIcMemento, kos: TmIcKos };
+const NAV_ICONS = { spolu: TogetherIcon, oblasti: TmIcKompas, cile: TmIcKompas, atomic: TmIcPraxe,  praxe: TmIcPraxe, trenink: TmIcTrenink, terminy: TmIcTerminy, denik: TmIcDenik, kompas: TmIcKompas, zapisnik: TmIcZapisnik, prameny: TmIcPrameny, memento: TmIcMemento, kos: TmIcKos };
 
 // ---- MAPA DOMU · boční panel je mapa života, ne seznam aplikací -----------
 // Skupiny i jejich pořadí leží ve sdíleném jádru (src/shared/product/rooms.js),
@@ -10385,6 +10388,7 @@ const NAV_GROUPS_ALL = navGroupsFor(() => true).map((g) => ({
   cz: g.cz, en: g.en,
   items: g.rooms.map((k) => ({ key: k, icon: NAV_EMOJI[k] || "·", cz: ROOM_COPY[k].cz, en: ROOM_COPY[k].en })),
 }));
+const NAV_EXTRAS = {cz:"Další stránky",en:"More pages",items:["oblasti","cile","atomic"].map(key=>({key,cz:navigationLabel(key,"cs"),en:navigationLabel(key,"en")}))};
 const NAV_TRASH = { key: "kos", icon: "🗑", cz: "Koš", en: "Trash" };
 // old Notion-era page keys → current rooms · keeps stored pageMeta (titles,
 // icons, subtitles) alive across the rename without any data migration
@@ -11268,6 +11272,7 @@ const ALWAYS_ROOMS = CLIENT_ALWAYS.map((k) => ({
   key: k, cz: ROOM_COPY[k].cz, en: ROOM_COPY[k].en,
 }));
 const MODULES = [
+  { key: "spolu", icon: <TogetherIcon size={20}/>, label: "Together", lcs: "Spolu", dcs: "Soukromý cyklus a společné plány. Sdílení určuješ ty.", den: "Private cycle tracking and shared plans. You choose what to share." },
   { key: "denik",    icon: "✎",  label: "Journal",      lcs: "Deník",         dcs: "Vlastní zápisy. Tany je nikdy nevidí.",        den: "Your own entries. Tanmay never sees them." },
   { key: "zapisnik", icon: "📓", label: "Notebook",     lcs: "Zápisník",      dcs: "Poznámky, texty, myšlenky. Jen tvoje.",        den: "Notes, texts, thoughts. Yours only." },
   { key: "memento",  icon: "☾",  label: "Memento mori", lcs: "Memento mori",  dcs: "Připomínka pomíjivosti. Bez upozornění, dokud si je nezapneš.", den: "A reminder of impermanence. No notifications until you ask for them." },
@@ -11704,35 +11709,7 @@ export default function App() {
   // kopie. Během animace je tichý přeskok zamčený, aby do ní nešťouchal.
   const tabFirstRef = React.useRef(true);
   const dockAnimRef = React.useRef(false);
-  React.useEffect(() => {
-    const el = tabScrollRef.current; if (!el) return;
-    const TABS = dockTabs;
-    if (TABS.length <= 3) return;
-    const idx = TABS.indexOf(page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page);
-    if (idx < 0) return;
-    const run = () => {
-      const slot = el.scrollWidth / (3 * TABS.length);
-      if (!slot) return;
-      let target = null, best = Infinity;
-      for (let c = 0; c < 3; c++) {
-        const cand = (c * TABS.length + idx + 0.5) * slot - el.clientWidth / 2;
-        const d = Math.abs(cand - el.scrollLeft);
-        if (d < best) { best = d; target = cand; }
-      }
-      target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target));
-      dockAnimRef.current = true;
-      el.scrollTo({ left: target, behavior: tabFirstRef.current ? "auto" : "smooth" });
-      tabFirstRef.current = false;
-    };
-    run();
-    const h = setTimeout(() => {
-      dockAnimRef.current = false;
-      const sW = el.scrollWidth / 3;
-      if (el.scrollLeft < sW * 0.6) el.scrollLeft += sW;
-      else if (el.scrollLeft > sW * 1.6) el.scrollLeft -= sW;
-    }, 620);
-    return () => clearTimeout(h);
-  }, [page]);
+
   React.useEffect(() => {
     try { if (TM_GUIDE_AUTOSHOW && typeof localStorage !== "undefined" && tmGuideVidel() < TM_GUIDE_VERZE) setGuideOpen(true); } catch (e) {}
   }, []);
@@ -13273,10 +13250,47 @@ export default function App() {
     [member, activeModules.join(","), JSON.stringify(coll.share || {})]
   );
   const isEnabled = (key) => roomVisible(caps, key);
-  const dockTabs = dockTabsFor(isEnabled);
+  React.useEffect(()=>{const room=new URL(location.href).searchParams.get("open");if(room&&CLIENT_ROOMS.includes(room)&&roomVisible(caps,room)){setPage(room);const u=new URL(location.href);u.searchParams.delete("open");history.replaceState({},"",u);}},[caps.together]);
+  const navDefaults = {sidebar: ["praxe","trenink","terminy","kompas","prameny","denik","zapisnik","memento","spolu","kos"], dock: dockTabsFor(isEnabled)};
+  const navConfig = coll.ui?.navigation || {};
+  const dockTabs = navigationRooms(navConfig, CLIENT_ROOMS, navDefaults, "dock").filter(isEnabled);
+  const sideRooms = navigationRooms(navConfig, CLIENT_ROOMS, navDefaults, "sidebar").filter(isEnabled);
+  React.useEffect(()=>{if(roomPlacement(navConfig,page,navDefaults).hidden){const next=sideRooms.find(k=>k!=="kos")||dockTabs[0]||"__navigation";setPage(next);}},[JSON.stringify(navConfig)]);
+
+  const saveNavigation = navigation => persistColl(c=>({...c,ui:{...c.ui,navigation}}));
+  const enableNavigationRoom = key => persistColl(c=>({...c, modules:[...new Set([...(c.modules||[]),...(CLIENT_OPTIONAL.includes(key)?[key]:[])])], ...(key==="memento"?{memento:{...c.memento,zapnuto:true}}:{})}));
+  React.useEffect(() => {
+    const el = tabScrollRef.current; if (!el) return;
+    const TABS = dockTabs;
+    if (TABS.length <= 3) return;
+    const idx = TABS.indexOf(page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page);
+    if (idx < 0) return;
+    const run = () => {
+      const slot = el.scrollWidth / (3 * TABS.length);
+      if (!slot) return;
+      let target = null, best = Infinity;
+      for (let c = 0; c < 3; c++) {
+        const cand = (c * TABS.length + idx + 0.5) * slot - el.clientWidth / 2;
+        const d = Math.abs(cand - el.scrollLeft);
+        if (d < best) { best = d; target = cand; }
+      }
+      target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, target));
+      dockAnimRef.current = true;
+      el.scrollTo({ left: target, behavior: tabFirstRef.current ? "auto" : "smooth" });
+      tabFirstRef.current = false;
+    };
+    run();
+    const h = setTimeout(() => {
+      dockAnimRef.current = false;
+      const sW = el.scrollWidth / 3;
+      if (el.scrollLeft < sW * 0.6) el.scrollLeft += sW;
+      else if (el.scrollLeft > sW * 1.6) el.scrollLeft -= sW;
+    }, 620);
+    return () => clearTimeout(h);
+  }, [page, dockTabs.join(",")]);
   React.useEffect(() => {
     const owner = page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page;
-    if (!isEnabled(owner)) setPage("praxe");
+    if (page!=="__navigation" && !isEnabled(owner)) setPage("praxe");
   }, [enabledModules, mementoZap, page]);
 
   const store = { caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
@@ -13306,6 +13320,8 @@ export default function App() {
 
   const render = () => {
     switch (page) {
+      case "spolu": return <TogetherPage t={t} lang={lang} Header={PageTitle} role="client"/>;
+      case "__navigation": return <div><h1>{L("Stránky", "Pages")}</h1><button onClick={()=>setSetsOpen(true)}>{L("Otevřít nastavení", "Open settings")}</button></div>;
       case "kompas": return <PageDivine go={go} />;
       case "praxe": return <PageHabit go={go} />;
       case "trenink": return <PageTrenink />;
@@ -13579,8 +13595,8 @@ export default function App() {
           </button>
             <button className="tm-gear" onClick={() => { setMenuOpen(false); setAppearanceOpen(false); setSetsOpen(true); }} title={L("Nastavení", "Settings")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, marginTop: -12, background: "transparent", border: "none", borderRadius: 10, color: t.navIcon, cursor: "pointer", flexShrink: 0 }}><TmIcNastaveni size={19} /></button>
           </div>
-          {NAV_GROUPS_ALL.map((g) => {
-            const items = g.items.filter((f) => isEnabled(f.key));
+          {[...NAV_GROUPS_ALL,NAV_EXTRAS].map((g) => {
+            const items = g.items.filter((f) => isEnabled(f.key) && sideRooms.includes(f.key));
             if (!items.length) return null;
             return (
               <div key={g.cz} style={{ marginBottom: 16 }}>
@@ -13599,7 +13615,7 @@ export default function App() {
             <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
               <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}><TmIcSdileni size={15} /></span>{L("Sdílení", "Sharing")}
             </button>
-            {renderNavItem(NAV_TRASH, true)}
+            {sideRooms.includes("kos") && renderNavItem(NAV_TRASH, true)}
             <button className="tm-nav-item tm-mhide" onClick={() => setGuideOpen(true)} title={L("Průvodce aplikací", "App guide")} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
               <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}><TmIcPruvodce size={15} /></span>
               {L("Průvodce", "Guide")}
@@ -13687,6 +13703,10 @@ export default function App() {
               </button>
             ))}
 
+            <details style={{marginTop:20,borderTop:`1px solid ${t.borderSoft}`,padding:"16px 0"}}>
+              <summary style={{cursor:"pointer",minHeight:44}}>{L("Stránky a navigace","Pages and navigation")}</summary>
+              <NavigationSettings t={t} lang={lang} config={navConfig} keys={CLIENT_ROOMS} defaults={navDefaults} onChange={saveNavigation} enabled={isEnabled} onEnable={enableNavigationRoom} onOpen={k=>{setSetsOpen(false);go(k);}}/>
+            </details>
             <VzhledSekce
               open={appearanceOpen} onToggle={() => setAppearanceOpen(v => !v)}
               preset={appearance.preset}

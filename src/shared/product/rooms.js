@@ -10,6 +10,7 @@
 // redakce téhož jména, ne strojový překlad. Prameny zůstávají Prameny —
 // „Materiály" je slovo z jiného domu.
 export const ROOM_COPY = {
+  spolu:        { cz: "Spolu", en: "Together" },
   praxe:        { cz: "Praxe",        en: "Practice" },
   trenink:      { cz: "Trénink",      en: "Training" },
   terminy:      { cz: "Termíny",      en: "Sessions" },
@@ -59,7 +60,7 @@ export const NAV_MODEL = [
   { key: "den",       cz: "Den",           en: "Day",            rooms: ["praxe", "trenink", "terminy"] },
   { key: "smer",      cz: "Směr",          en: "Direction",      rooms: ["kompas"] },
   { key: "pamet",     cz: "Paměť",         en: "Memory",         rooms: ["denik", "zapisnik", "prameny"] },
-  { key: "volitelne", cz: "Volitelně",     en: "Optional",       rooms: ["memento"] },
+  { key: "volitelne", cz: "Volitelně",     en: "Optional",       rooms: ["spolu", "memento"] },
   { key: "svet",      cz: "Svět",          en: "World",          rooms: ["klienti", "hospodareni", "socsite"] },
 ];
 

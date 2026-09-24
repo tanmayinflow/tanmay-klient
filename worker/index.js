@@ -1,3 +1,4 @@
+import { handleTogether } from "../src/shared/product/togetherApi.js";
 import { readDelivery, writeDelivery, receiveDelivery } from "../src/training/deliveryStore.js";
 // tanmay-klient — Worker (client edition).
 //
@@ -499,6 +500,7 @@ export default {
       if (!(await isMember(env, userId))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
+      if (url.pathname === "/api/together" || url.pathname.startsWith("/api/together/")) return handleTogether(request, env.DB, `client:${userId}`, { owner: true });
 
       // Jméno člena — zobrazí se jemu i Tanymu v přehledu klientů.
       if (url.pathname === "/api/profile") {
