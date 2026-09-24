@@ -40,31 +40,6 @@ ${s} .tm-tabbar button[aria-current="page"] > span:first-child { color: var(--tm
 ${s} :is(.tm-sidebar,.tm-tabbar) button:focus-visible { outline-color: var(--tm-nav-accent) !important; }
 ${s} :is(.tm-drawer,.tm-calcard,.tm-card,.tm-topbar) { background-image: var(--land-field) !important; background-size: 768px auto !important; }
 ${s} :is(.tm-cs,.tm-nahled,.tm-zen) { background: var(--tm-document) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-/* Night materials: byte-identical production textures, gently lifted with a solid Linen tint.
-   These roles never target navigation, photographs, status chips or action fills. */
-html[data-appearance="landscape-night"] {
-  --land-wood: url('/media/landscape/wood.webp');
-  --land-felt: url('/media/landscape/felt.webp');
-  --land-card-material: linear-gradient(#F4F0EB08, #F4F0EB08), var(--land-wood);
-  --land-panel-material: linear-gradient(#F4F0EB19, #F4F0EB19), var(--land-felt);
-}
-html[data-appearance="landscape-night"] :is(.tm-material-card,.tm-calcard,.tm-card,[data-tv-tpl],[data-tv-plan],[data-tex] > button) {
-  background-image: var(--land-card-material) !important;
-  background-size: cover !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-}
-html[data-appearance="landscape-night"] :is(.tm-cs,.tm-nahled,.tm-zen,.tm-drawer,.tm-pop) {
-  background-color: var(--tm-document) !important;
-  background-image: var(--land-panel-material) !important;
-  background-size: cover !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-}
-html[data-appearance="landscape-night"] :is(.tm-material-card,[data-tv-tpl],[data-tv-plan]):focus-visible {
-  outline: 2px solid var(--tm-accent);
-  outline-offset: 3px;
-}
 /* Earth headers carry the website's actual outgoing contour; controls stay outside the mask. */
 ${s} :is(.tm-cs-head,.tm-nahled-head) { isolation: isolate; background: #754437 var(--land-earth) center top/768px auto !important; color: #F4F0EB !important; border-bottom-color: transparent !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -46px; height: 130px; z-index: -1; background: #754437 var(--land-earth) center bottom/768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; pointer-events: none; }
@@ -91,7 +66,7 @@ ${s} .tm-page { --land-bleed: clamp(28px, calc(4 * var(--tm-vw)), 72px); --land-
 @media (max-width: 820px) { ${s} .tm-page { --land-bleed: 14px; } }
 ${s} .tm-page-title { position: relative; isolation: isolate; --land-art: none; margin-bottom: calc(var(--land-line-height) + 8px); }
 ${s} .tm-page-title::before { content: ''; position: absolute; inset: 0; z-index: -1; background: currentColor; mask: var(--land-art) right center/contain no-repeat; -webkit-mask: var(--land-art) right center/contain no-repeat; opacity: .38; pointer-events: none; }
-html[data-appearance="landscape-night"] .tm-page-title::before { opacity: .3; }
+
 /* Original three-contour source; its SVG alpha stroke stays legible at phone width. */
 ${s} .tm-page-title::after, ${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="denik"]) + .tm-prose::after, ${s} .tm-compass-divider::after { content: ''; display: block; height: var(--land-line-height); background: var(--tm-link); mask: url('/media/landscape/terrain-divider.svg?v=20260922') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/terrain-divider.svg?v=20260922') center/100% 100% no-repeat; pointer-events: none; }
 ${s} .tm-page-title::after { position: absolute; left: calc(-1 * var(--land-bleed)); right: calc(-1 * var(--land-bleed)); top: calc(100% + 4px); z-index: -1; }
@@ -137,6 +112,21 @@ ${s} .tm-page[data-room="klienti"] .tm-page-title::before { inset: 0 0 auto auto
   ${s} .tm-page-title[data-art-room="trenink"]::before { width: 165px; }
   ${s} .tm-page[data-room="klienti"] .tm-page-title::before { width: 186px; }
   ${s} .tm-page-title[data-art-room="trenink"] h1, ${s} .tm-page[data-room="klienti"] .tm-page-title h1 { padding-top: 96px; }
+}
+/* Clear Sand illustrations throughout Night; real covers/photos retain their colors. */
+html[data-appearance="landscape-night"] { --land-art-ink: #E5D8C4; }
+html[data-appearance="landscape-night"] .tm-page[data-room] .tm-page-title::before {
+  background: var(--land-art-ink); opacity: .9;
+}
+html[data-appearance="landscape-night"] .tm-spell-sword {
+  color: var(--land-art-ink); opacity: .9;
+}
+html[data-appearance="landscape-night"] [data-source-cover="category"] > img { opacity: 0 !important; }
+html[data-appearance="landscape-night"] [data-source-cover="category"]::after {
+  content: ''; position: absolute; inset: var(--tm-cover-inset); pointer-events: none;
+  background: var(--land-art-ink);
+  mask: var(--tm-cover-art) center/contain no-repeat;
+  -webkit-mask: var(--tm-cover-art) center/contain no-repeat;
 }
 @media print { ${s} .tm-page-title::before, ${s} .tm-page-title::after, ${s} .tm-ground::after, ${s} .tm-prose::after, ${s} .tm-compass-divider::after, ${s} .tm-cs-head::after, ${s} .tm-tabbar::before { content: none; } }
 `;

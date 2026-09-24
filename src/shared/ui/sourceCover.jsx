@@ -16,7 +16,7 @@ function CoverImage({ src, category, theme, glyph: Glyph, score, variant = "gall
   const small = variant === "row";
   return (
     <span data-source-cover={real ? "real" : image ? "category" : "medium"}
-      style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", overflow: "hidden", background: theme.callout }}>
+      style={{ "--tm-cover-art": art ? `url("${art}")` : "none", "--tm-cover-inset": gallery ? "8px 12px" : small ? "1px" : "5px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", overflow: "hidden", background: theme.callout }}>
       {image ? <img key={image} src={image} alt="" loading={variant === "detail" ? "eager" : "lazy"} decoding="async"
         onError={() => real ? setRealFailed(true) : setArtFailed(true)}
         style={{ display: "block", width: "100%", height: "100%", boxSizing: "border-box", objectFit: "contain",
