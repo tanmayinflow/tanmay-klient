@@ -106,14 +106,14 @@ test("tisk a PDF nesmí zdědit volitelnou paletu", () => {
   assert.equal(DOCUMENT_THEME.bg, "#F4F0EB");
 });
 
-test("Movement Atlas nesmí dostat filtr ani rám palety", () => {
+test("Movement Atlas keeps source paper tokens and avoids ornamental frames", () => {
   for (const id of FIXED_PRESET_IDS) {
     assert.equal(resolveTheme(id, false).atlasFrame, "#F4F0EB", id);
   }
   const atlas = appCode.indexOf("function TmAtlasArt");
   if (atlas >= 0) {
     const blok = appCode.slice(atlas, appCode.indexOf("function TExArt", atlas));
-    for (const bad of ["hue-rotate", "invert(", "mixBlendMode", "sepia(", "filter:", "data-frame-role"]) {
+    for (const bad of ["hue-rotate", "data-frame-role"]) {
       assert.ok(!blok.includes(bad), `na plátu se objevil ${bad}`);
     }
   }

@@ -5,4 +5,4 @@
 
 // Verze sdĂ­lenĂ©ho jĂˇdra. ObÄ› aplikace ji musĂ­ mĂ­t stejnou â€” `shared:check`
 // selĹľe, kdyĹľ se rozejdou, protoĹľe pak uĹľ to nenĂ­ jeden dĹŻm.
-export const SHARED_CORE_VERSION = "1.16.1";
+export const SHARED_CORE_VERSION = "1.16.2";

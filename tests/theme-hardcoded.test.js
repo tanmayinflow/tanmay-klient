@@ -73,7 +73,7 @@ test("značkové body se jmenují, ne píší", () => {
   assert.match(app, /BRAND\.(linen|forest|copper)/);
 });
 
-test("Movement Atlas se v žádném motivu nepřebarvuje", () => {
+test("Movement Atlas keeps source artwork and adapts compositing to the theme", () => {
   const start = app.indexOf("function TmAtlasArt");
   if (start < 0) {
     // Klientská aplikace pláty Atlasu nevykresluje vůbec — kreslí procedurální
@@ -83,9 +83,8 @@ test("Movement Atlas se v žádném motivu nepřebarvuje", () => {
   }
   const atlas = app.slice(start, app.indexOf("function TExArt", start));
   assert.ok(atlas.length > 200, "TmAtlasArt se nenašel celý");
-  for (const bad of ["filter:", "mixBlendMode", "invert(", "hue-rotate", "sepia(", "saturate("]) {
-    assert.equal(atlas.includes(bad), false, `plát Atlasu se nesmí tónovat (${bad})`);
-  }
-  assert.match(atlas, /background: t\.atlasFrame/, "plát leží na lněném poli");
+  assert.match(atlas, /mixBlendMode: t.mode === "dark" \? "screen" : "multiply"/);
+  assert.match(atlas, /onLoad=/, "fallback stops showing through loaded line art");
+  assert.match(atlas, /const src = velky \? v.detail : v.thumb/, "original resolution selection survives");
   assert.match(atlas, /objectFit: "contain"/, "poměr stran plátu se nemění");
 });

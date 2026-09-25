@@ -182,7 +182,7 @@ export function makeSession(o) {
     en: opt.en || "",
     prescription: opt.prescription || null,
     blocks: Array.isArray(opt.blocks) ? opt.blocks.map(makeBlock) : [],
-    effort: opt.effort == null ? null : Number(opt.effort) || null,
+    effort: opt.effort == null || !Number.isFinite(Number(opt.effort)) ? null : Math.max(0, Math.min(100, Number(opt.effort))),
     note: opt.note || "",
     painJoints: Array.isArray(opt.painJoints) ? opt.painJoints.slice() : [],
     // Whose record this is. "" is the owner; a client id namespaces it.
