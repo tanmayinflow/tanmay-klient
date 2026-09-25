@@ -131,3 +131,10 @@ test('real Worker route requires authenticated membership/owner before pairing',
   // Main requires OWNER_EMAIL; Client requires membership. Neither accepts a guessed actor.
   const noConfig=await worker.fetch(request(),{DB:db,KLIENT_DB:db},{});assert.ok([401,503].includes(noConfig.status));
 });
+import {readTogetherResponse} from "../src/shared/product/togetherResponse.js";
+test("Together distinguishes missing owner configuration from an expired session or HTML fallback",async()=>{
+  await assert.rejects(readTogetherResponse(Response.json({ok:false,error:"owner-not-configured"},{status:503})),/owner-not-configured/);
+  await assert.rejects(readTogetherResponse(new Response("sign in",{status:401})),/sign-in-required/);
+  await assert.rejects(readTogetherResponse(new Response("<html>app</html>",{headers:{"content-type":"text/html"}})),/invalid-server-response/);
+  assert.deepEqual(await readTogetherResponse(Response.json({ok:true,revision:3})),{ok:true,revision:3});
+});
