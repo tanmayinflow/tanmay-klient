@@ -14,7 +14,8 @@ export function landscapeCss() {
 .tm-session-actions > span { flex: 1; justify-content: space-between; gap: 5px !important; }
 .tm-session-actions > span:first-child { flex: 4; flex-wrap: nowrap !important; }
 .tm-session-actions button { flex: 1; }
-.tm-library-tab { font-weight: 600 !important; font-size: 12px !important; margin-right: 0 !important; color: var(--tm-text) !important; }
+.tm-library-tab { font-weight: 400 !important; font-size: 12px !important; margin-right: 0 !important; }
+.tm-library-tab[aria-pressed="true"] { font-weight: 500 !important; }
 
 ${materials}
 ${s} ::selection { background: var(--tm-selection) !important; color: var(--tm-selection-text) !important; }

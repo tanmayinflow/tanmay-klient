@@ -1,6 +1,8 @@
 import { cleanTogether, emptyTogether, togetherProjection, TOGETHER_SCOPES, validDate, dateKey, dayNumber } from "./together.js";
 import {cleanPartnerPages,PARTNER_ROOMS} from "./togetherPages.js";
 
+import {cleanReflection, reflectionWeek, conversationHistory} from "./togetherJournal.js";
+
 const reply=(data,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store, private","X-Content-Type-Options":"nosniff","Vary":"Cookie"}});
 const fail=(error,status=400)=>reply({ok:false,error},status);
 const decode=(text,fallback)=>{try{return JSON.parse(text);}catch{return fallback;}};
@@ -11,6 +13,7 @@ export async function ensureTogether(db) {
   await db.prepare("CREATE TABLE IF NOT EXISTS together_links (id TEXT PRIMARY KEY, owner TEXT NOT NULL UNIQUE, partner TEXT UNIQUE, token_hash TEXT, expires INTEGER NOT NULL, status TEXT NOT NULL, scopes TEXT NOT NULL DEFAULT '[]', revision INTEGER NOT NULL DEFAULT 0)").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_plans (id TEXT PRIMARY KEY, link_id TEXT NOT NULL, doc TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_answers (link_id TEXT NOT NULL, day TEXT NOT NULL, actor TEXT NOT NULL, answer TEXT NOT NULL, PRIMARY KEY(link_id,day,actor))").run();
+  await db.prepare("CREATE TABLE IF NOT EXISTS together_reflections (link_id TEXT NOT NULL, week TEXT NOT NULL, actor TEXT NOT NULL, doc TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(link_id,week,actor))").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_pages (link_id TEXT PRIMARY KEY, rooms TEXT NOT NULL DEFAULT '[]', doc TEXT NOT NULL DEFAULT '{}', revision INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL DEFAULT 0)").run();
 }
 const linkFor=(db,actor)=>db.prepare("SELECT * FROM together_links WHERE (owner = ? OR partner = ?) AND status != 'revoked'").bind(actor,actor).first();
@@ -58,12 +61,15 @@ export async function handleTogether(request,db,actor,{owner=false,now=Date.now(
     const partner=otherDoc?togetherProjection(otherDoc,link.owner===actor?["wellbeing","support"]:decode(link.scopes,[]),localToday):null;
     const plans=active?(await db.prepare("SELECT id,doc,revision FROM together_plans WHERE link_id = ?").bind(link.id).all()).results.map(p=>({...decode(p.doc,{}),id:p.id,revision:p.revision})):[];
     const answers=active?(await db.prepare("SELECT actor,answer FROM together_answers WHERE link_id = ? AND day = ?").bind(link.id,localToday).all()).results:[];
+    const historyRows=active?(await db.prepare("SELECT day,actor,answer FROM together_answers WHERE link_id = ? AND day <= ? ORDER BY day DESC").bind(link.id,localToday).all()).results:[];
+    const reflections=active?(await db.prepare("SELECT week,actor,doc,revision FROM together_reflections WHERE link_id = ? AND week <= ? ORDER BY week DESC").bind(link.id,localToday).all()).results.map(r=>({week:r.week,side:r.actor===actor?"mine":"partner",doc:cleanReflection(decode(r.doc,{})),revision:r.revision})):[];
+    const history=conversationHistory(historyRows,actor,other);
     const myAnswer=answers.find(a=>a.actor===actor)?.answer||"";
     const pages=await pagesFor(db,link);
     const latest=await linkFor(db,actor);
     if(latest?.id!==link?.id||latest?.revision!==link?.revision)return fail("conflict",409);
     if((await pagesFor(db,latest)).revision!==pages.revision)return fail("conflict",409);
-    return reply({ok:true,self,link:publicLink(link,actor),partner,plans,sharedPages:pages,answer:{mine:myAnswer,partner:myAnswer?(answers.find(a=>a.actor===other)?.answer||""):"",waiting:!!answers.find(a=>a.actor===other)},canTrack:owner,today:localToday});
+    return reply({ok:true,self,link:publicLink(link,actor),partner,plans,reflections,history,sharedPages:pages,answer:{mine:myAnswer,partner:myAnswer?(answers.find(a=>a.actor===other)?.answer||""):"",waiting:!!answers.find(a=>a.actor===other)},canTrack:owner,today:localToday});
   }
   if(action==="/pages"&&method==="GET") {
     if(!link||link.status!=="active")return fail("not-connected",403);
@@ -122,6 +128,20 @@ export async function handleTogether(request,db,actor,{owner=false,now=Date.now(
     await db.prepare("INSERT OR IGNORE INTO together_pages (link_id) VALUES (?)").bind(link.id).run();
     const result=await db.prepare("UPDATE together_pages SET rooms = ?, doc = ?, revision = revision + 1, updated = ? WHERE link_id = ? AND revision = ? AND EXISTS (SELECT 1 FROM together_links WHERE id = ? AND status = 'active' AND revision = ? AND partner = ?)").bind(JSON.stringify([...new Set(rooms)]),JSON.stringify(pages),now,link.id,body.revision,link.id,link.revision,actor).run();
     return changeCount(result)?reply({ok:true}):fail("conflict",409);
+  }
+  if(action==="/reflection"&&method==="PUT") {
+    if(body.linkId!==link.id||body.linkRevision!==link.revision)return fail("conflict",409);
+    if(!reflectionWeek(body.week,localToday)||!Number.isInteger(body.revision)||body.revision<0)return fail("invalid-reflection");
+    let doc;try{doc=cleanReflection(body.doc);}catch{return fail("invalid-reflection");}
+    const existing=await db.prepare("SELECT revision FROM together_reflections WHERE link_id = ? AND week = ? AND actor = ?").bind(link.id,body.week,actor).first();
+    if((existing?.revision||0)!==body.revision)return fail("conflict",409);
+    let r;
+    if(existing){
+      r=await db.prepare("UPDATE together_reflections SET doc = ?, revision = revision + 1 WHERE link_id = ? AND week = ? AND actor = ? AND revision = ? AND EXISTS (SELECT 1 FROM together_links WHERE id = ? AND status = 'active' AND revision = ?)").bind(JSON.stringify(doc),link.id,body.week,actor,body.revision,link.id,link.revision).run();
+    }else{
+      r=await db.prepare("INSERT OR IGNORE INTO together_reflections (link_id,week,actor,doc,revision) SELECT ?, ?, ?, ?, 1 WHERE EXISTS (SELECT 1 FROM together_links WHERE id = ? AND status = 'active' AND revision = ?)").bind(link.id,body.week,actor,JSON.stringify(doc),link.id,link.revision).run();
+    }
+    return changeCount(r)?reply({ok:true,revision:body.revision+1}):fail("conflict",409);
   }
   if(action==="/answer"&&method==="PUT") {
     const answer=typeof body.answer==="string"?body.answer.trim().slice(0,1500):"";

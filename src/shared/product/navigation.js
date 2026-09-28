@@ -7,9 +7,16 @@ export function roomPlacement(config,key,defaults) {
   return {hidden:row?.hidden===true,sidebar:row?.sidebar===undefined?defaults.sidebar.includes(key):!!row.sidebar,dock:row?.dock===undefined?defaults.dock.includes(key):!!row.dock};
 }
 export function navigationRooms(config,keys,defaults,place) {
-  const requested=Array.isArray(config?.order)?config.order:[];
+  const requested=place==='dock'&&Array.isArray(config?.dockOrder)?config.dockOrder:Array.isArray(config?.order)?config.order:[];
   const order=[...new Set([...requested.filter(k=>keys.includes(k)),...keys])];
   return order.filter(key=>{const v=roomPlacement(config,key,defaults);return !v.hidden&&v[place];});
+}
+export function moveDockRoom(config,key,direction,keys,defaults) {
+  if(![-1,1].includes(direction))return config||{};
+  const order=navigationRooms(config,keys,defaults,'dock'),i=order.indexOf(key),to=i+direction;
+  if(i<0||to<0||to>=order.length)return config||{};
+  [order[i],order[to]]=[order[to],order[i]];
+  return {...config,dockOrder:order};
 }
 export function updatePlacement(config,key,patch,keys,defaults) {
   if(!keys.includes(key))return config||{};

@@ -8,6 +8,54 @@ import worker from '../worker/index.js';
 import {cyclePhase} from '../src/shared/product/togetherGuidance.js';
 import {moonToday} from '../src/shared/product/togetherMoon.js';
 import {cleanPartnerPages} from '../src/shared/product/togetherPages.js';
+import {moveDockRoom} from '../src/shared/product/navigation.js';
+import {weekOf,activityOverview} from '../src/shared/product/togetherJournal.js';
+
+test('dock reordering persists without changing sidebar order, placements or unavailable rooms',()=>{
+  const keys=['praxe','trenink','spolu'],defaults={sidebar:keys,dock:['praxe','trenink']};
+  const cfg={order:['praxe','spolu','trenink'],rooms:{spolu:{dock:true}},other:'keep'};
+  const moved=moveDockRoom(cfg,'trenink',-1,keys,defaults);
+  assert.deepEqual(navigationRooms(JSON.parse(JSON.stringify(moved)),keys,defaults,'dock'),['praxe','trenink','spolu']);
+  assert.deepEqual(navigationRooms(moved,keys,defaults,'sidebar'),['praxe','spolu','trenink']);
+  assert.deepEqual(moved.rooms,cfg.rooms);assert.equal(moved.other,'keep');
+  assert.equal(moveDockRoom(moved,'praxe',-1,keys,defaults),moved);
+  assert.deepEqual(navigationRooms(moved,['praxe','spolu'],defaults,'dock'),['praxe','spolu']);
+});
+
+test('weekly reflections require a pair, save each perspective separately and reject stale writes',async()=>{
+  const {call,pair}=fixture();await pair();const initial=await call('coach:tanmay');
+  const payload={week:'2026-09-21',doc:{appreciation:'Díky za čaj',need:'Chvíli klidu',next:'Procházka',secret:'not allowed'},revision:0,linkId:initial.link.id,linkRevision:initial.link.revision};
+  assert.equal((await call('client:b','reflection',payload)).status,403);
+  assert.equal((await call('coach:tanmay','reflection',{...payload,week:'2026-09-28'})).status,400);
+  assert.equal((await call('coach:tanmay','reflection',{...payload,week:'2026-09-22'})).status,400);
+  assert.equal((await call('coach:tanmay','reflection',payload)).status,200);
+  assert.equal((await call('coach:tanmay','reflection',payload)).status,409);
+  let other=await call('client:a');assert.equal(other.reflections[0].doc.appreciation,'Díky za čaj');assert.equal(other.reflections[0].side,'partner');assert.equal(other.reflections[0].doc.secret,undefined);
+  assert.equal((await call('client:a','reflection',{...payload,doc:{appreciation:'Díky za čas'}})).status,200);
+  let own=await call('coach:tanmay');assert.equal(own.reflections.length,2);assert.equal(own.reflections.find(r=>r.side==='mine').revision,1);
+  assert.equal((await call('coach:tanmay','reflection',{...payload,revision:1,doc:{}})).status,200);
+  other=await call('client:a');assert.equal(other.reflections.find(r=>r.side==='partner').doc.appreciation,'');assert.equal(other.reflections.find(r=>r.side==='mine').doc.appreciation,'Díky za čas');
+  assert.equal((await call('client:a','disconnect',{revision:other.link.revision})).status,200);
+  assert.deepEqual((await call('coach:tanmay')).reflections,[]);await pair();
+  assert.deepEqual((await call('client:a')).reflections,[]);
+  assert.equal((await call('coach:tanmay','reflection',{...payload,revision:2})).status,409);
+});
+
+test('conversation history preserves the two-answer gate, follows dates and is revoked with the pair',async()=>{
+  const {call,pair}=fixture();await pair();await call('client:a','answer',{answer:'Only partner'});
+  let d=await call('coach:tanmay');assert.equal(d.history[0].partner,'');assert.equal(d.history[0].shared,false);
+  await call('coach:tanmay','answer',{answer:'Both now'});
+  d=await call('client:a','',undefined,{now:now+86400000});assert.equal(d.answer.mine,'');assert.equal(d.history[0].partner,'Both now');assert.equal(d.history[0].shared,true);
+  await call('coach:tanmay','answer',{answer:''});assert.equal((await call('coach:tanmay')).history[0].partner,'');
+  assert.deepEqual((await call('client:b')).history,[]);
+  await call('client:a','disconnect',{revision:d.link.revision});assert.deepEqual((await call('coach:tanmay')).history,[]);
+});
+
+test('the activity recap counts only actual completed plans in the current thirty days',()=>{
+  assert.equal(weekOf('2026-01-01'),'2025-12-29');
+  const plans=[{id:'old',date:'2026-08-20',status:'done'},{id:'done',date:'2026-09-24',status:'done'},{id:'future',date:'2026-09-28',status:'done'},{id:'no',date:'2026-09-24',status:'cancelled'},{id:'next',date:'2026-09-26',time:'18:00',status:'planned'}];
+  const overview=activityOverview(plans,'2026-09-25');assert.deepEqual(overview.completed.map(p=>p.id),['done']);assert.deepEqual(overview.upcoming.map(p=>p.id),['next']);
+});
 
 const now=Date.parse('2026-09-24T12:00:00Z');
 function fixture(){
