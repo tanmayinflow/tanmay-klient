@@ -11,7 +11,7 @@ const fields=[
   ['next','Co do příště konkrétně zkusíme','What we will try before next time','Kdo, co a kdy. Když přijde…, zkusím…','Who, what and when. When… happens, I will try…']
 ];
 const empty=()=>({appreciation:'',need:'',next:''});
-export function TogetherJournal({data,lang,save,busy,onPlan,view,visible,onDirty,onPractice,Sheet,t,reset=0}) {
+export function TogetherJournal({data,lang,save,busy,onPlan,view,visible,onDirty,onPractice,Sheet,t,reset=0,embedded=false,renderWeekly,unlinkedWeekly}) {
   const L=(cs,en)=>lang==='en'?en:cs,today=dateKey(),currentWeek=weekOf(today);
   const [week,setWeek]=useState(currentWeek),[draft,setDraft]=useState(empty),[revision,setRevision]=useState(0),[dirty,setDirty]=useState(false);
   const linkId=useRef(undefined),recordRef=useRef(null);
@@ -38,8 +38,7 @@ export function TogetherJournal({data,lang,save,busy,onPlan,view,visible,onDirty
   // The visible fallback preserves callers that still use the previous single-view API.
   const conversationsVisible=view===undefined?!!visible:view==='conversations';
   const plansVisible=view===undefined?!!visible:view==='plans';
-  return <div hidden={!active||(!conversationsVisible&&!plansVisible)}>
-    <TogetherFold title={L('Týdenní ohlédnutí','Our weekly reflection')} className="tg-weekly" hidden={!conversationsVisible}>
+  const weeklyContent=<div className="tg-weekly tg-embedded-content">
       <p>{L('Jednou týdně, třeba u čaje. Deset až patnáct minut pro vás dva. Otázky si řekněte nahlas; zapisovat nemusíte všechno.','Once a week, perhaps over tea. Ten to fifteen minutes for the two of you. Ask these questions out loud; you do not need to write everything down.')}</p>
       <div className="tg-weekly-guide">
         <p>{L('Jeden mluví, druhý zkusí vlastními slovy říct, co slyšel. Pak se vystřídejte. Radu nabídněte až na přání. Když je toho moc, domluvte si pauzu i čas návratu.','One speaks; the other reflects back what they heard in their own words. Then switch. Offer advice only if wanted. If it gets too much, agree on a pause and a time to return.')}</p>
@@ -65,8 +64,13 @@ export function TogetherJournal({data,lang,save,busy,onPlan,view,visible,onDirty
         <p>{L('Konkrétní ocenění, porozumění tomu, co je pod naší reakcí, laskavá náprava a malé dohody, ke kterým se vracíme. Podněty jsou naším volným zpracováním těchto principů, nikoli převzatým terapeutickým programem. Výzkum se týká původních přístupů, ne účinnosti těchto krátkých karet.','Specific appreciation, understanding what lies beneath our reactions, repair and small agreements we return to. These invitations are our own adaptation of those principles, not a therapy programme. The research concerns the original approaches, not the effectiveness of these short cards.')}</p>
         <p><a href="https://www.gottman.com/blog/how-to-have-a-state-of-the-union-meeting/" target="_blank" rel="noreferrer">Gottman Institute · State of the Union</a><br/><a href="https://www.apa.org/pubs/videos/4310904.html" target="_blank" rel="noreferrer">Christensen · Integrative Behavioral Couple Therapy</a><br/><a href="https://iceeft.com/what-is-eft/" target="_blank" rel="noreferrer">ICEEFT · Emotionally Focused Therapy</a><br/><a href="https://pubmed.ncbi.nlm.nih.gov/17059309/" target="_blank" rel="noreferrer">Gable et al. · Sharing positive experiences</a><br/><a href="https://pubmed.ncbi.nlm.nih.gov/10707334/" target="_blank" rel="noreferrer">Aron et al. · Shared novel activities</a><br/><a href="https://www.socmot.uni-konstanz.de/publications/implementation-intentions-and-goal-achievement-meta-analysis-effects-and-processes" target="_blank" rel="noreferrer">Gollwitzer &amp; Sheeran · Implementation intentions</a><br/><a href="https://plumvillage.org/mindfulness/extended-practises" target="_blank" rel="noreferrer">Plum Village · Beginning Anew</a></p>
       </TogetherFold>
-    </TogetherFold>
-    <button type="button" className="tg-overview-trigger" onClick={()=>setOverviewOpen(true)}>{L('Přehled','Overview')}</button>
+    </div>;
+  const weeklyView=active?weeklyContent:(unlinkedWeekly||<p>{L('Týdenní ohlédnutí můžete projít spolu. Pro návraty k uloženým domluvám nejdřív propojte účty.','You can reflect together. Connect accounts first to keep and revisit your agreements.')}</p>);
+  return <div hidden={(!renderWeekly&&!active)||(!conversationsVisible&&!plansVisible)}>
+    <div hidden={!conversationsVisible}>
+      {renderWeekly?renderWeekly(weeklyView):embedded?weeklyView:<TogetherFold title={L('Týdenní ohlédnutí','Our weekly reflection')} className="tg-weekly">{weeklyView}</TogetherFold>}
+    </div>
+    {active&&<button type="button" className="tg-overview-trigger" onClick={()=>setOverviewOpen(true)}>{L('Přehled','Overview')}</button>}
     {overviewOpen&&active&&(conversationsVisible||plansVisible)&&Sheet&&<Sheet title={L('Přehled Spolu','Together overview')} onClose={()=>setOverviewOpen(false)}>
       <div className="tm-together tg-overview-sheet" style={togetherTheme(t)}>
         <section className="tm-together-section tg-weekly-history">

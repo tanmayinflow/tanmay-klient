@@ -24,8 +24,9 @@ export function TogetherInspiration({lang,onPlan}){
   </TogetherFold>;
 }
 
-export function FaceToFacePrompts({lang}){
+export function FaceToFacePrompts({lang,embedded=false}){
   const L=(cs,en)=>lang==='en'?en:cs,local=value=>value[lang==='en'?'en':'cs'];
   const [prompt,setPrompt]=useState(()=>DAILY_CONNECTION_PROMPTS[0]);
-  return <details className="tg-optional tg-live-questions"><summary>{L('Další otázky naživo','More questions face to face')}</summary><p>{L('Jen pro váš rozhovor. Nemění uloženou otázku dne. Kteroukoli otázku můžete přeskočit.','For your conversation. This does not change the saved question of the day. Skip any question you wish.')}</p><p className="tg-personal" aria-live="polite">{local(prompt.question)}</p><div className="row"><button type="button" onClick={()=>setPrompt(inspirationBatch(DAILY_CONNECTION_PROMPTS,[prompt.id],Math.random,1)[0])}>{L('Jiná otázka','Another question')}</button></div><details className="tg-question-library"><summary>{L('Prohlédnout všechny otázky','Browse all questions')}</summary><ol>{DAILY_CONNECTION_PROMPTS.map(item=><li key={item.id}>{local(item.question)}</li>)}</ol></details></details>;
+  const content=<><p>{L('Jen pro váš rozhovor. Nemění uloženou otázku dne. Kteroukoli otázku můžete přeskočit.','For your conversation. This does not change the saved question of the day. Skip any question you wish.')}</p><p className="tg-personal" aria-live="polite">{local(prompt.question)}</p><div className="row"><button type="button" onClick={()=>setPrompt(inspirationBatch(DAILY_CONNECTION_PROMPTS,[prompt.id],Math.random,1)[0])}>{L('Jiná otázka','Another question')}</button></div><details className="tg-question-library"><summary>{L('Prohlédnout všechny otázky','Browse all questions')}</summary><ol>{DAILY_CONNECTION_PROMPTS.map(item=><li key={item.id}>{local(item.question)}</li>)}</ol></details></>;
+  return embedded?<div className="tg-live-questions tg-embedded-content">{content}</div>:<details className="tg-optional tg-live-questions"><summary>{L('Další otázky naživo','More questions face to face')}</summary>{content}</details>;
 }

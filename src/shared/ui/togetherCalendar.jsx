@@ -5,7 +5,7 @@ import {CYCLE_GUIDE} from "../product/togetherGuidance.js";
 
 // Calendar presentation follows Praxe. It reads only the already-authorized
 // cycle projection and shared plans; picking a day never writes a record.
-export function TogetherCalendar({periods = [], summary, phase, plans = [], lang = "cs", t, onPlanSelect, showCycle = true, selectedDate, onDateChange, showDetails = true, recordDates = [], picker = false}) {
+export function TogetherCalendar({periods = [], summary, phase, plans = [], lang = "cs", t, onPlanSelect, onOpenDay, showCycle = true, selectedDate, onDateChange, showDetails = true, recordDates = [], picker = false}) {
   const L = (cs, en) => lang === "en" ? en : cs;
   const locale = lang === "en" ? "en-GB" : "cs-CZ";
   const today = dateKey();
@@ -61,27 +61,41 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
     event.preventDefault();
     if (next !== selected) { focusDay.current = true; setSelected(next,false); }
   };
-  const navStyle = {display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 40, minHeight: 44, padding: "4px 8px", border: `1px solid ${t.borderSoft}`, borderRadius: 8, background: "transparent", color: t.text};
+  const navStyle = {display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 40, minHeight: 44, padding: "4px 8px", border: "1px solid transparent", borderRadius: 8, background: "transparent", color: muted};
   const markerStyle = {display: "inline-block", width: 11, height: 11, borderRadius: 3, flexShrink: 0, boxSizing: "border-box"};
 
-  return <section className="tm-together-section tg-calendar tm-calcard" aria-labelledby={headingId} style={{minWidth: 0, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 16, background: t.card, boxShadow: t.shadow}}>
+  return <section className="tg-calendar" aria-labelledby={headingId} style={{"--calendar-ink":ink,"--calendar-text":t.text,"--calendar-muted":muted,"--calendar-line":t.borderSoft,"--calendar-fill":t.accent,"--calendar-on":t.onAccent,"--calendar-active":t.activeNav,minWidth:0,padding:"12px 0",background:"transparent",border:0,borderRadius:0,boxShadow:"none"}}>
     <style>{`
-      .tm-together .tg-calendar-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px}
-      .tm-together .tg-calendar-nav{display:flex;align-items:center;gap:5px}
-      .tm-together .tg-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
-      .tm-together .tg-calendar-day{touch-action:manipulation;font-variant-numeric:tabular-nums;transition:background .16s ease,border-color .16s ease}
-      .tm-together .tg-calendar-day:hover:not(:disabled){color:var(--calendar-day-text);box-shadow:inset 0 0 0 1px var(--tg-accent)}
-      .tm-together .tg-calendar-day:focus-visible{outline:2px solid var(--tg-accent);outline-offset:2px}
-      .tm-together .tg-calendar-key{display:flex;flex-wrap:wrap;gap:8px 14px;margin:16px 0 0;font-size:12px;line-height:1.5}
-      .tm-together .tg-calendar-key>span{display:inline-flex;align-items:center;gap:6px}
-      .tm-together .tg-calendar-detail{margin-top:18px;padding-top:16px;border-top:1px solid var(--tg-soft)}
-      .tm-together .tg-calendar-plans{list-style:none;margin:12px 0 0;padding:0}
-      .tm-together .tg-calendar-plans>li{margin:0;padding:12px 0;border-top:1px solid var(--tg-soft);overflow-wrap:anywhere}
-      .tm-together .tg-calendar-plans>li:first-child{border-top:0;padding-top:0}
-      @media(prefers-reduced-motion:reduce){.tm-together .tg-calendar-day{transition:none}}
+      .tg-calendar .tg-calendar-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+      .tg-calendar .tg-calendar-nav{display:flex;align-items:center;gap:6px}
+      .tg-calendar .tg-calendar-nav button{white-space:nowrap;overflow-wrap:normal}
+      .tg-calendar .tg-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+      .tg-calendar button.tg-calendar-day{touch-action:manipulation;font-variant-numeric:tabular-nums;min-width:0;min-height:44px;padding:6px 0;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--tm-font-body);font-size:12px;line-height:1;font-weight:400;color:var(--calendar-text);background:color-mix(in srgb,var(--calendar-ink) 3.5%,transparent);border:1px solid transparent;transition:background .15s ease,border-color .15s ease}
+      .tg-calendar button.tg-calendar-day[data-recorded=true]{color:var(--calendar-on);background:var(--calendar-fill)}
+      .tg-calendar button.tg-calendar-day[data-estimated=true]{border-style:dashed;border-color:var(--calendar-ink)}
+      .tg-calendar button.tg-calendar-day[aria-current=date]{border-color:var(--calendar-ink)}
+      .tg-calendar button.tg-calendar-day[aria-pressed=true]{border:1.5px solid var(--calendar-ink);font-weight:600;background:var(--calendar-active)}
+      .tg-calendar button.tg-calendar-day[aria-pressed=true][data-estimated=true]{border-style:dashed}
+      .tg-calendar button.tg-calendar-day[aria-pressed=true][data-recorded=true]{background:var(--calendar-fill);box-shadow:inset 0 0 0 2px var(--calendar-on)}
+      .tg-calendar button.tg-calendar-day:hover:not(:disabled){color:var(--calendar-text);border-color:var(--calendar-ink);background:var(--calendar-active)}
+      .tg-calendar button.tg-calendar-day[data-recorded=true]:hover:not(:disabled){color:var(--calendar-on);background:var(--calendar-fill)}
+      .tg-calendar :is(button,a):focus-visible{outline:2px solid var(--calendar-ink);outline-offset:2px}
+      .tg-calendar .tg-calendar-key{display:flex;flex-wrap:wrap;gap:8px 14px;margin:12px 0 0;font-size:12px;line-height:1.5}
+      .tg-calendar .tg-calendar-key>span{display:inline-flex;align-items:center;gap:6px}
+      .tg-calendar .tg-calendar-markers{display:flex;align-items:center;justify-content:center;gap:4px;height:6px}
+      .tg-calendar .tg-calendar-marker{width:5px;height:5px;border-radius:50%;background:currentColor;color:var(--calendar-ink)}
+      .tg-calendar .tg-calendar-marker[data-entry=true]{background:transparent;border:1px solid currentColor}
+      .tg-calendar [data-recorded=true] .tg-calendar-marker{color:var(--calendar-on)}
+      .tg-calendar .tg-calendar-detail{margin-top:18px;padding-top:16px;border-top:1px solid var(--calendar-line)}
+      .tg-calendar .tg-calendar-detail-head{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-bottom:8px}
+      .tg-calendar .tg-calendar-open-day{display:inline-flex;align-items:center;gap:6px;min-height:44px;max-width:100%;padding:8px 0;border:0;border-radius:0;background:transparent;color:var(--calendar-ink);font-family:var(--tm-font-tag);font-size:12px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;cursor:pointer}
+      .tg-calendar .tg-calendar-plans{list-style:none;margin:12px 0 0;padding:0}
+      .tg-calendar .tg-calendar-plans>li{margin:0;padding:12px 0;border-top:1px solid var(--calendar-line);overflow-wrap:anywhere}
+      .tg-calendar .tg-calendar-plans>li:first-child{border-top:0;padding-top:0}
+      @media(prefers-reduced-motion:reduce){.tg-calendar button.tg-calendar-day{transition:none}}
     `}</style>
     <div className="tg-calendar-head">
-      <h2 id={headingId} style={{fontFamily: "var(--tm-font-display)", fontSize: 24, lineHeight: 1.2, fontWeight: 400, color: t.heading, textTransform: "none", letterSpacing: "normal", margin: 0}}>
+      <h2 id={headingId} style={{fontFamily: "var(--tm-font-display)", fontSize: 22, lineHeight: 1.2, fontWeight: 400, color: t.heading, textTransform: "none", letterSpacing: "normal", margin: 0}}>
         {dateLabel(first, {month: "long", year: "numeric"})}
       </h2>
       <div className="tg-calendar-nav" aria-label={L("Procházet kalendář", "Browse calendar")}>
@@ -91,7 +105,7 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
       </div>
     </div>
     <div className="tg-calendar-grid" role="group" aria-label={L("Vybrat den", "Choose a day")}>
-      {L(["Po", "Út", "St", "Čt", "Pá", "So", "Ne"], ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]).map(weekday => <span key={weekday} aria-hidden="true" style={{textAlign: "center", fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: ".08em", fontSize: 12, color: muted, paddingBottom: 6}}>{weekday}</span>)}
+      {L(["Po", "Út", "St", "Čt", "Pá", "So", "Ne"], ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]).map(weekday => <span key={weekday} aria-hidden="true" style={{textAlign: "center", fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: ".08em", fontSize: 12, color: muted, paddingBottom: 4}}>{weekday}</span>)}
       {Array.from({length: startWeekday}, (_, index) => <span key={`blank-${index}`} aria-hidden="true"/>)}
       {Array.from({length: daysInMonth}, (_, index) => {
         const day = `${month}-${String(index + 1).padStart(2, "0")}`;
@@ -103,9 +117,9 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
         const picked = day === (picker&&validDate(selectedDate)?selectedDate:selected);
         const current = day === today;
         const label = [dateLabel(day), current ? L("dnes", "today") : "", recorded ? L("zapsaná menstruace", "recorded period") : estimated ? L("odhad začátku menstruace", "estimated period start") : "", hasPlan ? L("společný plán", "shared plan") : "", hasRecord ? L("můj zápis", "my entry") : ""].filter(Boolean).join(", ");
-        return <button key={day} ref={node => { if (node) dayButtons.current[day] = node; else delete dayButtons.current[day]; }} type="button" className="tg-calendar-day tm-cal-day" aria-label={label} aria-pressed={picked} aria-current={current ? "date" : undefined} aria-controls={showDetails ? detailId : undefined} title={label} tabIndex={focused ? 0 : -1} onClick={() => setSelected(day)} onKeyDown={event => moveWithKeyboard(event, day)} style={{"--calendar-day-text": recorded ? t.onAccent : t.text, minWidth: 0, minHeight: 44, padding: "6px 0", borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "var(--tm-font-body)", fontSize: 13, lineHeight: 1, fontWeight: picked || current ? 600 : 400, color: recorded ? t.onAccent : t.text, background: recorded ? t.accent : picked ? t.activeNav : "transparent", border: `1px ${estimated ? "dashed" : "solid"} ${estimated || current ? ink : "transparent"}`, outline: picked ? `2px solid ${ink}` : undefined, outlineOffset: picked ? 1 : undefined}}>
+        return <button key={day} ref={node => { if (node) dayButtons.current[day] = node; else delete dayButtons.current[day]; }} type="button" className="tg-calendar-day" data-recorded={recorded||undefined} data-estimated={estimated||undefined} aria-label={label} aria-pressed={picked} aria-current={current ? "date" : undefined} aria-controls={showDetails ? detailId : undefined} title={label} tabIndex={focused ? 0 : -1} onClick={() => setSelected(day)} onKeyDown={event => moveWithKeyboard(event, day)}>
           <span>{index + 1}</span>
-          <span aria-hidden="true" style={{width: 5, height: 5, borderRadius: "50%", background: hasPlan||hasRecord ? recorded ? t.onAccent : ink : "transparent"}}/>
+          <span className="tg-calendar-markers" aria-hidden="true">{hasPlan&&<i className="tg-calendar-marker"/>}{hasRecord&&<i className="tg-calendar-marker" data-entry="true"/>}</span>
         </button>;
       })}
     </div>
@@ -113,10 +127,11 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
       {showCycle && <span><i aria-hidden="true" style={{...markerStyle, background: t.accent}}/>{L("Zápis menstruace", "Recorded period")}</span>}
       {showCycle && <span><i aria-hidden="true" style={{...markerStyle, border: `1px dashed ${ink}`}}/>{L("Odhad začátku", "Estimated start")}</span>}
       {plans.length>0&&<span><i aria-hidden="true" style={{...markerStyle, width: 5, height: 5, borderRadius: "50%", background: ink}}/>{L("Společný plán", "Shared plan")}</span>}
-      {recordDates.length>0&&<span><i aria-hidden="true" style={{...markerStyle, width: 5, height: 5, borderRadius: "50%", background: ink}}/>{L("Můj zápis", "My entry")}</span>}
+      {recordDates.length>0&&<span><i aria-hidden="true" style={{...markerStyle, width: 5, height: 5, borderRadius: "50%", border:`1px solid ${ink}`}}/>{L("Můj zápis", "My entry")}</span>}
     </div>}
     {showDetails&&<div id={detailId} className="tg-calendar-detail" aria-live="polite" aria-atomic="true">
-      <h3 style={{fontFamily: "var(--tm-font-display)", fontSize: 22, lineHeight: 1.3, color: t.heading, fontWeight: 400, margin: "0 0 8px", textTransform: "none", letterSpacing: "normal"}}>{dateLabel(selected, {weekday: "long", day: "numeric", month: "long"})}</h3>
+      <div className="tg-calendar-detail-head"><h3 style={{fontFamily: "var(--tm-font-display)", fontSize: 22, lineHeight: 1.3, color: t.heading, fontWeight: 400, margin:0, textTransform: "none", letterSpacing: "normal"}}>{dateLabel(selected, {weekday: "long", day: "numeric", month: "long"})}</h3>
+      {onOpenDay&&<button type="button" className="tg-calendar-open-day" onClick={()=>onOpenDay(selected)}>{L("Zápis dne","Day entry")}<TmIcon id="forward" size={13}/></button>}</div>
       {showCycle && <p style={{margin: "0 0 12px", fontSize: 13, color: muted}}>{phase?.id&&CYCLE_GUIDE[phase.id] ? `${L(...CYCLE_GUIDE[phase.id].name)} · ${phase.basis==="recorded"?L("záznam","recorded"):L("odhad","estimated")}` : actual ? L("Zapsaná menstruace.", "Recorded period.") : estimate ? L("Odhad začátku menstruace.", "Estimated period start.") : L("Fáze pro tento den není k dispozici.", "The phase for this day is unavailable.")}</p>}
       {selectedPlans.length ? <ul className="tg-calendar-plans">{selectedPlans.map(p => <li key={p.id}>
         <strong style={{fontFamily: "var(--tm-font-body)", fontSize: 14, fontWeight: 500, color: t.text}}>{p.title}</strong>

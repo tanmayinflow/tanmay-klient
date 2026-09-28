@@ -4,7 +4,7 @@ export const CYCLE_ORDER=['menstrual','follicular','ovulatory','luteal'];
 const pair=(cs,en)=>[cs,en];
 export const CYCLE_DEPTH={
   menstrual:{
-    short:pair('Menstruace','Menstruation'),title:pair('Místo pro nový začátek','Room for a new beginning'),
+    short:pair('Menstruační fáze','Menstrual phase'),title:pair('Místo pro nový začátek','Room for a new beginning'),
     hormones:pair('Na přelomu cyklů jsou estradiol a progesteron nízko. FSH pomáhá rozběhnout další skupinu folikulů. Menstruace je už začátkem nové folikulární fáze.','Around the cycle boundary, estradiol and progesterone are low. FSH supports another group of follicles. Menstruation already belongs to the new follicular phase.'),
     uterus:pair('Funkční vrstva děložní sliznice se odlučuje. Děloha při tom může mít stahy. Krvácení není očista od toxinů; je to obnova tkáně.','The functional uterine lining sheds, sometimes with uterine contractions. Bleeding is tissue renewal, not a detoxification process.'),
     woman:pair('Začni u skutečné potřeby. Pokud máš bolesti nebo jsi unavená, může pomoci teplo a méně povinností. Je-li ti dobře, nemusíš se nutit do ústraní.','Begin with what you actually need. With pain or fatigue, warmth and fewer demands may help. If you feel well, there is no need to retreat.'),
@@ -26,7 +26,7 @@ export const CYCLE_DEPTH={
     shared:pair('Čaj a jedna věc, kterou dnes nemusíme','Tea and one thing we can put down')
   },
   follicular:{
-    short:pair('Před ovulací','Before ovulation'),title:pair('Růst vlastním tempem','Growing at your own pace'),
+    short:pair('Folikulární fáze','Follicular phase'),title:pair('Růst vlastním tempem','Growing at your own pace'),
     hormones:pair('Ve vaječníku dozrávají folikuly; jeden obvykle převezme hlavní roli. Jeho buňky vytvářejí více estradiolu. Délka této části cyklu se může měnit.','Follicles develop in the ovary; usually one becomes dominant. Its cells produce more estradiol. This part of the cycle can vary in length.'),
     uterus:pair('Estradiol podporuje obnovu a růst děložní sliznice po krvácení. Jde o biologický proces, ne pokyn, že musíš být právě teď produktivnější.','Estradiol supports the rebuilding and growth of the uterine lining after bleeding. This is a biological process, not an instruction to become more productive.'),
     woman:pair('Pokud přichází chuť něco zkusit, dej jí malý konkrétní prostor. Nemusíš z ní hned udělat závazek na celý měsíc. A jestli nepřichází, ani to není selhání cyklu.','If curiosity arrives, give it a small, concrete space. It need not become a month-long commitment. If it does not arrive, your cycle has not failed.'),
@@ -48,7 +48,7 @@ export const CYCLE_DEPTH={
     shared:pair('Malý společný objev','A small discovery together')
   },
   ovulatory:{
-    short:pair('Kolem ovulace','Around ovulation'),title:pair('Setkání bez ztráty sebe','Meeting without losing yourself'),
+    short:pair('Ovulační fáze','Ovulatory phase'),title:pair('Setkání bez ztráty sebe','Meeting without losing yourself'),
     hormones:pair('Vzestup estradiolu předchází výrazné vlně LH. Ta spouští děje vedoucí k uvolnění vajíčka. Progesteron pak začíná stoupat. Kalendář tuto událost neměří.','Rising estradiol precedes a pronounced LH surge, triggering events that release an egg. Progesterone then begins to rise. A calendar does not measure this event.'),
     uterus:pair('Děložní sliznice je ve fázi růstu. Hlen děložního hrdla může být pod vlivem estrogenu řidší; samotný pocit ani tento přehled nepotvrzují ovulaci.','The uterine lining is growing. Cervical mucus may become thinner under oestrogen; neither a feeling nor this view confirms ovulation.'),
     woman:pair('Blízkost může mít mnoho podob. Vyber si takovou, ve které jsi přítomná a svobodná. Chuť na společnost, sex nebo výkon se nedá vyčíst z čísla dne.','Closeness takes many forms. Choose one in which you feel present and free. A cycle day cannot tell you your desire for company, sex or performance.'),
@@ -70,7 +70,7 @@ export const CYCLE_DEPTH={
     shared:pair('Rande s prostorem pro ano i ne','A date with room for yes and no')
   },
   luteal:{
-    short:pair('Po ovulaci','After ovulation'),title:pair('Rozlišit, co si nesu dál','Choosing what to carry onward'),
+    short:pair('Luteální fáze','Luteal phase'),title:pair('Rozlišit, co si nesu dál','Choosing what to carry onward'),
     hormones:pair('Žluté tělísko vzniklé z folikulu vytváří hlavně progesteron a také estradiol. Pokud se nerozvíjí těhotenství, jeho činnost později klesá a hladiny těchto hormonů se snižují.','The corpus luteum formed from the follicle produces mainly progesterone and also estradiol. Without a developing pregnancy, its activity later declines and these hormone levels fall.'),
     uterus:pair('Progesteron mění děložní sliznici směrem k sekreční fázi. S poklesem hormonální podpory se připravuje další krvácení. Jak se při tom cítíš, zůstává individuální.','Progesterone shifts the uterine lining towards its secretory phase. Falling hormonal support precedes the next bleed. How you feel remains individual.'),
     woman:pair('Pokud se zmenšuje tvoje kapacita, zkus dříve pojmenovat potřebu. Zároveň můžeš mít obyčejný dobrý den. Vlastní opakované záznamy řeknou více než příběh, který se o této fázi vypráví.','If your capacity feels smaller, try naming the need sooner. You may also simply have a good day. Your repeated records tell you more than a story about this phase.'),
@@ -97,6 +97,41 @@ export function resolveCycleExploration(phase,date,exploration){
   const current=CYCLE_ORDER.includes(phase?.id)?phase.id:null;
   const manual=exploration?.date===date&&exploration?.current===current&&CYCLE_ORDER.includes(exploration.id)?exploration.id:null;
   return {current,shown:manual||current,exploring:Boolean(manual&&manual!==current)};
+}
+
+export const CYCLE_MAP_LAYERS={care:pair('Každý den','Everyday care'),body:pair('V těle','In the body'),symbol:pair('V obrazech','In images')};
+const patternText=pair('Hormony a nervový systém spolu souvisejí, ale stejná fáze nemusí přinášet stejný prožitek. U PMS a PMDD může hrát roli citlivost na běžné hormonální změny. Zkus sledovat spánek, potíže, náladu a to, co opravdu pomohlo, alespoň přes dva cykly. Dnešní pocit si nemusíš vysvětlit jedinou příčinou.','Hormones and the nervous system interact, but the same phase need not bring the same experience. Sensitivity to ordinary hormonal changes can play a role in PMS and PMDD. Track sleep, symptoms, mood and what actually helped across at least two cycles. You need not explain today’s feeling by a single cause.');
+const spiralText=pair('Spirála je tady obraz návratu s novou zkušeností. Stejná potřeba se může objevit znovu, ale už ji nemusím přehlédnout stejným způsobem. „Božská“ může znamenat úctu k životu, ne tvrzení o biologickém zákonu. Vyber si jeden drobný poznatek, který si chceš vzít do dalšího obratu.','The spiral is an image of returning with new experience. The same need may return, but I need not overlook it in the same way. “Divine” can mean reverence for life, not a biological law. Choose one small understanding to carry into the next turn.');
+
+// This is a navigation tree over the existing editorial, not another source of
+// phase estimates. Unknown days have no implicit phase, even inside the map.
+export function cycleMapTopics(phaseId,layer='care',role='client'){
+  const guide=CYCLE_DEPTH[phaseId];if(!guide)return [];
+  const partner=role==='coach';
+  if(layer==='body')return [
+    {id:'overview',label:pair('Souvislosti','Overview'),title:pair('Tělo v této fázi','The body in this phase'),paragraphs:[guide.hormones,guide.uterus]},
+    {id:'hormones',label:pair('Hormony','Hormones'),title:pair('Čtyři propojené signály','Four connected signals'),paragraphs:[guide.hormones]},
+    {id:'uterus',label:pair('Děloha','Uterus'),title:pair('Co se děje v děloze','What happens in the uterus'),paragraphs:[guide.uterus]},
+    {id:'pattern',label:pair('Vlastní vzorec','Your pattern'),title:pair('Tělo, nálada a vlastní vzorec','Body, mood and your own pattern'),paragraphs:[patternText]}
+  ];
+  if(layer==='symbol')return [
+    {id:'overview',label:pair('Souvislosti','Overview'),title:guide.symbol.archetype,paragraphs:[guide.symbol.text],question:guide.symbol.question,correspondences:guide.symbol},
+    {id:'archetype',label:pair('Archetyp','Archetype'),title:guide.symbol.archetype,paragraphs:[guide.symbol.text],question:guide.symbol.question,correspondences:guide.symbol},
+    {id:'shadow',label:pair('Pod obrazem','Beneath'),title:pair('Co se může skrývat pod obrazem','What may hide beneath the image'),paragraphs:[guide.symbol.shadow,partner?pair('Zkus tento obraz vztáhnout nejprve k sobě. Potom se zeptej, co v něm nachází ona. Není to návod, jak ji pojmenovat.','Apply the image to yourself first. Then ask what she finds in it. It is not a way to label her.'):pair('Která část obrazu je mi blízká a která mi nesedí? Obojí je užitečná odpověď.','Which part of this image feels close, and which does not fit? Both are useful answers.')]},
+    {id:'story',label:pair('Příběh','Story'),title:guide.symbol.storyTitle,paragraphs:[guide.symbol.story]},
+    {id:'ritual',label:pair('Malý rituál','Small ritual'),title:pair('Přenést obraz do dne','Bring the image into your day'),paragraphs:[guide.symbol.ritual]},
+    {id:'spiral',label:pair('Božská spirála','Divine spiral'),title:pair('Božská spirála','The divine spiral'),paragraphs:[spiralText]}
+  ];
+  return [
+    {id:'overview',label:pair('Souvislosti','Overview'),title:guide.title,paragraphs:[partner?guide.partner:guide.woman]},
+    ...guide.care.map(item=>({id:item.id,label:({move:pair('Pohyb','Movement'),food:pair('Jídlo','Food'),mind:pair('Psychika','Feelings'),plan:pair('Plány','Plans'),bond:pair('Blízkost','Closeness')})[item.id],title:item.name,paragraphs:[partner?item.partner:item.woman]})),
+    {id:'shared',label:pair('Chvíle spolu','Together'),title:pair('Jedna chvíle spolu','One moment together'),paragraphs:[guide.shared],plan:guide.shared}
+  ];
+}
+
+export function cycleMapSelection(phaseId,layer,topicId,role='client'){
+  const topics=cycleMapTopics(phaseId,layer,role);
+  return {topics,topic:topics.find(topic=>topic.id===topicId)||topics[0]||null};
 }
 
 // Teaching curves are authored shapes, not sampled clinical measurements.

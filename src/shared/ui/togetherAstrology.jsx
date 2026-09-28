@@ -95,7 +95,16 @@ export function TogetherAstrology({day,lang="cs",t,onPlan}){
       .tg-astrology .astro-lenses>button[aria-pressed=true]{border-bottom-color:var(--astro-ink)}
       .tg-astrology .astro-lenses>button[aria-pressed=true]::before{content:'•';margin-right:5px}
       .tg-astrology .astro-time{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;margin:12px 0}
-      .tg-astrology .astro-time label{font:14px/1.5 var(--tm-font-body);display:block}.tg-astrology input[type=range]{width:100%;height:32px;accent-color:var(--astro-ink);display:block;cursor:pointer}
+      .tg-astrology .astro-time label{font:14px/1.5 var(--tm-font-body);display:block}.tg-astrology .astro-time input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:0;background:transparent;accent-color:var(--astro-ink);display:block;cursor:pointer;box-shadow:none}
+      .tg-astrology .astro-time input[type=range]::-webkit-slider-runnable-track{height:2px;border:0;border-radius:1px;background:var(--astro-ink);box-shadow:none}
+      .tg-astrology .astro-time input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:18px;height:18px;margin-top:-8px;border:1px solid var(--astro-ink);border-radius:50%;background:var(--astro-ink);box-shadow:none;cursor:grab}
+      .tg-astrology .astro-time input[type=range]:active::-webkit-slider-thumb{cursor:grabbing}
+      .tg-astrology .astro-time input[type=range]::-moz-range-track{height:2px;border:0;border-radius:1px;background:var(--astro-ink);box-shadow:none}
+      .tg-astrology .astro-time input[type=range]::-moz-range-progress{height:2px;background:var(--astro-ink)}
+      .tg-astrology .astro-time input[type=range]::-moz-range-thumb{width:18px;height:18px;box-sizing:border-box;border:1px solid var(--astro-ink);border-radius:50%;background:var(--astro-ink);box-shadow:none;cursor:grab}
+      .tg-astrology .astro-time input[type=range]:active::-moz-range-thumb{cursor:grabbing}
+      .tg-astrology .astro-time input[type=range]:focus-visible{outline:2px solid var(--astro-ink);outline-offset:3px;border-radius:4px}
+      @media(forced-colors:active){.tg-astrology .astro-time input[type=range]{appearance:auto;-webkit-appearance:auto}}
       .tg-astrology details{border:0;border-top:1px solid var(--astro-line);margin-top:20px;padding-top:0}
       .tg-astrology summary{font:12px/1.5 var(--tm-font-tag);letter-spacing:.13em;text-transform:uppercase;color:var(--astro-ink);min-height:44px;padding:12px 0;cursor:pointer;list-style:none}
       .tg-astrology summary::-webkit-details-marker{display:none}.tg-astrology summary::after{content:'›';display:inline-block;font:18px/1 var(--tm-font-body);margin-left:10px}.tg-astrology details[open]>summary::after{transform:rotate(90deg)}
