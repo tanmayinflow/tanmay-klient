@@ -6,6 +6,7 @@ import { editorInk, editorHighlight, EDITOR_INKS, EDITOR_CHOICES, EDITOR_NAMES, 
 import { LifeDots } from "./shared/ui/lifeDots.jsx";
 import { SidebarLines } from "./shared/ui/sidebarLines.jsx";
 import { TmIcon as FamilyIcon } from "./shared/ui/icons.jsx";
+import { TrainingSourceText } from './shared/ui/TrainingSourceText.jsx';
 import React, { useState, useContext, createContext } from "react";
 import { createPortal } from "react-dom";
 import * as BK from "./booking/index.js";
@@ -9855,7 +9856,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
             <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, lineHeight: 1.55, color: t.sand, marginTop: 4 }}>{TL(rec.focus)}</div>
           ) : null}
           {TL(block.coachNote) ? (
-            <div style={{ marginTop: 6, borderLeft: `2px solid ${t.accent}`, paddingLeft: 9, fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.55, color: t.textSec }}>{TL(block.coachNote)}</div>
+            <div style={{ marginTop: 6, borderLeft: `2px solid ${t.accent}`, paddingLeft: 9, fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.55, color: t.textSec }}><TrainingSourceText text={TL(block.coachNote)} color={t.accentInk || t.accent}/></div>
           ) : null}
         </div>
       </div>
@@ -10062,7 +10063,7 @@ function TvClientPlan({ onRun }) {
         return (
           <div key={p.id} style={{ border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, padding: 14 }}>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{L(p.cz, p.en) || L("Plán", "Plan")}</div>
-            {TL(p.intro) ? <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.sand, marginTop: 5 }}>{TL(p.intro)}</div> : null}
+            {TL(p.intro) ? <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.sand, marginTop: 5 }}><TrainingSourceText text={TL(p.intro)} color={t.accentInk || t.accent}/></div> : null}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
               <div style={{ flex: 1 }}><ProgressBar value={ss.length ? done / ss.length : 0} /></div>
               <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted }}>{done}/{ss.length}</span>
@@ -10087,6 +10088,7 @@ function TvClientPlan({ onRun }) {
                     </button>
                     {open === s.id && tpl ? (
                       <div style={{ gridColumn: "1 / -1", padding: "6px 0 10px" }}>
+                        {TL(tpl.intro) && <div style={{fontFamily:FONT_BODY,fontSize:13,color:t.textSec,marginBottom:12}}><TrainingSourceText text={TL(tpl.intro)} color={t.accentInk || t.accent}/></div>}
                         {(tpl.blocks || []).map((b) => {
                           const r = tvClientRec(st, b.exId);
                           return (

@@ -1,7 +1,7 @@
 {
   "generatedBy": "Shared/scripts/sync-product-core.mjs",
   "canonicalSource": "Work/web-application/Shared/product-core/",
-  "sharedCoreVersion": "1.17.0",
+  "sharedCoreVersion": "1.17.1",
   "note": "Zrcadlo sdíleného jádra. Needituj tyhle soubory v aplikačním repozitáři — `npm run shared:check` to pozná a build spadne.",
   "files": {
     "scripts/icon-catalog.mjs": "c4df842c86ada4b3974bf027007d58e0c297704cdfe3536f83d7e46af86492c8",
@@ -35,6 +35,7 @@
     "src/shared/product/togetherPages.js": "88745d3a0bf37fea107c5dd9aadae027c76278d6c439a15e8f63abc08b0f4eda",
     "src/shared/product/togetherResponse.js": "d425886ce1c860fa9dc0ac8af359f914d324c40c244f4c23b39141200a709e4a",
     "src/shared/product/visibility.js": "5c586bbcae550f52a9f12f4307f5f529ccb255c6e8b06b816b05871fb9ed75aa",
+    "src/shared/ui/TrainingSourceText.jsx": "b4e763ccc337ce05bb79e5cb3dac18bdb1e98b8de5f243c172f16a6a1a61e549",
     "src/shared/ui/appearance.js": "bf6214f414c2aa4bac89d09cc29bd44093818790ad873be42857a938e40109c3",
     "src/shared/ui/appearance.jsx": "81c449fe38d4a40a2438caf2d002e6c2b545619229344db68568b006878e7e70",
     "src/shared/ui/aspectImages.jsx": "59b5043ebb684f9c748f05ac4e71bb3d585cfe52fe065ab8ce48f9f314c15ee2",
@@ -76,7 +77,7 @@
     "src/shared/ui/tokens.js": "f62b5635a18fb8978e5bc5aaece864c100ab847640b0c41cf149580884c80876",
     "src/shared/ui/trainingGoals.jsx": "70f35145c91fa12c8ef819b64473c8df920fba843865f97c1d831fde23d9afa6",
     "src/shared/ui/type.js": "4dee0d925d614ac6a5370ea335932dad9817a4b8b3ed8a32f215b850c91f97dc",
-    "src/shared/version.js": "e384ab50d54c6f0e25dd707394c9107fb156d1fe2171733ca3b7a356a6350bce",
+    "src/shared/version.js": "d8ec4f0424ca929a8be18b75795664a0d30a2882a6be559886cc85544ee7e4ed",
     "src/training/adapters.js": "eb484b2e2e92aa37b3143c63cfe19aeb0594cb8a72af5e6d8a432f68fda82b24",
     "src/training/atlasResolver.js": "3f6c2f9885607dc35e1b9e05f0dfb8b796e607abe01d12410ed5c7a5a1b3c4e6",
     "src/training/catalog.js": "87097a37cd77ba94ac33a5aee162343237806bc50370fc1f6a6da22dd17898fe",
