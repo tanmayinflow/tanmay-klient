@@ -9,7 +9,21 @@ import {cyclePhase} from '../src/shared/product/togetherGuidance.js';
 import {moonToday} from '../src/shared/product/togetherMoon.js';
 import {cleanPartnerPages} from '../src/shared/product/togetherPages.js';
 import {moveDockRoom} from '../src/shared/product/navigation.js';
-import {weekOf,activityOverview} from '../src/shared/product/togetherJournal.js';
+import {weekOf,activityOverview,questionFor} from '../src/shared/product/togetherJournal.js';
+
+test('stored daily answers keep their original Czech and English question after UI changes',()=>{
+  // The database stores only the answer date. These exact historic prompts are its contract.
+  const questions=[
+    ['2026-09-21','Na co se spolu můžeme těšit?','What can we look forward to together?'],
+    ['2026-09-22','Co bychom mohli zkusit poprvé?','What could we try for the first time?'],
+    ['2026-09-23','Za co si dnes chceme poděkovat?','What would we like to thank each other for today?'],
+    ['2026-09-24','Co by nám tento týden udělalo dobře?','What would feel good for us this week?'],
+    ['2026-09-25','Kdy ses se mnou naposledy cítil/a opravdu v klidu?','When did you last feel truly at ease with me?'],
+    ['2026-09-26','Co dnes můžu převzít, aby sis odpočinul/a?','What can I take care of so you can rest today?'],
+    ['2026-09-27','Co chceš, abych o tvém dnešku věděl/a?','What would you like me to know about your day?']
+  ];
+  for(const [day,cs,en] of questions)assert.deepEqual(questionFor(day),[cs,en],day);
+});
 
 test('dock reordering persists without changing sidebar order, placements or unavailable rooms',()=>{
   const keys=['praxe','trenink','spolu'],defaults={sidebar:keys,dock:['praxe','trenink']};
