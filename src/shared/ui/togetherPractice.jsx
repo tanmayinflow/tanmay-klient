@@ -1,9 +1,10 @@
 import React,{useState} from 'react';
+import {TogetherFold} from './togetherElements.jsx';
 import {dateKey} from '../product/together.js';
 import {PARTNER_ROOMS} from '../product/togetherPages.js';
 import {togetherPracticeItems,togetherPracticePlan} from '../product/togetherPractice.js';
 
-export function TogetherPractice({data,canTrack,getPages,lang='cs',onPlan,onSharing,onOpenPractice}) {
+export function TogetherPractice({data,canTrack,getPages,lang='cs',onPlan,onSharing,onOpenPractice,open,onToggle}) {
   const L=(cs,en)=>lang==='en'?en:cs;
   const shared=data?.sharedPages||{rooms:[],pages:{}};
   const rooms=canTrack?shared.rooms:PARTNER_ROOMS.map(room=>room.id);
@@ -13,7 +14,7 @@ export function TogetherPractice({data,canTrack,getPages,lang='cs',onPlan,onShar
   const available=PARTNER_ROOMS.filter(room=>rooms.includes(room.id));
   const current=available.some(room=>room.id===selectedRoom)?selectedRoom:available[0]?.id;
   const visible=items.filter(item=>item.room===current);
-  return <section className="tm-together-section tg-practice"><h2>{L('Z toho, co už žijeme','From what we already do')}</h2>
+  return <TogetherFold open={open} onToggle={onToggle} className="tg-practice" title={L('Z toho, co už žijeme','From what we already do')}>
     <p>{L('Nemusíte vymýšlet všechno znovu. Vyberte něco, co už v aplikaci máte, a udělejte si na to chvíli spolu.','You do not need to start from scratch. Choose something already in the app and make a little time for it together.')}</p>
     {canTrack&&<p className="hint">{L('Tady najdeš jen přehledy, které ti partner zpřístupnil. Názvy se přebírají z jeho stránek.','Here you see only the overviews your partner chose to share. Titles come from his existing pages.')}</p>}
     {!available.length?<><p>{L('Zatím tu nejsou žádné sdílené stránky. Můžete je zapnout v Propojení a sdílení.','No pages are shared yet. You can choose them in Connection and sharing.')}</p>{onSharing&&<button type="button" onClick={onSharing}>{L('Propojení a sdílení','Connection and sharing')}</button>}</>:<>
@@ -24,5 +25,5 @@ export function TogetherPractice({data,canTrack,getPages,lang='cs',onPlan,onShar
       <p className="hint">{L('Výběrem jen předvyplníš návrh. Před odesláním ho můžeš upravit a společná chvíle platí až po souhlasu vás obou.','Choosing an item only prepares a draft. You can edit it before sending, and the plan is agreed only after both of you confirm.')}</p>
     </>}
     <div className="row">{onOpenPractice&&<button type="button" onClick={onOpenPractice}>{L('Otevřít moji Praxi','Open my Practice')}</button>}{!canTrack&&onSharing&&<button type="button" onClick={onSharing}>{L('Vybrat sdílené stránky','Choose shared pages')}</button>}</div>
-  </section>;
+  </TogetherFold>;
 }

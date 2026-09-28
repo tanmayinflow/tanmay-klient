@@ -1,4 +1,5 @@
 import React,{useState} from 'react';
+import {TogetherFold} from './togetherElements.jsx';
 import {dateKey} from '../product/together.js';
 import {PLAN_INSPIRATIONS,DAILY_CONNECTION_PROMPTS} from '../product/togetherConnectionContent.js';
 import {inspirationBatch,filterInspirations} from '../product/togetherInspiration.js';
@@ -9,12 +10,13 @@ export function TogetherInspiration({lang,onPlan}){
   const [batch,setBatch]=useState(()=>inspirationBatch(PLAN_INSPIRATIONS));
   const change=(key,value)=>{const next={...filters,[key]:value};setFilters(next);setBatch(inspirationBatch(filterInspirations(PLAN_INSPIRATIONS,next)));};
   const pool=filterInspirations(PLAN_INSPIRATIONS,filters);
-  return <section className="tm-together-section"><h2>{L('Co spolu zkusit','Something to try together')}</h2><p>{L('Vyberte si podle dnešního času a chuti. Každý námět můžete upravit po svém.','Choose for the time and energy you have today. Make any idea your own.')}</p>
-    <div className="fields"><label>{L('Kde','Where')}<select value={filters.context} onChange={e=>change('context',e.target.value)}><option value="all">{L('Kdekoli','Anywhere')}</option><option value="home">{L('Doma','At home')}</option><option value="outside">{L('Venku','Outside')}</option><option value="distance">{L('Na dálku','Apart')}</option></select></label><label>{L('Kolik času','Time available')}<select value={filters.minutes} onChange={e=>change('minutes',Number(e.target.value))}>{[15,30,60,120].map(n=><option key={n} value={n}>{L('Do','Up to')} {n} min</option>)}</select></label></div>
+  return <TogetherFold title={L('Co spolu zkusit','Something to try together')}><p>{L('Vyberte si podle dnešního času a chuti. Každý námět můžete upravit po svém.','Choose for the time and energy you have today. Make any idea your own.')}</p>
+    <details className="tg-optional"><summary>{L('Přizpůsobit čas, místo a tempo','Choose time, place and pace')}</summary><div className="fields"><label>{L('Kde','Where')}<select value={filters.context} onChange={e=>change('context',e.target.value)}><option value="all">{L('Kdekoli','Anywhere')}</option><option value="home">{L('Doma','At home')}</option><option value="outside">{L('Venku','Outside')}</option><option value="distance">{L('Na dálku','Apart')}</option></select></label><label>{L('Kolik času','Time available')}<select value={filters.minutes} onChange={e=>change('minutes',Number(e.target.value))}>{[15,30,60,120].map(n=><option key={n} value={n}>{L('Do','Up to')} {n} min</option>)}</select></label></div>
     <label>{L('Naše tempo','Our pace')}<select value={filters.energy} onChange={e=>change('energy',Number(e.target.value))}><option value={1}>{L('Jemně, jsme unavení','Gentle, we are tired')}</option><option value={2}>{L('Máme chuť něco podniknout','We feel like doing something')}</option><option value={3}>{L('Jsme otevření všemu','Open to anything')}</option></select></label>
-    <div aria-live="polite" aria-atomic="true">{batch.length?batch.map(item=><article className="item" key={item.id}><h3>{local(item.title)}</h3><p className="hint">{item.minutes} min</p><p>{local(item.note)}</p><button type="button" onClick={()=>onPlan({title:local(item.title),date:dateKey(),time:'18:00',minutes:item.minutes,note:local(item.note)})}>{L('Domluvit si to','Make a plan')}</button></article>):<p>{L('Pro tento výběr tu zatím nic není. Zkuste jiný čas nebo místo.','There are no ideas for this combination yet. Try another time or place.')}</p>}</div>
+    </details>
+    <div aria-live="polite" aria-atomic="true">{batch.length?batch.map(item=><details className="tg-ritual" key={item.id}><summary><span>{local(item.title)}<small>{item.minutes} min</small></span></summary><p>{local(item.note)}</p><button type="button" onClick={()=>onPlan({title:local(item.title),date:dateKey(),time:'18:00',minutes:item.minutes,note:local(item.note)})}>{L('Domluvit si to','Make a plan')}</button></details>):<p>{L('Pro tento výběr tu zatím nic není. Zkuste jiný čas nebo místo.','There are no ideas for this combination yet. Try another time or place.')}</p>}</div>
     <button type="button" style={{marginTop:18}} disabled={pool.length<=batch.length} onClick={()=>setBatch(inspirationBatch(pool,batch.map(i=>i.id)))}>{L('Zkusit jiné nápady','Show different ideas')}</button>
-  </section>;
+  </TogetherFold>;
 }
 
 export function FaceToFacePrompts({lang}){

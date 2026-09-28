@@ -3,12 +3,12 @@ import {CYCLE_GUIDE,CYCLE_SOURCES} from "../product/togetherGuidance.js";
 import {moonToday,MOON_NAMES,ZODIAC,ZODIAC_REFLECTIONS,LUNAR_SOURCES} from "../product/togetherMoon.js";
 import {LUNAR_PHASE_PRACTICES,LUNAR_ELEMENTS,LUNAR_ARCHETYPES} from "../product/togetherMoonEditorial.js";
 
-export function PhaseGuide({phase,lang,onPlan}) {
+export function PhaseGuide({phase,lang,onPlan,embedded=false}) {
   const L=(cs,en)=>lang==="en"?en:cs;
   const [selected,setSelected]=useState("");
   const current=phase?.id||"", shown=selected||current||"menstrual",guide=CYCLE_GUIDE[shown];
   return <section className="tm-together-section">
-    <h2>{L("Jak si být oporou","How to support each other")}</h2>
+    {!embedded&&<h2>{L("Jak si být oporou","How to support each other")}</h2>}
     <p>{L("Nejvíc napoví to, jak ti dnes je. Tady najdeš nápady na péči a společný čas. Vyber si, co ti sedí.","How you feel today comes first. Here are a few ideas for care and time together. Choose what feels right for you.")}</p>
     <p className="hint">{phase?.basis==="recorded"?L("Krvácení vychází ze záznamu.","Bleeding is based on a record."):current?L("Zobrazená fáze je jen odhad z kalendáře. Hormonální fázi ani ovulaci nepotvrzuje.","The phase shown is a calendar estimate. It does not confirm a hormonal phase or ovulation."):L("Dnešní fázi neznáme. Záznamy chybí, odhady jsou vypnuté nebo fáze není sdílená. Průvodce si můžeš prohlédnout i tak.","Today's phase is unknown. Records are missing, estimates are off or the phase is not shared. You can still explore the guide.")}</p>
     <label>{L("Prohlédnout část cyklu","Explore part of the cycle")}<select value={shown} onChange={e=>setSelected(e.target.value)}>{Object.entries(CYCLE_GUIDE).map(([id,g])=><option key={id} value={id}>{L(...g.name)}{id===current?L(" · nyní"," · now"):""}</option>)}</select></label>
@@ -45,10 +45,10 @@ export function MoonCompanion({lang,Sheet,t,onPlan}) {
   const choosePhase=value=>{setSelectedPhase(value==="today"?null:Number(value));setOffset(0);setShowAction(false);setPhaseFocus(true);};
   useEffect(()=>{if(!phaseFocus||!open)return;const id=requestAnimationFrame(()=>{reflectionHeading.current?.focus({preventScroll:true});reflectionHeading.current?.scrollIntoView({block:"start",behavior:"auto"});setPhaseFocus(false);});return()=>cancelAnimationFrame(id);},[phaseFocus,open,phaseIndex]);
   const planRitual=()=>{setOpen(false);onPlan?.({title:L(...reflection.ritual),minutes:10,note:reflection.steps.map((step,index)=>`${index+1}. ${L(...step)}`).join("\n")});};
-  const sectionStyle={borderTop:`1px solid ${t.borderSoft}`,paddingTop:24,marginTop:24};
+  const sectionStyle={borderTop:`1px solid ${t.borderSoft}`,paddingTop:12,marginTop:20};
   const linkStyle={color:t.accentInk,textUnderlineOffset:4};
-  const summaryStyle={cursor:"pointer",minHeight:44,alignContent:"center",padding:"4px 0",fontFamily:"var(--tm-font-display)",fontSize:23,lineHeight:1.3,color:t.accentInk};
-  const smallHeadingStyle={fontFamily:"var(--tm-font-display)",fontSize:22,fontWeight:500,lineHeight:1.3,margin:"22px 0 8px",color:t.accentInk};
+  const summaryStyle={cursor:"pointer",minHeight:44,alignContent:"center",padding:"4px 0",fontFamily:"var(--tm-font-tag)",fontSize:12,textTransform:"uppercase",letterSpacing:".14em",lineHeight:1.5,color:t.accentInk};
+  const smallHeadingStyle={fontFamily:"var(--tm-font-display)",fontSize:19,fontWeight:400,lineHeight:1.3,margin:"22px 0 8px",color:t.accentInk};
   const buttonStyle={minHeight:44,padding:"10px 14px",border:`1px solid ${t.borderSoft}`,borderRadius:6,background:"transparent",color:t.text,font:"inherit",cursor:"pointer"};
   return <>
     <button type="button" className="tg-moon" onClick={begin} aria-label={`${L("Měsíc a chvíle pro vás","The Moon and a moment together")} · ${label}`} title={L("Otevřít Měsíc a chvíli pro vás","Open the Moon and a moment together")}>
@@ -122,7 +122,7 @@ export function MoonCompanion({lang,Sheet,t,onPlan}) {
         </details>
 
         <details style={{...sectionStyle,paddingTop:16,marginTop:16}}>
-          <summary style={{...summaryStyle,fontSize:20}}>{L("O tomto průvodci","About this guide")}</summary>
+          <summary style={{...summaryStyle,fontSize:12}}>{L("O tomto průvodci","About this guide")}</summary>
           <h3 style={{fontSize:18,margin:"20px 0 8px",color:t.heading}}>{L("Co vidíme na obloze","What we see in the sky")}</h3>
           <p>{L("Polohu Měsíce, osvětlení a další hlavní fázi počítá aplikace místně pomocí Astronomy Engine. Časy odpovídají časovému pásmu zařízení. Názvy osmi fází označují části cyklu kolem hlavních fází, ne jen jejich přesný okamžik. S menstruačním cyklem výpočty nejsou propojené.","The app calculates the Moon's position, illumination and next main phase locally using Astronomy Engine. Times follow your device's time zone. The eight phase names describe parts of the cycle around its principal phases, not just their exact moments. These calculations are independent of the menstrual cycle.")}</p>
           <p><a style={linkStyle} href={LUNAR_SOURCES.nasa} target="_blank" rel="noreferrer">NASA · Moon phases</a><br/><a style={linkStyle} href={LUNAR_SOURCES.calculation} target="_blank" rel="noreferrer">Astronomy Engine · {L("výpočet", "calculation")}</a></p>
