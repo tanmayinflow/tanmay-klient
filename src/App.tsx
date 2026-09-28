@@ -746,8 +746,8 @@ function PageMemento({ go }) {
   const { t } = useT();
   const st = useStore();
   const mem = st.coll.memento || {};
-  // the quote of THIS visit · frozen at entry, the counter moves after
-  const [qi] = useState(() => (mem.opens || 0) % MEMENTO_QUOTES.length);
+  // Start from the visit rotation; browsing stays local to this open page.
+  const [qi, setQi] = useState(() => (mem.opens || 0) % MEMENTO_QUOTES.length);
   const counted = React.useRef(false);
   React.useEffect(() => { if (counted.current) return; counted.current = true; st.setMemento({ opens: ((st.coll.memento || {}).opens || 0) + 1 }); }, []);
   const [editing, setEditing] = useState(!mem.birth);
@@ -770,8 +770,15 @@ function PageMemento({ go }) {
       <button onClick={() => go("praxe")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 0 10px", display: "inline-flex", alignItems: "center", gap: 6 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Praxe", "Practice")}</button>
       <div style={{ textAlign: "center", margin: "26px 0 0" }}>
         <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.34em", fontSize: 11, color: t.sage }}>memento mori</div>
+        <div aria-live="polite" aria-atomic="true">
         <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 22, lineHeight: 1.55, color: t.heading, maxWidth: 560, margin: "22px auto 0" }}>{L(q.cz, q.en)}</div>
         <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.textMuted, marginTop: 10 }}>{L(q.src, q.srcEn)}</div>
+        </div>
+        <nav className="tm-spell-controls" aria-label={L("Procházení citátů", "Browse quotes")}>
+          <button type="button" onClick={() => setQi(index => (index - 1 + MEMENTO_QUOTES.length) % MEMENTO_QUOTES.length)} aria-label={L("Předchozí citát", "Previous quote")}><FamilyIcon id="back" size={18} /></button>
+          <span style={{ color: t.textMuted }} aria-label={L(`Citát ${qi + 1} z ${MEMENTO_QUOTES.length}`, `Quote ${qi + 1} of ${MEMENTO_QUOTES.length}`)}>{qi + 1} / {MEMENTO_QUOTES.length}</span>
+          <button type="button" onClick={() => setQi(index => (index + 1) % MEMENTO_QUOTES.length)} aria-label={L("Další citát", "Next quote")}><FamilyIcon id="forward" size={18} /></button>
+        </nav>
         <div style={{ width: 44, height: 1, background: t.accent, opacity: 0.7, margin: "26px auto" }} />
       </div>
       {editing ? (
