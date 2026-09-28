@@ -1,5 +1,6 @@
 import { cleanTogether, emptyTogether, togetherProjection, TOGETHER_SCOPES, validDate, dateKey, dayNumber } from "./together.js";
 import {cleanPartnerPages,PARTNER_ROOMS} from "./togetherPages.js";
+import {cycleViewForDate} from "./togetherGuidance.js";
 
 import {cleanReflection, reflectionWeek, conversationHistory, dailyQuestion, legacyQuestion, readQuestionSnapshot} from "./togetherJournal.js";
 
@@ -68,6 +69,20 @@ export async function handleTogether(request,db,actor,{owner=false,now=Date.now(
     // Both parties control their own check-in, while cycle permission belongs to its owner.
     const otherDoc=other?(await person(db,other)).doc:null;
     const partner=otherDoc?togetherProjection(otherDoc,link.owner===actor?["wellbeing","support"]:decode(link.scopes,[]),localToday):null;
+    const requestedView=url.searchParams.get("viewDate");
+    const viewDate=validDate(requestedView)&&Math.abs(dayNumber(requestedView)-dayNumber(localToday))<=3660?requestedView:localToday;
+    const cycleScopes=["cycle","phase","cycle-note","pain","flow"];
+    const cycleViewDoc=owner?self.doc:otherDoc;
+    const grantedCycleScopes=owner?cycleScopes:decode(link?.scopes,[]).filter(s=>cycleScopes.includes(s));
+    const cycleView=cycleViewDoc?{date:viewDate,...togetherProjection(cycleViewDoc,grantedCycleScopes.filter(s=>s!=="cycle"&&s!=="phase"),viewDate)}:null;
+    if(cycleView){
+      const view=cycleViewForDate(cycleViewDoc,viewDate,localToday);
+      if(grantedCycleScopes.includes("phase"))cycleView.phase=view.phase;
+      if(grantedCycleScopes.includes("cycle")){
+        const {day,next,reason,cycles,projected}=view.cycle;
+        cycleView.cycle={day,next,reason,cycles,...(projected?{projected:true}:{})};
+      }
+    }
     const plans=active?(await db.prepare("SELECT id,doc,revision FROM together_plans WHERE link_id = ?").bind(link.id).all()).results.map(p=>({...decode(p.doc,{}),id:p.id,revision:p.revision})):[];
     const answers=active?(await db.prepare("SELECT actor,answer FROM together_answers WHERE link_id = ? AND day = ?").bind(link.id,localToday).all()).results:[];
     const historyRows=active?(await db.prepare("SELECT a.day,a.actor,a.answer,q.question_id,q.doc AS question_doc FROM together_answers a LEFT JOIN together_questions q ON q.link_id = a.link_id AND q.day = a.day WHERE a.link_id = ? AND a.day <= ? ORDER BY a.day DESC").bind(link.id,localToday).all()).results:[];
@@ -79,7 +94,7 @@ export async function handleTogether(request,db,actor,{owner=false,now=Date.now(
     const latest=await linkFor(db,actor);
     if(latest?.id!==link?.id||latest?.revision!==link?.revision)return fail("conflict",409);
     if((await pagesFor(db,latest)).revision!==pages.revision)return fail("conflict",409);
-    return reply({ok:true,self,link:publicLink(link,actor),partner,plans,reflections,history,question,sharedPages:pages,answer:{mine:myAnswer,partner:myAnswer?(answers.find(a=>a.actor===other)?.answer||""):"",waiting:!!answers.find(a=>a.actor===other)},canTrack:owner,today:localToday});
+    return reply({ok:true,self,link:publicLink(link,actor),partner,cycleView,plans,reflections,history,question,sharedPages:pages,answer:{mine:myAnswer,partner:myAnswer?(answers.find(a=>a.actor===other)?.answer||""):"",waiting:!!answers.find(a=>a.actor===other)},canTrack:owner,today:localToday});
   }
   if(action==="/pages"&&method==="GET") {
     if(!link||link.status!=="active")return fail("not-connected",403);
@@ -142,7 +157,7 @@ export async function handleTogether(request,db,actor,{owner=false,now=Date.now(
   if(action==="/reflection"&&method==="PUT") {
     if(body.linkId!==link.id||body.linkRevision!==link.revision)return fail("conflict",409);
     if(!reflectionWeek(body.week,localToday)||!Number.isInteger(body.revision)||body.revision<0)return fail("invalid-reflection");
-    let doc;try{doc=cleanReflection(body.doc);}catch{return fail("invalid-reflection");}
+    let doc;try{doc=cleanReflection(body.doc,body.week);}catch{return fail("invalid-reflection");}
     const existing=await db.prepare("SELECT revision FROM together_reflections WHERE link_id = ? AND week = ? AND actor = ?").bind(link.id,body.week,actor).first();
     if((existing?.revision||0)!==body.revision)return fail("conflict",409);
     let r;

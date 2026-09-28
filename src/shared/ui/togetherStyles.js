@@ -22,8 +22,8 @@ export const togetherStyles=`
 .tm-together button.primary{background:var(--tg-fill);background-image:var(--tm-action-material,none);background-size:768px auto;color:var(--tg-on);border-color:var(--tg-fill)}
 .tm-together button.primary:hover:not(:disabled){color:var(--tg-on)}
 .tm-together input,.tm-together textarea,.tm-together select{width:100%;font-size:15px}
-.tm-together input:not([type=checkbox]):not([type=date]):not([type=time]):not([type=number]),.tm-together textarea{background:transparent;border:0;border-bottom:1px solid var(--tg-soft);border-radius:0;padding:4px 2px 8px;line-height:1.62;display:block;min-height:44px}
-.tm-together textarea{resize:vertical;overflow:hidden}
+.tm-together input:not([type=checkbox]):not([type=radio]):not([type=date]):not([type=time]):not([type=number]),.tm-together textarea{background:transparent;border:0;border-bottom:1px solid var(--tg-soft);border-radius:0;padding:3px 2px 8px;line-height:1.62;display:block;min-height:44px}
+.tm-together textarea{resize:none;overflow:hidden}
 .tm-together :is(select,input[type=date],input[type=time],input[type=number]){background:var(--tg-sheet)}
 .tm-together label{display:block;font-family:var(--tm-font-display);font-size:19px;font-weight:400;color:var(--tg-accent);line-height:1.3;margin:18px 0 4px}
 .tm-together label :is(input,textarea,select){margin-top:4px;font-family:var(--tm-font-body);font-weight:400}
@@ -57,8 +57,10 @@ export const togetherStyles=`
 .tm-together a{color:var(--tg-accent);text-underline-offset:3px}
 .tm-together li{font-size:14px;line-height:1.65;margin:6px 0}
 .tm-together .tg-header{position:relative;min-height:180px}
-.tm-together .tg-intro{max-width:calc(100% - 145px);font-size:14px;margin:0 0 20px}
-.tm-together button.tg-moon{position:absolute;right:0;top:0;width:140px;height:224px;border:0;padding:0;color:var(--tm-room-art-ink,var(--tg-accent));background:transparent;display:flex;flex-direction:column;align-items:center}
+.tm-together .tg-intro-row{display:flex;align-items:center;gap:18px;margin-bottom:18px}
+.tm-together .tg-intro{flex:1;min-width:0;font-size:14px;margin:0;max-width:none}
+.tm-together .tg-sharing-trigger{flex:0 0 128px;text-align:center;line-height:1.5}
+.tm-together button.tg-moon{position:absolute;right:0;top:0;width:140px;height:150px;border:0;padding:0;color:var(--tm-room-art-ink,var(--tg-accent));background:transparent;display:flex;flex-direction:column;align-items:center}
 .tg-moon svg{width:120px;height:144px;transition:transform .2s ease}
 .tg-moon:hover svg{transform:rotate(3deg)}
 .tg-moon span{position:absolute;top:194px;font-size:12px;line-height:1.4;color:var(--tg-accent);text-decoration:none;max-width:132px;text-align:center}
@@ -107,12 +109,23 @@ export const togetherStyles=`
 .tm-together .tg-date-row button{border:0;padding:8px;background:transparent}
 .tm-together .tg-date-row .tg-date{font-family:var(--tm-font-display);font-size:22px;color:var(--tg-heading);padding:8px 12px}
 .tm-together .tg-date-row .tg-date-today{margin-left:auto;font-family:var(--tm-font-tag);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
-.tm-together .tg-date-chooser{padding:0 0 12px;max-width:260px}
+.tm-together .tg-date-chooser{padding:0 0 12px;max-width:440px}
+.tm-together .tg-entry-fields{border:0;padding:0;margin:0;min-width:0}
+.tm-together .tg-entry-fields:disabled{opacity:.55}
+.tm-together .tg-entry-fields .tm-navod::placeholder{font-family:var(--tm-font-display);font-style:italic;font-size:17px;line-height:1.45}
+.tm-together .tm-navod{font-family:var(--tm-font-body);font-size:15px;font-style:normal;font-weight:400}
+.tm-together .tg-inline-fold>summary{justify-content:flex-start;gap:8px}
+.tm-together .tg-live-questions .tg-question-library{border-top:0;margin-top:14px}
+.tm-together .tg-live-questions .row>button{min-height:40px;padding:8px 11px}
+.tm-together .tg-reset-confirm{border:1px solid var(--tg-line);border-radius:8px;padding:14px;margin-top:14px}
+.tm-together label.tg-check{display:flex;align-items:center;gap:9px;min-height:44px;font-family:var(--tm-font-body);font-size:14px;line-height:1.4;color:var(--tg-text);margin:0;cursor:pointer}
+.tm-together .tg-check input:is([type=radio],[type=checkbox]){width:17px;height:17px;min-height:17px;flex-shrink:0;margin:0;padding:0;accent-color:var(--tg-accent)}
+.tm-together .tg-cycle-phase{font-family:var(--tm-font-display);font-size:30px;font-weight:400;line-height:1.2;color:var(--tg-heading);display:block}
 .tm-together .tg-overview-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
 .tm-together .tg-overview-stats>div{padding:14px;background:var(--tg-sheet);border:1px solid var(--tg-soft);border-radius:8px}
 .tm-together .tg-overview-stats strong{font-family:var(--tm-font-display);font-size:28px;font-weight:400;display:block;color:var(--tg-heading)}
 .tm-together .tg-stat span{font-size:13px;line-height:1.5;color:var(--tg-muted)}
 .tm-together .tg-section-fold>summary{scroll-margin-top:96px}
-@media(max-width:380px){.tm-together .fields{grid-template-columns:1fr}.tm-together .tm-page-title h1{font-size:38px}.tm-together .tabs button{letter-spacing:.08em}.tm-together .tg-intro{max-width:calc(100% - 122px)}}
+@media(max-width:380px){.tm-together .fields{grid-template-columns:1fr}.tm-together .tm-page-title h1{font-size:38px}.tm-together .tabs button{letter-spacing:.08em}.tm-together .tg-sharing-trigger{flex-basis:108px}.tm-together .tg-intro-row{gap:12px}}
 @media(prefers-reduced-motion:reduce){.tm-together *, .tg-moon svg{transition:none!important}.tg-moon:hover svg{transform:none}}
 `;

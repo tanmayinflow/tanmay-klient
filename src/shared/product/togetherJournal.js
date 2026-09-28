@@ -4,11 +4,27 @@ import {DAILY_CONNECTION_PROMPTS} from './togetherConnectionContent.js';
 export function weekOf(date) {
   return addDays(date,-((new Date(date+'T12:00:00Z').getUTCDay()+6)%7));
 }
-export function cleanReflection(value) {
+export const FOLLOW_THROUGH = [
+  {id:'tried',cs:'Zkusili jsme to',en:'We tried it'},
+  {id:'partly',cs:'Zčásti',en:'Partly'},
+  {id:'not-yet',cs:'Zatím ne',en:'Not yet'},
+  {id:'changed',cs:'Dohodu jsme změnili',en:'We changed the agreement'},
+];
+export function cleanReflection(value,forWeek) {
   if(!value || typeof value!=='object' || Array.isArray(value)) throw new Error('invalid-reflection');
-  return Object.fromEntries(['appreciation','need','next'].map(key=>[key,typeof value[key]==='string'?value[key].trim().slice(0,400):'']));
+  const text=v=>typeof v==='string'?v.trim().slice(0,400):'';
+  const result=Object.fromEntries(['appreciation','need','next'].map(key=>[key,text(value[key])]));
+  const follow=value.followThrough;
+  // Optional extension leaves all legacy documents and withdrawal payloads unchanged.
+  if(follow&&typeof follow==='object'&&!Array.isArray(follow)&&validDate(follow.week)&&follow.week===weekOf(follow.week)&&(!forWeek||follow.week<forWeek)&&FOLLOW_THROUGH.some(s=>s.id===follow.status)&&text(follow.step)){
+    result.followThrough={week:follow.week,step:text(follow.step),status:follow.status,note:text(follow.note)};
+  }
+  return result;
 }
-export function hasReflection(value) {return ['appreciation','need','next'].some(key=>!!value?.[key]);}
+export function hasReflection(value) {return ['appreciation','need','next'].some(key=>!!value?.[key])||!!value?.followThrough?.status;}
+export function previousReflection(rows,week,side='mine') {
+  return rows.filter(row=>row.side===side&&validDate(row.week)&&row.week<week&&row.doc?.next?.trim()).toSorted((a,b)=>b.week.localeCompare(a.week))[0]||null;
+}
 export function reflectionWeek(value,today) {return validDate(value)&&value===weekOf(value)&&value<=weekOf(today);}
 // Preserve the existing double-answer reveal rule when browsing past conversations.
 export function conversationHistory(rows,actor,other) {

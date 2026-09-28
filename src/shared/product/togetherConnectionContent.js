@@ -21,7 +21,7 @@ export const WEEKLY_PROMPTS = [
     id: 'understand',
     title: {cs: 'Co zůstalo mezi námi', en: 'What is still between us'},
     question: {cs: 'Zůstalo mezi námi něco, čemu bych měl/a lépe porozumět?', en: 'Is there anything still between us that you would like me to understand better?'},
-    followup: {cs: 'Jestli ano: co se stalo, jak ti v tom bylo a co bylo pro tebe v sázce? Stačí jedna situace.', en: 'If so: what happened, how did it feel, and what mattered to you? One situation is enough.'},
+    followup: {cs: 'Vyberte jednu situaci. Co jsem si v ní vyložil/a, co mě zasáhlo a jak jsem reagoval/a? Co jsem potřeboval/a pod tou první reakcí? Druhý nejdřív řekne, čemu rozumí.', en: 'Choose one moment. How did I read it, what touched a nerve and how did I react? What did I need beneath my first reaction? The listener first reflects what they understand.'},
   },
   {
     id: 'support',
@@ -33,13 +33,13 @@ export const WEEKLY_PROMPTS = [
     id: 'follow-through',
     title: {cs: 'Co se pohnulo', en: 'What has shifted'},
     question: {cs: 'Jak nám posloužilo to, na čem jsme se domluvili minule?', en: 'How did the small agreement we made last time work for us?'},
-    followup: {cs: 'Co pomohlo? Co překáželo? Když se to nepovedlo, zmenšíme krok, nebo zvolíme jiný?', en: 'What helped, and what got in the way? If it did not happen, should we make it smaller or choose something else?'},
+    followup: {cs: 'Co jsme skutečně zkusili a co to s námi udělalo? Co pomohlo nebo překáželo? Rozhodněte se, jestli krok zachovat, zmenšit, nebo změnit.', en: 'What did we actually try, and how did it feel? What helped or got in the way? Decide whether to keep the step, make it smaller or change it.'},
   },
   {
     id: 'one-next-step',
     title: {cs: 'Jedna věc pro další týden', en: 'One thing for the week ahead'},
     question: {cs: 'Jaký jeden malý krok chceme do příště zkusit, aby nám spolu bylo lépe?', en: 'What one small step would we both like to try before next time to make life together feel better?'},
-    followup: {cs: 'Kdo co udělá a kdy? A na jakou obyčejnou společnou chvíli se chceme těšit?', en: 'Who will do what, and when? What ordinary moment together would we like to look forward to?'},
+    followup: {cs: 'Kdo co udělá a kdy? Třeba: když začnu zvyšovat hlas, řeknu si o pauzu a domluvíme návrat. Zvolte něco, co chcete oba, a příště si řekněte, jestli to pomohlo.', en: 'Who will do what, and when? For example: when I start raising my voice, I will ask for a pause and we will agree when to return. Choose something you both want and revisit whether it helped.'},
   },
 ];
 
@@ -74,6 +74,17 @@ export const DAILY_CONNECTION_PROMPTS = [
   {id:'one-real-change',category:{cs:'Radost a směr',en:'Joy and direction'},depth:'deeper',question:{cs:'Jakou malou změnu bychom za měsíc chtěli opravdu žít, nejen o ní mluvit?',en:'What small change would we like to be living a month from now, rather than just talking about?'}},
 ];
 
+export const PLAN_THEMES = [
+  {id:'closeness',cs:'Blízkost a naslouchání',en:'Closeness and listening'},
+  {id:'care',cs:'Péče a úleva',en:'Care and relief'},
+  {id:'play',cs:'Radost a hravost',en:'Joy and play'},
+  {id:'new',cs:'Něco nového',en:'Something new'},
+  {id:'nature',cs:'Venku a v přírodě',en:'Outdoors and nature'},
+  {id:'movement',cs:'Pohyb',en:'Movement'},
+  {id:'meaning',cs:'Porozumění a společný směr',en:'Understanding and direction'},
+  {id:'rest',cs:'Klid a odpočinek',en:'Quiet and rest'},
+];
+
 export const PLAN_INSPIRATIONS = [
   {id:'one-cup',minutes:15,energy:1,context:'home',title:{cs:'Jeden čaj, žádný další úkol',en:'One cup of tea, no extra task'},note:{cs:'Udělejte si čaj a na čtvrt hodiny odložte telefony. Každý může přinést jednu věc ze svého dne. Rady jen na přání.',en:'Make tea and set your phones aside for fifteen minutes. Each can bring one thing from the day. Offer advice only if wanted.'}},
   {id:'new-turn',minutes:25,energy:2,context:'outside',title:{cs:'Na procházce odbočit jinam',en:'Take a different turn'},note:{cs:'Projděte známé okolí trochu jinou cestou. Každý vybere jednu odbočku a ukáže něco, čeho si všiml. Délku přizpůsobte tomu, jak vám je.',en:'Walk a different route through familiar surroundings. Each chooses a turn and points out something they notice. Adapt the distance to how you feel.'}},
@@ -99,4 +110,29 @@ export const PLAN_INSPIRATIONS = [
   {id:'one-personal-wish',minutes:20,energy:1,context:'anywhere',title:{cs:'Dát místo jednomu přání',en:'Make room for one wish'},note:{cs:'Každý přinese malé osobní přání. Druhý nejdřív poslouchá, potom se zeptá, jestli a jak může pomoci. Přání nemusí být společné.',en:'Each brings one small personal wish. The other listens first, then asks whether and how they could help. Your wishes do not have to be shared.'}},
   {id:'slow-morning',minutes:30,energy:1,context:'home',title:{cs:'Pomalé společné ráno',en:'A slow morning together'},note:{cs:'Domluvte jedno ráno nebo jinou část dne bez okamžitého zařizování. Připravte jednoduché jídlo a nechte si čas na to, jak vám právě je.',en:'Choose a morning or another part of the day without immediately doing chores. Make simple food and leave time to notice how you are feeling.'}},
   {id:'shared-distant-practice',minutes:20,energy:1,context:'distance',title:{cs:'Stejná chvíle, dvě místa',en:'One moment, two places'},note:{cs:'Domluvte si čas na známou praxi každý u sebe. Potom krátce zavolejte. Každý sdílí jen to, co chce; záznam zůstává na svém místě v Praxi.',en:'Agree on a time for a familiar practice in your own places, then have a short call. Share only what you want; keep the record in Practice.'}},
-];
+  {id:'good-news-date',minutes:15,energy:1,context:'anywhere',title:{cs:'Rande s dobrou zprávou',en:'A good-news date'},note:{cs:'Každý přinese jednu malou dobrou událost. Druhý se doptá: Jaké to pro tebe bylo? Co tě na tom nejvíc těší? Nechte chvíli patřit jeho radosti, bez srovnávání.',en:'Each brings one small piece of good news. Ask how it felt and what delighted them most. Let their joy have the moment without comparing.'}},
+  {id:'invisible-task',minutes:20,energy:1,context:'home',title:{cs:'Jednu starost nesu celou já',en:'I will carry this whole task'},note:{cs:'Vyberte jednu běžnou starost včetně všímání, rozhodování a dokončení. Domluvte, kdo ji tento týden převezme celou a jak vypadá hotovo. Pak už ji druhý nemusí připomínat.',en:'Choose one everyday responsibility, including noticing, deciding and finishing. Agree who will own it this week and what done means, so the other person need not keep reminding.'}},
+  {id:'two-small-dreams',minutes:25,energy:1,context:'anywhere',title:{cs:'Dvě přání, první malý krok',en:'Two wishes, one first step'},note:{cs:'Každý popíše přání, které v něm už chvíli žije. Druhý se ptá, proč na něm záleží. Vyberte malý první krok pro každého; nemusíte chtít totéž.',en:'Each describes a wish that has stayed with them. Ask why it matters. Choose a small first step for each person; your wishes need not be the same.'}},
+  {id:'one-value-lived',minutes:20,energy:1,context:'home',title:{cs:'Jak vypadá naše hodnota v úterý',en:'What our value looks like on Tuesday'},note:{cs:'Vyberte hodnotu, kterou chcete spolu žít: třeba laskavost, svobodu nebo spolehlivost. Každý řekne, jak ji pozná v obyčejném dni. Domluvte jeden čin na tento týden.',en:'Choose a value you want to live together, such as kindness, freedom or reliability. Each describes what it looks like on an ordinary day. Agree on one action this week.'}},
+  {id:'new-art-together',minutes:45,energy:2,context:'home',title:{cs:'Něco vytvořit poprvé',en:'Make something for the first time'},note:{cs:'Zkuste společně jednoduchou techniku, kterou nezná ani jeden: koláž, modelování nebo kreslení jedním tahem. Vyberte materiál, který už máte. Učte se spolu, výsledek nemusí zůstat.',en:'Try a simple technique neither of you knows: collage, modelling or one-line drawing. Use materials you already have. Learn together; the result need not be kept.'}},
+  {id:'partner-curated-walk',minutes:45,energy:2,context:'outside',title:{cs:'Procházka očima druhého',en:'A walk through your eyes'},note:{cs:'Každý vybere jedno blízké místo spojené se vzpomínkou a cestou vypráví, čím pro něj je. Druhý se doptává. Předem se domluvte na délce, aby zůstalo místo i na zastavení.',en:'Each chooses a nearby place connected with a memory and shares why it matters. The other asks about it. Agree on the distance so there is room to pause.'}},
+  {id:'rest-for-both',minutes:30,energy:1,context:'home',title:{cs:'Odpočinek pro oba',en:'Rest for both of us'},note:{cs:'Řekněte si, co pro každého znamená odpočívat. Někdo chce ticho, jiný pohyb nebo kontakt. Udělejte na to místo oběma a na konci se potkejte na pár minut.',en:'Share what resting means for each of you: quiet, movement or company. Make room for both kinds of rest, then meet again for a few minutes.'}},
+  {id:'phone-free-arrival',minutes:10,energy:1,context:'home',title:{cs:'Deset minut po návratu',en:'Ten minutes after coming home'},note:{cs:'Vyzkoušejte jeden příchod domů bez telefonu a organizačních otázek. Zeptejte se: Chceš teď blízkost, nebo nejdřív chvíli pro sebe? Navazujte podle odpovědi.',en:'Try one return home without phones or logistics. Ask: Would you like closeness now, or a little time to yourself first? Follow the answer.'}},
+  {id:'curious-library',minutes:60,energy:2,context:'outside',title:{cs:'Vyber mi příběh',en:'Choose a story for me'},note:{cs:'V knihovně nebo knihkupectví každý najděte něco, co by mohlo zaujmout druhého. Nic kupovat nemusíte. Ukažte si, co jste vybrali a proč; nechte se překvapit tím, co se trefilo.',en:'In a library or bookshop, each finds something the other might enjoy. No purchase needed. Share your choices and why; discover what you understood about each other.'}},
+  {id:'cooperative-challenge',minutes:30,energy:2,context:'home',title:{cs:'Jedna výzva, jeden tým',en:'One challenge, one team'},note:{cs:'Vyberte společný hlavolam, nový taneční krok nebo malý úkol, který jste ještě nezkoušeli. Domluvte takovou obtížnost, aby vás oba lákala. Všímejte si, kdy se vám dobře spolupracuje.',en:'Choose a shared puzzle, a new dance step or a small challenge you have not tried. Set a difficulty that appeals to both. Notice when working together feels good.'}},
+  {id:'season-walk',minutes:30,energy:2,context:'outside',title:{cs:'Všimnout si, co se mění',en:'Notice what is changing'},note:{cs:'Vraťte se na známé místo venku. Každý si všimne jedné drobné změny v přírodě. Při návratu si řekněte, co se teď mění i ve vašem životě a kde se chcete podržet.',en:'Return to a familiar outdoor place. Each notices one small change in nature. On the way back, share what is changing in your lives and where you would welcome support.'}},
+  {id:'repair-in-action',minutes:15,energy:1,context:'anywhere',title:{cs:'Malá náprava v praxi',en:'A small repair in practice'},note:{cs:'Pokud už jste si v klidu řekli, co bolelo, vyberte jednu domluvenou nápravu, kterou lze opravdu udělat. Potom se zeptejte, jestli pomohla. Nemusí tím být všechno uzavřené.',en:'If you have calmly talked about what hurt, choose one agreed repair you can actually carry out. Afterwards ask whether it helped. It need not settle everything.'}},
+].map(item=>({...item,themes:({
+  'one-cup':['closeness','rest'],'new-turn':['new','nature'],'tiny-tasting':['play','new'],
+  'show-your-world':['closeness','meaning'],'one-song-each':['closeness','play'],'practice-side-by-side':['rest','meaning'],
+  'sunset-pause':['nature','rest'],'new-recipe':['new','play'],'memory-with-detail':['closeness','meaning'],
+  'week-lightener':['care'],'draw-an-ordinary-day':['meaning','play'],'local-discovery':['new','nature'],
+  'teach-small-skill':['new','play'],'gentle-movement':['movement','play'],'quiet-nature':['nature','rest'],
+  'play-for-us':['play'],'little-celebration':['closeness','play'],'same-view-distance':['closeness','rest'],
+  'read-aloud':['closeness','meaning'],'couple-reflection':['closeness','meaning'],'try-something-playful':['new','movement'],
+  'one-personal-wish':['closeness','meaning'],'slow-morning':['rest','closeness'],'shared-distant-practice':['rest','meaning'],
+  'good-news-date':['closeness','play'],'invisible-task':['care'],'two-small-dreams':['meaning','closeness'],
+  'one-value-lived':['meaning'],'new-art-together':['new','play'],'partner-curated-walk':['nature','closeness'],
+  'rest-for-both':['rest','care'],'phone-free-arrival':['closeness','care'],'curious-library':['new','closeness'],
+  'cooperative-challenge':['new','play','movement'],'season-walk':['nature','meaning'],'repair-in-action':['care','meaning'],
+})[item.id]||[]}));

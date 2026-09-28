@@ -2,7 +2,7 @@ import React,{useLayoutEffect,useRef} from 'react';
 import {TmIcon} from './icons.jsx';
 
 // Pure presentation: follows Practice without subscribing to its personal store.
-export function TogetherText({value,rows=1,...props}) {
+export function TogetherText({value,rows=1,className='',...props}) {
   const ref=useRef(null);
   useLayoutEffect(()=>{
     const element=ref.current;
@@ -13,9 +13,10 @@ export function TogetherText({value,rows=1,...props}) {
     observer.observe(element);
     document.addEventListener('toggle',resize,true);
     window.addEventListener('resize',resize);
+    document.fonts?.ready.then(resize);
     return()=>{observer.disconnect();document.removeEventListener('toggle',resize,true);window.removeEventListener('resize',resize);};
   },[value]);
-  return <textarea {...props} ref={ref} value={value} rows={rows}/>;
+  return <textarea {...props} className={`tm-navod ${className}`} ref={ref} value={value} rows={rows}/>;
 }
 
 export function TogetherFold({title,children,className='',summaryRef,...props}) {

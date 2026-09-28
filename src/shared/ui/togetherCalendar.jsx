@@ -1,14 +1,20 @@
 import React, {useEffect, useId, useRef, useState} from "react";
 import {TmIcon} from "./icons.jsx";
-import {addDays, dateKey} from "../product/together.js";
+import {addDays, dateKey, validDate} from "../product/together.js";
+import {CYCLE_GUIDE} from "../product/togetherGuidance.js";
 
 // Calendar presentation follows Praxe. It reads only the already-authorized
 // cycle projection and shared plans; picking a day never writes a record.
-export function TogetherCalendar({periods = [], summary, plans = [], lang = "cs", t, onPlanSelect, showCycle = true}) {
+export function TogetherCalendar({periods = [], summary, phase, plans = [], lang = "cs", t, onPlanSelect, showCycle = true, selectedDate, onDateChange, showDetails = true, recordDates = [], picker = false}) {
   const L = (cs, en) => lang === "en" ? en : cs;
   const locale = lang === "en" ? "en-GB" : "cs-CZ";
   const today = dateKey();
-  const [selected, setSelected] = useState(today);
+  const [localSelected, setLocalSelected] = useState(()=>validDate(selectedDate)?selectedDate:today);
+  const selected=picker?localSelected:validDate(selectedDate)?selectedDate:localSelected;
+  // A diary picker can browse without replacing the entry or closing its panel.
+  // A cycle calendar commits each navigation so its phase detail follows along.
+  const setSelected=(day,commit=true)=>{if(!validDate(day))return;if(picker||selectedDate===undefined)setLocalSelected(day);if(!picker||commit)onDateChange?.(day);};
+  useEffect(()=>{if(picker&&validDate(selectedDate))setLocalSelected(selectedDate);},[picker,selectedDate]);
   const month = selected.slice(0, 7);
   const first = `${month}-01`;
   const firstDate = new Date(`${first}T12:00:00Z`);
@@ -53,7 +59,7 @@ export function TogetherCalendar({periods = [], summary, plans = [], lang = "cs"
     if (event.key === "PageDown") next = shiftMonth(day, 1);
     if (!next) return;
     event.preventDefault();
-    if (next !== selected) { focusDay.current = true; setSelected(next); }
+    if (next !== selected) { focusDay.current = true; setSelected(next,false); }
   };
   const navStyle = {display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 40, minHeight: 44, padding: "4px 8px", border: `1px solid ${t.borderSoft}`, borderRadius: 8, background: "transparent", color: t.text};
   const markerStyle = {display: "inline-block", width: 11, height: 11, borderRadius: 3, flexShrink: 0, boxSizing: "border-box"};
@@ -79,8 +85,8 @@ export function TogetherCalendar({periods = [], summary, plans = [], lang = "cs"
         {dateLabel(first, {month: "long", year: "numeric"})}
       </h2>
       <div className="tg-calendar-nav" aria-label={L("Procházet kalendář", "Browse calendar")}>
-        <button type="button" aria-label={L("Předchozí měsíc", "Previous month")} style={navStyle} onClick={() => setSelected(day => shiftMonth(day, -1))}><TmIcon id="back" size={14}/></button>
-        <button type="button" aria-label={L("Další měsíc", "Next month")} style={navStyle} onClick={() => setSelected(day => shiftMonth(day, 1))}><TmIcon id="forward" size={14}/></button>
+        <button type="button" aria-label={L("Předchozí měsíc", "Previous month")} style={navStyle} onClick={() => setSelected(shiftMonth(selected, -1),false)}><TmIcon id="back" size={14}/></button>
+        <button type="button" aria-label={L("Další měsíc", "Next month")} style={navStyle} onClick={() => setSelected(shiftMonth(selected, 1),false)}><TmIcon id="forward" size={14}/></button>
         <button type="button" style={{...navStyle, fontFamily: "var(--tm-font-tag)", fontSize: 12, textTransform: "uppercase", letterSpacing: ".1em"}} onClick={() => setSelected(dateKey())}>{L("Dnes", "Today")}</button>
       </div>
     </div>
@@ -92,28 +98,31 @@ export function TogetherCalendar({periods = [], summary, plans = [], lang = "cs"
         const recorded = actualOn(day);
         const estimated = !recorded && estimateOn(day);
         const hasPlan = visiblePlans.some(p => p.date === day);
-        const picked = day === selected;
+        const hasRecord = recordDates.includes(day);
+        const focused = day === selected;
+        const picked = day === (picker&&validDate(selectedDate)?selectedDate:selected);
         const current = day === today;
-        const label = [dateLabel(day), current ? L("dnes", "today") : "", recorded ? L("zapsaná menstruace", "recorded period") : estimated ? L("odhad začátku menstruace", "estimated period start") : "", hasPlan ? L("společný plán", "shared plan") : ""].filter(Boolean).join(", ");
-        return <button key={day} ref={node => { if (node) dayButtons.current[day] = node; else delete dayButtons.current[day]; }} type="button" className="tg-calendar-day tm-cal-day" aria-label={label} aria-pressed={picked} aria-current={current ? "date" : undefined} aria-controls={detailId} title={label} tabIndex={picked ? 0 : -1} onClick={() => setSelected(day)} onKeyDown={event => moveWithKeyboard(event, day)} style={{"--calendar-day-text": recorded ? t.onAccent : t.text, minWidth: 0, minHeight: 44, padding: "6px 0", borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "var(--tm-font-body)", fontSize: 13, lineHeight: 1, fontWeight: picked || current ? 600 : 400, color: recorded ? t.onAccent : t.text, background: recorded ? t.accent : picked ? t.activeNav : "transparent", border: `1px ${estimated ? "dashed" : "solid"} ${estimated || current ? ink : "transparent"}`, outline: picked ? `2px solid ${ink}` : undefined, outlineOffset: picked ? 1 : undefined}}>
+        const label = [dateLabel(day), current ? L("dnes", "today") : "", recorded ? L("zapsaná menstruace", "recorded period") : estimated ? L("odhad začátku menstruace", "estimated period start") : "", hasPlan ? L("společný plán", "shared plan") : "", hasRecord ? L("můj zápis", "my entry") : ""].filter(Boolean).join(", ");
+        return <button key={day} ref={node => { if (node) dayButtons.current[day] = node; else delete dayButtons.current[day]; }} type="button" className="tg-calendar-day tm-cal-day" aria-label={label} aria-pressed={picked} aria-current={current ? "date" : undefined} aria-controls={showDetails ? detailId : undefined} title={label} tabIndex={focused ? 0 : -1} onClick={() => setSelected(day)} onKeyDown={event => moveWithKeyboard(event, day)} style={{"--calendar-day-text": recorded ? t.onAccent : t.text, minWidth: 0, minHeight: 44, padding: "6px 0", borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "var(--tm-font-body)", fontSize: 13, lineHeight: 1, fontWeight: picked || current ? 600 : 400, color: recorded ? t.onAccent : t.text, background: recorded ? t.accent : picked ? t.activeNav : "transparent", border: `1px ${estimated ? "dashed" : "solid"} ${estimated || current ? ink : "transparent"}`, outline: picked ? `2px solid ${ink}` : undefined, outlineOffset: picked ? 1 : undefined}}>
           <span>{index + 1}</span>
-          <span aria-hidden="true" style={{width: 5, height: 5, borderRadius: "50%", background: hasPlan ? recorded ? t.onAccent : ink : "transparent"}}/>
+          <span aria-hidden="true" style={{width: 5, height: 5, borderRadius: "50%", background: hasPlan||hasRecord ? recorded ? t.onAccent : ink : "transparent"}}/>
         </button>;
       })}
     </div>
-    <div className="tg-calendar-key" style={{color: muted}}>
+    {(showCycle||plans.length>0||recordDates.length>0)&&<div className="tg-calendar-key" style={{color: muted}}>
       {showCycle && <span><i aria-hidden="true" style={{...markerStyle, background: t.accent}}/>{L("Zápis menstruace", "Recorded period")}</span>}
       {showCycle && <span><i aria-hidden="true" style={{...markerStyle, border: `1px dashed ${ink}`}}/>{L("Odhad začátku", "Estimated start")}</span>}
-      <span><i aria-hidden="true" style={{...markerStyle, width: 5, height: 5, borderRadius: "50%", background: ink}}/>{L("Společný plán", "Shared plan")}</span>
-    </div>
-    <div id={detailId} className="tg-calendar-detail" aria-live="polite" aria-atomic="true">
+      {plans.length>0&&<span><i aria-hidden="true" style={{...markerStyle, width: 5, height: 5, borderRadius: "50%", background: ink}}/>{L("Společný plán", "Shared plan")}</span>}
+      {recordDates.length>0&&<span><i aria-hidden="true" style={{...markerStyle, width: 5, height: 5, borderRadius: "50%", background: ink}}/>{L("Můj zápis", "My entry")}</span>}
+    </div>}
+    {showDetails&&<div id={detailId} className="tg-calendar-detail" aria-live="polite" aria-atomic="true">
       <h3 style={{fontFamily: "var(--tm-font-display)", fontSize: 22, lineHeight: 1.3, color: t.heading, fontWeight: 400, margin: "0 0 8px", textTransform: "none", letterSpacing: "normal"}}>{dateLabel(selected, {weekday: "long", day: "numeric", month: "long"})}</h3>
-      {showCycle && <p style={{margin: "0 0 12px", fontSize: 13, color: muted}}>{actual ? L("Zapsaná menstruace.", "Recorded period.") : estimate ? L("Tento den spadá do odhadu začátku menstruace.", "This day falls within the estimated period-start range.") : L("K tomuto dni tu nejsou další údaje o cyklu.", "No further cycle information is available for this day.")}</p>}
+      {showCycle && <p style={{margin: "0 0 12px", fontSize: 13, color: muted}}>{phase?.id&&CYCLE_GUIDE[phase.id] ? `${L(...CYCLE_GUIDE[phase.id].name)} · ${phase.basis==="recorded"?L("záznam","recorded"):L("odhad","estimated")}` : actual ? L("Zapsaná menstruace.", "Recorded period.") : estimate ? L("Odhad začátku menstruace.", "Estimated period start.") : L("Fáze pro tento den není k dispozici.", "The phase for this day is unavailable.")}</p>}
       {selectedPlans.length ? <ul className="tg-calendar-plans">{selectedPlans.map(p => <li key={p.id}>
         <strong style={{fontFamily: "var(--tm-font-body)", fontSize: 14, fontWeight: 500, color: t.text}}>{p.title}</strong>
         <p style={{margin: "4px 0 0", fontSize: 12, color: muted}}>{[p.time, p.minutes ? `${p.minutes} min` : "", p.status === "done" ? L("Proběhlo", "Completed") : p.approved?.owner && p.approved?.partner ? L("Domluveno", "Agreed") : L("Zatím návrh", "Still a proposal")].filter(Boolean).join(" · ")}</p>
         {onPlanSelect && <button type="button" style={{marginTop: 8}} onClick={() => onPlanSelect(p)}>{L("Otevřít plán", "Open plan")}</button>}
       </li>)}</ul> : <p style={{margin: 0, fontSize: 13, color: muted}}>{L("Na tento den zatím nemáte společný plán.", "You have no shared plan for this day yet.")}</p>}
-    </div>
+    </div>}
   </section>;
 }

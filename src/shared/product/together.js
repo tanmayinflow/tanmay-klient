@@ -1,6 +1,6 @@
 // Calendar education and optional estimates, never fertility/contraception prescriptions.
 import {cyclePhase} from "./togetherGuidance.js";
-export const TOGETHER_SCOPES = ["cycle", "wellbeing", "support", "phase"];
+export const TOGETHER_SCOPES = ["cycle", "wellbeing", "support", "phase", "cycle-note", "pain", "flow"];
 export const dateKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 export function validDate(s) { return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)) && new Date(s+"T12:00:00Z").toISOString().slice(0,10) === s; }
 export const dayNumber = s => Math.floor(Date.parse(s+"T12:00:00Z")/86400000);
@@ -24,7 +24,7 @@ export function cleanTogether(value, today = dateKey()) {
     if (!validDate(date) || date>today || !d || typeof d!=="object") throw new Error("invalid day");
     const energy = d.energy === null || d.energy === undefined ? null : d.energy;
     if (energy!==null && (!Number.isInteger(energy)||energy<1||energy>5)) throw new Error("invalid energy");
-    days[date]={energy,mood:text(d.mood,80),support:text(d.support,300),note:text(d.note,1500),pain:["none","mild","moderate","strong"].includes(d.pain)?d.pain:"none",flow:["none","spotting","light","medium","heavy"].includes(d.flow)?d.flow:"none"};
+    days[date]={energy,mood:text(d.mood,80),support:text(d.support,300),note:text(d.note,1500),cycleNote:text(d.cycleNote,1500),pain:["none","mild","moderate","strong"].includes(d.pain)?d.pain:"none",flow:["none","spotting","light","medium","heavy"].includes(d.flow)?d.flow:"none"};
   }
   return {periods,mode:value.mode,usualLength:value.usualLength,days};
 }
@@ -45,13 +45,17 @@ export function cycleSummary(doc, today = dateKey()) {
   if(today>next.to) return {...base,next:null,reason:"outdated"};
   return {...base,next,reason:"estimate"};
 }
-// Allowlist projections. No notes, raw bleeding/symptom history or private mode escapes.
+// Allowlist projections. Legacy private notes and raw history never escape.
+// Additional cycle details require independent grants, never inherited from old scopes.
 export function togetherProjection(doc, scopes, today=dateKey()) {
   const out={}; const d=doc.days?.[today];
   if(scopes.includes("cycle")) { const {day,next,reason,cycles}=cycleSummary(doc,today); out.cycle={day,next,reason,cycles}; }
   if(scopes.includes("phase")) out.phase=cyclePhase(doc,cycleSummary(doc,today),today);
   if(scopes.includes("wellbeing")&&d) out.wellbeing={date:today,energy:d.energy,mood:d.mood};
   if(scopes.includes("support")&&d) out.support={date:today,text:d.support};
+  if(scopes.includes("cycle-note")&&d?.cycleNote) out.cycleNote={date:today,text:d.cycleNote};
+  if(scopes.includes("pain")&&d) out.pain={date:today,value:d.pain||"none"};
+  if(scopes.includes("flow")&&d) out.flow={date:today,value:d.flow||"none"};
   return out;
 }
 export const TOGETHER_QUESTIONS = [

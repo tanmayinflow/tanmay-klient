@@ -14,9 +14,21 @@ export const TOGETHER_RITUAL_SOURCES = [
   },
   {
     id: 'eft-negative-cycle',
-    title: 'Johnson, Makinen & Millikin: Attachment Injuries in Couple Relationships (2001)',
-    url: 'https://iceeft.com/wp-content/uploads/2020/09/AttachmentInjuries.pdf',
+    title: 'ICEEFT: Emotionally Focused Therapy',
+    url: 'https://iceeft.com/what-is-eft/',
     kind: 'relationship-framework',
+  },
+  {
+    id: 'ibct-understanding',
+    title: 'Andrew Christensen: Integrative Behavioral Couple Therapy · APA',
+    url: 'https://www.apa.org/pubs/videos/4310904.html',
+    kind: 'relationship-framework',
+  },
+  {
+    id: 'implementation-intentions',
+    title: 'Gollwitzer & Sheeran: Implementation intentions and goal achievement (2006)',
+    url: 'https://www.socmot.uni-konstanz.de/publications/implementation-intentions-and-goal-achievement-meta-analysis-effects-and-processes',
+    kind: 'behaviour-research',
   },
   {
     id: 'gottman-listening',
@@ -58,12 +70,12 @@ export const TOGETHER_RITUALS = [
     steps: {
       cs: [
         'Domluvte se, kdo začne. Zhruba tři minuty mluví jeden a druhý poslouchá bez přerušování.',
-        'Než nabídneš radu, zeptej se: Chceš spíš vyslechnout, nebo spolu něco promyslet?',
+        'Vlastními slovy řekni, co jsi slyšel/a, a nech se opravit. Pak se zeptej: Chceš spíš vyslechnout, nebo spolu něco promyslet?',
         'Vyměňte si role. Pokud dnes někdo mluvit nechce, stačí to říct.',
       ],
       en: [
         'Choose who goes first. For about three minutes, one person speaks and the other listens without interrupting.',
-        'Before offering advice, ask: Would you like me to listen, or help you think something through?',
+        'Reflect what you heard in your own words and invite correction. Then ask: Would you like me to listen, or help you think something through?',
         'Swap roles. Either person can say they do not feel like talking today.',
       ],
     },
@@ -241,7 +253,35 @@ export const TOGETHER_RITUALS = [
       cs: ['Každý řekne jednu potřebu. Vyberte společně jednu, se kterou teď chcete něco udělat.', 'Domluvte pozorovatelný krok: kdo co udělá, kdy a jak často. Třeba deset minut po večeři bez telefonů dvakrát za týden.', 'Předem zvažte překážku a menší variantu pro náročný den. Nemusíte přidávat další výkon.', 'V příštím ohlédnutí se vraťte k tomu, jaké to bylo. Neplnění není skóre vztahu; je to důvod dohodu upravit.'],
       en: ['Each names one need. Together, choose one you would like to act on now.', 'Agree on an observable step: who will do what, when and how often. For example, ten phone-free minutes after dinner twice this week.', 'Anticipate an obstacle and a smaller version for a difficult day. There is no need to add another performance target.', 'Return to how it felt in your next reflection. Not following through is not a relationship score; it is a reason to adjust the agreement.'],
     },
-    sourceId: 'gottman-rituals',
+    sourceId: 'implementation-intentions',
+  },
+  {
+    id: 'different-not-against',category:{cs:'Přijetí rozdílů',en:'Accepting differences'},minutes:12,
+    title:{cs:'Jsme různí. Co s tím potřebujeme?',en:'We differ. What do we need around that?'},
+    intro:{cs:'Když se vrací rozdíl, který nemusí zmizet: potřeba ticha, kontaktu, pořádku nebo spontánnosti. Nejdřív si porozumět, pak hledat dohodu.',en:'For a recurring difference that may not disappear: quiet, contact, order or spontaneity. Understand it before reaching for an agreement.'},
+    question:{cs:'Co je pro mě v tomhle rozdílu důležité a čeho se bojím, když pro to není místo?',en:'What matters to me in this difference, and what do I fear when there is no room for it?'},
+    steps:{cs:['Každý popíše jednu svou potřebu a co pro něj znamená. Zůstaňte u sebe, bez vysvětlování, jaký je druhý.','Pojmenujte, co rozdíl zhoršuje: třeba únava, tlak v práci nebo málo času. Zkuste odlišit situaci od úmyslu partnera.','Hledejte malou dohodu, která nechá prostor oběma. Kde potřebujeme změnu a kde můžeme přijmout, že to druhý má jinak?'],en:['Each describes one need and what it means. Stay with your own experience rather than explaining the other person.','Name what makes the difference harder: tiredness, work pressure or too little time. Try separating the situation from your partner’s intention.','Find a small agreement with room for both of you. Where is change needed, and where can we accept that the other person is different?']},sourceId:'ibct-understanding',
+  },
+  {
+    id:'closeness-and-boundaries',category:{cs:'Blízkost a hranice',en:'Closeness and boundaries'},minutes:10,
+    title:{cs:'Jak být blízko a neztratit sebe',en:'Close without losing ourselves'},
+    intro:{cs:'Pro chvíli, kdy jeden hledá víc kontaktu a druhý víc prostoru. Ani jedno nemusí znamenat odmítnutí.',en:'When one of you wants more contact and the other more space. Neither has to mean rejection.'},
+    question:{cs:'Jak ti můžu říct ano i ne tak, abychom si zůstali blízko?',en:'How can I say both yes and no while staying connected with you?'},
+    steps:{cs:['Každý řekne, jaký kontakt mu teď dělá dobře a kde potřebuje prostor. Odpověď nemusíte obhajovat.','Ověřte si význam: Když chceš být chvíli sám/sama, co si o tom vykládám? Co bys chtěl/a, abych věděl/a místo té domněnky?','Domluvte jednu srozumitelnou větu nebo gesto pro žádost o blízkost či prostor. U prostoru můžete nabídnout čas dalšího setkání, pokud to tak oba chcete.'],en:['Each says what contact feels good now and where they need space. There is no need to defend the answer.','Check the meaning: when you want time alone, what story do I tell myself? What would you rather I understood?','Agree on one clear phrase or gesture for asking for closeness or space. With space, offer a time to reconnect if that suits both of you.']},sourceId:'eft-negative-cycle',
+  },
+  {
+    id:'outside-pressure',category:{cs:'Společná zátěž',en:'Shared pressure'},minutes:10,
+    title:{cs:'Co nám bere síly zvenčí',en:'What is draining us from outside'},
+    intro:{cs:'Někdy mezi vámi stojí i vyčerpání, práce nebo starosti, které není vidět. Dejte jim jméno, abyste je nemuseli nést proti sobě.',en:'Sometimes exhaustion, work or unseen worries stand between you too. Name them so you do not have to carry them against each other.'},
+    question:{cs:'Co si přináším zvenčí a jak se to pak dotýká nás dvou?',en:'What am I bringing from outside, and how is it affecting us?'},
+    steps:{cs:['Každý pojmenuje jednu současnou zátěž a jak ji na sobě pozná. Druhý nejdřív poslouchá.','Rozlište, co můžete ovlivnit a co teď potřebujete společně unést. Podporou může být pomoc, pochopení nebo méně nároků.','Domluvte jednu úlevu na tento týden. Kdo za ni převezme i plánování a dokončení?'],en:['Each names one current pressure and how they notice it in themselves. The other listens first.','Separate what you can influence from what you need to carry together. Support might mean help, understanding or fewer demands.','Agree on one way to lighten this week. Who will own the planning and finishing too?']},sourceId:'ibct-understanding',
+  },
+  {
+    id:'under-the-value',category:{cs:'Kořeny a směr',en:'Roots and direction'},minutes:15,
+    title:{cs:'Co si neseme a co chceme tvořit',en:'What we carry and what we want to create'},
+    intro:{cs:'V klidné chvíli si všimněte, co jste se o blízkosti naučili doma. Sdílejte jen tolik, kolik chcete.',en:'In a calm moment, notice what you learned about closeness at home. Share only as much as you want.'},
+    question:{cs:'Co jsem se naučil/a o péči, hádce nebo omluvě a co z toho chci v našem vztahu dělat jinak?',en:'What did I learn about care, arguments or apologies, and what would I like to do differently with us?'},
+    steps:{cs:['Vyberte jedno všední téma. Každý může říct příklad a jak si ho tehdy vyložil, bez pátrání po skrytých vzpomínkách.','Druhý se zeptá: Jak se to projevuje dnes a co by ti pomohlo ode mě? Neurčujte si navzájem příčiny ani diagnózy.','Pojmenujte jednu věc, kterou si chcete ponechat, a jeden vlastní čin, kterým chcete vytvořit jinou zkušenost.'],en:['Choose one everyday topic. Each may share an example and how they understood it, without searching for hidden memories.','The listener asks: how does it show up today, and what would help from me? Do not assign causes or diagnoses to each other.','Name one thing you want to keep and one action of your own that could create a different experience.']},sourceId:'ibct-understanding',
   },
 ];
 
