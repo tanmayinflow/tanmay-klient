@@ -48,7 +48,7 @@ test("razítko dokumentu jde přečíst bez stažení celého dokumentu", async 
   assert.ok(m.version >= 1);
   assert.equal(m.doc, undefined, "celý dokument se sem nesmí připlést");
   assert.ok(m.bytes > 5000 && m.bytes < 6000, "velikost dokumentu (" + m.bytes + ")");
-  assert.equal(m.limit, 2000000);
+  assert.equal(m.limit, 10000000);
 });
 
 test("razítko cizího prostoru se nedá přečíst", async () => {
@@ -64,7 +64,7 @@ test("dokument nad strop úložiště se odmítne pojmenovaně a nic nepřepíš
   const maly = { coll: { journal: [{ id: "j1", text: "drž se" }] }, edits: {} };
   assert.equal((await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: maly } }), env)).status, 200);
 
-  const obr = { coll: { journal: [{ id: "j2", text: "y".repeat(1950000) }] }, edits: {} };
+  const obr = { coll: { journal: [{ id: "j2", text: "y".repeat(10000001) }] }, edits: {} };
   const r = await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: obr } }), env);
   assert.equal(r.status, 413);
   const b = await r.json();
@@ -330,4 +330,17 @@ test("v klientském Workeru neexistuje trenérská cesta k soukromému psaní", 
     const text = await r.text();
     assert.ok(text.indexOf("journal") === -1 && text.indexOf("notebook") === -1, cesta + " nesmí nic vynést");
   }
+});
+
+test("large client state survives and stale baseVersion cannot change sharing", async () => {
+ const env=makeEnv();await joined(env,A);
+ const doc={coll:{journal:[{id:"rescue",text:"ž🌲".repeat(400000)}]},edits:{today:{note:"unsent"}}};
+ const put=await worker.fetch(req("/api/state",{email:A,method:"PUT",body:{doc}}),env);
+ assert.equal(put.status,200);
+ const saved=await (await worker.fetch(req("/api/state",{email:A}),env)).json();
+ assert.deepEqual(saved.doc,doc);
+ assert.ok(saved.bytes>2000000);
+ const stale=await worker.fetch(req("/api/state",{email:A,method:"PUT",body:{doc:{coll:{},edits:{}},baseVersion:0,share:null}}),env);
+ assert.equal(stale.status,409);
+ assert.deepEqual((await (await worker.fetch(req("/api/state",{email:A}),env)).json()).doc,doc);
 });

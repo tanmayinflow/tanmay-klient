@@ -12031,6 +12031,7 @@ export default function App() {
     });
   };
   const [docBytes, setDocBytes] = useState(0);
+  const [docLimit, setDocLimit] = useState(10000000);
   // Zapsaná série se nesmí tvářit jako odeslaná. Dokud se dokument neshoduje s
   // tím, co server naposledy potvrdil, je co odeslat — a je to vidět.
   const [syncPending, setSyncPending] = useState(false);
@@ -12048,7 +12049,7 @@ export default function App() {
   const _readServer = async () => {
     const v = await syncFetch("/api/state");
     if (v.druh !== SYNC_OK || !v.telo) { oznamSelhani(v); return null; }
-    if (v.telo.bytes) setDocBytes(v.telo.bytes);
+    if (v.telo.bytes) setDocBytes(v.telo.bytes); if (v.telo.limit) setDocLimit(v.telo.limit);
     return { doc: v.telo.doc || null, ver: v.telo.version || 0 };
   };
   // LEVNÉ RAZÍTKO · kontrola „psalo mezitím jiné zařízení?" stahovala celý
@@ -12058,7 +12059,7 @@ export default function App() {
   const _readVer = async () => {
     const v = await syncFetch("/api/state?meta=1");
     if (v.druh !== SYNC_OK || !v.telo) { oznamSelhani(v); return null; }
-    if (v.telo.bytes) setDocBytes(v.telo.bytes);
+    if (v.telo.bytes) setDocBytes(v.telo.bytes); if (v.telo.limit) setDocLimit(v.telo.limit);
     return { ver: v.telo.version || 0 };
   };
   const adoptServer = (sdoc, ver) => {
@@ -12092,13 +12093,18 @@ export default function App() {
     const v = await syncFetch("/api/state", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doc: { coll: c, edits: e }, share: _shareOf(c, e) }),
+      body: JSON.stringify({ doc: { coll: c, edits: e }, share: _shareOf(c, e), baseVersion: _ver.current }),
     });
     // Stav 200 sám o sobě není potvrzení zápisu: přihlašovací stránka Accessu
     // i SPA fallback ho vrací taky. Rozhoduje tělo odpovědi.
+    if (v.stav === 409 && v.telo?.code === "conflict") {
+      const remote = await _readServer();
+      if (remote?.doc?.coll) setConflict({ doc: remote.doc, ver: remote.ver });
+      return false;
+    }
     if (v.druh !== SYNC_OK) { oznamSelhani(v); return false; }
     const pv = (v.telo && v.telo.version) || 0;
-    if (v.telo && v.telo.bytes) setDocBytes(v.telo.bytes);
+    if (v.telo && v.telo.bytes) setDocBytes(v.telo.bytes); if (v.telo && v.telo.limit) setDocLimit(v.telo.limit);
     _ver.current = pv || _ver.current + 1;
     _lastSynced.current = cur;
     syncMarkSave(_ver.current, tmDocSig(cur));
@@ -13762,7 +13768,7 @@ export default function App() {
               {docBytes > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, padding: "3px 0" }}>
                   <span>{L("Velikost dokumentu", "Document size")}</span>
-                  <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: docBytes > 1700000 ? t.danger : t.textMuted }}>{(Math.round(docBytes / 10000) / 100).toFixed(2)}{" / 2.00 MB"}</span>
+                  <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: docBytes > docLimit * 0.85 ? t.danger : t.textMuted }}>{(Math.round(docBytes / 10000) / 100).toFixed(2)}{" / "}{(docLimit / 1000000).toFixed(2)} MB</span>
                 </div>
               )}
               <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginTop: 10 }}>
