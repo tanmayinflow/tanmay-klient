@@ -72,6 +72,8 @@ export const ASTRO_SOURCES=[
   ["SIMBAD · Spica, souřadnice a vlastní pohyb", "https://simbad.cds.unistra.fr/simbad/sim-basic?Ident=Spica"],
   ["Astrodienst · rozdíly mezi ajanámšami", "https://www.astro.com/astrology/in_ayanamsha_e.htm"],
   ["Ptolemaios · Tetrabiblos I.4–24", "https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Ptolemy/Tetrabiblos/1B*.html"],
+  ["Ptolemaios · Tetrabiblos II.10–13, různé časové vrstvy", "https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Ptolemy/Tetrabiblos/2C*.html"],
+  ["Varáhamihira · Brihat samhita 99.2, pět skupin tithi", "https://www.wisdomlib.org/hinduism/book/brihat-samhita/d/doc229362.html"],
   ["Varáhamihira · Brihat džátaka II.1, planetární symbolika", "https://www.wisdomlib.org/hinduism/book/brihat-jataka-by-varahamihira-sanskrit-english/d/doc1501584.html"],
   ["Varáhamihira · Brihat džátaka I.13, povýšení a oslabení", "https://www.wisdomlib.org/hinduism/book/brihat-jataka-by-varahamihira-sanskrit-english/d/doc1501576.html"],
   ["Súrja siddhánta · XIV, měření času", "https://www.swaveda.com/texts/surya-siddhanta/14/"],

@@ -112,14 +112,20 @@ export const togetherStyles=`
 .tm-together .tg-date-chooser{padding:0 0 12px;max-width:440px}
 .tm-together .tg-entry-fields{border:0;padding:0;margin:0;min-width:0}
 .tm-together .tg-entry-fields:disabled{opacity:.55}
-.tm-together .tg-entry-fields .tm-navod::placeholder{font-family:var(--tm-font-display);font-style:italic;font-size:17px;line-height:1.45}
-.tm-together .tm-navod{font-family:var(--tm-font-body);font-size:15px;font-style:normal;font-weight:400}
+.tm-together .tm-navod::placeholder{font-family:var(--tm-font-display);font-style:italic;font-size:18px;line-height:1.55;color:var(--tg-muted);opacity:1}
+.tm-together .tm-navod{font-family:var(--tm-font-display);font-size:18px;font-style:italic;font-weight:400;line-height:1.55}
 .tm-together .tg-inline-fold>summary{justify-content:flex-start;gap:8px}
 .tm-together .tg-live-questions .tg-question-library{border-top:0;margin-top:14px}
 .tm-together .tg-live-questions .row>button{min-height:40px;padding:8px 11px}
 .tm-together .tg-reset-confirm{border:1px solid var(--tg-line);border-radius:8px;padding:14px;margin-top:14px}
 .tm-together label.tg-check{display:flex;align-items:center;gap:9px;min-height:44px;font-family:var(--tm-font-body);font-size:14px;line-height:1.4;color:var(--tg-text);margin:0;cursor:pointer}
-.tm-together .tg-check input:is([type=radio],[type=checkbox]){width:17px;height:17px;min-height:17px;flex-shrink:0;margin:0;padding:0;accent-color:var(--tg-accent)}
+.tm-together .tg-check input:is([type=radio],[type=checkbox]){appearance:none;-webkit-appearance:none;width:18px;height:18px;min-height:18px;flex-shrink:0;margin:0;padding:0;display:grid;place-content:center;background:transparent;border:1px solid var(--tg-accent);border-radius:4px;color:var(--tg-accent);cursor:pointer}
+.tm-together .tg-check input[type=radio]{border-radius:50%}
+.tm-together .tg-check input[type=checkbox]:checked{background:var(--tg-fill);border-color:var(--tg-fill)}
+.tm-together .tg-check input[type=checkbox]:checked::after{content:'';width:8px;height:4px;border-left:1.5px solid var(--tg-on);border-bottom:1.5px solid var(--tg-on);transform:rotate(-45deg) translateY(-1px)}
+.tm-together .tg-check input[type=radio]:checked::after{content:'';width:8px;height:8px;background:currentColor;border-radius:50%}
+.tm-together .tg-check input:disabled{opacity:.45;cursor:default}
+@media(forced-colors:active){.tm-together .tg-check input:is([type=radio],[type=checkbox]){appearance:auto}.tm-together .tg-check input::after{content:none!important}}
 .tm-together .tg-cycle-phase{font-family:var(--tm-font-display);font-size:30px;font-weight:400;line-height:1.2;color:var(--tg-heading);display:block}
 .tm-together .tg-overview-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
 .tm-together .tg-overview-stats>div{padding:14px;background:var(--tg-sheet);border:1px solid var(--tg-soft);border-radius:8px}

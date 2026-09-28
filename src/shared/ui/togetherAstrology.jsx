@@ -4,6 +4,7 @@ import {ASTRO_PLANETS,ASTRO_SIGNS,ASTRO_ELEMENTS,ASTRO_MODES,ASTRO_ASPECTS,ASTRO
 import {ZODIAC,MOON_NAMES} from "../product/togetherMoon.js";
 import {LUNAR_PHASE_PRACTICES} from "../product/togetherMoonEditorial.js";
 import {TogetherCalendar} from "./togetherCalendar.jsx";
+import {TogetherAstrologyOverview} from "./togetherAstrologyOverview.jsx";
 import {togetherTheme} from "./togetherStyles.js";
 
 const point=(angle,radius)=>({x:190-Math.cos(angle*Math.PI/180)*radius,y:190+Math.sin(angle*Math.PI/180)*radius});
@@ -99,7 +100,7 @@ export function TogetherAstrology({day,lang="cs",t,onPlan}){
       .tg-astrology summary{font:12px/1.5 var(--tm-font-tag);letter-spacing:.13em;text-transform:uppercase;color:var(--astro-ink);min-height:44px;padding:12px 0;cursor:pointer;list-style:none}
       .tg-astrology summary::-webkit-details-marker{display:none}.tg-astrology summary::after{content:'›';display:inline-block;font:18px/1 var(--tm-font-body);margin-left:10px}.tg-astrology details[open]>summary::after{transform:rotate(90deg)}
       .tg-astrology .astro-filters{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tg-astrology .astro-filters label{font-size:13px;min-width:0}.tg-astrology .astro-filters select{display:block;width:100%;margin-top:6px;background:var(--astro-bg)}
-      .tg-astrology .astro-check{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px}.tg-astrology input[type=checkbox]{width:18px;height:18px;accent-color:var(--astro-ink)}
+      .tg-astrology .astro-check{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;cursor:pointer}.tg-astrology .astro-check input[type=checkbox]{appearance:none;-webkit-appearance:none;display:grid;place-content:center;flex:0 0 18px;width:18px;height:18px;margin:0;border:1px solid var(--astro-ink);border-radius:4px;background:transparent;cursor:pointer}.tg-astrology .astro-check input[type=checkbox]:checked{background:var(--astro-ink)}.tg-astrology .astro-check input[type=checkbox]::after{content:'';width:8px;height:4px;border:solid var(--astro-on);border-width:0 0 2px 2px;transform:translateY(-1px) rotate(-45deg);visibility:hidden}.tg-astrology .astro-check input[type=checkbox]:checked::after{visibility:visible}
       .tg-astro-wheel{display:block;width:100%;max-width:460px;margin:18px auto 0;color:var(--astro-ink);overflow:visible}
       .tg-astrology .astro-symbol{font-family:"Segoe UI Symbol","Apple Symbols","Noto Sans Symbols 2","Noto Sans Symbols",serif;font-variant-emoji:text;font-weight:400}
       .tg-astro-planet{cursor:pointer;transition:transform .4s linear}.tg-astro-planet circle{fill:var(--astro-bg);stroke:currentColor;stroke-width:.7}.tg-astro-planet circle.selected{fill:var(--astro-ink);stroke-width:1.5}.tg-astro-planet text{fill:var(--astro-ink);pointer-events:none}.tg-astro-planet[aria-pressed=true] text{fill:var(--astro-on)}
@@ -129,6 +130,7 @@ export function TogetherAstrology({day,lang="cs",t,onPlan}){
     </div>
     <div className="astro-lenses" role="group" aria-label={L("Astrologická tradice","Astrological tradition")}>{Object.entries(ASTRO_LENSES).map(([key,value])=><button type="button" key={key} onClick={()=>selectLens(key)} aria-pressed={lens===key}>{L(...value.name)}</button>)}</div>
     <p className="astro-small">{L(...ASTRO_LENSES[lens].subtitle)}{lens==="jyotish"?` · ${L("ajanámša","ayanamsa")} ${sky.ayanamsa.toFixed(2)}°`:""}</p>
+    <TogetherAstrologyOverview sky={sky} day={skyDay} lens={lens} lang={lang}/>
     <SkyChart planets={planets} aspects={showAspects&&lens!=="jyotish"?aspects:[]} selected={active.id} onSelect={setSelected} nakshatra={lens==="jyotish"&&showMansions} L={L}/>
     <p className="astro-small" style={{textAlign:"center",marginTop:0}}>{L("Dotkni se planety a otevři její význam.","Select a planet to open its meaning.")}</p>
     <details>
@@ -175,6 +177,7 @@ export function TogetherAstrology({day,lang="cs",t,onPlan}){
       <p>{L("Siderická Čitrá zde používá polohu Spicy, její vlastní pohyb a precesi. Nejde o implementaci Swiss Ephemeris ani o tabulkovou Lahiri. Jemné rozdíly výpočtů mohou u hranic znamení či nakšatry změnit zařazení. Hvězdný rámec je orientační na úrovni úhlové minuty; sekundy neuvádíme.","The Chitra frame uses Spica's position, proper motion and precession. It is not Swiss Ephemeris or tabulated Lahiri. Small numerical differences can change boundary classifications. The stellar frame is intended at arcminute scale; arcseconds are not displayed.")}</p>
       <p>{L("Tradiční pojmy opíráme o uvedené prameny. Kontemplativní texty jsou původní současnou tvorbou pro tanmay, nikoli překladem starých výroků nebo předpovědí. Astrologická symbolika není vědecky potvrzený vliv na zdraví, vztah či události.","Traditional terminology follows the sources below. Contemplative writing is original contemporary tanmay editorial, not a translation of ancient claims or a prediction. Astrological symbolism is not an established causal influence on health, relationships or events.")}</p>
       <p>{L("Tato část obsahuje tři konkrétní pohledy. Nepředstírá osobní tranzity, kompatibilitu, daši, volební astrologii ani úplný paňčáng; k těm jsou potřeba další údaje a samostatné metody.","This space contains three specific lenses. It does not simulate personal transits, compatibility, dashas, electional astrology or a full panchanga; those need additional inputs and methods.")}</p>
+      <p>{L("Přehled dne a sedmi dnů hledá vstupy do znamení, obraty směru a hlavní lunární fáze; západní pohled navíc pět přesných aspektů, džjótiša hranice tithi a nakšater. Prohledáváme kroky po šesti hodinách a přechody zpřesňujeme na půl minuty; zobrazené minuty jsou orientační. Výběr zvýrazňuje obraty a nelunární změny před rychlými měsíčními vazbami. Jde o výběr těchto kategorií, ne soupis všech astrologických jevů.","The day and seven-day overview searches sign ingresses, stations and principal lunar phases; the Western lens adds five exact aspects, Jyotisha tithi and nakshatra boundaries. Six-hour samples are refined to half-minute brackets; displayed minutes are approximate. Selection favours stations and non-lunar changes over fast lunar connections. This covers selected categories, not every astrological phenomenon.")}</p>
       <ul>{ASTRO_SOURCES.map(([name,url])=><li key={url}><a href={url} target="_blank" rel="noreferrer">{name}</a></li>)}</ul>
     </details>
   </div>;
