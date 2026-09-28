@@ -1,3 +1,8 @@
+import { MOVEMENT_ATLAS } from './generated/movementAtlasManifest';
+import { SUPPLEMENT_ART } from './library/supplement-art.js';
+import { CREATOR_ART } from './library/creator-art.js';
+import { MOBILITY_ART } from './library/mobility-art.js';
+import { ExerciseAtlasImage } from './shared/ui/ExerciseAtlasImage.jsx';
 import { TogetherPage, TogetherIcon } from "./shared/ui/together.jsx";
 import { NavigationSettings } from "./shared/ui/navigationSettings.jsx";
 import { CLIENT_ROOMS, navigationRooms, roomPlacement, navigationLabel } from "./shared/product/navigation.js";
@@ -3340,6 +3345,8 @@ const T_FIGS = {
 // per-exercise figure · falls back to the pattern pictogram for custom exercises
 function TExArt({ ex, size = 120, stroke, dotColor, showDot = true, fluid = false }) {
   const { t } = useT();
+  const atlas = ex && (SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  if (atlas) return <ExerciseAtlasImage entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   const fig = ex && T_FIGS[ex.id];
   if (!fig) return <TPatArt pat={(ex && ex.pat) || "drep"} size={size} stroke={stroke || t.text} dot={showDot && ex ? ex.dot : null} dotColor={dotColor || t.accent} />;
   const sw = size <= 30 ? 7 : 2.6;
@@ -9837,6 +9844,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   const { t } = useT();
   const st = useStore();
   const rec = tvClientRec(st, block.exId);
+  const atlas = SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
   const m = TV.measurementOf(block.measurementType);
   const [extraLoad, setExtraLoad] = useState((block.sets || []).some(s => s.actual?.addedWeight > 0));
   const fields = m.fields.concat(m.secondary && extraLoad ? [m.secondary] : []);
@@ -9849,7 +9857,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   return (
     <div style={{ border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        {rec && rec.art ? <span style={{ color: t.sand, flexShrink: 0 }}><TmPostava poza={rec.art} size={54} stroke="currentColor" /></span> : null}
+        {atlas ? <button aria-label={L("Zobrazit provedení cviku", "Show exercise instructions")} onClick={()=>setOpen(!open)} style={{padding:0,border:0,background:"transparent",width:64,flexShrink:0,cursor:"pointer"}}><ExerciseAtlasImage entry={atlas} alt={tvName(rec) || TL(block.name)} size={64} dark={t.mode==="dark"}/></button> : rec && rec.art ? <span style={{ color: t.sand, flexShrink: 0 }}><TmPostava poza={rec.art} size={54} stroke="currentColor" /></span> : null}
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontFamily: FONT_DISPLAY, fontSize: 21, color: t.heading, lineHeight: 1.2 }}>{tvName(rec) || TL(block.name)}</div>
           {rec && rec.focus ? (
@@ -9907,6 +9915,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
           <button onClick={() => setOpen(!open)} style={{ ...tvQuiet(t), alignSelf: "flex-start" }}>{open ? L("Skrýt návod", "Hide the how-to") : L("Jak na to", "How to do it")}</button>
           {open ? (
             <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.65, color: t.textSec, display: "flex", flexDirection: "column", gap: 6 }}>
+              {atlas ? <ExerciseAtlasImage entry={atlas} alt={tvName(rec) || TL(block.name)} fluid dark={t.mode==="dark"}/> : null}
               {rec.startPosition ? <div><b style={{ color: t.heading }}>{L("Výchozí pozice", "Start")}</b> · {TL(rec.startPosition)}</div> : null}
               {rec.execution ? <div><b style={{ color: t.heading }}>{L("Provedení", "Execution")}</b> · {TL(rec.execution)}</div> : null}
               {rec.watchFor ? <div><b style={{ color: t.heading }}>{L("Na co dát pozor", "Watch for")}</b> · {TL(rec.watchFor)}</div> : null}
