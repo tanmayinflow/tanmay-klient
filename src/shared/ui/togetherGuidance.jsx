@@ -1,6 +1,7 @@
-import React,{useEffect,useState,useId,useMemo} from "react";
+import React,{useEffect,useState,useId,useMemo,useRef} from "react";
 import {CYCLE_GUIDE,CYCLE_SOURCES} from "../product/togetherGuidance.js";
-import {moonToday,MOON_NAMES,ZODIAC,LUNAR_REFLECTIONS,ZODIAC_REFLECTIONS,LUNAR_SOURCES} from "../product/togetherMoon.js";
+import {moonToday,MOON_NAMES,ZODIAC,ZODIAC_REFLECTIONS,LUNAR_SOURCES} from "../product/togetherMoon.js";
+import {LUNAR_PHASE_PRACTICES,LUNAR_ELEMENTS,LUNAR_ARCHETYPES} from "../product/togetherMoonEditorial.js";
 
 export function PhaseGuide({phase,lang,onPlan}) {
   const L=(cs,en)=>lang==="en"?en:cs;
@@ -27,26 +28,35 @@ export function MoonArt({phase=.5}) {
   return <svg viewBox="0 0 150 180" fill="none" stroke="currentColor" strokeWidth=".9" aria-hidden="true"><defs><pattern id={uid} width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 4 4 0" stroke="currentColor" strokeWidth=".7"/></pattern><clipPath id={`${uid}-disc`}><circle r="40"/></clipPath></defs><g transform="translate(77 74)"><circle r="41"/><circle r="38" strokeDasharray=".6 3" opacity=".55"/><polygon points={points.join(" ")} fill="currentColor" fillOpacity=".15" strokeWidth=".55"/><polygon points={points.join(" ")} fill={`url(#${uid})`} opacity=".7" stroke="none"/><g clipPath={`url(#${uid}-disc)`} opacity=".6"><path d="M-26-18c-8 4-7 14 1 16 9 2 11-10 4-13m18 2c5-6 13-3 12 4s-10 9-13 3M16 10c-7 8-1 16 7 11 6-4 0-11-5-8M-17 22c-5-2-7 2-6 6m9-3 6 3M21-25l5 2M-7-29l3-3M4 27l3 4"/><circle cx="-8" cy="9" r="3"/><circle cx="20" cy="-8" r="2"/></g><path d="M-51 23C-67-14-39-64 4-58M34-50C63-30 68 8 49 38M-41 43C-17 64 17 63 38 47" opacity=".6"/><path d="M-55-8C-62 28-37 58-7 62M15-59c22 5 38 20 44 39" strokeDasharray="1 5"/></g><path d="M75 7v13m-6-6h12M77 132v10"/><circle cx="77" cy="124" r="2"/><path d="m23 38 2-5 2 5 5 2-5 2-2 5-2-5-5-2ZM121 118v8m-4-4h8"/></svg>;
 }
 
-export function MoonCompanion({lang,Sheet,t}) {
+export function MoonCompanion({lang,Sheet,t,onPlan}) {
   const L=(cs,en)=>lang==="en"?en:cs;
-  const [now,setNow]=useState(()=>new Date()),[open,setOpen]=useState(false),[offset,setOffset]=useState(0);
+  const [now,setNow]=useState(()=>new Date()),[open,setOpen]=useState(false),[offset,setOffset]=useState(0),[selectedPhase,setSelectedPhase]=useState(null);
   const [showAction,setShowAction]=useState(false);
+  const [phaseFocus,setPhaseFocus]=useState(false),reflectionHeading=useRef(null);
   const actionId=useId();
   useEffect(()=>{const update=()=>setNow(new Date());const id=setInterval(update,60000);window.addEventListener("focus",update);return()=>{clearInterval(id);window.removeEventListener("focus",update);};},[]);
   const moon=useMemo(()=>moonToday(now),[now]);
-  const reflection=LUNAR_REFLECTIONS[(moon.quarter+offset)%LUNAR_REFLECTIONS.length];
-  const zodiac=ZODIAC_REFLECTIONS[moon.sign],label=L(...MOON_NAMES[moon.index]);
+  const phaseIndex=selectedPhase??moon.index,reflection=LUNAR_PHASE_PRACTICES[phaseIndex];
+  const prompt=reflection.prompts[offset%reflection.prompts.length];
+  const zodiac=ZODIAC_REFLECTIONS[moon.sign],element=LUNAR_ELEMENTS[moon.sign%4],archetype=LUNAR_ARCHETYPES[moon.sign],label=L(...MOON_NAMES[moon.index]);
   const fmt=d=>new Date(d).toLocaleString(lang==="en"?"en-GB":"cs-CZ",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
-  const begin=()=>{setNow(new Date());setOffset(0);setShowAction(false);setOpen(true);};
-  const another=()=>{setOffset(value=>(value+1)%LUNAR_REFLECTIONS.length);setShowAction(false);};
+  const begin=()=>{setNow(new Date());setOffset(0);setSelectedPhase(null);setShowAction(false);setOpen(true);};
+  const another=()=>setOffset(value=>(value+1)%reflection.prompts.length);
+  const choosePhase=value=>{setSelectedPhase(value==="today"?null:Number(value));setOffset(0);setShowAction(false);setPhaseFocus(true);};
+  useEffect(()=>{if(!phaseFocus||!open)return;const id=requestAnimationFrame(()=>{reflectionHeading.current?.focus({preventScroll:true});reflectionHeading.current?.scrollIntoView({block:"start",behavior:"auto"});setPhaseFocus(false);});return()=>cancelAnimationFrame(id);},[phaseFocus,open,phaseIndex]);
+  const planRitual=()=>{setOpen(false);onPlan?.({title:L(...reflection.ritual),minutes:10,note:reflection.steps.map((step,index)=>`${index+1}. ${L(...step)}`).join("\n")});};
   const sectionStyle={borderTop:`1px solid ${t.borderSoft}`,paddingTop:24,marginTop:24};
   const linkStyle={color:t.accentInk,textUnderlineOffset:4};
+  const summaryStyle={cursor:"pointer",minHeight:44,alignContent:"center",padding:"4px 0",fontFamily:"var(--tm-font-display)",fontSize:23,lineHeight:1.3,color:t.accentInk};
+  const smallHeadingStyle={fontFamily:"var(--tm-font-display)",fontSize:22,fontWeight:500,lineHeight:1.3,margin:"22px 0 8px",color:t.accentInk};
+  const buttonStyle={minHeight:44,padding:"10px 14px",border:`1px solid ${t.borderSoft}`,borderRadius:6,background:"transparent",color:t.text,font:"inherit",cursor:"pointer"};
   return <>
     <button type="button" className="tg-moon" onClick={begin} aria-label={`${L("Měsíc a chvíle pro vás","The Moon and a moment together")} · ${label}`} title={L("Otevřít Měsíc a chvíli pro vás","Open the Moon and a moment together")}>
       <MoonArt phase={moon.phase}/><span>{label}</span>
     </button>
     {open&&Sheet&&<Sheet title={L("Měsíc a chvíle pro vás","The Moon and a moment together")} onClose={()=>setOpen(false)}>
       <div className="tg-moon-sheet" style={{color:t.text,fontFamily:"var(--tm-font-body)",lineHeight:1.65,maxWidth:680,margin:"0 auto",overflowWrap:"anywhere"}}>
+        <style>{`.tg-moon-sheet :is(button,select,summary,a):focus-visible{outline:2px solid ${t.accentInk};outline-offset:4px}.tg-moon-sheet button:hover{background:${t.borderSoft}}.tg-moon-sheet ::selection{background:${t.accentInk};color:${t.bg}}.tg-moon-sheet p{max-width:65ch}`}</style>
         <div style={{display:"flex",alignItems:"center",gap:16}}>
           <div style={{width:88,flexShrink:0,color:t.accentInk}}><MoonArt phase={moon.phase}/></div>
           <div style={{minWidth:0}}>
@@ -55,48 +65,77 @@ export function MoonCompanion({lang,Sheet,t}) {
           </div>
         </div>
         {moon.next&&<p style={{fontSize:14,margin:"8px 0 0"}}>{L("Příště","Coming next")}: {L(...MOON_NAMES[moon.nextIndex])} · {fmt(moon.next)}</p>}
-        <p style={{fontSize:13,margin:"6px 0 0"}}>{L("Časy odpovídají časovému pásmu tvého zařízení.","Times follow your device's time zone.")}</p>
-
         <section style={sectionStyle} aria-label={L("Otázka pro vás","A question for you both")}>
           <div aria-live="polite" aria-atomic="true">
-            <h3 style={{fontFamily:"var(--tm-font-display)",fontSize:26,fontWeight:400,lineHeight:1.25,margin:"0 0 12px",color:t.heading}}>{L(...reflection.title)}</h3>
+            <h3 ref={reflectionHeading} tabIndex={-1} style={{fontFamily:"var(--tm-font-display)",fontSize:26,fontWeight:400,lineHeight:1.25,margin:"0 0 12px",scrollMarginTop:80,color:t.heading}}>{L(...reflection.title)}</h3>
             <p style={{margin:"0 0 16px"}}>{L(...reflection.text)}</p>
-            <p style={{fontSize:13,margin:"0 0 12px"}}>{offset===0?L(...reflection.quality):L("Další námět. Můžeš si vybrat i mimo dnešní fázi.","Another idea. You can choose one beyond today's phase.")}</p>
-            <p style={{fontFamily:"var(--tm-font-display)",fontSize:24,lineHeight:1.4,margin:"0 0 20px",color:t.heading}}>{L(...reflection.prompt)}</p>
+            <p style={{fontSize:13,margin:"0 0 16px",color:t.accentInk}}>{selectedPhase!==null&&selectedPhase!==moon.index?`${L("Prohlížíš jinou fázi","Exploring another phase")}: ${L(...MOON_NAMES[phaseIndex])}`:L("Dnešní lunární obraz · vezměte si z něj to, co s vámi souzní.","Today's lunar image · take what resonates with you.")}</p>
+            <p style={{fontFamily:"var(--tm-font-display)",fontSize:24,lineHeight:1.4,margin:"0 0 20px",color:t.heading}}>{L(...prompt)}</p>
           </div>
           <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-            <button type="button" onClick={()=>setShowAction(value=>!value)} aria-expanded={showAction} aria-controls={actionId} style={{minHeight:44,padding:"10px 14px",border:`1px solid ${t.accentInk}`,borderRadius:6,background:"transparent",color:t.accentInk,font:"inherit",cursor:"pointer"}}>
-              {showAction?L("Skrýt malý krok","Hide the small step"):L("Zkusit spolu · 2 minuty","Try together · 2 minutes")}
+            <button type="button" onClick={()=>setShowAction(value=>!value)} aria-expanded={showAction} aria-controls={actionId} style={{...buttonStyle,borderColor:t.accentInk,color:t.accentInk}}>
+              {showAction?L("Skrýt rituál","Hide the ritual"):L("Malý rituál · 10 minut","A small ritual · 10 minutes")}
             </button>
-            <button type="button" onClick={another} style={{minHeight:44,padding:"10px 12px",border:`1px solid ${t.borderSoft}`,borderRadius:6,background:"transparent",color:t.text,font:"inherit",cursor:"pointer"}}>{L("Jiná otázka","Another question")}</button>
+            <button type="button" onClick={another} style={buttonStyle}>{L("Jiná otázka","Another question")}</button>
           </div>
           <div id={actionId} hidden={!showAction}>
-            <p style={{margin:"18px 0 8px"}}>{L(...reflection.action)}</p>
-            <p style={{fontSize:13,margin:"0 0 8px"}}>{L("Jen si povídejte. Nic se tu nezapisuje ani neodesílá.","Just talk. Nothing here is recorded or sent.")}</p>
+            <h4 style={smallHeadingStyle}>{L(...reflection.ritual)}</h4>
+            <ol style={{paddingLeft:22,margin:"12px 0 20px"}}>{reflection.steps.map((step,index)=><li key={index} style={{paddingLeft:4,marginBottom:12}}>{L(...step)}</li>)}</ol>
+            <p style={{fontSize:13,margin:"0 0 16px"}}>{L("Stačí přečíst podnět a odložit telefon. Můžete skončit i dřív; nic se samo nezapisuje ani nesdílí.","Read the invitation and put your phone aside. You can finish sooner; nothing is automatically recorded or shared.")}</p>
+            {onPlan&&<button type="button" onClick={planRitual} style={buttonStyle}>{L("Naplánovat spolu","Plan together")}</button>}
           </div>
-          <p style={{fontSize:13,margin:"18px 0 0"}}>{L("Otázky vycházejí z lunární symboliky. Vezmi si z nich to, co právě sedí vašemu životu.","These questions draw on lunar symbolism. Take what fits your life right now.")}</p>
         </section>
 
         <details style={sectionStyle}>
-          <summary style={{cursor:"pointer",padding:"4px 0",color:t.heading}}>{L("Znamení jako podnět", "A sign as a reflection")} · {L(...ZODIAC[moon.sign])}</summary>
-          <p><strong>{L(...zodiac.motif)}</strong></p>
+          <summary style={summaryStyle}>{L("Jít pod povrch","Go beneath the surface")}</summary>
+          <h4 style={smallHeadingStyle}>{L("Záměr","Intention")}</h4>
+          <p style={{margin:"0 0 12px"}}>{L(...reflection.intention)}</p>
+          <h4 style={smallHeadingStyle}>{L("Stín, kterému lze naslouchat","A shadow to listen to")}</h4>
+          <p style={{margin:"0 0 12px"}}>{L(...reflection.shadow)}</p>
+          <h4 style={smallHeadingStyle}>{L("Přenést do života","Bring it into life")}</h4>
+          <p style={{margin:"0 0 8px"}}>{L(...reflection.integration)}</p>
+          <p style={{fontSize:13}}>{L("Každý mluví o sobě. Stín tu znamená přehlíženou potřebu nebo naučenou reakci; není to nálepka pro partnera.","Each person speaks about themselves. Shadow here means an overlooked need or a learned reaction; it is not a label for your partner.")}</p>
+        </details>
+
+        <details style={sectionStyle}>
+          <summary style={summaryStyle}>{L("Dnešní znamení", "Today's sign")} · {L(...ZODIAC[moon.sign])}</summary>
+          <h4 style={smallHeadingStyle}>{L(...archetype.name)}</h4>
+          <p style={{margin:"0 0 12px"}}>{L(...archetype.balance)}</p>
+          <h4 style={smallHeadingStyle}>{L(...zodiac.motif)}</h4>
           <p>{L(...zodiac.prompt)}</p>
-          <p style={{fontSize:13}}>{L("Dnešní poloha Měsíce je v tropickém znamení", "Today's Moon is in the tropical sign of")} <strong>{L(...ZODIAC[moon.sign])}</strong>. {L("Znamení tady nabízí obraz k zamyšlení. Neurčuje tvou povahu ani to, co se mezi vámi stane.","The sign offers a symbolic image for reflection. It does not determine your personality or what will happen between you.")}</p>
-          <p style={{fontSize:13}}>{L("Tropická znamení jsou dvanáct stejně velkých úseků zvěrokruhu. Nejde o astronomická souhvězdí ani védický výpočet.","Tropical signs are twelve equal sections of the zodiac. They are not astronomical constellations or a Vedic calculation.")}</p>
+          <h4 style={smallHeadingStyle}>{L("Živel", "Element")} · {L(...element.name)}</h4>
+          <p><strong>{L("Dar", "Gift")}:</strong> {L(...element.gift)}<br/><strong>{L("Jeho druhá strana", "Its other side")}:</strong> {L(...element.shadow)}</p>
+          <p>{L(...element.practice)}</p>
+          <p style={{fontSize:13}}>{L("Jde o dnešní polohu Měsíce v tropickém zvěrokruhu, nikoli vaše osobní znamení. Archetyp je obraz k zamyšlení, který můžete přijmout nebo nechat být.","This is today's Moon position in the tropical zodiac, not your personal sign. The archetype is an image for reflection that you can take or leave.")}</p>
+        </details>
+
+        <details style={sectionStyle}>
+          <summary style={summaryStyle}>{L("Prohlédnout celý lunární kruh","Explore the lunar cycle")}</summary>
+          <p>{L("Někdy s námi souzní jiná část kruhu. Vyberte si její otázky a rituál; dnešní obloha nahoře zůstává stejná.","Sometimes a different part of the cycle resonates. Choose its questions and ritual; today's sky above stays the same.")}</p>
+          <label style={{display:"block",fontSize:14,color:t.accentInk}}>{L("Fáze pro zamyšlení","A phase to reflect on")}
+            <select value={selectedPhase===null?"today":String(selectedPhase)} onChange={event=>choosePhase(event.target.value)} style={{...buttonStyle,display:"block",width:"100%",maxWidth:"100%",marginTop:8,background:t.bg,color:t.text}}>
+              <option value="today">{L("Dnešní fáze","Today's phase")} · {label}</option>
+              {MOON_NAMES.map((name,index)=><option key={index} value={index}>{L(...name)}</option>)}
+            </select>
+          </label>
+          <p style={{fontSize:13}} role="status">{L("Otázka, rituál a zamyšlení výše nyní patří k fázi", "The question, ritual and reflection above now belong to")} <strong>{L(...MOON_NAMES[phaseIndex])}</strong>.</p>
         </details>
 
         <details style={{...sectionStyle,paddingTop:16,marginTop:16}}>
-          <summary style={{cursor:"pointer",padding:"4px 0",color:t.heading}}>{L("O symbolice a zdrojích","About the symbolism and sources")}</summary>
+          <summary style={{...summaryStyle,fontSize:20}}>{L("O tomto průvodci","About this guide")}</summary>
           <h3 style={{fontSize:18,margin:"20px 0 8px",color:t.heading}}>{L("Co vidíme na obloze","What we see in the sky")}</h3>
-          <p>{L("Tvar Měsíce se mění podle toho, jakou část jeho osvětlené poloviny vidíme ze Země. Polohu, osvětlení a další hlavní fázi počítá aplikace místně pomocí Astronomy Engine. S menstruačním cyklem tyto výpočty nejsou propojené.","The Moon's shape changes with our view of its sunlit half from Earth. The app calculates its position, illumination and next main phase locally with Astronomy Engine. These calculations are independent of the menstrual cycle.")}</p>
+          <p>{L("Polohu Měsíce, osvětlení a další hlavní fázi počítá aplikace místně pomocí Astronomy Engine. Časy odpovídají časovému pásmu zařízení. Názvy osmi fází označují části cyklu kolem hlavních fází, ne jen jejich přesný okamžik. S menstruačním cyklem výpočty nejsou propojené.","The app calculates the Moon's position, illumination and next main phase locally using Astronomy Engine. Times follow your device's time zone. The eight phase names describe parts of the cycle around its principal phases, not just their exact moments. These calculations are independent of the menstrual cycle.")}</p>
           <p><a style={linkStyle} href={LUNAR_SOURCES.nasa} target="_blank" rel="noreferrer">NASA · Moon phases</a><br/><a style={linkStyle} href={LUNAR_SOURCES.calculation} target="_blank" rel="noreferrer">Astronomy Engine · {L("výpočet", "calculation")}</a></p>
           <h3 style={{fontSize:18,margin:"24px 0 8px",color:t.heading}}>{L("Odkud přichází inspirace","Where the inspiration comes from")}</h3>
-          <p>{L("Náměty k rozhovoru jsme napsali pro tanmay. Vycházejí z obecných motivů současné západní lunární astrologie. Nejsou citátem ani osobním horoskopem. Astrologii tu používáme jako symbolický jazyk, ne jako vědecky potvrzený vliv na náladu, vztah nebo zdraví.","We wrote these conversation prompts for tanmay, drawing on common motifs in contemporary Western lunar astrology. They are not quotations or a personal horoscope. Astrology here is symbolic language, not an established influence on mood, relationships or health.")}</p>
+          <p>{L("Náměty, záměry, obrazy a rituály jsme napsali pro tanmay. Pracují s motivy současné západní lunární astrologie: začátkem, zráním, plností a uvolněním. Jsou pozváním k vlastní zkušenosti, ne předpovědí ani osobním horoskopem. Astrologické souvislosti nejsou vědecky potvrzeným vlivem na vztah nebo zdraví.","We wrote these prompts, intentions, images and rituals for tanmay. They work with motifs from contemporary Western lunar astrology: beginning, ripening, fullness and release. They invite your own experience rather than predicting it or providing a personal horoscope. Astrological associations are not an established influence on relationships or health.")}</p>
+          <p>{L("Podobně jako Moonly nabízíme více vrstev k objevování. Moonly však pracuje s védskou astrologií; zde používáme tropická znamení, dvanáct stejných úseků od jarního bodu. Nejde o totožný výpočet ani astronomická souhvězdí. Bez údajů narození nevytváříme partnerskou kompatibilitu, domy ani osobní tranzity.","Like Moonly, we offer several layers to explore. Moonly uses Vedic astrology; here we use tropical signs, twelve equal sectors measured from the vernal point. These are different systems, and tropical signs are not astronomical constellations. Without birth data we do not create compatibility readings, houses or personal transits.")}</p>
           <ul style={{paddingLeft:20,lineHeight:1.8}}>
             <li><a style={linkStyle} href={LUNAR_SOURCES.chani} target="_blank" rel="noreferrer">CHANI · {L("Lunární fáze a práce s nimi", "Moon phases and working with them")}</a></li>
             <li><a style={linkStyle} href={LUNAR_SOURCES.gerhardt} target="_blank" rel="noreferrer">Dana Gerhardt · The Moon Watching Series</a></li>
             <li><a style={linkStyle} href={LUNAR_SOURCES.greene} target="_blank" rel="noreferrer">Liz Greene · Astrology is an Art</a></li>
             <li><a style={linkStyle} href={LUNAR_SOURCES.zodiac} target="_blank" rel="noreferrer">Dana Gerhardt · {L("Přehled lunární a astrologické symboliky", "Lunar and astrological symbolism")}</a></li>
+            <li><a style={linkStyle} href={LUNAR_SOURCES.elements} target="_blank" rel="noreferrer">Astrodienst · {L("Čtyři živly a znamení", "The four elements and signs")}</a></li>
+            <li><a style={linkStyle} href={LUNAR_SOURCES.moonly} target="_blank" rel="noreferrer">Moonly · {L("Lunární kalendář", "Lunar calendar")}</a></li>
           </ul>
           <h3 style={{fontSize:18,margin:"24px 0 8px",color:t.heading}}>{L("Starší tradice", "Earlier traditions")}</h3>
           <p>{L("Ptolemaios v Tetrabiblos I.8 popisuje čtyři části lunárního cyklu jazykem vláhy, tepla, sucha a chladu. Jde o historický astrologický výklad. Dnešní otázky jsou naše vlastní a nejsou překladem tohoto textu.","In Tetrabiblos I.8, Ptolemy describes four parts of the lunar cycle through moisture, warmth, dryness and coolness. This is a historical astrological interpretation. Today's questions are our own, not a translation of that text.")} <a style={linkStyle} href={LUNAR_SOURCES.ptolemy} target="_blank" rel="noreferrer">Tetrabiblos I.8</a></p>

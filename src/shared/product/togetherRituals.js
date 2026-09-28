@@ -7,6 +7,18 @@
  */
 export const TOGETHER_RITUAL_SOURCES = [
   {
+    id: 'gable-positive-events',
+    title: 'Gable, Gonzaga & Strachman: Supportive responses to positive event disclosures (2006)',
+    url: 'https://pubmed.ncbi.nlm.nih.gov/17059309/',
+    kind: 'relationship-research',
+  },
+  {
+    id: 'eft-negative-cycle',
+    title: 'Johnson, Makinen & Millikin: Attachment Injuries in Couple Relationships (2001)',
+    url: 'https://iceeft.com/wp-content/uploads/2020/09/AttachmentInjuries.pdf',
+    kind: 'relationship-framework',
+  },
+  {
     id: 'gottman-listening',
     title: 'The Gottman Institute: How to Have a Stress-Reducing Conversation',
     url: 'https://www.gottman.com/blog/how-to-stress-reducing-conversation/',
@@ -178,6 +190,58 @@ export const TOGETHER_RITUALS = [
       ],
     },
     sourceId: 'plum-village-beginning-anew',
+  },
+  {
+    id: 'share-a-good-thing',
+    category: {cs: 'Radost', en: 'Joy'},
+    minutes: 5,
+    title: {cs: 'Být u toho, co tě těší', en: 'Be there for what delights you'},
+    intro: {cs: 'Chvíle pro dobrou zprávu, malý úspěch nebo obyčejnou radost. Nemusí se týkat vás dvou.', en: 'Make room for good news, a small success or an ordinary delight. It does not have to be about the two of you.'},
+    question: {cs: 'Co tě potěšilo a co na tom pro tebe bylo nejhezčí?', en: 'What brought you joy, and what was the best part for you?'},
+    steps: {
+      cs: ['Jeden vypráví o příjemné chvíli. Druhý odloží, co právě dělá, pokud může.', 'Zeptej se na jeden detail, který tě zajímá. Nech radost chvíli zaznít, než přidáš vlastní příběh nebo obavy.', 'Vyměňte se, pokud oba chcete. Když dnes nic nepřichází, nic nemusíte hledat násilím.'],
+      en: ['One person shares a pleasant moment. The other sets aside what they are doing, if possible.', 'Ask about one detail that interests you. Let the joy have some space before adding your own story or concerns.', 'Swap if you both want to. If nothing comes to mind today, there is no need to force it.'],
+    },
+    sourceId: 'gable-positive-events',
+  },
+  {
+    id: 'notice-our-pattern',
+    category: {cs: 'Porozumění', en: 'Understanding'},
+    minutes: 15,
+    title: {cs: 'Co se mezi námi opakuje', en: 'What keeps happening between us'},
+    intro: {cs: 'Pro klidnější chvíli, kdy oba chcete pochopit opakující se neshodu. Vyberte jednu menší situaci.', en: 'For a calmer moment when you both want to understand a recurring disagreement. Choose one smaller situation.'},
+    question: {cs: 'Co se ve mně děje těsně předtím, než se mezi námi rozjede známý kolotoč?', en: 'What happens inside me just before we fall into our familiar pattern?'},
+    steps: {
+      cs: ['Každý popíše jen svou zkušenost: co se stalo, co si vyložil a jak zareagoval. Nehádejte, co se dělo v druhém.', 'Pokud chceš, pojmenuj, co bylo pod první reakcí: třeba strach, smutek, bezmoc nebo potřeba být brán/a vážně.', 'Druhý řekne, čemu porozuměl, a nechá se opravit. Nemusíte situaci vidět stejně.', 'Vyberte jeden rozpoznatelný signál a jeden jiný malý krok pro příště. Když napětí roste, udělejte pauzu a domluvte, kdy znovu ověříte, jestli chcete pokračovat.'],
+      en: ['Each describes only their own experience: what happened, how they read it and how they reacted. Do not guess what was going on in the other person.', 'If you want, name what lay beneath your first reaction: fear, sadness, helplessness or a need to be taken seriously.', 'The listener says what they understood and makes room for correction. You do not have to see the situation the same way.', 'Choose one recognisable signal and one small different step for next time. If tension rises, pause and agree when to check whether you both want to continue.'],
+    },
+    sourceId: 'eft-negative-cycle',
+  },
+  {
+    id: 'repair-my-part',
+    category: {cs: 'Náprava', en: 'Repair'},
+    minutes: 10,
+    title: {cs: 'Moje část, můj další krok', en: 'My part, my next step'},
+    intro: {cs: 'Když chceš napravit něco ve svém jednání. Omluva nemusí být výměna a nevyžaduje okamžité odpuštění.', en: 'When you want to repair something in your own behaviour. An apology need not be an exchange and does not require immediate forgiveness.'},
+    question: {cs: 'Co ze svého jednání chci uznat a jak ukážu změnu v něčem konkrétním?', en: 'What do I want to acknowledge about my behaviour, and how will I show a concrete change?'},
+    steps: {
+      cs: ['Zeptej se, jestli má druhý prostor. Pojmenuj konkrétně, co jsi udělal/a, bez navazujícího „ale ty“.', 'Vyslechni, jaký to mělo dopad. Pokud něčemu nerozumíš, ověř si to otázkou.', 'Navrhni malou nápravu, za kterou můžeš stát. Druhý může říct, že potřebuje něco jiného nebo čas.', 'Domluvte jen to, s čím oba souhlasíte. Uložte případně jednu větu o dalším kroku; celý rozhovor zaznamenávat nemusíte.'],
+      en: ['Ask whether the other person has room. Name what you did specifically, without following it with “but you”.', 'Listen to the impact. If something is unclear, ask rather than assume.', 'Offer a small repair you can stand behind. The other person can ask for something different or for time.', 'Agree only on what you both accept. If useful, record one sentence about the next step; the whole conversation need not be recorded.'],
+    },
+    sourceId: 'plum-village-beginning-anew',
+  },
+  {
+    id: 'one-week-experiment',
+    category: {cs: 'Do života', en: 'Into daily life'},
+    minutes: 10,
+    title: {cs: 'Jeden malý pokus na týden', en: 'One small experiment for a week'},
+    intro: {cs: 'Aby dobrý rozhovor dostal místo i v obyčejném dni. Vyberte změnu, která se vejde do vašich možností.', en: 'Give a good conversation a place in everyday life. Choose a change that fits what you can actually manage.'},
+    question: {cs: 'Co zkusíme tento týden jinak a podle čeho poznáme, jestli nám to pomáhá?', en: 'What will we try differently this week, and how will we know whether it helps?'},
+    steps: {
+      cs: ['Každý řekne jednu potřebu. Vyberte společně jednu, se kterou teď chcete něco udělat.', 'Domluvte pozorovatelný krok: kdo co udělá, kdy a jak často. Třeba deset minut po večeři bez telefonů dvakrát za týden.', 'Předem zvažte překážku a menší variantu pro náročný den. Nemusíte přidávat další výkon.', 'V příštím ohlédnutí se vraťte k tomu, jaké to bylo. Neplnění není skóre vztahu; je to důvod dohodu upravit.'],
+      en: ['Each names one need. Together, choose one you would like to act on now.', 'Agree on an observable step: who will do what, when and how often. For example, ten phone-free minutes after dinner twice this week.', 'Anticipate an obstacle and a smaller version for a difficult day. There is no need to add another performance target.', 'Return to how it felt in your next reflection. Not following through is not a relationship score; it is a reason to adjust the agreement.'],
+    },
+    sourceId: 'gottman-rituals',
   },
 ];
 

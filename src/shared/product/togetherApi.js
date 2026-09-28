@@ -1,7 +1,7 @@
 import { cleanTogether, emptyTogether, togetherProjection, TOGETHER_SCOPES, validDate, dateKey, dayNumber } from "./together.js";
 import {cleanPartnerPages,PARTNER_ROOMS} from "./togetherPages.js";
 
-import {cleanReflection, reflectionWeek, conversationHistory} from "./togetherJournal.js";
+import {cleanReflection, reflectionWeek, conversationHistory, dailyQuestion, legacyQuestion, readQuestionSnapshot} from "./togetherJournal.js";
 
 const reply=(data,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store, private","X-Content-Type-Options":"nosniff","Vary":"Cookie"}});
 const fail=(error,status=400)=>reply({ok:false,error},status);
@@ -13,6 +13,8 @@ export async function ensureTogether(db) {
   await db.prepare("CREATE TABLE IF NOT EXISTS together_links (id TEXT PRIMARY KEY, owner TEXT NOT NULL UNIQUE, partner TEXT UNIQUE, token_hash TEXT, expires INTEGER NOT NULL, status TEXT NOT NULL, scopes TEXT NOT NULL DEFAULT '[]', revision INTEGER NOT NULL DEFAULT 0)").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_plans (id TEXT PRIMARY KEY, link_id TEXT NOT NULL, doc TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0)").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_answers (link_id TEXT NOT NULL, day TEXT NOT NULL, actor TEXT NOT NULL, answer TEXT NOT NULL, PRIMARY KEY(link_id,day,actor))").run();
+  // Additive migration: old answer rows remain intact and retain their original date-based prompt.
+  await db.prepare("CREATE TABLE IF NOT EXISTS together_questions (link_id TEXT NOT NULL, day TEXT NOT NULL, question_id TEXT NOT NULL, doc TEXT NOT NULL, PRIMARY KEY(link_id,day))").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_reflections (link_id TEXT NOT NULL, week TEXT NOT NULL, actor TEXT NOT NULL, doc TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(link_id,week,actor))").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_pages (link_id TEXT PRIMARY KEY, rooms TEXT NOT NULL DEFAULT '[]', doc TEXT NOT NULL DEFAULT '{}', revision INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL DEFAULT 0)").run();
 }
@@ -28,6 +30,13 @@ async function person(db,actor) {
 }
 function publicLink(link,actor) {
   return link?{id:link.id,status:link.status,owner:link.owner===actor,scopes:decode(link.scopes,[]),revision:link.revision,expires:link.expires}:null;
+}
+async function questionForPair(db,link,day,{legacyClient=false}={}) {
+  if(!link||link.status!=="active")return dailyQuestion(day);
+  const stored=await db.prepare("SELECT question_id,doc FROM together_questions WHERE link_id = ? AND day = ?").bind(link.id,day).first();
+  if(stored)return readQuestionSnapshot(stored.question_id,stored.doc,day);
+  const old=await db.prepare("SELECT actor FROM together_answers WHERE link_id = ? AND day = ? LIMIT 1").bind(link.id,day).first();
+  return old||legacyClient?legacyQuestion(day):dailyQuestion(day);
 }
 // Authenticated actor comes from the Worker, never the URL/body. Main may publish only its reduced page projections.
 export async function handleTogether(request,db,actor,{owner=false,now=Date.now()}={}) {
@@ -61,15 +70,16 @@ export async function handleTogether(request,db,actor,{owner=false,now=Date.now(
     const partner=otherDoc?togetherProjection(otherDoc,link.owner===actor?["wellbeing","support"]:decode(link.scopes,[]),localToday):null;
     const plans=active?(await db.prepare("SELECT id,doc,revision FROM together_plans WHERE link_id = ?").bind(link.id).all()).results.map(p=>({...decode(p.doc,{}),id:p.id,revision:p.revision})):[];
     const answers=active?(await db.prepare("SELECT actor,answer FROM together_answers WHERE link_id = ? AND day = ?").bind(link.id,localToday).all()).results:[];
-    const historyRows=active?(await db.prepare("SELECT day,actor,answer FROM together_answers WHERE link_id = ? AND day <= ? ORDER BY day DESC").bind(link.id,localToday).all()).results:[];
+    const historyRows=active?(await db.prepare("SELECT a.day,a.actor,a.answer,q.question_id,q.doc AS question_doc FROM together_answers a LEFT JOIN together_questions q ON q.link_id = a.link_id AND q.day = a.day WHERE a.link_id = ? AND a.day <= ? ORDER BY a.day DESC").bind(link.id,localToday).all()).results:[];
     const reflections=active?(await db.prepare("SELECT week,actor,doc,revision FROM together_reflections WHERE link_id = ? AND week <= ? ORDER BY week DESC").bind(link.id,localToday).all()).results.map(r=>({week:r.week,side:r.actor===actor?"mine":"partner",doc:cleanReflection(decode(r.doc,{})),revision:r.revision})):[];
     const history=conversationHistory(historyRows,actor,other);
+    const question=await questionForPair(db,link,localToday);
     const myAnswer=answers.find(a=>a.actor===actor)?.answer||"";
     const pages=await pagesFor(db,link);
     const latest=await linkFor(db,actor);
     if(latest?.id!==link?.id||latest?.revision!==link?.revision)return fail("conflict",409);
     if((await pagesFor(db,latest)).revision!==pages.revision)return fail("conflict",409);
-    return reply({ok:true,self,link:publicLink(link,actor),partner,plans,reflections,history,sharedPages:pages,answer:{mine:myAnswer,partner:myAnswer?(answers.find(a=>a.actor===other)?.answer||""):"",waiting:!!answers.find(a=>a.actor===other)},canTrack:owner,today:localToday});
+    return reply({ok:true,self,link:publicLink(link,actor),partner,plans,reflections,history,question,sharedPages:pages,answer:{mine:myAnswer,partner:myAnswer?(answers.find(a=>a.actor===other)?.answer||""):"",waiting:!!answers.find(a=>a.actor===other)},canTrack:owner,today:localToday});
   }
   if(action==="/pages"&&method==="GET") {
     if(!link||link.status!=="active")return fail("not-connected",403);
@@ -145,7 +155,18 @@ export async function handleTogether(request,db,actor,{owner=false,now=Date.now(
   }
   if(action==="/answer"&&method==="PUT") {
     const answer=typeof body.answer==="string"?body.answer.trim().slice(0,1500):"";
-    const written=await db.prepare("INSERT INTO together_answers (link_id,day,actor,answer) SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM together_links WHERE id = ? AND status = 'active' AND revision = ?) ON CONFLICT(link_id,day,actor) DO UPDATE SET answer=excluded.answer").bind(link.id,localToday,actor,answer,link.id,link.revision).run();
+    if(body.questionId!==undefined&&(typeof body.questionId!=="string"||body.questionId.length>160))return fail("invalid-question");
+    const legacyClient=body.questionId===undefined;
+    if(!legacyClient&&(body.linkId!==link.id||body.linkRevision!==link.revision))return fail("conflict",409);
+    if(!legacyClient&&body.questionDay!==localToday)return fail("question-changed",409);
+    const candidate=await questionForPair(db,link,localToday,{legacyClient});
+    const matches=question=>legacyClient?question.id===legacyQuestion(localToday).id:body.questionId===question.id;
+    if(!matches(candidate))return fail("question-changed",409);
+    // Concurrent first answers agree on one immutable prompt. Stored wording survives catalogue changes.
+    await db.prepare("INSERT OR IGNORE INTO together_questions (link_id,day,question_id,doc) SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM together_links WHERE id = ? AND status = 'active' AND revision = ?)").bind(link.id,localToday,candidate.id,JSON.stringify(candidate.text),link.id,link.revision).run();
+    const fixed=await questionForPair(db,link,localToday);
+    if(!matches(fixed))return fail("question-changed",409);
+    const written=await db.prepare("INSERT INTO together_answers (link_id,day,actor,answer) SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM together_links WHERE id = ? AND status = 'active' AND revision = ?) AND EXISTS (SELECT 1 FROM together_questions WHERE link_id = ? AND day = ? AND question_id = ?) ON CONFLICT(link_id,day,actor) DO UPDATE SET answer=excluded.answer").bind(link.id,localToday,actor,answer,link.id,link.revision,link.id,localToday,fixed.id).run();
     return changeCount(written)?reply({ok:true}):fail("conflict",409);
   }
   if(action==="/plan"&&method==="PUT") {
