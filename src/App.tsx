@@ -716,22 +716,23 @@ const twoCol = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(
 // copper bindu, the rest wait as faint grain. A different contemplation greets
 // each visit — Vajrayāna, the Stoa, the desert, the forest. The room sits on no
 // map: its door is the day itself — click the date and see the whole life.
-// here urges. It only reminds. All quotes are attested classics, translated.
+// Owner-selected wording and attributions, including free renderings, preserved as supplied.
 const MEMENTO_QUOTES = [
-  { cz: "Můžeš odejít ze života právě teď. Ať to určuje, co děláš, říkáš a myslíš.", en: "You could leave life right now. Let that determine what you do and say and think.", src: "Marcus Aurelius · Hovory k sobě" },
-  { cz: "Nejednej, jako bys měl žít deset tisíc let. Dokud žiješ, dokud je to možné, staň se dobrým.", en: "Do not act as if you were going to live ten thousand years. While you live, while it is in your power, be good.", src: "Marcus Aurelius · Hovory k sobě" },
-  { cz: "Není pravda, že máme málo času. Pravda je, že ho mnoho promarníme.", en: "It is not that we have a short time to live, but that we waste much of it.", src: "Seneca · O krátkosti života" },
-  { cz: "Celý život se člověk má učit žít a, což možná udiví víc, celý život se má učit umírat.", en: "It takes the whole of life to learn how to live, and the whole of life to learn how to die.", src: "Seneca · O krátkosti života" },
-  { cz: "Smrt a vyhnanství měj denně před očima. Nikdy pak nebudeš myslet na nic nízkého, ani po ničem přehnaně toužit.", en: "Keep death and exile daily before your eyes. You will never harbour a base thought, nor desire anything beyond measure.", src: "Epiktétos · Rukojeť" },
-  { cz: "Mým náboženstvím je žít a zemřít bez výčitek.", en: "My religion is to live and die without regret.", src: "Milarepa" },
-  { cz: "V hrůze ze smrti jsem odešel do hor. Meditoval jsem o nejistotě její hodiny tak dlouho, až jsem dobyl pevnost nesmrtelné podstaty mysli. Teď je strach ze smrti pryč.", en: "In horror of death, I took to the mountains. Again and again I meditated on the uncertainty of the hour of death, until I captured the fortress of the deathless nature of mind. Now all fear of death is over and done.", src: "Milarepa" },
-  { cz: "Zítřek, nebo příští život. Nikdy nevíš, co přijde dřív.", en: "Tomorrow or the next life — which comes first, we never know.", src: "tibetské přísloví" },
-  { cz: "Smrt je jistá. Její hodina jistá není. Co je tedy teď to nejdůležitější?", en: "Death is certain, its hour is not. What, then, is the most important thing?", src: "lódžong · tibetská kontemplace" },
-  { cz: "Denně měj smrt před očima.", en: "Keep death daily before your eyes.", src: "Benediktova řehole" },
-  { cz: "Prach jsi a v prach se navrátíš.", en: "Dust you are, and to dust you shall return.", src: "Genesis 3,19" },
-  { cz: "Kdo by naučil lidi umírat, naučil by je žít.", en: "He who would teach men to die would teach them to live.", src: "Michel de Montaigne · Eseje" },
-  { cz: "Šel jsem do lesů, protože jsem chtěl žít soustředěně… abych, až přijde čas umírat, nezjistil, že jsem nežil.", en: "I went to the woods because I wished to live deliberately… and not, when I came to die, discover that I had not lived.", src: "Henry David Thoreau · Walden" },
-  { cz: "Velká hrouda země mě obtěžkává tělem, moří mě životem, ulehčuje mi stářím a dává mi spočinout smrtí. Co dělá můj život dobrým, dělá dobrou i mou smrt.", en: "The Great Clod burdens me with form, labors me with life, eases me in old age, and rests me in death. What makes my life good makes my death good also.", src: "Čuang-c'" },
+  {"cz":"Většina lidí zapomíná, že tu jednou všichni skončíme. Kdo si to pamatuje, přestane se hádat.","en":"Most people forget that we all come to an end here. Those who remember stop quarrelling.","src":"Buddha · Dhammapada (volné podání)","srcEn":"The Buddha · Dhammapada (free rendering)"},
+  {"cz":"Všechno, co je složené, se rozpadne. Usiluj a nepolevuj.","en":"Everything that is put together falls apart. Strive on, and do not let up.","src":"Buddha · poslední slova (volné podání)","srcEn":"The Buddha · last words (free rendering)"},
+  {"cz":"Moje náboženství je žít a zemřít bez lítosti.","en":"My religion is to live and die without regret.","src":"Milaräpa (tradičně připisováno)","srcEn":"Milarepa (traditionally attributed)"},
+  {"cz":"Smrt je jistá. Její hodina není.","en":"Death is certain. Its hour is not.","src":"Čtyři připomínky (volné podání)","srcEn":"The Four Reminders (free rendering)"},
+  {"cz":"Zítřek, nebo příští život — nikdo neví, co přijde dřív.","en":"Tomorrow or the next life — nobody knows which comes first.","src":"Tibetské přísloví","srcEn":"Tibetan proverb"},
+  {"cz":"Že se po výdechu znovu nadechneš a že se po usnutí probudíš — to je ten zázrak.","en":"That you breathe in again after breathing out, that you wake up after falling asleep — that is the wonder.","src":"Nágárdžuna · Dopis příteli (volné podání)","srcEn":"Nagarjuna · Letter to a Friend (free rendering)"},
+  {"cz":"Tvůj život se každým dnem zkracuje. Nikdy se neprodlužuje.","en":"Your life gets shorter every day. It never gets longer.","src":"Devět úvah o smrti (volné podání)","srcEn":"The Nine Contemplations of Death (free rendering)"},
+  {"cz":"Ve chvíli smrti ti pomůže jen to, co sis v sobě vypěstoval.","en":"At the moment of death, only what you cultivated inside yourself is of any use.","src":"Devět úvah o smrti (volné podání)","srcEn":"The Nine Contemplations of Death (free rendering)"},
+  {"cz":"Jednou z tebe zbydou kosti. Dneska s nimi ještě můžeš hýbat.","en":"One day only bones will be left of you. Today you can still move them.","src":"Úvaha na pohřebišti (volné podání)","srcEn":"Charnel-ground contemplation (free rendering)"},
+  {"cz":"Nauč se usínat tak, jak bys chtěl umírat.","en":"Learn to fall asleep the way you would want to die.","src":"Jóga spánku (volné podání)","srcEn":"Sleep yoga (free rendering)"},
+  {"cz":"Vnitřní klid je teď. Protože nějaké později tu bude vždycky.","en":"The inner peace is now. Because there will be always some later.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
+  {"cz":"A pak zemřeš bez lítosti. Zemřeš jako urozený. Zemřeš jako král.","en":"So then you die without regret. You die, you are a noble one. You die like a king.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
+  {"cz":"Když zítra umřeš, lidem to možná bude líto dva dny.","en":"If tomorrow you die, maybe people are sad for two days.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
+  {"cz":"Každý okamžik je čerstvý. Každý okamžik je nový život. Každý okamžik je čerstvý.","en":"Every moment is fresh. Every moment is a new life. Every moment is fresh.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
+  {"cz":"Pak pochopíš, že jediné, co je stálé, je nestálost.","en":"So you understand that the only thing that is permanent is impermanence.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
 ];
 
 
@@ -770,7 +771,7 @@ function PageMemento({ go }) {
       <div style={{ textAlign: "center", margin: "26px 0 0" }}>
         <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.34em", fontSize: 11, color: t.sage }}>memento mori</div>
         <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 22, lineHeight: 1.55, color: t.heading, maxWidth: 560, margin: "22px auto 0" }}>{L(q.cz, q.en)}</div>
-        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.textMuted, marginTop: 10 }}>{q.src}</div>
+        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.textMuted, marginTop: 10 }}>{L(q.src, q.srcEn)}</div>
         <div style={{ width: 44, height: 1, background: t.accent, opacity: 0.7, margin: "26px auto" }} />
       </div>
       {editing ? (

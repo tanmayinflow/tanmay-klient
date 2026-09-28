@@ -155,104 +155,39 @@ export const PLAN_QS_STARE = [
   { key: "insights", cz: "Vhledy k zapamatování", en: "Insights to remember" },
 ];
 
-/* PODNĚT TÝDNE · 52 podnětů k psaní — jiný druh otázky než ta v upozornění.
-   Upozornění je šťouchnutí: odpoví se v hlavě, za pochodu. Tohle otevírá
-   stránku — sedneš si a píšeš tři odstavce.
-
-   Proč 52 a ne 365: Frattaroliho metaanalýza 146 studií (r = .075) našla,
-   že delší rozestupy mezi psaním fungují lépe než každodenní, a Lyubomirsky
-   změřila, že totéž cvičení jednou týdně zabírá a třikrát týdně už ne —
-   opakování otupí. Týden je tedy dávka. 52 podnětů = každý se vrátí přesně
-   jednou za rok, na stejný týden. 365 by si vynutilo vatu.
-
-   Proč tahle slova a ne jiná · Watkins & Moberly ukázali, že režim myšlení
-   nastaví samo sloveso: „proč se to stalo, jaké to má příčiny" zvedlo
-   sklíčenost po nezdaru čtyřikrát víc než „jak se to odvíjelo, přehraj si to
-   jako film". Proto tu skoro nikde není holé „proč" — a když je, vždy až za
-   konkrétní kotvou. Kross a Ayduk pak ukázali, že odstup („ustup o krok a
-   dívej se na sebe") snižuje tíseň a vede k přerámování místo převyprávění;
-   proto ho nesou právě Odvrácení a Smrtelnost, kde je ho nejvíc potřeba.
-   Cohen & Sherman: pojmenuj hodnotu a hned k ní vyžádej příběh („a time
-   when it played an important role") — to drží celý okruh Směr.
-
-   Pravidla, která platí pro každý z nich · (1) má časovou kotvu — dnes,
-   tento týden, naposledy; nikdy se neptá na povahu obecně. (2) ptá se co,
-   jak, kde, kdy. (3) chce jednu věc do hloubky, ne seznam pěti.
-   (4) nepředpokládá partnera, děti, práci, zdraví, společnost ani to, jestli
-   byl den dobrý — každý musí jít poctivě zodpovědět slovem „nic".
-   (5) jedna věta, unese se v hlavě. Žádný název, žádný vykřičník, žádný
-   příkaz co cítit. Mravní tlak leží na tom, kdo píše — nikdy nejde k němu.
-
-   Vlastní okruh vděčnosti tu schválně není: strop má g ≈ 0,19, otupí se
-   nejrychleji ze všeho měřeného a tónem by celou aplikaci posunul do
-   svépomocné příručky. Konkrétní všímání je místo něj v Těle a v Druhých.
-
-   Pořadí je prostřídané (tělo → praxe → druzí → směr → odvrácení →
-   smrtelnost → …), aby po sobě nešly dva týdny ze stejné krajiny. */
-
+// Owner-supplied Czech prompts in the requested order; English translations for language switching.
+// The existing weekly rotation and alternate-prompt control use this replacement collection.
 export const TM_PROMPTS = [
-  // 1
-  { k: "telo", cz: "Kde v těle dnes sedí ten den? Najdi to místo a popiš, co tam je — teplo, tah, tíha, prázdno.", en: "Where in the body is today sitting? Find the place and write what is there — heat, pull, weight, hollowness." },
-  { k: "praxe", cz: "Co v praxi tento týden drželo samo od sebe a co jsi musel nést?", en: "What in the practice held itself this week, and what did you have to carry?" },
-  { k: "druzi", cz: "Čí hlas ti dnes zazněl v hlavě, aniž byl ten člověk poblíž? Napiš, co říkal.", en: "Whose voice sounded in your head today, without that person being anywhere near? Write what it said." },
-  { k: "smer", cz: "Vyber jednu věc, na které ti opravdu záleží. Napiš, kdy naposledy rozhodla, co uděláš.", en: "Choose one thing you actually care about. Write about the last time it decided what you did." },
-  { k: "odvraceni", cz: "Ustup o krok a dívej se na sebe zvenčí: kde se ten člověk dnes odvrátil?", en: "Step back and watch yourself from outside: where did that person look away today?" },
-  { k: "smrtelnost", cz: "Co by z dnešního dne stálo za zapamatování, kdyby ho někdo četl po tobě?", en: "What in today would be worth keeping, if someone read it after you?" },
-  // 2
-  { k: "telo", cz: "Čím se dnes tělo ozvalo poprvé — a co jsi v tu chvíli dělal?", en: "What was the body's first signal today, and what were you doing when it came?" },
-  { k: "praxe", cz: "Popiš dnešní praxi, jako by ji dělal někdo jiný a ty ho pozoroval. Co bys viděl?", en: "Describe today's practice as if someone else were doing it and you were watching. What would you see?" },
-  { k: "druzi", cz: "Popiš jednu dnešní výměnu — třeba jen pohled nebo větu. Co v ní bylo pod slovy?", en: "Describe one exchange today — even just a look, even just a sentence. What was under the words?" },
-  { k: "smer", cz: "Co jsi tento týden dělal, aniž by to vedlo k něčemu tvému? Popiš to přesně.", en: "What did you do this week that led to nothing of your own? Describe it exactly." },
-  { k: "odvraceni", cz: "Co jsi dnes odkládal tak dlouho, až to zmizelo samo? Napiš, co ti to ušetřilo.", en: "What did you put off today until it dissolved on its own? Write what that spared you." },
-  { k: "smrtelnost", cz: "Kdyby zbýval rok, co bys z tohoto týdne nechal přesně tak, jak je?", en: "If a year remained, what from this week would you leave exactly as it is?" },
-  // 3
-  { k: "telo", cz: "Popiš jeden pohyb, který dnes šel sám. Co mu předcházelo?", en: "Describe one movement that went by itself today. What came before it?" },
-  { k: "praxe", cz: "Které místo v praxi tento týden nejčastěji zkracuješ? Napiš, co se v tu chvíli děje.", en: "Which part of the practice have you been cutting short this week? Write what happens at that moment." },
-  { k: "druzi", cz: "Komu jsi dnes něco zamlčel? Napiš, co to bylo a co jsi řekl místo toho.", en: "Who did you hold something back from today? Write what it was, and what you said instead." },
-  { k: "smer", cz: "Kdyby celý rok běžel podle dnešního dne, kam by tě dovedl?", en: "If a whole year ran on the pattern of today, where would it bring you?" },
-  { k: "odvraceni", cz: "Které téma dnes obcházíš? Napiš první tři věty, které tě u něj napadnou, a nech je stát.", en: "Which subject are you walking around today? Write the first three sentences it brings, and let them stand." },
-  { k: "smrtelnost", cz: "Napiš, co dnes dělalo tvoje tělo — to, které tu jednou nebude.", en: "Write what your body did today. The body that will not be here." },
-  // 4
-  { k: "telo", cz: "Kdy jsi dnes naposledy zadržel dech? Napiš, co se dělo kolem.", en: "When did you last hold your breath today? Write what was going on around it." },
-  { k: "praxe", cz: "Kdy tento týden praxe začala dřív, než jsi o ní stihl rozhodnout?", en: "When this week did the practice begin before you had decided on it?" },
-  { k: "druzi", cz: "Vzpomeň si na někoho, kdo tě tento týden potřeboval. Jak jsi to poznal?", en: "Recall someone who needed you this week. How did you know?" },
-  { k: "smer", cz: "Které dveře jsi tento týden nechal zavřené? Napiš, co bylo za nimi.", en: "Which door did you leave shut this week? Write what was behind it." },
-  { k: "odvraceni", cz: "Kdyby ten strach uměl mluvit: čeho by se bál, kdyby přestal dělat svou práci?", en: "If the fear could speak: what would it be afraid of, if it stopped doing its job?" },
-  { k: "smrtelnost", cz: "Který dnešní zvyk by tě mrzel na konci? Popiš ho tak, jak by ho viděl někdo starý.", en: "Which habit from today would you regret at the end? Describe it the way someone old would see it." },
-  // 5
-  { k: "telo", cz: "Najdi v dnešku místo, kde tělo řeklo ne dřív než hlava. Co se stalo pak?", en: "Find the moment today when the body said no before the head did. What happened next?" },
-  { k: "praxe", cz: "Co ses tento týden naučil, aniž bys to hledal? Popiš tu chvíli, ne to ponaučení.", en: "What did you learn this week without looking for it? Describe the moment, not the lesson." },
-  { k: "druzi", cz: "Kdy jsi tento týden naposledy někoho poslouchal, aniž bys u toho skládal odpověď?", en: "When this week did you last listen to someone without assembling your answer while they spoke?" },
-  { k: "smer", cz: "Co bys dělal příští týden, kdyby na tvůj názor nikdo nečekal?", en: "What would you do next week if nobody were waiting on your opinion?" },
-  { k: "odvraceni", cz: "Napiš o něčem, co na sobě neuneseš — a pak k tomu odpověď od někoho, kdo tě má rád bez podmínek.", en: "Write about something in yourself you cannot bear — then write the reply of someone who loves you without conditions." },
-  { k: "smrtelnost", cz: "Co jsi dnes odsunul na později, které nemusí přijít?", en: "What did you push into a later that may not come?" },
-  // 6
-  { k: "telo", cz: "Jak dnes vypadala únava — v čem přesně? Ne jak moc, ale jak.", en: "What did tiredness look like today — in what exactly? Not how much of it. How." },
-  { k: "praxe", cz: "Napiš jednu věc z praxe, kterou opakuješ tak dlouho, že už nevíš proč. Co se stane, když ji vynecháš?", en: "Name one thing in the practice you have repeated so long you no longer know why. What happens when you leave it out?" },
-  { k: "druzi", cz: "Napiš dopis někomu, komu ho neodešleš. Začni tím, co je teď mezi vámi.", en: "Write a letter to someone you will not send it to. Begin with what stands between you now." },
-  { k: "smer", cz: "Popiš jedno rozhodnutí z tohoto týdne a to, co jsi jím odmítl.", en: "Describe one decision from this week, and what it refused." },
-  { k: "odvraceni", cz: "Co jsi dnes řekl a nemyslel? Popiš, co ta věta zakryla.", en: "What did you say today and not mean? Describe what the sentence covered." },
-  { k: "smrtelnost", cz: "Vzpomeň si na někoho, kdo už tu není. Co by ti dnes řekl a co bys mu odpověděl?", en: "Recall someone who is no longer here. What would they say to you today, and what would you answer?" },
-  // 7
-  { k: "telo", cz: "Nech vyplout jedno slovo pro to, jak je tělu právě teď. Pak k němu napiš, odkud přišlo.", en: "Let one word surface for how the body is right now. Then write where it came from." },
-  { k: "praxe", cz: "Kde dnes praxe skončila a začal výkon? Popiš ten přechod.", en: "Where today did practice end and performance begin? Describe the crossing." },
-  { k: "druzi", cz: "Co ti dnes někdo dal, aniž o tom věděl?", en: "What did someone give you today without knowing they had?" },
-  { k: "smer", cz: "Kde jsi tento týden šel snadnější cestou? Napiš, jak se ta chvíle ohlásila.", en: "Where this week did you take the easier road? Write how that moment announced itself." },
-  { k: "odvraceni", cz: "Co tě tento týden na druhých dráždilo? Podívej se, jestli to místo znáš i odjinud.", en: "What irritated you in others this week? Look and see whether you know that place from somewhere closer." },
-  { k: "smrtelnost", cz: "Kdyby byl dnešek poslední, co bys nechal dopsané a co nechal být?", en: "If today were the last, what would you leave finished, and what would you leave be?" },
-  // 8
-  { k: "telo", cz: "Kde dnes bylo teplo a kde chlad? Popiš obojí po těle, ne podle počasí.", en: "Where was there warmth today, and where cold? Map both across the body, not by the weather." },
-  { k: "praxe", cz: "Co bys z praxe dokázal dělat i ve dnu, kdy se všechno rozpadne? Napiš tu nejmenší verzi.", en: "What part of the practice could you still do on a day when everything falls apart? Write the smallest version of it." },
-  { k: "druzi", cz: "Kde ses tento týden přizpůsobil víc, než jsi chtěl? Popiš tu situaci zvenčí.", en: "Where this week did you adapt further than you meant to? Describe the situation from outside it." },
-  { k: "smer", cz: "Napiš, co má být za pět let hotové — a pak jednu dnešní věc, která k tomu patřila.", en: "Write what should be finished five years from now — then one thing today that belonged to it." },
-  { k: "odvraceni", cz: "Popiš jednu dnešní lež. Ta drobná se počítá a ta sobě taky.", en: "Describe one lie from today. The small one counts, and so does the one told to yourself." },
-  // 9
-  { k: "telo", cz: "Vzpomeň si na jeden dotek dneška — látka, voda, podlaha, ruka. Zůstaň u něj tři věty.", en: "Recall one touch from today — cloth, water, floor, a hand. Stay with it for three sentences." },
-  { k: "praxe", cz: "Vrať se k tomu, jak praxe vypadala před rokem. Co z toho zůstalo a co odpadlo?", en: "Go back to what the practice looked like a year ago. What stayed, and what fell away?" },
-  { k: "druzi", cz: "Na koho myslíš, když je ticho? Napiš, co by ten člověk dnes viděl.", en: "Who do you think of when it goes quiet? Write what that person would have seen today." },
-  // 10
-  { k: "telo", cz: "Kdy dnes bylo tělo nejtišší? Napiš tu chvíli i s tím, co bylo těsně předtím.", en: "When was the body quietest today? Write that moment, and what came just before it." },
-  { k: "praxe", cz: "Popiš jeden dnešní odpor — kdy přišel, jak dlouho trval a čím skončil.", en: "Describe one piece of resistance today — when it came, how long it held, what ended it." },
+  {"k":"telo","cz":"Kde v těle nosíš tento týden? Najdi to místo a popiš, co tam je: teplo, tah, tíha, nebo prázdno.","en":"Where in your body are you carrying this week? Find the place and describe what is there: warmth, tension, heaviness, or emptiness."},
+  {"k":"praxe","cz":"Piš patnáct minut v kuse o tom, co tě teď nejvíc zaměstnává. Piš, co si o tom opravdu myslíš a co u toho cítíš. Nezastavuj se a nehlídej, jak to vypadá.","en":"Write for fifteen minutes without stopping about what is occupying you most right now. Write what you really think about it and how you feel. Keep going without worrying about how it looks."},
+  {"k":"praxe","cz":"Napiš tři věci, které se tento týden povedly. Ke každé napiš, proč se to stalo.","en":"Write down three things that went well this week. For each one, write why it happened."},
+  {"k":"odvraceni","cz":"Popiš jednu těžkou situaci z tohoto týdne ve třetí osobě. Piš o sobě jménem, jako o někom jiném. Co teď vidíš, co jsi předtím neviděl?","en":"Describe one difficult situation from this week in the third person. Use your name as if you were writing about someone else. What can you see now that you could not see before?"},
+  {"k":"odvraceni","cz":"Napiš, co si na sobě tento týden nejvíc vyčítáš. Pak napiš odpověď od někoho, kdo tě má rád bez podmínek.","en":"Write what you have blamed yourself for most this week. Then write a reply from someone who loves you unconditionally."},
+  {"k":"telo","cz":"Najdi pocit, který je teď v těle nejsilnější. Dej mu jedno přesné slovo. Zkus, jestli to slovo sedí. Když nesedí, hledej dál.","en":"Find the strongest feeling in your body right now. Give it one precise word. See whether the word fits. If it does not, keep looking."},
+  {"k":"odvraceni","cz":"Která myšlenka se ti tento týden vracela nejčastěji? Napiš, co mluví pro ni a co proti ní. Co jiného by mohlo být pravda?","en":"Which thought returned most often this week? Write what supports it and what goes against it. What else might be true?"},
+  {"k":"smer","cz":"Vyber jednu věc, na které ti opravdu záleží. Kdy naposledy rozhodla o tom, co uděláš?","en":"Choose one thing that truly matters to you. When did it last determine what you would do?"},
+  {"k":"druzi","cz":"Co jsi tento týden dostal? Co jsi dal? Komu jsi způsobil potíže? Odpověz na všechny tři otázky konkrétně, se jmény.","en":"What did you receive this week? What did you give? Who did you cause trouble for? Answer all three questions with specific details and names."},
+  {"k":"praxe","cz":"Projdi tento týden: co jsi udělal dobře, kde jsi uklouzl a co zůstalo nedodělané? Nesuď se, jen zapiš.","en":"Look back over this week: what did you do well, where did you slip, and what remains unfinished? Do not judge yourself; just write it down."},
+  {"k":"odvraceni","cz":"Čeho se teď nejvíc bojíš? Napiš, co nejhoršího by se mohlo stát. Pak napiš, co bys udělal den potom.","en":"What are you most afraid of right now? Write the worst thing that could happen. Then write what you would do the day after."},
+  {"k":"telo","cz":"Vzpomeň si na jednu příjemnou chvíli z tohoto týdne. Zůstaň u ní tři věty. Piš, co jsi viděl, slyšel a cítil v těle.","en":"Recall one pleasant moment from this week. Stay with it for three sentences. Write what you saw, heard, and felt in your body."},
+  {"k":"smer","cz":"Představ si, že za tři roky všechno dopadlo tak dobře, jak jen mohlo. Popiš jeden obyčejný den v tom životě.","en":"Imagine that three years from now everything has turned out as well as it possibly could. Describe one ordinary day in that life."},
+  {"k":"telo","cz":"Kdy ses tento týden cítil nejvíc živý? A kdy nejvíc vyčerpaný? Popiš obě chvíle. Co v nich bylo jinak?","en":"When did you feel most alive this week? And when most exhausted? Describe both moments. What was different about them?"},
+  {"k":"druzi","cz":"Co tě tento týden na druhých dráždilo? Podívej se, jestli to samé nenajdeš u sebe.","en":"What irritated you in others this week? See whether you can find the same thing in yourself."},
+  {"k":"druzi","cz":"Napiš dopis někomu, komu ho neodešleš. Začni tím, co je teď mezi vámi.","en":"Write a letter to someone you will not send it to. Begin with what is between you now."},
+  {"k":"odvraceni","cz":"Které téma tento týden obcházíš? Napiš první tři věty, které tě u něj napadnou, a nech je být.","en":"Which subject have you been avoiding this week? Write the first three sentences that come to mind about it, and leave them be."},
+  {"k":"telo","cz":"Kdy jsi tento týden zadržel dech? Napiš, co se kolem tebe dělo.","en":"When did you hold your breath this week? Write what was happening around you."},
+  {"k":"telo","cz":"Kde v těle je právě teď klid, i kdyby byl malý? Zůstaň tam tři nádechy. Pak napiš, co se změnilo.","en":"Where in your body is there calm right now, however small? Stay there for three breaths. Then write what changed."},
+  {"k":"telo","cz":"Každý večer si zapiš tři věci: jak jsi spal, jak dýcháš a kolik máš energie. Na konci týdne to porovnej s tím, co o sobě běžně říkáš.","en":"Each evening, write down three things: how you slept, how you are breathing, and how much energy you have. At the end of the week, compare this with what you usually say about yourself."},
+  {"k":"odvraceni","cz":"Jaký příběh o sobě opakuješ nejčastěji? Co by se změnilo, kdybys ho tento týden nikomu neřekl?","en":"What story about yourself do you repeat most often? What would change if you did not tell it to anyone this week?"},
+  {"k":"praxe","cz":"Na co jsi tento týden nejvíc upíral pozornost? Zesílilo to, nebo zesláblo?","en":"What did you give most of your attention to this week? Did it grow stronger or weaker?"},
+  {"k":"telo","cz":"Kdy ses tento týden smál? Co tomu předcházelo?","en":"When did you laugh this week? What came before it?"},
+  {"k":"druzi","cz":"Co ti tento týden někdo dal, aniž o tom věděl? Napiš mu to tak, jako bys mu to říkal do očí.","en":"What did someone give you this week without knowing it? Write it to them as if you were telling them face to face."},
+  {"k":"druzi","cz":"Co tento týden od tebe život chtěl? Kdo tě potřeboval a jak jsi to poznal?","en":"What did life ask of you this week? Who needed you, and how did you know?"},
+  {"k":"smer","cz":"Čemu bys tento týden mohl říct ne? Napiš, co by se ti tím uvolnilo.","en":"What could you say no to this week? Write what that would free up for you."},
+  {"k":"smrtelnost","cz":"Kdyby ti bylo osmdesát a díval ses na tento týden, co bys sám sobě řekl?","en":"If you were eighty and looking back at this week, what would you say to yourself?"},
+  {"k":"praxe","cz":"Kde ses tento týden křečovitě snažil? Co se stane, když tam povolíš o deset procent?","en":"Where were you trying too hard this week? What happens if you ease up by ten percent?"},
+  {"k":"praxe","cz":"Kdy jsi tento týden vypadl z režimu a vrátil se? Napiš, jak dlouho ti to trvalo a co pomohlo.","en":"When did you fall out of your routine this week and return to it? Write how long it took and what helped."},
+  {"k":"druzi","cz":"Komu bys věnoval to dobré, co jsi tento týden udělal? Napiš to jednou větou.","en":"To whom would you dedicate the good you did this week? Write it in one sentence."},
 ];
 
 export const TM_PROMPT_OKRUH = {
