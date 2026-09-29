@@ -1,5 +1,6 @@
 import React,{useId,useMemo} from 'react';
 import {CYCLE_ORDER,CYCLE_DEPTH,CYCLE_HORMONES,cycleHormoneSchematic} from '../product/togetherCycleDepth.js';
+import {TogetherArtwork} from './togetherArtwork.jsx';
 
 const phasePoints=[[82,69],[298,69],[298,247],[82,247]];
 const radial=(count)=>Array.from({length:count},(_,i)=>{const a=(-90+i*360/count)*Math.PI/180;return [190+Math.cos(a)*139,177+Math.sin(a)*139];});
@@ -30,22 +31,10 @@ export function CycleGlyph({kind}){
   return <g fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d={paths[kind]||paths.follicular}/>{kind==='ovulatory'&&<circle r="6"/>}</g>;
 }
 
-// An authored botanical plate: the same roots and stem remain present through
-// the four seasons. It is a metaphor, never a diagram of phase duration.
-function SeasonPlate({phase,hatch}){
-  const phaseIndex=CYCLE_ORDER.indexOf(phase),leafCount=[1,9,14,6][phaseIndex];
-  return <g className="tg-cycle-botanical" fill="none" stroke="currentColor" strokeWidth=".85" strokeLinecap="round" strokeLinejoin="round">
-    <ellipse cy="54" rx="75" ry="21" opacity=".24"/><ellipse cy="56" rx="61" ry="14" opacity=".2"/>
-    <path d="M-59 54Q-31 46 0 54T60 54M-44 61Q0 69 44 61" opacity=".4"/>
-    <path d="M0 55C-8 27 10-4 0-52M0 43C-19 31-21 9-41 4M2 23C21 18 23-6 43-12M1-3C-14-11-17-27-29-30M1-23C14-32 15-43 25-49"/>
-    <g opacity=".53"><path d="M0 55C-1 73-20 63-27 80M0 55C7 67 30 66 40 78M1 60C-8 75 9 76 11 90M-10 67l-13 1m-5 9-13 2M17 68l5 11m9-4 14-4M2 76l-8 7"/></g>
-    {Array.from({length:14},(_,i)=>{const side=i%2?-1:1,y=42-i*6.1,x=side*(8+(i%3)*9),r=side*(i%2?28:45);return <g key={i} className="tg-cycle-leaf" style={{opacity:i<leafCount?1:.08,transform:`translate(${x}px,${y}px) rotate(${r}deg)`}}><path d="M0 0C-5-12 1-20 6-23 12-15 10-6 0 0Z" fill={`url(#${hatch})`}/><path d="M0 0 6-23M2-7l6-4M4-13l-4-4"/></g>;})}
-    {phase==='menstrual'&&<><path d="M0-56C-14-72-16-85 0-96 16-85 14-72 0-56Z" fill={`url(#${hatch})`}/><path d="M0-58V-88M-7-80l7 9 7-9"/><path d="M-58-66a18 18 0 0 0 22-26 20 20 0 1 1-22 26Z" opacity=".65"/></>}
-    {phase==='follicular'&&<><path d="M0-51C-19-58-13-80 0-76 13-80 19-58 0-51Z"/><path d="M0-55v-17M-4-71l4 7 4-7"/><path d="M38-72q12-9 23-3M49-84v-6" opacity=".55"/></>}
-    {phase==='ovulatory'&&<g transform="translate(0 -65)">{Array.from({length:10},(_,i)=><path key={i} d="M0-4C-13-14-8-29 0-29 8-29 13-14 0-4Z" transform={`rotate(${i*36})`} fill={`url(#${hatch})`}/>)}<circle r="9"/><circle r="5" strokeDasharray="1 2"/></g>}
-    {phase==='luteal'&&<><path d="M-6-56C-14-72-6-87 1-88 8-75 11-65-6-56Z" fill={`url(#${hatch})`}/><path d="M-6-56 1-85"/>{[-1,1].map((s)=><g key={s} transform={`translate(${s*57} ${s===1?9:-35}) rotate(${s*35})`}><path d="M0 0C-10-14-5-23 3-26 11-15 10-3 0 0Z"/><path d="M0 0 3-23"/></g>)}<path d="M-53-82Q-8-101 53-81" opacity=".5"/></>}
-    <g opacity=".35"><path d="M-74 26l8-2m5-18 5 2M59 36l8 1M-32-69l4-2M59-41l5-3"/><circle cx="-57" cy="-23" r="1.7"/><circle cx="42" cy="-54" r="1.2"/></g>
-  </g>;
+// Botanical plates share the fine, engraved ink of the room illustrations.
+// Their seasons are symbolic; the image does not describe phase duration.
+function SeasonPlate({phase}){
+  return <g className="tg-cycle-botanical"><TogetherArtwork kind={`botanical-${phase}`}/></g>;
 }
 
 function UterusPlate({phase,hatch}){
@@ -65,18 +54,9 @@ function UterusPlate({phase,hatch}){
 }
 
 function DetailPlate({kind,phase,hatch}){
-  const common={fill:'none',stroke:'currentColor',strokeWidth:1,strokeLinecap:'round',strokeLinejoin:'round'};
   if(kind==='uterus')return <UterusPlate phase={phase} hatch={hatch}/>;
-  if(kind==='archetype'||kind==='overview')return <SeasonPlate phase={phase} hatch={hatch}/>;
-  if(kind==='spiral')return <g {...common}><ellipse cy="33" rx="86" ry="25" opacity=".17"/><path d={spiral} strokeWidth="1.8"/><path d={spiral} transform="translate(0 17)" opacity=".23"/>{[0,1,2,3].map(i=><path key={i} d={`M${-56+i*37} ${-35+i*16}v17`} opacity=".3"/>)}<circle r="3" fill="currentColor"/></g>;
-  if(kind==='move')return <g {...common}><path d="M-90 36Q-51-18-5 18T90 16M-85 57Q-36 24 1 38T87 38" opacity=".35"/><path d="M-58 79C66 41-54 17 13-7S68-58 24-87M-43 82C79 48-39 20 24 0S77-63 33-85"/><path d="M-72 5v-33m0 9-9-6m9 1 10-8M72 0v-40m0 15-11-8m11 0 11-10"/><ellipse cx="-8" cy="28" rx="3" ry="6" transform="rotate(-33 -8 28)"/><ellipse cx="5" cy="24" rx="3" ry="6" transform="rotate(-33 5 24)"/></g>;
-  if(kind==='food'||kind==='shared')return <g {...common}>{kind==='food'?<><ellipse cy="6" rx="67" ry="16"/><path d="M-67 6Q-60 61 0 64T67 6M-23 63l-5 8h56l-5-8"/><ellipse cy="8" rx="55" ry="10" fill={`url(#${hatch})`}/><path d="M-27-15q-17-19 0-33t0-34M0-18q-16-17 0-29t0-26M28-14q-15-17 0-30" opacity=".65"/></>:<>{[-1,1].map(s=><g key={s} transform={`translate(${s*42} ${s*7})`}><ellipse rx="27" ry="8"/><path d="M-27 0v30q27 27 54 0V0M27 6q25-4 17 19-5 11-17 6M-37 48q36 11 74 0"/><path d="M-8-16q-14-14 0-29M7-13q-11-13 2-31" opacity=".6"/></g>)}</>}<path d="M-91 87Q-20 73 92 82" opacity=".25"/></g>;
-  if(kind==='mind'||kind==='pattern')return <g {...common}><path d="M-37 48V27C-69-18-46-77-1-77 30-78 49-57 48-23l15 20-15 6v30H20v39M-24 29q15 14 31 5"/><path d="M-22-22q-19-19-3-34 13-14 30-6 16 7 8 26-7 14-21 8-11-7-3-15 8-5 11 1"/><path d="M-48 77Q1 50 46 77M-42 86Q4 64 53 86" opacity=".55"/><circle cx="31" cy="-21" r="2"/></g>;
-  if(kind==='plan')return <g {...common}><path d="M-64-60H56V64H-64ZM-64-29H56M-42-73v25M31-73v25"/><path d="M-40-4h17M-9-4H8M23-4H40M-40 18h17M-9 18H8M23 18H40M-40 40h17M-9 40H8" opacity=".5"/><circle cx="0" cy="17" r="16"/><path d="m-8 17 5 6 12-13M64 63l17-57 6 2-14 58-8 8Z"/><path d="M-79 78Q-17 87 65 80" opacity=".25"/></g>;
-  if(kind==='bond')return <g {...common}><path d="M-93 47-56 14q10-11 22-10l22 4q9 2 7 9-2 6-10 5l-18-1M93 47 56 14q-10-11-22-10l-22 4q-9 2-7 9 2 6 10 5l18-1M-87 65l33-18q8-4 16-2l29 10q9 3 7 10-1 7-13 5l-29-8M87 65 54 47q-8-4-16-2L9 55q-9 3-7 10 1 7 13 5l29-8"/><path d="M0-15C-65-48-27-92 0-61 27-92 65-48 0-15Z" fill={`url(#${hatch})`}/><path d="M0-40v8M-6-39l6 6 6-6" opacity=".5"/></g>;
-  if(kind==='shadow')return <g {...common}><path d="M-56 82V-21a56 56 0 0 1 112 0V82ZM-40 82V-20a40 40 0 0 1 80 0v102Z"/><path d="M0-60a40 40 0 0 1 40 40V82H0Z" fill={`url(#${hatch})`}/><path d="M-68 82H68M-81 90H81M-93 100H93"/><path d="M-15 11q14-15 29 0-14 13-29 0Z"/><circle cy="10" r="3"/></g>;
-  if(kind==='story')return <g {...common}><path d="M0-33Q-37-58-82-39V68Q-34 48 0 75 34 48 82 68V-39Q37-58 0-33ZM0-33V75M-90-35v111Q-37 56 0 83 37 56 90 76V-35"/><path d="M-67 38l18-37 18 37M-49 1v49M21 13q30-18 46 3M22 29q24-11 44 2M22 46q23-7 44 2" opacity=".65"/><path d="M-6-61a16 16 0 0 0 17-23 17 17 0 1 1-17 23Z"/></g>;
-  return <g {...common}><path d="M0-83C-49-32-26 7 0 14 28 4 49-31 0-83ZM0-51C-16-26-12-3 0 3 13-6 14-29 0-51Z" fill={`url(#${hatch})`}/><path d="M-87 35l28 17q14 8 29 5l25-7q10-3 13 4 1 7-8 11l-30 10q-20 7-35-2l-22-13M87 35 59 52q-14 8-29 5L5 50M-66 17q67 37 132 0"/><ellipse cy="96" rx="51" ry="9" opacity=".2"/></g>;
+  if(kind==='archetype'||kind==='overview')return <SeasonPlate phase={phase}/>;
+  return <TogetherArtwork kind={kind}/>;
 }
 
 function HormonePlate({shown,visible,explained,lang}){
@@ -106,7 +86,7 @@ export function CycleMap({shown,current,focused,layer,topic,topics,lang,onPhase,
         <path d="M45 282Q191 344 335 282M66 296Q192 348 314 296M95 312Q190 346 285 312" opacity=".12"/>
         {focused&&branches.map((item,i)=><path key={item.id} d={`M190 177 Q${190+(points[i][0]-190)*.28} ${177+(points[i][1]-177)*.7} ${points[i][0]} ${points[i][1]}`} strokeDasharray={topic===item.id?undefined:'2 5'} strokeWidth={topic===item.id?1.15:.65} opacity={topic===item.id?.6:.23}/>) }
       </g>
-      {CYCLE_ORDER.map((id,i)=>{const [x,y]=phasePoints[i],selected=shown===id;return <g key={id} className="tg-cycle-phase-landscape" style={{transform:focused&&selected?'translate(190px,180px) scale(.91)':`translate(${x}px,${y}px) scale(.47)`,opacity:focused?(selected&&showBotanical?1:0):selected||!shown?.88:.46}}><SeasonPlate phase={id} hatch={hatch}/></g>;})}
+      {CYCLE_ORDER.map((id,i)=>{const [x,y]=phasePoints[i],selected=shown===id;return <g key={id} className="tg-cycle-phase-landscape" style={{transform:focused&&selected?'translate(190px,180px) scale(.91)':`translate(${x}px,${y-8}px) scale(.60)`,opacity:focused?(selected&&showBotanical?1:0):selected?1:.82}}><SeasonPlate phase={id} hatch={hatch}/></g>;})}
       <g className="tg-cycle-center-spiral" style={{opacity:focused?0:.8,transform:focused?'translate(190px,180px) scale(.2)':'translate(190px,176px) scale(.47)'}}><path d={spiral} fill="none" stroke="currentColor" strokeWidth="1.2"/><circle r="4" fill="currentColor"/></g>
       {focused&&!showBotanical&&shown&&<g key={`${shown}-${layer}-${topic}`} className="tg-cycle-detail-arrival" style={{transformOrigin:'190px 180px','--cycle-origin-x':`${(origin[0]-190)*.4}px`,'--cycle-origin-y':`${(origin[1]-178)*.4}px`}}><g transform="translate(190 178)" className="tg-cycle-detail-plate">{isChart?<HormonePlate shown={shown} visible={visibleHormones} explained={explainedHormone} lang={lang}/>:<DetailPlate kind={mainKind} phase={shown} hatch={hatch}/>}</g></g>}
     </svg>
