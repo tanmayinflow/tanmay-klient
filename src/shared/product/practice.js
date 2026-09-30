@@ -143,15 +143,15 @@ export const PLAN_QS = [
 // tyhle dvě otázky si nezaslouží pobízení.
 export const PLAN_QS_HLOUBKA = [
   { key: "smer", cz: "Co dnes podpořilo směr, kterým chci žít?", en: "What supported the direction I want to live in today?" },
-  { key: "odvraceni", cz: "Kde jsem se dnes odvrátil od toho, co bylo důležité? Co jsem v tu chvíli potřeboval?", en: "Where did I turn away from what mattered today? What did I need in that moment?" },
+  { key: "odvraceni", cz: "Co mě dnes odvedlo od toho, co bylo důležité? Co bylo v tu chvíli potřeba?", en: "Where did I turn away from what mattered today? What did I need in that moment?" },
 ];
 
 // DŘÍVĚJŠÍ OTÁZKY · nikdy se nesmažou a nikdy se nepřepíšou novou otázkou.
 // Ukazují se jen u dnů, kde na ně někdo odpověděl.
 export const PLAN_QS_STARE = [
-  { key: "vision", cz: "Co jsem dnes udělal pro svou dlouhodobou vizi?", en: "What did I do today that moves me closer to my long-term vision?" },
-  { key: "ease", cz: "Kde jsem se dnes odvrátil? A dokážu tomu místu vyjít vstříc se soucitem?", en: "Where did I turn away today — and can I meet that place with compassion?" },
-  { key: "proud", cz: "Na co jsem hrdý?", en: "What am I proud of?" },
+  { key: "vision", cz: "Jaké moje dnešní kroky podpořily dlouhodobou vizi?", en: "What did I do today that moves me closer to my long-term vision?" },
+  { key: "ease", cz: "Co dnes zůstalo stranou mé pozornosti? A dokážu tomu místu vyjít vstříc se soucitem?", en: "Where did I turn away today — and can I meet that place with compassion?" },
+  { key: "proud", cz: "Co dnes ve mně vzbuzuje hrdost?", en: "What am I proud of?" },
   { key: "insights", cz: "Vhledy k zapamatování", en: "Insights to remember" },
 ];
 
@@ -193,57 +193,57 @@ export const PLAN_QS_STARE = [
 export const TM_PROMPTS = [
   // 1
   { k: "telo", cz: "Kde v těle dnes sedí ten den? Najdi to místo a popiš, co tam je — teplo, tah, tíha, prázdno.", en: "Where in the body is today sitting? Find the place and write what is there — heat, pull, weight, hollowness." },
-  { k: "praxe", cz: "Co v praxi tento týden drželo samo od sebe a co jsi musel nést?", en: "What in the practice held itself this week, and what did you have to carry?" },
+  { k: "praxe", cz: "Co v praxi tento týden drželo samo od sebe a co vyžadovalo tvoje úsilí?", en: "What in the practice held itself this week, and what did you have to carry?" },
   { k: "druzi", cz: "Čí hlas ti dnes zazněl v hlavě, aniž byl ten člověk poblíž? Napiš, co říkal.", en: "Whose voice sounded in your head today, without that person being anywhere near? Write what it said." },
   { k: "smer", cz: "Vyber jednu věc, na které ti opravdu záleží. Napiš, kdy naposledy rozhodla, co uděláš.", en: "Choose one thing you actually care about. Write about the last time it decided what you did." },
   { k: "odvraceni", cz: "Ustup o krok a dívej se na sebe zvenčí: kde se ten člověk dnes odvrátil?", en: "Step back and watch yourself from outside: where did that person look away today?" },
   { k: "smrtelnost", cz: "Co by z dnešního dne stálo za zapamatování, kdyby ho někdo četl po tobě?", en: "What in today would be worth keeping, if someone read it after you?" },
   // 2
-  { k: "telo", cz: "Čím se dnes tělo ozvalo poprvé — a co jsi v tu chvíli dělal?", en: "What was the body's first signal today, and what were you doing when it came?" },
-  { k: "praxe", cz: "Popiš dnešní praxi, jako by ji dělal někdo jiný a ty ho pozoroval. Co bys viděl?", en: "Describe today's practice as if someone else were doing it and you were watching. What would you see?" },
+  { k: "telo", cz: "Čím se dnes tělo ozvalo poprvé — a při jaké činnosti?", en: "What was the body's first signal today, and what were you doing when it came?" },
+  { k: "praxe", cz: "Popiš dnešní praxi pohledem na jiného člověka. Čeho si všímáš?", en: "Describe today's practice as if someone else were doing it and you were watching. What would you see?" },
   { k: "druzi", cz: "Popiš jednu dnešní výměnu — třeba jen pohled nebo větu. Co v ní bylo pod slovy?", en: "Describe one exchange today — even just a look, even just a sentence. What was under the words?" },
-  { k: "smer", cz: "Co jsi tento týden dělal, aniž by to vedlo k něčemu tvému? Popiš to přesně.", en: "What did you do this week that led to nothing of your own? Describe it exactly." },
-  { k: "odvraceni", cz: "Co jsi dnes odkládal tak dlouho, až to zmizelo samo? Napiš, co ti to ušetřilo.", en: "What did you put off today until it dissolved on its own? Write what that spared you." },
-  { k: "smrtelnost", cz: "Kdyby zbýval rok, co bys z tohoto týdne nechal přesně tak, jak je?", en: "If a year remained, what from this week would you leave exactly as it is?" },
+  { k: "smer", cz: "Které tvoje činnosti tento týden nevedly k ničemu vlastnímu? Popiš je přesně.", en: "What did you do this week that led to nothing of your own? Describe it exactly." },
+  { k: "odvraceni", cz: "Co dnes po dlouhém odkládání zmizelo samo? Napiš, co ti to ušetřilo.", en: "What did you put off today until it dissolved on its own? Write what that spared you." },
+  { k: "smrtelnost", cz: "Kdyby zbýval rok, co má z tohoto týdne zůstat přesně tak, jak je?", en: "If a year remained, what from this week would you leave exactly as it is?" },
   // 3
   { k: "telo", cz: "Popiš jeden pohyb, který dnes šel sám. Co mu předcházelo?", en: "Describe one movement that went by itself today. What came before it?" },
   { k: "praxe", cz: "Které místo v praxi tento týden nejčastěji zkracuješ? Napiš, co se v tu chvíli děje.", en: "Which part of the practice have you been cutting short this week? Write what happens at that moment." },
-  { k: "druzi", cz: "Komu jsi dnes něco zamlčel? Napiš, co to bylo a co jsi řekl místo toho.", en: "Who did you hold something back from today? Write what it was, and what you said instead." },
+  { k: "druzi", cz: "Co dnes před někým zůstalo zamlčené? Napiš, co to bylo a jaká slova zazněla místo toho.", en: "Who did you hold something back from today? Write what it was, and what you said instead." },
   { k: "smer", cz: "Kdyby celý rok běžel podle dnešního dne, kam by tě dovedl?", en: "If a whole year ran on the pattern of today, where would it bring you?" },
   { k: "odvraceni", cz: "Které téma dnes obcházíš? Napiš první tři věty, které tě u něj napadnou, a nech je stát.", en: "Which subject are you walking around today? Write the first three sentences it brings, and let them stand." },
   { k: "smrtelnost", cz: "Napiš, co dnes dělalo tvoje tělo — to, které tu jednou nebude.", en: "Write what your body did today. The body that will not be here." },
   // 4
-  { k: "telo", cz: "Kdy jsi dnes naposledy zadržel dech? Napiš, co se dělo kolem.", en: "When did you last hold your breath today? Write what was going on around it." },
-  { k: "praxe", cz: "Kdy tento týden praxe začala dřív, než jsi o ní stihl rozhodnout?", en: "When this week did the practice begin before you had decided on it?" },
-  { k: "druzi", cz: "Vzpomeň si na někoho, kdo tě tento týden potřeboval. Jak jsi to poznal?", en: "Recall someone who needed you this week. How did you know?" },
-  { k: "smer", cz: "Které dveře jsi tento týden nechal zavřené? Napiš, co bylo za nimi.", en: "Which door did you leave shut this week? Write what was behind it." },
+  { k: "telo", cz: "Kdy dnes naposledy přišlo zadržení dechu? Napiš, co se dělo kolem.", en: "When did you last hold your breath today? Write what was going on around it." },
+  { k: "praxe", cz: "Kdy tento týden praxe předběhla tvoje vědomé rozhodnutí?", en: "When this week did the practice begin before you had decided on it?" },
+  { k: "druzi", cz: "Vzpomeň si na někoho, kdo tě tento týden potřeboval. Podle čeho to bylo poznat?", en: "Recall someone who needed you this week. How did you know?" },
+  { k: "smer", cz: "Které dveře tento týden zůstaly z tvé vůle zavřené? Napiš, co bylo za nimi.", en: "Which door did you leave shut this week? Write what was behind it." },
   { k: "odvraceni", cz: "Kdyby ten strach uměl mluvit: čeho by se bál, kdyby přestal dělat svou práci?", en: "If the fear could speak: what would it be afraid of, if it stopped doing its job?" },
   { k: "smrtelnost", cz: "Který dnešní zvyk by tě mrzel na konci? Popiš ho tak, jak by ho viděl někdo starý.", en: "Which habit from today would you regret at the end? Describe it the way someone old would see it." },
   // 5
   { k: "telo", cz: "Najdi v dnešku místo, kde tělo řeklo ne dřív než hlava. Co se stalo pak?", en: "Find the moment today when the body said no before the head did. What happened next?" },
-  { k: "praxe", cz: "Co ses tento týden naučil, aniž bys to hledal? Popiš tu chvíli, ne to ponaučení.", en: "What did you learn this week without looking for it? Describe the moment, not the lesson." },
-  { k: "druzi", cz: "Kdy jsi tento týden naposledy někoho poslouchal, aniž bys u toho skládal odpověď?", en: "When this week did you last listen to someone without assembling your answer while they spoke?" },
-  { k: "smer", cz: "Co bys dělal příští týden, kdyby na tvůj názor nikdo nečekal?", en: "What would you do next week if nobody were waiting on your opinion?" },
+  { k: "praxe", cz: "Co tento týden přineslo neplánované učení? Popiš tu chvíli, ne to ponaučení.", en: "What did you learn this week without looking for it? Describe the moment, not the lesson." },
+  { k: "druzi", cz: "Kdy tento týden při naslouchání zůstala tvoje pozornost u druhého, bez chystání odpovědi?", en: "When this week did you last listen to someone without assembling your answer while they spoke?" },
+  { k: "smer", cz: "Představ si příští týden, kdy nikdo nečeká na tvůj názor. Co chceš dělat?", en: "What would you do next week if nobody were waiting on your opinion?" },
   { k: "odvraceni", cz: "Napiš o něčem, co na sobě neuneseš — a pak k tomu odpověď od někoho, kdo tě má rád bez podmínek.", en: "Write about something in yourself you cannot bear — then write the reply of someone who loves you without conditions." },
-  { k: "smrtelnost", cz: "Co jsi dnes odsunul na později, které nemusí přijít?", en: "What did you push into a later that may not come?" },
+  { k: "smrtelnost", cz: "Co dnes čeká na tvoje „později“, které nemusí přijít?", en: "What did you push into a later that may not come?" },
   // 6
   { k: "telo", cz: "Jak dnes vypadala únava — v čem přesně? Ne jak moc, ale jak.", en: "What did tiredness look like today — in what exactly? Not how much of it. How." },
   { k: "praxe", cz: "Napiš jednu věc z praxe, kterou opakuješ tak dlouho, že už nevíš proč. Co se stane, když ji vynecháš?", en: "Name one thing in the practice you have repeated so long you no longer know why. What happens when you leave it out?" },
   { k: "druzi", cz: "Napiš dopis někomu, komu ho neodešleš. Začni tím, co je teď mezi vámi.", en: "Write a letter to someone you will not send it to. Begin with what stands between you now." },
-  { k: "smer", cz: "Popiš jedno rozhodnutí z tohoto týdne a to, co jsi jím odmítl.", en: "Describe one decision from this week, and what it refused." },
-  { k: "odvraceni", cz: "Co jsi dnes řekl a nemyslel? Popiš, co ta věta zakryla.", en: "What did you say today and not mean? Describe what the sentence covered." },
-  { k: "smrtelnost", cz: "Vzpomeň si na někoho, kdo už tu není. Co by ti dnes řekl a co bys mu odpověděl?", en: "Recall someone who is no longer here. What would they say to you today, and what would you answer?" },
+  { k: "smer", cz: "Popiš jedno svoje rozhodnutí z tohoto týdne a to, co tím zůstalo stranou.", en: "Describe one decision from this week, and what it refused." },
+  { k: "odvraceni", cz: "Která tvoje dnešní věta neodpovídala tomu, co si myslíš? Popiš, co zakryla.", en: "What did you say today and not mean? Describe what the sentence covered." },
+  { k: "smrtelnost", cz: "Vzpomeň si na někoho, kdo už tu není. Co ti dnes říká v představách a jak zní tvoje odpověď?", en: "Recall someone who is no longer here. What would they say to you today, and what would you answer?" },
   // 7
   { k: "telo", cz: "Nech vyplout jedno slovo pro to, jak je tělu právě teď. Pak k němu napiš, odkud přišlo.", en: "Let one word surface for how the body is right now. Then write where it came from." },
   { k: "praxe", cz: "Kde dnes praxe skončila a začal výkon? Popiš ten přechod.", en: "Where today did practice end and performance begin? Describe the crossing." },
   { k: "druzi", cz: "Co ti dnes někdo dal, aniž o tom věděl?", en: "What did someone give you today without knowing they had?" },
-  { k: "smer", cz: "Kde jsi tento týden šel snadnější cestou? Napiš, jak se ta chvíle ohlásila.", en: "Where this week did you take the easier road? Write how that moment announced itself." },
+  { k: "smer", cz: "Kdy tento týden padla tvoje volba na snadnější cestu? Napiš, jak se ta chvíle ohlásila.", en: "Where this week did you take the easier road? Write how that moment announced itself." },
   { k: "odvraceni", cz: "Co tě tento týden na druhých dráždilo? Podívej se, jestli to místo znáš i odjinud.", en: "What irritated you in others this week? Look and see whether you know that place from somewhere closer." },
-  { k: "smrtelnost", cz: "Kdyby byl dnešek poslední, co bys nechal dopsané a co nechal být?", en: "If today were the last, what would you leave finished, and what would you leave be?" },
+  { k: "smrtelnost", cz: "Kdyby byl dnešek poslední, co má zůstat dopsané a co může zůstat být?", en: "If today were the last, what would you leave finished, and what would you leave be?" },
   // 8
   { k: "telo", cz: "Kde dnes bylo teplo a kde chlad? Popiš obojí po těle, ne podle počasí.", en: "Where was there warmth today, and where cold? Map both across the body, not by the weather." },
-  { k: "praxe", cz: "Co bys z praxe dokázal dělat i ve dnu, kdy se všechno rozpadne? Napiš tu nejmenší verzi.", en: "What part of the practice could you still do on a day when everything falls apart? Write the smallest version of it." },
-  { k: "druzi", cz: "Kde ses tento týden přizpůsobil víc, než jsi chtěl? Popiš tu situaci zvenčí.", en: "Where this week did you adapt further than you meant to? Describe the situation from outside it." },
+  { k: "praxe", cz: "Kterou část praxe zvládneš i ve dnu, kdy se všechno rozpadne? Napiš tu nejmenší verzi.", en: "What part of the practice could you still do on a day when everything falls apart? Write the smallest version of it." },
+  { k: "druzi", cz: "Kdy tento týden tvoje přizpůsobení druhým překročilo vlastní hranici? Popiš tu situaci zvenčí.", en: "Where this week did you adapt further than you meant to? Describe the situation from outside it." },
   { k: "smer", cz: "Napiš, co má být za pět let hotové — a pak jednu dnešní věc, která k tomu patřila.", en: "Write what should be finished five years from now — then one thing today that belonged to it." },
   { k: "odvraceni", cz: "Popiš jednu dnešní lež. Ta drobná se počítá a ta sobě taky.", en: "Describe one lie from today. The small one counts, and so does the one told to yourself." },
   // 9
@@ -382,9 +382,9 @@ export const tmWbDates = (st, detailsBy) => Array.from(new Set([
 export function makeWbZnameni(icons) {
   return [
     { k: "grat", Ic: icons.TmWbMiska, cz: "Vděčnost", en: "Gratitude",
-      pCz: "Zaměřil jsem pozornost na vděčnost a spojil se s ní.", pEn: "I brought my attention to gratitude and connected with it." },
+      pCz: "Návrat pozornosti k vděčnosti a spojení s ní.", pEn: "I brought my attention to gratitude and connected with it." },
     { k: "bodhi", Ic: icons.TmWbDiamant, cz: "Bódhičitta", en: "Bodhicitta",
-      pCz: "Kultivoval jsem vznešený záměr — bódhičittu, přání dobra všem bytostem.", pEn: "I cultivated a noble intention — bodhicitta, the wish for the good of all beings." },
+      pCz: "Kultivace vznešeného záměru — bódhičitty, přání dobra všem bytostem.", pEn: "I cultivated a noble intention — bodhicitta, the wish for the good of all beings." },
     { k: "wild", Ic: icons.TmWbKruh, cz: "Praxe ve světě", en: "Practice in the world",
       pCz: "Můj záměr a vnitřní kontemplace se projevily ve skutečném jednání.", pEn: "My intention and inner contemplation took form in real action." },
   ];

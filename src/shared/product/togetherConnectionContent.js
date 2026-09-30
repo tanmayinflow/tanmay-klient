@@ -44,24 +44,24 @@ export const WEEKLY_PROMPTS = [
 ];
 
 export const DAILY_CONNECTION_PROMPTS = [
-  {id:'feel-seen',category:{cs:'Blízkost',en:'Closeness'},depth:'light',question:{cs:'Čeho bych si dnes na tobě mohl/a víc všimnout?',en:'What small thing about you would you like me to notice today?'}},
+  {id:'feel-seen',category:{cs:'Blízkost',en:'Closeness'},depth:'light',question:{cs:'Čeho si na tobě dnes mohu víc všimnout?',en:'What small thing about you would you like me to notice today?'}},
   {id:'welcome-home',category:{cs:'Blízkost',en:'Closeness'},depth:'light',question:{cs:'Jaké přivítání by ti dnes udělalo dobře?',en:'What kind of welcome would feel good to you today?'}},
-  {id:'safe-to-be',category:{cs:'Blízkost',en:'Closeness'},depth:'deeper',question:{cs:'Co ti ode mě pomáhá cítit, že můžeš být opravdu sám/sama sebou?',en:'What do I do that helps you feel free to be yourself?'}},
-  {id:'unspoken-joy',category:{cs:'Blízkost',en:'Closeness'},depth:'light',question:{cs:'Co ti dnes udělalo radost a ještě jsem o tom neslyšel/a?',en:'What brought you joy today that I have not heard about yet?'}},
-  {id:'kind-attention',category:{cs:'Blízkost',en:'Closeness'},depth:'light',question:{cs:'Jakou pozornost by sis ode mě přál/a, i kdyby byla úplně malá?',en:'What bit of attention would you welcome from me, however small?'}},
+  {id:'safe-to-be',category:{cs:'Blízkost',en:'Closeness'},depth:'deeper',question:{cs:'Co ti pomáhá cítit se se mnou opravdu přirozeně?',en:'What do I do that helps you feel free to be yourself?'}},
+  {id:'unspoken-joy',category:{cs:'Blízkost',en:'Closeness'},depth:'light',question:{cs:'Co ti dnes udělalo radost a ještě o tom nevím?',en:'What brought you joy today that I have not heard about yet?'}},
+  {id:'kind-attention',category:{cs:'Blízkost',en:'Closeness'},depth:'light',question:{cs:'Jaká pozornost ode mě by ti udělala dobře, i kdyby byla úplně malá?',en:'What bit of attention would you welcome from me, however small?'}},
   {id:'touch-or-space',category:{cs:'Blízkost',en:'Closeness'},depth:'light',question:{cs:'Jaká blízkost je ti dnes příjemná: dotek, povídání, společné ticho, nebo víc prostoru?',en:'What kind of closeness feels good today: touch, talking, shared quiet, or more space?'}},
-  {id:'still-curious',category:{cs:'Blízkost',en:'Closeness'},depth:'light',question:{cs:'Co tě teď zajímá tak, že bys mi o tom mohl/a chvíli vyprávět?',en:'What has caught your interest lately that you would enjoy telling me about?'}},
+  {id:'still-curious',category:{cs:'Blízkost',en:'Closeness'},depth:'light',question:{cs:'Co tě teď zajímá a o čem mi chceš chvíli vyprávět?',en:'What has caught your interest lately that you would enjoy telling me about?'}},
   {id:'invisible-load',category:{cs:'Každodenní péče',en:'Everyday care'},depth:'light',question:{cs:'Co ti teď zabírá místo v hlavě, i když to zvenčí není vidět?',en:'What is taking up space in your mind that I might not see from the outside?'}},
-  {id:'help-that-fits',category:{cs:'Každodenní péče',en:'Everyday care'},depth:'light',question:{cs:'Kdy ti moje pomoc sedí a kdy bys potřeboval/a, abych se nejdřív zeptal/a?',en:'When does my help fit, and when would you prefer me to ask first?'}},
+  {id:'help-that-fits',category:{cs:'Každodenní péče',en:'Everyday care'},depth:'light',question:{cs:'Kdy ti moje pomoc sedí a kdy je lepší nejdřív se tě zeptat?',en:'When does my help fit, and when would you prefer me to ask first?'}},
   {id:'protect-rest',category:{cs:'Každodenní péče',en:'Everyday care'},depth:'light',question:{cs:'Který malý kus dne bychom ti mohli nechat opravdu na odpočinek?',en:'What small part of the day could we protect for your rest?'}},
   {id:'too-much',category:{cs:'Každodenní péče',en:'Everyday care'},depth:'light',question:{cs:'Čeho je na tebe tento týden moc a co bychom mohli zjednodušit?',en:'What feels like too much this week, and what could we simplify?'}},
-  {id:'share-responsibility',category:{cs:'Každodenní péče',en:'Everyday care'},depth:'deeper',question:{cs:'Kterou společnou starost bychom měli rozdělit tak, abys ji nemusel/a pořád držet v hlavě?',en:'Which shared responsibility could we divide so you do not have to keep carrying it in your head?'}},
-  {id:'practice-support',category:{cs:'Každodenní péče',en:'Everyday care'},depth:'light',question:{cs:'V čem ze své praxe nebo péče o sebe bys teď ocenil/a moji podporu?',en:'Where would you welcome my support in your practice or in caring for yourself?'}},
+  {id:'share-responsibility',category:{cs:'Každodenní péče',en:'Everyday care'},depth:'deeper',question:{cs:'Kterou společnou starost si můžeme rozdělit, aby ti nezabírala tolik místa v hlavě?',en:'Which shared responsibility could we divide so you do not have to keep carrying it in your head?'}},
+  {id:'practice-support',category:{cs:'Každodenní péče',en:'Everyday care'},depth:'light',question:{cs:'V čem ze své praxe nebo péče o sebe by se ti teď hodila moje podpora?',en:'Where would you welcome my support in your practice or in caring for yourself?'}},
   {id:'less-pressure',category:{cs:'Každodenní péče',en:'Everyday care'},depth:'light',question:{cs:'Co dnes můžeme pustit, aby mezi námi bylo méně spěchu?',en:'What could we let go of today so there is less rushing between us?'}},
-  {id:'under-the-reaction',category:{cs:'O kousek hlouběji',en:'A little deeper'},depth:'deeper',question:{cs:'Když se mezi námi stáhneš nebo rozčílíš, co bys chtěl/a, abych o tom věděl/a?',en:'When you pull back or get upset between us, what would you like me to understand?'}},
+  {id:'under-the-reaction',category:{cs:'O kousek hlouběji',en:'A little deeper'},depth:'deeper',question:{cs:'Když se mezi námi stáhneš nebo rozčílíš, co mi pomůže lépe ti porozumět?',en:'When you pull back or get upset between us, what would you like me to understand?'}},
   {id:'learned-care',category:{cs:'O kousek hlouběji',en:'A little deeper'},depth:'deeper',question:{cs:'Jak se u vás doma dávala najevo péče a co z toho si chceš nést do našeho vztahu?',en:'How was care shown in your family, and what would you like to bring from that into our relationship?'}},
   {id:'change-in-you',category:{cs:'O kousek hlouběji',en:'A little deeper'},depth:'deeper',question:{cs:'V čem se poslední dobou měníš a já tě možná pořád vidím postaru?',en:'How have you been changing lately while I may still be seeing an older version of you?'}},
-  {id:'boundary-as-care',category:{cs:'O kousek hlouběji',en:'A little deeper'},depth:'deeper',question:{cs:'Kterou svou hranici bys chtěl/a umět říct snáz a co by ti ode mě pomohlo?',en:'What boundary would you like to express more easily, and what could I do to help?'}},
+  {id:'boundary-as-care',category:{cs:'O kousek hlouběji',en:'A little deeper'},depth:'deeper',question:{cs:'Kterou svou hranici chceš říkat snáz a jak ti v tom mohu pomoct?',en:'What boundary would you like to express more easily, and what could I do to help?'}},
   {id:'assumption-check',category:{cs:'O kousek hlouběji',en:'A little deeper'},depth:'deeper',question:{cs:'Co si o tobě někdy vykládám jinak, než jak to skutečně prožíváš?',en:'What do I sometimes read differently from how you actually experience it?'}},
   {id:'repair-sign',category:{cs:'O kousek hlouběji',en:'A little deeper'},depth:'deeper',question:{cs:'Podle čeho poznáš, že se po neshodě opravdu snažím znovu přiblížit?',en:'What helps you recognise that I am trying to reconnect after a disagreement?'}},
   {id:'own-part',category:{cs:'O kousek hlouběji',en:'A little deeper'},depth:'deeper',question:{cs:'Je něco v mém jednání, za co chci převzít odpovědnost a příště to udělat jinak?',en:'Is there something in my own behaviour I want to take responsibility for and do differently next time?'}},
@@ -150,3 +150,15 @@ export const PLAN_INSPIRATIONS = [
   'home-day-to-breathe':['rest','care'],'shared-making-day':['new','play'],'apart-shared-afternoon':['closeness','rest'],
   'half-day-shared-direction':['meaning','closeness'],'day-without-rushing':['nature','rest'],
 })[item.id]||[]}));
+
+
+export const RELATIONSHIP_SOURCE_NOTES=[['Konkrétní ocenění, porozumění tomu, co je pod naší reakcí, laskavá náprava a malé dohody, ke kterým se vracíme. Podněty jsou naším volným zpracováním těchto principů, nikoli převzatým terapeutickým programem. Výzkum se týká původních přístupů, ne účinnosti krátkých karet v aplikaci.','Specific appreciation, understanding what lies beneath our reactions, repair and small agreements we return to. These invitations are our adaptation of those principles, not a therapy programme. Research concerns the original approaches, not the effectiveness of the app’s short cards.']];
+export const RELATIONSHIP_SOURCES=[
+  {id:'gottman',title:'Gottman Institute · State of the Union',url:'https://www.gottman.com/blog/how-to-have-a-state-of-the-union-meeting/'},
+  {id:'ibct',title:'Christensen · Integrative Behavioral Couple Therapy',url:'https://www.apa.org/pubs/videos/4310904.html'},
+  {id:'eft',title:'ICEEFT · Emotionally Focused Therapy',url:'https://iceeft.com/what-is-eft/'},
+  {id:'positive',title:'Gable et al. · Sharing positive experiences',url:'https://pubmed.ncbi.nlm.nih.gov/17059309/'},
+  {id:'novelty',title:'Aron et al. · Shared novel activities',url:'https://pubmed.ncbi.nlm.nih.gov/10707334/'},
+  {id:'intentions',title:'Gollwitzer & Sheeran · Implementation intentions',url:'https://www.socmot.uni-konstanz.de/publications/implementation-intentions-and-goal-achievement-meta-analysis-effects-and-processes'},
+  {id:'beginning-anew',title:'Plum Village · Beginning Anew',url:'https://plumvillage.org/mindfulness/extended-practises'}
+];

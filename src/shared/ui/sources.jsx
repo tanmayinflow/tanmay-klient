@@ -493,7 +493,7 @@ export function createSourcesUI(deps) {
         {sirotci.length > 0 && (
           <div style={{ marginTop: 12, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "12px 14px", background: t.callout }}>
             <div style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.sage, marginBottom: 6 }}>{L("Tvoje poznámky k odebraným pramenům", "Your notes on sources no longer shared")}</div>
-            <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, lineHeight: 1.6, marginBottom: 8 }}>{L("Tanmay tyhle prameny přestal sdílet. Co sis k nim napsal, zůstalo tobě.", "Tanmay stopped sharing these. What you wrote about them stayed yours.")}</div>
+            <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, lineHeight: 1.6, marginBottom: 8 }}>{L("Tanmay tyhle prameny přestal sdílet. Tvoje poznámky k nim zůstaly u tebe.", "Tanmay stopped sharing these. What you wrote about them stayed yours.")}</div>
             {sirotci.map((o) => (
               <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderTop: `1px solid ${t.borderSoft}` }}>
                 <span style={{ flex: 1, minWidth: 0, fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tmPlain(o.note || o.carry || "").slice(0, 90) || L("(bez textu)", "(no text)")}</span>

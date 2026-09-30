@@ -1,25 +1,28 @@
-import {MoonPhase,SearchMoonPhase} from "astronomy-engine";
-import {ASTRO_BODIES,CLASSICAL_BODIES,MAJOR_ASPECTS,SIGN_RULERS,angleDistance,astrologyDay,chitraAyanamsa,dateForAstrology,normalizeAngle,signedAngle,tropicalLongitude} from "./togetherAstrology.js";
+import {MoonPhase,SearchMoonPhase,ASTRO_BODIES,CLASSICAL_BODIES,MAJOR_ASPECTS,SIGN_RULERS,angleDistance,astrologyDay,chitraAyanamsa,lahiriAyanamsa,normalizeAngle,signedAngle,tropicalLongitude} from "./togetherAstrology.js";
+import {calendarDateValid,civilMidnight,nextCivilBoundary,shiftCivilDay} from "./togetherAstrologyTime.js";
 
 const HOUR=3600000,STEP=6*HOUR;
 const periodCache=new Map();
-export function astrologyPeriodBounds(day,range="day"){
-  const date=dateForAstrology(day);if(!date)throw new RangeError("A supported calendar day is required");
-  // Construct each civil midnight independently. A skipped midnight can
-  // normalize the start to 01:00; that hour must not leak into the end date.
-  const start=new Date(date.getFullYear(),date.getMonth(),date.getDate());
-  const end=new Date(date.getFullYear(),date.getMonth(),date.getDate()+(range==="week"?7:1));
-  const max=new Date(2101,0,1),clipped=end>max;if(clipped)end.setTime(max.getTime());
-  return {start:start.getTime(),end:end.getTime(),day,range:range==="week"?"week":"day",clipped};
+export function astrologyPeriodBounds(day,range="day",options={}){
+  if(!calendarDateValid(day)||Number(day.slice(0,4))<1900||Number(day.slice(0,4))>2100)throw new RangeError("A supported calendar day is required");
+  const period=["day","week","month","year"].includes(range)?range:"day",zone=options.timeZone||Intl.DateTimeFormat().resolvedOptions().timeZone;
+  let firstDay=day,lastDay=shiftCivilDay(day,1);
+  if(period==="week"){const weekday=new Date(`${day}T12:00:00Z`).getUTCDay();firstDay=shiftCivilDay(day,-((weekday+6)%7));lastDay=shiftCivilDay(firstDay,7);}
+  if(period==="month"){firstDay=`${day.slice(0,7)}-01`;const d=new Date(`${firstDay}T12:00:00Z`);d.setUTCMonth(d.getUTCMonth()+1);lastDay=d.toISOString().slice(0,10);}
+  if(period==="year"){firstDay=`${day.slice(0,4)}-01-01`;lastDay=`${Number(day.slice(0,4))+1}-01-01`;}
+  const clipped=lastDay>"2101-01-01"||firstDay<"1900-01-01";if(lastDay>"2101-01-01")lastDay="2101-01-01";if(firstDay<"1900-01-01")firstDay="1900-01-01";
+  if(!civilMidnight(day,zone))throw new RangeError("Civil day unavailable in this time zone");
+  const start=nextCivilBoundary(firstDay,zone),end=nextCivilBoundary(lastDay,zone);if(!start||!end)throw new RangeError("Civil day unavailable in this time zone");
+  return {start:start.getTime(),end:end.getTime(),day,firstDay,lastDay,range:period,clipped,timeZone:zone};
 }
-// Six-hour brackets, then bisection to 30 seconds. A signed angular residual
+// Six-hour brackets, then bisection to one second. A signed angular residual
 // rejects the antipodal discontinuity rather than reporting a spurious event.
 function zeroWithin(fn,left,right){
   let a=left,b=right,fa=fn(a),fb=fn(b);
   if(!Number.isFinite(fa)||!Number.isFinite(fb)||fa*fb>0)return null;
   if(Math.abs(fa)<1e-10)return a;
   if(Math.abs(fb)<1e-10)return b;
-  for(let i=0;i<24&&b-a>30000;i++){
+  for(let i=0;i<24&&b-a>1000;i++){
     const mid=(a+b)/2,fm=fn(mid);
     if(Math.abs(fm)<1e-10)return mid;
     if(fa*fm<=0){b=mid;fb=fm;}else{a=mid;fa=fm;}
@@ -28,10 +31,12 @@ function zeroWithin(fn,left,right){
 }
 function transitionWithin(classify,left,right){
   let a=left,b=right;const initial=classify(a);
-  for(let i=0;i<24&&b-a>30000;i++){
+  for(let i=0;i<24&&b-a>1000;i++){
     const mid=(a+b)/2;if(classify(mid)===initial)a=mid;else b=mid;
   }
-  return (a+b)/2;
+  // A category event opens its new state. Returning the midpoint can land
+  // just before the boundary and contradict the event's advertised `to`.
+  return b;
 }
 function importance(event){
   if(event.type==="station")return 110;
@@ -43,9 +48,9 @@ function importance(event){
   return 0;
 }
 
-export function astrologyPeriod(day,lens="western",range="day"){
+export function astrologyPeriod(day,lens="western",range="day",options={}){
   const frame=["western","hellenistic","jyotish"].includes(lens)?lens:"western";
-  const bounds=astrologyPeriodBounds(day,range),key=`${day}:${frame}:${bounds.range}:${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+  const bounds=astrologyPeriodBounds(day,range,options),key=`${bounds.firstDay}:${frame}:${bounds.range}:${bounds.timeZone}:${options.ayanamsa||"lahiri"}`;
   if(periodCache.has(key))return periodCache.get(key);
   const {start,end}=bounds,bodies=frame==="western"?ASTRO_BODIES:CLASSICAL_BODIES;
   const longitudeCache=new Map(),offsetCache=new Map(),events=[];
@@ -56,7 +61,7 @@ export function astrologyPeriod(day,lens="western",range="day"){
   };
   const longitude=(body,ms)=>{
     if(frame!=="jyotish")return tropical(body,ms);
-    if(!offsetCache.has(ms))offsetCache.set(ms,chitraAyanamsa(new Date(ms)));
+    if(!offsetCache.has(ms))offsetCache.set(ms,(options.ayanamsa==="true-chitra"?chitraAyanamsa:lahiriAyanamsa)(new Date(ms)));
     return normalizeAngle(tropical(body,ms)-offsetCache.get(ms));
   };
   const speed=(body,ms)=>signedAngle(tropical(body,ms+HOUR/2)-tropical(body,ms-HOUR/2))*24;
@@ -91,22 +96,24 @@ export function astrologyPeriod(day,lens="western",range="day"){
         }
       }
     }
-    if(frame==="jyotish"){
+    {
       const station=ms=>Math.floor(longitude("Moon",ms)/(360/27)),tithi=ms=>Math.floor(MoonPhase(new Date(ms))/12)+1;
-      for(const [type,classify] of [["nakshatra",station],["tithi",tithi]]){
+      // Practice dates always use the Moon–Sun angle, regardless of the wheel's
+      // zodiac frame. Nakshatra transitions remain specific to the sidereal view.
+      for(const [type,classify] of [...(frame==="jyotish"?[["nakshatra",station]]:[]),["tithi",tithi]]){
         const from=classify(left),to=classify(right);
         if(from!==to)add({type,body:"Moon",from,to,time:transitionWithin(classify,left,right)});
       }
     }
   }
   for(const angle of [0,90,180,270]){
-    const phase=SearchMoonPhase(angle,new Date(start),(end-start)/86400000+.001);
-    if(phase)add({type:"phase",body:"Moon",phase:angle/45,time:phase.date.getTime()});
+    let cursor=start;
+    while(cursor<end){const phase=SearchMoonPhase(angle,new Date(cursor),Math.min(32,(end-cursor)/86400000+.001));if(!phase)break;add({type:"phase",body:"Moon",phase:angle/45,time:phase.date.getTime()});cursor=phase.date.getTime()+60000;}
   }
   events.sort((a,b)=>a.time-b.time);
   const snapshot=ms=>Object.fromEntries(bodies.map(body=>[body,longitude(body,ms)]));
   const ranked=[...events].sort((a,b)=>b.score-a.score||a.time-b.time);
-  const result={...bounds,lens:frame,events,significant:ranked.slice(0,bounds.range==="week"?5:3),first:snapshot(start),last:snapshot(end-1)};
+  const result={...bounds,lens:frame,events,significant:ranked.slice(0,bounds.range==="day"?3:bounds.range==="week"?5:12),first:snapshot(start),last:snapshot(end-1)};
   periodCache.set(key,result);if(periodCache.size>12)periodCache.delete(periodCache.keys().next().value);
   return result;
 }
@@ -136,5 +143,5 @@ export function astrologyDominants(sky,period){
     signChanges:period.events.filter(e=>e.type==="ingress"),
     lunarChanges:period.events.filter(e=>e.type==="nakshatra"||e.type==="tithi"),
     dignified:visible.filter(p=>p.dignity==="domicile"||p.dignity==="exaltation"),
-    date:astrologyDay(new Date(sky.date))};
+    date:astrologyDay(new Date(sky.date),period.timeZone)};
 }

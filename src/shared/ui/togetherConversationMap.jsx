@@ -1,11 +1,5 @@
 import React,{useId,useRef,useState} from 'react';
 
-const paths={
-  daily:'M76 55C118 54 132 119 179 141C222 161 211 225 180 284',
-  questions:'M284 55C241 50 232 120 180 142C138 160 149 235 180 284',
-  moments:'M76 199C90 156 130 125 177 142C230 163 210 233 180 284',
-  weekly:'M284 199C268 151 227 121 181 142C137 164 155 237 180 284'
-};
 const choices=[
   {id:'daily',name:['Otázka dne','Today’s question'],title:['Otázka pro dnešek','One question for today'],x:21,y:11.3},
   {id:'questions',name:['Otázky naživo','Face to face'],title:['Otázky naživo','Questions face to face'],x:79,y:11.3},
@@ -47,14 +41,10 @@ export function TogetherConversationMap({lang='cs',slots,children,initialPanel='
     <style>{conversationMapStyles}</style>
     <div className="tg-conversation-scene">
       <svg className="tg-conversation-drawing" viewBox="0 0 360 292" aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-        <defs><mask id={artMask} x="104" y="74" width="152" height="198" maskUnits="userSpaceOnUse" style={{maskType:'alpha'}}><image href="/media/spolu/conversation-engraving.png" x="104" y="74" width="152" height="198" preserveAspectRatio="xMidYMid slice"/></mask></defs>
-        <g className="tg-conversation-terrain"><path d="M76 55C116 18 248 22 284 55M76 199C108 247 246 247 284 199M38 119C61 88 47 69 76 55M322 120C296 153 309 175 284 199"/><path d="M76 199C55 213 46 234 58 254M284 55C307 34 319 38 326 49"/></g>
-        <g className="tg-conversation-threads">{choices.map(choice=><path key={choice.id} d={paths[choice.id]}/>)}</g>
-        <path key={`route-${selected}`} className="tg-conversation-route" d={paths[selected]} pathLength="1"/>
+        <defs><mask id={artMask} x="104" y="74" width="152" height="198" maskUnits="userSpaceOnUse" style={{maskType:'alpha'}}><image href="/media/spolu/conversation-engraving.png" x="104" y="74" width="152" height="198" preserveAspectRatio="xMidYMid meet"/></mask></defs>
         <g className="tg-conversation-meeting" key={`meeting-${selected}`}>
           <rect x="104" y="74" width="152" height="198" fill="currentColor" stroke="none" mask={`url(#${artMask})`}/>
         </g>
-        <g className="tg-conversation-seeds"><circle cx="112" cy="45" r="1.5"/><circle cx="246" cy="35" r="1.5"/><circle cx="50" cy="154" r="1.5"/><circle cx="306" cy="158" r="1.5"/><path d="M179 69v8m-4-4h8M117 234v6m-3-3h6M249 258v6m-3-3h6"/></g>
       </svg>
       <div className="tg-conversation-nodes" role="tablist" aria-label={L(['Vyberte, na co máte prostor','Choose what you have room for'])}>
         {choices.map(choice=><button key={choice.id} type="button" role="tab" id={`${id}-${choice.id}-tab`} aria-controls={`${id}-${choice.id}-panel`} aria-selected={selected===choice.id} disabled={!available.some(item=>item.id===choice.id)} tabIndex={selected===choice.id?0:-1} ref={element=>{buttons.current[choice.id]=element;}} className="tg-conversation-node" style={{left:`${choice.x}%`,top:`${choice.y}%`}} onClick={()=>select(choice.id)} onKeyDown={event=>move(event,choice.id)}>
@@ -83,14 +73,14 @@ const conversationMapStyles=`
 .tg-conversation-seeds{opacity:.6;stroke-width:.65}.tg-conversation-seeds circle{fill:currentColor;stroke:none}
 .tm-together .tg-conversation-nodes{position:absolute;inset:0}
 .tm-together button.tg-conversation-node{position:absolute;translate:-50% 0;width:41%;min-width:0;min-height:78px;padding:0 2px 6px;border:0;border-radius:2px;display:flex;align-items:center;flex-direction:column;gap:3px;background:none;color:var(--tg-text);font-family:var(--tm-font-display);font-size:18px;line-height:1.13;transition:color 150ms ease}
-.tm-together .tg-conversation-node>svg{display:block;width:44px;height:44px;padding:1px;box-sizing:border-box;color:var(--tg-accent);background:var(--tg-bg);border-radius:50%;overflow:visible;transition:transform 220ms cubic-bezier(.16,1,.3,1)}
+.tm-together .tg-conversation-node>svg{display:block;width:44px;height:44px;padding:1px;box-sizing:border-box;color:var(--tg-accent);background:transparent;border-radius:50%;overflow:visible;transition:transform 220ms cubic-bezier(.16,1,.3,1)}
 .tm-together .tg-conversation-node>span{display:block;max-width:100%;text-wrap:balance}
 .tm-together .tg-conversation-node[aria-selected=true]{color:var(--tg-accent)}
 .tm-together .tg-conversation-node[aria-selected=true]>span{font-style:italic;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:5px}
 .tm-together .tg-conversation-node[aria-selected=true]>svg{transform:scale(1.08)}
 .tm-together .tg-conversation-node:hover:not(:disabled)>svg{transform:scale(1.08)}
 .tm-together .tg-conversation-node:focus-visible{outline:2px solid var(--tg-accent);outline-offset:5px}
-.tm-together .tg-conversation-panel{border:0;border-top:1px solid var(--tg-soft);padding:20px 0 0;scroll-margin-top:28px;animation:tg-conversation-arrive 260ms ease-out}
+.tm-together .tg-conversation-panel{border:0;padding:24px 0 0;scroll-margin-top:28px;animation:tg-conversation-arrive 260ms ease-out}
 .tm-together .tg-conversation-panel:focus-visible{outline:1px solid var(--tg-accent);outline-offset:7px}
 .tm-together .tg-conversation-panel[hidden]{display:none!important}
 .tm-together .tg-conversation-panel-heading{display:flex;gap:16px;align-items:center;margin:0 0 16px}

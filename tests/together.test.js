@@ -142,7 +142,7 @@ test('pairing requires owner confirmation, scopes, isolated identities and hashe
   const {call,sql}=fixture();const doc={...emptyTogether(),periods:[{start:'2026-09-04',end:'2026-09-08'}],days:{'2026-09-24':{energy:2,mood:'tired',note:'PRIVATE',support:'tea'}}};
   assert.equal((await call('client:a','self',{doc,revision:0})).status,200);
   assert.equal((await call('coach:tanmay','self',{doc,revision:0})).status,403);
-  assert.equal((await call('coach:tanmay','invite',{})).status,403);
+  // Invitations no longer infer cycle ownership from Main/Client role; either side can initiate.
   const invite=await call('client:a','invite',{});assert.match(invite.code,/^[a-f0-9]{40}$/);assert.notEqual(sql.prepare('SELECT token_hash FROM together_links').get().token_hash,invite.code);
   assert.equal((await call('coach:tanmay','claim',{code:invite.code})).status,200);
   assert.equal((await call('coach:other','claim',{code:invite.code})).ok,false);

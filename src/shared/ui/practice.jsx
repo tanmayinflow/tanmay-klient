@@ -83,7 +83,7 @@ export function createPracticeUI(deps) {
             Rozdíl nese barva a kurzíva; kroužek zaostření se ukáže jen
             klávesnici, po klepnutí po sobě nic nenechá. */}
         <button onClick={cycle} title={L("Mimo kontakt → V kontaktu → V souladu → prázdné", "Out of contact → In contact → In accord → empty")} style={{ background: "transparent", border: "none", outline: "none", boxShadow: "none", borderRadius: 0, padding: "2px 0", minHeight: 30, cursor: "pointer", fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, color: idx >= 0 ? c : t.textMuted, textAlign: "right", WebkitTapHighlightColor: "transparent" }}>
-          {idx >= 0 ? statuses[idx].label : (day.s || L("Jak ses dnes nesl?", "How did today carry you?"))}
+          {idx >= 0 ? statuses[idx].label : (day.s || L("Jaký byl tvůj dnešek?", "How did today carry you?"))}
         </button>
         {legacy && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 4 }}>{L("starší volný zápis — kliknutím přejdeš na tři stavy", "older free-form note — click to switch to the three states")}</div>}
         {st.editMode && (

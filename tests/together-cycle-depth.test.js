@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CYCLE_ORDER,CYCLE_DEPTH,CYCLE_HORMONES,cycleHormoneSchematic,resolveCycleExploration} from '../src/shared/product/togetherCycleDepth.js';
+import {CYCLE_ORDER,CYCLE_DEPTH,CYCLE_HORMONES,cycleHormoneSchematic,resolveCycleExploration,cyclePersonalText} from '../src/shared/product/togetherCycleDepth.js';
 
 test('the deep guide never guesses an unknown phase or carries exploration across dates',()=>{
   const unknown={id:null,basis:'unknown'};
@@ -48,4 +48,13 @@ test('every phase has both roles, five practical topics and complete separate bi
     for(const key of ['season','day','direction','archetype','text','shadow','question','ritual','storyTitle','story'])assert.ok(phase.symbol[key].length===2&&phase.symbol[key].every(Boolean),`${id}.symbol.${key}`);
     assert.ok(phase.symbol.source===null||['inana','demeter'].includes(phase.symbol.source));
   }
+});
+
+
+test('personal wording changes self-address without changing the underlying cycle guidance',()=>{
+  const text='Pokud jsi unavená, odpočívej. Fáze neměří hormony.';
+  assert.equal(cyclePersonalText(text,'female'),text);
+  assert.equal(cyclePersonalText(text,'male'),'Pokud jsi unavený, odpočívej. Fáze neměří hormony.');
+  assert.equal(cyclePersonalText(text,'neutral'),'Pokud cítíš únavu, odpočívej. Fáze neměří hormony.');
+  assert.equal(cyclePersonalText('Druhý člověk má vlastní zkušenost.','male'),'Druhý člověk má vlastní zkušenost.');
 });

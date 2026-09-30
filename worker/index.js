@@ -1,4 +1,5 @@
 import { handleTogether } from "../src/shared/product/togetherApi.js";
+import { handlePersonalProfile } from "../src/shared/product/personalProfile.js";
 import { readDelivery, writeDelivery, receiveDelivery } from "../src/training/deliveryStore.js";
 // tanmay-klient — Worker (client edition).
 //
@@ -331,15 +332,15 @@ const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
-  "frame-src 'none'",
+  "frame-src https://accounts.google.com",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "script-src 'self' '" + INDEX_INLINE_SCRIPT_HASH + "'",
+  "script-src 'self' 'wasm-unsafe-eval' '" + INDEX_INLINE_SCRIPT_HASH + "' https://accounts.google.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https://covers.openlibrary.org https://m.media-amazon.com",
   "media-src 'self' data: blob:",
-  "connect-src 'self' https://openlibrary.org https://www.omdbapi.com",
+  "connect-src 'self' https://openlibrary.org https://www.omdbapi.com https://www.googleapis.com https://accounts.google.com",
   "worker-src 'self'",
   "manifest-src 'self'",
 ].join("; ");
@@ -351,7 +352,7 @@ function withSecurityHeaders(res) {
   h.set("Referrer-Policy", "no-referrer");
   h.set("X-Frame-Options", "DENY");
   h.set("Permissions-Policy", "geolocation=(), camera=(), payment=(), usb=(), interest-cohort=()");
-  h.set("Cross-Origin-Opener-Policy", "same-origin");
+  h.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   h.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
 }
@@ -500,6 +501,7 @@ export default {
       if (!(await isMember(env, userId))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
+      if (url.pathname === "/api/personal-profile") return handlePersonalProfile(request, env.DB, `client:${userId}`, { legacyOwner: true });
       if (url.pathname === "/api/together" || url.pathname.startsWith("/api/together/")) return handleTogether(request, env.DB, `client:${userId}`, { owner: true });
 
       // Jméno člena — zobrazí se jemu i Tanymu v přehledu klientů.

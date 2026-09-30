@@ -1,0 +1,89 @@
+import React,{useEffect,useId,useRef,useState} from "react";
+import {createPortal} from "react-dom";
+import {SKY_HELP} from "../product/skyHelp.js";
+import {SKY_HELP_RELATED,SKY_HELP_EN_TITLES} from "../product/skyHelpNavigation.js";
+import {emptySkyJournal,parseSkyJournal,saveSkyJournal,skyStorageKey} from "../product/skyJournal.js";
+import {isPersonalProfileVerified} from "./personalProfile.jsx";
+
+export const skyTheme=t=>({"--astro-ink":t.accentInk||t.accent,"--astro-text":t.text,"--astro-muted":t.textSec||t.textMuted||t.text,"--astro-line":t.borderSoft,"--astro-bg":t.card||t.bg,"--astro-on":t.onAccent||t.bg,color:t.text});
+export function useSkyJournal(accountKey){
+  const [state,setState]=useState({account:null,doc:emptySkyJournal(),error:""}),latest=useRef(state);latest.current=state;
+  useEffect(()=>{
+    if(!accountKey){setState({account:null,doc:emptySkyJournal(),error:""});return;}
+    const load=()=>{try{setState({account:accountKey,doc:parseSkyJournal(localStorage.getItem(skyStorageKey(accountKey))),error:""});}catch(e){setState({account:accountKey,doc:emptySkyJournal(),error:e.message});}};
+    load();const changed=e=>{if(e.key===skyStorageKey(accountKey)||e.key===null)load();};window.addEventListener("storage",changed);return()=>window.removeEventListener("storage",changed);
+  },[accountKey]);
+  const ready=Boolean(accountKey&&state.account===accountKey&&!state.error);
+  const update=transform=>{
+    const now=latest.current;if(!isPersonalProfileVerified(accountKey)||now.account!==accountKey||now.error)return false;
+    try{const doc=saveSkyJournal(localStorage,accountKey,now.doc,transform);const next={account:accountKey,doc,error:""};latest.current=next;setState(next);return true;}
+    catch(e){setState({...now,error:e.message});return false;}
+  };
+  const reload=()=>{if(!isPersonalProfileVerified(accountKey))return;try{const next={account:accountKey,doc:parseSkyJournal(localStorage.getItem(skyStorageKey(accountKey))),error:""};latest.current=next;setState(next);}catch(e){setState({...latest.current,error:e.message});}};
+  return {journal:ready?state.doc:state.account===accountKey?state.doc:emptySkyJournal(),ready,error:state.account===accountKey?state.error:"",update,reload};
+}
+export function SkyDialog({title,onClose,children,t,lang="cs",suspended=false}){
+  const ref=useRef(null),titleId=useId(),close=useRef(onClose);close.current=onClose;
+  useEffect(()=>{if(suspended)return;const node=ref.current,prior=document.activeElement,overflow=document.body.style.overflow;document.body.style.overflow="hidden";node.showModal();return()=>{node.close();document.body.style.overflow=overflow;if(prior?.isConnected)prior.focus({preventScroll:true});};},[suspended]);
+  return createPortal(<dialog ref={ref} className="tg-astrology sky-dialog" style={skyTheme(t)} aria-labelledby={titleId} onCancel={e=>{e.preventDefault();close.current();}} onClick={e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)close.current();}}}>
+    <header><h2 id={titleId}>{title}</h2><button type="button" className="sky-close" onClick={onClose} aria-label={lang==="en"?"Close detail":"Zavřít detail"}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div className="sky-dialog-content">{children}</div>
+  </dialog>,document.body);
+}
+export function SkyHelp({id,onOpen,lang="cs"}){const help=SKY_HELP[id];return help?<button type="button" className="sky-info" aria-label={lang==="en"?`Explain: ${SKY_HELP_EN_TITLES[id]||help.title}`:`Vysvětlit: ${help.title}`} onClick={event=>{event.preventDefault();event.stopPropagation();onOpen({kind:"help",id});}}><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1" strokeWidth="1.6"/></svg></button>:null;}
+export function SkyHeading({children,id,onOpen,lang="cs",level=3}){const Tag=`h${level}`;return <div className="sky-heading"><Tag>{children}</Tag>{id&&<SkyHelp id={id} onOpen={onOpen} lang={lang}/>}</div>;}
+export function SkyHelpContent({id,lang="cs"}){
+  const [choice,setChoice]=useState(null),active=choice?.parent===id?choice.id:id,h=SKY_HELP[active],en=lang==="en";
+  const title=key=>en?SKY_HELP_EN_TITLES[key]||SKY_HELP[key]?.title:SKY_HELP[key]?.title;
+  return h?<div className="sky-help-copy">{active!==id&&<><button type="button" className="sky-quiet sky-small" onClick={()=>setChoice(null)}>← {title(id)}</button><h3>{title(active)}</h3></>}{h[en?"en":"cs"].map((text,i)=><p key={i}>{text}</p>)}{SKY_HELP_RELATED[active]?.length>0&&<div className="sky-help-related"><h4>{en?"Related explanations":"Související vysvětlení"}</h4><div className="sky-actions">{SKY_HELP_RELATED[active].map(child=><button type="button" className="sky-quiet" key={child} onClick={()=>setChoice({parent:id,id:child})}>{title(child)} →</button>)}</div></div>}</div>:null;
+}
+export function SkyLayer({name,subtitle,children,id,onOpen,lang}){return <section className="sky-layer" aria-label={name}><div className="sky-layer-heading"><h2>{name}</h2><span>{subtitle}</span>{id&&<SkyHelp id={id} onOpen={onOpen} lang={lang}/>}</div>{children}</section>;}
+export function SkyEmpty({text,children}){return <div className="sky-empty"><svg viewBox="0 0 160 70" width="160" height="70" fill="none" stroke="currentColor" aria-hidden="true"><path d="M13 57c23-18 47-13 69-7s43 7 65-8M29 47c18-18 37-16 51-12s29 7 46-2M77 27v-9m-4 4h8"/><path d="M97 12c-6 8-2 17 8 17a12 12 0 0 1-8-17Z"/></svg><p>{text}</p>{children}</div>;}
+export function skyTime(instant,lang,timeZone,withDate=false){if(!instant)return "—";try{return new Date(instant).toLocaleString(lang==="en"?"en-GB":"cs-CZ",{timeZone,...(withDate?{day:"numeric",month:"short"}:{}),hour:"2-digit",minute:"2-digit"});}catch{return "—";}}
+
+export const SKY_CSS=`
+.tg-astrology{font:15px/1.65 var(--tm-font-body);max-width:720px;margin:0 auto;overflow-wrap:anywhere;color:var(--astro-text);color-scheme:normal}
+.tg-astrology *{box-sizing:border-box}.tg-astrology ::selection{background:var(--astro-ink);color:var(--astro-on)}
+.tg-astrology p{margin:10px 0 18px;max-width:68ch}.tg-astrology :is(h2,h3,h4){font-family:var(--tm-font-display);font-weight:400;line-height:1.2;color:var(--astro-text);text-transform:none;letter-spacing:normal;text-wrap:balance}
+.tg-astrology h2{font-size:34px;margin:0}.tg-astrology h3{font-size:26px;margin:0}.tg-astrology h4{font-size:21px;margin:22px 0 8px}
+.tg-astrology :is(button,select,input,textarea){font:14px/1.5 var(--tm-font-body);color:var(--astro-text);max-width:100%;caret-color:var(--astro-ink)}
+.tg-astrology button{min-height:44px;padding:8px 12px;border:1px solid var(--astro-line);border-radius:7px;background:transparent;cursor:pointer;touch-action:manipulation;transition:color .2s,border-color .2s,background-color .2s}
+.tg-astrology button:hover:not(:disabled){color:var(--astro-ink);border-color:var(--astro-ink)}.tg-astrology button:disabled{opacity:.45;cursor:default}
+.tg-astrology button[aria-pressed=true],.tg-astrology button[aria-selected=true]{color:var(--astro-ink);border-color:var(--astro-ink)}
+.tg-astrology .sky-primary{background:var(--astro-ink);color:var(--astro-on);border-color:var(--astro-ink)}.tg-astrology .sky-primary:hover:not(:disabled){color:var(--astro-on)}
+.tg-astrology .sky-quiet{border-color:transparent}.tg-astrology :is(button,input,select,textarea,summary,a,[role=button]):focus-visible{outline:2px solid var(--astro-ink);outline-offset:3px}
+.tg-astrology a{color:var(--astro-ink);text-underline-offset:4px}.tg-astrology textarea,.tg-astrology input:not([type=checkbox]):not([type=radio]):not([type=range]),.tg-astrology select{width:100%;min-height:44px;padding:10px 9px;border:1px solid var(--astro-line);border-radius:7px;background:transparent}
+.tg-astrology select option{background:var(--astro-bg);color:var(--astro-text)}.tg-astrology textarea{resize:vertical;font:italic 20px/1.45 var(--tm-font-display);min-height:100px;border:0;padding-inline:0}
+.tg-astrology :is(input,textarea)::placeholder{color:var(--astro-muted);opacity:1}.tg-astrology label{display:block;margin:12px 0 5px}.tg-astrology fieldset{border:0;margin:0;padding:0}.tg-astrology legend{padding:0;font:22px/1.3 var(--tm-font-display);margin:20px 0 8px}
+.tg-astrology input[type=checkbox],.tg-astrology input[type=radio]{accent-color:var(--astro-ink);width:18px;height:18px;margin:0;flex:0 0 18px}
+.tg-astrology .sky-check{display:flex;align-items:center;gap:10px;min-height:44px;margin:3px 0}.tg-astrology .sky-check span{flex:1}
+.tg-astrology .sky-label,.tg-astrology .astro-label{font:12px/1.5 var(--tm-font-tag);letter-spacing:.14em;text-transform:uppercase;color:var(--astro-ink)}
+.tg-astrology .sky-small,.tg-astrology .astro-small{font-size:12px;line-height:1.65;color:var(--astro-muted)}.tg-astrology .sky-data{font-variant-numeric:tabular-nums;color:var(--astro-ink)}
+.tg-astrology .sky-heading{display:flex;align-items:center;gap:8px;margin:30px 0 12px}.tg-astrology .sky-heading :is(h3,h4){flex:1;margin:0}
+.tg-astrology .sky-info{padding:8px;border:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:0 0 38px;min-height:38px;color:var(--astro-muted)}
+.tg-astrology .sky-layer{padding:32px 0 18px}.tg-astrology .sky-layer+.sky-layer{margin-top:20px}.tg-astrology .sky-layer-heading{display:flex;align-items:baseline;gap:12px;margin-bottom:26px}.tg-astrology .sky-layer-heading h2{font-size:38px}.tg-astrology .sky-layer-heading>span{font:12px var(--tm-font-tag);letter-spacing:.13em;color:var(--astro-muted);text-transform:uppercase;flex:1}
+.tg-astrology .sky-tabs{display:flex;gap:12px;margin:18px 0 12px}.tg-astrology .sky-tabs>button{flex:1;border:0;border-bottom:2px solid transparent;border-radius:0;font:13px/1.3 var(--tm-font-tag);letter-spacing:.1em;text-transform:uppercase;padding-inline:3px}.tg-astrology .sky-tabs>button[aria-selected=true],.tg-astrology .sky-tabs>button[aria-pressed=true]{border-bottom-color:var(--astro-ink)}
+.tg-astrology .sky-date{display:flex;align-items:center;gap:2px}.tg-astrology .sky-date button{border:0;padding-inline:8px}.tg-astrology .sky-date .sky-date-value{flex:1;font:25px/1.2 var(--tm-font-display);min-width:0}.tg-astrology .sky-date>button:not(.sky-date-value){flex:0 0 40px;font-size:22px}.tg-astrology .sky-date .sky-today{flex:0 0 auto!important;font:12px var(--tm-font-tag)!important;letter-spacing:.08em;text-transform:uppercase}
+.tg-astrology .sky-time{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin:10px 0 0}.tg-astrology .sky-time label{margin:0;font-size:13px}.tg-astrology .sky-time input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:44px;margin:0;background:transparent;cursor:pointer;display:block;border:0}
+.tg-astrology .sky-time input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--astro-ink)}.tg-astrology .sky-time input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--astro-ink);margin-top:-7px;border:0}
+.tg-astrology .sky-time input[type=range]::-moz-range-track{height:2px;background:var(--astro-ink)}.tg-astrology .sky-time input[type=range]::-moz-range-thumb{width:17px;height:17px;border:0;border-radius:50%;background:var(--astro-ink)}
+.tg-astrology .sky-place{border:0;padding:4px 0;min-height:30px;font-size:12px;color:var(--astro-muted);text-align:left}.tg-astrology .sky-actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.tg-astrology .sky-pair{display:grid;grid-template-columns:1fr 1fr;gap:20px}.tg-astrology .sky-pair>div{min-width:0}.tg-astrology .sky-fact{font:26px/1.25 var(--tm-font-display);margin:8px 0}.tg-astrology .sky-lead{font:27px/1.35 var(--tm-font-display);margin:8px 0 25px;text-wrap:balance}
+.tg-astrology .sky-links{display:flex;flex-wrap:wrap;gap:5px 15px;margin:18px 0}.tg-astrology .sky-links button{border:0;padding:8px 0;text-align:left;font:18px/1.35 var(--tm-font-display)}
+.tg-astrology .sky-summary{margin:18px 0}.tg-astrology details{padding:8px 0}.tg-astrology summary{cursor:pointer;min-height:44px;font:19px/1.4 var(--tm-font-display);padding:9px 0;color:var(--astro-ink)}
+.tg-astrology .sky-empty{text-align:center;padding:18px 8px;color:var(--astro-muted)}.tg-astrology .sky-empty svg{display:block;margin:0 auto 10px;color:var(--astro-ink)}.tg-astrology .sky-empty p{margin:5px auto 15px;max-width:36ch}
+.tg-astrology .sky-record{padding:15px 0}.tg-astrology .sky-record time{font-size:12px;color:var(--astro-muted)}.tg-astrology .sky-record p{white-space:pre-wrap}.tg-astrology .sky-record+.sky-record{margin-top:8px}
+.tg-astrology .sky-body-image{max-width:320px;width:100%;height:auto;display:block;margin:8px auto;color:var(--astro-ink)}.tg-astrology .sky-body-point{cursor:pointer}.tg-astrology .sky-body-point circle{fill:var(--astro-bg);stroke:currentColor;stroke-width:1.2}.tg-astrology .sky-body-point[aria-pressed=true] circle{stroke-width:2.4}.tg-astrology .sky-body-point text{fill:currentColor;stroke:none;font-size:19px}
+.tg-astrology .sky-body-actions{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px}.tg-astrology .sky-body-actions button{border:0;font:18px/1.3 var(--tm-font-display);text-align:left;padding-inline:0}.tg-astrology .sky-model{font-size:11px;color:var(--astro-muted);text-align:center}
+.tg-astrology .sky-inner-wheel{width:230px;height:230px;display:block;margin:15px auto}.tg-astrology .sky-clock text{fill:currentColor;stroke:none;font:12px var(--tm-font-body)}
+.tg-astrology .sky-observe{display:flex;gap:10px}.tg-astrology .sky-observe button{flex:1;border-color:transparent;border-radius:50%;width:65px;height:65px;max-width:80px;font:24px var(--tm-font-display)}.tg-astrology .sky-observe button[aria-pressed=true]{border-color:var(--astro-ink)}
+.tg-astrology .sky-rhythm{display:grid;grid-template-columns:1fr;gap:13px}.tg-astrology .sky-rhythm h4{margin:10px 0 6px}.tg-astrology .sky-practice-invite{padding:16px 0}.tg-astrology .sky-practice-invite>button{font:26px/1.25 var(--tm-font-display);border:0;padding:0;text-align:left}.tg-astrology blockquote{font:italic 25px/1.45 var(--tm-font-display);margin:30px 0 10px;padding:0;color:var(--astro-ink)}
+.tg-astrology .sky-setting{margin:30px 0}.tg-astrology .sky-setting h3{margin-bottom:14px}.tg-astrology .sky-settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.tg-astrology .sky-settings-grid .wide{grid-column:1/-1}
+.tg-astrology .sky-status{font-size:13px;color:var(--astro-ink);padding:8px 0}.tg-astrology .sky-period-strip{display:flex;gap:7px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:var(--astro-ink) transparent;padding:8px 0 14px}.tg-astrology .sky-period-strip button{flex:0 0 76px;scroll-snap-align:start;border-color:transparent}.tg-astrology .sky-period-strip strong,.tg-astrology .sky-period-strip span{display:block}.tg-astrology .sky-period-strip strong{font:24px var(--tm-font-display)}
+.tg-astrology .sky-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin:18px 0}.tg-astrology .sky-month-grid>span{text-align:center;font:11px var(--tm-font-tag);padding:6px 0}.tg-astrology .sky-month-grid button{padding:7px 2px;border-color:transparent;min-height:52px;font-variant-numeric:tabular-nums}.tg-astrology .sky-month-grid small{display:block;font-size:10px;color:var(--astro-ink);line-height:1}.tg-astrology .sky-month-grid .outside{opacity:.45}
+.tg-astrology .sky-year-wheel{width:min(100%,320px);display:block;margin:auto;color:var(--astro-ink)}.tg-astrology .sky-period-event{padding:12px 0}.tg-astrology .sky-period-event button{display:block;text-align:left;width:100%;border:0;padding:0}.tg-astrology .sky-period-event h4{margin:5px 0}.tg-astrology .sky-timeline{margin:18px 0;display:flex;flex-wrap:wrap;gap:6px}.tg-astrology .sky-timeline button{text-align:left;flex:1 1 145px}.tg-astrology .sky-timeline span{display:block;font-size:12px}
+.tg-astrology.sky-dialog{position:fixed;inset:0;width:calc(100% - 28px);max-width:640px;max-height:88svh;padding:0;border:0;border-radius:15px;background:var(--astro-bg);color:var(--astro-text);box-shadow:0 18px 65px #0005;overflow:hidden;margin:auto;animation:sky-dialog-in .28s cubic-bezier(.16,1,.3,1)}
+.tg-astrology.sky-dialog::backdrop{background:#17171070}.tg-astrology.sky-dialog>header{display:flex;align-items:center;gap:15px;padding:22px 22px 12px}.tg-astrology.sky-dialog>header h2{font-size:28px;flex:1}.tg-astrology .sky-close{border:0;flex:0 0 44px;display:grid;place-items:center}.tg-astrology .sky-dialog-content{overflow:auto;overscroll-behavior:contain;max-height:calc(88svh - 100px);padding:5px 22px 28px;scrollbar-width:thin;scrollbar-color:var(--astro-ink) transparent}.tg-astrology .sky-help-copy p{margin:8px 0 22px}
+@keyframes sky-dialog-in{from{transform:translateY(12px);opacity:.85}to{transform:none;opacity:1}}
+@media(min-width:600px){.tg-astrology .sky-rhythm{grid-template-columns:repeat(3,1fr);gap:22px}.tg-astrology .sky-body-layout{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center}.tg-astrology .sky-layer{padding-top:40px}}
+@media(prefers-reduced-motion:reduce){.tg-astrology *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+`;

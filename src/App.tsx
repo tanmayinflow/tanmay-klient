@@ -1,5 +1,7 @@
 import { TogetherPage, TogetherIcon } from "./shared/ui/together.jsx";
 import { NavigationSettings } from "./shared/ui/navigationSettings.jsx";
+import { PersonalSettingsBridge, PersonalSettingsSections } from "./shared/ui/personalSettings.jsx";
+import { trainingSourceMetadata } from "./shared/product/sourceMetadata.js";
 import { CLIENT_ROOMS, navigationRooms, roomPlacement, navigationLabel } from "./shared/product/navigation.js";
 import { TrainingGoals } from "./shared/ui/trainingGoals.jsx";
 import { editorInk, editorHighlight, EDITOR_INKS, EDITOR_CHOICES, EDITOR_NAMES, EDITOR_LABELS } from "./shared/ui/editorPalette.js";
@@ -4233,7 +4235,7 @@ const TEX_SEED_7 = [
     pro: ["Hlubší rozsah na bradlech, pak 90° klik.", "Deeper range on parallettes, then the 90-degree push-up."] },
   { id: "hspu90", cz: "90° klik", en: "90-Degree Push-Up", pat: "tlak", S: 5, C: 5, J: { zap: 3, lok: 2, ram: 3 }, pop: 1, eq: ["telo", "bradla"], mode: "reps", mp: ["sho", "tri"], ms: ["che", "fore", "abs"], dot: [98, 148], ez: "freehspu", hd: null,
     foc: ["Ve spodní pozici je tělo vodorovně — planche s pokrčenými lokty.", "At the bottom the body is horizontal — a planche on bent elbows."],
-    pos: ["Stoj na rukou, připravený na hluboké spuštění.", "A handstand, ready for the deep lower."],
+    pos: ["Stoj na rukou před hlubokým spuštěním.", "A handstand, ready for the deep lower."],
     exe: ["Spusť se přes 90° v loktech do vodorovna, ramena před dlaně. Tlakem zpět do stoje.", "Lower through ninety degrees into horizontal, shoulders ahead of the palms. Press back up to the handstand."],
     wat: ["Spojení planche a stoje na rukou — obě linie musí být hotové. Lokty u těla.", "The junction of planche and handstand — both lines must be finished first. Elbows in."],
     pro: ["Pomalejší průchody, zastavení ve vodorovné.", "Slower passes, a stop in the horizontal."] },
@@ -4344,7 +4346,7 @@ const TEX_SEED_8 = [
     pro: ["Užší straddle, pak celý front lever.", "A narrower straddle, then the full front lever."] },
   { id: "ironcross", cz: "Iron cross", en: "Iron Cross", pat: "tlak", S: 5, C: 4, J: { lok: 3, ram: 3 }, pop: 1, eq: ["kruhy"], mode: "sec", mp: ["sho", "che"], ms: ["bic", "upb", "fore"], dot: [100, 90], ez: "ringsupport", hd: null,
     foc: ["Paže tlačí kruhy dolů, ne tělo nahoru. Kříž drží širokou silou ramen.", "The arms press the rings down, not the body up. The cross is held by wide shoulder strength."],
-    pos: ["Vzpor na kruzích, připravený na spouštění do stran.", "Ring support, ready to lower outward."],
+    pos: ["Vzpor na kruzích před spouštěním do stran.", "Ring support, ready to lower outward."],
     exe: ["Spouštěj se s propnutými pažemi do stran, až jsou vodorovně. Drž, pak stáhni zpět.", "Lower on straight arms out to the sides until horizontal. Hold, then pull back together."],
     wat: ["Gymnastická liga — roky přípravy šlach s dopomocí gum. Lokty zamčené, kruhy vytočené.", "Gymnastics territory — years of tendon prep with band assistance. Elbows locked, rings turned out."],
     pro: ["S gumou → užší dopomoc → čistý kříž.", "Banded → less assistance → the clean cross."] },
@@ -7456,7 +7458,7 @@ function TmStage({ program, name, mode, onClose }) {
                   {isRest ? (
                     <>
                       {btn(eng.status === "running" ? "pause" : "play", eng.toggle, { title: L("Pauza (mezerník)", "Pause (space)") })}
-                      {btn("check", eng.next, { big: true, title: L("Jsem připraven (→)", "I'm ready (→)") })}
+                      {btn("check", eng.next, { big: true, title: L("Můžu pokračovat (→)", "I'm ready (→)") })}
                     </>
                   ) : (
                     <>
@@ -8562,7 +8564,7 @@ function TpWhy({ why }) {
     ["aim", L("Kam plán míří", "Where the plan aims")],
     ["focus", L("Co tě teď brzdí", "What holds you back right now")],
     ["injury", L("Proč zranění všechno mění", "Why the injury changes everything")],
-    ["sore", L("Co jsem si přečetl z deníku", "What I read in your log")],
+    ["sore", L("Co vyplývá z deníku", "What I read in your log")],
     ["risk", L("Co jsme nezařadili a proč", "What we left out and why")],
     ["unknown", L("Co nevíme", "What we do not know")],
   ].filter(([k]) => why[k]);
@@ -9535,7 +9537,7 @@ const KB_VITAL = [
     { t: "sub", cz: "Z čeho se HSS skládá — 4 svaly", en: "What HSS is made of — 4 muscles" },
     { t: "g", k: "vi_hss" },
     { t: "k", cz: ["Bránice (diaphragma thoracis) — hlavní nádechový sval; reguluje nitrobřišní tlak a ovlivňuje postavení hrudníku a páteře.", "M. transversus abdominis — nejhlubší vrstva břišní stěny, 'vnitřní opasek'; aktivuje se první při každém pohybu končetin.", "M. multifidi — hluboká vrstva zádových svalů mezi obratli a kostí křížovou; napřímení páteře.", "Pánevní dno (diaphragma pelvis) — pružná spodina pánve; s bránicí a transversem reguluje nitrobřišní tlak."], en: ["Diaphragm (diaphragma thoracis) — the main inhalation muscle; regulates intra-abdominal pressure and influences the position of the chest and spine.", "M. transversus abdominis — the deepest layer of the abdominal wall, the inner belt; it activates first with every limb movement.", "M. multifidi — the deep layer of back muscles between the vertebrae and the sacrum; straightens the spine.", "Pelvic floor (diaphragma pelvis) — the elastic base of the pelvis; with the diaphragm and transversus it regulates intra-abdominal pressure."] },
-    { t: "img", src: "https://commons.wikimedia.org/wiki/Special:FilePath/Transversus_abdominis.png?width=460", w: 340, cap: "M. transversus abdominis — 'vnitřní opasek'. Gray's Anatomy, public domain.", capen: "M. transversus abdominis — the inner belt. Gray's Anatomy, public domain." },
+    { t: "img", src: "https://commons.wikimedia.org/wiki/Special:FilePath/Transversus_abdominis.png?width=460", w: 340, cap: "M. transversus abdominis — 'vnitřní opasek'.", capen: "M. transversus abdominis — the inner belt.", attribution: "Gray's Anatomy · M. transversus abdominis · public domain" },
     { t: "p", cz: "Když se bránice aktivuje ve špatném řetězci (paradoxní funkce bránice), páteř se destabilizuje a přetěžují se pomocné nádechové svaly. Odtud pramení typické syndromy: přesýpací hodiny, rozevřené nůžky, horní zkřížený syndrom (HZS) a dolní zkřížený syndrom (DZS).", en: "When the diaphragm activates in the wrong chain (paradoxical diaphragm function), the spine is destabilized and the accessory breathing muscles get overloaded. This is where the typical syndromes come from: hourglass, open scissors, upper crossed syndrome (HZS) and lower crossed syndrome (DZS)." },
     { t: "q", cz: "Stabilizace trupu není dána silou břišních nebo zádových svalů, ale je výsledkem optimální regulace nitrobřišního tlaku.", en: "Trunk stabilization is not given by the strength of the abdominal or back muscles — it is the result of optimal regulation of intra-abdominal pressure.", by: "Vital Institut" },
   ] },
@@ -9612,10 +9614,11 @@ const KB_DOCS = [
     chapters: KB_VITAL, sources: KB_SOURCES_VI },
 ];
 
-// ---- one document, opened · header, chapters, sources ----
+const APP_METHOD_SOURCES = trainingSourceMetadata(KB_DOCS);
+
+// ---- one document, opened · header and chapters ----
 function KBDoc({ doc, onBack }) {
   const { t } = useT();
-  const [srcOpen, setSrcOpen] = useState(false);
   return (
     <div className="tm-reveal">
       <button onClick={onBack} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 11.5, padding: "4px 0", marginBottom: 8 }}>‹ Knowledge</button>
@@ -9627,18 +9630,6 @@ function KBDoc({ doc, onBack }) {
       <div style={{ marginTop: 22 }}>
         {doc.chapters.map((ch, i) => <KBChapter key={i} ch={ch} n={i + 1} />)}
       </div>
-      {doc.sources && (
-        <div style={{ marginTop: 18 }}>
-          <button onClick={() => setSrcOpen((o) => !o)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 11, padding: "4px 0" }}>
-            {L("Zdroje", "Sources") + " · " + doc.sources.length} {srcOpen ? <FamilyIcon id="expand" size={12} label={L("Rozbalit","Expand")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : "▸"}
-          </button>
-          {srcOpen && (
-            <ol style={{ margin: "8px 0 0", padding: "0 0 0 18px", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5, lineHeight: 1.9 }}>
-              {doc.sources.map((s, i) => <li key={i}>{s}</li>)}
-            </ol>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -9898,7 +9889,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
           </div>
         ))}
       </div>
-      {block.rirEnabled?<p style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,margin:0}}>{L("Rezerva = kolik dalších čistých opakování bys ještě zvládl. Cílovou rezervu drž podle předpisu, obvykle 2.", "Reserve = how many more clean repetitions you could do. Follow the prescribed reserve, usually 2.")}</p>:null}
+      {block.rirEnabled?<p style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,margin:0}}>{L("Rezerva = kolik dalších čistých opakování ještě zvládneš. Cílovou rezervu drž podle předpisu, obvykle 2.", "Reserve = how many more clean repetitions you could do. Follow the prescribed reserve, usually 2.")}</p>:null}
       {m.secondary?<label style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted}}><input type="checkbox" checked={extraLoad} onChange={e=>setExtraLoad(e.target.checked)}/>{L("Cvičím s přidanou zátěží", "I am adding extra load")}</label>:null}
 
       {rec && (rec.execution || rec.watchFor) ? (
@@ -10250,7 +10241,7 @@ function PageTrenink() {
 
   return (
     <>
-      <PageTitle pageKey="trenink" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcTrenink size={40} /></span>} kicker={L("Co máš udělat, a co jsi udělal.", "What to do, and what you did.")}>
+      <PageTitle pageKey="trenink" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcTrenink size={40} /></span>} kicker={L("Co tě čeká a co už máš za sebou.", "What to do, and what you did.")}>
         {L("Trénink", "Training")}
       </PageTitle>
 
@@ -10622,21 +10613,21 @@ function TmGuide({ onClose }) {
     {
       ic: "terminy", vis: VisCal, kicker: L("Termíny", "Sessions"),
       title: L("Kdy se vidíte", "When you meet"),
-      body: L("Uvidíš nejbližší termín, volné časy, svůj zůstatek kreditů a historii. Rezervovat, přesunout i zrušit můžeš sám v mezích, které jsou u každé služby napsané. Cizí rezervace ani trenérův kalendář nevidíš.",
+      body: L("Uvidíš nejbližší termín, volné časy, svůj zůstatek kreditů a historii. Rezervovat, přesunout i zrušit můžeš v mezích, které jsou u každé služby napsané. Cizí rezervace ani trenérův kalendář nevidíš.",
               "You see the next session, the free slots, your credit balance and the history. You can book, reschedule and cancel yourself within the rules written next to each service. You never see anyone else's booking or your trainer's calendar."),
       tips: [L("Zrušení má svůj následek na kredit. Je vidět dřív, než potvrdíš.", "Cancelling has a consequence for your credit. You see it before you confirm.")],
     },
     {
       kicker: L("Tvoje", "Yours"),
       title: L("Deník a Zápisník jsou jen tvoje", "Journal and Notebook are yours alone"),
-      body: L("Obě místnosti jsou vypnuté, dokud si je sám neotevřeš v Místnostech. Trenér k jejich obsahu nemá žádnou cestu — ani přes aplikaci, ani přes server. Nevidí text, názvy ani počty.",
+      body: L("Obě místnosti jsou vypnuté, dokud si je neotevřeš v Místnostech. Trenér k jejich obsahu nemá žádnou cestu — ani přes aplikaci, ani přes server. Nevidí text, názvy ani počty.",
               "Both rooms stay closed until you open them yourself in Rooms. Your trainer has no path to what is inside — not through the app, not through the server. No text, no titles, no counts."),
       tips: [L("Zavření místnosti nic nemaže. Zápisy zůstanou, jen zmizí z navigace.", "Closing a room deletes nothing. The entries stay, they just leave the navigation.")],
     },
     {
       kicker: L("Sdílení", "Sharing"),
       title: L("Co uvidí Tany, rozhoduješ ty", "You decide what Tanmay sees"),
-      body: L("Sdílet jde průběh návyků za posledních třicet dní, názvy a stav vybraných cílů a to, co jsi z plánu odcvičil. Nic víc. Ohlédnutí, Deník, Zápisník, Memento ani přílohy se neposílají nikdy — ani souhrnem.",
+      body: L("Sdílet jde průběh návyků za posledních třicet dní, názvy a stav vybraných cílů a tvoje odcvičené části plánu. Nic víc. Ohlédnutí, Deník, Zápisník, Memento ani přílohy se neposílají nikdy — ani souhrnem.",
               "You can share the last thirty days of habit progress, the names and status of selected goals, and what you trained from the plan. Nothing else. The evening review, Journal, Notebook, Memento and attachments are never sent — not even as a summary."),
       tips: [L("Vypnutí platí hned a dosavadní souhrn se zneplatní. Najdeš ho pod Sdílením v levém sloupci.", "Switching it off applies immediately and voids the previous summary. It lives under Sharing in the left column.")],
     },
@@ -10666,15 +10657,15 @@ function TmGuide({ onClose }) {
       title: L("Memento mori", "Memento mori"),
       body: L("Memento mori je prostor pro vědomé připomenutí konečnosti a toho, na čem záleží. Není povinné a nic neslibuje.",
               "Memento mori is a space for a deliberate reminder of finitude and of what matters. It is not required and it promises nothing."),
-      tips: [L("Zůstává vypnuté, dokud si ho sám nezapneš v Nastavení. Připomínky mají vlastní souhlas.", "It stays off until you switch it on yourself in Settings. Reminders have their own separate consent.")],
+      tips: [L("Zůstává vypnuté, dokud si ho nezapneš v Nastavení. Připomínky mají vlastní souhlas.", "It stays off until you switch it on yourself in Settings. Reminders have their own separate consent.")],
     },
     {
       vis: isM ? VisDock : VisLock, kicker: L("Ovládání", "Getting around"),
       title: L("Struktura má uvolnit pozornost", "Structure is there to free attention"),
       body: isM
-        ? L("Na telefonu drží hlavní místnosti spodní dok. Obsah se mění, ale hlavní místa zůstávají stejná, aby ses nemusel pokaždé znovu orientovat.",
+        ? L("Na telefonu drží hlavní místnosti spodní dok. Obsah se mění, ale hlavní místa zůstávají stejná, pro snadnou orientaci při každém návratu.",
             "On a phone the main rooms live in the bottom dock. The content changes, but the main places stay where they are, so you do not have to find your bearings every time.")
-        : L("Na počítači vidíš hlavní místnosti v boční navigaci. Obsah se mění, ale hlavní místa zůstávají stejná, aby ses nemusel pokaždé znovu orientovat.",
+        : L("Na počítači vidíš hlavní místnosti v boční navigaci. Obsah se mění, ale hlavní místa zůstávají stejná, pro snadnou orientaci při každém návratu.",
             "On a computer you see the main rooms in the side navigation. The content changes, but the main places stay where they are, so you do not have to find your bearings every time."),
       tips: [L("Esc zavírá okna.", "Esc closes windows.")],
     },
@@ -11425,7 +11416,7 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: t.textSec, lineHeight: 1.7, maxWidth: "34em", margin: "14px auto 20px" }}>
           {firstRun
-            ? L("Tichý dům pro tvé tělo, praxi a směr. Praxe, Trénink, Termíny, Kompas a Prameny jsou tu od začátku. Zbytek si otevíráš sám a všechno zůstává u tebe.",
+            ? L("Tichý dům pro tvé tělo, praxi a směr. Praxe, Trénink, Termíny, Kompas a Prameny jsou tu od začátku. Zbytek si otevíráš podle sebe a všechno zůstává u tebe.",
                 "A quiet house for your body, practice and direction. Practice, Training, Sessions, Compass and Sources are here from the start. The rest you open yourself, and everything stays with you.")
             : L("Otevři si jen to, co teď žiješ. Data zavřených místností zůstávají uložená.",
                 "Open only what you live right now. Data of closed rooms stays saved.")}
@@ -11474,7 +11465,7 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
             {L("Vědomé sdílení s Tanym", "Conscious sharing with Tanmay")}
           </div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginBottom: 12 }}>
-            {L("Tany uvidí jen to, co tady sám zapneš — přesný rozsah je popsaný u každého přepínače. Vypnuto = nevidí nic a dosavadní souhrn se zneplatní. Kdykoli to změníš (Sdílení v levém sloupci).",
+            {L("Tany uvidí jen to, co tady zapneš — přesný rozsah je popsaný u každého přepínače. Vypnuto = nevidí nic a dosavadní souhrn se zneplatní. Kdykoli to změníš (Sdílení v levém sloupci).",
                "Tanmay sees only what you turn on here — the exact scope sits next to each switch. Off = he sees nothing and the previous summary is voided. Change it any time (Sharing in the left column).")}
           </div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -11484,7 +11475,7 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
           </div>
           {shareRow("habits", "Návyky", "Habits", "Posledních 30 dní zaškrtnutí a jména návyků. Bez poznámek a bez textu.", "Last 30 days of checkmarks and habit names. No notes, no text.")}
           {shareRow("goals", "Cíle", "Goals", "Názvy cílů a jejich stav. Ne příští krok, ne poznámka.", "Goal names and their status. Not the next step, not the note.")}
-          {shareRow("training", "Trénink", "Training", "Co jsi z plánu odcvičil, kdy, s jakým RIR a co jsi k tomu napsal jemu.", "What you trained from the plan, when, at what RIR, and what you wrote to him about it.")}
+          {shareRow("training", "Trénink", "Training", "Odcvičené části plánu, datum, RIR a tvoje poznámky pro trenéra.", "What you trained from the plan, when, at what RIR, and what you wrote to him about it.")}
         </div>
         <div style={{ textAlign: "left", marginTop: 14 }}>
           <button onClick={() => setNahledOtevren((x) => !x)} aria-expanded={nahledOtevren}
@@ -11517,7 +11508,7 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
                   {snimek.training && (
                     <div style={{ marginBottom: 10 }}>
                       <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text }}>{L("Trénink", "Training")} · {Array.isArray(snimek.training.sessions) ? snimek.training.sessions.length : (snimek.training.sessions || 0)} {L("záznamů z plánu", "records from the plan")}</div>
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, paddingLeft: 12 }}>{L("série, opakování, RIR a to, co jsi k tréninku napsal jemu", "sets, reps, RIR and what you wrote to him about the session")}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, paddingLeft: 12 }}>{L("série, opakování, RIR a tvoje poznámky k tréninku pro trenéra", "sets, reps, RIR and what you wrote to him about the session")}</div>
                     </div>
                   )}
                   <details style={{ marginTop: 8 }}>
@@ -11604,6 +11595,7 @@ export default function App() {
   LANG = lang; tmSetLang(lang); // render flag + sdílené jádro drží týž jazyk
   FONT_DISPLAY = lang === "cs" ? FONT_DISPLAY_CS : FONT_DISPLAY_EN; // CZ display = EB Garamond 400 (§6)
   const toggleLang = () => setLang((l) => { const n = l === "cs" ? "en" : "cs"; try { localStorage.setItem("tm-lang", n); } catch (e) {} return n; });
+  React.useEffect(()=>{const change=event=>{const next=event.detail?.lang;if(next!=="cs"&&next!=="en")return;try{localStorage.setItem("tm-lang",next);}catch{}setLang(next);};window.addEventListener("tm-set-language",change);return()=>window.removeEventListener("tm-set-language",change);},[]);
   // Odečítač obrazovky čte podle jazyka dokumentu, ne podle jazyka textu.
   // Bez tohohle zněla anglická verze česky vyslovená.
   React.useEffect(() => { try { document.documentElement.lang = lang === "cs" ? "cs" : "en"; } catch (e) {} }, [lang]);
@@ -13681,8 +13673,10 @@ export default function App() {
 
         {guideOpen && <TmGuide onClose={() => setGuideOpen(false)} />}
 
+        <PersonalSettingsBridge t={t} lang={lang} Sheet={CenterSheet} trainingSources={APP_METHOD_SOURCES}/>
         {setsOpen && (
           <CenterSheet title={L("Nastavení", "Settings")} onClose={() => setSetsOpen(false)}>
+            <PersonalSettingsSections t={t} lang={lang} trainingSources={APP_METHOD_SOURCES}/>
             <button onClick={() => { if (!mementoZap) return; setSetsOpen(false); go("memento"); }} title={mementoZap ? "memento mori" : undefined} style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: mementoZap ? "pointer" : "default", padding: 0, fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginBottom: 16 }}>
               {fmtCZ(todayISO())} · ☾ {moonName(moonPhaseOf(todayISO()))}{(() => { const su = sunsetOf(todayISO()); return su ? ` · ${L("západ", "sunset")} ${su}` : ""; })()}
             </button>

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {handleTogether} from '../src/shared/product/togetherApi.js';
 import {dailyQuestion,legacyQuestion} from '../src/shared/product/togetherJournal.js';
+import {DAILY_CONNECTION_PROMPTS} from '../src/shared/product/togetherConnectionContent.js';
 
 const day='2026-09-28',now=Date.parse(`${day}T12:00:00Z`);
 function fixture(){
@@ -23,6 +24,21 @@ function fixture(){
   const answer=(state,text)=>({answer:text,questionId:state.question.id,questionDay:state.today,linkId:state.link.id,linkRevision:state.link.revision});
   return {sql,call,pair,answer};
 }
+
+test('either partner can choose a catalog question for both before answers; stale drafts and strangers cannot replace it',async()=>{
+  const {call,pair,answer}=fixture();const initial=await pair();
+  const chosen=DAILY_CONNECTION_PROMPTS.find(item=>`connection-v1-${item.id}`!==initial.question.id);
+  const selection={questionId:`connection-v1-${chosen.id}`,questionDay:initial.today,previousQuestionId:initial.question.id,linkId:initial.link.id,linkRevision:initial.link.revision};
+  assert.equal((await call('client:outsider','question',selection)).status,403);
+  const changed=await call('coach:tanmay','question',selection);assert.equal(changed.status,200);
+  const other=await call('client:a');assert.equal(other.question.id,selection.questionId);assert.deepEqual(other.question.text,[chosen.question.cs,chosen.question.en]);
+  assert.equal((await call('client:a','answer',answer(initial,'Stale draft'))).error,'question-changed');
+  assert.equal((await call('client:a','question',selection)).error,'question-changed');
+  assert.equal((await call('client:a','answer',answer(other,'My answer'))).status,200);
+  const next=DAILY_CONNECTION_PROMPTS.find(item=>`connection-v1-${item.id}`!==other.question.id);
+  assert.equal((await call('coach:tanmay','question',{...selection,previousQuestionId:other.question.id,questionId:`connection-v1-${next.id}`})).error,'question-answered');
+  assert.equal((await call('client:a')).answer.mine,'My answer');
+});
 
 test('new pairs snapshot one daily prompt, preserve its wording, and keep the mutual reveal gate',async()=>{
   const {sql,call,pair,answer}=fixture();const state=await pair();

@@ -5,10 +5,10 @@ import {CYCLE_GUIDE} from "../product/togetherGuidance.js";
 
 // Calendar presentation follows Praxe. It reads only the already-authorized
 // cycle projection and shared plans; picking a day never writes a record.
-export function TogetherCalendar({periods = [], summary, phase, plans = [], lang = "cs", t, onPlanSelect, onOpenDay, showCycle = true, selectedDate, onDateChange, showDetails = true, recordDates = [], picker = false}) {
+export function TogetherCalendar({periods = [], summary, phase, plans = [], lang = "cs", t, onPlanSelect, onOpenDay, showCycle = true, selectedDate, onDateChange, showDetails = true, recordDates = [], picker = false, todayDate}) {
   const L = (cs, en) => lang === "en" ? en : cs;
   const locale = lang === "en" ? "en-GB" : "cs-CZ";
-  const today = dateKey();
+  const today = validDate(todayDate)?todayDate:dateKey();
   const [localSelected, setLocalSelected] = useState(()=>validDate(selectedDate)?selectedDate:today);
   const selected=picker?localSelected:validDate(selectedDate)?selectedDate:localSelected;
   // A diary picker can browse without replacing the entry or closing its panel.
@@ -101,7 +101,7 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
       <div className="tg-calendar-nav" aria-label={L("Procházet kalendář", "Browse calendar")}>
         <button type="button" aria-label={L("Předchozí měsíc", "Previous month")} style={navStyle} onClick={() => setSelected(shiftMonth(selected, -1),false)}><TmIcon id="back" size={14}/></button>
         <button type="button" aria-label={L("Další měsíc", "Next month")} style={navStyle} onClick={() => setSelected(shiftMonth(selected, 1),false)}><TmIcon id="forward" size={14}/></button>
-        <button type="button" style={{...navStyle, fontFamily: "var(--tm-font-tag)", fontSize: 12, textTransform: "uppercase", letterSpacing: ".1em"}} onClick={() => setSelected(dateKey())}>{L("Dnes", "Today")}</button>
+        <button type="button" style={{...navStyle, fontFamily: "var(--tm-font-tag)", fontSize: 12, textTransform: "uppercase", letterSpacing: ".1em"}} onClick={() => setSelected(today)}>{L("Dnes", "Today")}</button>
       </div>
     </div>
     <div className="tg-calendar-grid" role="group" aria-label={L("Vybrat den", "Choose a day")}>

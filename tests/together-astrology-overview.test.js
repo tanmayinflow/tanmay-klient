@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {astrologyAt,dateForAstrology,tropicalLongitude,angleDistance,CLASSICAL_BODIES} from "../src/shared/product/togetherAstrology.js";
+import {readFile} from "node:fs/promises";
+import {initAstrologyEngine,astrologyAt,dateForAstrology,tropicalLongitude,angleDistance,CLASSICAL_BODIES} from "../src/shared/product/togetherAstrology.js";
 import {astrologyPeriod,astrologyPeriodBounds,astrologyDominants,dispositorRoute} from "../src/shared/product/togetherAstrologyOverview.js";
 import {astrologyOverviewReading,astrologyEventTitle,astrologyEventReading,tithiQuality} from "../src/shared/product/togetherAstrologyOverviewEditorial.js";
+await initAstrologyEngine({wasmPath:`data:application/wasm;base64,${(await readFile(new URL(import.meta.resolve("@swisseph/browser/dist/swisseph.wasm")))).toString("base64")}`});
 
 function inZone(zone,run){const original=process.env.TZ;try{process.env.TZ=zone;return run();}finally{if(original===undefined)delete process.env.TZ;else process.env.TZ=original;}}
 
@@ -11,7 +13,7 @@ test("period follows civil days through DST, clips the supported endpoint and is
     const day=astrologyPeriodBounds("2026-10-25"),week=astrologyPeriodBounds("2026-10-25","week");
     assert.equal(day.end-day.start,25*3600000);
     assert.equal(week.end-week.start,169*3600000);
-    assert.equal(new Date(week.end).getDate(),1);
+    assert.equal(new Date(week.start).getDay(),1);assert.equal(new Date(week.end).getDate(),26);
     const last=astrologyPeriodBounds("2100-12-31","week");
     assert.equal(new Date(last.end).getFullYear(),2101);
     assert.equal(new Date(last.end).getDate(),1);
@@ -27,7 +29,7 @@ test("a skipped midnight does not carry its normalized hour to the period end",(
   const day=astrologyPeriodBounds("2026-09-06"),week=astrologyPeriodBounds("2026-09-06","week");
   assert.equal(new Date(day.start).getHours(),1);
   assert.equal(new Date(day.end).getHours(),0);assert.equal(new Date(day.end).getDate(),7);
-  assert.equal(new Date(week.end).getHours(),0);assert.equal(new Date(week.end).getDate(),13);
+  assert.equal(new Date(week.end).getHours(),0);assert.equal(new Date(week.end).getDate(),7);
   assert.equal(day.end-day.start,23*3600000);assert.equal(week.end-week.start,167*3600000);
   assert.equal(week.clipped,false);
 }));
@@ -49,8 +51,8 @@ test("a calculated week has ordered unique real crossings inside its half-open i
     if(i)assert.ok(e.time>=period.events[i-1].time);
     if(e.type==="aspect")assert.ok(Math.abs(angleDistance(tropicalLongitude(e.a,new Date(e.time)),tropicalLongitude(e.b,new Date(e.time)))-e.angle)<.006);
     if(e.type==="ingress"){
-      assert.equal(Math.floor(tropicalLongitude(e.body,new Date(e.time-60000))/30),e.from);
-      assert.equal(Math.floor(tropicalLongitude(e.body,new Date(e.time+60000))/30),e.to);
+      assert.equal(Math.floor(tropicalLongitude(e.body,new Date(e.time-1000))/30),e.from);
+      assert.equal(Math.floor(tropicalLongitude(e.body,new Date(e.time))/30),e.to);
     }
     if(e.type==="station"){
       const before=astrologyAt(new Date(e.time-3600000)).planets.find(p=>p.id===e.body);
@@ -80,7 +82,7 @@ test("Jyotisha boundaries change the actual selected-instant classification incl
   const boundary=period.events.find(e=>e.type==="tithi"&&e.from===30&&e.to===1);
   assert.ok(boundary);assert.ok(period.events.some(e=>e.type==="phase"&&e.phase===0));
   for(const e of period.events.filter(e=>["nakshatra","tithi"].includes(e.type))){
-    const before=astrologyAt(new Date(e.time-60000),"jyotish"),after=astrologyAt(new Date(e.time+60000),"jyotish");
+    const before=astrologyAt(new Date(e.time-1000),"jyotish"),after=astrologyAt(new Date(e.time),"jyotish");
     assert.equal(before.jyotish[e.type],e.from);assert.equal(after.jyotish[e.type],e.to);
   }
 }));

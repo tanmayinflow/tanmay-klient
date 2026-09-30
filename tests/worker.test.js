@@ -195,7 +195,9 @@ test("stránka odchází s bezpečnostními hlavičkami", async () => {
   const csp = r.headers.get("content-security-policy") || "";
   assert.match(csp, /script-src 'self'/, "skripty jen z naší domény");
   assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), "žádný vložený skript");
-  assert.ok(!/script-src[^;]*unsafe-eval/.test(csp), "žádné eval");
+  assert.ok(!/script-src[^;]*'unsafe-eval'/.test(csp), "žádné eval");
+  assert.match(csp, /script-src[^;]*'wasm-unsafe-eval'/, "local Swiss WASM compilation is allowed");
+  assert.match(csp, /worker-src 'self'/, "period worker remains same-origin");
   assert.match(csp, /frame-ancestors 'none'/);
   assert.match(csp, /object-src 'none'/);
   assert.equal(r.headers.get("x-content-type-options"), "nosniff");

@@ -1,8 +1,9 @@
 import React,{useEffect,useState,useRef} from 'react';
-import {dateKey,addDays} from '../product/together.js';
+import {dateKey} from '../product/together.js';
 import {weekOf,hasReflection,questionFor,activityOverview,previousReflection,FOLLOW_THROUGH} from '../product/togetherJournal.js';
 import {WEEKLY_PROMPTS} from '../product/togetherConnectionContent.js';
 import {TogetherText,TogetherFold} from './togetherElements.jsx';
+import {TogetherArtwork} from './togetherArtwork.jsx';
 import {togetherTheme} from './togetherStyles.js';
 
 const fields=[
@@ -16,7 +17,7 @@ export function TogetherJournal({data,lang,save,busy,onPlan,view,visible,onDirty
   const [week,setWeek]=useState(currentWeek),[draft,setDraft]=useState(empty),[revision,setRevision]=useState(0),[dirty,setDirty]=useState(false);
   const linkId=useRef(undefined),recordRef=useRef(null);
   const [step,setStep]=useState(0),[recordOpen,setRecordOpen]=useState(false);
-  const [overviewOpen,setOverviewOpen]=useState(false);
+  const [overviewOpen,setOverviewOpen]=useState(false),[overviewTab,setOverviewTab]=useState('reflections'),[overviewWeek,setOverviewWeek]=useState(''),[overviewDay,setOverviewDay]=useState('');
   const active=data?.link?.status==='active',rows=data?.reflections||[],mine=rows.find(r=>r.week===week&&r.side==='mine');
   const previous=previousReflection(rows,week),previousPartner=previousReflection(rows,week,'partner');
   const follow=draft.followThrough||(previous?{week:previous.week,step:previous.doc.next,status:'',note:''}:null);
@@ -34,6 +35,8 @@ export function TogetherJournal({data,lang,save,busy,onPlan,view,visible,onDirty
   const text=(doc)=><>{progressText(doc)}{fields.filter(([key])=>doc?.[key]).map(([key,cs,en])=><div key={key}><p className="hint">{L(cs,en)}</p><p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{doc[key]}</p></div>)}</>;
   const changeFollow=(key,value)=>{setDraft(d=>({...d,followThrough:{...follow,[key]:value}}));setDirty(true);};
   const savedWeeks=weeks.filter(w=>rows.some(r=>r.week===w&&hasReflection(r.doc)));
+  const selectedWeek=savedWeeks.includes(overviewWeek)?overviewWeek:savedWeeks[0],weekIndex=savedWeeks.indexOf(selectedWeek);
+  const selectedHistory=history.find(item=>item.day===overviewDay)||history[0];
   // Keep both views mounted: changing tabs must not discard an unsent reflection.
   // The visible fallback preserves callers that still use the previous single-view API.
   const conversationsVisible=view===undefined?!!visible:view==='conversations';
@@ -43,6 +46,7 @@ export function TogetherJournal({data,lang,save,busy,onPlan,view,visible,onDirty
       <div className="tg-weekly-guide">
         <p>{L('Jeden mluví, druhý zkusí vlastními slovy říct, co slyšel. Pak se vystřídejte. Radu nabídněte až na přání. Když je toho moc, domluvte si pauzu i čas návratu.','One speaks; the other reflects back what they heard in their own words. Then switch. Offer advice only if wanted. If it gets too much, agree on a pause and a time to return.')}</p>
         {[previous,previousPartner].filter(Boolean).map(r=><div className="item" key={r.side}><p className="hint">{r.side==='mine'?L('Můj krok z minula','My previous step'):L('Krok druhého z minula','My partner’s previous step')} · {date(r.week)}</p><p>{r.doc.next}</p></div>)}
+        {!previous&&!previousPartner&&<div className="tg-reflection-empty"><svg viewBox="0 0 240 140" aria-hidden="true"><TogetherArtwork kind="plan" x={50} y={4} width={140} height={128}/></svg><p>{L('Váš první malý krok může vzniknout dnes.','Your first small step can begin today.')}</p></div>}
         <p className="hint">{L('Otázka','Question')} {step+1} / {WEEKLY_PROMPTS.length}</p>
         <div aria-live="polite" aria-atomic="true"><h3>{WEEKLY_PROMPTS[step].title[lang==='en'?'en':'cs']}</h3><p className="tg-personal">{WEEKLY_PROMPTS[step].question[lang==='en'?'en':'cs']}</p><TogetherFold key={step} className="tg-inline-fold" title={L('Jít o kousek hlouběji','Go a little deeper')}><p>{WEEKLY_PROMPTS[step].followup[lang==='en'?'en':'cs']}</p></TogetherFold></div>
         <div className="row" style={{marginTop:16}}><button type="button" disabled={step===0} onClick={()=>setStep(s=>s-1)}>{L('Zpět','Back')}</button>{step<WEEKLY_PROMPTS.length-1?<button type="button" onClick={()=>setStep(s=>s+1)}>{L('Další otázka','Next question')}</button>:<button type="button" onClick={()=>{setRecordOpen(true);requestAnimationFrame(()=>recordRef.current?.scrollIntoView({block:'center',behavior:'auto'}));}}>{L('Zapsat to podstatné','Save what matters')}</button>}</div>
@@ -60,10 +64,7 @@ export function TogetherJournal({data,lang,save,busy,onPlan,view,visible,onDirty
         {onPractice&&<p><button type="button" onClick={onPractice}>{L('Navázat na naši Praxi','Connect with our Practice')}</button></p>}
         {dirty&&<p role="status" className="hint">{L('Rozepsáno. Tyto změny zatím vidíš jen ty.','Draft. Only you can see these changes so far.')}</p>}
       </TogetherFold></div>
-      <TogetherFold title={L('Odkud bereme inspiraci','Where the inspiration comes from')} className="tg-optional">
-        <p>{L('Konkrétní ocenění, porozumění tomu, co je pod naší reakcí, laskavá náprava a malé dohody, ke kterým se vracíme. Podněty jsou naším volným zpracováním těchto principů, nikoli převzatým terapeutickým programem. Výzkum se týká původních přístupů, ne účinnosti těchto krátkých karet.','Specific appreciation, understanding what lies beneath our reactions, repair and small agreements we return to. These invitations are our own adaptation of those principles, not a therapy programme. The research concerns the original approaches, not the effectiveness of these short cards.')}</p>
-        <p><a href="https://www.gottman.com/blog/how-to-have-a-state-of-the-union-meeting/" target="_blank" rel="noreferrer">Gottman Institute · State of the Union</a><br/><a href="https://www.apa.org/pubs/videos/4310904.html" target="_blank" rel="noreferrer">Christensen · Integrative Behavioral Couple Therapy</a><br/><a href="https://iceeft.com/what-is-eft/" target="_blank" rel="noreferrer">ICEEFT · Emotionally Focused Therapy</a><br/><a href="https://pubmed.ncbi.nlm.nih.gov/17059309/" target="_blank" rel="noreferrer">Gable et al. · Sharing positive experiences</a><br/><a href="https://pubmed.ncbi.nlm.nih.gov/10707334/" target="_blank" rel="noreferrer">Aron et al. · Shared novel activities</a><br/><a href="https://www.socmot.uni-konstanz.de/publications/implementation-intentions-and-goal-achievement-meta-analysis-effects-and-processes" target="_blank" rel="noreferrer">Gollwitzer &amp; Sheeran · Implementation intentions</a><br/><a href="https://plumvillage.org/mindfulness/extended-practises" target="_blank" rel="noreferrer">Plum Village · Beginning Anew</a></p>
-      </TogetherFold>
+
     </div>;
   const weeklyView=active?weeklyContent:(unlinkedWeekly||<p>{L('Týdenní ohlédnutí můžete projít spolu. Pro návraty k uloženým domluvám nejdřív propojte účty.','You can reflect together. Connect accounts first to keep and revisit your agreements.')}</p>);
   return <div hidden={(!renderWeekly&&!active)||(!conversationsVisible&&!plansVisible)}>
@@ -73,30 +74,16 @@ export function TogetherJournal({data,lang,save,busy,onPlan,view,visible,onDirty
     {active&&<button type="button" className="tg-overview-trigger" onClick={()=>setOverviewOpen(true)}>{L('Přehled','Overview')}</button>}
     {overviewOpen&&active&&(conversationsVisible||plansVisible)&&Sheet&&<Sheet title={L('Přehled Spolu','Together overview')} onClose={()=>setOverviewOpen(false)}>
       <div className="tm-together tg-overview-sheet" style={togetherTheme(t)}>
-        <section className="tm-together-section tg-weekly-history">
-          <h2>{L('Naše týdenní ohlédnutí','Our weekly reflections')}</h2>
-          <p>{L('Co jsme si řekli, co jsme zkusili a k čemu se chceme vrátit.','What we shared, what we tried and what we want to return to.')}</p>
-          {!savedWeeks.length&&<p>{L('První ohlédnutí se tu objeví po sdílení. Stačí zachytit tři věty z vašeho rozhovoru.','Your first reflection will appear here after you share it. Three sentences from your conversation can be enough.')}</p>}
-          {savedWeeks.map((w,index)=><TogetherFold key={w} open={index===0} title={`${L('Týden od','Week of')} ${date(w)}`}>{rows.filter(r=>r.week===w&&hasReflection(r.doc)).map(r=><div className="item" key={r.side}><strong>{r.side==='mine'?L('Já','Me'):L('Druhý z nás','My partner')}</strong>{text(r.doc)}</div>)}</TogetherFold>)}
-        </section>
-        <TogetherFold title={L('Další přehled za 30 dní','More from the last 30 days')}>
-        <section className="tm-together-section">
-        <h2>{L('Ohlédnutí za posledními 30 dny','A look at the last 30 days')}</h2>
-        <div className="tg-overview-stats">
-          <div className="tg-stat"><strong>{overview.completed.length}</strong><span>{L('Dokončené společné plány','Completed plans together')}</span></div>
-          <div className="tg-stat"><strong>{history.filter(h=>h.shared&&h.day>=addDays(today,-29)).length}</strong><span>{L('Rozhovory, ve kterých jste odpověděli oba','Conversations you both answered')}</span></div>
-        </div>
-        <p className="hint">{L('Jen přehled toho, co jste tady zachytili. Váš společný život se do počtu zápisů nevejde.','This only shows what you recorded here. Your life together is bigger than a count of entries.')}</p>
-        </section>
-        </TogetherFold>
-        <TogetherFold title={L('Naše odpovědi v čase','Our answers over time')}>
-          {!history.length&&<p>{L('Tady zůstanou vaše odpovědi na otázku dne.','Your answers to the daily question will stay here.')}</p>}
-          {history.map(h=><TogetherFold key={h.day} title={`${date(h.day)} · ${L(...(h.question?.text||questionFor(h.day)))}`}>{h.mine&&<p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}><strong>{L('Já','Me')}: </strong>{h.mine}</p>}{h.partner?<p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}><strong>{L('Druhý z nás','My partner')}: </strong>{h.partner}</p>:<p className="hint">{L('Odpověď druhého se ukáže, až odpovíte oba.','Your partner’s answer appears once you have both answered.')}</p>}</TogetherFold>)}
-        </TogetherFold>
-        <TogetherFold title={L('Co jsme spolu prožili','Time we have shared')}>
-          <p>{L('Některé chvíle stojí za zopakování. Tady zůstávají vaše dokončené plány.','Some moments are worth making time for again. Your completed plans stay here.')}</p>
-          {completed.length?completed.map(p=><div className="item" key={p.id}><strong>{p.title}</strong><p className="hint">{date(p.date)} · {p.minutes} min</p>{p.note&&<p>{p.note}</p>}<button disabled={busy} onClick={()=>{setOverviewOpen(false);onPlan({title:p.title,date:today,time:p.time,minutes:p.minutes,note:''},{afterOverlay:true});}}>{L('Navrhnout znovu','Suggest this again')}</button></div>):<p>{L('Po společném plánu stačí zvolit „Proběhlo“. Nemusíte psát nic navíc.','After a shared plan, simply choose “Completed”. There is nothing else to write.')}</p>}
-        </TogetherFold>
+        <nav className="tabs tg-history-tabs" aria-label={L('Co si připomenout','What to revisit')}>{[['reflections','Ohlédnutí','Reflections'],['answers','Odpovědi','Answers'],['moments','Chvíle','Moments']].map(([id,cs,en])=><button key={id} type="button" aria-pressed={overviewTab===id} onClick={()=>setOverviewTab(id)}>{L(cs,en)}</button>)}</nav>
+        <p className="tg-history-intro">{L('Co jsme si řekli. Co jsme zkusili. Co si neseme dál.','What we shared. What we tried. What we carry forward.')}</p>
+        {overviewTab==='reflections'&&<section className="tg-history-page">
+          {!savedWeeks.length?<div className="tg-reflection-empty"><svg viewBox="0 0 240 140" aria-hidden="true"><TogetherArtwork kind="plan" x={50} y={4} width={140} height={128}/></svg><p>{L('Tady zůstane to podstatné z vašich ohlédnutí.','What matters from your reflections will stay here.')}</p></div>:<>
+            <div className="tg-history-navigation"><button type="button" disabled={weekIndex>=savedWeeks.length-1} aria-label={L('Starší týden','Earlier week')} onClick={()=>setOverviewWeek(savedWeeks[weekIndex+1])}>‹</button><label>{L('Týden od','Week of')}<select aria-label={L('Vybrat týden','Choose a week')} value={selectedWeek} onChange={e=>setOverviewWeek(e.target.value)}>{savedWeeks.map(w=><option key={w} value={w}>{date(w)}</option>)}</select></label><button type="button" disabled={weekIndex<=0} aria-label={L('Novější týden','Later week')} onClick={()=>setOverviewWeek(savedWeeks[weekIndex-1])}>›</button></div>
+            <div key={selectedWeek} className="tg-history-perspectives">{['mine','partner'].map(side=>{const record=rows.find(r=>r.week===selectedWeek&&r.side===side&&hasReflection(r.doc));return <article key={side}><h3>{side==='mine'?L('Já','Me'):L('Druhý z nás','My partner')}</h3>{record?text(record.doc):<p className="hint">{L('Pro tento týden tu zatím není sdílené ohlédnutí.','No reflection has been shared for this week yet.')}</p>}</article>;})}</div>
+          </>}
+        </section>}
+        {overviewTab==='answers'&&<section className="tg-history-page">{!history.length?<div className="tg-reflection-empty"><svg viewBox="0 0 240 140" aria-hidden="true"><TogetherArtwork kind="bond" x={50} y={4} width={140} height={128}/></svg><p>{L('První odpověď se tu objeví po sdílení.','Your first answer appears here after sharing.')}</p></div>:<><label>{L('Den rozhovoru','Conversation day')}<select value={selectedHistory.day} onChange={e=>setOverviewDay(e.target.value)}>{history.map(h=><option value={h.day} key={h.day}>{date(h.day)}</option>)}</select></label><p className="tg-personal">{L(...(selectedHistory.question?.text||questionFor(selectedHistory.day)))}</p><div className="tg-history-perspectives" key={selectedHistory.day}><article><h3>{L('Já','Me')}</h3><p>{selectedHistory.mine||L('Zatím bez odpovědi.','No answer yet.')}</p></article><article><h3>{L('Druhý z nás','My partner')}</h3><p>{selectedHistory.partner||L('Odpověď se ukáže, až odpovíte oba.','The answer appears once you both respond.')}</p></article></div></>}</section>}
+        {overviewTab==='moments'&&<section className="tg-history-page"><p className="tg-history-count">{overview.completed.length} {L('společných plánů za posledních 30 dní','shared plans in the last 30 days')}</p>{completed.length?completed.map(p=><article className="tg-history-moment" key={p.id}><p className="hint">{date(p.date)} · {p.minutes} min</p><h3>{p.title}</h3>{p.note&&<p>{p.note}</p>}<button disabled={busy} onClick={()=>{setOverviewOpen(false);onPlan({title:p.title,date:today,time:p.time,minutes:p.minutes,note:''},{afterOverlay:true});}}>{L('Navrhnout znovu','Suggest this again')}</button></article>):<div className="tg-reflection-empty"><svg viewBox="0 0 240 140" aria-hidden="true"><TogetherArtwork kind="shared" x={50} y={4} width={140} height={128}/></svg><p>{L('Dokončené společné chvíle se objeví tady.','Your completed moments together will appear here.')}</p></div>}</section>}
       </div>
     </Sheet>}
   </div>;
