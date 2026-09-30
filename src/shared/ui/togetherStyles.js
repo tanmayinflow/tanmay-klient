@@ -84,7 +84,8 @@ export const togetherStyles=`
 .tm-together .tg-settings-nav{padding:12px 0}
 .tm-together .tg-settings-nav [aria-pressed=true]{border-color:var(--tg-accent);color:var(--tg-accent)}
 .tm-together .tg-personal{font-family:var(--tm-font-display);font-size:24px;line-height:1.35;color:var(--tg-heading);margin:8px 0 12px;white-space:pre-wrap;overflow-wrap:anywhere}
-.tm-together .tg-partner{padding:14px 16px;background:var(--tg-sheet);border:1px solid var(--tg-soft);border-radius:8px;margin:8px 0 4px}
+.tm-together .tg-partner{padding:14px 0;background:transparent;border:0;border-radius:0;margin:8px 0 4px}
+.tm-together .tg-partner-hand{display:block;width:168px;max-width:100%;height:auto;margin:8px auto;color:var(--tm-room-art-ink,var(--tg-accent))}
 .tm-together .tg-partner h2{margin-bottom:8px}
 .tm-together .tg-partner .tg-personal{font-size:22px}
 .tm-together .tg-partner p:last-child{margin-bottom:0}

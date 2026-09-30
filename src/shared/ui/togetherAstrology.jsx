@@ -5,15 +5,17 @@ import {zonedParts} from "../product/togetherAstrologyTime.js";
 import {addSkyDays,dueSkyDecisions,skyDateKey} from "../product/skyJournal.js";
 import {usePersonalProfile} from "./personalProfile.jsx";
 import {TogetherCalendar} from "./togetherCalendar.jsx";
-import {SKY_CSS,SkyDialog,SkyEmpty,SkyHelp,SkyLayer,skyTheme,useSkyJournal} from "./skyUi.jsx";
+import {SKY_CSS,SkyDialog,SkyEmpty,SkyHelp,skyTheme,useSkyJournal} from "./skyUi.jsx";
 import {SkyNebe} from "./skyNebe.jsx";
-import {SkyBody} from "./skyBody.jsx";
-import {SkyPractice} from "./skyPractice.jsx";
+import {SkyTibetan} from "./skyTibetan.jsx";
+import {SKY_TRADITIONS,skyReading} from "../product/skyTraditions.js";
 import {SkySettings} from "./skySettings.jsx";
 import {SkyPeriods} from "./skyPeriods.jsx";
 import {SkyDetails,skyDetailTitle} from "./skyDetails.jsx";
 
 const EXTRA_CSS=`
+.tg-astrology .sky-readings{display:flex;flex-wrap:wrap;gap:4px 16px;margin:12px 0 0}.tg-astrology .sky-readings button{border:0;border-radius:0;border-bottom:1px solid transparent;min-height:44px;padding:8px 0;font:18px var(--tm-font-display)}.tg-astrology .sky-readings button[aria-pressed=true]{border-color:var(--astro-ink);color:var(--astro-ink)}.tg-astrology .sky-reading-intro{margin:20px 0 32px}.tg-astrology .sky-reading-intro h2{font:32px/1.15 var(--tm-font-display);margin:0 0 12px}.tg-astrology .sky-reading-intro p{margin:0;font-size:14px;line-height:1.65}
+
 .tg-astrology .tg-astro-wheel{display:block;width:100%;max-width:460px;margin:18px auto;color:var(--astro-ink);overflow:visible}
 .tg-astrology .astro-symbol,.tg-astrology .sky-planet-glyph{font-family:"Segoe UI Symbol","Apple Symbols","Noto Sans Symbols 2",serif;font-variant-emoji:text;font-weight:400}
 .tg-astrology .tg-astro-planet{cursor:pointer;transition:transform .4s linear}.tg-astrology .tg-astro-planet circle{fill:var(--astro-bg);stroke:currentColor;stroke-width:.8}.tg-astrology .tg-astro-planet text{fill:var(--astro-ink);pointer-events:none}.tg-astrology .tg-astro-planet circle.selected{fill:var(--astro-ink);stroke-width:1.5}.tg-astrology .tg-astro-planet[aria-pressed=true] text{fill:var(--astro-on)}
@@ -24,13 +26,13 @@ const EXTRA_CSS=`
 @media(prefers-reduced-motion:reduce){.tg-astrology .tg-astro-planet{transition:none}}
 `;
 
-export function TogetherAstrology({day,lang="cs",t,onPlan,cycle,ownCycle=false}){
+export function TogetherAstrology({day,lang="cs",t}){
   const account=usePersonalProfile();
   // Changing identity unmounts all private drafts as well as the stored journal.
-  return <SkyWorkspace key={account.accountKey||"unverified"} day={day} lang={lang} t={t} onPlan={onPlan} cycle={cycle} ownCycle={ownCycle} account={account}/>;
+  return <SkyWorkspace key={account.accountKey||"unverified"} day={day} lang={lang} t={t} account={account}/>;
 }
 
-function SkyWorkspace({day,lang,t,onPlan,cycle,ownCycle,account}){
+function SkyWorkspace({day,lang,t,account}){
   const L=(cs,en)=>lang==="en"?en:cs,locale=lang==="en"?"en-GB":"cs-CZ";
   const {journal,ready:journalReady,error:journalError,update,reload}=useSkyJournal(account.accountKey);
   const ready=journalReady&&account.status==="ready",suspended=Boolean(account.accountKey&&account.status!=="ready");
@@ -38,10 +40,11 @@ function SkyWorkspace({day,lang,t,onPlan,cycle,ownCycle,account}){
   const [skyDay,setSkyDay]=useState(()=>dateForAstrology(day,12,zone)?day:skyDateKey(Date.now(),zone));
   const [hour,setHour]=useState(12),[tab,setTab]=useState("day"),[range,setRange]=useState("week");
   const [playing,setPlaying]=useState(false),[calendar,setCalendar]=useState(false),[detail,setDetail]=useState(null),[notice,setNotice]=useState("");
-  const [zodiacOverride,setZodiacOverride]=useState(null),[engine,setEngine]=useState(()=>astrologyEngineInfo().ready?"ready":"loading"),[attempt,setAttempt]=useState(0),[clock,setClock]=useState(Date.now());
+  const [readingOverride,setReadingOverride]=useState(null),[engine,setEngine]=useState(()=>astrologyEngineInfo().ready?"ready":"loading"),[attempt,setAttempt]=useState(0),[clock,setClock]=useState(Date.now());
   const ids=useId(),notified=useRef(new Set()),today=skyDateKey(clock,zone);
-  const actualZodiac=zodiacOverride||settings.zodiac,lens=actualZodiac==="sidereal"?"jyotish":"western";
-  const visibleJournal=useMemo(()=>zodiacOverride?{...journal,settings:{...settings,zodiac:zodiacOverride}}:journal,[journal,settings,zodiacOverride]);
+  const {reading,lens,zodiac}=skyReading(settings,readingOverride);
+  const currentTradition=SKY_TRADITIONS.find(item=>item.id===lens);
+  const visibleJournal=useMemo(()=>({...journal,settings:{...settings,zodiac}}),[journal,settings,zodiac]);
   const slots=useMemo(()=>Array.from({length:48},(_,i)=>i/2).filter(value=>dateForAstrology(skyDay,value,zone)),[skyDay,zone]);
   const date=useMemo(()=>dateForAstrology(skyDay,hour,zone),[skyDay,hour,zone]);
 
@@ -53,7 +56,7 @@ function SkyWorkspace({day,lang,t,onPlan,cycle,ownCycle,account}){
     return()=>{cancelled=true;};
   },[attempt]);
   useEffect(()=>{if(dateForAstrology(day,12,zone)){setSkyDay(day);setHour(12);setPlaying(false);}},[day]);
-  useEffect(()=>{setPlaying(false);setZodiacOverride(null);},[zone,settings.zodiac]);
+  useEffect(()=>{setPlaying(false);setReadingOverride(null);},[zone,settings.tradition,settings.tibetanEnabled]);
   useEffect(()=>{
     if(date||!slots.length)return;
     setHour(slots.find(value=>value>=hour)??slots.at(-1));
@@ -120,9 +123,7 @@ function SkyWorkspace({day,lang,t,onPlan,cycle,ownCycle,account}){
   };
   const previous=adjacentDay(-1),next=adjacentDay(1);
   const setTime=value=>{setPlaying(false);const chosen=slots.find(h=>h>=value)??slots.at(-1);if(chosen!=null)setHour(chosen);};
-  const setZodiac=value=>{setPlaying(false);if(ready){if(update(doc=>({...doc,settings:{...doc.settings,zodiac:value}})))setZodiacOverride(null);}else setZodiacOverride(value);};
-  const selectedCycle=ownCycle&&account.profile.ownCycle&&cycle?.date===skyDay?cycle:null;
-  const menstruation=Boolean(ownCycle&&account.profile.ownCycle&&selectedCycle?.phase?.id==="menstrual"&&selectedCycle.phase.basis==="recorded");
+  const selectReading=value=>{setReadingOverride(value);setPlaying(false);setDetail(null);};
   const minutes=Math.round(hour*60),timeLabel=`${String(Math.floor(minutes/60)).padStart(2,"0")}:${String(minutes%60).padStart(2,"0")}`;
   const dateLabel=new Date(`${skyDay}T12:00:00Z`).toLocaleDateString(locale,{timeZone:"UTC",day:"numeric",month:"long",year:"numeric"});
   const loading=engine==="loading",failed=engine==="error"||Boolean(calculation.error);
@@ -140,19 +141,18 @@ function SkyWorkspace({day,lang,t,onPlan,cycle,ownCycle,account}){
       <div className="sky-time"><div><label htmlFor={`${ids}-time`}>{L("Čas","Time")} <strong className="sky-data">{timeLabel}</strong> <span className="sky-small">{zone}</span></label><input id={`${ids}-time`} type="range" min="0" max="23.5" step="0.5" value={hour} disabled={!slots.length} onChange={event=>setTime(Number(event.target.value))} aria-valuetext={`${timeLabel} ${zone}`}/></div><button type="button" disabled={engine!=="ready"||!date||!slots.length} aria-pressed={playing} onClick={()=>{if(!playing&&hour>=slots.at(-1))setHour(slots[0]);setPlaying(value=>!value);}}>{playing?L("Zastavit","Pause"):L("Přehrát den","Play the day")}</button></div>
       <button type="button" className="sky-place" onClick={openSettings}>{settings.location.name||L("Místo pozorování","Observing location")} · {zone}</button>
       <div className="sky-tabs" role="tablist" aria-label={L("Pohled na oblohu","Sky view")}>{[["day","Den","Day"],["period","Období","Periods"],["settings","Nastavení","Settings"]].map(([id,cs,en])=><button key={id} type="button" role="tab" id={`${ids}-tab-${id}`} aria-selected={tab===id} aria-controls={`${ids}-panel-${id}`} onClick={()=>selectTab(id)}>{L(cs,en)}</button>)}</div>
+      {tab!=="settings"&&<nav className="sky-readings" aria-label={L("Astrologický systém","Astrological system")}>{SKY_TRADITIONS.map(item=><button type="button" key={item.id} aria-pressed={reading===item.id} onClick={()=>selectReading(item.id)}>{L(...item.name)}</button>)}{settings.tibetanEnabled&&<button type="button" aria-pressed={reading==="tibetan"} onClick={()=>selectReading("tibetan")}>{L("Tibetský pohled","Tibetan perspective")}</button>}</nav>}
       <SkyHelp id="G02" onOpen={open} lang={lang}/>
     </header>
     {!suspended&&notice&&<p className="sky-warning" role="status">{notice}</p>}
     {!suspended&&journalError&&<div className="sky-warning" role="alert"><p>{journalError==="journal-conflict"?L("Zápisy se změnily v jiné kartě. Načti jejich aktuální podobu.","Records changed in another tab. Load their current version."):L("Soukromé zápisy teď nejdou načíst nebo uložit. Dosavadní data zůstala zachována.","Private records cannot be loaded or saved right now. Existing data has been preserved.")}</p><button type="button" onClick={reload}>{L("Načíst znovu","Reload")}</button></div>}
     {(!account.accountKey||suspended)&&<p className="sky-account-state" role="status">{["loading","checking"].includes(account.status)?L("Ověřuji účet pro tvoje soukromé zápisy…","Verifying your account for private records…"):suspended?L("Účet se zatím nepodařilo ověřit. Rozepsané zápisy čekají na opětovné ověření.","Your account could not be verified yet. Drafts are waiting for verification."):L("Oblohu můžeš prohlížet. Pro vlastní zápisy nejdřív přihlas svůj účet.","You can explore the sky. Sign in to keep personal records.")}{!["loading","checking"].includes(account.status)&&<button type="button" className="sky-quiet" onClick={account.refresh}>{L("Ověřit účet","Verify account")}</button>}</p>}
     <div hidden={suspended} id={`${ids}-panel-${tab}`} role="tabpanel" aria-labelledby={`${ids}-tab-${tab}`}>
-      {tab==="settings"?(journalReady?<SkySettings journal={journal} update={update} ready={ready} lang={lang} onOpen={open}/>:<SkyEmpty text={L("Nastavení se otevře po načtení tvého účtu a soukromých zápisů.","Settings open after your account and private records are loaded.")}/>):loading?<div className="sky-loading" role="status">{L("Načítám oblohu…","Loading the sky…")}</div>:failed?<SkyEmpty text={L("Oblohu se nepodařilo spočítat. Zkus výpočet znovu nebo zkontroluj místo a čas.","The sky could not be calculated. Retry or check the place and time.")}><div className="sky-actions"><button type="button" onClick={()=>setAttempt(value=>value+1)}>{L("Zkusit znovu","Try again")}</button><button type="button" onClick={openSettings}>{L("Otevřít nastavení","Open settings")}</button></div></SkyEmpty>:!date?<SkyEmpty text={L("Tento místní čas neexistuje. Vyber jiný čas nebo den.","This local time does not exist. Choose another time or day.")}/>:sky&&details?tab==="period"?<SkyPeriods sky={sky} details={details} day={skyDay} journal={visibleJournal} update={update} ready={ready} lang={lang} t={t} range={range} setRange={setRange} onOpen={open} onDay={chooseDay} cycle={selectedCycle}/>:<>
-        <SkyLayer name={L("Nebe","Sky")} subtitle={L("Vnější","Outer")} lang={lang} onOpen={open}><SkyNebe sky={sky} details={details} day={skyDay} journal={visibleJournal} lang={lang} onOpen={open} onWeek={()=>{setRange("week");selectTab("period");}} onZodiac={setZodiac}/></SkyLayer>
-        <SkyLayer name={L("Tělo","Body")} subtitle={L("Vnitřní","Inner")} lang={lang} onOpen={open}><SkyBody sky={sky} details={details} day={skyDay} journal={visibleJournal} update={update} ready={ready} lang={lang} onOpen={open} onSettings={openSettings} cycle={selectedCycle}/></SkyLayer>
-        <SkyLayer name={L("Praxe","Practice")} subtitle={L("Jiná","Alternative")} lang={lang} onOpen={open}><SkyPractice sky={sky} details={details} day={skyDay} journal={visibleJournal} update={update} ready={ready} lang={lang} onOpen={open} onPlan={onPlan} menstruation={menstruation}/></SkyLayer>
-        <div className="sky-links"><button type="button" onClick={()=>open({kind:"tradition"})}>{L("Klíč k tradicím","A key to traditions")}</button><SkyHelp id="G08" onOpen={open} lang={lang}/></div>
+      {tab==="settings"?(journalReady?<SkySettings journal={journal} update={update} ready={ready} lang={lang} onOpen={open}/>:<SkyEmpty text={L("Nastavení se otevře po načtení tvého účtu a soukromých zápisů.","Settings open after your account and private records are loaded.")}/>):loading?<div className="sky-loading" role="status">{L("Načítám oblohu…","Loading the sky…")}</div>:failed?<SkyEmpty text={L("Oblohu se nepodařilo spočítat. Zkus výpočet znovu nebo zkontroluj místo a čas.","The sky could not be calculated. Retry or check the place and time.")}><div className="sky-actions"><button type="button" onClick={()=>setAttempt(value=>value+1)}>{L("Zkusit znovu","Try again")}</button><button type="button" onClick={openSettings}>{L("Otevřít nastavení","Open settings")}</button></div></SkyEmpty>:!date?<SkyEmpty text={L("Tento místní čas neexistuje. Vyber jiný čas nebo den.","This local time does not exist. Choose another time or day.")}/>:sky&&details?<>
+        {reading==="tibetan"?<SkyTibetan sky={sky} day={skyDay} journal={journal} update={update} ready={ready} lang={lang} period={tab==="period"} onDay={chooseDay}/>:<div className="sky-reading-intro"><h2>{L(...currentTradition.title)}</h2><p>{L(...currentTradition.text)}</p></div>}
+        {tab==="period"&&reading!=="tibetan"?<SkyPeriods sky={sky} details={details} day={skyDay} journal={visibleJournal} update={update} ready={ready} lang={lang} t={t} range={range} setRange={setRange} onOpen={open} onDay={chooseDay}/>:reading!=="tibetan"?<SkyNebe key={lens} sky={sky} details={details} day={skyDay} journal={visibleJournal} lang={lang} onOpen={open} onWeek={()=>{setRange("week");selectTab("period");}}/>:null}
       </>:null}
     </div>
-    {detail&&sky&&details&&<SkyDialog suspended={suspended} key={`${detail.kind}:${detail.id||detail.type||detail.record?.id||detail.event?.id||"detail"}`} title={skyDetailTitle(detail,lang)} onClose={()=>setDetail(null)} t={t} lang={lang}><SkyDetails detail={detail} sky={sky} details={details} journal={visibleJournal} update={update} ready={ready} lang={lang} onOpen={open} onSettings={openSettings} onDay={chooseDay}/></SkyDialog>}
+    {detail&&(sky&&details||["archive","help"].includes(detail.kind))&&<SkyDialog suspended={suspended} key={`${detail.kind}:${detail.id||detail.type||detail.record?.id||detail.event?.id||"detail"}`} title={skyDetailTitle(detail,lang)} onClose={()=>setDetail(null)} t={t} lang={lang}><SkyDetails detail={detail} sky={sky} details={details} journal={visibleJournal} update={update} ready={ready} lang={lang} onOpen={open} onSettings={openSettings} onDay={chooseDay}/></SkyDialog>}
   </div>;
 }

@@ -70,6 +70,64 @@ export const SHELL_ROOT_CSS = `
   --tm-dok-misto: calc(var(--tm-dok-dno) + var(--tm-dok-v) + var(--tm-dok-edge) + 24px);
   --tm-kraj: calc(var(--tm-safe-b) + 12px);
 }
+
+/* Native controls retain their semantics, labels and keyboard behavior. Only
+   their paint is shared; a checked control never adds an opaque paper tile.
+   These properties deliberately outrank older local and inline form styles. */
+:root body input:is([type="checkbox"],[type="radio"]) {
+  -webkit-appearance: none !important; appearance: none !important;
+  display: inline-grid !important; place-content: center !important;
+  box-sizing: border-box !important; flex: 0 0 22px !important;
+  width: 22px !important; height: 22px !important;
+  min-width: 22px !important; min-height: 22px !important;
+  max-width: 22px !important; max-height: 22px !important;
+  margin: 0 !important; padding: 0 !important; vertical-align: middle;
+  color: var(--astro-ink,var(--tg-accent,var(--tm-accent-ink,var(--tm-text,currentColor)))) !important;
+  background: transparent !important; box-shadow: none !important;
+  border: 1.5px solid currentColor !important;
+  border-radius: 5px 7px 4px 6px !important;
+  cursor: pointer; touch-action: manipulation;
+}
+:root body input[type="radio"] { border-radius: 50% !important; }
+:root body input:is([type="checkbox"],[type="radio"])::after { content: none !important; }
+:root body input:is([type="checkbox"],[type="radio"])::before {
+  content: ""; display: block; box-sizing: border-box; visibility: hidden;
+}
+:root body input[type="checkbox"]::before {
+  width: 10px; height: 6px; border-left: 1.8px solid currentColor;
+  border-bottom: 1.8px solid currentColor; transform: rotate(-45deg) translateY(-1px);
+}
+:root body input[type="radio"]::before {
+  width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+}
+:root body input:is([type="checkbox"],[type="radio"]):checked::before { visibility: visible; }
+:root body input[type="checkbox"]:indeterminate::before {
+  visibility: visible; width: 10px; height: 0; border-left: 0;
+  border-bottom: 2px solid currentColor; transform: none;
+}
+:root body input:is([type="checkbox"],[type="radio"]):focus-visible {
+  outline: 2px solid var(--tm-focus,currentColor) !important; outline-offset: 4px !important;
+}
+:root body input:is([type="checkbox"],[type="radio"]):disabled {
+  opacity: .5; cursor: not-allowed;
+}
+:root body label:has(> input:is([type="checkbox"],[type="radio"])) {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 44px !important; min-width: 44px; box-sizing: border-box;
+  cursor: pointer; touch-action: manipulation;
+}
+:root body label:has(> input:is([type="checkbox"],[type="radio"]):disabled) { cursor: not-allowed; }
+/* Profile is also embedded directly in Sky, before Settings has ever opened. */
+.tm-personal-options { display: flex; gap: 8px 20px; flex-wrap: wrap; }
+@media (forced-colors: active) {
+  :root body input:is([type="checkbox"],[type="radio"]) {
+    -webkit-appearance: auto !important; appearance: auto !important;
+    forced-color-adjust: auto; accent-color: auto !important;
+    background: revert !important; border: revert !important; color: revert !important; opacity: 1;
+  }
+  :root body input:is([type="checkbox"],[type="radio"])::before { content: none !important; }
+  :root body input:is([type="checkbox"],[type="radio"]):focus-visible { outline-color: Highlight !important; }
+}
 `;
 
 /** Tablet · mezistav, ve kterém se nejsnáz rozbije mřížka.

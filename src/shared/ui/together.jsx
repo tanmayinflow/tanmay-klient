@@ -1,4 +1,4 @@
-import React,{useState,useEffect,useRef} from "react";
+import React,{useState,useEffect,useRef,useId} from "react";
 import {cycleViewForDate,CYCLE_GUIDE} from "../product/togetherGuidance.js";
 import {usePersonalProfile} from "./personalProfile.jsx";
 import {PhaseGuide,MoonCompanion} from "./togetherGuidance.jsx";
@@ -11,6 +11,7 @@ import {TogetherDayWindow} from "./togetherDayWindow.jsx";
 import {TogetherConversationMap} from "./togetherConversationMap.jsx";
 import {TogetherMaintenance} from "./togetherMaintenance.jsx";
 import {TmIcon} from "./icons.jsx";
+import {ROOM_ART} from "./roomArt.js";
 import {TogetherJournal} from "./togetherJournal.jsx";
 import {PartnerPages} from "./togetherPages.jsx";
 import {dateKey,addDays,emptyTogether} from "../product/together.js";
@@ -19,6 +20,13 @@ import {TOGETHER_RITUALS,getTogetherRitualText} from "../product/togetherRituals
 import {readTogetherResponse} from "../product/togetherResponse.js";
 
 export function TogetherIcon({size=24}) {return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"><path d="M12 20C7 16 3 13 3 8a4 4 0 0 1 9-1 4 4 0 0 1 9 1c0 5-4 8-9 12Z"/><path d="M8 7c-2 0-3 2-2 4"/></svg>;}
+function PartnerWishArt({label}) {
+  const id=`partner-wish-${useId().replace(/:/g,"")}`;
+  return <svg className="tg-partner-hand" viewBox="80 280 1140 840" preserveAspectRatio="xMidYMid meet" role="img" aria-label={label}>
+    <defs><mask id={id} x="80" y="280" width="1140" height="840" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" style={{maskType:"alpha"}}><image href={`/media/icons/${ROOM_ART.klienti}`} x="0" y="0" width="1254" height="1254"/></mask></defs>
+    <rect x="80" y="280" width="1140" height="840" fill="currentColor" mask={`url(#${id})`}/>
+  </svg>;
+}
 // Original line illustration: two stems sharing space, without a medical/lunar prediction claim.
 export function TogetherArt(){return <svg viewBox="0 0 180 140" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M34 123C57 120 75 98 80 71S81 25 59 18M151 124C120 117 97 96 96 64s11-45 28-50M73 93C49 86 46 65 37 64c21-3 35 6 40 20M99 88c25-2 38-21 44-31-27 0-39 11-44 21M80 63C61 57 55 43 52 36c20 1 27 11 29 20M98 55c18-7 25-20 30-29-22 4-26 12-28 23M70 104c6 11 11 18 20 25 10-8 18-18 22-27M39 117c28-6 47-3 52 7 12-9 34-9 51-4"/><path d="M58 18c8 1 16 4 20 10M59 18c4 7 7 13 6 21M124 14c-4 9-8 14-15 18M124 14c-8 1-15 5-18 10M40 69l34 18M140 63l-36 18M55 39l22 18M126 30l-25 19"/><path d="M29 103c-9-23-6-48 7-66M150 37c12 18 15 43 6 66" strokeDasharray="1 5"/><circle cx="89" cy="17" r="6"/><path d="M86 12c-5 6-2 10 5 10M83 130h17M17 120l4-4m-2 0v7m140-10 5 3m-5 1 5-4"/></svg>;}
 const errors={"question-answered":["K této otázce už patří uložená odpověď. Vyberte jinou pro rozhovor naživo; zapsaný rozhovor zůstane u původní otázky.","This question already has a saved answer. Choose another for a live conversation; the saved conversation keeps its original question."],"question-changed":["Otázka se mezitím změnila. Rozepsaná odpověď zůstává. Obnov přehled a zkontroluj, k jaké otázce patří.","The question changed. Your draft remains. Refresh the page and check which question it answers."],"owner-not-configured":["Spolu ještě nemá na serveru nastaveného vlastníka aplikace. Je potřeba dokončit nastavení hostingu; opakované přihlášení nepomůže.","Together has no application owner configured on the server. Hosting setup must be completed; signing in again will not fix this."],"sign-in-required":["Přihlášení vypršelo. Přihlas se znovu a obnov přehled.","Your session expired. Sign in again and refresh."],"invalid-server-response":["Server místo údajů Spolu vrátil webovou stránku. Zkus obnovit aplikaci; pokud chyba trvá, je potřeba opravit směrování na serveru.","The server returned a web page instead of Together data. Refresh the app; if it persists, server routing needs repair."],conflict:["Mezitím se údaje změnily. Rozepsaný text zůstává tady. Obnov přehled a zkontroluj ho před uložením.","Data changed elsewhere. Your draft is still here. Refresh and review it before saving."],"invalid-invite":["Kód už neplatí nebo byl použit. Nový kód vytvoří druhý člověk.","This code expired or was used. Your partner can create a new one."],"not-connected":["Pro tuto akci nejdřív potvrďte propojení.","Confirm the connection first."],"connection-exists":["Nejdřív ukonči současné propojení.","Disconnect the existing connection first."],"invalid period dates":["Zkontroluj data menstruace. Zápisy mají být skutečné, ne budoucí odhady.","Check period dates. Record actual dates, not future estimates."],"overlapping periods":["Záznamy menstruace se překrývají. Oprav jejich začátek nebo konec.","Period records overlap. Correct their start or end."],"invalid-plan":["Vyplň název, datum, čas a délku alespoň 10 minut.","Enter a title, date, time and duration of at least 10 minutes."]};
@@ -56,6 +64,7 @@ export function TogetherPage({t,lang="cs",Header,Sheet,getPages,role="coach"}) {
     }catch(e){setError(errors[e.message]?L(...errors[e.message]):L("Nepodařilo se uložit. Text zůstává rozepsaný, zkus to znovu.","Could not save. Your draft is retained; try again."));return false;}finally{setBusy(false);}
   };
   const own=data?.self.doc||emptyTogether(), canTrack=data?.canTrack===true,cycleOwner=data?.cycleOwner===true,active=data?.link?.status==="active";
+  const hasPartnerWellbeing=Boolean(data?.partner?.wellbeing?.mood||data?.partner?.wellbeing?.energy);
   const cycleView=canTrack?cycleViewForDate(own,cycleDay,dateKey()):(data?.cycleView?.date===cycleDay?data.cycleView:null);
   const summary=cycleView?.cycle,phase=cycleView?.phase;
   const skyDay=tab==="cycle"?cycleDay:day;
@@ -132,7 +141,7 @@ export function TogetherPage({t,lang="cs",Header,Sheet,getPages,role="coach"}) {
     {data&&tab==="today"&&<>
 
       {!active&&<section className="tm-together-section"><h2>{L("Váš prostor může začít tady","Your space can begin here")}</h2><p>{L("Zápis si můžeš udělat už teď. Propojení vám otevře společné plány a rozhovory.","You can check in already. Connecting opens up shared plans and conversations.")}</p>{button(L("Propojit naše účty","Connect our accounts"),()=>navigateTo("sharing"))}</section>}
-      {active&&<section className="tm-together-section tg-partner"><h2>{L("Od druhého z nás","From your partner")}</h2>{data.partner?.support?.text?<p className="tg-personal">{data.partner.support.text}</p>:<p>{L("Dnes tu zatím není žádné přání.","No wish has been shared today.")}</p>}{data.partner?.wellbeing&&<p className="hint">{data.partner.wellbeing.mood}{data.partner.wellbeing.energy?` · ${L("energie","energy")} ${data.partner.wellbeing.energy}/5`:""}</p>}</section>}
+      {active&&<section className="tm-together-section tg-partner">{data.partner?.support?.text||hasPartnerWellbeing?<><h2>{L("Od druhého z nás","From your partner")}</h2>{data.partner?.support?.text&&<p className="tg-personal">{data.partner.support.text}</p>}{hasPartnerWellbeing&&<p className="hint">{data.partner.wellbeing.mood}{data.partner.wellbeing.energy?` · ${L("energie","energy")} ${data.partner.wellbeing.energy}/5`:""}</p>}</>:<PartnerWishArt label={L("Dnes tu zatím není žádné přání od druhého z nás.","No wish has been shared by your partner today.")}/>}</section>}
       {section(L("Co by ti dnes udělalo dobře?","What would feel good today?"),<>
         <p>{L("Klidně jen jedna věta. Nemusíš mít všechno pojmenované.","A single sentence is enough. You do not need to have it all figured out.")}</p>
       <div className="tg-date-row"><button type="button" aria-label={L("Předchozí den","Previous day")} onClick={()=>selectDay(addDays(day,-1))}><TmIcon id="back" size={14}/></button><button type="button" className="tg-date" aria-expanded={dateOpen} aria-controls="tg-date-chooser" onClick={()=>setDateOpen(v=>!v)}>{new Date(day+"T12:00:00").toLocaleDateString(lang==="en"?"en-GB":"cs-CZ")}</button><button type="button" aria-label={L("Další den","Next day")} onClick={()=>selectDay(addDays(day,1))}><TmIcon id="forward" size={14}/></button><button type="button" className="tg-date-today" onClick={()=>selectDay(today)}>{L("Dnes","Today")}</button></div>

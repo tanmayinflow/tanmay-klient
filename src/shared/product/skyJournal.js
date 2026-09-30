@@ -1,3 +1,4 @@
+import {skyTradition,skyZodiac} from "./skyTraditions.js";
 // Private, account-scoped observation data. Never included in partner projections.
 export const SKY_STORAGE_VERSION=1;
 export const SKY_PRACTICE_DAYS=[8,10,15,23,25,29,30];
@@ -14,7 +15,7 @@ export const SKY_QUOTES=[
 export function emptySkyJournal(){return {version:SKY_STORAGE_VERSION,revision:0,settings:{
   location:{name:"Praha",latitude:50.0755,longitude:14.4378,timeZone:"Europe/Prague"},
   birth:{date:"",time:"",timeKnown:false,place:"",latitude:"",longitude:"",timeZone:"Europe/Prague"},
-  zodiac:"sidereal",nodes:"mean",traditions:{jyotish:true,hellenistic:true,western:true},
+  tradition:"western",tibetanEnabled:false,zodiac:"tropical",nodes:"mean",traditions:{jyotish:true,hellenistic:true,western:true},
   practiceDays:[...SKY_PRACTICE_DAYS],modules:{swara:false,cycle:false,dream:true,dice:true},
   practices:{guru:true,dzambhala:true,protector:true,vajrayogini:false,mercury:true,eclipses:true,weeklyDay:0},
   notifications:false,
@@ -36,7 +37,8 @@ export function parseSkyJournal(value){
   const latitude=Number(loc.latitude),longitude=Number(loc.longitude);
   const location=Number.isFinite(latitude)&&Math.abs(latitude)<=90&&Number.isFinite(longitude)&&Math.abs(longitude)<=180&&validTimeZone(loc.timeZone)?{name:cleanText(loc.name,120),latitude,longitude,timeZone:loc.timeZone}:base.settings.location;
   return {...base,revision:raw.revision,settings:{...base.settings,...s,location,
-    zodiac:s.zodiac==="tropical"?"tropical":"sidereal",nodes:s.nodes==="true"?"true":"mean",
+    tradition:skyTradition(s.tradition),tibetanEnabled:s.tibetanEnabled===true,
+    zodiac:["tropical","sidereal"].includes(s.zodiac)?s.zodiac:skyZodiac(skyTradition(s.tradition)),nodes:s.nodes==="true"?"true":"mean",
     birth:{...base.settings.birth,...birth,timeKnown:birth.timeKnown===true},
     traditions:{...base.settings.traditions,...s.traditions},modules:{...base.settings.modules,...s.modules},practices:{...base.settings.practices,...s.practices},
     practiceDays:Array.isArray(s.practiceDays)?s.practiceDays.filter(n=>SKY_PRACTICE_DAYS.includes(n)):base.settings.practiceDays,

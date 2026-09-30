@@ -1,29 +1,30 @@
 // Three-sentence help: what it is, what it means, and one available action.
+// Legacy IDs remain for existing private records; only SKY_ACTIVE_HELP_IDS are public.
 export const SKY_HELP={
   "G01": {
     "title": "Prostor Oblohy",
     "cs": [
-      "Obloha propojuje pohled na čas, tělo a praxi.",
-      "Každý okamžik může otevřít prostor pro pozornost.",
-      "Prohlédni dnešní oblohu a pak se vrať do své místnosti."
+      "Obloha ukazuje polohy nebeských těles a několik tradičních způsobů jejich čtení.",
+      "Výpočet a symbolický význam mají každý svou roli.",
+      "Začni dnešním obrazem a otevři téma, které tě zajímá."
     ],
     "en": [
-      "This space opens a view of the sky and time.",
-      "Its image gives your attention a wider setting.",
-      "Return to your room whenever you wish."
+      "Sky shows celestial positions and several traditional ways of reading them.",
+      "Calculation and symbolic meaning each have their own role.",
+      "Begin with today’s image and open a theme that interests you."
     ]
   },
   "G02": {
     "title": "Den · Období · Nastavení",
     "cs": [
-      "Den, Období a Nastavení nabízejí tři cesty k obloze.",
-      "Dnešní okamžik patří do delšího rytmu.",
-      "Vyber měřítko, které právě potřebuješ."
+      "Den ukazuje okamžik, Období delší souvislosti a Nastavení tvoje volby.",
+      "Západní, helénistické a džjótišové čtení nabízejí odlišné pohledy na stejnou oblohu.",
+      "Vyber systém a měřítko, které chceš prozkoumat."
     ],
     "en": [
-      "Day, Period and Settings are the three ways into this space.",
-      "The moment belongs to a larger rhythm.",
-      "Choose the timescale you need."
+      "Day shows an instant, Period a longer context and Settings your preferences.",
+      "Western, Hellenistic and Jyotisha readings offer distinct views of the same sky.",
+      "Choose the system and timescale you want to explore."
     ]
   },
   "G03": {
@@ -81,14 +82,14 @@ export const SKY_HELP={
   "G07": {
     "title": "Vzít obraz ven",
     "cs": [
-      "Drobný čin přenáší obraz z oblohy do běžného dne.",
-      "Porozumění dostává podobu vlastní zkušenosti.",
-      "Uprav si nabídnutý krok a přidej jej do svého plánu."
+      "Symbolický motiv může být podnětem k vlastní úvaze.",
+      "Jeho význam se potkává s konkrétní situací tvého dne.",
+      "Vyber si jednu otázku, ke které se chceš vrátit."
     ],
     "en": [
-      "A small action carries an image into ordinary life.",
-      "Contemplation becomes a lived response.",
-      "Adapt the invitation and save it deliberately."
+      "A symbolic theme can prompt your own reflection.",
+      "Its meaning meets the actual circumstances of your day.",
+      "Choose one question you want to revisit."
     ]
   },
   "G08": {
@@ -107,14 +108,14 @@ export const SKY_HELP={
   "G09": {
     "title": "Výpočet, tradice a zdroje",
     "cs": [
-      "Zdroje shromažďují metody a původ jednotlivých výkladů.",
-      "Můžeš rozlišit výpočet, tradici a autorský obraz.",
-      "Najdi v přehledu Zdroje téma, které chceš prozkoumat hlouběji."
+      "Zdroje uvádějí původ výpočtů i tradičních pojmů.",
+      "Astronomické údaje tak zůstávají odlišené od výkladu.",
+      "Otevři v přehledu zdrojů metodu, které chceš lépe porozumět."
     ],
     "en": [
-      "Sources record the methods and origins of each block.",
-      "The path behind an image remains traceable.",
-      "Find the block by its name."
+      "Sources identify the origins of calculations and traditional concepts.",
+      "Astronomical data stays distinguishable from interpretation.",
+      "Open the method you want to understand in Sources."
     ]
   },
   "N01": {
@@ -134,13 +135,13 @@ export const SKY_HELP={
     "title": "Slunce: východ, západ, délka dne",
     "cs": [
       "Východ a západ Slunce ohraničují místní den.",
-      "Světlo dává ranní a večerní praxi přirozené místo.",
-      "Vztáhni svůj dnešní rytmus k těmto dvěma okamžikům."
+      "Délka světla se mění s místem a roční dobou.",
+      "Porovnej dnešní východ a západ se svým běžným rytmem."
     ],
     "en": [
-      "Sunrise and sunset mark the local boundaries of daylight.",
-      "The day opens, unfolds and returns.",
-      "Place your morning and evening practice in this rhythm."
+      "Sunrise and sunset mark local daylight.",
+      "Its length changes with location and season.",
+      "Compare today’s sunrise and sunset with your usual rhythm."
     ]
   },
   "N03": {
@@ -186,13 +187,13 @@ export const SKY_HELP={
     "title": "Planeta dne",
     "cs": [
       "Planeta dne je tradiční vládce dne začínajícího východem Slunce.",
-      "Její symbolika nabízí motiv pro činnost a praxi.",
-      "Vyber si z tohoto motivu jednu použitelnou připomínku."
+      "Její symbolika nabízí jeden motiv v širším obrazu oblohy.",
+      "Prohlédni planetu a zvaž její téma ve svém dni."
     ],
     "en": [
-      "A traditional planet governs the day beginning at sunrise.",
-      "Its theme offers a focus for attention.",
-      "Choose a fitting form of practice."
+      "The day ruler is a traditional planet assigned from sunrise.",
+      "Its symbolism offers one theme within the wider sky.",
+      "Explore the planet and consider its theme in your day."
     ]
   },
   "N07": {
@@ -302,27 +303,27 @@ export const SKY_HELP={
   "N15": {
     "title": "Retrogrády a stanice",
     "cs": [
-      "Retrográda označuje zdánlivě zpětný pohyb planety při pohledu ze Země.",
-      "Učitel ji v praxi spojuje s revizí a dokončováním.",
-      "Vrať se k rozpracované věci a zvaž svůj další krok."
+      "Retrográda je zdánlivě zpětný pohyb planety při pohledu ze Země.",
+      "Stanice označuje obrat mezi přímým a zpětným pohybem.",
+      "Prohlédni čas obratu a výklad ve zvoleném systému."
     ],
     "en": [
       "Retrograde motion is an apparent reversal seen from Earth.",
-      "Your chosen tradition may read it as a time for revision.",
-      "Revisit a task before adding another step."
+      "A station marks the change between direct and retrograde motion.",
+      "Explore its timing and interpretation in the selected system."
     ]
   },
   "N16": {
     "title": "Zatmění",
     "cs": [
-      "Zatmění je vypočtená událost s časem a místní viditelností.",
-      "Některé tradice mu věnují zvláštní prostor pro praxi.",
-      "Vyhraď si tento prostor, pokud daný zvyk sleduješ."
+      "Zatmění nastává při určitém uspořádání Slunce, Země a Luny.",
+      "Jeho průběh a viditelnost závisejí na druhu události a místě pozorování.",
+      "Otevři podrobnosti a zkontroluj uvedenou místní viditelnost."
     ],
     "en": [
-      "An eclipse is a calculated astronomical event.",
-      "Some traditions treat it as a special time for practice.",
-      "Make room for your chosen practice if you follow this custom."
+      "An eclipse occurs in a particular alignment of the Sun, Earth and Moon.",
+      "Its course and visibility depend on the event and observing location.",
+      "Open its details and check the stated local visibility."
     ]
   },
   "N17": {
@@ -926,27 +927,27 @@ export const SKY_HELP={
   "W01": {
     "title": "Sedm dnů oblohy",
     "cs": [
-      "Týden ukazuje sedm dnů s planetami, Lunou a hlavními změnami.",
-      "Jednotlivé dny rozvíjejí různá témata.",
-      "Vyber den a prozkoumej jeho podrobnosti."
+      "Týden ukazuje sedm dnů od pondělí do neděle.",
+      "Fáze Luny a změny planet zasazují jednotlivý den do souvislostí.",
+      "Vyber den a otevři jeho podrobnosti."
     ],
     "en": [
-      "Seven days show their planets, Moon and main changes.",
-      "The week unfolds through distinct themes.",
-      "Choose a day and open its details."
+      "The week shows seven days from Monday through Sunday.",
+      "Lunar phases and planetary changes place a day in context.",
+      "Select a day and open its details."
     ]
   },
   "W02": {
     "title": "Souvislosti týdne",
     "cs": [
       "Týdenní čtení spojuje krátké změny s delším pozadím oblohy.",
-      "Několik událostí může patřit do jednoho širšího pohybu.",
-      "Zvol si jeden záměr pro celý týden."
+      "Zvolený systém určuje, které vztahy vystupují do popředí.",
+      "Porovnej hlavní téma s událostmi jednotlivých dnů."
     ],
     "en": [
-      "This reading brings the week's background and changes together.",
-      "Short events belong to one wider movement.",
-      "Choose one intention for the week."
+      "The weekly reading connects brief changes with the longer sky.",
+      "The selected system determines which relationships come forward.",
+      "Compare the main theme with the events of individual days."
     ]
   },
   "W03": {
@@ -976,16 +977,16 @@ export const SKY_HELP={
     ]
   },
   "M01": {
-    "title": "Lunární měsíc v občanském měsíci",
+    "title": "Luna a změny měsíce",
     "cs": [
-      "Měsíční pohled ukazuje fáze Luny, tithi, obraty planet a zatmění.",
-      "Lunární oběh přesahuje hranice občanského měsíce.",
+      "Měsíční pohled řadí fáze Luny a změny oblohy podle data.",
+      "Lunární oběh se nekryje přesně s občanským měsícem.",
       "Otevři vybraný den nebo pokračuj do sousedního měsíce."
     ],
     "en": [
-      "The month displays lunar phases, changes and eclipses.",
-      "A lunar cycle can cross a civil month's boundary.",
-      "Open a day or follow the surrounding lunar cycle."
+      "The month arranges lunar phases and sky changes by date.",
+      "A lunar cycle does not exactly match a civil month.",
+      "Open a day or continue into the adjacent month."
     ]
   },
   "M02": {
@@ -1017,27 +1018,27 @@ export const SKY_HELP={
   "Y01": {
     "title": "Slunce během roku",
     "cs": [
-      "Roční kolo sleduje Slunce znameními, rovnodennostmi a slunovraty.",
-      "Proměny roční doby dávají času viditelnou podobu.",
-      "Zasaď dnešní téma do právě probíhající části roku."
+      "Roční pohled sleduje sluneční cyklus, rovnodennosti a slunovraty.",
+      "Rámec vybraného systému dává polohám Slunce jejich označení.",
+      "Otevři předěl roku a porovnej jej s místním obdobím."
     ],
     "en": [
-      "The year's wheel follows the Sun through twelve signs.",
-      "Seasonal change gives time a visible form.",
-      "Place today's theme in its annual rhythm."
+      "The year follows the solar cycle, equinoxes and solstices.",
+      "The selected system provides the frame for naming solar positions.",
+      "Open a turning point and compare it with your local season."
     ]
   },
   "Y02": {
     "title": "Retrogrády a zatmění roku",
     "cs": [
       "Přehled roku ukazuje planetární obraty a zatmění.",
-      "Delší pohyby vytvářejí prostor pro návrat k rozpracovaným tématům.",
-      "Otevři událost a zvaž vlastní praktický záměr."
+      "Větší měřítko umožňuje sledovat odstupy mezi událostmi.",
+      "Vyber událost a otevři její čas a podrobnosti."
     ],
     "en": [
-      "These intervals show planetary reversals and eclipses through the year.",
-      "Longer movements create room for revisiting a theme.",
-      "Open an interval and choose a practical intention."
+      "The yearly view shows planetary stations and eclipses.",
+      "This wider scale reveals the intervals between events.",
+      "Choose an event to open its time and details."
     ]
   },
   "Y03": {
@@ -1096,13 +1097,13 @@ export const SKY_HELP={
     "title": "Profekce a tranzity",
     "cs": [
       "Roční profekce a osobní tranzity sledují různé časové vrstvy.",
-      "Saturn a lunární uzly mohou otevřít odlišné otázky než vládce roku.",
+      "Helénistický a džjótišový výklad používají vlastní pravidla.",
       "Porovnej jednotlivé motivy se svou skutečnou situací."
     ],
     "en": [
-      "Annual profections and personal transits occupy separate timelines.",
-      "Several traditions can illuminate one period differently.",
-      "Compare their themes without merging them into a score."
+      "Annual profections and personal transits follow different timescales.",
+      "Hellenistic and Jyotisha readings use their own methods.",
+      "Compare each theme with your actual circumstances."
     ]
   },
   "L03": {
@@ -1171,16 +1172,16 @@ export const SKY_HELP={
     ]
   },
   "S03": {
-    "title": "Výkladové moduly",
+    "title": "Astrologické systémy",
     "cs": [
-      "Výkladové moduly vybírají tradice, které se v Obloze nabízejí.",
-      "Každá si ponechává svůj slovník a způsob čtení.",
-      "Ponech si ty moduly, které chceš používat."
+      "Západní, helénistický a džjótišový systém mají vlastní způsob čtení.",
+      "Jejich výběr mění výklad a dostupné tradiční podrobnosti.",
+      "Vyber pohled, se kterým chceš začít."
     ],
     "en": [
-      "Tradition modules select the readings offered.",
-      "Each method keeps its own vocabulary and purpose.",
-      "Keep the modules you use."
+      "Western, Hellenistic and Jyotisha systems each have their own way of reading.",
+      "Your selection changes the interpretation and traditional details offered.",
+      "Choose the view you want to begin with."
     ]
   },
   "S04": {
@@ -1236,16 +1237,16 @@ export const SKY_HELP={
     ]
   },
   "S08": {
-    "title": "Dny praxe a kalendářní škola",
+    "title": "Tibetská tradice · volitelně",
     "cs": [
-      "Vybrané lunární dny určují připomínky praxe.",
-      "Současný kalendář používá tithi jako přiblížení tibetských dnů.",
-      "Vyber dny své praxe a porovnej je s kalendářem vlastní linie."
+      "Volitelný tibetský úvod představuje výpočty oblohy, živly a kalendářní tradice.",
+      "Tithi v aplikaci neurčuje tibetské datum.",
+      "Zapni tento úvod v Nastavení, pokud jej chceš prozkoumat."
     ],
     "en": [
-      "Your selected lunar days determine practice reminders.",
-      "The current calendar uses tithi as a proxy for Tibetan days.",
-      "Choose your practice days and compare them with your lineage calendar."
+      "The optional Tibetan introduction presents sky calculations, elements and calendar traditions.",
+      "The app’s tithi does not determine a Tibetan date.",
+      "Enable this introduction in Settings if you want to explore it."
     ]
   },
   "S09": {
@@ -1278,26 +1279,26 @@ export const SKY_HELP={
     "title": "Jazyk",
     "cs": [
       "Jazyk mění ovládání a vysvětlení aplikace.",
-      "Původní anglické citace zůstávají zachované.",
+      "Pojmy jednotlivých tradic doprovází krátké objasnění.",
       "Vyber češtinu nebo angličtinu podle své potřeby."
     ],
     "en": [
-      "Language changes controls and explanations.",
-      "Clear words preserve the meaning of an unfamiliar term.",
-      "Choose Czech or English while the supplied quotes remain unchanged."
+      "Language changes the app’s controls and explanations.",
+      "Traditional terms come with a short explanation.",
+      "Choose Czech or English to suit you."
     ]
   },
   "S12": {
-    "title": "Zápisy a připomínky",
+    "title": "Archiv soukromých zápisů",
     "cs": [
-      "Nastavení zápisů spravuje soukromou historii a připomínky.",
-      "Tvoje zkušenost zůstává pod tvou kontrolou.",
-      "Prohlédni historii a zvol, zda chceš upozornění při otevřené aplikaci."
+      "Archiv uchovává tvoje dřívější soukromé zápisy Oblohy.",
+      "Změna dostupných částí aplikace je z historie nemaže.",
+      "Prohlédni si uložené záznamy v Nastavení."
     ],
     "en": [
-      "Private records and reminders have their own settings.",
-      "Your experience stays under your control.",
-      "Review your history and choose reminders while the app is open."
+      "The archive keeps your earlier private Sky records.",
+      "Changes to available app sections do not remove them from history.",
+      "Review your saved records in Settings."
     ]
   },
   "S13": {

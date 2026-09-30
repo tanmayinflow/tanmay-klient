@@ -1,7 +1,7 @@
 import React,{useEffect,useId,useRef,useState} from "react";
 import {createPortal} from "react-dom";
 import {SKY_HELP} from "../product/skyHelp.js";
-import {SKY_HELP_RELATED,SKY_HELP_EN_TITLES} from "../product/skyHelpNavigation.js";
+import {SKY_ACTIVE_HELP_IDS,SKY_HELP_RELATED,SKY_HELP_EN_TITLES} from "../product/skyHelpNavigation.js";
 import {emptySkyJournal,parseSkyJournal,saveSkyJournal,skyStorageKey} from "../product/skyJournal.js";
 import {isPersonalProfileVerified} from "./personalProfile.jsx";
 
@@ -29,10 +29,10 @@ export function SkyDialog({title,onClose,children,t,lang="cs",suspended=false}){
     <header><h2 id={titleId}>{title}</h2><button type="button" className="sky-close" onClick={onClose} aria-label={lang==="en"?"Close detail":"Zavřít detail"}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div className="sky-dialog-content">{children}</div>
   </dialog>,document.body);
 }
-export function SkyHelp({id,onOpen,lang="cs"}){const help=SKY_HELP[id];return help?<button type="button" className="sky-info" aria-label={lang==="en"?`Explain: ${SKY_HELP_EN_TITLES[id]||help.title}`:`Vysvětlit: ${help.title}`} onClick={event=>{event.preventDefault();event.stopPropagation();onOpen({kind:"help",id});}}><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1" strokeWidth="1.6"/></svg></button>:null;}
+export function SkyHelp({id,onOpen,lang="cs"}){const help=SKY_ACTIVE_HELP_IDS.includes(id)?SKY_HELP[id]:null;return help?<button type="button" className="sky-info" aria-label={lang==="en"?`Explain: ${SKY_HELP_EN_TITLES[id]||help.title}`:`Vysvětlit: ${help.title}`} onClick={event=>{event.preventDefault();event.stopPropagation();onOpen({kind:"help",id});}}><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1" strokeWidth="1.6"/></svg></button>:null;}
 export function SkyHeading({children,id,onOpen,lang="cs",level=3}){const Tag=`h${level}`;return <div className="sky-heading"><Tag>{children}</Tag>{id&&<SkyHelp id={id} onOpen={onOpen} lang={lang}/>}</div>;}
 export function SkyHelpContent({id,lang="cs"}){
-  const [choice,setChoice]=useState(null),active=choice?.parent===id?choice.id:id,h=SKY_HELP[active],en=lang==="en";
+  const [choice,setChoice]=useState(null),active=choice?.parent===id?choice.id:id,h=SKY_ACTIVE_HELP_IDS.includes(active)?SKY_HELP[active]:null,en=lang==="en";
   const title=key=>en?SKY_HELP_EN_TITLES[key]||SKY_HELP[key]?.title:SKY_HELP[key]?.title;
   return h?<div className="sky-help-copy">{active!==id&&<><button type="button" className="sky-quiet sky-small" onClick={()=>setChoice(null)}>← {title(id)}</button><h3>{title(active)}</h3></>}{h[en?"en":"cs"].map((text,i)=><p key={i}>{text}</p>)}{SKY_HELP_RELATED[active]?.length>0&&<div className="sky-help-related"><h4>{en?"Related explanations":"Související vysvětlení"}</h4><div className="sky-actions">{SKY_HELP_RELATED[active].map(child=><button type="button" className="sky-quiet" key={child} onClick={()=>setChoice({parent:id,id:child})}>{title(child)} →</button>)}</div></div>}</div>:null;
 }
