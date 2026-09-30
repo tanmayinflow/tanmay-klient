@@ -68,6 +68,10 @@ export const SKY_CSS=`
 .tg-astrology .sky-time input[type=range]::-moz-range-track{height:2px;background:var(--astro-ink)}.tg-astrology .sky-time input[type=range]::-moz-range-thumb{width:17px;height:17px;border:0;border-radius:50%;background:var(--astro-ink)}
 .tg-astrology .sky-place{border:0;padding:4px 0;min-height:30px;font-size:12px;color:var(--astro-muted);text-align:left}.tg-astrology .sky-actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
 .tg-astrology .sky-pair{display:grid;grid-template-columns:1fr 1fr;gap:20px}.tg-astrology .sky-pair>div{min-width:0}.tg-astrology .sky-fact{font:26px/1.25 var(--tm-font-display);margin:8px 0}.tg-astrology .sky-lead{font:27px/1.35 var(--tm-font-display);margin:8px 0 25px;text-wrap:balance}
+.tg-astrology :is(.sky-pair > div > .sky-heading,.sky-heading:has(+ .sky-fact),.sky-heading:has(+ .sky-small + .sky-lead)){margin-bottom:4px}
+.tg-astrology :is(.sky-pair > div > .sky-heading,.sky-heading:has(+ .sky-fact),.sky-heading:has(+ .sky-small + .sky-lead)) > :is(h3,h4){font:500 13px/1.45 var(--tm-font-tag);letter-spacing:.08em;text-transform:uppercase;color:var(--astro-muted)}
+.tg-astrology .sky-fact{font-variant-numeric:tabular-nums}
+.tg-astrology .sky-pair > div > button:has(> .sky-fact){display:flex;align-items:flex-start;justify-content:flex-start;margin:8px 0;padding:0;border:0;text-align:left}.tg-astrology .sky-pair > div > button > .sky-fact{margin:0}
 .tg-astrology .sky-links{display:flex;flex-wrap:wrap;gap:5px 15px;margin:18px 0}.tg-astrology .sky-links button{border:0;padding:8px 0;text-align:left;font:18px/1.35 var(--tm-font-display)}
 .tg-astrology .sky-summary{margin:18px 0}.tg-astrology details{padding:8px 0}.tg-astrology summary{cursor:pointer;min-height:44px;font:19px/1.4 var(--tm-font-display);padding:9px 0;color:var(--astro-ink)}
 .tg-astrology .sky-empty{text-align:center;padding:18px 8px;color:var(--astro-muted)}.tg-astrology .sky-empty svg{display:block;margin:0 auto 10px;color:var(--astro-ink)}.tg-astrology .sky-empty p{margin:5px auto 15px;max-width:36ch}

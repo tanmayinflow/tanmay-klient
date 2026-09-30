@@ -36,6 +36,8 @@ export function TogetherPage({t,lang="cs",Header,Sheet,getPages,role="coach"}) {
   const [tab,setTab]=useState("today"),[data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
   const [day,setDay]=useState(dateKey()),[cycleDay,setCycleDay]=useState(dateKey()),[entry,setEntry]=useState({}),[dirty,setDirty]=useState(false),[baseRev,setBaseRev]=useState(0);
   const [period,setPeriod]=useState({start:dateKey(),end:""}),[code,setCode]=useState(""),[invite,setInvite]=useState(""),[scopes,setScopes]=useState([]),[answer,setAnswer]=useState("");
+  const [cycleSelection,setCycleSelection]=useState(0);
+  const selectCycleDay=value=>{setCycleDay(value);setCycleSelection(v=>v+1);};
   const [answerContext,setAnswerContext]=useState(null);
   const [dateOpen,setDateOpen]=useState(false),[dayWindow,setDayWindow]=useState(null),[practiceOpen,setPracticeOpen]=useState(false);
   const [plan,setPlan]=useState(null),[mode,setMode]=useState("observe"),[length,setLength]=useState(28);
@@ -160,9 +162,9 @@ export function TogetherPage({t,lang="cs",Header,Sheet,getPages,role="coach"}) {
         {summary?.next&&<p className="hint">{L("Další menstruace přibližně","Next period approximately")}: {fmtSummary}</p>}
         {!canTrack&&!summary&&!phase&&<p>{L("Druhý z vás zatím fázi cyklu nesdílí.","Your partner is not sharing her cycle phase.")}</p>}
       </>)}
-      {(canTrack||(data.link?.receivedScopes||data.link?.scopes)?.some(s=>["cycle","phase","cycle-note","pain","flow"].includes(s)))&&<TogetherCalendar periods={canTrack?own.periods:[]} summary={summary} phase={phase} plans={data.plans} selectedDate={cycleDay} onDateChange={setCycleDay} onOpenDay={openDayWindow} lang={lang} t={t}/>}
+      {(canTrack||(data.link?.receivedScopes||data.link?.scopes)?.some(s=>["cycle","phase","cycle-note","pain","flow"].includes(s)))&&<TogetherCalendar periods={canTrack?own.periods:[]} summary={summary} phase={phase} plans={data.plans} selectedDate={cycleDay} onDateChange={selectCycleDay} onOpenDay={openDayWindow} lang={lang} t={t}/>}
       <section className="tm-together-section tg-cycle-atlas-section">
-        <PhaseGuide embedded phase={phase} role={canTrack?"client":"coach"} wording={profile.wording} date={cycleDay} lang={lang} onPlan={active?title=>propose({title,date:cycleDay,time:"18:00",minutes:30,note:""}):null}/>
+        <PhaseGuide key={`${cycleDay}:${cycleSelection}`} embedded phase={phase} role={canTrack?"client":"coach"} wording={profile.wording} date={cycleDay} lang={lang} onPlan={active?title=>propose({title,date:cycleDay,time:"18:00",minutes:30,note:""}):null}/>
       </section>
 
     </>}

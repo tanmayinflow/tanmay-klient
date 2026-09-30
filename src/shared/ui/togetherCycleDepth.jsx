@@ -7,7 +7,8 @@ export function CycleDepth({phase,lang='cs',onPlan,embedded=false,role='client',
   const [exploration,setExploration]=useState(null),[layer,setLayer]=useState('care'),[scene,setScene]=useState(null);
   const [visibleHormones,setVisibleHormones]=useState(['e2','p4']),[explainedHormone,setExplainedHormone]=useState('e2');
   const {current,shown,exploring}=resolveCycleExploration(phase,date,exploration);
-  const contextKey=`${date}:${current}:${shown}`,focused=Boolean(scene?.key===contextKey&&scene.focused);
+  // A known calendar phase opens directly; the whole-cycle map remains an explicit choice.
+  const contextKey=`${date}:${current}:${shown}`,focused=scene?.key===contextKey?Boolean(scene.focused):Boolean(shown);
   const {topics,topic}=cycleMapSelection(shown,layer,scene?.key===contextKey?scene.topic:'overview',role);
   const guide=shown?CYCLE_DEPTH[shown]:null;
   const updateScene=(changes)=>setScene({key:contextKey,focused,topic:topic?.id||'overview',...changes});
