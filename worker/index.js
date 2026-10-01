@@ -1,5 +1,7 @@
 import { handleTogether } from "../src/shared/product/togetherApi.js";
 import { handlePersonalProfile } from "../src/shared/product/personalProfile.js";
+import { createSkyTimeZoneHandler } from "../src/shared/product/skyGeocodingApi.js";
+const handleSkyTimeZone=createSkyTimeZoneHandler({fetchImpl:(...args)=>globalThis.fetch(...args)});
 import { readDelivery, writeDelivery, receiveDelivery } from "../src/training/deliveryStore.js";
 // tanmay-klient — Worker (client edition).
 //
@@ -340,7 +342,7 @@ const CSP = [
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https://covers.openlibrary.org https://m.media-amazon.com",
   "media-src 'self' data: blob:",
-  "connect-src 'self' https://openlibrary.org https://www.omdbapi.com https://www.googleapis.com https://accounts.google.com",
+  "connect-src 'self' https://openlibrary.org https://www.omdbapi.com https://www.googleapis.com https://accounts.google.com https://photon.komoot.io",
   "worker-src 'self'",
   "manifest-src 'self'",
 ].join("; ");
@@ -501,6 +503,7 @@ export default {
       if (!(await isMember(env, userId))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
+      if (url.pathname === "/api/sky/timezone") return handleSkyTimeZone(request,{rateKey:userId});
       if (url.pathname === "/api/personal-profile") return handlePersonalProfile(request, env.DB, `client:${userId}`, { legacyOwner: true });
       if (url.pathname === "/api/together" || url.pathname.startsWith("/api/together/")) return handleTogether(request, env.DB, `client:${userId}`, { owner: true });
 

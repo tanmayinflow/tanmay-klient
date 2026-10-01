@@ -48,6 +48,9 @@ export const SKY_CSS=`
 .tg-astrology :is(button,select,input,textarea){font:14px/1.5 var(--tm-font-body);color:var(--astro-text);max-width:100%;caret-color:var(--astro-ink)}
 .tg-astrology button{min-height:44px;padding:8px 12px;border:1px solid var(--astro-line);border-radius:7px;background:transparent;cursor:pointer;touch-action:manipulation;transition:color .2s,border-color .2s,background-color .2s}
 .tg-astrology button:hover:not(:disabled){color:var(--astro-ink);border-color:var(--astro-ink)}.tg-astrology button:disabled{opacity:.45;cursor:default}
+.tg-astrology :is(.sky-date button,.sky-quiet,.sky-links button){appearance:none;-webkit-appearance:none;background:transparent!important;background-image:none!important;box-shadow:none;-webkit-tap-highlight-color:transparent;user-select:none}
+.tg-astrology input[type=number]{appearance:textfield;-moz-appearance:textfield}
+.tg-astrology input[type=number]::-webkit-inner-spin-button,.tg-astrology input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .tg-astrology button[aria-pressed=true],.tg-astrology button[aria-selected=true]{color:var(--astro-ink);border-color:var(--astro-ink)}
 .tg-astrology .sky-primary{background:var(--astro-ink);color:var(--astro-on);border-color:var(--astro-ink)}.tg-astrology .sky-primary:hover:not(:disabled){color:var(--astro-on)}
 .tg-astrology .sky-quiet{border-color:transparent}.tg-astrology :is(button,input,select,textarea,summary,a,[role=button]):focus-visible{outline:2px solid var(--astro-ink);outline-offset:3px}

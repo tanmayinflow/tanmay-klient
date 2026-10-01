@@ -319,6 +319,7 @@ export const CYCLE_STORIES = {
   menstrual: [
     {
       id: 'menstrual-inana-gates', kind: 'traditional',
+      tradition: pair('Sumerská tradice · Inanin sestup', 'Sumerian tradition · Inana’s descent'),
       title: pair('Inana u sedmi bran', 'Inana at the seven gates'),
       text: pair('V sumerském příběhu sestupuje Inana do podsvětí. U každé ze sedmi bran přichází o část oděvu či odznak moci. Před Ereškigal nakonec stojí bez výsad, které ji provázely nahoře. Sestup má skutečnou cenu. Ze dna ji nedostane jen její vlastní moc.', 'In the Sumerian story, Inana descends into the underworld. At each of seven gates she loses clothing or an emblem of power. Before Ereshkigal she finally stands without the privileges she held above. The descent has a real cost. Her own power alone will not bring her back.'),
       why: pair('V našem čtení se za rolemi může ozvat prostá potřeba. Odložit výkon ale neznamená vzdát se důstojnosti ani přijmout ubližování.', 'In our reading, a simple need can become audible behind our roles. Setting achievement aside does not mean surrendering dignity or accepting harm.'),
@@ -327,6 +328,7 @@ export const CYCLE_STORIES = {
     },
     {
       id: 'menstrual-hecate', kind: 'traditional',
+      tradition: pair('Řecká tradice · Homérský hymnus', 'Greek tradition · Homeric hymn'),
       title: pair('Hekaté nese pochodeň', 'Hecate carries a torch'),
       text: pair('V Homérském hymnu hledá Démétér ztracenou Persefonu. Hekaté zaslechla její výkřik, ale neviděla únosce. Nepředstírá, že ví víc. Vezme pochodně a jde s Démétér hledat svědka. Společná cesta začíná u pravdivého přiznání, co jedna z nich ví a co ne.', 'In the Homeric hymn, Demeter searches for the missing Persephone. Hecate heard her cry but did not see the abductor. She does not pretend to know more. Carrying torches, she accompanies Demeter to seek a witness. Their shared search begins with an honest account of what is known and unknown.'),
       why: pair('Doprovázení nemusí přinést rychlé vysvětlení. Někdy je jeho podobou ochota zůstat a hledat spolu.', 'Accompaniment need not bring a quick explanation. Sometimes it means staying and searching together.'),
@@ -335,6 +337,7 @@ export const CYCLE_STORIES = {
     },
     {
       id: 'menstrual-odysseus-rest', kind: 'traditional',
+      tradition: pair('Řecká tradice · Odysseia', 'Greek tradition · Odyssey'),
       title: pair('Odysseus pod olivovníky', 'Odysseus beneath the olive trees'),
       text: pair('Po ztroskotání dorazí Odysseus vyčerpaný na pevninu. Nehledá hned cestu k vítězství. Najde kryté místo pod dvěma propletenými výhony olivovníku, shromáždí listí a uloží se do něj. Vyprávění nechává hrdinu spát, dřív než ho pošle k dalšímu setkání.', 'Exhausted after shipwreck, Odysseus reaches land. He does not immediately seek a way to triumph. He finds shelter beneath two intertwined olive shoots, gathers leaves and lies down among them. The story lets its hero sleep before sending him towards the next encounter.'),
       why: pair('Odpočinek může patřit přímo k cestě. Není odměnou vyhrazenou až tomu, kdo dorazil domů.', 'Rest can belong to the journey itself. It is not a reward reserved for someone who has already reached home.'),
@@ -342,25 +345,28 @@ export const CYCLE_STORIES = {
       sourceIds: ['imagery-odyssey-rest']
     },
     {
-      id: 'menstrual-potter', kind: 'original',
-      title: pair('Mísa pod vlhkým plátnem', 'The bowl beneath the damp cloth'),
-      text: pair('Hrnčířka pracovala na míse, která se jí stále nakláněla. Když přišel večer, další tlak prstů už jen deformoval okraj. Přikryla hlínu vlhkým plátnem. Ráno nebyla mísa dokončená, ale stále se s ní dalo pracovat. Přerušení uchovalo možnost, kterou další úsilí začalo ničit.', 'A potter was shaping a bowl that kept leaning. By evening, further pressure from her fingers only distorted its rim. She covered the clay with a damp cloth. In the morning the bowl was unfinished, but it was still workable. Stopping had preserved a possibility that continued effort was beginning to destroy.'),
-      why: pair('Náš autorský příběh se ptá po správném zacházení s něčím nedokončeným. Někdy je péčí vytvořit podmínky pro přestávku.', 'Our original story asks how to care for something unfinished. Sometimes care means making a pause possible.'),
-      question: pair('Co právě potřebuje přikrýt a nechat do zítřka?', 'What needs to be covered and left until tomorrow?'),
-      sourceIds: []
+      id: 'menstrual-amaterasu', kind: 'traditional',
+      tradition: pair('Japonská tradice · Amaterasu', 'Japanese tradition · Amaterasu'),
+      title: pair('Amaterasu a smích před jeskyní', 'Amaterasu and laughter outside the cave'),
+      text: pair('Amaterasu, sluneční bohyně, se ukryje v nebeské skalní jeskyni. Před vchodem začne Amenouzume tančit na obrácené kádi. Shromáždění bohové se rozesmějí. Amaterasu zaslechne jejich veselí a zvědavost ji přivede ven. Tanec tak pomůže vrátit bohyni, jejíž světlo ostatním chybí.', 'Amaterasu, the sun goddess, hides inside a heavenly rock cave. Outside, Amenouzume begins dancing on an overturned tub. The assembled deities burst into laughter. Hearing their merriment, Amaterasu becomes curious and emerges. The dance helps bring back the goddess whose light the others have been missing.'),
+      why: pair('V našem čtení může návrat začít zvědavostí. Hledáme pozvání, na které lze odpovědět vlastním tempem.', 'In our reading, a return can begin with curiosity. We look for an invitation that allows an answer at our own pace.'),
+      question: pair('Co ve mně dnes probouzí tichou chuť znovu se přiblížit světu?', 'What awakens a quiet wish to approach the world again today?'),
+      sourceIds: ['imagery-amaterasu']
     },
     {
-      id: 'menstrual-chair', kind: 'original',
-      title: pair('Poslední židle', 'The last chair'),
-      text: pair('Člověk, který chystal dům pro návštěvy, vždy roznesl všechny židle ostatním. Jednou si večer neměl kam sednout. Příště nechal jednu židli u okna. Dům nepřestal být pohostinný. Jen se v něm objevilo místo i pro toho, kdo ho celý den udržoval otevřený.', 'Someone preparing a house for visitors always gave every chair to other people. One evening there was nowhere left to sit. Next time, one chair stayed by the window. The house did not become less welcoming. It simply made room for the person who had kept it open all day.'),
-      why: pair('Tento autorský obraz přidává pečujícího člověka mezi ty, o které je třeba pečovat.', 'This original image includes the person giving care among those who need care.'),
-      question: pair('Kde v tom, co připravuji pro druhé, zůstává místo pro mě?', 'Where is there room for me in what I prepare for others?'),
-      sourceIds: []
+      id: 'menstrual-isis', kind: 'traditional',
+      tradition: pair('Egyptská tradice · Plútarchovo podání', 'Egyptian tradition · Plutarch’s account'),
+      title: pair('Isis hledá Osirida', 'Isis searches for Osiris'),
+      text: pair('Plútarchos vypráví, že Isis hledá truhlu s tělem Osirida. Doptává se lidí a dorazí až do Byblu, kde truhlu obrostl strom použitý jako palácový sloup. Získá ji zpět. Když je tělo později rozděleno a rozptýleno, znovu se vydá hledat jeho části a pečuje o jejich pohřbení.', 'Plutarch tells how Isis searches for the chest containing Osiris’s body. She questions people and reaches Byblos, where a tree enclosing the chest has become a palace pillar. She retrieves it. When the body is later divided and scattered, she searches again for its parts and attends to their burial.'),
+      why: pair('Pro nás tento příběh otevírá místo pro zármutek a péči o paměť. Nevyžaduje napravit všechno, co se rozpadlo.', 'For us, this story makes room for grief and care for memory. It does not require repairing everything that has broken apart.'),
+      question: pair('Čemu chci dát místo ve své paměti, i když to nemohu vrátit?', 'What do I want to give a place in my memory, even though I cannot bring it back?'),
+      sourceIds: ['imagery-plutarch-isis']
     }
   ],
   follicular: [
     {
       id: 'follicular-inana-return', kind: 'traditional',
+      tradition: pair('Sumerská tradice · Inanin sestup', 'Sumerian tradition · Inana’s descent'),
       title: pair('Pomoc, která najde cestu dolů', 'Help that finds a way down'),
       text: pair('Když se Inana nevrací, Ninšubur vyhledá pomoc. Enki vyšle dvě bytosti, které vyslechnou bolest Ereškigal. Získají Inanino tělo a použijí životodárnou rostlinu a vodu. Inana znovu vstane. Její návrat má další podmínky, ale začíná věrností někoho, kdo na ni nezapomněl.', 'When Inana does not return, Ninshubur seeks help. Enki sends two beings who hear Ereshkigal’s pain. They obtain Inana’s body and use a life-giving plant and water. Inana rises again. Her return has further conditions, but it begins with someone’s refusal to forget her.'),
       why: pair('Nový začátek nemusí vzniknout ze soběstačnosti. Může potřebovat pomoc, kterou nelze nahradit dalším tlakem na sebe.', 'A beginning need not arise from self-sufficiency. It may need help that more pressure on yourself cannot replace.'),
@@ -369,6 +375,7 @@ export const CYCLE_STORIES = {
     },
     {
       id: 'follicular-psyche', kind: 'traditional',
+      tradition: pair('Řeckořímská tradice · Apuleius', 'Greco-Roman tradition · Apuleius'),
       title: pair('Psyché a drobná práce mravenců', 'Psyche and the small work of ants'),
       text: pair('Apuleiova Venuše přikáže Psyché do večera roztřídit směs semen a obilí. Psyché před nesplnitelnou hromadou strne. Jeden mravenec svolá další a společně oddělí jednotlivé druhy. Úkol, který přesahoval jednoho člověka, dokončí množství malých pomocníků.', 'Apuleius’s Venus orders Psyche to sort a mixture of seeds and grain before evening. Psyche freezes before the impossible heap. One ant summons others, and together they separate the different kinds. Many small helpers finish a task that exceeded one person’s capacity.'),
       why: pair('Naše čtení se zastavuje u pomoci a rozlišení. Kruté zadání není důkazem, že si lásku musíme odpracovat.', 'Our reading rests on help and discernment. A cruel task is not evidence that love must be earned through labour.'),
@@ -376,33 +383,37 @@ export const CYCLE_STORIES = {
       sourceIds: ['imagery-apuleius-psyche']
     },
     {
-      id: 'follicular-duckling', kind: 'traditional',
-      title: pair('Pták, který potřeboval jinou vodu', 'The bird that needed different water'),
-      text: pair('Andersenovo ošklivé káčátko žije mezi tvory, kteří jeho schopnosti měří podle svých. Kočka žádá předení, slepice vejce. Pták však touží plavat. Po těžké zimě potká labutě a pozná vlastní podobu. Promění se nejen jeho obraz v hladině, ale také prostředí, ve kterém je přijímán.', 'Andersen’s ugly duckling lives among creatures who measure its abilities by their own. The cat expects purring; the hen expects eggs. The bird longs to swim. After a harsh winter, it meets swans and recognises its own shape. Both its reflection and the setting in which it is welcomed have changed.'),
-      why: pair('Naše otázka míří k podmínkám a přijetí. Hodnotu člověka nepodmiňujeme krásou, výkonem ani příslušností k výjimečné skupině.', 'Our question concerns conditions and acceptance. A person’s worth does not depend on beauty, achievement or belonging to an exceptional group.'),
-      question: pair('Kde zkouším prospívat podle měřítka, které ke mně nepatří?', 'Where am I trying to thrive by a measure that does not belong to me?'),
-      sourceIds: ['imagery-andersen-duckling']
+      id: 'follicular-izanagi', kind: 'traditional',
+      tradition: pair('Japonská tradice · Kodžiki', 'Japanese tradition · Kojiki'),
+      title: pair('Izanagi u řeky', 'Izanagi at the river'),
+      text: pair('Po návratu ze země mrtvých se Izanagi v Kodžiki rozhodne očistit. Odloží výstroj a vstoupí do řeky. Z jeho omývání se rodí další božstva. Z levého oka vzejde sluneční Amaterasu, z pravého měsíční Cukujomi. Vyprávění tak po cestě do podsvětí otevírá nový děj.', 'After returning from the land of the dead, Izanagi decides to purify himself in the Kojiki. He removes his belongings and enters a river. Further deities arise as he washes. Amaterasu, associated with the sun, comes from his left eye; Tsukuyomi, associated with the moon, from his right. Another story opens after the descent.'),
+      why: pair('Náš obraz se týká přechodu mezi dvěma úseky života. Nespojujeme menstruaci ani lidské tělo s nečistotou.', 'Our image concerns the passage between two parts of life. We do not associate menstruation or the human body with impurity.'),
+      question: pair('Jak poznám, že jednu věc uzavírám a druhé dávám prostor?', 'How will I recognise that I am closing one thing and making room for another?'),
+      sourceIds: ['imagery-kojiki-purification']
     },
     {
-      id: 'follicular-garden-bed', kind: 'original',
-      title: pair('Záhon před setím', 'The bed before sowing'),
-      text: pair('Zahradník si přinesl kapsy plné semen. Místo setí nejprve obešel zahradu. Jeden kout zůstal studený, jiný vysušoval vítr. Připravil jen malý chráněný záhon. Zbytek semen nechal v sáčcích. Jaro nezačalo tím, že všechno rozházel. Začalo pozorností k tomu, co může půda právě přijmout.', 'A gardener arrived with pockets full of seeds. Before sowing, he walked around the garden. One corner remained cold; another was dried by wind. He prepared one small sheltered bed and left the other seeds in their packets. Spring began with attention to what the soil could receive, rather than scattering everything.'),
-      why: pair('V tomto autorském příběhu má začátek velikost skutečných podmínek. Uchovat možnost na později je také rozhodnutí.', 'In this original story, the beginning fits actual conditions. Keeping a possibility for later is a decision too.'),
-      question: pair('Který nápad má dnes dobré podmínky a který může ještě počkat?', 'Which idea has good conditions today, and which can wait?'),
-      sourceIds: []
+      id: 'follicular-idunn', kind: 'traditional',
+      tradition: pair('Severská tradice · Prozaická Edda', 'Norse tradition · Prose Edda'),
+      title: pair('Návrat Idunn', 'The return of Idunn'),
+      text: pair('Loki vyláká Idunn s jejími jablky z Ásgardu a obr Tjazi ji unese. Bohové bez ní začnou stárnout. Loki si vypůjčí Freyino sokolí peří a letí za ní. Promění Idunn v ořech a odnese ji v drápech zpět. Návrat závisí na záchraně té, na kterou ostatní spoléhali.', 'Loki lures Idunn and her apples out of Asgard, where the giant Thjazi abducts her. Without her, the gods begin to age. Borrowing Freyja’s falcon plumage, Loki flies to her. He turns Idunn into a nut and carries her back in his claws. Renewal depends on rescuing the one the others relied upon.'),
+      why: pair('V našem čtení se ptáme po zdrojích obnovy, které snadno přehlížíme. Péče potřebuje podmínky i pro toho, kdo ji poskytuje.', 'In our reading, we ask about overlooked sources of renewal. Care needs conditions that also sustain the person providing it.'),
+      question: pair('Co mě pravidelně obnovuje a jak se o tento zdroj starám?', 'What regularly renews me, and how do I care for that source?'),
+      sourceIds: ['imagery-edda-idunn']
     },
     {
-      id: 'follicular-mapmaker', kind: 'original',
-      title: pair('Lávka v nehotové mapě', 'A footbridge on an unfinished map'),
-      text: pair('Kartografka chtěla zakreslit celé údolí, než do něj vstoupí. Každý večer přibývaly otázky, mapa však zůstávala prázdná. Jednoho rána došla k první lávce. Zapsala její polohu a vrátila se. Údolí stále neznala. Měla ale první místo, které už nebylo jen představou.', 'A mapmaker wanted to chart an entire valley before entering it. Questions accumulated each evening while the map stayed blank. One morning she walked to the first footbridge, recorded its position and returned. She still did not know the valley, but one place was no longer merely imagined.'),
-      why: pair('Náš autorský příběh nabízí začátek, který nemusí unést celé pokračování.', 'Our original story offers a beginning that need not carry the whole journey.'),
-      question: pair('Kde leží má první lávka, ke které už mohu dojít?', 'Where is the first footbridge I can already reach?'),
-      sourceIds: []
+      id: 'follicular-savitri', kind: 'traditional',
+      tradition: pair('Indická tradice · Mahábhárata', 'Indian tradition · Mahabharata'),
+      title: pair('Sávitrí následuje Jamu', 'Savitri follows Yama'),
+      text: pair('Když Jama odnáší život Satjavána, Sávitrí jde za ním. V rozhovoru získává několik darů, mezi nimi příslib potomků se Satjavánem. Potom žádá jeho život: bez něj se tento slib nemůže naplnit. Jama Satjavána propustí a Sávitrí se vrací k jeho tělu. Jejich rozhovor promění zdánlivě uzavřený osud.', 'When Yama takes Satyavan’s life, Savitri follows him. Their conversation brings several boons, including a promise of children with Satyavan. She then asks for his life: without him, that promise cannot be fulfilled. Yama releases Satyavan, and Savitri returns to his body. Their conversation changes an apparently settled fate.'),
+      why: pair('Bereme si otázku, jak mluvit přesně o tom, na čem záleží. Mýtický návrat ze smrti není příslibem, že vytrvalost vyřeší každou ztrátu.', 'We take a question about speaking precisely for what matters. A mythical return from death does not promise that persistence can resolve every loss.'),
+      question: pair('Jakou prosbu potřebuji vyslovit jasněji?', 'What request do I need to express more clearly?'),
+      sourceIds: ['imagery-mahabharata-savitri']
     }
   ],
   ovulatory: [
     {
       id: 'ovulatory-baucis-philemon', kind: 'traditional',
+      tradition: pair('Řeckořímská tradice · Ovidius', 'Greco-Roman tradition · Ovid'),
       title: pair('Baukis a Filémón prostírají', 'Baucis and Philemon set the table'),
       text: pair('U Ovidia chodí dva bohové krajem v podobě poutníků a hledají přístřeší. Přijme je chudý pár Baukis a Filémón. Prostřou obyčejné jídlo a vyrovnají viklající se stůl. Jejich dům nemá mnoho prostředků, přesto se v něm návštěva setká s pozorností.', 'In Ovid, two gods travel disguised as strangers seeking shelter. The poor couple Baucis and Philemon welcome them. They set out simple food and steady a wobbling table. Their house has few resources, yet its visitors encounter attentive care.'),
       why: pair('Z tohoto příběhu vybíráme obyčejné gesto pohostinnosti. Přijetí nemusí být velkolepé ani vyčerpat hostitele.', 'We take an ordinary gesture of hospitality from this story. Welcome need not be grand or exhaust the host.'),
@@ -411,6 +422,7 @@ export const CYCLE_STORIES = {
     },
     {
       id: 'ovulatory-nausicaa', kind: 'traditional',
+      tradition: pair('Řecká tradice · Odysseia', 'Greek tradition · Odyssey'),
       title: pair('Nausiká a cizinec na břehu', 'Nausicaa and the stranger on the shore'),
       text: pair('Nausiká potká ztroskotaného Odyssea. Zařídí mu oděv a jídlo a poradí cestu do města. Odysseus požádá, aby se mohl umýt o samotě. Pomoc tedy neznamená obsadit celý prostor druhého. Setkání pokračuje s ohledem na jeho zranitelnost i na okolnosti jejího života.', 'Nausicaa meets the shipwrecked Odysseus. She arranges clothes and food and explains the way to the city. Odysseus asks to wash in private. Helping does not require occupying all of another person’s space. Their encounter continues with regard for his vulnerability and the circumstances of her life.'),
       why: pair('V našem čtení se laskavost ptá i na podobu pomoci. Blízkost může nechat druhému vlastní prostor.', 'In our reading, kindness considers the form of help too. Closeness can leave another person room of their own.'),
@@ -418,33 +430,37 @@ export const CYCLE_STORIES = {
       sourceIds: ['imagery-odyssey-meeting']
     },
     {
-      id: 'ovulatory-lion-mouse', kind: 'traditional',
-      title: pair('Lev přijímá pomoc myši', 'The lion accepts the mouse’s help'),
-      text: pair('V Ezopově bajce nechá lev žít myš, která slíbí pomoc. Její nabídka mu připadá směšná. Když ho později lovci svážou, myš překouše provazy. To, co lev nezvládne silou, dokáže drobný tvor jiným způsobem.', 'In Aesop’s fable, a lion spares a mouse that promises help. He finds its offer laughable. Later, when hunters tie him up, the mouse bites through the ropes. A small creature achieves by a different means what the lion cannot accomplish through strength.'),
-      why: pair('Vzájemnost nemusí znamenat stejnou výměnu. Přijmout pomoc někdy vyžaduje opustit vlastní měřítko velikosti.', 'Reciprocity need not mean identical exchange. Receiving help sometimes requires setting aside our own measure of importance.'),
-      question: pair('Čí drobný dar přehlížím, protože má jinou podobu, než očekávám?', 'Whose small gift am I overlooking because it has a form I did not expect?'),
-      sourceIds: ['imagery-aesop']
+      id: 'ovulatory-krishna-sudama', kind: 'traditional',
+      tradition: pair('Indická tradice · Bhágavata purána', 'Indian tradition · Bhagavata Purana'),
+      title: pair('Kršna vítá Sudámu', 'Krishna welcomes Sudama'),
+      text: pair('Chudý Sudáma přichází za Kršnou, přítelem ze společných studií. Nese trochu rýžových vloček zabalených do staré látky. Kršna mu jde vstříc, obejme ho a s úctou ho přijme ve svém sídle. Drží ho za ruku a vzpomínají. Okolní přepych nezakryje přátelství, kvůli kterému návštěva přišla.', 'The poor Sudama visits Krishna, his friend from their days as students. He carries a little flattened rice wrapped in old cloth. Krishna rises to meet him, embraces him and welcomes him with honour into his residence. Holding hands, they remember their past. The surrounding splendour does not eclipse their friendship.'),
+      why: pair('V tomto čtení může setkání překročit rozdíl v majetku i postavení. Přijetí poznáme podle konkrétní pozornosti.', 'In this reading, a meeting can reach across differences in wealth and position. Welcome becomes visible through concrete attention.'),
+      question: pair('Jak dám dnes najevo, že mi záleží na člověku, ne na tom, co přináší?', 'How will I show today that I care about the person, rather than what they bring?'),
+      sourceIds: ['imagery-bhagavata-sudama']
     },
     {
-      id: 'ovulatory-open-garden', kind: 'original',
-      title: pair('Zahrada s vrátky', 'A garden with a gate'),
-      text: pair('Když dozrálo ovoce, majitelka zahrady otevřela vrátka. Hosté přicházeli a zůstávali stále déle. Večer zjistila, že pro sebe nemá ani místo u stolu. Příští den pozvání nezrušila. Řekla, kdy se vrátka zavřou, a položila ke stolu také svůj talíř.', 'When the fruit ripened, a gardener opened her gate. Guests came and stayed longer and longer. By evening she had no place at her own table. The next day she kept the invitation, said when the gate would close and set out a plate for herself as well.'),
-      why: pair('Tento autorský příběh spojuje štědrost s hranicí, která dovolí setkání znovu opakovat.', 'This original story joins generosity with a boundary that makes another meeting possible.'),
-      question: pair('Jaká hranice pomůže mé otevřenosti vydržet?', 'What boundary would help my openness last?'),
-      sourceIds: []
+      id: 'ovulatory-okuninushi', kind: 'traditional',
+      tradition: pair('Japonská tradice · Kodžiki', 'Japanese tradition · Kojiki'),
+      title: pair('Ókuninuši a zajíc z Inaby', 'Okuninushi and the hare of Inaba'),
+      text: pair('Ókuninuši jde za svými bratry a nese jejich zavazadla. U cesty najde poraněného zajíce. Rada bratrů mu bolest ještě zhoršila. Ókuninuši se nejprve zeptá, co se stalo, a vyslechne jeho příběh. Potom poradí jinou pomoc, po které se zajíc v mýtu uzdraví a předpoví mu sňatek s princeznou.', 'Okuninushi follows his brothers, carrying their luggage. Beside the road he finds an injured hare whose pain their advice has made worse. Okuninushi first asks what happened and hears its story. He then offers different help. In the myth, the hare recovers and foretells his union with a princess.'),
+      why: pair('Z příběhu vybíráme chvíli, kdy otázka předchází radě. Mýtický způsob uzdravení nepřenášíme do péče o zdraví.', 'We focus on the moment when a question comes before advice. The story’s miraculous remedy is not carried over into health care.'),
+      question: pair('Na co se potřebuji zeptat, než nabídnu řešení?', 'What do I need to ask before offering a solution?'),
+      sourceIds: ['imagery-kojiki-hare']
     },
     {
-      id: 'ovulatory-choir', kind: 'original',
-      title: pair('Hlas, který nechal místo', 'The voice that made room'),
-      text: pair('Zpěvák přišel do malého sboru a snažil se nést každou frázi. Čím víc přidával, tím méně slyšel ostatní. Při další zkoušce některé tóny ztišil. Poprvé zaslechl, kudy melodii vedou druzí. Jeho hlas nezmizel. Získal k čemu odpovídat.', 'A singer joined a small choir and tried to carry every phrase. The more he added, the less he heard the others. At the next rehearsal he softened some notes. For the first time, he heard where the others were taking the melody. His voice did not disappear. It gained something to answer.'),
-      why: pair('Náš autorský obraz nechává vyjádření a naslouchání tvořit jeden pohyb.', 'Our original image lets expression and listening form one movement.'),
-      question: pair('Kde může moje přítomnost zesílit tím, že nechám zaznít i druhého?', 'Where could my presence deepen by letting someone else be heard too?'),
-      sourceIds: []
+      id: 'ovulatory-thor-horn', kind: 'traditional',
+      tradition: pair('Severská tradice · Prozaická Edda', 'Norse tradition · Prose Edda'),
+      title: pair('Thór a roh spojený s mořem', 'Thor and the horn connected to the sea'),
+      text: pair('Na dvoře Útgardského Lokiho dostane Thór roh, který má vypít. Ať se snaží sebevíc, nedaří se mu ho vyprázdnit. Teprve později hostitel odhalí klam: druhý konec rohu sahal do moře. Thórovo pití způsobilo odliv. Úkol byl mnohem větší, než mohl ze svého místa poznat.', 'At Utgarda-Loki’s court, Thor is given a drinking horn to empty. Despite his effort, he cannot finish it. Only later does his host reveal the illusion: the other end reached into the sea. Thor’s drinking caused the ebb of the tide. The task was far larger than it appeared from where he stood.'),
+      why: pair('Naše čtení se ptá po měřítku a skrytých okolnostech. Viditelný výsledek nemusí vypovídat o celém úsilí.', 'Our reading asks about scale and hidden circumstances. A visible result may not tell the whole story of an effort.'),
+      question: pair('Co o celé situaci ještě nevím, když hodnotím svůj podíl?', 'What do I still not know about the whole situation when judging my contribution?'),
+      sourceIds: ['imagery-edda-thor']
     }
   ],
   luteal: [
     {
       id: 'luteal-ariadne', kind: 'traditional',
+      tradition: pair('Řecká tradice · Apollodóros', 'Greek tradition · Apollodorus'),
       title: pair('Ariadnina nit', 'Ariadne’s thread'),
       text: pair('V Apollodórově podání získá Ariadna od Daidala způsob, jak projít labyrintem. Dá Théseovi nit, kterou přiváže u vchodu a cestou odvíjí. Když je zápas u konce, může se po ní vrátit. Vstoupit doprostřed nestačí. Je třeba uchovat i vztah k cestě ven.', 'In Apollodorus’s account, Ariadne learns from Daedalus how to pass through the labyrinth. She gives Theseus a thread to fasten at the entrance and unwind as he walks. After the struggle, he follows it back. Reaching the centre is not enough. The way out must also be kept in reach.'),
       why: pair('Pro nás je nit obrazem konkrétní opory. Může jí být domluva, poznámka nebo člověk, ke kterému se dá vrátit.', 'For us, the thread represents concrete support: an agreement, a note or a person we can return to.'),
@@ -452,15 +468,17 @@ export const CYCLE_STORIES = {
       sourceIds: ['imagery-apollodorus-thread']
     },
     {
-      id: 'luteal-reeds', kind: 'traditional',
-      title: pair('Dub a rákosí', 'The oak and the reeds'),
-      text: pair('Ezopova bouře vyvrátí mohutný dub. Rákosí u vody zůstane stát, protože se ve větru ohýbá. Bajka staví proti sobě dva způsoby, jak se potkat s tlakem. Pevnost stromu nestačila tam, kde pomohla ohebnost stébel.', 'A storm in Aesop’s fable uproots a mighty oak. The reeds by the water remain because they bend with the wind. The fable places two ways of meeting pressure side by side. The tree’s firmness was not enough where the stems’ flexibility helped.'),
-      why: pair('Naše otázka se týká změny plánu, nikoli snášení ubližování. Ustoupit od postupu může uchovat to, na čem záleží.', 'Our question concerns changing a plan, not enduring harm. Letting go of a method can preserve what matters.'),
-      question: pair('Kde mohu změnit způsob a uchovat to podstatné?', 'Where can I change my approach and preserve what matters?'),
-      sourceIds: ['imagery-aesop']
+      id: 'luteal-sekhmet', kind: 'traditional',
+      tradition: pair('Egyptská tradice · Sekhmet', 'Egyptian tradition · Sekhmet'),
+      title: pair('Sekhmet a zastavená zkáza', 'Sekhmet and the destruction brought to a halt'),
+      text: pair('Sluneční bůh Ra vyšle Sekhmet, aby zničila lidstvo. Později svého rozhodnutí lituje, ale její běsnění už nedokáže ovládnout. Nechá ji utišit pivem obarveným do červena, které připomíná krev. V egyptské tradici je tato lví bohyně spojena se zkázou i s možností ji zadržet.', 'The sun god Ra sends Sekhmet to destroy humanity. Later he regrets his decision, but can no longer control her fury. He has her subdued with beer coloured red to resemble blood. In Egyptian tradition, this lion-headed goddess is associated both with destruction and with the power to withhold it.'),
+      why: pair('V našem čtení jde o okamžik, kdy je potřeba zastavit ničivý postup. Dnešní krok může být prostá, domluvená přestávka.', 'Our reading concerns recognising when a destructive course must stop. A present-day step can be a simple, agreed pause.'),
+      question: pair('Podle čeho poznám, že je čas přerušit spor a vrátit se k němu později?', 'How will I recognise that it is time to pause a disagreement and return to it later?'),
+      sourceIds: ['imagery-sekhmet']
     },
     {
       id: 'luteal-penelope', kind: 'traditional',
+      tradition: pair('Řecká tradice · Odysseia', 'Greek tradition · Odyssey'),
       title: pair('Pénelopé získává čas', 'Penelope makes time'),
       text: pair('Nápadníci nutí Pénelopé rozhodnout o novém sňatku. Slíbí odpověď, až dokončí rubáš pro Láerta. Ve dne tká a v noci práci párá. Homérův příběh ukazuje ženu, která v tísnivých podmínkách získává čas, dokud je její postup odhalen.', 'Suitors press Penelope to decide on a new marriage. She promises an answer once she finishes Laertes’ shroud. She weaves by day and unravels the work at night. Homer shows a woman making time under oppressive conditions until her strategy is discovered.'),
       why: pair('Z příběhu si bereme právo nerozhodovat pod cizím tlakem. Otevřená dohoda o čase je pro běžný vztah vhodnější než skrytá hra.', 'We take from this story the right not to decide under someone else’s pressure. An open agreement about time is better suited to an ordinary relationship than a concealed strategy.'),
@@ -468,20 +486,22 @@ export const CYCLE_STORIES = {
       sourceIds: ['imagery-odyssey-penelope']
     },
     {
-      id: 'luteal-orchard', kind: 'original',
-      title: pair('Tři koše ze sadu', 'Three baskets from the orchard'),
-      text: pair('Po sklizni stály pod stromem tři koše. V jednom bylo ovoce k jídlu, ve druhém plody k brzkému zpracování a ve třetím semena pro další rok. Zahradník se učil, že uchovat všechno stejným způsobem znamená nakonec mnoho ztratit. Každá část úrody potřebovala jiný další krok.', 'After harvest, three baskets stood beneath a tree. One held fruit to eat, another fruit to process soon, and a third seeds for next year. The gardener was learning that trying to preserve everything in the same way meant losing much of it. Each part of the harvest needed a different next step.'),
-      why: pair('Náš autorský příběh nabízí rozlišování bez rozsudku, že něco muselo být marné.', 'Our original story offers discernment without a verdict that something must have been wasted.'),
-      question: pair('Co chci užít, co dokončit a co si ponechat jako možnost?', 'What do I want to enjoy, what to finish and what to keep as a possibility?'),
-      sourceIds: []
+      id: 'luteal-shiva-poison', kind: 'traditional',
+      tradition: pair('Indická tradice · Bhágavata purána', 'Indian tradition · Bhagavata Purana'),
+      title: pair('Šiva a jed z mléčného oceánu', 'Shiva and the poison from the ocean of milk'),
+      text: pair('Bohové a asurové stloukají mléčný oceán, aby získali nektar nesmrtelnosti. Nejdřív se však objeví prudký jed, který ohrozí živé bytosti. Obrátí se na Šivu. Ten po rozhovoru s Bhavání jed přijme do dlaně a vypije. Jeho hrdlo zmodrá: i vytoužený společný záměr odkryl ničivou stránku.', 'The gods and asuras churn the ocean of milk to obtain the nectar of immortality. First, however, a potent poison emerges, threatening living beings. They turn to Shiva. After speaking with Bhavani, he takes the poison into his palm and drinks it. His throat turns blue: a desired common endeavour has revealed a destructive side.'),
+      why: pair('Naše otázka míří ke skrytým nákladům společného úsilí. Šivův božský čin nedává člověku povinnost pohltit všechno, co druhým ubližuje.', 'Our question concerns the hidden costs of shared effort. Shiva’s divine act places no duty on a person to absorb everything that harms others.'),
+      question: pair('Jakou cenu našeho záměru potřebujeme pojmenovat a nést společně?', 'What cost of our endeavour do we need to name and bear together?'),
+      sourceIds: ['imagery-bhagavata-shiva']
     },
     {
-      id: 'luteal-tree-path', kind: 'original',
-      title: pair('Stejný strom, jiná cesta', 'The same tree, a different path'),
-      text: pair('Poutnice se po roce vrátila ke stromu, u kterého kdysi ztratila cestu. Kmen byl skoro stejný. Tentokrát však poznala mokrý svah a odbočku skrytou za keřem. Návrat jí neoznámil, že nikam nedošla. Ukázal, že známé místo už dokáže číst jinak.', 'A traveller returned after a year to the tree where she had once lost her way. The trunk looked almost unchanged. This time she recognised the wet slope and the turning hidden behind a bush. Returning did not mean she had gone nowhere. It showed that she could read a familiar place differently.'),
-      why: pair('Tento autorský obraz chápe opakování jako možnost použít zkušenost, kterou minule ještě nebylo možné mít.', 'This original image treats repetition as a chance to use experience that was not yet available last time.'),
-      question: pair('Co teď v dobře známé situaci rozeznávám dřív než minule?', 'What do I recognise sooner in a familiar situation than I did last time?'),
-      sourceIds: []
+      id: 'luteal-odin-runes', kind: 'traditional',
+      tradition: pair('Severská tradice · Hávamál', 'Norse tradition · Havamal'),
+      title: pair('Ódin nachází runy', 'Odin finds the runes'),
+      text: pair('V Hávamálu Ódin vypráví o devíti nocích na stromě bičovaném větrem. Projde krajní zkouškou a zahlédne runy, které uchopí. Po návratu mluví o růstu porozumění: jedno slovo ho vede k dalšímu a čin k činu. Získané poznání tak ve vyprávění otevírá pokračování.', 'In the Havamal, Odin recounts nine nights on a wind-battered tree. He undergoes an extreme ordeal, sees the runes and takes them up. Afterwards, he describes understanding that continues to grow: one word leads to another and one deed to another. The knowledge gained opens a further path in the poem.'),
+      why: pair('Z mýtu si bereme navazování zkušeností. Jeho tělesná zkouška není cvičení ani podmínka získání moudrosti.', 'We take from the myth the way experience builds upon experience. Its bodily ordeal is neither an exercise nor a condition for becoming wise.'),
+      question: pair('Která zkušenost mi právě pomáhá lépe porozumět té další?', 'Which experience is helping me understand the next one more clearly?'),
+      sourceIds: ['imagery-havamal-runes']
     }
   ]
 };
@@ -524,7 +544,7 @@ export const CYCLE_IMAGERY_SOURCES = [
   },
   {
     id: 'imagery-hymn-demeter', title: 'Homeric Hymn 2 · To Demeter',
-    url: 'https://www.theoi.com/Text/HomericHymns1.html',
+    url: 'https://www-current.chs.harvard.edu/primary-source/homeric-hymn-to-demeter-sb/',
     note: pair('Antický hymnus, setkání Démétér s Hekaté. Shrnutí vlastními slovy. Naše čtení se týká doprovázení, ne biologického vysvětlení cyklu.', 'The ancient hymn, concerning Demeter’s meeting with Hecate. Summarised in our own words. Our reading concerns accompaniment, not a biological explanation of the cycle.')
   },
   {
@@ -548,23 +568,68 @@ export const CYCLE_IMAGERY_SOURCES = [
     note: pair('Antický příběh Psyché a mravenců v historickém překladu Williama Adlingtona. Shrnutí čerpá přímo z této epizody, nikoli z moderní psychologické knihy.', 'The ancient story of Psyche and the ants in William Adlington’s historical translation. Our summary draws directly on that episode, not a modern psychology book.')
   },
   {
-    id: 'imagery-andersen-duckling', title: 'Hans Christian Andersen · The Ugly Duckling',
-    url: 'https://andersen.sdu.dk/vaerk/hersholt/TheUglyDuckling_e.html',
-    note: pair('Andersenova pohádka, ověřená v textu Centra H. C. Andersena při univerzitě v Odense. Krátké vlastní shrnutí, nikoli opis překladu Jeana Hersholta.', 'Andersen’s tale, checked against the H. C. Andersen Centre text at the University of Southern Denmark. A brief original summary, not a reproduction of Jean Hersholt’s translation.')
-  },
-  {
     id: 'imagery-ovid-hospitality', title: 'Ovid · Metamorphoses, Book 8: Baucis and Philemon',
     url: 'https://www.theoi.com/Text/OvidMetamorphoses8.html',
     note: pair('Ovidiova epizoda pohostinného páru. Vybíráme okamžik přijetí hostů. Náš krátký rituál stolování je samostatná autorská forma praxe.', 'Ovid’s episode of the hospitable couple. We focus on welcoming the guests. Our short table ritual is an independently created practice.')
   },
   {
-    id: 'imagery-aesop', title: 'Aesop · The Lion and the Mouse; The Oak and the Reeds',
-    url: 'https://www.gutenberg.org/files/21/21-h/21-h.htm',
-    note: pair('Dvě bajky z historického souboru v překladu George Fylera Townsenda. Vlastní stručná shrnutí a současné otázky. Jde o příběhy, ne přírodovědná pravidla.', 'Two fables from the historical collection translated by George Fyler Townsend. Brief original summaries and contemporary questions. These are stories, not rules of natural science.')
-  },
-  {
     id: 'imagery-apollodorus-thread', title: 'Apollodorus · Epitome 1.8–1.9',
     url: 'https://www.theoi.com/Text/ApollodorusE.html',
     note: pair('Ariadnina pomoc s cestou labyrintem. Krátké shrnutí antického textu. Propojení nitě s každodenní oporou je naše autorské čtení.', 'Ariadne’s help in navigating the labyrinth. A brief summary of the ancient text. Connecting the thread with everyday support is our own reading.')
+  },
+  {
+    id: 'imagery-amaterasu', title: 'Kokugakuin University · Encyclopedia of Shinto: Amenouzume',
+    url: 'https://d-museum.kokugakuin.ac.jp/eos/detail/?id=9422',
+    note: pair('Univerzitní heslo dokládá tanec Amenouzume a vyjití Amaterasu z jeskyně v Kodžiki a Nihon šoki. Krátké převyprávění a dnešní otázka jsou naše.', 'The university entry documents Amenouzume’s dance and Amaterasu’s emergence in the Kojiki and Nihon Shoki. The brief retelling and present-day question are ours.')
+  },
+  {
+    id: 'imagery-plutarch-isis', title: 'Plutarch · Isis and Osiris 13–18',
+    url: 'https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Plutarch/Moralia/Isis_and_Osiris*/A.html',
+    note: pair('Egyptský mýtus v podání řeckého autora, nikoli přímý překlad faraonského textu. Shrnutí sleduje hledání truhly a částí těla.', 'An Egyptian myth as recounted by a Greek author, not a direct translation of a pharaonic text. Our summary follows the search for the chest and body parts.')
+  },
+  {
+    id: 'imagery-kojiki-purification', title: 'Kojiki · Section X: The Purification of the August Person',
+    url: 'https://sacred-texts.com/shi/kj/kj017.htm',
+    note: pair('Kodžiki v historickém překladu B. H. Chamberlaina: Izanagiho očista a zrození Amaterasu a Cukujomi. Přiřazení k fázi je současné.', 'The Kojiki in B. H. Chamberlain’s historical translation: Izanagi’s purification and the birth of Amaterasu and Tsukuyomi. The phase association is contemporary.')
+  },
+  {
+    id: 'imagery-edda-idunn', title: 'Snorri Sturluson · Prose Edda, Skaldskaparmal I',
+    url: 'https://sacred-texts.com/neu/pre/pre05.htm',
+    note: pair('Idunnin únos a návrat v překladu Arthura Gilchrista Brodeura. Shrnutí odděluje mýtické omlazení bohů od otázky po dnešní péči.', 'Idunn’s abduction and return in Arthur Gilchrist Brodeur’s translation. The summary separates the gods’ mythical renewal from our question about care today.')
+  },
+  {
+    id: 'imagery-mahabharata-savitri', title: 'Mahabharata · Vana Parva: Savitri and Yama',
+    url: 'https://sacred-texts.com/hin/m03/m03295.htm',
+    note: pair('Rozhovor Sávitrí s Jamou v historickém překladu Kisari Mohana Ganguliho. Dary a Satjavánův návrat jsou děj eposu, nikoli příslib pro lidské ztráty.', 'Savitri’s conversation with Yama in Kisari Mohan Ganguli’s historical translation. The boons and Satyavan’s return belong to the epic, not a promise concerning human loss.')
+  },
+  {
+    id: 'imagery-bhagavata-sudama', title: 'Bhagavata Purana · 10.80: The Brahmana Sudama Visits Lord Krishna',
+    url: 'https://vedabase.io/en/library/sb/10/80/',
+    note: pair('Vaišnavský text o setkání Kršny se Sudámou. Vlastní stručné shrnutí děje, bez přebírání moderního komentáře či tvrzení o cyklu.', 'A Vaishnava text about Krishna’s meeting with Sudama. A brief independent summary of the narrative, without reproducing modern commentary or asserting cycle correspondences.')
+  },
+  {
+    id: 'imagery-kojiki-hare', title: 'Kojiki · Section XXI: The White Hare of Inaba',
+    url: 'https://sacred-texts.com/shi/kj/kj028.htm',
+    note: pair('Ókuninuši a zajíc v Chamberlainově překladu. Oddíl má v těle stránky číslo XXI; nadpis webu chybně uvádí XII. Mýtické uzdravení není zdravotní rada.', 'Okuninushi and the hare in Chamberlain’s translation. The body identifies Section XXI; the website heading incorrectly says XII. Mythical healing is not health advice.')
+  },
+  {
+    id: 'imagery-edda-thor', title: 'Snorri Sturluson · Prose Edda, Gylfaginning XLVI–XLVII',
+    url: 'https://sacred-texts.com/neu/pre/pre04.htm',
+    note: pair('Thórovy zkoušky u Útgardského Lokiho v Brodeurově překladu. Vybíráme roh propojený s mořem a následné odhalení klamu.', 'Thor’s trials at Utgarda-Loki’s court in Brodeur’s translation. We select the horn connected to the sea and the subsequent revelation of the illusion.')
+  },
+  {
+    id: 'imagery-sekhmet', title: 'British Museum · Feminine Power, large print guide, p. 63',
+    url: 'https://www.britishmuseum.org/sites/default/files/2022-05/feminine_power_exhibition_large_print_guide.pdf',
+    note: pair('Kurátorský popis egyptské Sekhmet dokládá Raovo rozhodnutí a červené pivo, které zkázu zastaví. Používáme tuto variantu, neslučujeme ji s odlišnými podáními Hathory.', 'The curatorial account of Egyptian Sekhmet records Ra’s decision and the red beer that halts destruction. We use this version without combining it with different accounts of Hathor.')
+  },
+  {
+    id: 'imagery-bhagavata-shiva', title: 'Bhagavata Purana · 8.7: Lord Shiva Saves the Universe by Drinking Poison',
+    url: 'https://vedabase.io/en/library/sb/8/7/',
+    note: pair('Děj stloukání oceánu a Šivova přijetí jedu. Držíme se této verze, bez přidaného motivu stisknutí hrdla Párvatí.', 'The churning of the ocean and Shiva’s acceptance of the poison. We follow this version without adding the motif of Parvati squeezing his throat.')
+  },
+  {
+    id: 'imagery-havamal-runes', title: 'Poetic Edda · Havamal, Bellows stanzas 139–142',
+    url: 'https://sacred-texts.com/neu/poe/poe04.htm',
+    note: pair('Runová epizoda v překladu Henryho Adamse Bellowse. Číslování 139–142 platí pro toto vydání. Tělesné strádání v mýtu není doporučená praxe.', 'The rune episode in Henry Adams Bellows’s translation. Stanza numbers 139–142 refer to this edition. Bodily suffering in the myth is not a recommended practice.')
   }
 ];

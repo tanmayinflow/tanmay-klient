@@ -3,6 +3,7 @@ import {CYCLE_ORDER,CYCLE_DEPTH,CYCLE_HORMONES,CYCLE_MAP_LAYERS,cyclePersonalTex
 import {CycleChoices} from './togetherCycleChoices.jsx';
 import {cycleChoices} from '../product/togetherCycleChoices.js';
 import {CycleMap,cycleMapStyles} from './togetherCycleMap.jsx';
+import {TmIcon} from './icons.jsx';
 
 export function CycleDepth({phase,lang='cs',onPlan,embedded=false,role='client',date='',wording='neutral'}){
   const L=v=>lang==='en'?v[1]:cyclePersonalText(v[0],wording),partner=role==='coach',panelId=useId();
@@ -24,9 +25,9 @@ export function CycleDepth({phase,lang='cs',onPlan,embedded=false,role='client',
     {!embedded&&<h2>{L(['Jak si být oporou','How to support each other'])}</h2>}
     <p className="tg-cycle-opening">{partner?L(['Porozumět sdílenému cyklu. A přitom nepřestat naslouchat.','Understand the shared cycle. And keep listening to each other.']):L(['Porozumět tělu a nechat prostor vlastní zkušenosti.','Understand your body and leave room for your own experience.'])}</p>
     <div className="tg-cycle-atlas-heading">
-      {focused&&<button type="button" onClick={()=>shift(-1)} aria-label={L(['Předchozí fáze','Previous phase'])}>‹</button>}
+      {focused&&<button type="button" className="tg-arrow-control" onClick={()=>shift(-1)} aria-label={L(['Předchozí fáze','Previous phase'])}><TmIcon id="back" size={17}/></button>}
       <h3>{focused&&guide?L(guide.short):L(['Mapa cyklu','Cycle map'])}</h3>
-      {focused&&<button type="button" onClick={()=>shift(1)} aria-label={L(['Další fáze','Next phase'])}>›</button>}
+      {focused&&<button type="button" className="tg-arrow-control" onClick={()=>shift(1)} aria-label={L(['Další fáze','Next phase'])}><TmIcon id="forward" size={17}/></button>}
     </div>
     <div className="tg-cycle-layers" role="group" aria-label={L(['Vrstva mapy','Map layer'])}>{Object.entries(CYCLE_MAP_LAYERS).map(([id,name])=><button key={id} type="button" aria-pressed={layer===id} aria-controls={panelId} onClick={()=>changeLayer(id)}>{L(name)}</button>)}</div>
     <CycleMap shown={shown} current={current} focused={focused} layer={layer} topic={topic?.id||'overview'} topics={topics} lang={lang} onPhase={choose} onTopic={id=>updateScene({topic:id})} onFocus={()=>updateScene({focused:true,topic:'overview'})} onBack={()=>updateScene({focused:false,topic:'overview'})} visibleHormones={visibleHormones} explainedHormone={explainedHormone}/>

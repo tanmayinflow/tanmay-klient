@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {CYCLE_ORDER,CYCLE_DEPTH,CYCLE_HORMONES,cycleHormoneSchematic,resolveCycleExploration,cyclePersonalText} from '../src/shared/product/togetherCycleDepth.js';
+import {CYCLE_IMAGERY_SOURCES,CYCLE_STORIES} from '../src/shared/product/togetherCycleImagery.js';
 
 test('the deep guide never guesses an unknown phase or carries exploration across dates',()=>{
   const unknown={id:null,basis:'unknown'};
@@ -46,7 +47,8 @@ test('every phase has both roles, five practical topics and complete separate bi
     assert.deepEqual(phase.care.map(item=>item.id),['move','food','mind','plan','bond']);
     for(const item of phase.care){assert.ok(item.woman.length===2&&item.partner.length===2);assert.notDeepEqual(item.woman,item.partner);}
     for(const key of ['season','day','direction','archetype','text','shadow','question','ritual','storyTitle','story'])assert.ok(phase.symbol[key].length===2&&phase.symbol[key].every(Boolean),`${id}.symbol.${key}`);
-    assert.ok(phase.symbol.source===null||['inana','demeter'].includes(phase.symbol.source));
+    assert.ok(CYCLE_IMAGERY_SOURCES.some(source=>source.id===phase.symbol.source),id);
+    assert.ok(CYCLE_STORIES[id].some(story=>story.kind==='traditional'&&story.title===phase.symbol.storyTitle&&story.text===phase.symbol.story),id);
   }
 });
 

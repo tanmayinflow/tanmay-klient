@@ -19,6 +19,8 @@ export const togetherStyles=`
 .tm-together button{cursor:pointer;line-height:1.25;transition:color .16s ease,border-color .16s ease}
 .tm-together button:hover:not(:disabled){border-color:var(--tg-accent);color:var(--tg-accent)}
 .tm-together button:disabled{opacity:.5;cursor:default}
+.tm-together :is(.tg-arrow-control,.tg-choice-nav button,.tg-cycle-map-center-back,.tg-calendar-nav button){appearance:none;-webkit-appearance:none;background:transparent!important;background-image:none!important;box-shadow:none;border-color:transparent;border-radius:0;-webkit-tap-highlight-color:transparent;user-select:none}
+.tm-together .tg-arrow-control{display:inline-flex;align-items:center;justify-content:center}
 .tm-together button.primary{background:var(--tg-fill);background-image:var(--tm-action-material,none);background-size:768px auto;color:var(--tg-on);border-color:var(--tg-fill)}
 .tm-together button.primary:hover:not(:disabled){color:var(--tg-on)}
 .tm-together input[type=number]{appearance:textfield;-moz-appearance:textfield}

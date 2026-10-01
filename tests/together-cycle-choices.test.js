@@ -25,8 +25,9 @@ test('each phase has a complete bilingual library with traceable sources',()=>{
           assert.ok(item.steps.length>=2&&item.steps.every(bilingual),item.id);
         }
         if(topic==='story'){
-          assert.ok(['traditional','original'].includes(item.kind));
-          if(item.kind==='traditional')assert.ok(item.sourceIds.length>0,item.id);
+          assert.equal(item.kind,'traditional',item.id);
+          assert.ok(item.sourceIds.length>0,item.id);
+          assert.ok(bilingual(item.tradition),item.id);
         }
       }
     }

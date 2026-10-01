@@ -26,7 +26,7 @@ export function CycleChoices({phase,topic,date,lang='cs',wording='neutral',role=
     </div></div>
     <div id={contentId} key={item.id} className="tg-choice-leaf">
       <h4>{L(item.title)}</h4>
-      {topic==='story'&&item.kind==='original'&&<p className="tg-choice-duration">{L(['Autorský příběh','An original story'])}</p>}
+      {topic==='story'&&item.tradition&&<p className="tg-choice-duration">{L(item.tradition)}</p>}
       {ritual&&item.durationMinutes&&<p className="tg-choice-duration">{item.durationMinutes} {L(['min pro sebe','min for yourself'])}</p>}
       {step<0?<>
         <p className="tg-choice-core">{L(food?(role==='coach'?item.partnerWhy:item.why):item.text)}</p>
