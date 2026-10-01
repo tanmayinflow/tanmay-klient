@@ -1,3 +1,4 @@
+import { separateWarmupTemplates } from './separateWarmups.js';
 import { publicMilestones } from './delivery.js';
 // ======================================================================
 // ADAPTERS · the old shape, read once, on the way in
@@ -143,12 +144,13 @@ export function adoptLegacyDraft(draft, resolve, opts) {
 // need one. Private coach notes are removed here, not filtered later.
 export function clientBundle(plans, templates, resolve, opts) {
   const o = opts || {};
+  const nativeTemplates = separateWarmupTemplates(templates || []);
   const usedTemplates = new Map();
   const usedExercises = new Map();
   const outPlans = [];
   for (const p of plans || []) {
     outPlans.push({
-      id: p.id, cz: p.cz, en: p.en, goals: p.goals || [], intro: p.intro || null,
+      id: p.id, cz: p.cz, en: p.en, goals: p.goals || [], intro: nativeText(p.intro) || null,
       progressionRule: p.progressionRule || null,
       milestones: publicMilestones(p.milestones),
       sessions: (p.sessions || []).map((s) => ({
@@ -159,14 +161,14 @@ export function clientBundle(plans, templates, resolve, opts) {
       })),
     });
     for (const s of p.sessions || []) {
-      const t = (templates || []).find((x) => x.id === s.templateId);
+      const t = nativeTemplates.find((x) => x.id === s.templateId);
       if (t) usedTemplates.set(t.id, t);
     }
   }
   const outTemplates = [];
   for (const t of usedTemplates.values()) {
     outTemplates.push({
-      id: t.id, cz: t.cz, en: t.en, intro: t.intro || null, aims: t.aims || [],
+      id: t.id, cz: t.cz, en: t.en, intro: nativeText(t.intro) || null, aims: t.aims || [],
       blocks: (t.blocks || []).map((b) => {
         const rec = resolve ? resolve(b.exId) : null;
         if (rec) usedExercises.set(b.exId, rec);
@@ -175,7 +177,7 @@ export function clientBundle(plans, templates, resolve, opts) {
           restSec: b.restSec, groupId: b.groupId, groupMode: b.groupMode, groupOrder: b.groupOrder,
           rirEnabled: b.rirEnabled, variant: b.variant || null,
           // The coach note travels. The private note never does.
-          coachNote: b.coachNote || ["", ""],
+          coachNote: nativeText(b.coachNote) || ["", ""],
           sets: (b.sets || []).map((s) => ({ id: s.id, type: s.type, planned: s.planned, restSec: s.restSec, side: s.side })),
         };
       }),
@@ -188,10 +190,10 @@ export function clientBundle(plans, templates, resolve, opts) {
       pat: (rec.movementPatterns || [])[0] || "", eq: rec.equipment,
       measurementType: rec.measurementType, defaultRestSec: rec.defaultRestSec,
       unilateral: rec.unilateral, sideMode: rec.sideMode,
-      focus: rec.focus, startPosition: rec.startPosition, execution: rec.execution, watchFor: rec.watchFor,
+      focus: nativeText(rec.focus), startPosition: nativeText(rec.startPosition), execution: nativeText(rec.execution), watchFor: nativeText(rec.watchFor),
       // The progression copy is the coach's teaching material and only
       // travels when the coach says so.
-      progression: o.pro ? rec.progression : null,
+      progression: o.pro ? nativeText(rec.progression) : null,
       art: (o.artFor && o.artFor(rec.id)) || null,
     });
   }
@@ -231,4 +233,12 @@ export function mergeFulfilment(existing, fulfilment, who) {
     if (!cur || (next.endedAt || 0) >= (cur.endedAt || 0)) byId.set(s.id, next);
   }
   return [...byId.values()];
+}
+
+function nativeText(value) {
+  if (Array.isArray(value)) {
+    const clean = value.map(nativeText);
+    return clean.every((v, i) => v === value[i]) ? value : clean;
+  }
+  return typeof value === "string" && /https?:\/\//.test(value) ? value.replace(/https?:\/\/[^\s<>]+/g, "").replace(/[ \t]+$/gm, "").trim() : value;
 }

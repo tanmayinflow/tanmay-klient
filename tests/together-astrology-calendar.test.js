@@ -1,19 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFile} from "node:fs/promises";
 import {initAstrologyEngine,astrologyAt,dateForAstrology,angleDistance,lahiriAyanamsa,chitraAyanamsa} from "../src/shared/product/togetherAstrology.js";
 import {astrologyDayDetails,panchangaAt,panchangaDay,solarDay,planetaryHoursAt,eclipsesBetween,solarSeasonsBetween,natalAt,annualProfection,vimshottariDasha,internalDayAt,expectedSwara} from "../src/shared/product/togetherAstrologyCalendar.js";
 import {zonedDateCandidates,dateInZone} from "../src/shared/product/togetherAstrologyTime.js";
 import {astrologyPeriod,astrologyPeriodBounds} from "../src/shared/product/togetherAstrologyOverview.js";
 
-await initAstrologyEngine({wasmPath:`data:application/wasm;base64,${(await readFile(new URL(import.meta.resolve("@swisseph/browser/dist/swisseph.wasm")))).toString("base64")}`});
+await initAstrologyEngine();
 const prague={latitude:50.0755,longitude:14.4378,timeZone:"Europe/Prague"};
-test("Swiss UT J2000 apparent Sun and actual Lahiri differ from True Citra",()=>{
+test("J2000 apparent Sun and actual Lahiri differ from True Chitra with the declared MIT engine",()=>{
   const d=new Date("2000-01-01T12:00:00Z"),sky=astrologyAt(d,"jyotish");
-  assert.equal(sky.engine.name,"Swiss Ephemeris");assert.equal(sky.engine.theory,"Moshier");
+  assert.equal(sky.engine.name,"Astronomy Engine");assert.equal(sky.engine.license,"MIT");
   // Fixed regression for apparent geocentric coordinates. Independent USNO
-  // and NASA timings are checked below; this constant is not a new source.
-  assert.ok(angleDistance(sky.planets[0].tropical,280.36892)<.00001);
+  // and NASA timings are checked below; this former-engine constant is a
+  // comparison regression with a 3.6-arcsec tolerance, not an accuracy claim.
+  assert.ok(angleDistance(sky.planets[0].tropical,280.36892)<.001);
   assert.ok(lahiriAyanamsa(d)>23.85&&lahiriAyanamsa(d)<23.86);
   assert.ok(Math.abs(lahiriAyanamsa(d)-chitraAyanamsa(d))>.001);
   for(const mode of ["mean","true"]){const nodes=astrologyAt(d,"jyotish",{nodeMode:mode}).nodes;assert.ok(Math.abs(angleDistance(nodes[0].longitude,nodes[1].longitude)-180)<1e-8);assert.equal(nodes[0].mode,mode);}

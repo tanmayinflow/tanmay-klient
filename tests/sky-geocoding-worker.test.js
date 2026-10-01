@@ -24,5 +24,5 @@ test("timezone route validates data and HTTP methods before upstream fetch",asyn
 });
 test("production CSP allows Photon while the timezone service remains server-only",async()=>{
   const env=await authorized(),response=await worker.fetch(req("/",{email:OWNER}),env),csp=response.headers.get("Content-Security-Policy");
-  assert.match(csp,/connect-src[^;]*https:\/\/photon\.komoot\.io/);assert.doesNotMatch(csp,/https:\/\/timeapi\.io/);assert.match(csp,/wasm-unsafe-eval/);
+  assert.match(csp,/connect-src[^;]*https:\/\/photon\.komoot\.io/);assert.doesNotMatch(csp,/https:\/\/timeapi\.io/);assert.doesNotMatch(csp,/wasm-unsafe-eval/);
 });

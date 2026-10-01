@@ -1,6 +1,7 @@
 import {astrologyAt,normalizeAngle,majorAspects,SIGN_RULERS,NAKSHATRAS,TITHIS} from "./togetherAstrology.js";
-import {swissEngine,swissPosition,swissAyanamsa,julianDay,dateFromJulian,DAY_MS} from "./togetherAstrologySwiss.js";
+import {swissEngine,swissPosition,swissAyanamsa,julianDay,dateFromJulian,nextAstrologyEclipse,astrologyEclipseVisibility,DAY_MS} from "./togetherAstrologySwiss.js";
 import {validTimeZone,zonedDay,zonedDateCandidates,civilMidnight,nextCivilBoundary,shiftCivilDay,calendarDateValid} from "./togetherAstrologyTime.js";
+import {horizonSamples} from "./togetherAstrologyHorizon.js";
 
 const HOUR=3600000,DEG=Math.PI/180;
 const DAYS=["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn"];
@@ -23,8 +24,9 @@ export function solarDay(day,location,convention="apparent"){
   if(!start||!end)return {status:"invalid-civil-day",sunrise:null,sunset:null,day};
   const residual=ms=>{const s=sunAltitude(ms,place);return convention==="hindu-center"?s.altitude:s.altitude+34/60+Math.asin(.00465047/s.distance)/DEG-.0024428*Math.cos(s.altitude*DEG)/s.distance;};
   let sunrise=null,sunset=null,min=Infinity,max=-Infinity;
-  for(let a=start.getTime();a<end.getTime();a+=HOUR/2){
-    const b=Math.min(a+HOUR/2,end.getTime()),fa=residual(a),fb=residual(b);min=Math.min(min,fa,fb);max=Math.max(max,fa,fb);
+  const samples=horizonSamples(residual,start.getTime(),end.getTime(),HOUR/2);
+  for(let i=1;i<samples.length;i++){
+    const {time:a,value:fa}=samples[i-1],{time:b,value:fb}=samples[i];min=Math.min(min,fa,fb);max=Math.max(max,fa,fb);
     if(fa<0&&fb>=0&&sunrise===null)sunrise=iso(bisect(residual,a,b));
     if(fa>=0&&fb<0&&sunset===null)sunset=iso(bisect(residual,a,b));
   }
@@ -79,23 +81,22 @@ export function expectedSwara(tithi){
   const n=(tithi-1)%15+1,left=[1,2,3,7,8,9,13,14,15].includes(n);
   return {nostril:(tithi<=15?left:!left)?"left":"right",model:true,source:"user-supplied-svarodaya",at:"sunrise"};
 }
-function eclipseType(result){return result.isHybrid?.()?"hybrid":result.isTotal()?"total":result.isAnnular?.()?"annular":result.isPenumbralOnly?.()?"penumbral":"partial";}
 export function eclipsesBetween(start,end,location){
   const key=JSON.stringify([start.toISOString(),end.toISOString(),validAstrologyLocation(location)?placeOf(location):null]);if(eclipseCache.has(key))return eclipseCache.get(key);
-  const swe=swissEngine(),rows=[],endJd=julianDay(end);
+  const rows=[],endJd=julianDay(end);
   for(const kind of ["solar","lunar"]){
     // The library may skip a maximum when the search starts only seconds
     // before it. Bracket a full day earlier, then enforce [start, end) below.
     let cursor=julianDay(start)-1;
     for(let i=0;i<16;i++){
-      const e=kind==="solar"?swe.findNextSolarEclipse(cursor):swe.findNextLunarEclipse(cursor);if(e.maximum>=endJd)break;
+      const e=nextAstrologyEclipse(kind,dateFromJulian(cursor));if(e.maximum>=endJd)break;
       if(e.maximum<julianDay(start)){cursor=e.maximum+1;continue;}
       let visible=null,localMaximum=null;
       if(validAstrologyLocation(location)){
-        const local=kind==="solar"?swe.findNextSolarEclipseAt(cursor,placeOf(location)):swe.findNextLunarEclipseAt(cursor,placeOf(location));
-        visible=Math.abs(local.maximum-e.maximum)<1;if(visible)localMaximum=dateFromJulian(local.maximum).toISOString();
+        const local=astrologyEclipseVisibility(e,placeOf(location));
+        visible=local.visible;localMaximum=local.localMaximum;
       }
-      rows.push({kind,type:eclipseType(e),time:dateFromJulian(e.maximum).toISOString(),visible,localMaximum,global:true});cursor=e.maximum+1;
+      rows.push({kind,type:e.type,time:e.time.toISOString(),visible,localMaximum,global:true});cursor=e.maximum+1;
     }
   }
   rows.sort((a,b)=>Date.parse(a.time)-Date.parse(b.time));return remember(eclipseCache,key,rows,40);
@@ -145,6 +146,7 @@ export function natalAt(date,birth,options={}){
   const key=JSON.stringify([birth,options.ayanamsa,options.nodeMode]);let base=natalCache.get(key);
   if(!base){
     const sky=astrologyAt(instant,"jyotish",{...options,skipNextPhase:true}),tropical=astrologyAt(instant,"hellenistic",{...options,skipNextPhase:true}),ascendant=swissEngine().calculateHouses(julianDay(instant),Number(birth.latitude),Number(birth.longitude),"W").ascendant;
+    if(!Number.isFinite(ascendant))return unavailable("undefined-polar-ascendant");
     const sun=swissPosition(0,instant),altitude=swissEngine().horizontalCoordinates(julianDay(instant),placeOf(birth),[sun.longitude,sun.latitude,sun.distance]).altitude,sect=Math.abs(altitude)<.1?"horizon-uncertain":altitude>0?"day":"night",moon=tropical.planets[1].longitude;
     const lots=sect==="horizon-uncertain"?null:{fortune:point(ascendant+(sect==="day"?moon-sun.longitude:sun.longitude-moon)),spirit:point(ascendant+(sect==="day"?sun.longitude-moon:moon-sun.longitude)),convention:"day/night reversal"};
     base=remember(natalCache,key,{status:"ok",date:instant.toISOString(),planets:sky.planets,nodes:sky.nodes,tropicalPlanets:tropical.planets,ascendant,siderealAscendant:normalizeAngle(ascendant-sky.ayanamsa),sect,sunAltitude:altitude,lots,ayanamsa:sky.ayanamsa},30);

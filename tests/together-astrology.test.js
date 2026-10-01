@@ -1,8 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFile} from "node:fs/promises";
 import {initAstrologyEngine,astrologyAt,dateForAstrology,shiftAstrologyDay,angleDistance,majorAspects,planetDignity,chitraAyanamsa} from "../src/shared/product/togetherAstrology.js";
-await initAstrologyEngine({wasmPath:`data:application/wasm;base64,${(await readFile(new URL(import.meta.resolve("@swisseph/browser/dist/swisseph.wasm")))).toString("base64")}`});
+await initAstrologyEngine();
 
 test("astrology uses a chosen local day and rejects invalid or unsupported calendar inputs",()=>{
   assert.equal(dateForAstrology("2024-02-29",18.5)?.getHours(),18);

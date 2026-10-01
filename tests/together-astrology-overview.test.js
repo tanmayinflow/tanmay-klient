@@ -1,10 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFile} from "node:fs/promises";
 import {initAstrologyEngine,astrologyAt,dateForAstrology,tropicalLongitude,angleDistance,CLASSICAL_BODIES} from "../src/shared/product/togetherAstrology.js";
 import {astrologyPeriod,astrologyPeriodBounds,astrologyDominants,dispositorRoute} from "../src/shared/product/togetherAstrologyOverview.js";
 import {astrologyOverviewReading,astrologyEventTitle,astrologyEventReading,tithiQuality} from "../src/shared/product/togetherAstrologyOverviewEditorial.js";
-await initAstrologyEngine({wasmPath:`data:application/wasm;base64,${(await readFile(new URL(import.meta.resolve("@swisseph/browser/dist/swisseph.wasm")))).toString("base64")}`});
+await initAstrologyEngine();
 
 function inZone(zone,run){const original=process.env.TZ;try{process.env.TZ=zone;return run();}finally{if(original===undefined)delete process.env.TZ;else process.env.TZ=original;}}
 

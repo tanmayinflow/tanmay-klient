@@ -1,3 +1,8 @@
+import { MOVEMENT_ATLAS } from './generated/movementAtlasManifest';
+import { SUPPLEMENT_ART } from './library/supplement-art.js';
+import { CREATOR_ART } from './library/creator-art.js';
+import { MOBILITY_ART } from './library/mobility-art.js';
+import { ExerciseAtlasImage } from './shared/ui/ExerciseAtlasImage.jsx';
 import { TogetherPage, TogetherIcon } from "./shared/ui/together.jsx";
 import { NavigationSettings } from "./shared/ui/navigationSettings.jsx";
 import { PersonalSettingsBridge, PersonalSettingsSections } from "./shared/ui/personalSettings.jsx";
@@ -8,6 +13,7 @@ import { editorInk, editorHighlight, EDITOR_INKS, EDITOR_CHOICES, EDITOR_NAMES, 
 import { LifeDots } from "./shared/ui/lifeDots.jsx";
 import { SidebarLines } from "./shared/ui/sidebarLines.jsx";
 import { TmIcon as FamilyIcon } from "./shared/ui/icons.jsx";
+import { TrainingSourceText } from './shared/ui/TrainingSourceText.jsx';
 import React, { useState, useContext, createContext } from "react";
 import { createPortal } from "react-dom";
 import * as BK from "./booking/index.js";
@@ -712,22 +718,23 @@ const twoCol = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(
 // copper bindu, the rest wait as faint grain. A different contemplation greets
 // each visit — Vajrayāna, the Stoa, the desert, the forest. The room sits on no
 // map: its door is the day itself — click the date and see the whole life.
-// here urges. It only reminds. All quotes are attested classics, translated.
+// Owner-selected wording and attributions, including free renderings, preserved as supplied.
 const MEMENTO_QUOTES = [
-  { cz: "Můžeš odejít ze života právě teď. Ať to určuje, co děláš, říkáš a myslíš.", en: "You could leave life right now. Let that determine what you do and say and think.", src: "Marcus Aurelius · Hovory k sobě" },
-  { cz: "Nejednej, jako bys měl žít deset tisíc let. Dokud žiješ, dokud je to možné, staň se dobrým.", en: "Do not act as if you were going to live ten thousand years. While you live, while it is in your power, be good.", src: "Marcus Aurelius · Hovory k sobě" },
-  { cz: "Není pravda, že máme málo času. Pravda je, že ho mnoho promarníme.", en: "It is not that we have a short time to live, but that we waste much of it.", src: "Seneca · O krátkosti života" },
-  { cz: "Celý život se člověk má učit žít a, což možná udiví víc, celý život se má učit umírat.", en: "It takes the whole of life to learn how to live, and the whole of life to learn how to die.", src: "Seneca · O krátkosti života" },
-  { cz: "Smrt a vyhnanství měj denně před očima. Nikdy pak nebudeš myslet na nic nízkého, ani po ničem přehnaně toužit.", en: "Keep death and exile daily before your eyes. You will never harbour a base thought, nor desire anything beyond measure.", src: "Epiktétos · Rukojeť" },
-  { cz: "Mým náboženstvím je žít a zemřít bez výčitek.", en: "My religion is to live and die without regret.", src: "Milarepa" },
-  { cz: "V hrůze ze smrti jsem odešel do hor. Meditoval jsem o nejistotě její hodiny tak dlouho, až jsem dobyl pevnost nesmrtelné podstaty mysli. Teď je strach ze smrti pryč.", en: "In horror of death, I took to the mountains. Again and again I meditated on the uncertainty of the hour of death, until I captured the fortress of the deathless nature of mind. Now all fear of death is over and done.", src: "Milarepa" },
-  { cz: "Zítřek, nebo příští život. Nikdy nevíš, co přijde dřív.", en: "Tomorrow or the next life — which comes first, we never know.", src: "tibetské přísloví" },
-  { cz: "Smrt je jistá. Její hodina jistá není. Co je tedy teď to nejdůležitější?", en: "Death is certain, its hour is not. What, then, is the most important thing?", src: "lódžong · tibetská kontemplace" },
-  { cz: "Denně měj smrt před očima.", en: "Keep death daily before your eyes.", src: "Benediktova řehole" },
-  { cz: "Prach jsi a v prach se navrátíš.", en: "Dust you are, and to dust you shall return.", src: "Genesis 3,19" },
-  { cz: "Kdo by naučil lidi umírat, naučil by je žít.", en: "He who would teach men to die would teach them to live.", src: "Michel de Montaigne · Eseje" },
-  { cz: "Šel jsem do lesů, protože jsem chtěl žít soustředěně… abych, až přijde čas umírat, nezjistil, že jsem nežil.", en: "I went to the woods because I wished to live deliberately… and not, when I came to die, discover that I had not lived.", src: "Henry David Thoreau · Walden" },
-  { cz: "Velká hrouda země mě obtěžkává tělem, moří mě životem, ulehčuje mi stářím a dává mi spočinout smrtí. Co dělá můj život dobrým, dělá dobrou i mou smrt.", en: "The Great Clod burdens me with form, labors me with life, eases me in old age, and rests me in death. What makes my life good makes my death good also.", src: "Čuang-c'" },
+  {"cz":"Většina lidí zapomíná, že tu jednou všichni skončíme. Kdo si to pamatuje, přestane se hádat.","en":"Most people forget that we all come to an end here. Those who remember stop quarrelling.","src":"Buddha · Dhammapada (volné podání)","srcEn":"The Buddha · Dhammapada (free rendering)"},
+  {"cz":"Všechno, co je složené, se rozpadne. Usiluj a nepolevuj.","en":"Everything that is put together falls apart. Strive on, and do not let up.","src":"Buddha · poslední slova (volné podání)","srcEn":"The Buddha · last words (free rendering)"},
+  {"cz":"Moje náboženství je žít a zemřít bez lítosti.","en":"My religion is to live and die without regret.","src":"Milaräpa (tradičně připisováno)","srcEn":"Milarepa (traditionally attributed)"},
+  {"cz":"Smrt je jistá. Její hodina není.","en":"Death is certain. Its hour is not.","src":"Čtyři připomínky (volné podání)","srcEn":"The Four Reminders (free rendering)"},
+  {"cz":"Zítřek, nebo příští život — nikdo neví, co přijde dřív.","en":"Tomorrow or the next life — nobody knows which comes first.","src":"Tibetské přísloví","srcEn":"Tibetan proverb"},
+  {"cz":"Že se po výdechu znovu nadechneš a že se po usnutí probudíš — to je ten zázrak.","en":"That you breathe in again after breathing out, that you wake up after falling asleep — that is the wonder.","src":"Nágárdžuna · Dopis příteli (volné podání)","srcEn":"Nagarjuna · Letter to a Friend (free rendering)"},
+  {"cz":"Tvůj život se každým dnem zkracuje. Nikdy se neprodlužuje.","en":"Your life gets shorter every day. It never gets longer.","src":"Devět úvah o smrti (volné podání)","srcEn":"The Nine Contemplations of Death (free rendering)"},
+  {"cz":"Ve chvíli smrti ti pomůže jen to, co sis v sobě vypěstoval.","en":"At the moment of death, only what you cultivated inside yourself is of any use.","src":"Devět úvah o smrti (volné podání)","srcEn":"The Nine Contemplations of Death (free rendering)"},
+  {"cz":"Jednou z tebe zbydou kosti. Dneska s nimi ještě můžeš hýbat.","en":"One day only bones will be left of you. Today you can still move them.","src":"Úvaha na pohřebišti (volné podání)","srcEn":"Charnel-ground contemplation (free rendering)"},
+  {"cz":"Nauč se usínat tak, jak bys chtěl umírat.","en":"Learn to fall asleep the way you would want to die.","src":"Jóga spánku (volné podání)","srcEn":"Sleep yoga (free rendering)"},
+  {"cz":"Vnitřní klid je teď. Protože nějaké později tu bude vždycky.","en":"The inner peace is now. Because there will be always some later.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
+  {"cz":"A pak zemřeš bez lítosti. Zemřeš jako urozený. Zemřeš jako král.","en":"So then you die without regret. You die, you are a noble one. You die like a king.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
+  {"cz":"Když zítra umřeš, lidem to možná bude líto dva dny.","en":"If tomorrow you die, maybe people are sad for two days.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
+  {"cz":"Každý okamžik je čerstvý. Každý okamžik je nový život. Každý okamžik je čerstvý.","en":"Every moment is fresh. Every moment is a new life. Every moment is fresh.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
+  {"cz":"Pak pochopíš, že jediné, co je stálé, je nestálost.","en":"So you understand that the only thing that is permanent is impermanence.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
 ];
 
 
@@ -741,8 +748,8 @@ function PageMemento({ go }) {
   const { t } = useT();
   const st = useStore();
   const mem = st.coll.memento || {};
-  // the quote of THIS visit · frozen at entry, the counter moves after
-  const [qi] = useState(() => (mem.opens || 0) % MEMENTO_QUOTES.length);
+  // Start from the visit rotation; browsing stays local to this open page.
+  const [qi, setQi] = useState(() => (mem.opens || 0) % MEMENTO_QUOTES.length);
   const counted = React.useRef(false);
   React.useEffect(() => { if (counted.current) return; counted.current = true; st.setMemento({ opens: ((st.coll.memento || {}).opens || 0) + 1 }); }, []);
   const [editing, setEditing] = useState(!mem.birth);
@@ -765,8 +772,15 @@ function PageMemento({ go }) {
       <button onClick={() => go("praxe")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 0 10px", display: "inline-flex", alignItems: "center", gap: 6 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Praxe", "Practice")}</button>
       <div style={{ textAlign: "center", margin: "26px 0 0" }}>
         <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.34em", fontSize: 11, color: t.sage }}>memento mori</div>
+        <div aria-live="polite" aria-atomic="true">
         <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 22, lineHeight: 1.55, color: t.heading, maxWidth: 560, margin: "22px auto 0" }}>{L(q.cz, q.en)}</div>
-        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.textMuted, marginTop: 10 }}>{q.src}</div>
+        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.textMuted, marginTop: 10 }}>{L(q.src, q.srcEn)}</div>
+        </div>
+        <nav className="tm-spell-controls" aria-label={L("Procházení citátů", "Browse quotes")}>
+          <button type="button" onClick={() => setQi(index => (index - 1 + MEMENTO_QUOTES.length) % MEMENTO_QUOTES.length)} aria-label={L("Předchozí citát", "Previous quote")}><FamilyIcon id="back" size={18} /></button>
+          <span style={{ color: t.textMuted }} aria-label={L(`Citát ${qi + 1} z ${MEMENTO_QUOTES.length}`, `Quote ${qi + 1} of ${MEMENTO_QUOTES.length}`)}>{qi + 1} / {MEMENTO_QUOTES.length}</span>
+          <button type="button" onClick={() => setQi(index => (index + 1) % MEMENTO_QUOTES.length)} aria-label={L("Další citát", "Next quote")}><FamilyIcon id="forward" size={18} /></button>
+        </nav>
         <div style={{ width: 44, height: 1, background: t.accent, opacity: 0.7, margin: "26px auto" }} />
       </div>
       {editing ? (
@@ -3341,6 +3355,8 @@ const T_FIGS = {
 // per-exercise figure · falls back to the pattern pictogram for custom exercises
 function TExArt({ ex, size = 120, stroke, dotColor, showDot = true, fluid = false }) {
   const { t } = useT();
+  const atlas = ex && (SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  if (atlas) return <ExerciseAtlasImage entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   const fig = ex && T_FIGS[ex.id];
   if (!fig) return <TPatArt pat={(ex && ex.pat) || "drep"} size={size} stroke={stroke || t.text} dot={showDot && ex ? ex.dot : null} dotColor={dotColor || t.accent} />;
   const sw = size <= 30 ? 7 : 2.6;
@@ -9827,6 +9843,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   const { t } = useT();
   const st = useStore();
   const rec = tvClientRec(st, block.exId);
+  const atlas = SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
   const m = TV.measurementOf(block.measurementType);
   const [extraLoad, setExtraLoad] = useState((block.sets || []).some(s => s.actual?.addedWeight > 0));
   const fields = m.fields.concat(m.secondary && extraLoad ? [m.secondary] : []);
@@ -9839,14 +9856,14 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   return (
     <div style={{ border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        {rec && rec.art ? <span style={{ color: t.sand, flexShrink: 0 }}><TmPostava poza={rec.art} size={54} stroke="currentColor" /></span> : null}
+        {atlas ? <button aria-label={L("Zobrazit provedení cviku", "Show exercise instructions")} onClick={()=>setOpen(!open)} style={{padding:0,border:0,background:"transparent",width:64,flexShrink:0,cursor:"pointer"}}><ExerciseAtlasImage entry={atlas} alt={tvName(rec) || TL(block.name)} size={64} dark={t.mode==="dark"}/></button> : rec && rec.art ? <span style={{ color: t.sand, flexShrink: 0 }}><TmPostava poza={rec.art} size={54} stroke="currentColor" /></span> : null}
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontFamily: FONT_DISPLAY, fontSize: 21, color: t.heading, lineHeight: 1.2 }}>{tvName(rec) || TL(block.name)}</div>
           {rec && rec.focus ? (
             <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, lineHeight: 1.55, color: t.sand, marginTop: 4 }}>{TL(rec.focus)}</div>
           ) : null}
           {TL(block.coachNote) ? (
-            <div style={{ marginTop: 6, borderLeft: `2px solid ${t.accent}`, paddingLeft: 9, fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.55, color: t.textSec }}>{TL(block.coachNote)}</div>
+            <div style={{ marginTop: 6, borderLeft: `2px solid ${t.accent}`, paddingLeft: 9, fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.55, color: t.textSec }}><TrainingSourceText text={TL(block.coachNote)} color={t.accentInk || t.accent}/></div>
           ) : null}
         </div>
       </div>
@@ -9897,6 +9914,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
           <button onClick={() => setOpen(!open)} style={{ ...tvQuiet(t), alignSelf: "flex-start" }}>{open ? L("Skrýt návod", "Hide the how-to") : L("Jak na to", "How to do it")}</button>
           {open ? (
             <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.65, color: t.textSec, display: "flex", flexDirection: "column", gap: 6 }}>
+              {atlas ? <ExerciseAtlasImage entry={atlas} alt={tvName(rec) || TL(block.name)} fluid dark={t.mode==="dark"}/> : null}
               {rec.startPosition ? <div><b style={{ color: t.heading }}>{L("Výchozí pozice", "Start")}</b> · {TL(rec.startPosition)}</div> : null}
               {rec.execution ? <div><b style={{ color: t.heading }}>{L("Provedení", "Execution")}</b> · {TL(rec.execution)}</div> : null}
               {rec.watchFor ? <div><b style={{ color: t.heading }}>{L("Na co dát pozor", "Watch for")}</b> · {TL(rec.watchFor)}</div> : null}
@@ -10053,7 +10071,7 @@ function TvClientPlan({ onRun }) {
         return (
           <div key={p.id} style={{ border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, padding: 14 }}>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{L(p.cz, p.en) || L("Plán", "Plan")}</div>
-            {TL(p.intro) ? <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.sand, marginTop: 5 }}>{TL(p.intro)}</div> : null}
+            {TL(p.intro) ? <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.sand, marginTop: 5 }}><TrainingSourceText text={TL(p.intro)} color={t.accentInk || t.accent}/></div> : null}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
               <div style={{ flex: 1 }}><ProgressBar value={ss.length ? done / ss.length : 0} /></div>
               <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted }}>{done}/{ss.length}</span>
@@ -10078,6 +10096,7 @@ function TvClientPlan({ onRun }) {
                     </button>
                     {open === s.id && tpl ? (
                       <div style={{ gridColumn: "1 / -1", padding: "6px 0 10px" }}>
+                        {TL(tpl.intro) && <div style={{fontFamily:FONT_BODY,fontSize:13,color:t.textSec,marginBottom:12}}><TrainingSourceText text={TL(tpl.intro)} color={t.accentInk || t.accent}/></div>}
                         {(tpl.blocks || []).map((b) => {
                           const r = tvClientRec(st, b.exId);
                           return (
@@ -12004,6 +12023,7 @@ export default function App() {
     });
   };
   const [docBytes, setDocBytes] = useState(0);
+  const [docLimit, setDocLimit] = useState(10000000);
   // Zapsaná série se nesmí tvářit jako odeslaná. Dokud se dokument neshoduje s
   // tím, co server naposledy potvrdil, je co odeslat — a je to vidět.
   const [syncPending, setSyncPending] = useState(false);
@@ -12021,7 +12041,7 @@ export default function App() {
   const _readServer = async () => {
     const v = await syncFetch("/api/state");
     if (v.druh !== SYNC_OK || !v.telo) { oznamSelhani(v); return null; }
-    if (v.telo.bytes) setDocBytes(v.telo.bytes);
+    if (v.telo.bytes) setDocBytes(v.telo.bytes); if (v.telo.limit) setDocLimit(v.telo.limit);
     return { doc: v.telo.doc || null, ver: v.telo.version || 0 };
   };
   // LEVNÉ RAZÍTKO · kontrola „psalo mezitím jiné zařízení?" stahovala celý
@@ -12031,7 +12051,7 @@ export default function App() {
   const _readVer = async () => {
     const v = await syncFetch("/api/state?meta=1");
     if (v.druh !== SYNC_OK || !v.telo) { oznamSelhani(v); return null; }
-    if (v.telo.bytes) setDocBytes(v.telo.bytes);
+    if (v.telo.bytes) setDocBytes(v.telo.bytes); if (v.telo.limit) setDocLimit(v.telo.limit);
     return { ver: v.telo.version || 0 };
   };
   const adoptServer = (sdoc, ver) => {
@@ -12065,13 +12085,18 @@ export default function App() {
     const v = await syncFetch("/api/state", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doc: { coll: c, edits: e }, share: _shareOf(c, e) }),
+      body: JSON.stringify({ doc: { coll: c, edits: e }, share: _shareOf(c, e), baseVersion: _ver.current }),
     });
     // Stav 200 sám o sobě není potvrzení zápisu: přihlašovací stránka Accessu
     // i SPA fallback ho vrací taky. Rozhoduje tělo odpovědi.
+    if (v.stav === 409 && v.telo?.code === "conflict") {
+      const remote = await _readServer();
+      if (remote?.doc?.coll) setConflict({ doc: remote.doc, ver: remote.ver });
+      return false;
+    }
     if (v.druh !== SYNC_OK) { oznamSelhani(v); return false; }
     const pv = (v.telo && v.telo.version) || 0;
-    if (v.telo && v.telo.bytes) setDocBytes(v.telo.bytes);
+    if (v.telo && v.telo.bytes) setDocBytes(v.telo.bytes); if (v.telo && v.telo.limit) setDocLimit(v.telo.limit);
     _ver.current = pv || _ver.current + 1;
     _lastSynced.current = cur;
     syncMarkSave(_ver.current, tmDocSig(cur));
@@ -13737,7 +13762,7 @@ export default function App() {
               {docBytes > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, padding: "3px 0" }}>
                   <span>{L("Velikost dokumentu", "Document size")}</span>
-                  <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: docBytes > 1700000 ? t.danger : t.textMuted }}>{(Math.round(docBytes / 10000) / 100).toFixed(2)}{" / 2.00 MB"}</span>
+                  <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: docBytes > docLimit * 0.85 ? t.danger : t.textMuted }}>{(Math.round(docBytes / 10000) / 100).toFixed(2)}{" / "}{(docLimit / 1000000).toFixed(2)} MB</span>
                 </div>
               )}
               <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginTop: 10 }}>
