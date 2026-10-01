@@ -1,5 +1,7 @@
 import React,{useId,useState} from 'react';
 import {CYCLE_ORDER,CYCLE_DEPTH,CYCLE_HORMONES,CYCLE_MAP_LAYERS,cyclePersonalText,cycleMapSelection,resolveCycleExploration} from '../product/togetherCycleDepth.js';
+import {CycleChoices} from './togetherCycleChoices.jsx';
+import {cycleChoices} from '../product/togetherCycleChoices.js';
 import {CycleMap,cycleMapStyles} from './togetherCycleMap.jsx';
 
 export function CycleDepth({phase,lang='cs',onPlan,embedded=false,role='client',date='',wording='neutral'}){
@@ -36,13 +38,13 @@ export function CycleDepth({phase,lang='cs',onPlan,embedded=false,role='client',
       <p className="tg-hormone-description" aria-live="polite"><strong>{L(hormone.name)}</strong><br/>{L(hormone.description)}</p>
     </div>}
     <div id={panelId} className="tg-cycle-reading" aria-live="polite" aria-atomic="false">
-      {focused&&topic?<article key={`${contextKey}-${layer}-${topic.id}`}>
+      {focused&&topic?(cycleChoices(shown,topic.id).length?<CycleChoices key={`${contextKey}-${topic.id}`} phase={shown} topic={topic.id} date={date} lang={lang} wording={wording} role={role} onPlan={onPlan}/>:<article key={`${contextKey}-${layer}-${topic.id}`}>
         <h3>{L(topic.title)}</h3>
         {topic.correspondences&&<dl className="tg-cycle-correspondences">{[['season',['Roční doba','Season']],['day',['Část dne','Time of day']],['direction',['Směr','Direction']]].map(([key,label])=><div key={key}><dt>{L(label)}</dt><dd>{L(topic.correspondences[key])}</dd></div>)}</dl>}
         {topic.paragraphs.map((paragraph,i)=><p key={i}>{L(paragraph)}</p>)}
         {topic.question&&<p className="tg-cycle-question">{L(topic.question)}</p>}
         {topic.plan&&onPlan&&<button type="button" onClick={()=>onPlan(L(topic.plan))}>{L(['Navrhnout do plánů','Propose in Plans'])}</button>}
-      </article>:<p className="tg-cycle-overview-note">{current?L(['Čtyři části jednoho rytmu. Tečka ukazuje fázi vybraného dne; prohlížet si můžeš kteroukoli. Každá otevírá tělo, praktickou péči i svět obrazů.','Four parts of one rhythm. The dot marks the selected day’s phase; you can explore any of them. Each opens the body, practical care and a world of images.']):L(['V kalendáři pro tento den nemáme fázi. Mapu si můžeš prohlédnout výběrem kterékoli části. Tím nezměníš svůj zápis ani odhad.','The calendar has no phase for this day. Explore the map by choosing any part. This changes neither a record nor an estimate.'])}</p>}
+      </article>):<p className="tg-cycle-overview-note">{current?L(['Čtyři části jednoho rytmu. Tečka ukazuje fázi vybraného dne; prohlížet si můžeš kteroukoli. Každá otevírá tělo, praktickou péči i svět obrazů.','Four parts of one rhythm. The dot marks the selected day’s phase; you can explore any of them. Each opens the body, practical care and a world of images.']):L(['V kalendáři pro tento den nemáme fázi. Mapu si můžeš prohlédnout výběrem kterékoli části. Tím nezměníš svůj zápis ani odhad.','The calendar has no phase for this day. Explore the map by choosing any part. This changes neither a record nor an estimate.'])}</p>}
     </div>
 
   </section>;

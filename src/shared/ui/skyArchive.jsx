@@ -36,7 +36,7 @@ function civilDate(value,lang){
 }
 function periodName(key,lang){
   const [range,...rest]=key.split(":"),start=rest.join(":"),en=lang==="en";
-  const name=({week:en?"Week":"Týden",month:en?"Month":"Měsíc",year:en?"Year":"Rok",life:en?"Life period":"Životní období",tibetan:en?"Moon observation":"Pozorování Luny"})[range]||range;
+  const name=({day:en?"Day":"Den",week:en?"Week":"Týden",month:en?"Month":"Měsíc",year:en?"Year":"Rok",life:en?"Life period":"Životní období",tibetan:en?"Moon observation":"Pozorování Luny"})[range]||range;
   if(!start||start==="open")return name;
   return `${name} · ${civilDate(start.slice(0,10),lang)||start}`;
 }

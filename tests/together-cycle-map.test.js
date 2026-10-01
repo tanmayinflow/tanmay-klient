@@ -14,7 +14,7 @@ test('the map preserves all phase content through named branches for both partne
       }
       assert.deepEqual(care[0].paragraphs,[role==='coach'?guide.partner:guide.woman]);
       for(const item of guide.care)assert.deepEqual(care.find(t=>t.id===item.id).paragraphs[0],role==='coach'?item.partner:item.woman);
-      assert.match(care.find(t=>t.id==='food').paragraphs[1][0],/B12/);
+      assert.equal(care.find(t=>t.id==='food').paragraphs.length,1);
       assert.deepEqual(care.find(t=>t.id==='shared').plan,guide.shared);
       assert.deepEqual(body.find(t=>t.id==='hormones').paragraphs,[guide.hormones]);
       assert.deepEqual(body.find(t=>t.id==='uterus').paragraphs,[guide.uterus]);
