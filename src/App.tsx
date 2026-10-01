@@ -1061,15 +1061,11 @@ function AudioRow({ a, onRemove }) {
     idbGet(a.id).then((b) => { if (!dead && b) { url = URL.createObjectURL(b); setSrc(url); } }).catch(() => {});
     return () => { dead = true; if (url) URL.revokeObjectURL(url); };
   }, [a.id]);
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-      {src
-        ? <audio controls src={src} style={{ height: 34, maxWidth: "100%", flex: 1 }} />
-        : <span style={{ flex: 1, fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, fontStyle: "italic" }}>{L("Načítám audio…", "Loading audio…")}</span>}
-      <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: t.textMuted, flexShrink: 0 }}>{a.name} · {fmtSize(a.size)}</span>
-      {onRemove && <button title="Odebrat" onClick={() => { if (a.idb) idbDel(a.id); if (a.r2) r2Del(a.id); onRemove(a.id); }} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 12, padding: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
-    </div>
-  );
+  return <div style={{display:"grid",gap:8,marginTop:12,padding:"12px 0",borderTop:`1px solid ${t.borderSoft}`,minWidth:0}}>
+    <span style={{fontFamily:FONT_BODY,fontSize:12,color:t.textSec,overflowWrap:"anywhere"}}>{a.name} · {fmtSize(a.size)}</span>
+    {src ? <audio aria-label={a.name} controls src={src} style={{height:40,width:"100%",minWidth:0}}/> : <span role="status">{L("Načítám nahrávku…","Loading recording…")}</span>}
+    {onRemove && <button type="button" onClick={()=>onRemove(a.id)} style={{justifySelf:"start",background:"transparent",border:`1px solid ${t.border}`,borderRadius:6,color:t.text,cursor:"pointer",minHeight:44,padding:"7px 12px",fontFamily:FONT_BODY,fontSize:13}}>{L("Odebrat nahrávku","Remove recording")}</button>}
+  </div>;
 }
 
 function AttachmentStrip({ att, onRemove }) {
@@ -11680,6 +11676,8 @@ export default function App() {
     setMemberName(v);
     fetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: v }) }).catch(() => {});
   };
+  const [personalTarget,setPersonalTarget] = useState({});
+  const [settingsSection,setSettingsSection] = useState("");
   const [setsOpen, setSetsOpen] = useState(false);
   const [slideDir, setSlideDir] = useState(null);
   const pswipeRef = React.useRef(null);
@@ -13698,10 +13696,9 @@ export default function App() {
 
         {guideOpen && <TmGuide onClose={() => setGuideOpen(false)} />}
 
-        <PersonalSettingsBridge t={t} lang={lang} Sheet={CenterSheet} trainingSources={APP_METHOD_SOURCES}/>
+        <PersonalSettingsBridge onOpen={target=>{setPersonalTarget(target);setSettingsSection(({profile:"account",calendar:"calendar",sources:"version"})[target.section]||"account");setSetsOpen(true);}}/>
         {setsOpen && (
           <CenterSheet title={L("Nastavení", "Settings")} onClose={() => setSetsOpen(false)}>
-            <PersonalSettingsSections t={t} lang={lang} trainingSources={APP_METHOD_SOURCES}/>
             <button onClick={() => { if (!mementoZap) return; setSetsOpen(false); go("memento"); }} title={mementoZap ? "memento mori" : undefined} style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: mementoZap ? "pointer" : "default", padding: 0, fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginBottom: 16 }}>
               {fmtCZ(todayISO())} · ☾ {moonName(moonPhaseOf(todayISO()))}{(() => { const su = sunsetOf(todayISO()); return su ? ` · ${L("západ", "sunset")} ${su}` : ""; })()}
             </button>
@@ -13734,11 +13731,20 @@ export default function App() {
               onSignature={pouzitSignature}
             />
 
+            <details open={settingsSection==="account"} onToggle={e=>{if(e.currentTarget.open)setSettingsSection("account");else setSettingsSection(v=>v==="account"?"":v);}} style={{borderTop:`1px solid ${t.borderSoft}`,padding:"14px 0"}}>
+              <summary style={{cursor:"pointer",minHeight:44,fontFamily:FONT_TAG,letterSpacing:".16em",textTransform:"uppercase",fontSize:12,color:t.sage}}>{L("Účet","Account")}</summary>
+              <PersonalSettingsSections t={t} lang={lang} section="profile" togetherEnabled={isEnabled("spolu")}/>
+            </details>
+            {isEnabled("spolu")&&<details open={settingsSection==="calendar"} onToggle={e=>{if(e.currentTarget.open)setSettingsSection("calendar");else setSettingsSection(v=>v==="calendar"?"":v);}} style={{borderTop:`1px solid ${t.borderSoft}`,padding:"14px 0"}}>
+              <summary style={{cursor:"pointer",minHeight:44,fontFamily:FONT_TAG,letterSpacing:".16em",textTransform:"uppercase",fontSize:12,color:t.sage}}>{L("Kalendář","Calendar")}</summary>
+              <PersonalSettingsSections t={t} lang={lang} section="calendar" togetherEnabled/>
+            </details>}
             {/* VERZE A SOUKROMÍ · co v telefonu opravdu běží a kam se data
                 ukládají. Bez tohohle se ladí naslepo a slib o soukromí visí
                 jen na textu průvodce. */}
-            <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${t.borderSoft}` }}>
-              <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 10.5, color: t.sage, marginBottom: 8 }}>{L("Verze a soukromí", "Version and privacy")}</div>
+            <details open={settingsSection==="version"} onToggle={e=>{if(e.currentTarget.open)setSettingsSection("version");else setSettingsSection(v=>v==="version"?"":v);}} style={{padding:"14px 0",borderTop:`1px solid ${t.borderSoft}`}}>
+              <summary style={{cursor:"pointer",minHeight:44,fontFamily:FONT_TAG,textTransform:"uppercase",letterSpacing:".16em",fontSize:12,color:t.sage}}>{L("Verze","Version")}</summary>
+              <PersonalSettingsSections t={t} lang={lang} section="sources" topic={personalTarget.topic} reveal={personalTarget.section==="sources"} trainingSources={APP_METHOD_SOURCES}/>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, padding: "3px 0" }}>
                 <span>{L("Sdílené produktové jádro", "Shared product core")}</span>
                 <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: t.textMuted }}>{SHARED_CORE_VERSION}</span>
@@ -13769,7 +13775,7 @@ export default function App() {
                 {L("Tvoje data leží ve tvém vlastním prostoru. Tany vidí jen to, co si zapneš ve Sdílení — Deník, Zápisník ani Ohlédnutí mezi to nepatří a nikdy patřit nebudou.",
                    "Your data lives in your own space. Tanmay sees only what you switch on in Sharing — Journal, Notebook and the evening review are not part of it and never will be.")}
               </div>
-            </div>
+            </details>
           </CenterSheet>
         )}
 

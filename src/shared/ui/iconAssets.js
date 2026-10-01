@@ -1,5 +1,6 @@
 // Public artwork only; exact original files, checked in both application repositories.
 export const ICON_ASSET_HASHES = {
+  "sources-pine-cone-v1.png": "5c09f9f1ba60351083ea54f563457196767b78d178b28a538b71cbe8151cf9cf",
   "sources-tree-v2.png": "249ae5003d36be4564b0ff05b87f1fe263eb90c9214f875c9c2871a153c6cbde",
   "practice-icon-detailed-v1.png": "16a3b9cea786ab5fe117644f934e43269ebc9f8f7612939015a1f85e268272f6",
   "practice-icon-small-v1.png": "08b6cbd484ccb84db23342e6a5fd95d201288c9d878fc98f30abc8d1f517f29d",

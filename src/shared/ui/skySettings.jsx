@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState} from "react";
 import {validTimeZone} from "../product/skyJournal.js";
 import {SKY_TRADITIONS,skyZodiac} from "../product/skyTraditions.js";
-import {PersonalProfileSettings,openAppSources} from "./personalProfile.jsx";
+import {openPersonalProfile,openAppSources} from "./personalProfile.jsx";
 import {SkyHeading} from "./skyUi.jsx";
 import {SkyPlacePicker} from "./skyPlacePicker.jsx";
 import {skyBirthAtLocation,skyBirthHasPlace,skyBirthUsesObservation,skyChangeObservation,skyPreparePlaceSettings} from "../product/skyPlaceSettings.js";
@@ -50,7 +50,7 @@ export function SkySettings({journal,update,ready,lang="cs",onOpen}){
       <section className="sky-setting"><SkyHeading id="S12" onOpen={onOpen} lang={lang}>{L("Zápisy a připomínky","Records and reminders")}</SkyHeading><p>{L("Zápisy Oblohy zůstávají u tvého účtu v tomto prohlížeči. Připomínku ohlédnutí uvidíš při otevření aplikace.","Sky records stay with your account in this browser. Review reminders appear when you open the app.")}</p><label className="sky-check"><input type="checkbox" checked={draft.notifications} onChange={e=>{if(e.target.checked)requestNotifications();else setDraft(d=>({...d,notifications:false}));}}/><span>{L("Upozornit na ohlédnutí, když je aplikace otevřená","Notify me about reviews while the app is open")}</span></label></section>
       <div className="sky-actions"><button type="submit" className="sky-primary">{L("Uložit nastavení Oblohy","Save Sky settings")}</button>{conflict&&<button type="button" onClick={reload}>{L("Načíst uložené nastavení","Load saved settings")}</button>}</div><p role="status" className="sky-status">{message}</p>
     </fieldset></form>
-    <SkyHeading id="S01" onOpen={onOpen} lang={lang}>{L("Tvůj profil","Your profile")}</SkyHeading><PersonalProfileSettings lang={lang}/>
+    <SkyHeading id="S01" onOpen={onOpen} lang={lang}>{L("Tvůj profil","Your profile")}</SkyHeading><button type="button" onClick={openPersonalProfile}>{L("Otevřít nastavení účtu","Open account settings")}</button>
 
     <section className="sky-setting"><h3>{L("Moje uložené zápisy","My saved records")}</h3><p className="sky-small">{L("Vlastní pozorování, záměry i dřívější zápisy najdeš pohromadě. Zůstávají soukromé.","Your observations, intentions and earlier records stay together and remain private.")}</p><button type="button" onClick={()=>onOpen({kind:"archive"})}>{L("Prohlédnout moje zápisy","View my records")}</button></section>
     <section className="sky-setting"><SkyHeading id="S11" onOpen={onOpen} lang={lang}>{L("Jazyk","Language")}</SkyHeading><div className="sky-actions">{[["cs","Česky"],["en","English"]].map(([value,title])=><button type="button" key={value} aria-pressed={lang===value} onClick={()=>window.dispatchEvent(new CustomEvent("tm-set-language",{detail:{lang:value}}))}>{title}</button>)}</div></section>
