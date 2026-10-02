@@ -1,3 +1,4 @@
+import { resolveMuscleMap, muscleMapEdit } from "./training/muscleMap.js";
 import { UNIFIED_ART } from './library/unified-art.js';
 import { MOVEMENT_ATLAS } from './generated/movementAtlasManifest';
 import { SUPPLEMENT_ART } from './library/supplement-art.js';
@@ -2448,27 +2449,132 @@ const tRateLimitWeeks = (ex) => {
 
 // ---- muscles · the second filter ----
 const T_MUSCLES = [
-  { k: "qua", cz: "stehna", en: "quads", side: "f" },
-  { k: "ham", cz: "hamstringy", en: "hamstrings", side: "b" },
-  { k: "glu", cz: "hýždě", en: "glutes", side: "b" },
-  { k: "cal", cz: "lýtka", en: "calves", side: "b" },
-  { k: "abs", cz: "břicho", en: "abs", side: "f" },
-  { k: "obl", cz: "šikmé břišní", en: "obliques", side: "f" },
-  { k: "low", cz: "spodní záda", en: "lower back", side: "b" },
-  { k: "upb", cz: "horní záda", en: "upper back", side: "b" },
-  { k: "tra", cz: "trapézy", en: "traps", side: "b" },
-  { k: "che", cz: "hrudník", en: "chest", side: "f" },
-  { k: "sho", cz: "ramena", en: "shoulders", side: "f" },
-  { k: "bic", cz: "biceps", en: "biceps", side: "f" },
-  { k: "tri", cz: "triceps", en: "triceps", side: "b" },
-  { k: "fore", cz: "předloktí", en: "forearms", side: "f" },
-  // Five tissues the library was asked to name and could not, so it reached for the
-  // nearest big group instead. A wrong tag is worse than a missing one.
-  { k: "add", cz: "adduktory", en: "adductors", side: "f" },
-  { k: "hipflex", cz: "flexory kyčle", en: "hip flexors", side: "f" },
-  { k: "rcuff", cz: "rotátorová manžeta", en: "rotator cuff", side: "b" },
-  { k: "serr", cz: "serratus anterior", en: "serratus anterior", side: "f" },
-  { k: "neck", cz: "krční svaly", en: "neck", side: "b" },
+  {
+    "k": "qua",
+    "cz": "přední stehna",
+    "en": "quadriceps",
+    "side": "f"
+  },
+  {
+    "k": "ham",
+    "cz": "zadní stehna",
+    "en": "hamstrings",
+    "side": "b"
+  },
+  {
+    "k": "glu",
+    "cz": "hýžďové svaly",
+    "en": "gluteal muscles",
+    "side": "b"
+  },
+  {
+    "k": "cal",
+    "cz": "lýtkové svaly",
+    "en": "calf muscles",
+    "side": "b"
+  },
+  {
+    "k": "tib",
+    "cz": "přední holenní sval",
+    "en": "tibialis anterior",
+    "side": "f"
+  },
+  {
+    "k": "abs",
+    "cz": "břišní svaly",
+    "en": "abdominal muscles",
+    "side": "f"
+  },
+  {
+    "k": "obl",
+    "cz": "šikmé břišní svaly",
+    "en": "obliques",
+    "side": "f"
+  },
+  {
+    "k": "low",
+    "cz": "bederní vzpřimovače",
+    "en": "lower-back extensors",
+    "side": "b"
+  },
+  {
+    "k": "upb",
+    "cz": "horní záda",
+    "en": "upper back",
+    "side": "b"
+  },
+  {
+    "k": "lat",
+    "cz": "široký sval zádový",
+    "en": "latissimus dorsi",
+    "side": "b"
+  },
+  {
+    "k": "tra",
+    "cz": "trapézový sval",
+    "en": "trapezius",
+    "side": "b"
+  },
+  {
+    "k": "che",
+    "cz": "prsní svaly",
+    "en": "pectoral muscles",
+    "side": "f"
+  },
+  {
+    "k": "sho",
+    "cz": "deltové svaly",
+    "en": "deltoids",
+    "side": "f"
+  },
+  {
+    "k": "bic",
+    "cz": "biceps a ohybače lokte",
+    "en": "biceps and elbow flexors",
+    "side": "f"
+  },
+  {
+    "k": "tri",
+    "cz": "triceps",
+    "en": "triceps",
+    "side": "b"
+  },
+  {
+    "k": "fore",
+    "cz": "svaly předloktí",
+    "en": "forearm muscles",
+    "side": "f"
+  },
+  {
+    "k": "add",
+    "cz": "přitahovače stehen",
+    "en": "hip adductors",
+    "side": "f"
+  },
+  {
+    "k": "hipflex",
+    "cz": "ohybače kyčle",
+    "en": "hip flexors",
+    "side": "f"
+  },
+  {
+    "k": "rcuff",
+    "cz": "rotátorová manžeta",
+    "en": "rotator cuff",
+    "side": "b"
+  },
+  {
+    "k": "serr",
+    "cz": "přední pilovitý sval",
+    "en": "serratus anterior",
+    "side": "f"
+  },
+  {
+    "k": "neck",
+    "cz": "krční svaly",
+    "en": "neck muscles",
+    "side": "b"
+  }
 ];
 const T_MUS = Object.fromEntries(T_MUSCLES.map((m) => [m.k, m]));
 
@@ -6068,7 +6174,7 @@ function TExPick({ onPick, onClose, onNew }) {
       tExOnDefaultShelf(x) &&
       (!fPats.length || fPats.includes(x.pat)) &&
       (!fLvls.length || fLvls.includes(tLvlOf(x))) &&
-      (!fMus.length || fMus.some((m) => (x.mp || []).includes(m) || (x.ms || []).includes(m))) &&
+      (!fMus.length || fMus.some((m) => resolveMuscleMap(x).primary.includes(m) || resolveMuscleMap(x).secondary.includes(m))) &&
       (!fEq.length || fEq.some((e) => (x.eq || []).includes(e))) &&
       (!q || tExSearchText(x).toLowerCase().includes(q.toLowerCase())))
     .sort((a, b) => ((b.pop || 2) - (a.pop || 2)) || (patOrder[a.pat] - patOrder[b.pat]) || (tLvlOf(a) - tLvlOf(b)));
@@ -6269,7 +6375,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
           </div>
         )}
         <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, marginTop: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {(ex.mp || []).map((k) => L((T_MUS[k]||{}).cz, (T_MUS[k]||{}).en)).filter(Boolean).join(" · ")}
+          {resolveMuscleMap(ex).primary.map((k) => L((T_MUS[k]||{}).cz, (T_MUS[k]||{}).en)).filter(Boolean).join(" · ")}
         </div>
       </div>
     </button>
@@ -6325,14 +6431,7 @@ function TExDetail({ exId, onClose, onOpen }) {
           <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, marginBottom: 12 }}>{LANG === "cs" ? ex.en : ex.cz}</div>
         </>
       )}
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start", margin: "10px 0 6px" }}>
-        <div style={{ flex: "0 1 46%", minWidth: 0, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "8px 8px 4px" }}>
-          <TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />
-        </div>
-        <div style={{ flex: "1 1 50%", minWidth: 0, paddingTop: 4 }}>
-          <TMuscleMap mp={ex.mp} ms={ex.ms} fluid />
-        </div>
-      </div>
+      <TMuscleMap ex={ex} mp={ex.mp} ms={ex.ms} fluid illustration={<TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />} />
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "6px 0 16px" }}>
         <Bindu size={7} style={{ marginTop: 6, flexShrink: 0 }} />
         <span style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: t.textMuted }}><span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage, marginRight: 8 }}>{L("bod pozornosti", "focus point")}</span><span style={{ fontStyle: "italic", color: t.sand, fontSize: 14.5 }}>{TL(ex.foc)}</span></span>
@@ -6353,8 +6452,8 @@ function TExDetail({ exId, onClose, onOpen }) {
             <Select small value={String(ex.pop || 2)} onChange={(v) => patch({ pop: Number(v) })} options={T_POPS.map((x) => ({ v: String(x.v), label: L(x.cz, x.en) }))} />
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            <TMultiSel label={L("Hlavní svaly", "Primary muscles")} values={ex.mp || []} onChange={(v) => patch({ mp: v })} options={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))} />
-            <TMultiSel label={L("Vedlejší svaly", "Secondary muscles")} values={ex.ms || []} onChange={(v) => patch({ ms: v })} options={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))} />
+            <TMultiSel label={L("Hlavní svaly", "Primary muscles")} values={resolveMuscleMap(ex).primary} onChange={(v) => patch(muscleMapEdit(ex, "primary", v))} options={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))} />
+            <TMultiSel label={L("Vedlejší svaly", "Secondary muscles")} values={resolveMuscleMap(ex).secondary} onChange={(v) => patch(muscleMapEdit(ex, "secondary", v))} options={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))} />
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
             {T_EQUIP.map((e) => (
@@ -10213,7 +10312,7 @@ function PageTrenink() {
   const filtered = exs.filter((x) =>
     tExOnShelf(x, fShelf) &&
     (!fPats.length || fPats.includes(x.pat)) &&
-    (!fMus.length || fMus.some((m) => (x.mp || []).includes(m) || (x.ms || []).includes(m))) &&
+    (!fMus.length || fMus.some((m) => resolveMuscleMap(x).primary.includes(m) || resolveMuscleMap(x).secondary.includes(m))) &&
     (!fEq.length || fEq.some((e) => (x.eq || []).includes(e))) &&
     (!q || tExSearchText(x).toLowerCase().includes(q.toLowerCase())));
   const patOrder = Object.fromEntries(T_PATTERNS.map((p, i) => [p.k, i]));

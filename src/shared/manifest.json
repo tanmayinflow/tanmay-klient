@@ -75,7 +75,7 @@
     "src/shared/product/voiceRecorder.js": "d5d37b4f4d624b535fc326531945254430f9fd22ea27c19ef115fbf31d487a52",
     "src/shared/ui/ExerciseAtlasImage.jsx": "005aa83b59e8f3dfd7b7fcad90586bfde849482f4ec363c1117f9a0697812ecf",
     "src/shared/ui/TrainingSourceText.jsx": "e4739991f673643184184279f0ec2a0504984eba2ccd140c5f17a6b4dd3c30e4",
-    "src/shared/ui/appSources.jsx": "4f9a7ddcba6fff608c32f86f069cd008fe40007e7e8d3baefb143aecabd910d4",
+    "src/shared/ui/appSources.jsx": "35920ee7a6e178950c150e5c1f15878b195bc6436bfc0d12f22b4058de883056",
     "src/shared/ui/appearance.js": "bf6214f414c2aa4bac89d09cc29bd44093818790ad873be42857a938e40109c3",
     "src/shared/ui/appearance.jsx": "81c449fe38d4a40a2438caf2d002e6c2b545619229344db68568b006878e7e70",
     "src/shared/ui/aspectImages.jsx": "59b5043ebb684f9c748f05ac4e71bb3d585cfe52fe065ab8ce48f9f314c15ee2",
@@ -94,7 +94,7 @@
     "src/shared/ui/lifeDots.jsx": "11c074bfc49efc9f93b84f0c271e53ade050b6e1f0ce393a9f6fbc3a58a4c1b6",
     "src/shared/ui/lists.jsx": "a4ae2f18539275aec4281f706666f6ceaa028e8e6e7324673eb53cde589cb6f0",
     "src/shared/ui/morningSpells.jsx": "1c49cff33e5209953bf12e00ea64de50abe0e196149d100822432c4e41cba0c4",
-    "src/shared/ui/muscles.jsx": "1522231291681b091ef95e93dbd2ae378de81c24973d7759f244d5af6564bf62",
+    "src/shared/ui/muscles.jsx": "5a5c89275d906867e0e5511ab7f5355df1086205ea837cf8dc0a06fc02385eda",
     "src/shared/ui/navigationSettings.jsx": "50538f099dc01cc86453c819a7963a2e80225348839a5a4969ab6703c444574c",
     "src/shared/ui/overlay.js": "5f40b18dd2c090f37a7bdef648d1836d5987b8f069b20dfdd8efd841ee991748",
     "src/shared/ui/overlay.jsx": "357dfbc26549c79bdaaa9df1acc738aa23ddea708d91b04ee876f27d4c722e2c",
@@ -236,6 +236,9 @@
     "worker/booking/migrate.js": "e392b00374d0c823e8e60db93b34a2ac9eac211d4f48a25d7b702283736c7a6f",
     "worker/booking/repo.js": "55a74a7d1d3b329a908f7f63b9360af77e536fde1e84cfe58963bebc50277e59",
     "worker/booking/schema.js": "f247c943872a5aadbbaba353b3dc65dbb168e52d8d52a5f30dba2b1bf2f5ee89",
-    "src/shared/ui/UnifiedExerciseImage.jsx": "9017450a8c88b356a13b57c27668c7fd5eee6ff22a72b45282fd32b66d355bfe"
+    "src/shared/ui/UnifiedExerciseImage.jsx": "9017450a8c88b356a13b57c27668c7fd5eee6ff22a72b45282fd32b66d355bfe",
+    "src/shared/ui/muscleRegions.js": "9d8d3937ef972411c00f6392d710b9b80218fbc3730a436e7854b5e1b8edb48d",
+    "src/training/muscleMap.js": "9c168e62040c5a83a458249f93d69f076b3c9c26177e4ebd53e859ab3ddcd6d0",
+    "tests/muscle-map.test.js": "33a0338a0c75ad44047168f8d6008001e26a1f5cac5636ea04b589e75e696e64"
   }
 }
