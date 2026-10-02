@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-export function ExerciseAtlasImage({ entry, alt = '', size = 120, fluid = false, dark = false }) {
+import { UnifiedExerciseImage } from './UnifiedExerciseImage.jsx';
+export function ExerciseAtlasImage({ entry, alt = '', size = 120, fluid = false, dark = false, background }) {
   const [failed, setFailed] = useState(false);
   if (!entry || failed) return null;
+  if (entry.unified) return <UnifiedExerciseImage key={entry.sourceSha256} entry={entry} alt={alt} size={size} fluid={fluid} dark={dark} background={background}/>;
   const art = entry.primary;
   return <img src={fluid || size > 128 ? art.detail : art.thumb} alt={alt} loading="lazy" decoding="async"
     width={art.width} height={art.height} onError={() => setFailed(true)}

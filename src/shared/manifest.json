@@ -73,7 +73,7 @@
     "src/shared/product/togetherRituals.js": "ffa443b5204be952be3165af88e9bb4c9b49c7d59c1cd60c28983acdba0872d7",
     "src/shared/product/visibility.js": "5c586bbcae550f52a9f12f4307f5f529ccb255c6e8b06b816b05871fb9ed75aa",
     "src/shared/product/voiceRecorder.js": "d5d37b4f4d624b535fc326531945254430f9fd22ea27c19ef115fbf31d487a52",
-    "src/shared/ui/ExerciseAtlasImage.jsx": "73e67e89b1f467243c60e4dca72ddb67a64a4425b0334f79254dac0f5b9ecf95",
+    "src/shared/ui/ExerciseAtlasImage.jsx": "005aa83b59e8f3dfd7b7fcad90586bfde849482f4ec363c1117f9a0697812ecf",
     "src/shared/ui/TrainingSourceText.jsx": "e4739991f673643184184279f0ec2a0504984eba2ccd140c5f17a6b4dd3c30e4",
     "src/shared/ui/appSources.jsx": "4f9a7ddcba6fff608c32f86f069cd008fe40007e7e8d3baefb143aecabd910d4",
     "src/shared/ui/appearance.js": "bf6214f414c2aa4bac89d09cc29bd44093818790ad873be42857a938e40109c3",
@@ -235,6 +235,7 @@
     "worker/booking/google.js": "58f10eb0a0e4224313204188074655eca04a6167911adec9c69783a9f4fc53b4",
     "worker/booking/migrate.js": "e392b00374d0c823e8e60db93b34a2ac9eac211d4f48a25d7b702283736c7a6f",
     "worker/booking/repo.js": "55a74a7d1d3b329a908f7f63b9360af77e536fde1e84cfe58963bebc50277e59",
-    "worker/booking/schema.js": "f247c943872a5aadbbaba353b3dc65dbb168e52d8d52a5f30dba2b1bf2f5ee89"
+    "worker/booking/schema.js": "f247c943872a5aadbbaba353b3dc65dbb168e52d8d52a5f30dba2b1bf2f5ee89",
+    "src/shared/ui/UnifiedExerciseImage.jsx": "9017450a8c88b356a13b57c27668c7fd5eee6ff22a72b45282fd32b66d355bfe"
   }
 }
