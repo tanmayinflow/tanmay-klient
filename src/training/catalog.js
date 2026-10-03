@@ -198,7 +198,7 @@ export function generatorEligibleOf(row, meta) {
   return GEN_GENERIC.includes(genRuleOf(row, meta));
 }
 export function requiresCoachOf(row, meta) {
-  return !!((row && row.requiresCoach) || (meta && meta.co));
+  return typeof row?.requiresCoach === "boolean" ? row.requiresCoach : !!(meta && meta.co);
 }
 // Gym kit a person may simply not have in the room they are standing in.
 const CHECK_EQ = ["stroj", "kladka", "cinka"];

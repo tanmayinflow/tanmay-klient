@@ -33,14 +33,17 @@ test("muscle dictionary separates the front shin and latissimus from calves and 
   assert.match(legacyBack.note.en, /not one isolated muscle/);
 });
 
-test("legacy rows and front levers keep the broad back group unless their mapping was reviewed", () => {
+test("reviewed front levers name latissimus while rows retain scapular regions too", () => {
   const frontLever = resolveMuscleMap({ id: "frontlever", mp: ["upb", "abs"], ms: ["fore", "glu", "low"] });
-  assert.deepEqual(frontLever.primary, ["upb", "abs"]);
-  assert.equal(frontLever.corrected, false);
+  assert.deepEqual(frontLever.primary, ["lat", "abs"]);
+  assert.equal(frontLever.corrected, true);
   assert.equal(frontLever.mode, "strength");
   const row = resolveMuscleMap({ id: "ringrow", mp: ["upb", "bic"], ms: ["fore", "tra"] });
-  assert.deepEqual(row.primary, ["upb", "bic"]);
-  assert.equal(row.corrected, false);
+  assert.deepEqual(row.primary, ["upb", "lat", "bic"]);
+  assert.equal(row.corrected, true);
+  const unreviewed = resolveMuscleMap({ id: "act_swim", mp: ["upb", "sho"], ms: ["abs", "glu", "qua"] });
+  assert.deepEqual(unreviewed.primary, ["upb", "sho"]);
+  assert.equal(unreviewed.corrected, false);
 });
 
 test("known tibialis and vertical-pull defaults point to their own anatomical regions", () => {
@@ -50,8 +53,8 @@ test("known tibialis and vertical-pull defaults point to their own anatomical re
   const pull = resolveMuscleMap({ id: "pullup", mp: ["upb", "bic"], ms: ["fore", "abs"] });
   assert.deepEqual(pull.primary, ["lat", "bic"]);
   assert.deepEqual(pull.secondary, ["fore", "abs"]);
-  // A horizontal row must not be swept into the vertical-pull correction.
-  assert.deepEqual(resolveMuscleMap({ id: "bodyrow", mp: ["upb", "bic"], ms: ["fore", "abs"] }).primary, ["upb", "bic"]);
+  // A horizontal row keeps its scapular region in addition to latissimus.
+  assert.deepEqual(resolveMuscleMap({ id: "bodyrow", mp: ["upb", "bic"], ms: ["fore", "abs"] }).primary, ["upb", "lat", "bic"]);
 });
 
 test("warm-up maps distinguish wrists, lower-body movement and spinal rotation", () => {
@@ -75,6 +78,9 @@ test("corrections preserve custom primary and secondary edits and never mutate i
     { id: "tibraise", mp: ["cal"], ms: ["fore"] },
     { id: "gm_w_wrist_circle", mp: ["sho"], ms: [] },
     { id: "pullup", mp: ["bic", "upb"], ms: ["fore", "abs"] },
+    { id: "frontlever", mp: ["upb", "abs"], ms: ["fore", "glu", "low", "sho"] },
+    { id: "ringrow", mp: ["upb", "bic"], ms: ["fore"] },
+    { id: "jg_baddha_konasana", mp: ["glu"], ms: ["low", "add"] },
   ]) {
     const result = resolveMuscleMap(row);
     assert.equal(result.corrected, false);
@@ -98,6 +104,10 @@ test("only absent maps of named programme targets are supplemented", () => {
   assert.equal(variant.mode, "unspecified");
   assert.deepEqual(variant.primary, []);
   assert.ok(variant.note.en);
+  assert.deepEqual(resolveMuscleMap({ id: "vi_squat", mp: ["glu"] }).primary, ["qua", "glu"]);
+  assert.deepEqual(resolveMuscleMap({ id: "vi_lunge", mp: ["glu"] }).primary, ["qua", "glu"]);
+  // Explicit secondary arrays differ from the inspected programme defaults.
+  assert.equal(resolveMuscleMap({ id: "vi_squat", mp: ["glu"], ms: [] }).corrected, false);
 });
 
 test("ambiguous ankle defaults identify the mobility area without falsely highlighting calf", () => {
@@ -177,4 +187,85 @@ test("muscle-map edits preserve custom assignments and unknown keys in the untou
   assert.deepEqual(ex.mp, ["che", "future-primary"]);
   assert.deepEqual(ex.ms, ["sho", "future-secondary"]);
   assert.throws(() => muscleMapEdit(ex, "other", []), TypeError);
+});
+
+test("hip flexion is represented separately from abdominal bracing and knee extension", () => {
+  const vup = resolveMuscleMap({ id: "vup", mp: ["abs"], ms: ["obl", "qua"] });
+  assert.deepEqual(vup.primary, ["abs", "hipflex"]);
+  assert.deepEqual(vup.secondary, ["obl", "qua"]);
+  const boat = resolveMuscleMap({ id: "jg_paripurna_navasana", mp: ["abs"], ms: ["qua", "low"] });
+  assert.ok(boat.primary.includes("hipflex"));
+  assert.equal(boat.mode, "strength");
+  const crunch = resolveMuscleMap({ id: "crunch", mp: ["abs"], ms: [] });
+  assert.deepEqual(crunch.primary, ["abs"]);
+  assert.equal(crunch.corrected, false);
+});
+
+test("reviewed hip stretches label adductors and hip flexors without strength claims", () => {
+  const bound = resolveMuscleMap({ id: "jg_baddha_konasana", mp: ["glu"], ms: ["low"] });
+  assert.deepEqual(bound.primary, ["add"]);
+  assert.equal(bound.mode, "mobility");
+  const straddle = resolveMuscleMap({ id: "pancake", mp: ["ham", "glu"], ms: ["low"] });
+  assert.deepEqual(straddle.primary, ["ham", "add"]);
+  assert.deepEqual(straddle.secondary, ["glu", "low"]);
+  const couch = resolveMuscleMap({ id: "couch", mp: ["qua"], ms: ["glu"] });
+  assert.deepEqual(couch.primary, ["qua", "hipflex"]);
+  assert.equal(couch.mode, "mobility");
+  const lunge = resolveMuscleMap({ id: "jg_anjaneyasana", mp: ["qua", "glu"], ms: ["low", "sho"] });
+  assert.ok(lunge.primary.includes("hipflex"));
+});
+
+test("native rest and meditation defaults do not advertise targeted back or shoulder strength", () => {
+  for (const id of ["jg_sukhasana", "jg_padmasana", "jg_siddhasana", "jg_makarasana", "jg_viparita_karani"]) {
+    const result = resolveMuscleMap({ id, mp: ["low"], ms: [] });
+    assert.deepEqual(result.primary, []);
+    assert.equal(result.mode, "none");
+    assert.ok(result.note.cz);
+  }
+  assert.equal(resolveMuscleMap({ id: "jg_pranamasana", mp: ["sho"], ms: [] }).mode, "none");
+  assert.equal(resolveMuscleMap({ id: "jg_simhasana", mp: ["neck"], ms: ["che"] }).mode, "none");
+  // The instruction to perform a strength variation is a meaningful custom edit.
+  const custom = resolveMuscleMap({ id: "jg_makarasana", mp: ["low"], ms: [], sessionRole: "strength" });
+  assert.deepEqual(custom.primary, ["low"]);
+  assert.equal(custom.mode, "strength");
+  assert.equal(custom.corrected, false);
+  assert.deepEqual(resolveMuscleMap({ id: "jg_makarasana", mp: ["low"], ms: ["glu"] }).primary, ["low"]);
+});
+
+test("named passive poses and a native scapular warm-up remain movement areas", () => {
+  assert.equal(resolveMuscleMap({ id: "jg_sphinx", mp: ["low"], ms: ["che"] }).mode, "mobility");
+  assert.equal(resolveMuscleMap({ id: "jg_virasana", mp: ["qua"], ms: ["cal"] }).mode, "mobility");
+  const scapula = resolveMuscleMap({ id: "gm_scap_retract_quad", mp: ["upb"], ms: [], sessionRole: "prep" });
+  assert.deepEqual(scapula.primary, ["upb", "serr"]);
+  assert.equal(scapula.mode, "mobility");
+  for (const id of ["kr_mob_016", "kr_mob_017", "kr_mob_018", "kr_mob_019"]) {
+    const rotation = resolveMuscleMap({ id, mp: ["sho"], ms: [] });
+    assert.deepEqual(rotation.primary, ["rcuff"]);
+    assert.deepEqual(rotation.secondary, ["sho"]);
+    assert.equal(rotation.mode, "mobility");
+  }
+});
+
+test("catalogue names alone never invent a missing muscle assignment", () => {
+  for (const id of ["jg_samasthiti", "jg_urdhva_hastasana", "jg_parsva_bakasana", "jg_ardha_navasana", "jg_hanumanasana"]) {
+    const result = resolveMuscleMap({ id, mp: [], ms: [], jg: { katalog: true } });
+    assert.deepEqual(result.primary, []);
+    assert.deepEqual(result.secondary, []);
+    assert.equal(result.mode, "unspecified");
+    assert.equal(result.corrected, false);
+  }
+});
+
+test("breathing and unspecified endurance do not borrow a misleading superficial muscle map", () => {
+  const breath = resolveMuscleMap({ id: "diaphragm", pat: "dech", mp: [], ms: ["abs"] });
+  assert.equal(breath.mode, "none");
+  assert.deepEqual(breath.secondary, []);
+  assert.ok(breath.note.en.includes("diaphragm"));
+  const endurance = resolveMuscleMap({ id: "zone2", mp: [], ms: ["qua", "cal", "ham"] });
+  assert.equal(endurance.mode, "unspecified");
+  assert.deepEqual(endurance.secondary, []);
+  assert.ok(endurance.note.cz);
+  const custom = resolveMuscleMap({ id: "zone2", mp: ["qua"], ms: ["cal"] });
+  assert.deepEqual(custom.primary, ["qua"]);
+  assert.equal(custom.corrected, false);
 });

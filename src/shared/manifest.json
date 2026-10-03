@@ -154,8 +154,8 @@
     "src/shared/version.js": "da5373e81e7537bf8c43ed77e46b11f8da9459312543138904b5f2a27148ce51",
     "src/training/adapters.js": "e9534cb51d6e15b0b323d6e41b91a6ffc7828c0a3f8a9fae7588f525adf1a2dc",
     "src/training/atlasResolver.js": "3f6c2f9885607dc35e1b9e05f0dfb8b796e607abe01d12410ed5c7a5a1b3c4e6",
-    "src/training/catalog.js": "87097a37cd77ba94ac33a5aee162343237806bc50370fc1f6a6da22dd17898fe",
-    "src/training/catalogOverlay.js": "eac9ec8856aaf7b0894e327e8291e59129f8a7e0f60efeec51c639d8b3000b1e",
+    "src/training/catalog.js": "993ddbe29ac84935c891be2c4f97164809f7c9d35c2df4f06b2774cbf7e11319",
+    "src/training/catalogOverlay.js": "e918bd3bd375aac2bf129e1fde20e77036c8885cbb91a5ea5a871559c4c72f9e",
     "src/training/catalogV2.js": "d206417a636bde68fd80fb479e18e7d3a2fbc2a0301766497cbdad5c99f3f8e0",
     "src/training/delivery.js": "d11148ead6d52ca0ada17623e720ca0980db9bd9b638bb8a6f8de9a6990cc40e",
     "src/training/deliveryStore.js": "e465bffea9b085699090e28b07c4849b7e9a832d755e4163487152c27b5c7126",
@@ -236,9 +236,12 @@
     "worker/booking/migrate.js": "e392b00374d0c823e8e60db93b34a2ac9eac211d4f48a25d7b702283736c7a6f",
     "worker/booking/repo.js": "55a74a7d1d3b329a908f7f63b9360af77e536fde1e84cfe58963bebc50277e59",
     "worker/booking/schema.js": "f247c943872a5aadbbaba353b3dc65dbb168e52d8d52a5f30dba2b1bf2f5ee89",
-    "src/shared/ui/UnifiedExerciseImage.jsx": "9017450a8c88b356a13b57c27668c7fd5eee6ff22a72b45282fd32b66d355bfe",
+    "src/shared/ui/UnifiedExerciseImage.jsx": "fc731efc451b2bb6b9c13033f9b74359f887bee4e80338861e723170865e1782",
     "src/shared/ui/muscleRegions.js": "9d8d3937ef972411c00f6392d710b9b80218fbc3730a436e7854b5e1b8edb48d",
-    "src/training/muscleMap.js": "9c168e62040c5a83a458249f93d69f076b3c9c26177e4ebd53e859ab3ddcd6d0",
-    "tests/muscle-map.test.js": "33a0338a0c75ad44047168f8d6008001e26a1f5cac5636ea04b589e75e696e64"
+    "src/training/muscleMap.js": "9b143fbceb63c13178ea8edeb8ab521fee70b6ba5c3845e816fa64b2d6a5a003",
+    "tests/muscle-map.test.js": "89220c53eb829382d0f6af8460f5b8e13baa6a71cb0dd739bb53a4f170e75f41",
+    "src/training/libraryReview.js": "c87b879f6627ea54aedeb1d6ac633cbb367b9b9c219a499d7e4ec401d6f7114c",
+    "tests/library-review.test.js": "e9fc1429a464c95b1d87a6fe527001f960b514c2254a351d541153d5c413180e",
+    "tests/library-links-review.test.js": "e1f188d2d54648abf0d08eb26da750188e0c6403b1a5baf17476da95bf1ebe1b"
   }
 }

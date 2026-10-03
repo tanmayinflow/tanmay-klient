@@ -33,6 +33,12 @@ const same = (value, expected) => Array.isArray(value) && value.length === expec
 const pair = (mp, ms, primary, secondary, mode) => ({ mp, ms, primary, secondary, mode });
 const gm = (primary, secondary = []) => pair(["sho", "low"], [], primary, secondary, "mobility");
 const lat = (mp, ms) => pair(mp, ms, mp.map(k => k === "upb" ? "lat" : k), ms, "strength");
+const row = (mp, ms) => pair(mp, ms, mp.flatMap(k => k === "upb" ? ["upb", "lat"] : [k]), ms, "strength");
+const REST_NOTE = {
+  cz: "Odpočinková, dechová nebo meditační poloha. Záznam neurčuje cílené posilování konkrétní svalové skupiny.",
+  en: "A resting, breathing or meditation posture. The record does not identify targeted strengthening of a specific muscle group.",
+};
+const rest = (mp, ms = []) => ({ ...pair(mp, ms, [], [], "none"), note: REST_NOTE, rest: true });
 
 // Exact IDs and exact previous signatures. No name, prefix or movement-pattern
 // heuristic assigns muscles. Ordering is deliberately part of the signature.
@@ -72,6 +78,87 @@ const CORRECTIONS = {
   straightarmpd: lat(["upb"], ["abs", "tri"]),
   faq_foot_chin: lat(["upb", "bic"], []),
   faq_chin_negative: lat(["upb", "bic"], []),
+  // The native instructions establish a straight-arm lever/pull. This narrows
+  // the legacy primary back label, without claiming a complete EMG ranking.
+  tucklever: lat(["upb", "abs"], ["fore", "sho"]),
+  frontlever: lat(["upb", "abs"], ["fore", "glu", "low"]),
+  icecream: lat(["upb", "abs"], ["fore", "bic"]),
+  flraise: lat(["upb", "abs"], ["fore", "low"]),
+  flrow: lat(["upb", "abs"], ["bic", "fore"]),
+  straddlefl: lat(["upb", "abs"], ["fore", "glu", "low"]),
+  advtucklever: lat(["upb", "abs"], ["fore", "sho"]),
+  onelegfl: lat(["upb", "abs"], ["fore", "glu"]),
+  halflayfl: lat(["upb", "abs"], ["fore", "glu", "low"]),
+  flneg: lat(["upb", "abs"], ["fore", "low"]),
+  fltouch: lat(["upb", "abs"], ["bic", "fore"]),
+  flpullup: lat(["upb", "bic"], ["fore", "abs"]),
+  oafl: lat(["upb", "abs"], ["fore", "obl", "low"]),
+  muscleup: lat(["upb", "che", "tri"], ["bic", "fore", "abs"]),
+  ropeclimb: lat(["upb", "bic", "fore"], ["abs", "tra"]),
+  an_dbpullover: lat(["upb", "che"], ["tri", "abs"]),
+  // Rows also retract the scapulae, so their broad back region is retained.
+  bodyrow: row(["upb", "bic"], ["fore", "abs"]),
+  dbrow: row(["upb", "bic"], ["low", "fore"]),
+  renegade: row(["upb", "abs"], ["obl", "sho", "fore"]),
+  bbrow: row(["upb", "bic"], ["low", "ham", "fore"]),
+  cablerow: row(["upb", "bic"], ["low", "fore"]),
+  inclrow: row(["upb", "bic"], ["fore", "tra"]),
+  archrow: row(["upb", "bic"], ["fore", "tra"]),
+  ringrow: row(["upb", "bic"], ["fore", "tra"]),
+  an_benchdbrow: row(["upb", "bic"], ["tra", "low"]),
+  tbarrow: row(["upb", "bic"], ["low", "ham", "fore"]),
+  landminerow: row(["upb", "bic"], ["low", "fore", "obl"]),
+  chestsupprow: row(["upb", "bic"], ["fore"]),
+  oacablerow: row(["upb", "bic"], ["obl", "fore"]),
+  faq_onearm_row: row(["upb", "bic"], []),
+  // Hip flexion is distinct from abdominal bracing or knee extension.
+  hollow: pair(["abs"], ["obl", "qua"], ["abs"], ["obl", "qua", "hipflex"], "strength"),
+  situp: pair(["abs"], ["obl"], ["abs"], ["obl", "hipflex"], "strength"),
+  bicycle: pair(["abs", "obl"], [], ["abs", "obl"], ["hipflex"], "strength"),
+  vup: pair(["abs"], ["obl", "qua"], ["abs", "hipflex"], ["obl", "qua"], "strength"),
+  flutter: pair(["abs"], ["qua"], ["abs", "hipflex"], ["qua"], "strength"),
+  tuckl: pair(["abs"], ["fore", "sho"], ["abs", "hipflex"], ["fore", "sho"], "strength"),
+  straddlesit: pair(["abs"], ["sho", "fore"], ["abs", "hipflex"], ["sho", "fore"], "strength"),
+  an_scissors: pair(["abs"], ["obl", "qua"], ["abs", "hipflex"], ["obl", "qua"], "strength"),
+  mtclimb: pair(["abs"], ["sho", "qua"], ["abs"], ["sho", "qua", "hipflex"], "strength"),
+  highknees: pair(["qua", "cal"], ["abs"], ["qua", "cal", "hipflex"], ["abs"], "strength"),
+  jg_paripurna_navasana: pair(["abs"], ["qua", "low"], ["abs", "hipflex"], ["qua", "low"], "strength"),
+  jg_uttana_padasana: pair(["abs", "low"], ["che", "qua"], ["abs", "low", "hipflex"], ["che", "qua"], "strength"),
+  couch: pair(["qua"], ["glu"], ["qua", "hipflex"], ["glu"], "mobility"),
+  frontsplit: pair(["ham", "qua"], ["glu"], ["ham", "qua", "hipflex"], ["glu"], "mobility"),
+  lizard: pair(["glu"], ["qua", "ham"], ["glu", "hipflex"], ["qua", "ham"], "mobility"),
+  jg_anjaneyasana: pair(["qua", "glu"], ["low", "sho"], ["hipflex", "qua"], ["glu", "low", "sho"], "mobility"),
+  jg_asva_sancalanasana: pair(["qua", "glu"], ["low"], ["hipflex", "qua"], ["glu", "low"], "mobility"),
+  jg_dragon: pair(["glu", "qua"], ["ham"], ["glu", "qua", "hipflex"], ["ham"], "mobility"),
+  // The native straddle/bound-angle variants abduct the hips; the adductors
+  // are a stretch target, not an omitted gluteal-strength exercise.
+  pancake: pair(["ham", "glu"], ["low"], ["ham", "add"], ["glu", "low"], "mobility"),
+  jg_upavistha_konasana: pair(["ham", "glu"], ["low"], ["ham", "add"], ["glu", "low"], "mobility"),
+  jg_baddha_konasana: pair(["glu"], ["low"], ["add"], ["low"], "mobility"),
+  jg_supta_baddha_konasana: pair(["glu"], ["che"], ["add"], ["che"], "mobility"),
+  gm_scap_retract_quad: pair(["upb"], [], ["upb", "serr"], [], "mobility"),
+  jg_pranamasana: rest(["sho"]),
+  jg_sukhasana: rest(["low"]),
+  jg_padmasana: rest(["low"]),
+  jg_siddhasana: rest(["low"]),
+  jg_viparita_karani: rest(["low"]),
+  jg_makarasana: rest(["low"]),
+  jg_simhasana: rest(["neck"], ["che"]),
+  diaphragm: {
+    ...pair([], ["abs"], [], [], "none"),
+    note: { cz: "Dechový nácvik. Bránice nemá v této povrchové mapě samostatnou oblast.", en: "Breathing practice. The diaphragm has no separate region in this surface map." },
+  },
+  zone2: {
+    ...pair([], ["qua", "cal", "ham"], [], [], "unspecified"),
+    note: { cz: "Vytrvalostní aktivita může být chůze, běh, kolo nebo plavání. Svaly určuje až zvolená aktivita.", en: "Endurance may mean walking, running, cycling or swimming. The chosen activity determines the muscles." },
+  },
+  // Passive rotation concerns the cuff as a group, not just the deltoid cap.
+  // The global mobility wording avoids claiming that every cuff muscle is
+  // contracting or being stretched equally during these different directions.
+  kr_mob_016: pair(["sho"], [], ["rcuff"], ["sho"], "mobility"),
+  kr_mob_017: pair(["sho"], [], ["rcuff"], ["sho"], "mobility"),
+  kr_mob_018: pair(["sho"], [], ["rcuff"], ["sho"], "mobility"),
+  kr_mob_019: pair(["sho"], [], ["rcuff"], ["sho"], "mobility"),
   kr_mob_063: pair(["upb"], [], ["lat"], [], "mobility"),
   kr_mob_064: pair(["upb"], [], ["lat"], [], "mobility"),
   kr_mob_065: pair(["upb"], [], ["lat"], [], "mobility"),
@@ -96,7 +183,10 @@ const ANKLE_NOTE = {
   en: "Ankle and instep mobility. This record does not identify one precise target muscle.",
 };
 const ANKLE_IDS = new Set(["kr_mob_098", "kr_mob_099", "kr_mob_100"]);
-const REST_IDS = new Set(["boxbreath", "co2", "jg_savasana", "jg_advasana", "jg_matsya_kridasana", "jg_shanmukhi_mudra"]);
+const REST_IDS = new Set([
+  "diaphragm", "boxbreath", "co2", "jg_savasana", "jg_advasana", "jg_matsya_kridasana", "jg_shanmukhi_mudra",
+  "jg_pranamasana", "jg_sukhasana", "jg_padmasana", "jg_siddhasana", "jg_viparita_karani", "jg_makarasana", "jg_simhasana",
+]);
 // Existing native instructions identify these specific drills as mobility.
 // Neither a neck pattern nor yoga provenance establishes the exercise's role:
 // resisted neck work, planks and arm balances remain active strength/skill work.
@@ -119,6 +209,7 @@ const MOBILITY_IDS = new Set([
   "jg_yoga_mudra", "jg_supta_vajrasana", "jg_ardha_kurmasana", "jg_sasangasana",
   "jg_dandayamana_bibhaktapada_pascimottanasana", "jg_supta_matsyendrasana",
   "jg_shoelace", "jg_saddle", "jg_dragon",
+  "jg_vajrasana", "jg_virasana", "jg_sphinx", "jg_halasana", "jg_karnapidasana", "germanhang",
 ]);
 const ROLE_MODES = {
   strength: "strength", hypertrophy: "strength", power: "strength",
@@ -134,13 +225,21 @@ export function resolveMuscleMap(ex) {
   let mode;
   let note;
   const correction = CORRECTIONS[row.id];
-  if (correction && same(row.mp, correction.mp) && same(row.ms, correction.ms)) {
+  if (correction && same(row.mp, correction.mp) && same(row.ms, correction.ms)
+    && (!correction.rest || !row.sessionRole || ROLE_MODES[row.sessionRole] === "none")) {
     primary = correction.primary;
     secondary = correction.secondary;
     mode = correction.mode;
+    note = correction.note;
     corrected = true;
   } else if (Object.hasOwn(MISSING_PROGRAMME, row.id) && row.mp == null && row.ms == null) {
     primary = MISSING_PROGRAMME[row.id];
+    secondary = [];
+    mode = "strength";
+    note = PROGRAMME_NOTE;
+    corrected = true;
+  } else if (["vi_squat", "vi_lunge"].includes(row.id) && same(row.mp, ["glu"]) && row.ms == null) {
+    primary = ["qua", "glu"];
     secondary = [];
     mode = "strength";
     note = PROGRAMME_NOTE;

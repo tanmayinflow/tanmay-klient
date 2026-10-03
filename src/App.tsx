@@ -1,3 +1,5 @@
+import { UnverifiedExerciseImage } from "./shared/ui/UnifiedExerciseImage.jsx";
+import { reviewLibraryCollection, isUnverifiedIllustration } from "./training/libraryReview.js";
 import { resolveMuscleMap, muscleMapEdit } from "./training/muscleMap.js";
 import { UNIFIED_ART } from './library/unified-art.js';
 import { MOVEMENT_ATLAS } from './generated/movementAtlasManifest';
@@ -2806,7 +2808,7 @@ const TEX_META_BASE = {
   revnordic: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "hinge", pc: ["kneeflex"] },
   wipers: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2 },
   compression: { t: "extended", g: "goal_eq", r: "strength", b: "strength", tr: 2, f: "press_horizontal" },
-  bridge: { t: "core", g: "generic", r: "mobility", b: "mobility", tr: 1, f: "hip_extension" },
+  bridge: {"t":"specialist","g":"explicit","r":"mobility","b":"mobility","tr":3,"f":"full_backbend","co":true,"pc":["coach"]},
   pancake: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1 },
   pikefold: { t: "core", g: "generic", r: "mobility", b: "mobility", tr: 1, f: "press_vertical" },
   elephantwalk: { t: "extended", g: "goal_eq", r: "mobility", b: "mobility", tr: 1 },
@@ -3025,7 +3027,7 @@ const tFamilyOf = (ex) => (ex && ex.family) || (tMetaOf(ex) || {}).f || ("id:" +
 const tCtxOf = (ex) => (tMetaOf(ex) || {}).ctx || null;
 
 // ---- what a careful person would want to know before choosing ----------------
-const tRequiresCoach = (ex) => (ex && ex.requiresCoach) || !!(tMetaOf(ex) || {}).co;
+const tRequiresCoach = (ex) => typeof ex?.requiresCoach === "boolean" ? ex.requiresCoach : !!(tMetaOf(ex) || {}).co;
 const tPrecautionsOf = (ex) => (ex && ex.precautions) || (tMetaOf(ex) || {}).pc || [];
 const tHasPrecaution = (ex, code) => tPrecautionsOf(ex).includes(code);
 
@@ -3458,6 +3460,7 @@ const T_FIGS = {
 // per-exercise figure · falls back to the pattern pictogram for custom exercises
 function TExArt({ ex, size = 120, stroke, dotColor, showDot = true, fluid = false }) {
   const { t } = useT();
+  if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted} />;
   const atlas = ex && (UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   const fig = ex && T_FIGS[ex.id];
@@ -3571,7 +3574,7 @@ const TEX_SEED = [
   { id: "slrdl", cz: "Mrtvý tah na jedné noze", en: "Single-Leg RDL", pat: "ohyb", S: 2, C: 2, J: { kyc: 1, pat: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["ham", "glu"], ms: ["low", "cal"], dot: [34, 84], ez: "glutebridge", hd: null,
     foc: ["Záda dlouhá. Pohyb dělají boky, ne páteř.", "Long spine. The hips do the moving, not the back."],
     pos: ["Stoj na jedné noze, měkké koleno. Druhá noha volně vzadu.", "Stand on one leg, knee soft. The other leg free behind you."],
-    exe: ["Boky vzad, trup a zadní noha klesají v jedné linii. Do protažení hamstringu, pak boky vpřed a nahoru.", "Hips back, torso and rear leg lower in one line. Into the hamstring stretch, then hips forward and up."],
+    exe: ["Boky vzad, trup klesá vpřed a zadní noha se zvedá za tělem. Trup a zadní noha zůstávají v jedné linii. Do protažení hamstringu, pak zpět do stoje.","Hinge the hips back as the torso lowers forward and the rear leg rises behind you. Keep the torso and rear leg in one line. Reach the hamstring stretch, then return to standing."],
     wat: ["Boky rovně k zemi. Kulacení zad končí sérii.", "Hips square to the ground. A rounding back ends the set."],
     pro: ["Přidej zátěž do ruky proti stojné noze.", "Add weight in the hand opposite the standing leg."] },
   { id: "superman", cz: "Záklon vleže", en: "Back Extension", pat: "ohyb", S: 1, C: 1, J: { kyc: 1 }, pop: 3, eq: ["telo"], mode: "reps", mp: ["low"], ms: ["glu", "upb"], dot: [58, 70], ez: null, hd: null,
@@ -3927,7 +3930,7 @@ const TEX_SEED_4B = [
     foc: ["Lokty končí vedle uší, lopatky stažené k sobě a dolů.", "Elbows finish beside the ears, shoulder blades drawn together and down."],
     pos: ["Guma ukotvená ve výšce obličeje, úchop obouruč, paže natažené.", "Band anchored at face height, both hands gripping, arms extended."],
     exe: ["Táhni k obličeji, lokty vysoko a ven. Krátce podrž, pomalu zpět.", "Pull toward the face, elbows high and wide. Hold briefly, return slowly."],
-    wat: ["Ramena nelezou k uším. Malá váha, čistý pohyb — tohle je zdraví ramen.", "Shoulders stay away from the ears. Light load, clean movement — this is shoulder health."],
+    wat: ["Ramena nelezou k uším. Použij lehký odpor a kontrolovaný pohyb.","Keep the shoulders away from the ears. Use light resistance and controlled movement."],
     pro: ["Pevnější guma, pauza v koncové pozici.", "A stronger band, a pause at the end range."] },
   // ---------------- STŘED · CORE ----------------
   { id: "birddog", cz: "Bird dog", en: "Bird Dog", pat: "stred", S: 1, C: 1, pop: 3, eq: ["telo"], mode: "reps", mp: ["abs", "low"], ms: ["glu", "sho"], dot: [100, 138], ez: null, hd: "deadbug",
@@ -3964,8 +3967,8 @@ const TEX_SEED_4B = [
   { id: "headstand", cz: "Stoj na hlavě", en: "Headstand", pat: "obrat", S: 2, C: 4, J: { krk: 3, ram: 2, zap: 1 }, pop: 2, eq: ["telo"], mode: "sec", mp: ["sho", "abs"], ms: ["upb", "neck"], dot: [86, 164], ez: null, hd: "wallhs",
     foc: ["Váhu nesou předloktí. Hlava se země jen dotýká.", "The forearms carry the weight. The head only touches the ground."],
     pos: ["Předloktí na zemi, prsty spletené za hlavou — temeno v trojúhelníku.", "Forearms down, fingers laced behind the head — crown inside the triangle."],
-    exe: ["Kolena na lokty, najdi rovnováhu, pak pomalu natáhni nohy vzhůru.", "Knees onto the elbows, find balance, then extend the legs slowly upward."],
-    wat: ["Krk se nehýbe — když cítíš tlak v krku, dolů. Pád řeš kotoulem.", "The neck never moves — pressure in the neck means come down. A fall becomes a roll."],
+    exe: ["Zvedni boky, přejdi po špičkách blíž a pomalu zvedni nohy. Tlač předloktími do země.","Lift the hips, walk the feet closer and slowly raise the legs. Press the forearms into the floor."],
+    wat: ["Krkem během výdrže nehýbej. Při nepříjemném tlaku v krku se kontrolovaně vrať dolů. Vstup i výstup nacvič s učitelem.","Keep the neck still during the hold. If you feel uncomfortable neck pressure, lower with control. Practise entering and leaving the pose with a teacher."],
     pro: ["Delší výdrž, zvedání nohou bez švihu, pak stoj na rukou u zdi.", "Longer holds, leg lifts without swing, then the wall handstand."] },
   { id: "wallwalk", cz: "Chůze po zdi", en: "Wall Walk", pat: "obrat", S: 2, C: 4, J: { zap: 2, ram: 2 }, pop: 2, eq: ["zed"], mode: "reps", mp: ["sho"], ms: ["abs", "tra", "che"], dot: [88, 142], ez: "pike", hd: "wallhs",
     foc: ["Ramena zůstávají nad dlaněmi. Krok za krokem, žádný spěch.", "The shoulders stay over the hands. Step by step, no rush."],
@@ -4041,7 +4044,7 @@ const TEX_SEED_5 = [
     foc: ["Pánev se neotáčí. Otevírá se jen koleno.", "The pelvis never rolls. Only the knee opens."],
     pos: ["Leh na boku, kolena pokrčená na sobě, paty v linii s trupem.", "Side-lying, knees bent and stacked, heels in line with the torso."],
     exe: ["Horní koleno otevři vzhůru, paty zůstávají u sebe. Pomalu zpět.", "Open the top knee upward, heels staying together. Return slowly."],
-    wat: ["Základ zdravých kyčlí a kolen — fyzioterapeutická klasika. Pomalu a přesně.", "The floor of healthy hips and knees — a physiotherapy classic. Slow and precise."],
+    wat: ["Pohyb veď pomalu. Paty drž u sebe a trup neotáčej dozadu.","Move slowly. Keep the heels together and avoid rolling the torso backward."],
     pro: ["Guma nad koleny, výdrž v otevření.", "A band above the knees, a hold at the top."] },
   { id: "sideleg", cz: "Unožování vleže", en: "Side-Lying Leg Raise", pat: "ohyb", S: 1, C: 1, J: { kyc: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["glu"], ms: ["obl"], dot: [106, 152], ez: "clamshell", hd: null,
     foc: ["Noha jede vzhůru a mírně vzad. Špička vpřed, ne ke stropu.", "The leg rises up and slightly back. Toes forward, never to the ceiling."],
@@ -4054,13 +4057,13 @@ const TEX_SEED_5 = [
     foc: ["I u zdi je tělo jedna linie. Tady se učí každý klik.", "Even at the wall the body is one line. Every push-up is learned here."],
     pos: ["Dlaně na zeď pod rameny, chodidla krok a půl od zdi.", "Palms on the wall under the shoulders, feet a step and a half away."],
     exe: ["Hrudník ke zdi, lokty zhruba 45°. Silně zpět do propnutí.", "Chest to the wall, elbows near 45 degrees. Press back to straight arms."],
-    wat: ["Boky se nelámou, paty mohou ze země. První cvik po zranění i první cvik vůbec.", "Hips never fold; heels may lift. The first exercise after injury — and often the first ever."],
+    wat: ["Boky se nelámou, paty mohou ze země. Vzdálenost od zdi uprav tak, abys pohyb ovládal.","Keep the hips in line; heels may lift. Adjust your distance from the wall so you can control the movement."],
     pro: ["Dál od zdi, pak klik na kolenou.", "Step further from the wall, then the knee push-up."] },
   { id: "scapush", cz: "Lopatkový klik", en: "Scapula Push-Up", pat: "tlak", S: 1, C: 1, J: { zap: 1, ram: 1 }, pop: 2, eq: ["telo"], mode: "reps", mp: ["serr"], ms: ["sho", "tra", "abs"], dot: [86, 140], ez: null, hd: "pushup",
     foc: ["Lokty propnuté. Pohyb dělají jen lopatky.", "Elbows locked. Only the shoulder blades move."],
     pos: ["Vzpor na rukou, tělo jedna linie, paže propnuté.", "Straight-arm plank, body in one line, arms locked."],
     exe: ["Hrudník klesá mezi lopatky, pak zatlač zem pryč a lopatky roztáhni. Malý, pomalý pohyb.", "The chest sinks between the blades, then push the ground away and spread them. Small, slow movement."],
-    wat: ["Zdraví ramen pro každý tlak i stoj na rukou. Boky se nehýbou.", "Shoulder health for every press and handstand. The hips never move."],
+    wat: ["Lokty drž propnuté a boky nehybné. Pohyb je malý a kontrolovaný.","Keep the elbows straight and the hips still. Use a small, controlled movement."],
     pro: ["Na jedné ruce u zdi, nebo ve stoji na rukou.", "One-arm at the wall, or inside the handstand."] },
   { id: "dbtriext", cz: "Tricepsová extenze", en: "Overhead Triceps Extension", pat: "tlak", S: 2, C: 1, J: { ram: 1 }, pop: 2, eq: ["zavazi"], mode: "reps", mp: ["tri"], ms: ["sho", "abs"], dot: [96, 64], ez: null, hd: null,
     foc: ["Lokty míří vpřed a nehýbou se. Pracuje jen předloktí.", "Elbows point forward and never move. Only the forearm travels."],
@@ -4153,7 +4156,7 @@ const TEX_SEED_5B = [
     wat: ["Měkké doskoky, kolena pruží. Nejstarší rozehřátí světa funguje.", "Soft landings, springy knees. The world's oldest warm-up still works."],
     pro: ["Rychlejší rytmus, delší interval.", "A quicker rhythm, a longer interval."] },
   { id: "highknees", cz: "Vysoká kolena", en: "High Knees", pat: "prenos", S: 1, C: 1, J: { kot: 1 }, pop: 2, eq: ["telo"], mode: "sec", mp: ["qua", "cal"], ms: ["abs"], dot: [126, 116], ez: null, hd: "sprint",
-    foc: ["Kolena zvedá střed těla, trup zůstává vysoký.", "The core lifts the knees; the torso stays tall."],
+    foc: ["Kolena zvedej střídavě před tělo. Trup drž vzpřímený a pánev stabilní.","Lift the knees alternately in front of you. Keep the torso tall and the pelvis steady."],
     pos: ["Stoj, běžecký postoj, pohled vpřed.", "Standing tall, runner's posture, eyes ahead."],
     exe: ["Běh na místě, kolena k výšce boků, paže v běžeckém rytmu.", "Run on the spot, knees to hip height, arms in running rhythm."],
     wat: ["Žádné zaklánění. Došlap na přední část chodidla.", "No leaning back. Land on the forefoot."],
@@ -4206,7 +4209,7 @@ const TEX_SEED_6 = [
     foc: ["Činka jede svisle nad středem chodidla. Vždy.", "The bar travels vertically over midfoot. Always."],
     pos: ["Činka na trapézech, lopatky stažené, úchop pevný. Stoj na šířku boků.", "Bar on the traps, shoulder blades set, grip firm. Hip-width stance."],
     exe: ["Nádech do břicha, dřep do hloubky, kterou udrží záda i paty. Silně nahoru, výdech nahoře.", "Breathe into the belly, squat as deep as the back and heels allow. Drive up strongly, exhale at the top."],
-    wat: ["Kolena za špičkami, trup zpevněný proti čince. Technika před zátěží — pokaždé.", "Knees track the toes, torso braced against the bar. Technique before load — every time."],
+    wat: ["Kolena sledují směr špiček, trup zpevněný proti čince. Technika před zátěží, pokaždé.","Knees track the toes, torso braced against the bar. Technique before load, every time."],
     pro: ["Přidávej pomalu a zapisuj. Pak přední dřep.", "Add weight slowly and log it. Then the front squat."] },
   { id: "frontsquat", cz: "Přední dřep", en: "Front Squat", pat: "drep", S: 4, C: 3, J: { kol: 2, pat: 2 }, pop: 2, eq: ["cinka"], mode: "reps", mp: ["qua", "abs"], ms: ["glu", "upb"], dot: [96, 168], ez: "bbsquat", hd: null,
     foc: ["Lokty drží výš než činka. Spadnou lokty, spadne všechno.", "Elbows stay higher than the bar. When the elbows drop, everything drops."],
@@ -4440,7 +4443,7 @@ const TEX_SEED_8 = [
     wat: ["Tělo drží linii v obou směrech. Začni v tucku.", "The line holds both ways. Start tucked."],
     pro: ["Natažené tělo, víc opakování.", "Straight body, more reps."] },
   { id: "flraise", cz: "Front lever raise", en: "Front Lever Raise", pat: "tah", S: 3, C: 5, J: { lok: 3, ram: 2 }, pop: 1, eq: ["hrazda"], mode: "reps", mp: ["upb", "abs"], ms: ["fore", "low"], dot: [120, 74], ez: "straddlefl", hd: "flrow",
-    foc: ["Propnuté tělo stoupá z visu do leveru silou lopatek.", "The straight body rises from the hang to the lever on shoulder-blade strength."],
+    foc: ["Tahem propnutých paží zvedej zpevněné tělo z visu do leveru.","Pull through straight arms to raise the braced body from the hang into the lever."],
     pos: ["Vis nadhmatem, tělo jedno prkno.", "Overhand hang, body as one plank."],
     exe: ["Zvedni celé tělo do vodorovna a pomalu vrať do visu.", "Raise the whole body horizontal, then lower slowly back to the hang."],
     wat: ["Žádný švih z boků. Kratší dráha s linií je víc než celá bez ní.", "No hip kick. A shorter path with the line beats a full one without it."],
@@ -4538,7 +4541,7 @@ const TEX_SEED_8B = [
     foc: ["Koleno co nejdál přes špičku, zadní noha dlouhá. Lýtko se dotkne stehna.", "The knee travels as far past the toes as it can, back leg long. Calf touches hamstring."],
     pos: ["Dlouhý výpad, přední pata pevně na zemi.", "A long split stance, front heel rooted."],
     exe: ["Klesej, dokud lýtko nepotká stehno, koleno daleko vpřed. Přes patu zpět.", "Sink until calf meets thigh, knee far forward. Drive back through the heel."],
-    wat: ["Pata nesmí letět nahoru — radši menší hloubka. Zdraví kolen se staví tady.", "The heel must not lift — take less depth instead. Knee health is built here."],
+    wat: ["Přední patu drž opřenou. Pokud se zvedá, zmenši hloubku.","Keep the front heel supported. Reduce the depth if it lifts."],
     pro: ["Zadní koleno k zemi, závaží u hrudníku.", "Rear knee to the ground, a weight at the chest."] },
   { id: "tibraise", cz: "Tibialis raise", en: "Tibialis Raise", pat: "drep", S: 1, C: 1, J: { kot: 1 }, pop: 2, eq: ["telo", "zed"], mode: "reps", mp: ["cal"], ms: [], dot: [96, 166], ez: null, hd: null,
     foc: ["Špičky zvedá holenní sval — pojistka kolen a kotníků.", "The shin muscle lifts the toes — insurance for knees and ankles."],
@@ -4569,7 +4572,7 @@ const TEX_SEED_8C = [
     wat: ["Kulacení beder pryč — trup vysoký. Základ L-sedu, V-sedu i pressu.", "No lumbar collapse — torso tall. The floor of the L-sit, the V-sit and the press."],
     pro: ["Ruce za hlavou, pak L-sed.", "Hands behind the head, then the L-sit."] },
   // ---------------- MOBILITA · THE EDUCATOR LINES ----------------
-  { id: "bridge", cz: "Bridge · Most", en: "Bridge", pat: "mobilita", S: 1, C: 1, pop: 3, eq: ["telo"], mode: "sec", mp: ["low", "sho"], ms: ["glu", "qua", "che"], dot: [100, 116], ez: "glutebridge", hd: null,
+  { id: "bridge", cz: "Bridge · Most", en: "Bridge", pat: "mobilita", S: 4, C: 2, pop: 3, eq: ["telo"], mode: "sec", mp: ["low", "sho"], ms: ["glu", "qua", "che"], dot: [100, 116], ez: null, hd: null,
     foc: ["Otevírají se ramena a hrudní páteř, ne bedra. Tlač zem od hlavy.", "The shoulders and thoracic spine open, not the lower back. Push the ground away from the head."],
     pos: ["Leh, chodidla u hýždí, dlaně u uší prsty k ramenům.", "Lying down, feet by the hips, palms by the ears fingers to shoulders."],
     exe: ["Vytlač se do plného mostu, paže propnuté, kolena nad kotníky. Dýchej a drž.", "Press into the full bridge, arms straight, knees over ankles. Breathe and hold."],
@@ -4642,7 +4645,7 @@ const TEX_SEED_9 = [
     exe: ["Nejdřív stáhni lopatky dolů. Pak teprve táhni lokty k žebrům. Nahoru bradou nad hrazdu, dolů pomalu do plného visu.", "Pull the shoulder blades down first. Only then draw the elbows to the ribs. Chin over the bar, then lower slowly to a full hang."],
     wat: ["Guma pomáhá nejvíc dole a mění křivku odporu. Drž plný rozsah a neodrážej se.", "The band helps most at the bottom and changes the resistance curve. Keep the full range and do not kip."],
     pro: ["Postupně použij slabší gumu. Negativní shyby, přítahy a izometrie jsou další rovnocenné kroky podle člověka.", "Move to a lighter band. Negatives, rows and isometrics are equally good next steps, depending on the person."]},
-  { id: "banddip", cz: "Dip s gumou", en: "Band-Assisted Dip", pat: "tlak", S: 1, C: 1, J: { lok: 1, ram: 2 }, pop: 2, eq: ["bradla", "guma"], mode: "reps", mp: ["che", "tri"], ms: ["sho", "abs"], dot: [60, 55], ez: "benchdips", hd: "dips", cat: "sila", rec: 2,
+  { id: "banddip", cz: "Dip s gumou", en: "Band-Assisted Dip", pat: "tlak", S: 1, C: 1, J: { lok: 1, ram: 2 }, pop: 2, eq: ["bradla", "guma"], mode: "reps", mp: ["che", "tri"], ms: ["sho", "abs"], dot: [60, 55], ez: null, hd: "dips", cat: "sila", rec: 2,
     foc: ["Ramena dolů od uší po celou dobu.", "Shoulders down away from the ears, the whole way."],
     pos: ["Guma napříč bradly, kolena do ní. Vzpor s napnutými pažemi, ramena zatlačená dolů.", "Band across the bars, knees into it. Support with straight arms, shoulders pressed down."],
     exe: ["Klesej, dokud rameno není v úrovni lokte. Lokty vzad, ne do stran. Zpět nahoru do plného vzporu.", "Lower until the shoulder is level with the elbow. Elbows back, not out. Press back to a full support."],
@@ -4651,7 +4654,7 @@ const TEX_SEED_9 = [
   { id: "eccham", cz: "Excentrický hamstring", en: "Eccentric Hamstring Slider", pat: "ohyb", S: 1, C: 1, pop: 3, eq: ["telo"], mode: "reps", mp: ["ham"], ms: ["glu", "low"], dot: [55, 78], ez: "glutebridge", hd: "nordic", cat: "rehab", rec: 2,
     foc: ["Brzdi. Celý cvik je o tom, co povolíš pomalu.", "Brake. The whole exercise is what you let go of slowly."],
     pos: ["Leh na zádech, paty na kluzáku (nebo ručníku na hladké podlaze), most nahoře.", "Lie on your back, heels on sliders (or a towel on a smooth floor), hips lifted into a bridge."],
-    exe: ["Pomalu vysunuj paty od sebe a drž boky nahoře co nejdéle. Když už most neudržíš, polož se a paty přitáhni zpět bez odporu.", "Slide the heels away slowly, holding the hips up as long as you can. When the bridge fails, set down and draw the heels back without resistance."],
+    exe: ["Pomalu vysunuj obě paty dopředu od hýždí a drž boky nahoře co nejdéle. Když už most neudržíš, polož se a paty přitáhni zpět bez odporu.","Slide both heels forward away from the hips slowly, holding the hips up as long as you can. When the bridge fails, set down and draw the heels back without resistance."],
     wat: ["Práce je jen ven. Zpět se nikdy netáhne silou.", "The work is only outward. The return is never forced."],
     pro: ["Delší dráha, pomalejší tempo, pak nordic curl.", "A longer slide, a slower tempo, then the Nordic curl."] },
   { id: "hinge", cz: "Nácvik hipu s tyčí", en: "Dowel Hip Hinge", pat: "ohyb", S: 1, C: 1, J: { kyc: 1 }, pop: 3, eq: ["telo"], mode: "reps", mp: ["ham", "glu"], ms: ["low"], dot: [55, 70], ez: null, hd: "slrdl", cat: "mob", rec: 1,
@@ -4738,7 +4741,7 @@ const TEX_SEED_9 = [
     foc: ["Loket zůstává u těla. Otáčí se předloktí, ne rameno.", "The elbow stays at the ribs. The forearm rotates, not the shoulder."],
     pos: ["Loket u těla v pravém úhlu, ručník pod loktem. Guma vodorovně.", "Elbow at the ribs at ninety degrees, a towel under it. The band horizontal."],
     exe: ["Otoč předloktí ven, pomalu zpět. 3 s ven, 3 s zpět.", "Rotate the forearm outward, return slowly. 3 s out, 3 s back."],
-    wat: ["Lehká guma. Tohle není silový cvik.", "A light band. This is not a strength exercise."],
+    wat: ["Použij lehkou gumu a drž pohyb pomalý a kontrolovaný.","Use a light band and keep the movement slow and controlled."],
     pro: ["Přidávej odpor bez ztráty polohy lokte a lopatky. Použij jako cílenou práci zevních rotátorů.", "Add resistance without losing the position of the elbow and the shoulder blade. Use it as focused work for the external rotators."]},
   { id: "ytw", cz: "Y-T-W na břiše", en: "Prone Y-T-W", pat: "tah", S: 1, C: 1, pop: 2, eq: ["telo"], mode: "reps", mp: ["upb", "tra"], ms: ["rcuff", "sho", "low"], dot: [58, 45], ez: null, hd: "extrot", cat: "rehab", rec: 1,
     foc: ["Lopatky dělají práci. Ruce jsou jen ukazatel.", "The shoulder blades do the work. The hands only point."],
@@ -5287,7 +5290,7 @@ const TEX_SEED_CM = [
     foc: ["Krouží jen koleno, kyčel drží.", "Only the knee circles, the hip stays."],
     pos: ["Stoj u opory, jedno koleno zvednuté vpřed.", "Stand by support, one knee lifted forward."],
     exe: ["Krouž holení a kolenem do plného rozsahu, pomalu a s kontrolou.", "Circle the shin and knee through full range, slow and controlled."],
-    wat: ["Kyčel klidná, pohyb jen v koleni. Chrání koleno pro dřepy a skoky.", "The hip is quiet, the movement only at the knee. It protects the knee for squats and jumps."],
+    wat: ["Kyčel drž klidnou. Pohyb veď pomalu a bez násilí do krajní polohy.","Keep the hip quiet. Move slowly without forcing the end range."],
     pro: ["Větší kruh, delší kontrola.", "Bigger circle, longer control."] },
 ];
 
@@ -5570,7 +5573,7 @@ const TEX_SEED_VI = [
     pro: ["Zvyš zátěž nebo přidej abdukce na zadní ramena.", "Add load or rear-delt abduction."] },
   { id: "vi_biceps", cz: "Biceps", en: "Biceps", pat: "tah", S: 1, C: 1, pop: 2, eq: ["cinka", "guma"], mode: "reps",
     foc: ["Lokty u těla, plný rozsah.", "Elbows in, full range."], pos: ["Stoj nebo sed, lokty u trupu, zápěstí v neutrálu.", "Standing or seated, elbows at the ribs, wrists neutral."],
-    exe: ["Bicepsové zdvihy s velkou osou/jednoručkami, přítah na TRX (funkční varianta).", "Barbell/dumbbell curls, TRX curls (functional variant)."], wat: ["Programová šablona, ne jeden cvik. Trupem neškubej a zátěž volí tak, aby loket i zápěstí zůstaly bez bolesti.", "A programme template, not a single exercise. Do not jerk with the trunk, and choose a load that leaves elbow and wrist pain-free."],
+    exe: ["Bicepsové zdvihy s velkou osou/jednoručkami, přítah na TRX (funkční varianta).", "Barbell/dumbbell curls, TRX curls (functional variant)."], wat: ["Programová šablona, ne jeden cvik. Trupem neškubej a zátěž vol tak, aby loket i zápěstí zůstaly bez bolesti.","A programme template, not a single exercise. Do not jerk with the trunk, and choose a load that leaves elbow and wrist pain-free."],
     pro: ["Zvyš zátěž, jednadvacítka nebo negativa.", "Add load, twenty-ones or negatives."] },
   { id: "vi_triceps", cz: "Triceps", en: "Triceps", pat: "tlak", S: 1, C: 1, pop: 2, eq: ["kladka", "cinka", "telo"], mode: "reps",
     foc: ["Lokty stabilní, plná extenze.", "Elbows stable, full extension."], pos: ["Podle zvolené varianty: vzpor na bradlech, leh na lavici, nebo stoj u kladky.", "By the variant chosen: support on the bars, lying on a bench, or standing at the cable."],
@@ -12915,7 +12918,10 @@ export default function App() {
   // Verze leží V datech, ne v localStorage. Reset proto proběhne právě jednou a
   // nikdy podruhé. Původní tréninková větev se před ním odloží do vlastního
   // klíče, který se nikdy sám neobnovuje a nic mimo trénink neobsahuje.
-  const tvApply = (c) => (TV.isCurrentSchema(c) ? c : TV.resetTrainingDomain(c, { now: Date.now() }).coll);
+  const tvApply = (c) => {
+    c = reviewLibraryCollection(c);
+    return TV.isCurrentSchema(c) ? c : TV.resetTrainingDomain(c, { now: Date.now() }).coll;
+  };
   const tvBackupOnce = () => {
     const cur = _collRef.current || {};
     if (TV.isCurrentSchema(cur)) return;

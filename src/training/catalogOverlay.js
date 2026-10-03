@@ -48,6 +48,32 @@ const BASE = {
   pallof: { f: "core_antirotation", vk: "cable" },
   presshs: { f: "handstand_press", vk: "straddle" },
 
+  // Keep a spinal curl separate from elbow curls in both app catalogues.
+  jefferson: { f: "id:jefferson" },
+  archersq: { f: "squat_unilateral", side: "perSide" },
+
+  // Explicitly unilateral instructions need per-side recording. An existing
+  // row's own sideMode still wins; no stored set or result is rewritten here.
+  oap: { side: "perSide" },
+  oapush: { side: "perSide" },
+  onearmhs: { side: "perSide" },
+  slbalance: { side: "perSide" },
+  onelegfl: { side: "perSide" },
+  oafl: { side: "perSide" },
+  dragonsquat: { side: "perSide" },
+  anklemob: { side: "perSide" },
+  couch: { side: "perSide" },
+  openbook: { side: "perSide" },
+  hipcars: { side: "perSide" },
+  jg_vasisthasana: { side: "perSide" },
+  jg_triang_mukhaikapada: { side: "perSide" },
+  jg_utthita_trikonasana: { side: "perSide" },
+  jg_natarajasana: { side: "perSide" },
+  jg_parighasana: { side: "perSide" },
+  jg_dandayamana_janusirasana: { side: "perSide" },
+  jg_dandayamana_dhanurasana: { side: "perSide" },
+  jg_supta_matsyendrasana: { side: "perSide" },
+
   // ---- measurement exceptions ----------------------------------------
   boxjump: { m: "HEIGHT_REPS", rest: 90, f: "jump_vertical", vk: "box" },
   an_highjump: { m: "HEIGHT_REPS", f: "jump_vertical", vk: "standing" },
