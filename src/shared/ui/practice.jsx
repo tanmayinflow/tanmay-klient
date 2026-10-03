@@ -34,7 +34,7 @@ export function createPracticeUI(deps) {
     WB_ZNAMENI, tmWbOf, tmWbDates, usePraxeStats,
     fmtCZ, todayISO, shiftISO, moonPhaseOf, moonName, sunsetOf,
     // role a data, která jsou v každém domě jiná
-    AllDayEvents = null, DenVPraxi = null, journalArchive = null, flow = null, caps = null,
+    AllDayEvents = null, DenVPraxi = null, journalArchive = null, flow = null, caps = null, mandalaAvailable = true,
   } = deps;
 
   // Ikonový systém · jedna řeč pro glyfy návyků i výběr vlastní ikony
@@ -183,7 +183,7 @@ export function createPracticeUI(deps) {
       <div data-pv="zamer" style={{ display: "flex", alignItems: "center", gap: 16, margin: "2px 0 4px" }}>
         {/* the quiet door · "Today I am" and its small ring open the Mandala —
             the room of selves you tune into before you name the day */}
-        <button data-pv="mandala" className="tm-tap-c" onClick={() => go && go("mandala")} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} title={L("Osobní mandala · aspekty self", "Personal mandala · aspects of self")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", padding: 0, flexShrink: 0, lineHeight: "1.4", whiteSpace: "nowrap" }}>
+        {mandalaAvailable ? <button data-pv="mandala" className="tm-tap-c" onClick={() => go && go("mandala")} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} title={L("Osobní mandala · aspekty self", "Personal mandala · aspects of self")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", padding: 0, flexShrink: 0, lineHeight: "1.4", whiteSpace: "nowrap" }}>
           <span aria-hidden="true" style={{ position: "relative", width: 15, height: 15, flexShrink: 0, display: "inline-flex" }}>
             <span style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `1.5px solid ${hov ? t.accent : t.sand}`, transition: "border-color .3s ease, transform .4s ease", transform: hov ? "rotate(45deg)" : "none" }} />
             <span style={{ position: "absolute", left: "50%", top: 1.5, bottom: 1.5, width: 1, background: hov ? t.accent : t.borderSoft, transform: "translateX(-50%)", transition: "background .3s ease" }} />
@@ -191,7 +191,7 @@ export function createPracticeUI(deps) {
             <span style={{ position: "absolute", left: "50%", top: "50%", width: 3.4, height: 3.4, borderRadius: "50%", background: t.accent, transform: "translate(-50%,-50%)" }} />
           </span>
           <span style={{ fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, color: hov ? t.accent : t.sand, transition: "color .3s ease" }}>{L("Dnes jsem", "Today I am")}</span>
-        </button>
+        </button> : <span style={{fontFamily:"var(--tm-font-display)",fontStyle:"italic",fontSize:17,color:t.inkSand||t.sand,flexShrink:0}}>{L("Dnes jsem", "Today I am")}</span>}
         <input value={plan.iam || ""} onChange={(e) => setP("iam", e.target.value)} aria-label={L("Dnes jsem", "Today I am")} placeholder={L("charakter a příběhy, které držím…", "the character and stories I carry…")} className="tm-navod" style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderBottom: "none", color: t.heading, fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, lineHeight: "1.4", padding: 0, outline: "none", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }} />
       </div>
     );
@@ -594,7 +594,7 @@ export function createPracticeUI(deps) {
     const firstYM = (flow && flow.length) ? flow[0].d.slice(0, 7) : curYM;
     const [ym, setYm] = useState(curYM);
     const shiftYM = (m, k) => { const [y, mo] = m.split("-").map(Number); const d = new Date(y, mo - 1 + k, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
-    const HTOT = Math.max(1, st.activeHabits().length);
+    const HTOT = st.activeHabits().length;
     const [Y, Mo] = ym.split("-").map(Number);
     const first = new Date(Y, Mo - 1, 1);
     const startW = (first.getDay() + 6) % 7;
@@ -1018,7 +1018,7 @@ export function createPracticeUI(deps) {
         {polozky.map((x) => {
           const on = prah === x.k;
           return (
-            <button key={x.k} role="tab" aria-selected={on} onClick={() => onPrah(x.k)}
+            <button key={x.k} role="tab" data-guide-open={({rano:"praxe.today",den:"praxe.habits",vecer:"praxe.evening"})[x.k]} aria-selected={on} onClick={() => onPrah(x.k)}
               style={{ background: "transparent", border: "none", borderBottom: `2px solid ${on ? t.accent : "transparent"}`, cursor: "pointer",
                 padding: "8px 14px 9px", marginBottom: -1, display: "flex", alignItems: "center", gap: 7,
                 fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 12,
@@ -1035,13 +1035,14 @@ export function createPracticeUI(deps) {
   function DayView({ go, prah: prahIn, calOpen, onCal }) {
     const { t } = useT();
     const st = useStore();
+    const [editingHabits, setEditingHabits] = useState(false);
     // POJISTKA · kdyby sem někdy přišlo jméno, které tahle karta nezná, vykreslí
     // se Den. Prázdná karta je horší než špatná sekce: vypadá jako ztracená data.
     const prah = TM_PRAHY.indexOf(prahIn) >= 0 ? prahIn : "den";
     const date = st.selDate;
     const day = st.getDay(date);
     const tracked = st.has(date);
-    const HTOT = Math.max(1, st.activeHabits().length);
+    const HTOT = st.activeHabits().length;
     const DEN = Math.max(0, HTOT - (day.r || 0));   // kolik jich dnes vůbec platí
     // dvě rychlá klepnutí po sobě četla týž snímek `day.h` a druhé přepsalo první
     const uloz = (j, v) => {
@@ -1060,6 +1061,8 @@ export function createPracticeUI(deps) {
        hned nato klepnout jinam. (Tatáž past jako u malování výběru v dávce 37.) */
     const drz = React.useRef({ t: null, snez: false });
     const drzDat = React.useRef({ t: null, ok: false }); // podržení data → memento
+    const mementoAvailable = mandalaAvailable || !!st.coll?.memento?.zapnuto;
+    React.useEffect(() => () => clearTimeout(drzDat.current.t), []);
     const dolu = (j) => {
       drz.current.snez = false;
       clearTimeout(drz.current.t);
@@ -1083,19 +1086,19 @@ export function createPracticeUI(deps) {
     };
     return (
       <div id="dayview" data-practice-phase={prah} style={{ margin: "8px 0 0" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div data-guide="praxe.today" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", rowGap: 8, minWidth: 0 }}>
             {/* šipky dne bez rámečku · tlačítkem zůstávají, jen se nekreslí jako pole */}
             <button onClick={() => st.setSelDate(shiftISO(date, -1))} aria-label={L("předchozí den", "previous day")} style={{ ...calBtn(t, false), border: "none", fontSize: 20, color: t.textMuted }}><FamilyIcon id="back" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             <div>
               {/* klepnutí rozbalí kalendář · dlouhé podržení otevře memento mori */}
-              <div role="button" title={L("kalendář · podržením memento mori", "calendar · hold for memento mori")}
-                onPointerDown={() => { clearTimeout(drzDat.current.t); drzDat.current.t = setTimeout(() => { drzDat.current.ok = true; go && go("memento"); }, 550); }}
+              <button type="button" title={mementoAvailable ? L("kalendář · podržením memento mori", "calendar · hold for memento mori") : L("Otevřít kalendář", "Open calendar")}
+                onPointerDown={() => { clearTimeout(drzDat.current.t); if (mementoAvailable) drzDat.current.t = setTimeout(() => { drzDat.current.ok = true; go && go("memento"); }, 550); }}
                 onPointerUp={() => clearTimeout(drzDat.current.t)}
                 onPointerLeave={() => clearTimeout(drzDat.current.t)}
                 onContextMenu={(e) => e.preventDefault()}
                 onClick={() => { if (drzDat.current.ok) { drzDat.current.ok = false; return; } onCal && onCal(); }}
-                style={{ fontFamily: "var(--tm-font-display)", fontSize: 22, color: t.heading, cursor: "pointer", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", borderBottom: calOpen ? `2px solid ${t.accent}` : "2px solid transparent" }}>{fmtCZ(date)}</div>
+                style={{ background: "transparent", border: "none", padding: 0, fontFamily: "var(--tm-font-display)", fontSize: 22, color: t.heading, cursor: "pointer", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", borderBottom: calOpen ? `2px solid ${t.accent}` : "2px solid transparent" }}>{fmtCZ(date)}</button>
             </div>
             <button onClick={() => st.setSelDate(shiftISO(date, 1))} aria-label={L("další den", "next day")} style={{ ...calBtn(t, false), border: "none", fontSize: 20, color: t.textMuted }}><FamilyIcon id="forward" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </div>
@@ -1109,12 +1112,17 @@ export function createPracticeUI(deps) {
         {/* NÁVYKY · páteř dne — stojí ve všech třech prazích, protože odškrtnout
             se dá kdykoli. Nic jiného se neopakuje. */}
 
-        {st.editMode ? (
-          <HabitInlineEditor />
+        {st.editMode || editingHabits ? (
+          <div><HabitInlineEditor />{editingHabits && !st.editMode && <button onClick={()=>setEditingHabits(false)} style={{...calBtn(t,false),minHeight:44,marginTop:8}}>{L("Hotovo", "Done")}</button>}</div>
+        ) : !st.activeHabits().length ? (
+          <div style={{padding:"10px 0 18px"}}>
+            <p style={{fontFamily:"var(--tm-font-body)",fontSize:14,color:t.textSec,lineHeight:1.6}}>{L("Vyber si jednu maličkost, ke které se chceš pravidelně vracet.", "Choose one small thing you want to return to regularly.")}</p>
+            <button data-guide="praxe.habits" onClick={()=>{const defs=st.habitDefs();st.setHabitDefs([...defs,{slot:defs.reduce((m,d)=>Math.max(m,d.slot),-1)+1,icon:"○",name:L("Nový návyk","New habit")}]);setEditingHabits(true);}} style={{...calBtn(t,false),minHeight:44,color:t.accentInk||t.accent}}>{L("Přidat návyk", "Add a habit")}</button>
+          </div>
         ) : (
         <div className="tm-habitgrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px,1fr))", gap: 8, marginTop: prah === "rano" ? 4 : 0 }}>
-          {st.activeHabits().map(({ icon, iconId, name, slot: j }) => (
-            <button key={j} onClick={() => toggle(j)} onPointerDown={() => dolu(j)} onPointerUp={pust} onPointerLeave={pust} onPointerCancel={pust}
+          {st.activeHabits().map(({ icon, iconId, name, slot: j }, habitIndex) => (
+            <button data-guide={habitIndex===0?"praxe.habits":undefined} key={j} onClick={() => toggle(j)} onPointerDown={() => dolu(j)} onPointerUp={pust} onPointerLeave={pust} onPointerCancel={pust}
               onContextMenu={(e) => e.preventDefault()} className="tm-nav-item tm-hbtn"
               title={day.h[j] === 2 ? L("Dnes ne, schválně · podrž a vrátí se", "Not today, on purpose · hold to undo") : L("Klepni · drž a odlož na dnešek", "Tap · hold to set aside for today")}
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", minHeight: 48, borderRadius: 8, background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
@@ -1179,7 +1187,7 @@ export function createPracticeUI(deps) {
             {/* Věta si drží odstup od hrany displeje · dosud končila přesně
                 na okraji sloupce a vypadala jako přilepená. */}
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16, paddingRight: 10 }}><StatusCycle date={date} /></div>
-            <Toggle summary={L("Ohlédnutí", "Review")} color="orange" centered bezHrany><VecerniOhlednuti date={date} /></Toggle>
+            <Toggle summary={<span data-guide="praxe.evening">{L("Ohlédnutí", "Review")}</span>} color="orange" centered bezHrany><VecerniOhlednuti date={date} /></Toggle>
             <div style={{ height: 22 }} />
             <WellbeingTracker />
             {/* Deník dne · v klientském domě je Deník volitelný a soukromý.

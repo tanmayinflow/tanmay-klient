@@ -1,3 +1,4 @@
+import {useGuideAction} from "./guideNavigation.jsx";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
 // ----------------------------------------------------------------------
 // KOMPAS · jedna orientace pro oba domy
@@ -284,7 +285,7 @@ export function createCompassUI(deps) {
   }
 
   // ---- tabulka krajin -----------------------------------------------------
-  function AreaTable({ onOpen }) {
+  function AreaTable({ onOpen, guide }) {
     const { t, tags } = useT();
     const st = useStore();
     const all = st.allGoals();
@@ -301,14 +302,14 @@ export function createCompassUI(deps) {
     const th = { fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 12, color: t.sage, padding: "9px 12px", borderBottom: `1px solid ${t.border}` };
     return (
       <div style={{ border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-sm)", overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: cols, background: t.tableHead }}>
+        <div data-guide={st.listAreas().length ? undefined : guide} style={{ display: "grid", gridTemplateColumns: cols, background: t.tableHead }}>
           <div style={th}>{L("Krajina", "Landscape")}</div><div style={th}>{L("Poslední hodnocení", "Latest rating")}</div><div style={{ ...th, textAlign: "right" }}>{L("Cíle", "Goals")}</div>
         </div>
         {st.listAreas().map((a) => {
           const r = lastRating(a);
           const s2 = statFor(a.name);
           return (
-            <button key={a.name} onClick={() => onOpen && onOpen(a.name)} className="tm-nav-item" style={{ display: "grid", width: "100%", gridTemplateColumns: cols, alignItems: "center", minHeight: 44, background: "transparent", border: "none", cursor: "pointer", textAlign: "left", borderBottom: "none" }}>
+            <button key={a.name} data-guide={guide} onClick={() => onOpen && onOpen(a.name)} className="tm-nav-item" style={{ display: "grid", width: "100%", gridTemplateColumns: cols, alignItems: "center", minHeight: 44, background: "transparent", border: "none", cursor: "pointer", textAlign: "left", borderBottom: "none" }}>
               <span style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 9 }}>
                 <AreaGlyph name={a.name} size={15} />
                 <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text }}>{areaLabel(a.name)}</span>
@@ -590,6 +591,7 @@ export function createCompassUI(deps) {
     const [sel, setSel] = useState(null); // {type:'goal'|'area', id}
     const [full, setFull] = useState(null); // {type, id} · celostránkový detail
     const [addingArea, setAddingArea] = useState(false);
+    useGuideAction("cile", () => { setSel(null); setFull(null); setAddingArea(false); });
     React.useEffect(() => { if (full) tmToTop(); }, [full && full.id]);
 
     const openGoal = (name) => setSel({ type: "goal", id: name });
@@ -641,7 +643,7 @@ export function createCompassUI(deps) {
             <AreaChips onOpen={openArea} onAdd={() => setAddingArea(true)} />
           </div>
         )}
-        <div className="tm-tab-rail" style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}` }}>
+        <div data-guide="cile.overview" className="tm-tab-rail" style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}` }}>
           {G_VIEWS.map((v) => (
             <button key={v} onClick={() => setView(v)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "10px 11px 11px", minHeight: 40, fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: view === v ? t.accent : t.textMuted, borderBottom: view === v ? `2px solid ${t.accent}` : "2px solid transparent", marginBottom: -1 }}>{LV(v)}</button>
           ))}
@@ -683,6 +685,7 @@ export function createCompassUI(deps) {
     const { t } = useT();
     const st = useStore();
     const [dilna, setDilna] = useState(false);
+    useGuideAction("kompas",()=>{setDilna(false);setSel(null);});
     const [sel, setSel] = useState(null); // {type:'goal'|'area', id}
     const [addingArea, setAddingArea] = useState(false);
     const live = st.allGoals().filter((g) => !g.archive);
@@ -699,7 +702,7 @@ export function createCompassUI(deps) {
         <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcKompas size={40} /></span>} pageKey="kompas" kicker={L("Orientace", "Orientation")}>{L("Kompas", "Compass")}</PageTitle>
         <p className="tm-prose" style={pProse(t)}>{L("Dnešní krok. Širší směr. Celá krajina.", "Today's step. The wider direction. The whole landscape.")}</p>
         <Divider className="tm-compass-divider" />
-        <Eyebrow>{L("Dnešní krok", "Today's step")}</Eyebrow>
+        <Eyebrow><span data-guide="kompas.direction">{L("Dnešní krok", "Today's step")}</span></Eyebrow>
         <div style={twoCol}>
           <div>
             {/* „Dnešní cíle · datum" se sneslo · nadpis stránky ho už řekl */}
@@ -780,7 +783,7 @@ export function createCompassUI(deps) {
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
           <span style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent }}>{L("Dílna", "The workshop")}</span>
           <span style={{ flex: 1 }} />
-          <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcCile size={13} /></span>} label={L("Otevřít dílnu", "Open the workshop")} onClick={() => setDilna(true)} />
+          <span data-guide="kompas.goals" style={{display:"inline-block"}}><LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcCile size={13} /></span>} label={L("Otevřít dílnu", "Open the workshop")} onClick={() => setDilna(true)} /></span>
         </div>
         {dilna && (
           <CenterSheet title={L("Dílna · cíle a krajiny", "Workshop · goals and landscapes")} onClose={() => setDilna(false)}>
@@ -802,6 +805,7 @@ export function createCompassUI(deps) {
     const [sel, setSel] = useState(null);
     const [full, setFull] = useState(null); // {type, id} · celostránkový detail
     const [adding, setAdding] = useState(false);
+    useGuideAction("oblasti", () => { setSel(null); setFull(null); setAdding(false); });
     React.useEffect(() => { if (full) tmToTop(); }, [full && full.id]);
     if (full) {
       return (
@@ -821,7 +825,7 @@ export function createCompassUI(deps) {
         {adding ? <AddAreaForm onDone={() => setAdding(false)} /> : (
           <button onClick={() => setAdding(true)} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: "var(--tm-r-sm)", padding: "11px 13px", minHeight: 40, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nová krajina", "New landscape")}</button>
         )}
-        <AreaTable onOpen={(name) => setSel({ type: "area", id: name })} />
+        <AreaTable guide="oblasti.overview" onOpen={(name) => setSel({ type: "area", id: name })} />
         <Drawer open={!!sel} onClose={() => setSel(null)}>
           {sel && sel.type === "area" && <AreaDetail name={sel.id} openGoal={(n) => setSel({ type: "goal", id: n })} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
           {sel && sel.type === "goal" && <GoalDetail name={sel.id} openArea={(n) => setSel({ type: "area", id: n })} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}

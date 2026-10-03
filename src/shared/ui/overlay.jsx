@@ -133,7 +133,7 @@ export function createOverlay(useT, L) {
   // uvěznit její `position: fixed`. Na počítači přijíždí zprava, na telefonu
   // (≤820 px, přes CSS) je z ní spodní list s držadlem — stáhnout přes ~90 px
   // a zavře se, jinak se vrátí.
-  function Drawer({ open, onClose, children, titulek }) {
+  function Drawer({ open, onClose, children, titulek, vrstva = 190 }) {
     const { t } = useT();
     const korenRef = React.useRef(null);
     const [dragY, setDragY] = React.useState(0);
@@ -154,7 +154,7 @@ export function createOverlay(useT, L) {
     if (!live) return null;
     return (
       <DrawerTelo
-        t={t} korenRef={korenRef} out={out} onClose={onClose} titulek={titulek}
+        t={t} korenRef={korenRef} out={out} onClose={onClose} titulek={titulek} vrstva={vrstva}
         dragY={dragY} setDragY={setDragY} snapping={snapping} setSnapping={setSnapping}
         touched={touched} setTouched={setTouched} startRef={startRef}
       >{children}</DrawerTelo>
@@ -164,7 +164,7 @@ export function createOverlay(useT, L) {
   /* Tělo je vlastní komponenta, aby hooky vrstvy (Escape, zámek, focus,
      historie) běžely jen po dobu, kdy zásuvka opravdu stojí. Kdyby seděly
      v `Drawer`, běžely by i zavřené a Escape by patřil neexistující vrstvě. */
-  function DrawerTelo({ t, korenRef, out, onClose, titulek, children, dragY, setDragY, snapping, setSnapping, touched, setTouched, startRef }) {
+  function DrawerTelo({ t, korenRef, out, onClose, titulek, vrstva, children, dragY, setDragY, snapping, setSnapping, touched, setTouched, startRef }) {
     useVrstva({ close: onClose, ref: korenRef });
     const onGripStart = (e) => { startRef.current = e.touches[0].clientY; setTouched(true); setSnapping(false); };
     const onGripMove = (e) => {
@@ -180,7 +180,7 @@ export function createOverlay(useT, L) {
     };
     return createPortal(
       <>
-        <div onClick={onClose} className={"tm-dim" + (out ? " tm-out" : "")} style={{ position: "fixed", inset: 0, background: t.overlay, backdropFilter: "blur(2.5px)", WebkitBackdropFilter: "blur(2.5px)", zIndex: 180, animation: "tmDim .28s ease both" }} />
+        <div onClick={onClose} className={"tm-dim" + (out ? " tm-out" : "")} style={{ position: "fixed", inset: 0, background: t.overlay, backdropFilter: "blur(2.5px)", WebkitBackdropFilter: "blur(2.5px)", zIndex: vrstva - 10, animation: "tmDim .28s ease both" }} />
         <div
           ref={korenRef}
           role="dialog"
@@ -188,7 +188,7 @@ export function createOverlay(useT, L) {
           aria-label={titulek || undefined}
           className={"tm-drawer" + (out ? " tm-out" : "")}
           style={{
-            position: "fixed", zIndex: 190, background: t.bg, overflowY: "auto", WebkitOverflowScrolling: "touch",
+            position: "fixed", zIndex: vrstva, background: t.bg, overflowY: "auto", WebkitOverflowScrolling: "touch",
             animation: touched ? "none" : undefined,
             transform: dragY ? `translateY(${dragY}px)` : undefined,
             transition: snapping ? "transform .26s cubic-bezier(.23,.62,.22,.99)" : undefined,

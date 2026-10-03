@@ -36,10 +36,12 @@ test("místnost trenéra není v klientské aplikaci směrovaná", () => {
 });
 
 test("střídání účtu odklidí i média předchozího člověka", () => {
-  const fn = app.slice(app.indexOf("function ownerQuarantine"), app.indexOf("function ownerQuarantine") + 900);
+  const fn = app.slice(app.indexOf("function ownerQuarantine"), app.indexOf("const clientAccount"));
   assert.ok(fn.includes("tm_pinned"), "registr připnutých");
   assert.ok(fn.includes('caches.delete("pinned")'), "mezipaměť připnutých médií");
-  assert.ok(fn.includes('deleteDatabase("tanmay_files")'), "místní přílohy");
+  assert.ok(fn.includes('"tm_files_namespace"'), "místní přílohy mají vlastní zachovaný prostor");
+  assert.ok(fn.includes('archive.put(request, response)'), "připnutá média se před přepnutím zachovají");
+  assert.doesNotMatch(fn, /deleteDatabase/, "offline přílohy předchozího účtu se nesmějí zničit");
   assert.ok(fn.includes("__owner_"), "obsah se odkládá, nemaže");
 });
 
@@ -89,6 +91,7 @@ test("každá místnost ve směrovači je opravdu definovaná", () => {
   // Stránka je „definovaná" i tehdy, když přijde z továrny sdíleného jádra —
   // Kompas je jedna implementace pro oba domy, ne dvě funkce v každém souboru.
   const definovana = (n) => new RegExp("function " + n + "\\s*\\(").test(app)
+    || new RegExp("(?:const|let)\\s+" + n + "\\s*=\\s*create[A-Za-z]+\\(").test(app)
     || new RegExp("(?:const|let)\\s*\\{[^}]*\\b" + n + "\\b[^}]*\\}\\s*=\\s*create[A-Za-z]+\\(", "s").test(app);
   const missing = [...used].filter((n) => !definovana(n));
   assert.deepEqual(missing, [], "směrovač ukazuje na nedefinované komponenty");
@@ -130,7 +133,8 @@ test("odeslání jde přes jedno místo, které pozná proč selhalo", () => {
   const hola = (app.match(/fetch\("\/api\/state/g) || []).length;
   assert.equal(hola, 0, "všechna volání stavu jdou přes syncFetch");
   assert.match(app, /syncFetch\("\/api\/state\?meta=1"\)/, "kontrola verze čte jen razítko");
-  assert.match(app, /import \{[^}]*syncFetch[^}]*\} from "\.\/shared\/product\/sync\.js"/);
+  assert.match(app, /import \{[^}]*syncDruh[^}]*\} from "\.\/shared\/product\/sync\.js"/);
+  assert.match(app, /await clientFetch\(path/, "state calls also verify the mounted account");
 });
 
 test("proužek nabídne cestu ven, ne jen „Rozumím\"", () => {
@@ -145,7 +149,7 @@ test("úklid souborů nepovažuje přihlašovací stránku za přečtený stav",
   // bez jediné reference, a odsud vede cesta k mazání cizích příloh.
   const i = app.indexOf("window.tmGcFiles = async");
   assert.ok(i > 0);
-  const blok = app.slice(i, i + 1200);
+  const blok = app.slice(i, i + 1600);
   assert.match(blok, /sv\.druh === SYNC_OK && sv\.telo && sv\.telo\.doc/);
   assert.equal(/if \(sr\.ok\) \{[^}]*stateOk = true/.test(blok), false);
 });
@@ -155,9 +159,11 @@ test("úklid souborů nepovažuje přihlašovací stránku za přečtený stav",
 // odesláním, cizí karta i návrat k záložce se poznají, a rozhoduje člověk.
 test("odeslání se ptá na verzi serveru a nikdy tiše nepřepisuje", () => {
   assert.match(app, /const _readServer = async \(\) =>/);
-  assert.match(app, /if \(s && s\.doc && s\.doc\.coll && s\.ver > _ver\.current\) \{ setConflict\(\{ doc: s\.doc, ver: s\.ver \}\); return false; \}/);
+  assert.match(app, /if \(s && s\.doc && s\.doc\.coll && s\.ver > baseVersion\) \{ setConflict\(\{ doc: s\.doc, ver: s\.ver \}\); return false; \}/);
   assert.match(app, /const _readVer = async \(\) =>/, "razítko verze se čte levně");
-  assert.match(app, /else if \(sdoc && typeof sdoc === "object" && sdoc\.coll && nepreneseno && serverPosunut\)/);
+  assert.match(app, /bootstrapSyncDecision\(/);
+  assert.match(app, /else if \(decision === "conflict"\)/);
+  assert.match(app, /baseVersion: sver/, "bootstrap write must be bound to the fetched generation");
   assert.match(app, /window\.addEventListener\("storage", onStorage\)/);
   assert.match(app, /document\.addEventListener\("visibilitychange", onVis\)/);
   assert.match(app, /if \(conflict\) return; \/\/ čeká rozhodnutí člověka/);
@@ -193,7 +199,8 @@ test("starý tréninkový model není aktivní cesta produktu", () => {
 });
 
 test("doručený plán se opravdu čte · půlka roury je horší než žádná", () => {
-  assert.match(app, /fetch\("\/api\/plan"/, "plán, který se nikdy nevyzvedne, není plán");
+  assert.match(app, /clientFetch\("\/api\/plan"/, "plán se načítá jen pod ověřeným účtem");
+  assert.match(app, /if \(!stateHydrated \|\| member !== true \|\| conflict\) return;/, "delivery waits until private state has been hydrated");
   assert.match(app, /tvSetDelivered|delivered: doc/, "a někam se musí uložit");
 });
 

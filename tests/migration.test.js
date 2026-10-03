@@ -48,6 +48,7 @@ test("schéma se dorovná samo, i když databáze byla stará", async () => {
 
   const t = await tabulky(env);
   for (const n of NUTNE) assert.ok(t.has(n), "chybí tabulka " + n);
+  assert.ok(t.has("personal_profiles"), "první otevření člena připraví osobní profil");
   const c = await sloupce(env, "members");
   for (const n of ["name", "share", "modules"]) assert.ok(c.indexOf(n) !== -1, "chybí sloupec members." + n);
 
@@ -63,6 +64,9 @@ test("druhý běh migrace je no-op · nic nepřibude, nic nezmizí", async () =>
   const env = makeEnv();
   await worker.fetch(req("/api/me", { email: A }), env);
   await worker.fetch(req("/api/join", { email: A, method: "POST", body: { word: "otevri se" } }), env);
+  // Joining creates a member. The first authenticated opening then imports
+  // that member's legacy name into their personal profile, once only.
+  await worker.fetch(req("/api/me", { email: A }), env);
   await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: { coll: { tajne: "A" }, edits: {} } } }), env);
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS bookings (id TEXT PRIMARY KEY, user_id TEXT)").run();
   await env.DB.prepare("INSERT INTO bookings (id, user_id) VALUES ('b1', 'klient-a-example-test')").run();

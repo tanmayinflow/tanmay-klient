@@ -29,7 +29,13 @@ export const CLIENT_PRIVATE_SOURCE_FIELDS = Object.freeze([
   "note", "highlights", "progress", "carry", "at",
 ]);
 
-export const SOURCE_PROGRESS = Object.freeze(["Nezačato", "Čtu", "Hotovo", "Odloženo"]);
+export const SOURCE_PROGRESS = Object.freeze(["Ready to start", "In progress", "Finished"]);
+const LEGACY_PROGRESS = Object.freeze({
+  "Nezačato": "Ready to start", "Čtu": "In progress", "Hotovo": "Finished",
+  // A postponed source stays in the waiting queue; it is not completed.
+  "Odloženo": "Ready to start", "Reading": "In progress", "Listening": "In progress",
+});
+export const sourceProgress = (value) => SOURCE_PROGRESS.includes(value) ? value : Object.hasOwn(LEGACY_PROGRESS, value) ? LEGACY_PROGRESS[value] : SOURCE_PROGRESS[0];
 
 const isStr = (v) => typeof v === "string";
 const isNum = (v) => typeof v === "number" && Number.isFinite(v);
@@ -70,7 +76,7 @@ export function sanitizeClientSourceNote(n) {
   if (!n || typeof n !== "object") return out;
   if (isStr(n.note)) out.note = n.note.slice(0, 20000);
   if (isStr(n.carry)) out.carry = n.carry.slice(0, 4000);
-  if (isStr(n.progress) && SOURCE_PROGRESS.indexOf(n.progress) !== -1) out.progress = n.progress;
+  if (isStr(n.progress) && (SOURCE_PROGRESS.includes(n.progress) || Object.hasOwn(LEGACY_PROGRESS, n.progress))) out.progress = sourceProgress(n.progress);
   if (Array.isArray(n.highlights)) {
     out.highlights = n.highlights.filter(isStr).slice(0, 200).map((h) => h.slice(0, 2000));
   }
@@ -85,7 +91,7 @@ export function sanitizeClientSourceNote(n) {
  * @param {object}   poznamky   `{ [sourceId]: { note, carry, progress, highlights } }`
  */
 export function mergeSources(vlastni, odTrenera, poznamky) {
-  const out = (vlastni || []).map((s) => ({ ...s, origin: SOURCE_ORIGIN.CLIENT, locked: false }));
+  const out = (vlastni || []).map((s) => ({ ...s, progress: sourceProgress(s.progress), origin: SOURCE_ORIGIN.CLIENT, locked: false }));
   const doc = odTrenera && Array.isArray(odTrenera.sources) ? odTrenera.sources : [];
   const pz = poznamky || {};
   for (const s of doc) {
@@ -105,7 +111,7 @@ export function mergeSources(vlastni, odTrenera, poznamky) {
       // klientovo
       note: p.note || "",
       carry: p.carry || "",
-      progress: p.progress || SOURCE_PROGRESS[0],
+      progress: sourceProgress(p.progress),
       highlights: Array.isArray(p.highlights) ? p.highlights : [],
       origin: SOURCE_ORIGIN.COACH,
       locked: true,
@@ -142,7 +148,7 @@ export function forkSource(shared, poznamka, novyId) {
     excerpt: shared.excerpt || "",
     note: p.note || "",
     carry: p.carry || "",
-    progress: p.progress || SOURCE_PROGRESS[0],
+    progress: sourceProgress(p.progress),
     highlights: Array.isArray(p.highlights) ? p.highlights : [],
     origin: SOURCE_ORIGIN.CLIENT,
     locked: false,

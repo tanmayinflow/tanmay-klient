@@ -21,7 +21,7 @@ export function MoonCompanion({lang,Sheet,t,onPlan,day,cycle,ownCycle=false}) {
   useEffect(()=>{const update=()=>setNow(new Date());const id=setInterval(update,60000);window.addEventListener("focus",update);return()=>{clearInterval(id);window.removeEventListener("focus",update);};},[]);
   const moon=useMemo(()=>moonToday(dateForAstrology(day)||now),[day,now]);
   return <>
-    <button type="button" className="tg-moon" onClick={()=>setOpen(true)} aria-label={L("Otevřít astrologickou oblohu vybraného dne","Open the selected day's astrological sky")} title={L("Obloha dne","Sky of the day")}>
+    <button data-guide="spolu.sky" type="button" className="tg-moon" onClick={()=>setOpen(true)} aria-label={L("Otevřít astrologickou oblohu vybraného dne","Open the selected day's astrological sky")} title={L("Obloha dne","Sky of the day")}>
       <MoonArt phase={moon.phase}/>
     </button>
     {open&&Sheet&&<Sheet title={L("Obloha dne","Sky of the day")} onClose={()=>setOpen(false)}>

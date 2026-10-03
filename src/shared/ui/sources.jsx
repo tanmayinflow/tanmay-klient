@@ -417,7 +417,7 @@ export function createSourcesUI(deps) {
 
         {qOpen && <HdrSearch value={q} onChange={setQ} onClose={() => setQOpen(false)} placeholder={L("Hledat v pramenech…", "Search the sources…")} />}
 
-        <div className="tm-tabsrow" style={{ borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
+        <div data-guide="prameny.filters" className="tm-tabsrow" style={{ borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
           <div className="tm-typerow" style={{ display: "flex", gap: 2, alignItems: "center", flex: 1, minWidth: 0 }}>
             {/* prázdné typy mlčí · záložka se ukáže, až když má co nést */}
             {TABS.filter((v) => v === "Vše" || v === view || (counts[v] || 0) > 0).map((v) => (
@@ -467,7 +467,7 @@ export function createSourcesUI(deps) {
             <button onClick={() => setAdding(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{L("Zrušit", "Cancel")}</button>
           </div>
         ) : (
-          <button onClick={() => setAdding(true)} className="tm-dash" style={{ background: "transparent", border: "none", borderRadius: 8, padding: "10px 2px", cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left", marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nový titul", "New title")}</button>
+          <button data-guide="prameny.library" onClick={() => setAdding(true)} className="tm-dash" style={{ background: "transparent", border: "none", borderRadius: 8, padding: "10px 2px", cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left", marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nový titul", "New title")}</button>
         )}
 
         <div ref={listRefC} className="tm-scroll tm-dnolist" style={{ marginTop: 6, maxHeight: "min(620px, calc(62 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${holdingC ? t.accent : t.borderSoft}`, borderRadius: 20, padding: "4px 10px 10px", transition: "border-color .15s ease" }}>

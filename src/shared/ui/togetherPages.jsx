@@ -1,4 +1,6 @@
-import React,{useState,useEffect,useRef} from "react";
+import React,{useState,useEffect,useRef,useMemo} from "react";
+import {usePersonalProfile,isPersonalProfileVerified,refreshPersonalProfile} from "./personalProfile.jsx";
+import {createTogetherAccountRequest} from "../product/togetherAccountClient.js";
 import {PARTNER_ROOMS,cleanPartnerPages} from "../product/togetherPages.js";
 
 export function PartnerPages({data,canTrack,lang,save,getPages,busy}) {
@@ -18,24 +20,26 @@ export function PartnerPages({data,canTrack,lang,save,getPages,busy}) {
 // Mounted only in Main. Never fetches or stores the full Main state in the client app.
 // Explicit server grants precede projection and transmission. Link and page CAS stop old publishers after revocation.
 export function TogetherPublisher({getPages,version}) {
+  const {accountKey}=usePersonalProfile();
+  const request=useMemo(()=>createTogetherAccountRequest({accountKey,verified:isPersonalProfileVerified,refresh:refreshPersonalProfile}),[accountKey]);
   const get=useRef(getPages);get.current=getPages;
   const running=useRef(false);
   useEffect(()=>{
     let live=true;
     const sync=async()=>{
-      if(running.current||document.visibilityState!=="visible"||!navigator.onLine)return;
+      if(!accountKey||!isPersonalProfileVerified(accountKey)||running.current||document.visibilityState!=="visible"||!navigator.onLine)return;
       running.current=true;
       try{
-        const r=await fetch("/api/together/pages",{cache:"no-store"});if(!r.ok)return;const granted=await r.json();
+        const granted=await request("/api/together/pages");
         if(!live||!granted.ok||!granted.rooms.length)return;
         const pages=cleanPartnerPages(get.current(granted.rooms),granted.rooms);
         if(JSON.stringify(pages)===JSON.stringify(granted.pages))return;
-        await fetch("/api/together/pages",{method:"PUT",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify({pages,revision:granted.revision,linkId:granted.linkId,linkRevision:granted.linkRevision})});
+        await request("/api/together/pages",{method:"PUT",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify({pages,revision:granted.revision,linkId:granted.linkId,linkRevision:granted.linkRevision})});
       }catch{/* A failed refresh retains the visible last-updated time. No offline queue. */}finally{running.current=false;}
     };
     const timer=setTimeout(sync,1500),interval=setInterval(sync,30000);
     window.addEventListener("focus",sync);window.addEventListener("online",sync);document.addEventListener("visibilitychange",sync);
     return()=>{live=false;clearTimeout(timer);clearInterval(interval);window.removeEventListener("focus",sync);window.removeEventListener("online",sync);document.removeEventListener("visibilitychange",sync);};
-  },[version]);
+  },[version,accountKey,request]);
   return null;
 }

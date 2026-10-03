@@ -8,6 +8,22 @@ import { makeEnv, req } from "./helpers/env.js";
 const A = "klient-a@example.test";
 const B = "klient-b@example.test";
 
+test("mounted account guard rejects a session switch before reading or writing another account", async () => {
+  const env = makeEnv();
+  await joined(env, A); await joined(env, B);
+  const a = await (await worker.fetch(req("/api/me", { email: A }), env)).json();
+  for (const [path, method] of [["/api/state", "GET"], ["/api/state", "PUT"], ["/api/plan", "GET"], ["/api/files/test", "PUT"]]) {
+    const res = await worker.fetch(req(path, { email: B, method, headers: { "X-Tanmay-Owner": a.owner }, ...(method === "PUT" ? { body: { doc: { coll: { journal: ["PRIVATE A"] } } } } : {}) }), env);
+    assert.equal(res.status, 409, path);
+    assert.equal((await res.json()).code, "account-changed");
+  }
+  const untouched = await (await worker.fetch(req("/api/state", { email: B }), env)).json();
+  assert.equal(untouched.doc, null);
+  assert.equal(env.FILES._store.size, 0);
+  const own = await worker.fetch(req("/api/state", { email: A, headers: { "X-Tanmay-Owner": a.owner } }), env);
+  assert.equal(own.status, 200);
+});
+
 async function joined(env, email) {
   await worker.fetch(req("/api/me", { email }), env); // jako aplikace: nejdřív se představ
   const r = await worker.fetch(req("/api/join", { email, method: "POST", body: { word: "otevri se" } }), env);

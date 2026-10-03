@@ -1,6 +1,6 @@
 import { STATE_LIMIT, ensureStateStorage, encodeState, readStateMeta, readStateDocument, writeStateDocument, stateFailure } from "../src/shared/product/stateStorage.js";
 import { handleTogether } from "../src/shared/product/togetherApi.js";
-import { handlePersonalProfile } from "../src/shared/product/personalProfile.js";
+import { clientProfile, handleClientProfile, handleLegacyClientName } from "./clientProfile.js";
 import { createSkyTimeZoneHandler } from "../src/shared/product/skyGeocodingApi.js";
 const handleSkyTimeZone=createSkyTimeZoneHandler({fetchImpl:(...args)=>globalThis.fetch(...args)});
 import { readDelivery, writeDelivery, receiveDelivery } from "../src/training/deliveryStore.js";
@@ -161,7 +161,8 @@ async function isMember(env, userId) {
 async function handleMe(env, userId) {
   await ensureSchema(env);
   const row = await env.DB.prepare("SELECT name FROM members WHERE user_id = ?").bind(userId).first();
-  return Response.json({ member: !!row, name: (row && row.name) || "", owner: await ownerTag(userId) });
+  const personal = row ? await clientProfile(env.DB, userId) : null;
+  return Response.json({ member: !!row, name: personal?.profile.name || "", owner: await ownerTag(userId) });
 }
 
 async function handleJoin(request, env, userId) {
@@ -424,6 +425,13 @@ export default {
       // Než cokoli jiného: sedí id na tuhle adresu?
       await ensureSchema(env);
       if (await identityConflict(env, userId, accessEmail(request))) return identityConflictResponse();
+      // A suspended browser may still hold the previous account's draft.
+      // This optional guard binds new clients' requests to their mounted owner
+      // without changing Access authentication or breaking older clients.
+      const expectedOwner = request.headers.get("X-Tanmay-Owner");
+      if (expectedOwner && expectedOwner !== await ownerTag(userId)) {
+        return Response.json({ ok: false, code: "account-changed" }, { status: 409 });
+      }
 
       if (url.pathname === "/api/me") {
         return handleMe(env, userId);
@@ -438,19 +446,12 @@ export default {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
       if (url.pathname === "/api/sky/timezone") return handleSkyTimeZone(request,{rateKey:userId});
-      if (url.pathname === "/api/personal-profile") return handlePersonalProfile(request, env.DB, `client:${userId}`, { legacyOwner: true });
+      if (url.pathname === "/api/personal-profile") return handleClientProfile(request, env.DB, userId);
       if (url.pathname === "/api/together" || url.pathname.startsWith("/api/together/")) return handleTogether(request, env.DB, `client:${userId}`, { owner: true });
 
       // Jméno člena — zobrazí se jemu i Tanymu v přehledu klientů.
       if (url.pathname === "/api/profile") {
-        if (request.method !== "POST") {
-          return Response.json({ ok: false, error: "method not allowed" }, { status: 405 });
-        }
-        let body;
-        try { body = await request.json(); } catch { body = {}; }
-        const name = String(body.name || "").trim().slice(0, 80);
-        await env.DB.prepare("UPDATE members SET name = ? WHERE user_id = ?").bind(name, userId).run();
-        return Response.json({ ok: true, name });
+        return handleLegacyClientName(request, env.DB, userId);
       }
 
       // Termíny · rezervace, sloty a kredity. Vlastnictví se odvozuje ze

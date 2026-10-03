@@ -24,6 +24,8 @@ const DIST = join(ROOT, "dist");
 // Značka = jméno, vzor, a proč tu nesmí být. Vzory jsou záměrně konkrétní:
 // obecné slovo („journal") by hlásilo klientův vlastní Deník, který tam patří.
 const MARKERS = [
+  // Literal titles survive minification even when the seed constant is renamed.
+  { name: "main-practice-manifest", re: /Personal manifest|Refuge for work on the internet/, why: "osobní praxe a manifest vlastníka" },
   { name: "main-journal-seed",    re: /\bJOURNAL_FULL\b/,        why: "osobní Deník Tanmaye" },
   { name: "main-notebook-seed",   re: /\bNOTEBOOK_FULL\b/,       why: "osobní Zápisník Tanmaye" },
   { name: "main-books-seed",      re: /\bBOOKS_FULL\b/,          why: "osobní Prameny Tanmaye" },

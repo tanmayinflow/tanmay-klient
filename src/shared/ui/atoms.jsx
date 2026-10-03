@@ -63,7 +63,7 @@ export function createAtoms(deps) {
     );
   }
 
-  function PageTitle({ icon, children, kicker, pageKey, artKey, right, onKicker }) {
+  function PageTitle({ icon, children, kicker, pageKey, artKey, right, onKicker, guide }) {
     const { t } = useT();
     const st = useStore();
     const meta = pageKey ? st.pageMetaOf(pageKey) : {};
@@ -74,7 +74,7 @@ export function createAtoms(deps) {
     const titleStyle = right ? { ...h1Style, minWidth: 0 } : h1Style;
     const iconNode = icon && <span className="tm-page-icon">{typeof icon === "string" ? <span style={{ fontSize: 48 }}>{icon}</span> : React.isValidElement(icon) && typeof icon.type !== "string" ? React.cloneElement(icon, { size: 48 }) : icon}</span>;
     return (
-      <div className="tm-page-title" data-art-room={artKey || pageKey || "other"}>
+      <div className="tm-page-title" data-guide={guide || (pageKey ? `${pageKey}.overview` : undefined)} data-art-room={artKey || pageKey || "other"}>
         <div style={{ marginBottom: 8 }}>
           {editable
             ? <div style={{ marginBottom: 14 }}><BufferedInput value={kick || ""} onCommit={(v) => st.setPageMeta(pageKey, { kicker: v })} placeholder="kicker…" style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, borderBottom: `1px solid transparent` }} /></div>

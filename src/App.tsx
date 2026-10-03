@@ -1,3 +1,9 @@
+import { readClientAttachmentBlob } from "./clientAttachments.js";
+import { createTrainingGuideUI } from "./shared/ui/trainingGuide.jsx";
+import { ClientSearch } from "./ClientSearch.jsx";
+import { writerFolders, addWriterFolder, moveWriterFolder, removeWriterFolder, restoreWriterEntries } from "./writerRecords.js";
+import { createVoiceRecorder } from "./shared/product/voiceRecorder.js";
+import { RecordingStatus } from "./shared/ui/recordingStatus.jsx";
 import { UnverifiedExerciseImage } from "./shared/ui/UnifiedExerciseImage.jsx";
 import { reviewLibraryCollection, isUnverifiedIllustration } from "./training/libraryReview.js";
 import { resolveMuscleMap, muscleMapEdit } from "./training/muscleMap.js";
@@ -8,10 +14,15 @@ import { CREATOR_ART } from './library/creator-art.js';
 import { MOBILITY_ART } from './library/mobility-art.js';
 import { ExerciseAtlasImage } from './shared/ui/ExerciseAtlasImage.jsx';
 import { TogetherPage, TogetherIcon } from "./shared/ui/together.jsx";
+import { AppGuide } from "./shared/ui/appGuide.jsx";
+import { APP_GUIDE_VERSION, APP_GUIDE_STEPS } from "./shared/product/appGuide.js";
+import { GuideNavigationProvider, useGuideAction } from "./shared/ui/guideNavigation.jsx";
+import {createSettingsUI} from "./shared/ui/settingsControls.jsx";
 import { NavigationSettings } from "./shared/ui/navigationSettings.jsx";
 import { PersonalSettingsBridge, PersonalSettingsSections } from "./shared/ui/personalSettings.jsx";
 import { trainingSourceMetadata } from "./shared/product/sourceMetadata.js";
 import { CLIENT_ROOMS, navigationRooms, roomPlacement, navigationLabel } from "./shared/product/navigation.js";
+import { ClientTrainingCalendar } from "./shared/ui/clientTrainingCalendar.jsx";
 import { TrainingGoals } from "./shared/ui/trainingGoals.jsx";
 import { editorInk, editorHighlight, EDITOR_INKS, EDITOR_CHOICES, EDITOR_NAMES, EDITOR_LABELS } from "./shared/ui/editorPalette.js";
 import { LifeDots } from "./shared/ui/lifeDots.jsx";
@@ -32,7 +43,7 @@ import * as TV from "./training/index.js";
 // jazyk, mapa domu i capability jsou týž soubor. Ruční zásah do src/shared/
 // shodí `npm run shared:check`, a s ním build.
 import { FONT_DISPLAY_EN, FONT_DISPLAY_CS, FONT_LOGO, FONT_BODY, FONT_TAG } from "./shared/ui/type.js";
-import { makeThemeFor, makeTagsFor, appearancePreset } from "./shared/ui/theme.js";
+import { THEME_TANMAY, makeThemeFor, makeTagsFor, appearancePreset } from "./shared/ui/theme.js";
 // Značkové body. Pojmenované, aby je audit poznal od náhodného hexu.
 import { BRAND } from "./shared/ui/themeRegistry.js";
 import {
@@ -50,9 +61,10 @@ import {
 import { habitSummary, goalSummary, validateShareSnapshot, SHARE_WINDOW_DAYS } from "./shared/product/visibility.js";
 import { createFigure } from "./shared/ui/figure.jsx";
 import { useVrstva, createOverlay } from "./shared/ui/overlay.jsx";
-import { tmToTop } from "./shared/ui/overlay.js";
+import { tmToTop, tmEscVrstva, tmEscVolno, tmZamkniStranku, tmOdemkniStranku, tmListovaniStuj, tmListovaniJdi, tmListovaniSpi, TM_ZAMEK } from "./shared/ui/overlay.js";
 import { createStates } from "./shared/ui/states.jsx";
 import { createPracticeUI } from "./shared/ui/practice.jsx";
+import { createPracticePage } from "./shared/ui/practicePage.jsx";
 import { createAtoms } from "./shared/ui/atoms.jsx";
 import { createCompassUI } from "./shared/ui/compass.jsx";
 import { createListUI } from "./shared/ui/lists.jsx";
@@ -83,7 +95,12 @@ import { createIconUI } from "./shared/ui/icons.jsx";
 import { createMuscleFig } from "./shared/ui/muscles.jsx";
 import { TmIcTerminy, TmIcMemento } from "./shared/ui/icons.jsx";
 import { SHARED_CORE_VERSION } from "./shared/version.js";
-import { SYNC_OK, SYNC_SIT, SYNC_PRIHLASENI, syncFetch, syncHlaska, syncLzeZkusitZnovu } from "./shared/product/sync.js";
+import { SYNC_OK, SYNC_SIT, SYNC_PRIHLASENI, syncDruh, syncHlaska, syncLzeZkusitZnovu } from "./shared/product/sync.js";
+import { bootstrapSyncDecision } from "./shared/product/bootstrapSync.js";
+import { createClientSession } from "./clientSession.js";
+import { createClientStartupNavigation, clientHabitDefinitions } from "./clientPreferences.js";
+import { scopeLegacyClientPins } from "./clientPinned.js";
+import { createDocumentSyncQueue } from "./shared/product/documentSyncQueue.js";
 
 /**
  * Tanmay Practice · Client App
@@ -170,21 +187,44 @@ const COLL_EMPTY = () => ({ goals: {}, journal: [], notebook: [] });
 const LS_OWNER = "tm_owner_v1";
 function ownerLoad() { try { return window.localStorage.getItem(LS_OWNER) || ""; } catch (e) { return ""; } }
 function ownerSave(tag) { try { window.localStorage.setItem(LS_OWNER, tag); } catch (e) {} }
-function ownerQuarantine(prevTag) {
-  const suffix = "__owner_" + (prevTag || "neznamy");
+async function ownerQuarantine(prevTag) {
+  const suffix = "__owner_" + (prevTag || "neznamy") + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
   // Motiv je taky volba předchozího člověka. Bez tohohle by klient B otevřel
   // aplikaci v barvě, kterou si nikdy nevybral — a v barvě, která o klientovi
   // A něco říká.
-  [LS_COLL, LS_KEY, "tm_pinned", LS_SYNCED].concat(APPEARANCE_KEYS).forEach((k) => {
-    try {
-      const v = window.localStorage.getItem(k);
-      if (v != null) { window.localStorage.setItem(k + suffix, v); window.localStorage.removeItem(k); }
-    } catch (e) {}
-  });
-  // Připnutá média i místní přílohy patřily předchozímu člověku — z mezipaměti
-  // ven, jinak by je servisní pracovník podal komukoli dalšímu.
-  try { if (typeof caches !== "undefined") caches.delete("pinned"); } catch (e) {}
-  try { indexedDB.deleteDatabase("tanmay_files"); } catch (e) {}
+  const keys = [LS_COLL, LS_KEY, "tm_pinned", LS_SYNCED, "tm_files_namespace"].concat(APPEARANCE_KEYS);
+  // Preserve every original before clearing the active slot. A full local
+  // disk must lock the switch, not turn a partial backup into lost work.
+  for (const k of keys) {
+    const value = window.localStorage.getItem(k);
+    if (value != null) window.localStorage.setItem(k + suffix, value);
+  }
+  window.localStorage.setItem("tm_files_namespace" + suffix, window.localStorage.getItem("tm_files_namespace") || "tanmay_files");
+  if (typeof caches !== "undefined" && (await caches.keys()).includes("pinned")) {
+    const current = await caches.open("pinned"), archive = await caches.open("pinned" + suffix);
+    for (const request of await current.keys()) { const response = await current.match(request); if (response) await archive.put(request, response); }
+    await caches.delete("pinned");
+  }
+  // Cache copies await browser I/O. Another tab may have saved during that
+  // time, so preserve the latest synchronous snapshot before clearing slots.
+  for (const k of keys) {
+    const value = window.localStorage.getItem(k);
+    if (value != null) window.localStorage.setItem(k + suffix, value);
+  }
+  // Local audio/files stay in their existing IndexedDB namespace. The next
+  // account gets another namespace; no offline attachment is deleted.
+  for (const k of keys) window.localStorage.removeItem(k);
+}
+
+const clientAccount = createClientSession();
+const clientFetch = (url, init) => clientAccount.request(url, init);
+async function syncFetch(path, init) {
+  let res = null, telo = null, error = null;
+  try {
+    res = await clientFetch(path, { cache: "no-store", ...init });
+    if ((res.headers.get("content-type") || "").includes("application/json")) telo = await res.json();
+  } catch (e) { error = e; }
+  return { res, telo, druh: error?.status === 401 || error?.code === "changed" ? SYNC_PRIHLASENI : syncDruh(res, telo, error), stav: res?.status || error?.status || 0 };
 }
 
 // ————————————————————————————————————————————————————————————
@@ -201,7 +241,7 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function fmtSize(n) { if (!n && n !== 0) return ""; if (n < 1024) return n + " B"; if (n < 1048576) return Math.round(n / 1024) + " kB"; return (n / 1048576).toFixed(1) + " MB"; }
 function idbOpen() {
   return new Promise((res, rej) => {
-    const r = indexedDB.open("tanmay_files", 1);
+    const r = indexedDB.open(window.localStorage.getItem("tm_files_namespace") || "tanmay_files", 1);
     r.onupgradeneeded = () => { r.result.createObjectStore("files"); };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
@@ -214,10 +254,10 @@ function idbDel(id) { idbOpen().then((db) => { const tx = db.transaction("files"
 // Media (images, files, audio, covers, icons) live in R2, referenced by id.
 // The IndexedDB helpers above are kept as the substrate for a future per-page
 // "save offline" toggle; new media goes straight to R2.
-function r2Url(id) { return "/api/files/" + encodeURIComponent(id); }
-function r2Del(id) { fetch("/api/files/" + encodeURIComponent(id), { method: "DELETE" }).catch(() => {}); }
+function r2Url(id) { const owner = clientAccount.getSnapshot().owner || ownerLoad(); return "/api/files/" + encodeURIComponent(id) + (owner ? "?owner=" + encodeURIComponent(owner) : ""); }
+function r2Del(id) { clientFetch("/api/files/" + encodeURIComponent(id), { method: "DELETE" }).catch(() => {}); }
 async function r2Put(id, blob, name) {
-  const res = await fetch("/api/files/" + encodeURIComponent(id), {
+  const res = await clientFetch("/api/files/" + encodeURIComponent(id), {
     method: "PUT",
     headers: { "Content-Type": (blob && blob.type) || "application/octet-stream", "X-File-Name": encodeURIComponent(name || "") },
     body: blob,
@@ -226,9 +266,10 @@ async function r2Put(id, blob, name) {
   return true;
 }
 // cover/icon ref: new R2 { r2id } or legacy inline dataURL string
-function imgSrc(v) { if (!v) return ""; if (typeof v === "string") return v; if (v.r2id) return r2Url(v.r2id); return ""; }
+function scopedFileUrl(url) { const match = typeof url === "string" && url.match(/^\/api\/files\/([^?#]+)/); return match ? r2Url(decodeURIComponent(match[1])) : url; }
+function imgSrc(v) { if (!v) return ""; if (typeof v === "string") return scopedFileUrl(v); if (v.r2id) return r2Url(v.r2id); return ""; }
 // attachment ref: R2 (id) or legacy inline base64 (data)
-function attUrl(a) { return a && a.r2 ? r2Url(a.id) : (a ? a.data : ""); }
+function attUrl(a) { return a && a.r2 ? r2Url(a.id) : (a ? scopedFileUrl(a.data) : ""); }
 const R2_MAX = 95 * 1024 * 1024; // Worker request-body limit is 100 MB; stay under.
 // Collect every R2 file id referenced anywhere in a document subtree.
 // Used by garbage collection (and later by the offline "pin page" toggle).
@@ -282,18 +323,24 @@ function savePinnedRegistry(r) { try { localStorage.setItem("tm_pinned", JSON.st
 function isEntryPinned(id) { return !!pinnedRegistry()[id]; }
 function entryFileIds(entry) { const set = new Set(); collectFileRefs(entry, set); return [...set]; }
 async function pinEntry(entry) {
+  const owner = clientAccount.getSnapshot().owner;
+  const current = () => owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
+  if (!current()) throw new Error("account unavailable");
   const ids = entryFileIds(entry);
   try {
     const cache = await caches.open("pinned");
     for (const id of ids) {
-      const url = "/api/files/" + encodeURIComponent(id);
-      try { const res = await fetch(url, { cache: "no-store" }); if (res.ok) await cache.put(url, res.clone()); } catch (e) {}
+      const url = r2Url(id);
+      try { const res = await clientFetch(url, { cache: "no-store" }); if (res.ok && current()) await cache.put(url, res.clone()); } catch (e) {}
     }
   } catch (e) {}
+  if (!current()) throw new Error("account changed");
   const reg = pinnedRegistry(); reg[entry.id] = ids; savePinnedRegistry(reg);
   return ids.length;
 }
 async function unpinEntry(entryId) {
+  const owner = clientAccount.getSnapshot().owner;
+  if (!owner || !clientAccount.isCurrent(owner) || ownerLoad() !== owner) throw new Error("account unavailable");
   const reg = pinnedRegistry();
   const mine = reg[entryId] || [];
   delete reg[entryId];
@@ -301,8 +348,9 @@ async function unpinEntry(entryId) {
   for (const ids of Object.values(reg)) for (const id of ids) stillNeeded.add(id);
   try {
     const cache = await caches.open("pinned");
-    for (const id of mine) if (!stillNeeded.has(id)) { try { await cache.delete("/api/files/" + encodeURIComponent(id)); } catch (e) {} }
+    for (const id of mine) if (!stillNeeded.has(id)) { try { await cache.delete(r2Url(id)); await cache.delete("/api/files/" + encodeURIComponent(id)); } catch (e) {} }
   } catch (e) {}
+  if (!clientAccount.isCurrent(owner) || ownerLoad() !== owner) throw new Error("account changed");
   savePinnedRegistry(reg);
 }
 function PinDot({ id }) {
@@ -473,7 +521,6 @@ const HABIT_STATS = (() => {
 // Sleep + Mood + Meditation (Details Database) — real days
 
 const DETAILS=[];
-const DETAIL_STATS={"n":74,"avgWell":"3.6","avgSleep":"9.7","avgMood":"3.2"};
 const DETAILS_BY = Object.fromEntries(DETAILS.map((d) => [d.d, d]));
 
 // Journal entries
@@ -492,14 +539,7 @@ const AREA_COLOR = {
 };
 // Goal system (mirrors Notion schema: Status · Priority · Achievability · Target Date · Area relation · Archive)
 const ROM = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
-const PRACTICES_SEED = [
-  { n: "Mara & His Three Daughters – Key Insights", b: "Mara = personification of temptation, distraction, and inner obstacles to awakening.\n\nThree Daughters:\n· Taṇhā – craving/desire (wanting more)\n· Rāga – lust/passion, attachment (sensory fixation)\n· Arati – aversion/discontent (pushing away, dissatisfaction)\n\nBuddha's Response: complete equanimity — saw temptations as illusions, not reality.\nLesson: Temptations are internal states. Awareness + non-attachment = freedom.\n\nPractice:\n1. Notice the \u201ethree daughters\u201c in your own mind.\n2. Name them → weakens their hold.\n3. Stay still, observe, don't feed them.\n\nMara attacks through: Craving · Aversion · Attachment.\nOr even shorter: \u201eWant it — Hate it — Cling to it.\u201c" },
-  { n: "Exploring the energy use", b: "Stop and answer:\n1. What I do\n2. What I think\n3. What I feel" },
-  { n: "Refuge for work on the internet", b: "Guardians and protectors, now I step into this great charnel ground, this great bardo called the internet. I recognize that this is a place of wild and precarious forces. A place where I may see things distracting and disturbing that will tug at my attention and try to get in. Guardians and protectors keep me safe, keep me linked to you, keep me connected to the four directions in the sun and the moon, so that I remember which way is up even while in the midst of turbulent seas.\n\nMay anything that does not serve dissolve like frost in the sun into the vast primal ground of space.\nMay all that serves serve me well in this life and be used for the benefit of all beings.\n\nGuard us. Guard our tongues and our throats. Guard our backs and our shoulders. Guard our joints and our feet. Guard our hearts, guard us. Guard us in this uncertain world. Help us come to know who watches over us, who lives right above our heads." },
-  { n: "Personal manifest", b: "I take refuge in Buddha\nI take refuge in the Guru\nI take refuge in Dharma\nI take refuge in Sangha\n\nI take responsibility for my actions, words and aspirations! I will never change anybody else nor do I want to! My soul knows what needs to be done, and I always trust guidance of my deepest nature.\nI trust the wisdom of the body and light. I walk the path of bliss and emptiness.\nI trust the wisdom of wind, water, and fire.\nI am staying true to my nature, which is the center of all winds. I flow with the winds. I don't speak to the wind, I speak with the wind. I act in accordance with my deepest self-realization, which I can find only now in the everlasting present movement!\nI am aware of the central principles that guide these winds, and I will speak and act only with deepest respect toward them, following the middle path, staying balanced, remaining centered in every single movement!\nWhat possible excuses and delusions can I create? I laugh at them!\nI don't own anything. I am here because of essential love and power, because of passion, clarity, will, and compassion. Because of calmness, spaciousness, contentment, and intuitive wisdom...\n\nIn important moments, I will always stand with the weaker ones! I will speak and act without fear or compromise. I will stand with the whole earth community and work alongside my teachers. I will recognize with my own heart what supports existence in its fullness and what opposes it. I don't trust illusory egocentric and fear-based views! I don't judge, I only take what I need.\nI don't accept false self-justifications! I cannot change anybody else, so I will stay calm and compassionate even when facing ignorance and poisonous attachments. No one has power over me except myself, and I take full responsibility for my actions. I will judge only from a position of deepest love, compassion, and joy, and I will be grateful for every single lesson that allows me to fully realize myself. I have no fear of meeting anything because I know the nature of everything.\n\nMay all my past, present, and future actions be fully dedicated to all beings who have once been my perfect lovers. May we all attain precious Buddhahood as one single Mandala.\n\n…………………………………………………………………\n\nUchyluji se k Buddhovi.\nUchyluji se k Guruovi.\nUchyluji se k Dharmě.\nUchyluji se k Sangze.\n\nBeru odpovědnost pouze za sebe! Nikdy nebudu měnit nikoho jiného – ani nechci! Má duše ví, co je třeba vykonat, a vždy důvěřuji své nejhlubší podstatě.\nDůvěřuji moudrosti těla; kráčím cestou blaženosti a prázdnoty.\nDůvěřuji moudrosti větru, vody a ohně.\nZůstávám věrný své přirozenosti, která je středem všech větrů. Pluji s větry – nemluvím do větru, mluvím s větrem – a jednám v souladu se svou nejhlubší seberealizací, kterou nacházím v přítomném, věčném pohybu!\nJsem si vědom ústředních principů, které tyto větry řídí, a budu mluvit a jednat pouze s nejhlubší úctou k nim, následuji cestu středu, zůstávám vyrovnaný a soustředěný v každém přítomném pohybu!\nJaké možné výmluvy a iluze si mohu vytvořit? Směji se jim!\nBeru zodpovědnost pouze za sebe a své činy. Nic nevlastním. Jsem tady díky esenciální lásce a síle, díky vášni, jasnosti, vůli a soucitu. Díky klidu, prostornosti, spokojenosti, intuitivní moudrosti a rovnosti všech věcí...\nV důležitých chvílích se vždy postavím na stranu slabších! Budu mluvit a jednat beze strachu a kompromisů. Budu stát s celou pozemskou komunitou a spolupracovat se svými učiteli. Vlastním srdcem rozpoznám, co podporuje existenci v její plnosti a co jí odporuje. Nedůvěřuji egocentrickým a na strachu založeným názorům! Nesoudím – beru si jen to, co potřebuji.\nNepřijímám falešná ospravedlnění! Nemohu změnit nikoho jiného, a tak zůstanu klidný i tváří v tvář nevědomosti a jedovatému lpění. Nikdo nade mnou nemá moc kromě mě samotného a beru plnou odpovědnost za své činy.\nSoudím pouze z pozice nejhlubší lásky, soucitu a radosti a budu vděčný za každou lekci, která mi umožní plně se realizovat. Nemám strach z ničeho, protože znám podstatu všeho.\nNechť všechny mé minulé, přítomné i budoucí činy jsou plně zasvěceny všem bytostem, které jednou byly mými dokonalými milenci. Nechť všichni dosáhneme vzácného buddhovství jako jedna jediná mandala!" },
-  { n: "Reichian breathing", b: "Preparation\n1. Find a Quiet Space – a place where you won't be disturbed for 30–60 minutes.\n2. Comfortable Position – lie on your back with knees bent and feet flat, or sit upright with a straight spine.\n3. Loose Clothing – nothing that restricts breathing.\n4. Set an Intention – be open to any emotions or sensations, without judgment.\n\nStep-by-Step Practice\n1. Open Your Mouth & Start Deep Breathing\nKeep the mouth slightly open (not clenched). Inhale deeply through the mouth into belly and chest. Exhale naturally without forcing — let the breath fall out. No pauses between inhale and exhale; the breath is continuous and connected.\n\n2. Engage Your Whole Body\nLet go of muscular control. If you feel tension, shake or stretch that area. Yawning, sighing, spontaneous movements are signs of release — allow them.\n\n3. Express Any Rising Emotions\nAnger, sadness, joy — express through sound (moaning, sighing, crying, laughing). If the body wants to move — twitch, shake, contract — let it happen.\n\n4. Targeted Muscle Release (optional)\nScan for tension (jaw, neck, shoulders, chest, belly). Gently exaggerate it (clench fists, tighten jaw), then release. Keep breathing as suppressed emotion surfaces.\n\n5. Continue for 15–45 Minutes\nThe longer the connected breath, the deeper it goes. If emotions get intense, slow down but don't stop.\n\n6. Integration & Rest\nLie in stillness a few minutes. Observe shifts in energy, emotion, thought. Journal if it helps.\n\nKey Tips\n✅ Let go of control — natural, uninhibited breath.\n✅ Be patient — releases take time.\n✅ Stay present — observe without resistance.\n✅ Ground if overwhelmed — slow the breath, hand on belly.\n⚠ Avoid with severe trauma, epilepsy, or certain cardiovascular conditions. If unsure, consult a professional.\n\nDeepening: Wilhelm Reich (Character Analysis, The Function of the Orgasm) · bioenergetic exercises (Alexander Lowen)." },
-  { n: "Bioenergetic exercise", b: "Guided bioenergetic exercises for full-body release. Start slowly and gently; move at your own pace. If emotions arise, allow them to flow.\n\n1. Grounding and Breath Awareness\nStand feet shoulder-width apart, knees soft, pelvis relaxed. Deep connected breaths — inhale through the nose into the belly, exhale naturally. Visualize energy from the earth rising through the feet; the body as a tree with strong roots. 2–3 minutes.\n\n2. The Vocal Stretch (jaw & throat)\nOpen the mouth wide (as if yawning), breathe deeply. Let out a loud guttural \u201eAAAH!\u201c on the exhale, feeling the vibration in chest and throat. Keep relaxing jaw and face; let the sound grow fuller. 1–2 minutes, then gently shake the head side to side.\n\n3. Full-Body Breath and Stretch (spine)\nInhale — arms overhead, reach for the sky. Exhale — bend forward, arms hanging, head relaxed. Inhale — roll up vertebra by vertebra. 5–10 breaths; on the last exhale rest in the forward hang.\n\n4. The Hip Release (pelvic rocking)\nFeet hip-width, hands on hips or lower belly. Rock the pelvis with the breath — inhale forward, exhale back. Gradually deepen, knees soft. Let sensations pass without judgment. 2–3 minutes, then settle.\n\n5. The Shaking Exercise (full body)\nKnees relaxed, eyes closed. Start shaking hands and arms, let it spread through the whole body. Shake with abandon, without control. 2–5 minutes, then stand still and breathe.\n\n6. Anger / Frustration Release (pounding)\nFists up, pound the chest gently, alternating hands. Let out sounds or words that carry the emotion. Increase intensity if needed. 1–2 minutes, then rub chest and shoulders.\n\n7. Integration and Stillness\nLie down, arms at sides. Deep breaths, body relaxing into the ground. Hand on heart or belly if needed. 3–5 minutes of stillness.\n\nAftercare: hydrate · journal · be gentle for the rest of the day.\nKey notes: trust the process; consistency (2–3× a week) brings lasting change." },
-];
+// Client Notebook starts with the person’s own records. Practice material arrives only by explicit sharing.
 
 const NB_DEFAULT_TAGS = [
   ["Poznámky", "stone"],
@@ -614,7 +654,7 @@ function MiniCallout({ icon, children }) {
 // byla o generaci starší: zásuvka mizela bez odchodu, list neuměl Escape
 // zásobník, stránka pod ním se rolovala a focus po zavření skončil na
 // začátku dokumentu. Teď to obojí drží src/shared/ui/overlay.jsx.
-const { CenterSheet, Drawer } = createOverlay(useT, L);
+const { CenterSheet, Drawer, TmSipka } = createOverlay(useT, L);
 const { Prazdno, TmArtKapka } = createStates(useT, L);
 // VZHLED · týž oddíl jako v osobní aplikaci. Jeden zdroj, dvě role.
 const { VzhledSekce } = createAppearanceUI(useT, L);
@@ -776,11 +816,11 @@ function PageMemento({ go }) {
       <button onClick={() => go("praxe")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 0 10px", display: "inline-flex", alignItems: "center", gap: 6 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Praxe", "Practice")}</button>
       <div style={{ textAlign: "center", margin: "26px 0 0" }}>
         <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.34em", fontSize: 11, color: t.sage }}>memento mori</div>
-        <div aria-live="polite" aria-atomic="true">
+        <div data-guide="memento.view" aria-live="polite" aria-atomic="true">
         <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 22, lineHeight: 1.55, color: t.heading, maxWidth: 560, margin: "22px auto 0" }}>{L(q.cz, q.en)}</div>
         <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.textMuted, marginTop: 10 }}>{L(q.src, q.srcEn)}</div>
         </div>
-        <nav className="tm-spell-controls" aria-label={L("Procházení citátů", "Browse quotes")}>
+        <nav data-guide="memento.reflection" className="tm-spell-controls" aria-label={L("Procházení citátů", "Browse quotes")}>
           <button type="button" onClick={() => setQi(index => (index - 1 + MEMENTO_QUOTES.length) % MEMENTO_QUOTES.length)} aria-label={L("Předchozí citát", "Previous quote")}><FamilyIcon id="back" size={18} /></button>
           <span style={{ color: t.textMuted }} aria-label={L(`Citát ${qi + 1} z ${MEMENTO_QUOTES.length}`, `Quote ${qi + 1} of ${MEMENTO_QUOTES.length}`)}>{qi + 1} / {MEMENTO_QUOTES.length}</span>
           <button type="button" onClick={() => setQi(index => (index + 1) % MEMENTO_QUOTES.length)} aria-label={L("Další citát", "Next quote")}><FamilyIcon id="forward" size={18} /></button>
@@ -813,85 +853,6 @@ function PageMemento({ go }) {
   );
 }
 
-function PageHabit({ go }) {
-  const { t } = useT();
-  const st = useStore();
-  const [ovOpen, setOvOpen] = useState(false);
-  return (
-    <>
-      <div className="tm-mhide" style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${t.borderSoft}`, marginBottom: 26, boxShadow: t.shadow }}>
-        <div style={{ background: t.hero, padding: "20px 24px 18px" }}>
-          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.26em", fontSize: 16, color: t.heroInk, display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0 14px" }}>
-            <span>Move</span>
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: t.heroInkSoft, display: "inline-block" }} />
-            <span>Practice</span>
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: t.heroInkSoft, display: "inline-block" }} />
-            <span>Listen</span>
-          </div>
-          <div style={{ width: 44, height: 1, background: t.heroLine, margin: "14px 0" }} />
-          {st.editMode
-            ? <BufferedInput value={st.pageMetaOf("praxe").sub || L("Ráno záměr. Přes den praxe. Večer ohlédnutí. Den po dni.", "Intention in the morning. Practice through the day. Review at night. One day at a time.")} onCommit={(v) => st.setPageMeta("praxe", { sub: v })} style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heroInkSoft, margin: 0, lineHeight: 1.65, maxWidth: 520, borderBottom: `1px solid transparent` }} />
-            : <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heroInkSoft, margin: 0, lineHeight: 1.65, maxWidth: 520 }}>{st.pageMetaOf("praxe").sub || L("Ráno záměr. Přes den praxe. Večer ohlédnutí. Den po dni.", "Intention in the morning. Practice through the day. Review at night. One day at a time.")}</p>}
-        </div>
-      </div>
-
-      <PageTitle pageKey="praxe" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPraxe size={42} /></span>} kicker={L("Drž svou praxi", "Hold the practice")}>{L("Praxe", "Practice")}</PageTitle>
-
-      {/* the day first · statistics wait in History — a record you visit,
-          never an evaluation that greets you at the door */}
-      <div style={{ height: 6 }} />
-      <div className="tm-praxegrid" style={{ display: "grid", gridTemplateColumns: "minmax(260px, 1fr) minmax(260px, 1fr)", gap: 24, alignItems: "start" }}>
-        <div className="tm-po-flow" style={{ gridColumn: 1, gridRow: "1 / span 2", minWidth: 0 }}>
-          <Eyebrow>{L("Dnešní praxe", "Today's practice")}</Eyebrow>
-          <DayView go={go} />
-        </div>
-        <div className="tm-po-cal" style={{ gridColumn: 2, gridRow: 1, minWidth: 0 }}>
-          <Eyebrow>{L("Kalendář", "Calendar")}</Eyebrow>
-          <HabitCalendar />
-        </div>
-        <div className="tm-po-wb" style={{ gridColumn: 2, gridRow: 2, minWidth: 0 }}>
-          <WellbeingTracker />
-        </div>
-      </div>
-
-      <Divider />
-      {/* one folded room for the whole record · nothing here greets you at the
-          door, everything here waits to be visited */}
-      <button onClick={() => setOvOpen(true)} className="tm-lift" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, boxShadow: t.shadow, padding: "14px 16px", cursor: "pointer" }}>
-        <span style={{ color: t.accent, fontSize: 11, lineHeight: 1 }}>▲</span>
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent }}>{L("Přehled", "Overview")}</span>
-        <span style={{ marginLeft: "auto", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.textMuted }}>{L("otevřít", "open")}</span>
-      </button>
-      {ovOpen && <CenterSheet title={L("Přehled", "Overview")} onClose={() => setOvOpen(false)}>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "stretch", margin: "4px 0 8px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "14px 18px" }}>
-          <Ring value={HABIT_STATS.avg / 100} label={HABIT_STATS.avg + "%"} />
-          <div><div style={subLabel(t)}>{L("Podíl splněných", "Share of habits")}<br/>{L("návyků", "kept")}</div></div>
-        </div>
-        <StatCard value={HABIT_STATS.days} label={L("Dní se záznamem", "Days with a record")} />
-        <StatCard value={HABIT_STATS.perfect} label={L("Dní 9/9", "9/9 days")} />
-      </div>
-
-      <div style={{ height: 22 }} />
-      <Eyebrow>{L("Praxe podle dní", "Practice by day")}</Eyebrow>
-      <HabitMatrix />
-
-      <div style={{ height: 22 }} />
-      <Eyebrow>{L("Vývoj v čase", "Over time")}</Eyebrow>
-      <MiniChart />
-
-      <div style={{ height: 22 }} />
-      <Eyebrow>{L("Tělo v čase", "Body over time")}</Eyebrow>
-      <BodyHistory />
-
-      <div style={{ height: 18 }} />
-      <div style={{ display: "flex", gap: 10, alignItems: "center", margin: "4px 0 4px" }}>
-        <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><BookIcon size={13} /></span>} label={L("Atomic Habits · výpisek", "Atomic Habits · notes")} onClick={() => go("atomic")} />
-      </div>
-      </CenterSheet>}
-    </>
-  );
-}
 
 function PageAtomic() {
   const { t } = useT();
@@ -911,7 +872,7 @@ function PageAtomic() {
       <p style={{ ...pProse(t), fontSize: 14 }}>{L("Rychlá referenční karta — jak zvyky fungují.", "A quick reference — how habits work.")} <span style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", color: t.sand }}>Malé zisky, které se skládají.</span></p>
 
       <Eyebrow>{L("Smyčka zvyku", "The habit loop")}</Eyebrow>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 20 }}>
+      <div data-guide="atomic.overview" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 20 }}>
         {loop.map(([cz, en], i) => (
           <React.Fragment key={cz}>
             <span style={chip}>{L(cz, en)}</span>
@@ -1055,58 +1016,129 @@ function useHoldReorder(ref, id, attr, onOverRef, disabledRef) {
   return dragging;
 }
 
+async function tmSdilejPrilohu(a) {
+  let f;
+  try {
+    const blob = await attBlob(a);
+    f = new File([blob], a.name || "soubor", { type: a.type || blob.type || "application/octet-stream" });
+  } catch (e) { return "chyba"; }
+  if (tmLzeSdilet() && tmLzeSdiletSoubor(f)) {
+    try { await navigator.share({ files: [f], title: a.name || "" }); return "sdileno"; }
+    catch (e) { if (/abort/i.test(String(e && e.name))) return "zruseno"; }
+  }
+  try { tmDlBlob(f, f.name); return "stazeno"; } catch (e) { return "chyba"; }
+}
+
+function useAttSrc(a) {
+  const [src, setSrc] = useState(() => (a && a.idb ? "" : attUrl(a)));
+  React.useEffect(() => {
+    if (!a) { setSrc(""); return; }
+    if (!a.idb) { setSrc(attUrl(a)); return; }
+    let url = null, mrtvy = false;
+    idbGet(a.id).then((b) => { if (!mrtvy && b) { url = URL.createObjectURL(b); setSrc(url); } }).catch(() => {});
+    return () => { mrtvy = true; if (url) URL.revokeObjectURL(url); };
+  }, [a && a.id, a && a.idb, a && a.r2]);
+  return src;
+}
+
+async function attBlob(a) {
+  return readClientAttachmentBlob(a, {
+    session: clientAccount, local: idbGet, url: attUrl, request: clientFetch,
+    fetch: (...args) => fetch(...args),
+    pinned: async url => typeof caches === "undefined" ? null : (await caches.open("pinned")).match(url),
+  });
+}
+
+function ObrazekPrilohy({ a, zoom, setZoom, onRemove, sdilPril }) {
+  const { t } = useT();
+  const src = useAttSrc(a);
+  return (
+    <div style={{ position: "relative" }}>
+      {src
+        ? <img
+            src={src} alt={a.name} title={a.name}
+            onClick={() => setZoom(zoom === a.id ? null : a.id)}
+            style={{ display: "block", borderRadius: 8, border: `1px solid ${t.borderSoft}`, cursor: "zoom-in", ...(zoom === a.id ? { maxWidth: "100%", height: "auto" } : { height: 96, width: "auto", maxWidth: 200, objectFit: "cover" }) }}
+          />
+        : <span style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 96, width: 140, borderRadius: 8, border: `1px solid ${t.borderSoft}`, fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted }}>{L("Načítám…", "Loading…")}</span>}
+      {/* Na náhledu 96 px na výšku je každý pixel vidět — tlačítka
+          jsou proto menší a poloprůhledná a klepnutí na ně nesmí
+          probublat na obrázek, jinak by se zároveň přepnulo zvětšení. */}
+      <span style={{ position: "absolute", top: 3, right: 3, display: "flex", gap: 3 }}>
+        <button title={L("Sdílet obrázek", "Share the image")} onClick={(e) => { e.stopPropagation(); sdilPril(a); }} style={{ ...iconBtn(t), width: 22, height: 22, background: hexA(t.bg, 0.82) }}><TmIcSdilet size={12} /></button>
+        {onRemove && <button title={L("Odebrat přílohu", "Remove attachment")} onClick={(e) => { e.stopPropagation(); onRemove(a.id); }} style={{ ...iconBtn(t), width: 22, height: 22, background: hexA(t.bg, 0.82) }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+      </span>
+    </div>
+  );
+}
+
+function SouborPrilohy({ a, onRemove, sdilPril }) {
+  const { t } = useT();
+  const src = useAttSrc(a);
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${t.border}`, borderRadius: 20, padding: "4px 12px", background: t.card }}>
+      <a href={src || undefined} download={a.name} style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.sand, textDecoration: "none" }}>📎 {a.name}</a>
+      <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{fmtSize(a.size)}</span>
+      <button title={L("Sdílet soubor", "Share the file")} onClick={() => sdilPril(a)} style={{ background: "transparent", border: "none", color: t.sand, cursor: "pointer", padding: 0, display: "inline-flex" }}><TmIcSdilet size={13} /></button>
+      {onRemove && <button title="Odebrat" onClick={() => { onRemove(a.id); }} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 12, padding: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+    </span>
+  );
+}
+
 function AudioRow({ a, onRemove }) {
   const { t } = useT();
-  const [src, setSrc] = useState(a.r2 ? r2Url(a.id) : (a.idb ? null : a.data));
-  React.useEffect(() => {
-    if (a.r2) { setSrc(r2Url(a.id)); return; }
-    if (!a.idb) { setSrc(a.data); return; }
-    let url = null, dead = false;
-    idbGet(a.id).then((b) => { if (!dead && b) { url = URL.createObjectURL(b); setSrc(url); } }).catch(() => {});
-    return () => { dead = true; if (url) URL.revokeObjectURL(url); };
-  }, [a.id]);
+  const src = useAttSrc(a);
   return <div style={{display:"grid",gap:8,marginTop:12,padding:"12px 0",borderTop:`1px solid ${t.borderSoft}`,minWidth:0}}>
     <span style={{fontFamily:FONT_BODY,fontSize:12,color:t.textSec,overflowWrap:"anywhere"}}>{a.name} · {fmtSize(a.size)}</span>
     {src ? <audio aria-label={a.name} controls src={src} style={{height:40,width:"100%",minWidth:0}}/> : <span role="status">{L("Načítám nahrávku…","Loading recording…")}</span>}
+    <button type="button" onClick={()=>tmSdilejPrilohu(a)} style={{justifySelf:"start",background:"transparent",border:0,color:t.text,cursor:"pointer",minHeight:44,padding:"7px 12px",fontFamily:FONT_BODY,fontSize:13}}>{L("Sdílet nahrávku","Share recording")}</button>
     {onRemove && <button type="button" onClick={()=>onRemove(a.id)} style={{justifySelf:"start",background:"transparent",border:`1px solid ${t.border}`,borderRadius:6,color:t.text,cursor:"pointer",minHeight:44,padding:"7px 12px",fontFamily:FONT_BODY,fontSize:13}}>{L("Odebrat nahrávku","Remove recording")}</button>}
   </div>;
 }
 
 function AttachmentStrip({ att, onRemove }) {
   const { t } = useT();
+  const stx = useStore();
+  const sdilPril = async (a) => {
+    const r = await tmSdilejPrilohu(a);
+    if (r === "chyba" && stx && stx.ask) stx.ask(L("Soubor se nepodařilo připravit ke sdílení — zkus to, až budeš online.", "The file could not be prepared for sharing — try again once you are online."), null);
+  };
   const [zoom, setZoom] = useState(null); // id of zoomed image
   if (!att || !att.length) return null;
   const imgs = att.filter((a) => (a.type || "").startsWith("image/"));
-  const files = att.filter((a) => !(a.type || "").startsWith("image/"));
+  const drives = att.filter((a) => a.type === "gdrive");
+  const files = att.filter((a) => !(a.type || "").startsWith("image/") && a.type !== "gdrive");
   return (
     <div style={{ marginTop: 10 }}>
       {imgs.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {imgs.map((a) => (
-            <div key={a.id} style={{ position: "relative" }}>
-              <img
-                src={attUrl(a)} alt={a.name} title={a.name}
-                onClick={() => setZoom(zoom === a.id ? null : a.id)}
-                style={{ display: "block", borderRadius: 8, border: `1px solid ${t.borderSoft}`, cursor: "zoom-in", ...(zoom === a.id ? { maxWidth: "100%", height: "auto" } : { height: 96, width: "auto", maxWidth: 200, objectFit: "cover" }) }}
-              />
-              {onRemove && (
-                <button title={L("Odebrat přílohu", "Remove attachment")} onClick={() => { if (a.r2) r2Del(a.id); onRemove(a.id); }} style={{ ...iconBtn(t), position: "absolute", top: 4, right: 4, background: t.bg }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
-              )}
-            </div>
+            <ObrazekPrilohy key={a.id} a={a} zoom={zoom} setZoom={setZoom} onRemove={onRemove} sdilPril={sdilPril} />
           ))}
         </div>
       )}
+      {drives.map((a) => {
+        const g = tmGdEmbed(a.url);
+        return (
+          <div key={a.id} style={{ position: "relative", marginTop: 8, maxWidth: 680 }}>
+            {g
+              ? <iframe src={g.src} loading="lazy" allow="autoplay; fullscreen" allowFullScreen title="Google Drive" style={{ width: "100%", height: 300, display: "block", borderRadius: 8, border: `1px solid ${t.borderSoft}`, background: t.card }} />
+              : <a href={a.url} target="_blank" rel="noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.sand }}>{a.url}</a>}
+            <span style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
+              <button title={L("Sdílet odkaz", "Share the link")} onClick={async () => { if (tmLzeSdilet()) { try { await navigator.share({ url: a.url, title: a.name || "Google Drive" }); return; } catch (e) { if (/abort/i.test(String(e && e.name))) return; } } tmDoSchranky(a.url); }} style={{ ...iconBtn(t), background: t.bg }}><TmIcSdilet size={13} /></button>
+              <button title={L("Otevřít v Drive", "Open in Drive")} onClick={() => window.open(a.url, "_blank", "noopener,noreferrer")} style={{ ...iconBtn(t), background: t.bg }}><FamilyIcon id="arrow-out" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+              {onRemove && <button title={L("Odebrat", "Remove")} onClick={() => onRemove(a.id)} style={{ ...iconBtn(t), background: t.bg }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+            </span>
+          </div>
+        );
+      })}
       {files.filter((a) => (a.type || "").startsWith("audio/")).map((a) => (
         <AudioRow key={a.id} a={a} onRemove={onRemove} />
       ))}
       {files.filter((a) => !(a.type || "").startsWith("audio/")).length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: imgs.length ? 8 : 0 }}>
           {files.filter((a) => !(a.type || "").startsWith("audio/")).map((a) => (
-            <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${t.border}`, borderRadius: 20, padding: "4px 12px", background: t.card }}>
-              <a href={attUrl(a)} download={a.name} style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.sand, textDecoration: "none" }}>📎 {a.name}</a>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: t.textMuted }}>{fmtSize(a.size)}</span>
-              {onRemove && <button title="Odebrat" onClick={() => { if (a.r2) r2Del(a.id); onRemove(a.id); }} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 12, padding: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
-            </span>
+            <SouborPrilohy key={a.id} a={a} onRemove={onRemove} sdilPril={sdilPril} />
           ))}
         </div>
       )}
@@ -1133,7 +1165,7 @@ function EntryForm({ tags, initial, onSave, onCancel }) {
   };
   return (
     <div style={{ background: t.callout, border: `1px solid ${t.border}`, borderRadius: 10, padding: 14, margin: "10px 0" , boxShadow: t.shadow }}>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={L("Název…", "Title…")} style={{ ...fieldStyle(t), fontFamily: FONT_DISPLAY, fontSize: 18, marginBottom: 8 }} />
+      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={L("Název…", "Title…")} style={{ ...fieldStyle(t), fontFamily: FONT_DISPLAY, fontSize: 17, marginBottom: 8 }} />
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
         {tags.map(([label, color]) => (
           <button key={label} onClick={() => setSelTags((cur) => cur.includes(label) ? cur.filter((x) => x !== label) : [...cur, label])} style={{ border: "none", cursor: "pointer", background: "transparent", padding: 0, opacity: selTags.includes(label) ? 1 : 0.4 }}><Tag label={label} color={color} /></button>
@@ -1144,26 +1176,30 @@ function EntryForm({ tags, initial, onSave, onCancel }) {
       </div>
       <input ref={fileRef} type="file" multiple onChange={(e) => addFiles(e.target.files)} style={{ display: "none" }} />
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: att.length ? 0 : 10 }}>
-        <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 7 }}>
+        <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.inkSand, fontFamily: FONT_BODY, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 7 }}>
           <ClipIcon size={13} />{busy ? L("Načítám…", "Loading…") : L("Přiložit soubor / obrázek", "Attach file / image")}
         </button>
         {att.length > 0 && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{att.length} {L("příloh", "attachments")} · {fmtSize(att.reduce((s, a) => s + (a.size || 0), 0))}</span>}
       </div>
       <AttachmentStrip att={att} onRemove={(id) => setAtt((a) => a.filter((x) => x.id !== id))} />
       <div style={{ display: "flex", gap: 8, marginTop: att.length ? 10 : 0 }}>
-        <button onClick={() => { if (title.trim() || text.trim() || att.length) onSave({ title: title.trim() || L("(bez názvu)", "(untitled)"), tag: selTags[0] || "", tags: selTags, text: text.trim(), att }); }} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14, fontWeight: 500 }}>{L("Uložit", "Save")}</button>
-        <button onClick={onCancel} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14 }}>{L("Zrušit", "Cancel")}</button>
+        <button onClick={() => { if (title.trim() || text.trim() || att.length) onSave({ title: title.trim() || L("(bez názvu)", "(untitled)"), tag: selTags[0] || "", tags: selTags, text: text.trim(), att }); }} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500 }}>{L("Uložit", "Save")}</button>
+        <button onClick={onCancel} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Zrušit", "Cancel")}</button>
       </div>
     </div>
   );
 }
 
-function AddEntry({ kind, tags, label }) {
+function AddEntry({ kind, tags, label, folder, openSignal, hideButton, guide }) {
   const { t } = useT();
   const st = useStore();
   const [open, setOpen] = useState(false);
-  if (open) return <EntryForm tags={tags} onSave={(e) => { st.addEntry(kind, { id: uid(), date: todayISO(), ...e }); setOpen(false); }} onCancel={() => setOpen(false)} />;
-  return <button onClick={() => setOpen(true)} className="tm-dash" style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "11px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 14, width: "100%", textAlign: "left" }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{label}</button>;
+  // ⌘N zvenčí · signál je počitadlo, aby druhé stisknutí zabralo taky
+  React.useEffect(() => { if (openSignal) setOpen(true); }, [openSignal]);
+  // poznámka založená v otevřené složce v ní rovnou zůstane
+  if (open) return <EntryForm tags={tags} onSave={(e) => { st.addEntry(kind, { id: uid(), date: todayISO(), ...(folder ? { folder } : {}), ...e }); setOpen(false); }} onCancel={() => setOpen(false)} />;
+  if (hideButton) return null;
+  return <button data-guide={guide} onClick={() => setOpen(true)} className="tm-dash" style={{ background: "transparent", border: "none", borderRadius: 8, padding: "11px 2px", cursor: "pointer", color: t.inkSand, fontFamily: FONT_BODY, fontSize: 13, width: "100%", textAlign: "left" }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{label}</button>;
 }
 
 
@@ -1303,16 +1339,2125 @@ function inkName(color, t) { const h = normHex(color); if (!h) return null; if(t
   for (const k in BRAND_INK) if (BRAND_INK[k].includes(h)) return k; return null; }
 
 // inline renderer · recursive over {c|name}…{/c}, **bold**, *italic* (any nesting order)
+let TM_LINK_TITLES = null, TM_LINK_GO = null;
+
+const tmTitles = () => { try { return TM_LINK_TITLES ? TM_LINK_TITLES() : []; } catch (e) { return []; } };
+
+const tmGoLink = (title) => { try { TM_LINK_GO && TM_LINK_GO(title); } catch (e) {} };
+
+const LINK_RE = /\[\[([^\]\[\n]+)\]\]/g;
+
+function tmZip(files) {
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  // datum a čas v DOS formátu, ať archiv nevypadá ve správci souborů jako z roku 1980
+  const now = new Date();
+  const dosT = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const dosD = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  let off = 0;
+  files.forEach((f) => {
+    const name = enc.encode(f.path);
+    const data = enc.encode(f.text);
+    const crc = tmCrc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint16(8, 0, true); lh.setUint16(10, dosT, true); lh.setUint16(12, dosD, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+    lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true); ch.setUint16(12, dosT, true); ch.setUint16(14, dosD, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true);
+    ch.setUint16(28, name.length, true); ch.setUint16(30, 0, true); ch.setUint16(32, 0, true);
+    ch.setUint16(34, 0, true); ch.setUint16(36, 0, true); ch.setUint32(38, 0, true); ch.setUint32(42, off, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    off += 30 + name.length + data.length;
+  });
+  const cdSize = central.reduce((a, x) => a + x.length, 0);
+  const eo = new DataView(new ArrayBuffer(22));
+  eo.setUint32(0, 0x06054b50, true);
+  eo.setUint16(8, files.length, true); eo.setUint16(10, files.length, true);
+  eo.setUint32(12, cdSize, true); eo.setUint32(16, off, true); eo.setUint16(20, 0, true);
+  return new Blob([...parts, ...central, new Uint8Array(eo.buffer)], { type: "application/zip" });
+}
+
+const tmSafeName = (s) => String(s || "").replace(/[\\/:*?"<>|#^\[\]]/g, "-").replace(/\s+/g, " ").trim().slice(0, 80) || "bez-nazvu";
+
+const tmYaml = (s) => '"' + String(s == null ? "" : s).replace(/"/g, '\\"') + '"';
+
+const tmBodyOut = (txt) => String(txt || "").replace(/!img\(([^|)]+)\|(\d+)\)/g, (_, id) => "![obrázek](/api/files/" + id + ")").replace(/\s*$/, "") + "\n";
+
+function tmDlBlob(blob, name) {
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    return true;
+  } catch (e) { return false; }
+}
+
+const tmXe = (s0) => String(s0 == null ? "" : s0).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function tmInlineParts(line) {
+  const out = [];
+  const re = /\{c\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/c\}|\[\[([^\]\[\n]+)\]\]|\*\*((?:[^*\n]|\*(?!\*))+?)\*\*|~~([^~\n]+)~~|==([^=\n]+)==|\*([^*\n]+)\*|\{h\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/h\}/g;
+  let last = 0, m;
+  const push = (txt, f) => { if (txt) out.push({ t: txt, ...f }); };
+  while ((m = re.exec(line))) {
+    if (m.index > last) push(line.slice(last, m.index), {});
+    if (m[1] != null) tmInlineParts(m[2]).forEach((x) => out.push({ ...x, ink: m[1] }));
+    else if (m[3] != null) push(m[3], { link: true });
+    else if (m[4] != null) tmInlineParts(m[4]).forEach((x) => out.push({ ...x, b: true }));
+    else if (m[5] != null) tmInlineParts(m[5]).forEach((x) => out.push({ ...x, s: true }));
+    else if (m[6] != null) tmInlineParts(m[6]).forEach((x) => out.push({ ...x, hl: true }));
+    else if (m[7] != null) tmInlineParts(m[7]).forEach((x) => out.push({ ...x, i: true }));
+    else if (m[8] != null) tmInlineParts(m[9]).forEach((x) => out.push({ ...x, hl: true, highlight: m[8] }));
+    last = re.lastIndex;
+  }
+  if (last < line.length) push(line.slice(last), {});
+  return out;
+}
+
+const TM_ZAROV_RE = /^\{\^([crj])\}/;
+
+const TM_ZAROV = { c: "center", r: "right", j: "justify" };
+
+function tmZarov(ln) {
+  const txt = String(ln == null ? "" : ln);
+  const m = txt.match(TM_ZAROV_RE);
+  if (!m) return { al: "", text: txt };
+  return { al: TM_ZAROV[m[1]] || "", text: txt.slice(m[0].length) };
+}
+
+const tmZarovFlex = (al) => (al === "center" ? "center" : al === "right" ? "flex-end" : undefined);
+
+function tmDocBlocks(text) {
+  return String(text || "").split("\n").map((cely) => {
+    const { al, text: ln } = tmZarov(cely);
+    const b = tmDocBlok(ln);
+    return al ? { ...b, al } : b;
+  });
+}
+
+function tmDocBlok(ln) {
+  return ((ln) => {
+    const mi = ln.match(IMG_RE);
+    if (mi) return { k: "img", id: mi[1], w: +mi[2] };
+    const mg = ln.match(GD_RE);
+    if (mg) return { k: "gd", url: mg[1] };
+    const mc = ln.match(CHK_RE);
+    if (mc) return { k: "chk", on: mc[1].toLowerCase() === "x", txt: mc[2] || "" };
+    if (HR_RE.test(ln.trim())) return { k: "hr" };
+    const mo = ln.match(OL_RE);
+    if (mo) return { k: "ol", n: mo[1], txt: mo[2] || "" };
+    const mu = ln.match(UL_RE);
+    if (mu) return { k: "ul", txt: mu[1] || "" };
+    const mq = ln.match(QT_RE);
+    if (mq) return { k: "qt", txt: mq[1] || "" };
+    if (/^###\s/.test(ln)) return { k: "h3", txt: ln.slice(4) };
+    if (/^##\s/.test(ln)) return { k: "h2", txt: ln.slice(3) };
+    if (/^#\s/.test(ln)) return { k: "h1", txt: ln.slice(2) };
+    if (ln.trim() === "") return { k: "sp" };
+    return { k: "p", txt: ln };
+  })(ln);
+}
+
+function tmDocTxt(doc) {
+  const head = [doc.title || "", doc.sub || "", doc.date ? fmtCZ(doc.date) : ""].filter(Boolean);
+  const lines = head.length ? [...head, "".padEnd(Math.min(60, Math.max(...head.map((x) => x.length))), "-"), ""] : [];
+  tmDocBlocks(doc.text).forEach((b) => {
+    const plain = (x) => tmInlineParts(x).map((q) => q.t).join("");
+    if (b.k === "img") lines.push("[" + L("obrázek", "image") + "]");
+    else if (b.k === "gd") lines.push(b.url);
+    else if (b.k === "hr") lines.push("".padEnd(40, "-"));
+    else if (b.k === "sp") lines.push("");
+    else if (b.k === "chk") lines.push((b.on ? "[x] " : "[ ] ") + plain(b.txt));
+    else if (b.k === "ul") lines.push("• " + plain(b.txt));
+    else if (b.k === "ol") lines.push(b.n + ". " + plain(b.txt));
+    else if (b.k === "qt") lines.push("„" + plain(b.txt) + "”");
+    else if (b.k === "h1") lines.push("", plain(b.txt).toUpperCase(), "");
+    else if (b.k === "h3") lines.push("", plain(b.txt), "");
+    else if (b.k === "h2") lines.push("", plain(b.txt), "");
+    else lines.push(plain(b.txt));
+  });
+  return lines.join("\r\n").replace(/(\r\n){3,}/g, "\r\n\r\n") + "\r\n";
+}
+
+function tmDocMd(doc) {
+  const h = { title: tmYaml(doc.title || ""), date: doc.date || "", mistnost: doc.room || "" };
+  const head = "---\n" + Object.keys(h).filter((k) => h[k] !== "" && h[k] != null).map((k) => k + ": " + h[k]).join("\n") + "\n---\n\n";
+  return head + (doc.sub ? "*" + doc.sub + "*\n\n" : "") + tmBodyOut(doc.text);
+}
+
+const TM_PRINT_DEF = { foot: true, date: true, pages: false, brand: "tanmay" };
+
+function tmPrintCfg() {
+  try { return { ...TM_PRINT_DEF, ...(JSON.parse(localStorage.getItem("tanmay_print_v1") || "{}") || {}) }; } catch (e) { return { ...TM_PRINT_DEF }; }
+}
+
+function tmPrintSave(v) { try { localStorage.setItem("tanmay_print_v1", JSON.stringify(v)); } catch (e) {} TM_PRINT_LS.forEach((f) => { try { f(); } catch (e) {} }); }
+
+const TM_PRINT_LS = new Set();
+
+function tmDocPrintHtml(doc, pcfg) {
+  const body = tmDocBlocks(doc.text).map((b) => {
+    const rich = (x) => tmInlineParts(x).map((q) => {
+      let h = tmXe(q.t);
+      if (q.b) h = "<b>" + h + "</b>";
+      if (q.i) h = "<i>" + h + "</i>";
+      if (q.s) h = "<s>" + h + "</s>";
+      if (q.hl) h = (q.highlight ? '<mark style="background:' + editorHighlight(q.highlight,{mode:"light",material:"landscape"}) + '">' : "<mark>") + h + "</mark>";
+      if (q.link) h = '<span class="lk">' + h + "</span>";
+      if (q.ink) h = '<span style="color:' + (EDITOR_INKS.light[q.ink] || THEME_TANMAY.light.text) + '">' + h + "</span>";
+      return h;
+    }).join("");
+    // zarovnání odstavce jde na papír stejně jako na obrazovku
+    const A = b.al ? ' style="text-align:' + b.al + '"' : "";
+    if (b.k === "img") return '<img src="' + tmXe(r2Url(b.id)) + '" style="width:' + Math.min(b.w || 320, 640) + 'px;max-width:100%" />';
+    if (b.k === "gd") return '<p' + A + '><a href="' + tmXe(b.url) + '">' + tmXe(b.url) + "</a></p>";
+    if (b.k === "hr") return "<hr/>";
+    if (b.k === "sp") return '<p class="sp">&nbsp;</p>';
+    if (b.k === "chk") return '<p class="li"' + A + '><span class="bx">' + (b.on ? "✓" : "") + "</span>" + rich(b.txt) + "</p>";
+    if (b.k === "ul") return '<p class="li"' + A + '><span class="mk">•</span>' + rich(b.txt) + "</p>";
+    if (b.k === "ol") return '<p class="li"' + A + '><span class="mk">' + b.n + ".</span>" + rich(b.txt) + "</p>";
+    if (b.k === "qt") return "<blockquote" + A + ">" + rich(b.txt) + "</blockquote>";
+    if (b.k === "h1") return "<h1" + A + ">" + rich(b.txt) + "</h1>";
+    if (b.k === "h3") return "<h3" + A + ">" + rich(b.txt) + "</h3>";
+    if (b.k === "h2") return "<h2" + A + ">" + rich(b.txt) + "</h2>";
+    return "<p" + A + ">" + (rich(b.txt) || "&nbsp;") + "</p>";
+  }).join("\n");
+  const pc = { ...TM_PRINT_DEF, ...(pcfg || {}) };
+  // Nulový okraj stránky · jen tak zmizí hlavička a patička prohlížeče
+  // (adresa, datum, číslo stránky), kterou jinak CSS nemá jak vypnout.
+  // Okraje si pak nakreslíme sami paddingem, takže je máme pod kontrolou.
+  const css = "@page { size: A4; margin: 0; }"
+    + "body { padding: 18mm 17mm 20mm; box-sizing: border-box; }"
+    + "body { font-family: 'EB Garamond','Cormorant Garamond',Georgia,serif; font-size: 11.5pt; line-height: 1.62; color: #1C1C1A; margin: 0; }"
+    + ".hd { border-bottom: 1px solid #CFC7BB; padding-bottom: 10px; margin-bottom: 20px; }"
+    + ".ttl { font-size: 22pt; line-height: 1.2; margin: 0 0 4px; font-weight: 400; }"
+    + ".sub { font-size: 10.5pt; color: #454842; font-style: italic; margin: 0 0 3px; }"
+    + ".meta { font-size: 8.5pt; letter-spacing: .14em; text-transform: uppercase; color: #5C5F58; }"
+    + "h1 { font-size: 15pt; font-weight: 400; margin: 18px 0 5px; }"
+    + "h2 { font-size: 9.5pt; letter-spacing: .13em; text-transform: uppercase; color: #2E3D35; margin: 16px 0 4px; }"
+    + "p { margin: 0 0 6px; } p.sp { margin: 0; height: .5em; }"
+    + "p.li { margin: 0 0 3px; padding-left: 20px; text-indent: -20px; }"
+    + ".mk { display: inline-block; width: 20px; text-indent: 0; color: #5C5F58; }"
+    + ".bx { display: inline-block; width: 20px; text-indent: 0; }"
+    + "blockquote { margin: 8px 0 8px 2px; padding-left: 12px; border-left: 2px solid #7C8C6E; font-style: italic; color: #454842; }"
+    + "hr { border: none; border-top: 1px solid #CFC7BB; width: 40%; margin: 14px 0; }"
+    + "mark { background: #EBE3D8; }"
+    + ".lk { color: #4F646B; border-bottom: 1px solid #4F646B; }"
+    + ".ink-copper { color: #8F5320; } .ink-sage { color: #57684A; } .ink-sand { color: #6B5840; }"
+    + "img { display: block; margin: 10px 0; border-radius: 4px; }"
+    + "#tmft { position: absolute; top: 0; left: 0; width: 100%; }"
+    + ".ft { position: absolute; left: 17mm; right: 17mm; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 5px; border-top: 1px solid #D7D0C6; font-size: 7.5pt; letter-spacing: .16em; text-transform: uppercase; color: #5C5F58; }"
+    + ".ft .r { text-align: right; }";
+  return "<!doctype html><html><head><meta charset='utf-8'><title>" + tmXe(doc.title || "tanmay") + "</title>"
+    + "<style>" + css + "</style></head><body>"
+    + '<div class="hd"><p class="ttl">' + tmXe(doc.title || "") + "</p>"
+    + (doc.sub ? '<p class="sub">' + tmXe(doc.sub) + "</p>" : "")
+    + '<p class="meta">' + tmXe([doc.room, doc.date ? fmtCZ(doc.date) : ""].filter(Boolean).join(" · ")) + "</p></div>"
+    + body
+    + ((pc.foot || pc.date || pc.pages)
+        // Kolik stránek to bude, ví až prohlížeč po zalomení · zápatí se proto
+        // dopíše skriptem, jedno na každou stránku, na její patě.
+        ? "<script>(function(){function go(){try{"
+          + "var PH=Math.round(297*96/25.4),BOT=Math.round(11*96/25.4);"
+          + "var h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight);"
+          + "var n=Math.max(1,Math.min(400,Math.ceil((h-4)/PH)));"
+          + "var wrap=document.createElement('div');wrap.id='tmft';"
+          + "var brand=" + JSON.stringify(pc.foot ? (pc.brand || "tanmay") : "") + ";"
+          + "var date=" + JSON.stringify(pc.date ? fmtCZ(todayISO()) : "") + ";"
+          + "var pages=" + (pc.pages ? "true" : "false") + ";"
+          + "for(var i=0;i<n;i++){var d=document.createElement('div');d.className='ft';"
+          + "d.style.top=((i+1)*PH-BOT)+'px';"
+          + "var l=document.createElement('span');l.textContent=brand;"
+          + "var r=document.createElement('span');r.className='r';"
+          + "r.textContent=[date,pages?((i+1)+' / '+n):''].filter(Boolean).join('   ');"
+          + "d.appendChild(l);d.appendChild(r);wrap.appendChild(d);}"
+          + "document.documentElement.appendChild(wrap);"
+          + "}catch(e){}}if(document.readyState==='complete')go();else window.addEventListener('load',go);})();<\/script>"
+        : "")
+    + "</body></html>";
+}
+
+function tmPrintHtml(html) {
+  try {
+    const f = document.createElement("iframe");
+    f.setAttribute("aria-hidden", "true");
+    // A4 při 96 dpi · rám se sází ve stejné šířce, v jaké se pak tiskne,
+    // takže zalomení i počet stran sedí. Schovaný je posunutím, ne rozměrem.
+    f.style.cssText = "position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;opacity:0;pointer-events:none;";
+    document.body.appendChild(f);
+    const d = f.contentWindow.document;
+    d.open(); d.write(html); d.close();
+    const go = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) {} setTimeout(() => { try { f.remove(); } catch (e) {} }, 60000); };
+    // čísla stran se dopisují na load · tisk musí počkat, až budou na místě
+    if (d.readyState === "complete") setTimeout(go, 420); else f.onload = () => setTimeout(go, 420);
+    return true;
+  } catch (e) { return false; }
+}
+
+function tmDocxRuns(parts, extra) {
+  return parts.map((q) => {
+    const pr = [];
+    if (q.b) pr.push("<w:b/>");
+    if (q.i) pr.push("<w:i/>");
+    if (q.s) pr.push("<w:strike/>");
+    if (q.hl) pr.push(q.highlight ? '<w:shd w:val="clear" w:fill="' + ({copper:"E0C8BD",sage:"D3D2C4",sand:"DFD4BC",burgundy:"DFC7CC",slate:"CAD7DB",plum:"D5CDD9"}[q.highlight]) + '"/>' : '<w:highlight w:val="yellow"/>');
+    if (q.link) pr.push("<w:u w:val=\"single\"/>");
+    if (q.ink) pr.push('<w:color w:val="' + (EDITOR_INKS.light[q.ink] || THEME_TANMAY.light.text).slice(1) + '"/>');
+    if (extra) pr.push(extra);
+    return "<w:r>" + (pr.length ? "<w:rPr>" + pr.join("") + "</w:rPr>" : "")
+      + '<w:t xml:space="preserve">' + tmXe(q.t) + "</w:t></w:r>";
+  }).join("");
+}
+
+function tmDocxBody(doc) {
+  const P = (style, inner, extraPr) => '<w:p><w:pPr>' + (style ? '<w:pStyle w:val="' + style + '"/>' : "") + (extraPr || "") + "</w:pPr>" + inner + "</w:p>";
+  const out = [];
+  out.push(P("TmTitle", tmDocxRuns([{ t: doc.title || "" }])));
+  if (doc.sub) out.push(P("TmSub", tmDocxRuns([{ t: doc.sub, i: true }])));
+  const meta = [doc.room, doc.date ? fmtCZ(doc.date) : ""].filter(Boolean).join(" · ");
+  if (meta) out.push(P("TmMeta", tmDocxRuns([{ t: meta }])));
+  tmDocBlocks(doc.text).forEach((b) => {
+    if (b.k === "img") { out.push(P("", tmDocxRuns([{ t: "[" + L("obrázek", "image") + "]", i: true }]))); return; }
+    if (b.k === "gd") { out.push(P("", tmDocxRuns([{ t: b.url, i: true }]))); return; }
+    if (b.k === "hr") { out.push('<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="D7D0C6"/></w:pBdr></w:pPr></w:p>'); return; }
+    if (b.k === "sp") { out.push("<w:p/>"); return; }
+    if (b.k === "h1") { out.push(P("TmH1", tmDocxRuns(tmInlineParts(b.txt)))); return; }
+    if (b.k === "h3") { out.push(P("TmH3", tmDocxRuns(tmInlineParts(b.txt)))); return; }
+    if (b.k === "h2") { out.push(P("TmH2", tmDocxRuns(tmInlineParts(b.txt)))); return; }
+    if (b.k === "qt") { out.push(P("TmQuote", tmDocxRuns(tmInlineParts(b.txt)))); return; }
+    const ind = '<w:ind w:left="340" w:hanging="340"/>';
+    if (b.k === "chk") { out.push(P("", tmDocxRuns([{ t: (b.on ? "☒" : "☐") + " " }]) + tmDocxRuns(tmInlineParts(b.txt)), ind)); return; }
+    if (b.k === "ul") { out.push(P("", tmDocxRuns([{ t: "•  " }]) + tmDocxRuns(tmInlineParts(b.txt)), ind)); return; }
+    if (b.k === "ol") { out.push(P("", tmDocxRuns([{ t: b.n + ". " }]) + tmDocxRuns(tmInlineParts(b.txt)), ind)); return; }
+    out.push(P("", tmDocxRuns(tmInlineParts(b.txt))));
+  });
+  return out.join("");
+}
+
+function tmDocxBlob(doc) {
+  const X = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  const st = (id, name, sz, opts) => '<w:style w:type="paragraph" w:styleId="' + id + '"><w:name w:val="' + name + '"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+    + "<w:pPr><w:spacing w:before=\"" + (opts.before || 0) + '" w:after="' + (opts.after || 80) + '" w:line="300" w:lineRule="auto"/>' + (opts.ppr || "") + "</w:pPr>"
+    + '<w:rPr><w:rFonts w:ascii="Garamond" w:hAnsi="Garamond" w:cs="Garamond"/><w:sz w:val="' + sz + '"/>'
+    + (opts.caps ? '<w:caps/><w:spacing w:val="30"/>' : "") + (opts.color ? '<w:color w:val="' + opts.color + '"/>' : "") + (opts.i ? "<w:i/>" : "")
+    + "</w:rPr></w:style>";
+  const styles = X + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+    + '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/><w:sz w:val="23"/></w:rPr></w:rPrDefault>'
+    + '<w:pPrDefault><w:pPr><w:spacing w:after="80" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>'
+    + '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>'
+    + st("TmTitle", "Title", "44", { after: 60 })
+    + st("TmSub", "Subtitle", "21", { after: 40, i: true, color: "454842" })
+    + st("TmMeta", "Meta", "17", { after: 260, caps: true, color: "5C5F58" })
+    + st("TmH1", "heading 1", "30", { before: 280, after: 60 })
+    + st("TmH2", "heading 2", "19", { before: 240, after: 50, caps: true, color: "2E3D35" })
+    + st("TmH3", "heading 3", "23", { before: 200, after: 40, color: "2E3D35" })
+    + st("TmQuote", "Quote", "23", { before: 90, after: 90, i: true, color: "454842", ppr: '<w:ind w:left="340"/><w:pBdr><w:left w:val="single" w:sz="8" w:space="8" w:color="7C8C6E"/></w:pBdr>' })
+    + "</w:styles>";
+  const document_ = X + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
+    + tmDocxBody(doc)
+    + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1021" w:bottom="1134" w:left="1021" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr>'
+    + "</w:body></w:document>";
+  const files = [
+    { path: "[Content_Types].xml", text: X + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+      + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+      + '<Default Extension="xml" ContentType="application/xml"/>'
+      + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+      + '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+      + '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>'
+      + "</Types>" },
+    { path: "_rels/.rels", text: X + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+      + '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>'
+      + "</Relationships>" },
+    { path: "word/_rels/document.xml.rels", text: X + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+      + "</Relationships>" },
+    { path: "docProps/core.xml", text: X + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/">'
+      + "<dc:title>" + tmXe(doc.title || "") + "</dc:title><dc:creator>tanmay</dc:creator></cp:coreProperties>" },
+    { path: "word/styles.xml", text: styles },
+    { path: "word/document.xml", text: document_ },
+  ];
+  return new Blob([tmZip(files)], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+}
+
+const tmLzeSdilet = () => { try { return typeof navigator !== "undefined" && !!navigator.share; } catch (e) { return false; } };
+
+const tmLzeSdiletSoubor = (f) => { try { return !!(navigator.canShare && navigator.canShare({ files: [f] })); } catch (e) { return false; } };
+
+function tmDocSoubor(doc, fmt) {
+  const jmeno = tmSafeName(doc.title || doc.date || "zapis");
+  if (fmt === "docx") return new File([tmDocxBlob(doc)], jmeno + ".docx", { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  if (fmt === "txt") return new File(["﻿" + tmDocTxt(doc)], jmeno + ".txt", { type: "text/plain" });
+  return new File([tmDocMd(doc)], jmeno + ".md", { type: "text/markdown" });
+}
+
+function tmDocDoZpravy(doc, strop) {
+  const hlava = [doc.title || "", [doc.sub, doc.date ? fmtCZ(doc.date) : ""].filter(Boolean).join(" · ")].filter(Boolean).join("\n");
+  const telo = tmDocTxt({ ...doc, title: "", sub: "", date: "" }).trim();
+  const cely = [hlava, telo].filter(Boolean).join("\n\n");
+  return tmOrez(cely, strop || 1800);
+}
+
+function tmOrez(s, max) {
+  const t2 = String(s || "");
+  if (t2.length <= max) return t2;
+  let i = max - 1;
+  const c = t2.charCodeAt(i - 1);
+  if (c >= 0xd800 && c <= 0xdbff) i -= 1;
+  return t2.slice(0, i).trimEnd() + "…";
+}
+
+async function tmSdilejSoubor(doc, fmt) {
+  const f = tmDocSoubor(doc, fmt || "md");
+  if (tmLzeSdilet() && tmLzeSdiletSoubor(f)) {
+    try { await navigator.share({ files: [f], title: doc.title || "" }); return "sdileno"; }
+    catch (e) { return /abort/i.test(String(e && e.name)) ? "zruseno" : "chyba"; }
+  }
+  // Sdílení souborů neumí — aspoň ať soubor spadne do stažených
+  tmDlBlob(f, f.name);
+  return "stazeno";
+}
+
+async function tmSdilejText(doc) {
+  const text = tmDocDoZpravy(doc);
+  if (tmLzeSdilet()) {
+    try { await navigator.share({ title: doc.title || "", text }); return "sdileno"; }
+    catch (e) { if (/abort/i.test(String(e && e.name))) return "zruseno"; }
+  }
+  return (await tmDoSchranky(text)) ? "zkopirovano" : "chyba";
+}
+
+async function tmDoSchranky(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  } catch (e) { return false; }
+}
+
+const TM_SDIL_MAX = 10;
+
+const tmPocet = (n, jeden, dva, pet, en1, enN) =>
+  (LANG === "cs" ? n + " " + (n === 1 ? jeden : n >= 2 && n <= 4 ? dva : pet) : n + " " + (n === 1 ? en1 : enN));
+
+const tmZapisu = (n) => tmPocet(n, "zápis", "zápisy", "zápisů", "note", "notes");
+
+const tmDocZapisu = (e, kind) => ({
+  title: e.title || (e.date ? fmtCZ(e.date) : L("Poznámka", "Note")),
+  date: e.date || "",
+  room: kind === "journal" ? L("Deník", "Journal") : L("Zápisník", "Notebook"),
+  dir: e.folder || "",
+  text: e.text || "",
+});
+
+function tmZipDok(docs, jmeno) {
+  const pouzita = {};
+  const soubory = docs.map((d) => {
+    const dir = d.dir ? d.dir.split("/").map(tmSafeName).join("/") + "/" : "";
+    let p = dir + tmSafeName(d.title || d.date || "zapis");
+    pouzita[p] = (pouzita[p] || 0) + 1;
+    if (pouzita[p] > 1) p += " (" + pouzita[p] + ")";
+    return { path: p + ".md", text: tmDocMd(d) };
+  });
+  return new File([tmZip(soubory)], tmSafeName(jmeno || "tanmay-" + todayISO()) + ".zip", { type: "application/zip" });
+}
+
+async function tmSdilejZip(docs, jmeno) {
+  if (!docs.length) return "chyba";
+  const f = tmZipDok(docs, jmeno);
+  if (tmLzeSdilet() && tmLzeSdiletSoubor(f)) {
+    try { await navigator.share({ files: [f], title: f.name }); return "sdileno"; }
+    catch (e) { if (/abort/i.test(String(e && e.name))) return "zruseno"; }
+  }
+  return tmDlBlob(f, f.name) ? "stazeno" : "chyba";
+}
+
+async function tmSdilejSoubory(docs, fmt, jmeno) {
+  if (!docs.length) return "chyba";
+  if (docs.length === 1) return tmSdilejSoubor(docs[0], fmt);
+  if (docs.length > TM_SDIL_MAX) return tmSdilejZip(docs, jmeno);
+  const lze = (fs) => { try { return !!(navigator.canShare && navigator.canShare({ files: fs })); } catch (e) { return false; } };
+  if (tmLzeSdilet()) {
+    let fs = docs.map((d) => tmDocSoubor(d, fmt || "md"));
+    if (!lze(fs)) fs = docs.map((d) => tmDocSoubor(d, "txt"));
+    if (lze(fs)) {
+      try { await navigator.share({ files: fs, title: tmZapisu(docs.length) }); return "sdileno"; }
+      catch (e) { if (/abort/i.test(String(e && e.name))) return "zruseno"; }
+    }
+  }
+  return tmSdilejZip(docs, jmeno);
+}
+
+const tmDocyDoZpravy = (docs, strop) => (docs.length === 1
+  ? tmDocDoZpravy(docs[0], strop)
+  : tmOrez(docs.map((d) => tmDocDoZpravy(d, 600)).join("\n\n· · ·\n\n"), strop || 1800));
+
+async function tmSdilejTexty(docs) {
+  if (!docs.length) return "chyba";
+  if (docs.length === 1) return tmSdilejText(docs[0]);
+  const text = tmDocyDoZpravy(docs);
+  if (tmLzeSdilet()) {
+    try { await navigator.share({ title: tmZapisu(docs.length), text }); return "sdileno"; }
+    catch (e) { if (/abort/i.test(String(e && e.name))) return "zruseno"; }
+  }
+  return (await tmDoSchranky(text)) ? "zkopirovano" : "chyba";
+}
+
+const tmSlucDok = (docs, nazev) => ({
+  title: nazev || tmZapisu(docs.length),
+  date: "",
+  room: (docs[0] && docs[0].room) || "",
+  text: docs.map((d) => "# " + (d.title || "") + "\n\n" + (d.date ? "*" + fmtCZ(d.date) + "*\n\n" : "") + (d.text || "")).join("\n\n---\n\n"),
+});
+
+const TM_KAM = [
+  { k: "whatsapp", cz: "WhatsApp", en: "WhatsApp", url: (t2) => "https://wa.me/?text=" + encodeURIComponent(t2) },
+  { k: "telegram", cz: "Telegram", en: "Telegram", url: (t2) => "https://t.me/share/url?url=" + encodeURIComponent(tmOrez(t2, 800)) },
+  { k: "email", cz: "E-mail", en: "Email", url: (t2, nadpis) => "mailto:?subject=" + encodeURIComponent(nadpis || "") + "&body=" + encodeURIComponent(t2) },
+  { k: "sms", cz: "SMS", en: "SMS", url: (t2) => klSmsUrl("", tmOrez(t2, 900)) },
+];
+
+function TmIcSdilet({ size = 17 }) { return <FamilyIcon id="share" size={size} />; }
+
+function TmIcKopie({ size = 17 }) { return <FamilyIcon id="copy" size={size} />; }
+
+function tmExportDoc(doc, fmt) {
+  const name = tmSafeName(doc.title || doc.date || "zapis");
+  if (fmt === "pdf") return tmPrintHtml(tmDocPrintHtml(doc, tmPrintCfg()));
+  if (fmt === "docx") return tmDlBlob(tmDocxBlob(doc), name + ".docx");
+  if (fmt === "md") return tmDlBlob(new Blob([tmDocMd(doc)], { type: "text/markdown;charset=utf-8" }), name + ".md");
+  return tmDlBlob(new Blob(["﻿" + tmDocTxt(doc)], { type: "text/plain;charset=utf-8" }), name + ".txt");
+}
+
+const TM_STR_MEZERA = 36;
+
+function useStranky(ref, on, opts) {
+  const klavesy = !!(opts && opts.klavesy);
+  const [stav, setStav] = React.useState({ i: 0, n: 1 });
+  const jdiRef = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !on) { setStav({ i: 0, n: 1 }); jdiRef.current = null; return; }
+    let raf = 0, doskok = 0, tah = false, zamek = false, kolecko = false;
+    const krok = () => el.clientWidth || 1;
+    const pocet = () => Math.max(1, Math.round(el.scrollWidth / krok()));
+    const spocti = () => {
+      const w = krok();
+      el.style.setProperty("--tm-str-w", (w - TM_STR_MEZERA) + "px");
+      const n = pocet();
+      const i = Math.min(n - 1, Math.max(0, Math.round(el.scrollLeft / w)));
+      setStav((p) => (p.i === i && p.n === n ? p : { i, n }));
+    };
+    const prepocti = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(spocti); };
+    const jdi = (cil, hladce) => {
+      const w = krok();
+      const k = Math.min(pocet() - 1, Math.max(0, cil));
+      try { el.scrollTo({ left: k * w, behavior: hladce === false ? "auto" : "smooth" }); }
+      catch (err) { el.scrollLeft = k * w; }
+    };
+    jdiRef.current = jdi;
+    prepocti();
+    const t0 = window.setTimeout(prepocti, 130);
+    const t1 = window.setTimeout(prepocti, 460);
+    let ro = null;
+    try { ro = new ResizeObserver(prepocti); ro.observe(el); const sl = el.querySelector(".tm-strcol"); if (sl) ro.observe(sl); } catch (err) {}
+    /* Doskok · když plochou pohne něco jiného (obnovený posun, myš), po
+       utišení se dorovná na nejbližší celou stránku. Text nesmí zůstat
+       rozpůlený v půli řádku. */
+    const dorovnej = () => {
+      if (tah) return;
+      const w = krok();
+      const cil = Math.round(el.scrollLeft / w) * w;
+      if (Math.abs(cil - el.scrollLeft) > 1) { try { el.scrollTo({ left: cil, behavior: "smooth" }); } catch (err) { el.scrollLeft = cil; } }
+    };
+    const priRolovani = () => { prepocti(); window.clearTimeout(doskok); doskok = window.setTimeout(dorovnej, 170); };
+    el.addEventListener("scroll", priRolovani, { passive: true });
+    window.addEventListener("resize", prepocti);
+
+    // ——— tah prstem · jeden přejezd = jedna stránka ———
+    let x0 = 0, y0 = 0, l0 = 0, osa = "", cas = 0;
+    const dolu = (ev) => {
+      const p = ev.touches ? ev.touches[0] : ev;
+      x0 = p.clientX; y0 = p.clientY; l0 = el.scrollLeft; osa = ""; cas = Date.now(); tah = false;
+    };
+    const posun = (ev) => {
+      const p = ev.touches ? ev.touches[0] : ev;
+      const dx = p.clientX - x0, dy = p.clientY - y0;
+      if (!osa) {
+        if (Math.abs(dx) > 9 && Math.abs(dx) > Math.abs(dy) + 2) osa = "x";
+        else if (Math.abs(dy) > 9) osa = "y";
+      }
+      if (osa !== "x") return;
+      if (ev.cancelable) ev.preventDefault();
+      tah = true;
+      el.scrollLeft = l0 - dx;
+    };
+    const nahoru = (ev) => {
+      if (osa !== "x") { osa = ""; return; }
+      osa = "";
+      const p = ev.changedTouches ? ev.changedTouches[0] : ev;
+      const dx = p.clientX - x0;
+      const w = krok();
+      const rychlost = Math.abs(dx) / Math.max(1, Date.now() - cas);
+      const dost = Math.abs(dx) > w * 0.16 || rychlost > 0.4;
+      tah = false;
+      jdi(Math.round(l0 / w) + (dost ? (dx < 0 ? 1 : -1) : 0));
+      zamek = true;
+      window.setTimeout(() => { zamek = false; }, 300);
+    };
+    const zrus = () => { osa = ""; tah = false; };
+    // klepnutí, které vzniklo z tahu, není klepnutí
+    const klik = (ev) => { if (tah || zamek) { ev.stopPropagation(); ev.preventDefault(); } };
+    const kolo = (ev) => {
+      const d = Math.abs(ev.deltaX) > Math.abs(ev.deltaY) ? ev.deltaX : (ev.shiftKey ? ev.deltaY : 0);
+      if (!d) return;
+      if (ev.cancelable) ev.preventDefault();
+      if (kolecko) return;
+      kolecko = true; window.setTimeout(() => { kolecko = false; }, 380);
+      jdi(Math.round(el.scrollLeft / krok()) + (d > 0 ? 1 : -1));
+    };
+    el.addEventListener("touchstart", dolu, { passive: true });
+    el.addEventListener("touchmove", posun, { passive: false });
+    el.addEventListener("touchend", nahoru, { passive: true });
+    el.addEventListener("touchcancel", zrus, { passive: true });
+    el.addEventListener("click", klik, true);
+    el.addEventListener("wheel", kolo, { passive: false });
+    const klavesa = (ev) => {
+      if (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
+      const a = document.activeElement;
+      if (a && (a.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(a.tagName))) return;
+      ev.preventDefault();
+      jdi(Math.round(el.scrollLeft / krok()) + (ev.key === "ArrowRight" ? 1 : -1));
+    };
+    if (klavesy) window.addEventListener("keydown", klavesa);
+    return () => {
+      cancelAnimationFrame(raf); window.clearTimeout(t0); window.clearTimeout(t1); window.clearTimeout(doskok);
+      if (ro) { try { ro.disconnect(); } catch (err) {} }
+      el.removeEventListener("scroll", priRolovani);
+      window.removeEventListener("resize", prepocti);
+      el.removeEventListener("touchstart", dolu);
+      el.removeEventListener("touchmove", posun);
+      el.removeEventListener("touchend", nahoru);
+      el.removeEventListener("touchcancel", zrus);
+      el.removeEventListener("click", klik, true);
+      el.removeEventListener("wheel", kolo);
+      if (klavesy) window.removeEventListener("keydown", klavesa);
+      jdiRef.current = null;
+    };
+  }, [on, klavesy]);
+  return { strana: stav.i + 1, pocet: stav.n, jdi: (i) => { if (jdiRef.current) jdiRef.current(i); } };
+}
+
+function CisloStranky({ strana, pocet, t, style }) {
+  if (!pocet || pocet < 2) return null;
+  return (
+    <span aria-hidden="true" style={{ position: "absolute", right: 16, bottom: 4, zIndex: 3, pointerEvents: "none", fontFamily: FONT_TAG, letterSpacing: "0.12em", fontSize: 12, lineHeight: 1, color: hexA(t.textMuted, 0.7), fontVariantNumeric: "tabular-nums", ...style }}>
+      {strana}/{pocet}
+    </span>
+  );
+}
+
+function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat }) {
+  const { t } = useT();
+  const st = useStore();
+  const [nastaveni, setNastaveni] = useState(false);
+  const stranky = entry.rezim === "stranky";
+  React.useEffect(() => { tmZamkniStranku(); tmListovaniStuj(); return () => { tmOdemkniStranku(); tmListovaniJdi(); }; }, []);
+  React.useEffect(() => tmEscVrstva(() => onZavri()), [onZavri]);
+  const teloRef = React.useRef(null);
+  const str = useStranky(teloRef, stranky, { klavesy: true });
+  const nazev = entry.title || (entry.date ? fmtCZ(entry.date) : L("Bez názvu", "Untitled"));
+  const html = React.useMemo(() => mdToHtml(entry.text || "", t), [entry.text, t.mode]);
+  return createPortal(
+    <div className="tm-nahled" onClick={() => onZavri()}
+      style={{ position: "fixed", inset: 0, zIndex: 92, background: hexA(t.bg, 0.86), backdropFilter: "blur(13px) saturate(1.05)", WebkitBackdropFilter: "blur(13px) saturate(1.05)", animation: "tmDim .22s ease both" }}>
+      {/* PEVNÝ NÁZEV · stojí, i když text pod ním jede. Je to jméno souboru,
+          ne nadpis textu — proto verzálky a prostrkání jako u listů. */}
+      <div className="tm-nahled-head" style={{ position: "absolute", top: "calc(13px + env(safe-area-inset-top))", left: 18, right: 14, display: "flex", alignItems: "center", gap: 12, pointerEvents: "none" }}>
+        <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nazev}</span>
+        <button onClick={(e) => { e.stopPropagation(); setNastaveni(true); }} title={L("Nastavení poznámky", "Note settings")}
+          style={{ pointerEvents: "auto", flexShrink: 0, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 34, height: 34, cursor: "pointer", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <TmIcNastaveni size={16} />
+        </button>
+      </div>
+      {/* NÁHLED · roluje jen on. Klepnutí do textu vrací zpátky k psaní. */}
+      <div ref={teloRef} onClick={(e) => { e.stopPropagation(); if (onPsat) onPsat(); }} className={"tm-scroll tm-nahled-telo" + (stranky ? " tm-stranky" : "")}
+        style={{ position: "absolute", left: 0, right: 0, top: "calc(64px + env(safe-area-inset-top))", bottom: "27%", overflowY: stranky ? "hidden" : "auto", overflowX: "hidden", overscrollBehavior: "contain", padding: "0 18px", cursor: "pointer" }}>
+        {stranky
+          ? <div className="tm-strcol"><div className="tm-rich" dangerouslySetInnerHTML={{ __html: html }} /></div>
+          : <div className="tm-rich" style={{ maxWidth: 640, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: html }} />}
+      </div>
+      {/* Číslo stojí POD čtenou plochou, ne v ní · v textu by leželo na
+          posledním řádku stránky. */}
+      {stranky && <CisloStranky strana={str.strana} pocet={str.pocet} t={t} style={{ bottom: "calc(27% - 26px)", right: 18 }} />}
+      {/* holá plocha pod náhledem · šeptem řekne, co udělá klepnutí */}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(16px + env(safe-area-inset-bottom))", textAlign: "center", fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: hexA(t.textMuted, 0.75), pointerEvents: "none" }}>
+        {L("Klepnutím se vrátíš k psaní", "Tap to go back to writing")}
+      </div>
+      {nastaveni && <NastaveniPoznamky entry={entry} kind={kind} tags={tags} onClose={() => setNastaveni(false)} onPryc={() => { setNastaveni(false); onZavri(); }} />}
+    </div>,
+    document.body
+  );
+}
+
+function NastaveniPoznamky({ entry, kind = "notebook", tags = [], onClose, onPryc }) {
+  const { t } = useT();
+  const st = useStore();
+  const up = (patch) => st.updateEntry(kind, entry.id, patch);
+  const selTags = entryTags(entry);
+  const colorOf = (n) => ((tags.find((x) => x[0] === n)) || [])[1] || "default";
+  const stranky = entry.rezim === "stranky";
+  const kopie = () => {
+    const nova = { ...entry, id: uid(), title: (entry.title || L("Bez názvu", "Untitled")) + L(" (kopie)", " (copy)"), date: todayISO() };
+    st.addEntry(kind, nova);
+    onPryc ? onPryc() : onClose();
+  };
+  const radek = { display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 48, background: "transparent", border: "none", borderRadius: 10, padding: "10px 8px", margin: "0 -8px", cursor: "pointer", textAlign: "left", color: t.text, fontFamily: FONT_BODY, fontSize: 15 };
+  const skupina = (jm) => <div style={{ ...subLabel(t), margin: "18px 0 6px" }}>{jm}</div>;
+  const volba = (on, nadpis, popis, fn) => (
+    <button onClick={fn} style={{ ...radek, alignItems: "flex-start", background: on ? hexA(t.accent, 0.09) : "transparent" }}>
+      {/* zapnuto = plná bindu, vypnuto = prázdný kroužek téže velikosti ·
+          tečka na účaří by seskočila pod řádek a vypadala jako smetí */}
+      <span style={{ width: 18, flexShrink: 0, marginTop: 4, color: on ? (t.accentInk || t.accent) : t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center", height: 18 }}>
+        {on ? <Bindu size={7} /> : <span style={{ width: 7, height: 7, borderRadius: "50%", border: `1px solid ${hexA(t.textMuted, 0.6)}` }} />}
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontFamily: FONT_DISPLAY, fontSize: 16, color: on ? (t.accentInk || t.accent) : t.heading }}>{nadpis}</span>
+        <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, lineHeight: 1.45, color: t.textMuted, marginTop: 2 }}>{popis}</span>
+      </span>
+    </button>
+  );
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      {/* Náhled leží ve vrstvě 92 · nastavení z něj otevřené musí být nad ním,
+          jinak se sice otevře, ale není vidět. */}
+      <CenterSheet center vrstva={96} title={L("Nastavení poznámky", "Note settings")} onClose={onClose}>
+        {skupina(L("Čtení", "Reading"))}
+        {volba(!stranky, L("Plynule dolů", "Flowing down"), L("Jeden sloupec bez konce — jak se píše, tak se čte.", "One column without end — read the way it is written."), () => up({ rezim: "plynule" }))}
+        {volba(stranky, L("Po stránkách do strany", "Sideways, page by page"), L("Text se láme do stránek na šířku displeje — ve čtení i v psaní. Jedno přejetí prstem otočí právě jednu stránku a v pravém dolním rohu stojí, kolikátá z kolika. Kurzor si stránku hlídá sám.", "The text breaks into pages the width of the display — both when reading and when writing. One swipe turns exactly one page, and the bottom right corner says which of how many. The caret keeps its own page in view."), () => up({ rezim: "stranky" }))}
+
+        {skupina(L("Štítky", "Tags"))}
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 2 }}>
+          {tags.map(([label, color]) => {
+            const on = selTags.includes(label);
+            return (
+              <button key={label} onClick={() => { const n = on ? selTags.filter((x) => x !== label) : [...selTags, label]; up({ tags: n, tag: n[0] || "" }); }}
+                style={{ border: "none", cursor: "pointer", background: "transparent", padding: 0, opacity: on ? 1 : 0.38 }}><Tag label={label} color={color} /></button>
+            );
+          })}
+        </div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, margin: "8px 0 0", lineHeight: 1.5 }}>{L("Štítků může být víc — klepnutím se přidávají a odebírají.", "A note can carry several tags — tap to add or remove.")}</p>
+
+        {skupina(L("S poznámkou", "With this note"))}
+        <button onClick={kopie} style={radek}>
+          <span style={{ width: 18, flexShrink: 0, color: t.sand, display: "inline-flex", justifyContent: "center" }}><TmIcKopie size={16} /></span>
+          <span style={{ flex: 1 }}>{L("Vytvořit kopii", "Make a copy")}</span>
+        </button>
+        <button onClick={() => up({ star: !entry.star })} style={radek}>
+          <span style={{ width: 18, flexShrink: 0, color: entry.star ? t.accent : t.textMuted, display: "inline-flex", justifyContent: "center", fontSize: 14 }}>{entry.star ? "★" : "☆"}</span>
+          <span style={{ flex: 1 }}>{entry.star ? L("Sundat hvězdičku", "Remove the star") : L("Dát hvězdičku", "Star it")}</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{L("nahoru v seznamu", "top of the list")}</span>
+        </button>
+        <button onClick={() => up({ zamek: !entry.zamek })} style={radek}>
+          <span style={{ width: 18, flexShrink: 0, color: entry.zamek ? t.accent : t.textMuted, display: "inline-flex", justifyContent: "center", fontSize: 14 }}>{entry.zamek ? "◉" : "○"}</span>
+          <span style={{ flex: 1 }}>{entry.zamek ? L("Odemknout text", "Unlock the text") : L("Zamknout text", "Lock the text")}</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{L("jen ke čtení", "read only")}</span>
+        </button>
+        <div style={{ ...radek, cursor: "default" }}>
+          <span style={{ width: 18, flexShrink: 0, color: t.textMuted, display: "inline-flex", justifyContent: "center", fontSize: 13 }}>◷</span>
+          <span style={{ flex: 1 }}>{L("Datum poznámky", "Note date")}</span>
+          <input type="date" value={entry.date || ""} onChange={(e) => up({ date: e.target.value })}
+            style={{ background: "transparent", border: "none", color: entry.date ? t.textSec : t.textMuted, fontFamily: FONT_BODY, fontSize: 13, outline: "none", padding: 0, colorScheme: t.mode === "light" ? "light" : "dark", width: 118 }} />
+        </div>
+        <div style={{ ...radek, cursor: "default" }}>
+          <span style={{ width: 18, flexShrink: 0, color: t.sand, display: "inline-flex", justifyContent: "center" }}><TmIcSdilet size={15} /></span>
+          <span style={{ flex: 1 }}>{L("Sdílet nebo uložit", "Share or save")}</span>
+          <ExportBtn small doc={() => ({ title: entry.title || (entry.date ? fmtCZ(entry.date) : L("Poznámka", "Note")), date: entry.date || "", room: kind === "journal" ? L("Deník", "Journal") : L("Zápisník", "Notebook"), text: entry.text || "" })} />
+        </div>
+        <button onClick={() => st.ask(L(`Přesunout „${entry.title || L("poznámku", "the note")}" do koše?`, `Move "${entry.title || "the note"}" to trash?`), () => { st.removeEntry(kind, entry.id); if (onPryc) onPryc(); }, { soft: true })} style={{ ...radek, color: t.textMuted }}>
+          <span style={{ width: 18, flexShrink: 0, display: "inline-flex", justifyContent: "center", fontSize: 13 }}><FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+          <span style={{ flex: 1 }}>{L("Do koše", "To trash")}</span>
+        </button>
+      </CenterSheet>
+    </div>
+  );
+}
+
+const INK_CZ = EDITOR_LABELS;
+
+const GD_RE = /^!gd\((\S+?)\|(\d+)\)$/;
+
+function tmGdEmbed(u) {
+  // Kotva na začátek řetězce je tu podstatná: bez ní projde „javascript:…"
+  // s podřetězcem drive.google.com a tlačítko „otevřít" ho spustí.
+  let s = String(u || "").trim(); let m;
+  if (/^(?:drive|docs)\.google\.com\//i.test(s)) s = "https://" + s;
+  if (!/^https:\/\/(?:drive|docs)\.google\.com\//i.test(s)) return null;
+  // publikované dokumenty („Publikovat na web") mají tvar /d/e/<id>
+  if ((m = s.match(/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/e\/([\w-]+)/))) {
+    const typ = m[1], id = m[2];
+    return typ === "presentation" ? { src: "https://docs.google.com/presentation/d/e/" + id + "/embed", cz: "prezentace", en: "slides" }
+      : typ === "spreadsheets" ? { src: "https://docs.google.com/spreadsheets/d/e/" + id + "/pubhtml?widget=true&headers=false", cz: "tabulka", en: "sheet" }
+      : { src: "https://docs.google.com/document/d/e/" + id + "/pub?embedded=true", cz: "dokument", en: "doc" };
+  }
+  if ((m = s.match(/docs\.google\.com\/forms\/d\/(?!e\/)([\w-]+)/))) return { src: "https://docs.google.com/forms/d/" + m[1] + "/viewform?embedded=true", cz: "formulář", en: "form" };
+  if ((m = s.match(/docs\.google\.com\/drawings\/d\/([\w-]+)/))) return { src: "https://docs.google.com/drawings/d/" + m[1] + "/preview", cz: "kresba", en: "drawing" };
+  if ((m = s.match(/drive\.google\.com\/(?:uc|thumbnail)\?(?:[^#]*&)?id=([\w-]+)/))) return { src: "https://drive.google.com/file/d/" + m[1] + "/preview", cz: "soubor", en: "file" };
+  if ((m = s.match(/drive\.google\.com\/file\/d\/([\w-]+)/))) return { src: "https://drive.google.com/file/d/" + m[1] + "/preview", cz: "soubor", en: "file" };
+  if ((m = s.match(/drive\.google\.com\/open\?id=([\w-]+)/))) return { src: "https://drive.google.com/file/d/" + m[1] + "/preview", cz: "soubor", en: "file" };
+  if ((m = s.match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([\w-]+)/))) return { src: "https://drive.google.com/embeddedfolderview?id=" + m[1] + "#list", cz: "složka", en: "folder" };
+  if ((m = s.match(/docs\.google\.com\/document\/d\/([\w-]+)/))) return { src: "https://docs.google.com/document/d/" + m[1] + "/preview", cz: "dokument", en: "doc" };
+  if ((m = s.match(/docs\.google\.com\/spreadsheets\/d\/([\w-]+)/))) return { src: "https://docs.google.com/spreadsheets/d/" + m[1] + "/preview", cz: "tabulka", en: "sheet" };
+  if ((m = s.match(/docs\.google\.com\/presentation\/d\/([\w-]+)/))) return { src: "https://docs.google.com/presentation/d/" + m[1] + "/embed", cz: "prezentace", en: "slides" };
+  if ((m = s.match(/docs\.google\.com\/forms\/d\/e\/([\w-]+)/))) return { src: "https://docs.google.com/forms/d/e/" + m[1] + "/viewform?embedded=true", cz: "formulář", en: "form" };
+  return null;
+}
+
+const CHK_RE = /^-\s\[([ xX])\]\s?([\s\S]*)$/;
+
+const OL_RE = /^(\d{1,3})\.\s([\s\S]*)$/;
+
+const UL_RE = /^[-•]\s([\s\S]*)$/;
+
+const QT_RE = /^>\s?([\s\S]*)$/;
+
+const HR_RE = /^-{3,}$/;
+
+function gdFigHtml(url, h, t) {
+  const g = tmGdEmbed(url);
+  if (!g) return "";
+  const b = 'style="all:unset;cursor:pointer;color:#F4F0EB;font-size:12px;line-height:1;padding:3px 6px;border-radius:5px;font-family:sans-serif;"';
+  const bar = 'style="position:absolute;top:6px;right:6px;display:flex;gap:1px;background:rgba(20,18,16,0.62);border-radius:8px;padding:2px;z-index:2;"';
+  return '<figure contenteditable="false" data-gd="' + String(url).replace(/"/g, "&quot;") + '" data-h="' + h + '" class="tm-fig" style="position:relative;display:block;margin:10px 0;width:100%;max-width:680px;">'
+    + '<iframe src="' + g.src + '" loading="lazy" allow="autoplay; fullscreen" allowfullscreen style="width:100%;height:' + h + 'px;display:block;border-radius:8px;border:1px solid ' + t.borderSoft + ';background:' + t.card + ';"></iframe>'
+    + '<span class="tm-fig-tools" contenteditable="false" ' + bar + '>'
+    + '<button type="button" data-act="open" title="Otevřít v Drive" ' + b + '>↗</button>'
+    + '<button type="button" data-act="up" title="Nahoru" ' + b + '>↑</button>'
+    + '<button type="button" data-act="down" title="Dolů" ' + b + '>↓</button>'
+    + '<button type="button" data-act="minus" title="Nižší" ' + b + '>–</button>'
+    + '<button type="button" data-act="plus" title="Vyšší" ' + b + '>+</button>'
+    + '<button type="button" data-act="del" title="Odebrat" ' + b + '>✕</button>'
+    + '</span></figure>';
+}
+
+const SAZEC_HOTOVE = /^(#{1,3}\s|[-*]\s|\d{1,3}\.\s|>\s|!img\(|!gd\(|- \[[ x]\]|-{3,}\s*$)/;
+
+function tmSazec(md) {
+  const znacka = (l) => { const m = l.match(/^\{\^[crj]\}/); return m ? m[0] : ""; };
+  const cisty = (l) => l.replace(/^\{\^[crj]\}/, "");
+  const hotove = (l) => SAZEC_HOTOVE.test(cisty(l));
+  // 0 · normalizace: konce řádků, ocasní mezery, tři a víc prázdných → jeden
+  let lines = String(md || "").replace(/\r\n?/g, "\n").split("\n").map((l) => l.replace(/[ \t]+$/, ""));
+  const uhlad = (arr) => { const o = []; let pz = 0; arr.forEach((l) => { if (cisty(l).trim() === "") { pz++; if (pz <= 1) o.push(""); } else { pz = 0; o.push(l); } }); return o; };
+  lines = uhlad(lines);
+  // 1 · sjednocení odrážek, číslování a oddělovníků
+  lines = lines.map((l) => {
+    const z = znacka(l); const c = cisty(l);
+    if (SAZEC_HOTOVE.test(c)) return l;
+    let m = c.match(/^\s*[•▪‣·]\s+(.*)$/); if (m) return z + "- " + m[1];
+    m = c.match(/^\s*[–—]\s+(.*)$/); if (m) return z + "- " + m[1];
+    m = c.match(/^\s*(\d{1,3})\)\s+(.*)$/); if (m) return z + m[1] + ". " + m[2];
+    if (/^[-_*━―—=]{3,}$/.test(c.trim())) return "---";
+    return l;
+  });
+  // 2 · verše: běh tří a víc „holých" řádků bez prázdných, všechny krátké → nesahat
+  const holy = (l) => cisty(l).trim() !== "" && !hotove(l);
+  const vers = new Array(lines.length).fill(false);
+  for (let i = 0; i < lines.length; ) {
+    if (!holy(lines[i])) { i++; continue; }
+    let j = i; while (j < lines.length && holy(lines[j])) j++;
+    if (j - i >= 3 && lines.slice(i, j).every((l) => cisty(l).length <= 56)) for (let k = i; k < j; k++) vers[k] = true;
+    i = j;
+  }
+  // 3 · scelení zalomené prózy: dlouhý řádek bez koncové interpunkce
+  //     + pokračování malým písmenem = jeden odstavec
+  const l3 = []; const v3 = [];
+  for (let k = 0; k < lines.length; k++) {
+    const l = lines[k];
+    const p = l3.length - 1;
+    if (p >= 0 && !vers[k] && !v3[p] && holy(l) && !znacka(l) && l3[p] !== "" && holy(l3[p])
+      && cisty(l3[p]).length >= 60 && !/[.!?:;…"“)\]]$/.test(cisty(l3[p]))
+      && /^[a-záčďéěíňóřšťúůýž]/.test(cisty(l).trim())) {
+      l3[p] = l3[p] + " " + cisty(l).trim();
+    } else { l3.push(l); v3.push(vers[k]); }
+  }
+  lines = l3;
+  // 4 · titulek, nadpisy, podnadpisy, citace
+  const out = [];
+  let titulekVolny = true;
+  for (let k = 0; k < lines.length; k++) {
+    const l = lines[k];
+    const z = znacka(l); const txt = cisty(l).trim();
+    if (txt === "") { out.push(""); continue; }
+    if (hotove(l) || v3[k]) { out.push(l); titulekVolny = false; continue; }
+    const kratky = txt.length <= 56;
+    const predPrazdny = k === 0 || cisty(lines[k - 1]).trim() === "";
+    const dalsiText = (k + 1 < lines.length && cisty(lines[k + 1]).trim() !== "")
+      || (k + 2 < lines.length && cisty(lines[k + 1]).trim() === "" && cisty(lines[k + 2]).trim() !== "");
+    const zaPrazdny = k + 1 >= lines.length || cisty(lines[k + 1]).trim() === "";
+    const velkymi = txt.length >= 3 && txt.length <= 64 && txt === txt.toUpperCase() && /[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{2}/.test(txt);
+    const bezKonce = !/[.!?…;,]$/.test(txt);
+    if (titulekVolny && kratky && bezKonce && !/:$/.test(txt)) { out.push(z + "# " + txt); titulekVolny = false; continue; }
+    titulekVolny = false;
+    if (velkymi) { out.push(z + "## " + txt); continue; }
+    if (/^[„"].*[“”"]$/.test(txt) && txt.length <= 160 && predPrazdny && zaPrazdny) { out.push(z + "> " + txt); continue; }
+    if (kratky && /:$/.test(txt) && predPrazdny && dalsiText) { out.push(z + "### " + txt); continue; }
+    if (kratky && bezKonce && predPrazdny && dalsiText && !(v3[k + 1] && cisty(lines[k + 1] || "").trim() !== "") && txt.split(/\s+/).length <= 7) { out.push(z + "## " + txt); continue; }
+    out.push(l);
+  }
+  // 5 · dech: prázdný řádek před nadpisem a za titulkem
+  const fin = [];
+  out.forEach((l) => {
+    const c = cisty(l);
+    if (/^#{2,3}\s/.test(c) && fin.length && cisty(fin[fin.length - 1]).trim() !== "") fin.push("");
+    fin.push(l);
+    if (/^#\s/.test(c)) fin.push("");
+  });
+  return uhlad(fin).join("\n").replace(/\n+$/, "");
+}
+
+let TM_GESTURE = 0;
+
+const TM_MAC = (() => { try { return /Mac|iPad|iPhone|iPod/.test(navigator.platform || navigator.userAgent || ""); } catch (e) { return false; } })();
+
+const TM_MK_CLS = ["tm-mk", "tm-chk", "tm-hr"];
+
+const tmIsMarker = (n) => n && n.nodeType === 1 && n.classList && TM_MK_CLS.some((c) => n.classList.contains(c));
+
+function tmBlockOfNode(root, node) {
+  let n = node;
+  if (n && n.nodeType === 3) n = n.parentNode;
+  while (n && n !== root && n.parentNode !== root) n = n.parentNode;
+  return n && n !== root && n.nodeType === 1 ? n : null;
+}
+
+function tmBlockKind(el) {
+  if (!el || el.nodeType !== 1) return "p";
+  if (el.tagName === "FIGURE") return "img";
+  if (el.tagName === "H1") return "h1";
+  if (el.tagName === "H2") return "h2";
+  if (el.tagName === "H3") return "h3";
+  if (el.getAttribute("data-chk") != null) return "chk";
+  if (el.getAttribute("data-ol") != null) return "ol";
+  if (el.getAttribute("data-ul") != null) return "ul";
+  if (el.getAttribute("data-qt") != null) return "qt";
+  if (el.getAttribute("data-hr") != null) return "hr";
+  return "p";
+}
+
+function tmBlockText(el) {
+  let out = "";
+  const walk = (n) => {
+    if (n.nodeType === 3) { out += n.nodeValue; return; }
+    if (n.nodeType !== 1) return;
+    if (n.getAttribute && n.getAttribute("contenteditable") === "false") return;
+    if (n.tagName === "BR") return;
+    Array.prototype.forEach.call(n.childNodes, walk);
+  };
+  Array.prototype.forEach.call(el.childNodes, walk);
+  return out;
+}
+
+function tmMarker(kind, n) {
+  const sp = document.createElement("span");
+  sp.setAttribute("contenteditable", "false");
+  if (kind === "chk") { sp.className = "tm-chk"; sp.textContent = "✓"; }
+  else if (kind === "hr") { sp.className = "tm-hr"; }
+  else { sp.className = "tm-mk"; sp.textContent = kind === "ol" ? String(n || 1) + "." : "•"; }
+  return sp;
+}
+
+function tmMakeBlock(kind, n) {
+  const el = document.createElement(kind === "h1" ? "h1" : kind === "h2" ? "h2" : kind === "h3" ? "h3" : "div");
+  if (kind === "chk") { el.setAttribute("data-chk", "0"); el.appendChild(tmMarker("chk")); }
+  else if (kind === "ol") { el.setAttribute("data-ol", String(n || 1)); el.appendChild(tmMarker("ol", n || 1)); }
+  else if (kind === "ul") { el.setAttribute("data-ul", "1"); el.appendChild(tmMarker("ul")); }
+  else if (kind === "qt") el.setAttribute("data-qt", "1");
+  else if (kind === "hr") { el.setAttribute("data-hr", "1"); el.appendChild(tmMarker("hr")); }
+  return el;
+}
+
+function tmCaretOffset(block) {
+  const s = window.getSelection();
+  if (!s || !s.rangeCount || !block) return null;
+  const r = s.getRangeAt(0);
+  if (block !== r.endContainer && !block.contains(r.endContainer)) return null;
+  const pre = document.createRange();
+  pre.selectNodeContents(block);
+  try { pre.setEnd(r.endContainer, r.endOffset); } catch (err) { return null; }
+  let off = pre.toString().length;
+  const mk = block.firstElementChild;
+  if (tmIsMarker(mk)) off -= (mk.textContent || "").length;
+  return Math.max(0, off);
+}
+
+function tmSetCaret(block, off) {
+  const s = window.getSelection(); if (!s || !block) return;
+  const r = document.createRange();
+  let left = off == null ? Infinity : off, done = false;
+  const walk = (n) => {
+    if (done) return;
+    if (n.nodeType === 3) {
+      const len = n.nodeValue.length;
+      if (len === 0) return;
+      if (left <= len) { r.setStart(n, left); done = true; return; }
+      left -= len; return;
+    }
+    if (n.nodeType !== 1) return;
+    if (n.getAttribute && n.getAttribute("contenteditable") === "false") return;
+    Array.prototype.slice.call(n.childNodes).forEach(walk);
+  };
+  Array.prototype.slice.call(block.childNodes).forEach(walk);
+  if (!done) {
+    // prázdný blok · kurzor patří za značku, ne před ni
+    if (off === 0 || off == null) { r.setStart(block, tmIsMarker(block.firstChild) ? 1 : 0); r.collapse(true); }
+    else { r.selectNodeContents(block); r.collapse(false); }
+  } else r.collapse(true);
+  try { s.removeAllRanges(); s.addRange(r); } catch (err) {}
+}
+
+function tmFill(nn, nodes) {
+  const keep = nodes.filter((c) => !tmIsMarker(c) && !(c.nodeType === 3 && c.nodeValue === ""));
+  const meaningful = keep.filter((c) => !(c.nodeType === 1 && c.tagName === "BR"));
+  if (meaningful.length) keep.forEach((c) => nn.appendChild(c));
+  else nn.appendChild(document.createElement("br"));
+  return meaningful.length;
+}
+
+function tmSetBlock(root, kind, force) {
+  const s = window.getSelection(); if (!s || !s.rangeCount || !root) return false;
+  const r = s.getRangeAt(0);
+  const a = tmBlockOfNode(root, r.startContainer);
+  const b = tmBlockOfNode(root, r.endContainer) || a;
+  if (!a) return false;
+  const blocks = [];
+  let cur = a;
+  for (let guard = 0; guard < 4000; guard++) { blocks.push(cur); if (cur === b || !cur.nextElementSibling) break; cur = cur.nextElementSibling; }
+  const live = blocks.filter((x) => tmBlockKind(x) !== "img" && tmBlockKind(x) !== "hr");
+  if (!live.length) return false;
+  const caret = tmCaretOffset(live[live.length - 1]);
+  const target = !force && live.every((x) => tmBlockKind(x) === kind) ? "p" : kind;
+  let lastNew = null;
+  live.forEach((el, i) => {
+    const nn = tmMakeBlock(target, i + 1);
+    // z odstavce se stal nadpis · zarovnání patří řádku, ne jeho druhu
+    const al = (el.style && el.style.textAlign) || "";
+    if (al) nn.style.textAlign = al;
+    tmFill(nn, Array.prototype.slice.call(el.childNodes));
+    el.parentNode.replaceChild(nn, el);
+    lastNew = nn;
+  });
+  if (lastNew) tmSetCaret(lastNew, caret);
+  return true;
+}
+
+function tmSplitBlock(root, blk, kind) {
+  const s = window.getSelection(); if (!s || !s.rangeCount) return null;
+  const r = s.getRangeAt(0);
+  if (!r.collapsed) r.deleteContents();
+  const after = document.createRange();
+  after.selectNodeContents(blk);
+  try { after.setStart(r.endContainer, r.endOffset); } catch (err) { after.collapse(false); }
+  const frag = after.extractContents();
+  const nb = tmMakeBlock(kind, 1);
+  // nový odstavec pokračuje ve stejném zarovnání jako ten, ze kterého vznikl
+  const alBlk = (blk.style && blk.style.textAlign) || "";
+  if (alBlk) nb.style.textAlign = alBlk;
+  tmFill(nb, Array.prototype.slice.call(frag.childNodes));
+  blk.parentNode.insertBefore(nb, blk.nextSibling);
+  if (!tmBlockText(blk).length && !blk.querySelector("br")) blk.appendChild(document.createElement("br"));
+  tmSetCaret(nb, 0);
+  return nb;
+}
+
+function tmStripStart(el, k) {
+  let left = k, done = false;
+  const walk = (n) => {
+    if (done || left <= 0) return;
+    if (n.nodeType === 3) {
+      const take = Math.min(left, n.nodeValue.length);
+      n.nodeValue = n.nodeValue.slice(take);
+      left -= take;
+      if (left <= 0) done = true;
+      return;
+    }
+    if (n.nodeType !== 1) return;
+    if (n.getAttribute && n.getAttribute("contenteditable") === "false") return;
+    Array.prototype.slice.call(n.childNodes).forEach(walk);
+  };
+  Array.prototype.slice.call(el.childNodes).forEach(walk);
+}
+
+function tmNormalize(root) {
+  if (!root) return;
+  let n = 0;
+  Array.prototype.slice.call(root.children).forEach((el) => {
+    if (!el.getAttribute) { n = 0; return; }
+    if (el.getAttribute("data-hr") != null) {
+      if (tmBlockText(el).trim() !== "") {
+        const m = el.querySelector(".tm-hr"); if (m) m.remove();
+        el.removeAttribute("data-hr");
+      } else if (!el.querySelector(".tm-hr")) el.insertBefore(tmMarker("hr"), el.firstChild);
+      n = 0; return;
+    }
+    if (el.getAttribute("data-ol") != null) {
+      // první položka běhu si nechá číslo, které tam člověk napsal — jinak
+      // by se z data („25. narozeniny") stala jednička a den by byl pryč
+      if (n === 0) n = parseInt(el.getAttribute("data-ol"), 10) || 1; else n += 1;
+      el.setAttribute("data-ol", String(n));
+      let m = el.querySelector(".tm-mk");
+      if (!m) { m = tmMarker("ol", n); el.insertBefore(m, el.firstChild); }
+      if (m.textContent !== n + ".") m.textContent = n + ".";
+      return;
+    }
+    // prázdný řádek ani obrázek uvnitř seznamu číslování nepřerušují
+    if (el.tagName !== "FIGURE" && tmBlockText(el).trim() !== "") n = 0;
+    if (el.getAttribute("data-ul") != null && !el.querySelector(".tm-mk")) el.insertBefore(tmMarker("ul"), el.firstChild);
+    const c = el.getAttribute("data-chk");
+    if (c != null && !el.querySelector(".tm-chk")) {
+      const m = tmMarker("chk");
+      if (c === "1") m.classList.add("on");
+      el.insertBefore(m, el.firstChild);
+    }
+  });
+}
+
+const TM_AUTO = [[/^###\s$/, "h3"], [/^#\s$/, "h1"], [/^##\s$/, "h2"], [/^[-*•]\s$/, "ul"], [/^\d{1,3}[.)]\s$/, "ol"], [/^>\s$/, "qt"], [/^\[[ xX]?\]\s$/, "chk"]];
+
+function tmMarkAncestor(tags) {
+  try {
+    const sel = window.getSelection(); if (!sel || !sel.anchorNode) return null;
+    let n = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
+    while (n && !(n.classList && n.classList.contains("tm-rich"))) {
+      if (tags.indexOf(n.tagName) >= 0) return n;
+      n = n.parentElement;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function tmUnwrapEl(el) {
+  const p = el.parentNode; if (!p) return;
+  const first = el.firstChild, lastC = el.lastChild;
+  while (el.firstChild) p.insertBefore(el.firstChild, el);
+  p.removeChild(el);
+  try {
+    if (first && lastC) {
+      const sel = window.getSelection(); const r = document.createRange();
+      r.setStartBefore(first); r.setEndAfter(lastC);
+      sel.removeAllRanges(); sel.addRange(r);
+    }
+  } catch (e) {}
+}
+
+function tmToggleWrap(tag, cls) {
+  const hit = tmMarkAncestor(tag === "s" ? ["S", "STRIKE", "DEL"] : ["MARK"]);
+  if (hit) { tmUnwrapEl(hit); return true; }
+  try {
+    const sel = window.getSelection(); if (!sel || !sel.rangeCount || sel.isCollapsed) return false;
+    const r = sel.getRangeAt(0);
+    const el = document.createElement(tag);
+    if (cls) el.className = cls;
+    try { r.surroundContents(el); }
+    catch (e) { el.appendChild(r.extractContents()); r.insertNode(el); }
+    const rr = document.createRange(); rr.selectNodeContents(el);
+    sel.removeAllRanges(); sel.addRange(rr);
+    return true;
+  } catch (e) { return false; }
+}
+
+function tmHiOn() { return !!tmMarkAncestor(["MARK"]); }
+
+function tmStrikeOn() { return !!tmMarkAncestor(["S", "STRIKE", "DEL"]); }
+
+function tmStrike() { tmToggleWrap("s"); }
+
+function tmTypeScale() {
+  const cs = LANG === "cs";
+  return {
+    p: { size: 15, weight: 400, lh: 1.6 },
+    h1: { size: cs ? 28 : 30, weight: cs ? 400 : 500, lh: 1.25 },
+    h2: { size: cs ? 22 : 24, weight: cs ? 400 : 500, lh: 1.3 },
+    h3: { size: 13, weight: 600, lh: 1.4 },
+    qt: { size: 15, weight: 400, lh: 1.75 },
+  };
+}
+
+const TM_SLASH = [
+  { k: "h1", cz: "Nadpis", en: "Heading", hint: "#" },
+  { k: "h2", cz: "Podnadpis", en: "Subheading", hint: "##" },
+  { k: "p", cz: "Tělo textu", en: "Body text", hint: "" },
+  { k: "ul", cz: "Odrážky", en: "Bullets", hint: "-" },
+  { k: "ol", cz: "Číslování", en: "Numbered", hint: "1." },
+  { k: "chk", cz: "Zaškrtnutí", en: "To-do", hint: "[]" },
+  { k: "qt", cz: "Citace", en: "Quote", hint: ">" },
+  { k: "hr", cz: "Oddělovač", en: "Divider", hint: "---" },
+  { k: "img", cz: "Obrázek", en: "Image", hint: "" },
+  { k: "lk", cz: "Odkaz na zápis", en: "Link to a note", hint: "[[" },
+];
+
+const TM_AUTO_BARE = [[/^###$/, "h3"], [/^#$/, "h1"], [/^##$/, "h2"], [/^[-*•]$/, "ul"], [/^\d{1,3}[.)]$/, "ol"], [/^>$/, "qt"], [/^\[[ xX]?\]$/, "chk"]];
+
+function useKlavesnice() {
+  /* Líné první měření · efekt běží až PO vykreslení, takže bez něj by lišta
+     na jeden snímek stála na špatném místě a pak uskočila. */
+  const [st, setSt] = useState(() => {
+    try {
+      const vv = window.visualViewport;
+      if (!vv) return { otevrena: false, dno: 0, vyska: 0, roluje: false };
+      const pageTop = vv.pageTop != null ? vv.pageTop : (window.scrollY || 0) + (vv.offsetTop || 0);
+      return { otevrena: (window.innerHeight - vv.height) > 60, dno: Math.round(pageTop + vv.height), vyska: Math.round(vv.height), roluje: false };
+    } catch (e) { return { otevrena: false, dno: 0, vyska: 0, roluje: false }; }
+  });
+  React.useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!vv) return;
+    let snimek = 0, posledni = null, rolT = 0, roluje = false;
+    const mer = () => {
+      const rozdil = window.innerHeight - vv.height;
+      const otevrena = rozdil > 60;   // Safari občas hlásí drobné změny bez klávesnice
+      const pageTop = vv.pageTop != null ? vv.pageTop : (window.scrollY || 0) + (vv.offsetTop || 0);
+      /* dno nikdy za konec dokumentu · iOS 26 umí po zavření klávesnice
+         chvíli hlásit výřez, který ještě nesedí */
+      const strop = Math.max(document.documentElement.scrollHeight, window.innerHeight);
+      const dno = Math.min(strop, Math.max(0, Math.round(pageTop + vv.height)));
+      const n = { otevrena, dno, vyska: Math.round(vv.height), roluje };
+      if (posledni && posledni.otevrena === n.otevrena && posledni.dno === n.dno && posledni.vyska === n.vyska && posledni.roluje === n.roluje) return;
+      posledni = n;
+      setSt(n);
+    };
+    const naplanuj = () => { if (snimek) return; snimek = requestAnimationFrame(() => { snimek = 0; mer(); }); };
+    /* Během rolování se lišta neschovává za prstem, ale přizná to a zhasne.
+       Události chodí až po snímku, takže by se vlekla za stránkou a cukala —
+       čisté zmizení a návrat po 180 ms klidu vypadá o třídu líp. */
+    const rolni = () => {
+      if (!roluje) { roluje = true; naplanuj(); }
+      window.clearTimeout(rolT);
+      rolT = window.setTimeout(() => { roluje = false; naplanuj(); }, 180);
+    };
+    vv.addEventListener("resize", naplanuj);
+    vv.addEventListener("scroll", rolni);
+    window.addEventListener("scroll", rolni, { passive: true });
+    mer();
+    return () => {
+      if (snimek) cancelAnimationFrame(snimek);
+      window.clearTimeout(rolT);
+      vv.removeEventListener("resize", naplanuj);
+      vv.removeEventListener("scroll", rolni);
+      window.removeEventListener("scroll", rolni);
+    };
+  }, []);
+  return st;
+}
+
+function tmStylyBloku(t) {
+  const TS = tmTypeScale();
+  return [
+    { k: "p", cz: "Text", en: "Body", key: "0", cz2: "běžný odstavec", en2: "an ordinary paragraph",
+      sty: { fontFamily: FONT_BODY, fontSize: TS.p.size, fontWeight: TS.p.weight, lineHeight: TS.p.lh, color: t.textSec } },
+    { k: "h1", cz: "Nadpis 1", en: "Heading 1", key: "1", cz2: "otevírá celý oddíl", en2: "opens a whole section",
+      sty: { fontFamily: FONT_DISPLAY, fontWeight: TS.h1.weight, fontSize: TS.h1.size, lineHeight: TS.h1.lh, letterSpacing: "-0.004em", color: t.heading } },
+    { k: "h2", cz: "Nadpis 2", en: "Heading 2", key: "2", cz2: "dělí oddíl na části", en2: "divides a section into parts",
+      sty: { fontFamily: FONT_DISPLAY, fontWeight: TS.h2.weight, fontSize: TS.h2.size, lineHeight: TS.h2.lh, color: t.heading } },
+    { k: "h3", cz: "Nadpis 3", en: "Heading 3", key: "3", cz2: "drobný předěl uvnitř části", en2: "a small break inside a part",
+      sty: { fontFamily: FONT_BODY, fontWeight: TS.h3.weight, fontSize: TS.h3.size, lineHeight: TS.h3.lh, textTransform: "uppercase", letterSpacing: "0.10em", color: t.textMuted } },
+    { k: "qt", cz: "Citát", en: "Quote", cz2: "cizí slova, odsazená", en2: "someone else's words, indented",
+      sty: { fontFamily: FONT_BODY, fontSize: TS.qt.size, fontWeight: TS.qt.weight, lineHeight: TS.qt.lh, fontStyle: "italic", color: t.text || t.textSec } },
+    { k: "hr", cz: "Oddělovač", en: "Divider", cz2: "tichý předěl bez nadpisu", en2: "a quiet break with no heading",
+      sty: { fontFamily: FONT_BODY, fontSize: TS.p.size, lineHeight: TS.p.lh, color: t.textMuted } },
+  ];
+}
+
+const TM_HLAS_FRAZE = {
+  cs: [["nový odstavec", "\n"], ["novy odstavec", "\n"], ["nový řádek", "\n"], ["novy radek", "\n"]],
+  en: [["new paragraph", "\n"], ["new line", "\n"], ["question mark", "?"], ["exclamation mark", "!"], ["full stop", "."]],
+};
+
+const TM_HLAS_SLOVA = {
+  cs: { "tečka": ".", "čárka": ",", "otazník": "?", "vykřičník": "!", "dvojtečka": ":", "pomlčka": "—", "uvozovky": "“" },
+  en: { "period": ".", "comma": ",", "colon": ":", "dash": "—" },
+};
+
+const tmVelke = (c) => (c && c.toLowerCase() === c && c.toUpperCase() !== c ? c.toUpperCase() : c);
+
+function tmHlasUprav(s, jazyk, zacatekVety) {
+  const j = jazyk === "cs" ? "cs" : "en";
+  let out = String(s || "");
+  (TM_HLAS_FRAZE[j] || []).forEach(([fraze, zn]) => {
+    // hranice slova jsou nutné — bez nich se „lineup" rozpadne na „line"+„up"
+    out = out.replace(new RegExp("(^|[ \\t\\n])[ \\t]*" + fraze.replace(/[.*+?^${}()|[\]\\]/g, "\\function richInline(") + "(?=$|[ \\t\\n.,!?:])", "gi"),
+      (m, a) => (zn === "\n" ? "\n" : a + zn));
+  });
+  const slova = TM_HLAS_SLOVA[j] || {};
+  out = out.split("\n").map((radek) => radek.split(/[ \t]+/).map((w) => {
+    const cisty = w.toLowerCase().replace(/[.,!?:]+$/, "");
+    return slova[cisty] !== undefined ? slova[cisty] : w;
+  }).join(" ")).join("\n");
+  out = out.replace(/[ \t]+([.,?!:])/g, "$1").replace(/[ \t]*—[ \t]*/g, " — ").replace(/[ \t]{2,}/g, " ").replace(/\n[ \t]+/g, "\n");
+  // Rozpoznávání chodí po úlomcích věty. Kdyby si funkce brala velké písmeno
+  // na začátku každého úlomku, vzniklo by „Ráno jsem šel Do lesa".
+  out = out.replace(/([.!?]\s+|\n[ \t]*)(\S)/g, (m, p, c) => p + tmVelke(c));
+  if (zacatekVety) out = out.replace(/^([ \t]*)(\S)/, (m, p, c) => p + tmVelke(c));
+  return out.replace(/[ \t]+$/gm, "");
+}
+
+function TmIcHistorie({ znovu = false, size = 17 }) { return <FamilyIcon id={znovu ? "redo" : "undo"} size={size} />; }
+
+const TM_LISTA_V = 52;
+
+function TmIcZarovnat({ typ, size = 14 }) { return <FamilyIcon id={({l:"align-left",c:"align-center",r:"align-right",j:"align-justify"})[typ] || "align-left"} size={size} />; }
+
+function PsaciLista({ exec, onImage, onZen, zen, focused, blockOf, setBlock, insertHr, sazec, undo, redo, canUndo, canRedo, naPrilohu, onZmensit, recordingStatus }) {
+  const { t } = useT();
+  const [, force] = useState(0);
+  const [sheet, setSheet] = useState(null);    // null | "styl" | "znak" | "seznam"
+  const kl = useKlavesnice();
+  React.useEffect(() => { if (canRedo) setSheet(null); }, [canRedo]);
+  React.useEffect(() => {
+    const h = () => force((x) => x + 1);
+    document.addEventListener("selectionchange", h);
+    return () => document.removeEventListener("selectionchange", h);
+  }, []);
+
+  /* Editor dostane dole rezervu, aby šlo kurzor odrolovat nad lištu. */
+  React.useEffect(() => {
+    document.body.classList.add("tm-psani");
+    return () => document.body.classList.remove("tm-psani");
+  }, []);
+
+  /* Kurzor nad lištu, kdykoli by se pod ni schoval. V klidném psaní roluje
+     překryv, ne stránka — posouvá se tedy nejbližší rolující předek. */
+  React.useEffect(() => {
+    if (!kl.otevrena && !zen) return;
+    let t2 = 0;
+    const hlidej = () => {
+      window.clearTimeout(t2);
+      t2 = window.setTimeout(() => {
+        try {
+          const s = window.getSelection();
+          if (!s || !s.rangeCount) return;
+          let r = s.getRangeAt(0).getBoundingClientRect();
+          if (!r || (!r.height && !r.top)) {
+            const el = s.anchorNode && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement);
+            if (!el) return;
+            r = el.getBoundingClientRect();
+          }
+          const strop = (window.visualViewport ? window.visualViewport.height : window.innerHeight) - TM_LISTA_V - 22;
+          if (r.bottom <= strop) return;
+          const zenBox = document.querySelector(".tm-zen");
+          if (zenBox) zenBox.scrollBy({ top: r.bottom - strop + 16, behavior: "smooth" });
+          else window.scrollBy({ top: r.bottom - strop + 16, behavior: "smooth" });
+        } catch (e) {}
+      }, 120);
+    };
+    document.addEventListener("selectionchange", hlidej);
+    document.addEventListener("input", hlidej, true);
+    hlidej();
+    return () => { window.clearTimeout(t2); document.removeEventListener("selectionchange", hlidej); document.removeEventListener("input", hlidej, true); };
+  }, [kl.otevrena, zen]);
+
+  const stav = (c) => { try { return document.queryCommandState(c); } catch (err) { return false; } };
+  const kind = (blockOf && blockOf()) || "p";
+  const curInk = (() => { try { return inkName(document.queryCommandValue("foreColor"), t); } catch (err) { return null; } })();
+  const STYLY = tmStylyBloku(t);
+  const seznamAktivni = kind === "ul" || kind === "ol" || kind === "chk";
+  const inks = EDITOR_CHOICES.map(name => [name, inkHex(name, t)]);
+  const inkHexOf = (n) => inkHex(n, t) || t.text;
+
+  /* Zkratky místo celých názvů · na jeden řádek se jinak nevejde nic.
+     Význam nese list, který se pod tlačítkem otevře — tam jsou názvy
+     vysázené vlastním stylem i s větou, k čemu úroveň je. */
+  const ZKRATKY = { p: "T", h1: "H1", h2: "H2", h3: "H3", qt: "❝" };
+  const zkratka = ZKRATKY[kind] || "T";
+
+  const tl = (on) => ({
+    background: on ? hexA(t.accent, 0.16) : "transparent",
+    border: `1px solid ${on ? t.accent : "transparent"}`,
+    borderRadius: 11, cursor: "pointer", color: on ? (t.accentInk || t.accent) : t.text,
+    flex: "0 1 44px", minWidth: 36, height: 44,
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    padding: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
+  });
+  const ICO = {ul: <FamilyIcon id="list-bullets" size={20} />,ol: <FamilyIcon id="list-numbers" size={20} />,chk: <FamilyIcon id="checklist" size={20} />,pero: <FamilyIcon id="highlight" size={20} />};
+  const SEZNAMY = [
+    { k: "ul", cz: "Odrážky", en: "Bullets", hint: "-" },
+    { k: "ol", cz: "Číslování", en: "Numbered", hint: "1." },
+    { k: "chk", cz: "Zaškrtnutí", en: "Checklist", hint: "[]" },
+  ];
+  const ZAROVNANI = [
+    ["l", "justifyLeft", "Doleva", "Left"],
+    ["c", "justifyCenter", "Na střed", "Centre"],
+    ["r", "justifyRight", "Doprava", "Right"],
+    ["j", "justifyFull", "Do bloku", "Justify"],
+  ];
+  // Stisknutí jen drží kurzor v textu (preventDefault) — akce padne až
+  // PUŠTĚNÍM bez pohybu. Tah prstem gesto zruší (pohyb nebo pointercancel
+  // při panování), takže listy jdou konečně normálně rolovat.
+  // Jeden slot na celou lištu nestačil: druhý prst rušil gesto prvního
+  // a stisknutí na jednom tlačítku umělo vystřelit akci sousedního.
+  const tapRef = React.useRef(new Map());
+  const drz = (fn) => ({
+    onPointerDown: (e) => {
+      e.preventDefault();
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+      tapRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY, ok: true });
+    },
+    onPointerMove: (e) => { const t0 = tapRef.current.get(e.pointerId); if (t0 && t0.ok && (Math.abs(e.clientX - t0.x) > 9 || Math.abs(e.clientY - t0.y) > 9)) t0.ok = false; },
+    onPointerUp: (e) => { e.preventDefault(); const t0 = tapRef.current.get(e.pointerId); tapRef.current.delete(e.pointerId); if (t0 && t0.ok) fn(); },
+    onPointerCancel: (e) => { tapRef.current.delete(e.pointerId); },
+  });
+  const NIC = { preventDefault() {} };
+  const spust = (fn) => exec(fn)(NIC);
+  const prepni = (k) => setSheet((x) => (x === k ? null : k));
+
+  /* Přeškrtnutí, zvýraznění a barva bydlí pod jedním bodem — tři přímá
+     tlačítka by řádek rozbila. Bod ukazuje to z trojice, co je právě
+     zapnuté, aby stav nebyl schovaný za zavřeným listem. */
+  const skrt = tmStrikeOn(), zvyr = tmHiOn();
+  const tucne = stav("bold"), kurziva = stav("italic");
+  const znakAktivni = skrt || zvyr || tucne || kurziva || curInk !== null;
+  const znakIkona = curInk
+    ? <span style={{ width: 17, height: 17, borderRadius: "50%", background: inkHexOf(curInk), border: `1px solid ${hexA(t.textMuted, 0.45)}` }} />
+    : zvyr ? ICO.pero
+    : skrt ? <span style={{ fontFamily: FONT_BODY, fontSize: 15, textDecorationLine: "line-through" }}>S</span>
+    : tucne ? <span style={{ fontFamily: FONT_BODY, fontWeight: 700, fontSize: 15 }}>B</span>
+    : kurziva ? <span style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 17 }}>I</span>
+    : <span style={{ fontFamily: FONT_BODY, fontSize: 13, letterSpacing: "0.01em" }}>Aa</span>;
+  const kurZarov = stav("justifyCenter") ? "c" : stav("justifyRight") ? "r" : stav("justifyFull") ? "j" : "l";
+
+  const radekListu = (on, extra) => ({ display: "flex", alignItems: "center", gap: 11, width: "100%", background: on ? hexA(t.accent, 0.10) : "transparent", border: "none", borderRadius: 10, cursor: "pointer", color: on ? (t.accentInk || t.accent) : t.text, padding: "10px 10px", textAlign: "left", fontFamily: FONT_BODY, fontSize: 15, minHeight: 48, touchAction: "manipulation", ...(extra || {}) });
+
+  /* U klávesnice na těsno (4 px) — spodní pruh se šipkami i našeptávač
+     kreslí systém NAD stránkou a z webu se přes ně malovat nedá; jediné,
+     co jde, je nenechat mezi nimi a lištou mrtvé místo. Bez klávesnice
+     (čtení v klidném psaní) drží lišta nad domovní čárou telefonu. */
+  const G = focused ? 4 : 10;
+  const dnoCss = focused ? G + "px" : "calc(max(env(safe-area-inset-bottom), 6px) + " + G + "px)";
+  const dnoListu = focused
+    ? (G + TM_LISTA_V + 8) + "px"
+    : "calc(max(env(safe-area-inset-bottom), 6px) + " + (G + TM_LISTA_V + 8) + "px)";
+  if (!kl.dno) return null;
+  const lista = (
+    /* Jediný prvek v souřadnicích DOKUMENTU. `fixed` se váže na rozvržený
+       výřez, který iOS pro klávesnici nemění — tohle je jediná poloha,
+       která ji sleduje spolehlivě ve Safari i v nainstalované aplikaci
+       (kde má innerHeight jinou sémantiku, takže se na něj nejde ptát). */
+    <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 460, pointerEvents: "none",
+      transform: `translate3d(0, ${kl.dno}px, 0)`,
+      opacity: kl.roluje ? 0 : 1, transition: "opacity .14s ease" }}>
+      {recordingStatus && !sheet && <div style={{position:"absolute",bottom:dnoListu,left:20,right:20,maxWidth:560,margin:"0 auto",pointerEvents:"auto"}}>{recordingStatus}</div>}
+      {sheet && (
+        <div className="tm-sklo" style={{ position: "absolute", bottom: dnoListu, left: 20, right: 20, margin: "0 auto", maxWidth: 560,
+          pointerEvents: kl.roluje ? "none" : "auto",
+          border: `1px solid ${hexA(t.textMuted, 0.26)}`, borderRadius: 16, boxShadow: t.shadowLift,
+          maxHeight: Math.max(190, kl.vyska - TM_LISTA_V - 90), overflowY: "auto", overscrollBehavior: "contain",
+          padding: "6px 8px 8px", WebkitUserSelect: "none", userSelect: "none" }}>
+          {sheet === "styl" && STYLY.map((x) => {
+            const on = x.k === kind;
+            return (
+              <button key={x.k} type="button" {...drz(() => { spust(() => (x.k === "hr" ? insertHr() : setBlock(x.k))); setSheet(null); })}
+                style={{ display: "flex", alignItems: "flex-start", gap: 10, width: "100%", textAlign: "left", background: on ? hexA(t.accent, 0.10) : "transparent", border: "none", borderRadius: 10, cursor: "pointer", padding: "9px 10px 10px", minHeight: 48, color: t.text, touchAction: "manipulation" }}>
+                <span aria-hidden="true" style={{ width: 22, flexShrink: 0, marginTop: 3, fontFamily: FONT_TAG, fontSize: 12, letterSpacing: "0.04em", color: on ? (t.accentInk || t.accent) : t.textMuted }}>{ZKRATKY[x.k] || "—"}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", ...x.sty }}>{L(x.cz, x.en)}</span>
+                  {x.k === "hr" && <span aria-hidden="true" style={{ display: "block", height: 1, width: 74, background: t.borderSoft, margin: "5px 0 1px" }} />}
+                  <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, lineHeight: 1.4, color: t.textMuted, marginTop: 1 }}>{L(x.cz2, x.en2)}</span>
+                </span>
+              </button>
+            );
+          })}
+          {sheet === "znak" && (
+            <>
+              <button type="button" {...drz(() => { spust(() => document.execCommand("bold")); setSheet(null); })} style={radekListu(tucne)}>
+                <span style={{ width: 20, display: "inline-flex", justifyContent: "center", fontFamily: FONT_BODY, fontWeight: 700, fontSize: 15 }}>B</span>
+                <span style={{ flex: 1 }}>{L("Tučně", "Bold")}</span>
+                {tucne && <span aria-hidden="true"><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>}
+              </button>
+              <button type="button" {...drz(() => { spust(() => document.execCommand("italic")); setSheet(null); })} style={radekListu(kurziva)}>
+                <span style={{ width: 20, display: "inline-flex", justifyContent: "center", fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 15 }}>I</span>
+                <span style={{ flex: 1 }}>{L("Kurzíva", "Italic")}</span>
+                {kurziva && <span aria-hidden="true"><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>}
+              </button>
+              <div style={{ height: 1, background: t.borderSoft, margin: "6px 8px" }} />
+              <button type="button" {...drz(() => { spust(() => tmStrike()); setSheet(null); })} style={radekListu(skrt)}>
+                <span style={{ width: 20, display: "inline-flex", justifyContent: "center", fontFamily: FONT_BODY, fontSize: 15, textDecorationLine: "line-through" }}>S</span>
+                <span style={{ flex: 1 }}>{L("Přeškrtnutí", "Strikethrough")}</span>
+                {skrt && <span aria-hidden="true"><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>}
+              </button>
+              <button type="button" {...drz(() => { spust(() => tmHilite()); setSheet(null); })} style={radekListu(zvyr)}>
+                <span style={{ width: 20, display: "inline-flex", justifyContent: "center" }}>{ICO.pero}</span>
+                <span style={{ flex: 1 }}>{L("Zvýraznění", "Highlight")}</span>
+                {zvyr && <span aria-hidden="true"><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>}
+              </button>
+              <div style={{ height: 1, background: t.borderSoft, margin: "6px 8px" }} />
+              <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 8px",flexWrap:"wrap"}}>
+                <span>{L("Zvýraznění", "Highlight")}</span>
+                {inks.map(([name]) => <button key={name} type="button" aria-label={L("Zvýraznit: ", "Highlight: ")+L(INK_CZ[name][0],INK_CZ[name][1])} title={L(INK_CZ[name][0],INK_CZ[name][1])} {...drz(() => { spust(() => tmHilite(name,t)); setSheet(null); })} style={{width:44,height:44,borderRadius:8,border:`1px solid ${t.border}`,background:editorHighlight(name,t),color:t.text,cursor:"pointer"}}>Aa</button>)}
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "4px 8px 4px" }}>
+                <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.textMuted, marginRight: 2 }}>{L("Barva", "Colour")}</span>
+                {inks.map((par) => (
+                  <button key={par[0]} type="button" aria-label={par[0]} title={INK_CZ[par[0]] ? L(INK_CZ[par[0]][0], INK_CZ[par[0]][1]) : par[0]}
+                    {...drz(() => { spust(() => document.execCommand("foreColor", false, par[1])); setSheet(null); })}
+                    style={{ width: 42, height: 42, borderRadius: "50%", cursor: "pointer", background: "transparent", border: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", touchAction: "manipulation" }}>
+                    <span style={{ width: 24, height: 24, borderRadius: "50%", background: par[1], border: curInk === par[0] ? `2px solid ${t.text}` : `1px solid ${hexA(t.textMuted, 0.4)}` }} />
+                  </button>
+                ))}
+                <button type="button" {...drz(() => { spust(() => document.execCommand("foreColor", false, t.text)); setSheet(null); })}
+                  style={{ background: "transparent", border: `1px solid ${curInk === null ? t.accent : hexA(t.textMuted, 0.35)}`, color: curInk === null ? (t.accentInk || t.accent) : t.text, borderRadius: 12, minHeight: 40, padding: "0 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 15, touchAction: "manipulation" }}>{L("výchozí", "default")}</button>
+              </div>
+            </>
+          )}
+          {sheet === "sponka" && (
+            <>
+              {/* Výběr souboru i mikrofon musí vyjít z KLEPNUTÍ, ne ze
+                  stisknutí — iOS dialog otevřený ze stisknutí zahodí. */}
+              <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={(e) => { e.preventDefault(); setSheet(null); if (onImage) onImage(); }} style={radekListu(false)}>
+                <span style={{ width: 20, display: "inline-flex", justifyContent: "center" }}><FamilyIcon id="image" size={20} /></span>
+                <span style={{ flex: 1 }}>{L("Obrázek do textu", "Image into the text")}</span>
+              </button>
+              {naPrilohu && (
+                <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={(e) => { e.preventDefault(); setSheet(null); naPrilohu("soubor"); }} style={radekListu(false)}>
+                  <span style={{ width: 20, display: "inline-flex", justifyContent: "center" }}><ClipIcon /></span>
+                  <span style={{ flex: 1 }}>{L("Soubor v příloze", "File as an attachment")}</span>
+                </button>
+              )}
+              {naPrilohu && (
+                <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={(e) => { e.preventDefault(); setSheet(null); naPrilohu("nahravka"); }} style={radekListu(false)}>
+                  <span style={{ width: 20, display: "inline-flex", justifyContent: "center" }}><FamilyIcon id="mic" size={20} /></span>
+                  <span style={{ flex: 1 }}>{L("Zvuková nahrávka", "Voice recording")}</span>
+                </button>
+              )}
+            </>
+          )}
+          {sheet === "seznam" && SEZNAMY.map((p) => (
+            <button key={p.k} type="button" {...drz(() => { spust(() => setBlock(p.k)); setSheet(null); })} style={radekListu(kind === p.k)}>
+              {ICO[p.k]}
+              <span style={{ flex: 1 }}>{L(p.cz, p.en)}</span>
+              <span style={{ fontSize: 12, color: t.textMuted, fontFamily: FONT_TAG, letterSpacing: "0.04em" }}>{p.hint}</span>
+            </button>
+          ))}
+          {sheet === "zarov" && ZAROVNANI.map(([k, cmd, cz, en]) => {
+            const on = kurZarov === k;
+            return (
+              <button key={k} type="button" {...drz(() => { spust(() => { try { document.execCommand("styleWithCSS", false, true); } catch (err) {} document.execCommand(cmd); }); setSheet(null); })} style={radekListu(on)}>
+                <span style={{ width: 20, display: "inline-flex", justifyContent: "center" }}><TmIcZarovnat typ={k} size={16} /></span>
+                <span style={{ flex: 1 }}>{L(cz, en)}</span>
+                {on && <span aria-hidden="true"><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>}
+              </button>
+            );
+          })}
+          {sheet === "sazec" && sazec && (
+            <button type="button" {...drz(() => { spust(() => sazec()); setSheet(null); })}
+              style={{ display: "flex", alignItems: "flex-start", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 10, cursor: "pointer", padding: "9px 10px 10px", minHeight: 48, color: t.text, touchAction: "manipulation" }}>
+              <span aria-hidden="true" style={{ width: 22, flexShrink: 0, marginTop: 2, color: t.sand, display: "inline-flex", fontFamily: FONT_DISPLAY, fontSize: 17, lineHeight: 1 }}>¶</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontFamily: FONT_DISPLAY, fontSize: 15 }}>{L("Sazeč · rozsadit text", "Typesetter · lay the text out")}</span>
+                <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, lineHeight: 1.4, color: t.textMuted, marginTop: 1 }}>{L("Nadpisy, odstavce a seznamy podle významu. Offline, nic neposílá. Vrátit lze hned.", "Headings, paragraphs and lists by meaning. Offline, sends nothing. Undo is right there.")}</span>
+              </span>
+            </button>
+          )}
+          
+        </div>
+      )}
+      {/* Plovoucí oblázek zarovnaný s rámečkem poznámky: psací pole otevřené
+          poznámky je krabička odsazená 19 px od kraje displeje (výplň listu
+          18 + linka), lišta sedí na 20 px — stejná šířka, o vlásek užší.
+          Jeden řádek, nic neroluje — co se nevešlo, bydlí v listech nad ní. */}
+      <div role="toolbar" aria-label={L("Sazba textu", "Text formatting")} className="tm-sklo"
+        style={{ position: "absolute", bottom: dnoCss, left: 20, right: 20, margin: "0 auto", maxWidth: 560,
+          pointerEvents: kl.roluje ? "none" : "auto",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 0,
+          height: TM_LISTA_V, padding: "0 6px",
+          border: `1px solid ${hexA(t.textMuted, 0.26)}`, borderRadius: 18, boxShadow: t.shadowLift,
+          WebkitUserSelect: "none", userSelect: "none" }}>
+        {/* STYL BLOKU · zkratka toho, v čem právě jsem. Celé názvy jsou v listu. */}
+        <button type="button" aria-haspopup="menu" aria-expanded={sheet === "styl"} aria-label={L("Styl odstavce", "Paragraph style")}
+          {...drz(() => prepni("styl"))}
+          style={{ ...tl(sheet === "styl" || kind !== "p"), flex: "0 1 52px", minWidth: 46, gap: 4, fontFamily: FONT_BODY, fontSize: 15, fontWeight: 500 }}>
+          <span>{zkratka}</span>
+          <span aria-hidden="true" style={{ fontSize: 12, opacity: 0.7 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+        </button>
+        <button type="button" aria-haspopup="menu" aria-expanded={sheet === "znak"} aria-label={L("Tučně, kurzíva, přeškrtnutí, zvýraznění a barva", "Bold, italic, strikethrough, highlight and colour")} {...drz(() => prepni("znak"))} style={tl(znakAktivni || sheet === "znak")}>
+          {znakIkona}
+        </button>
+        <button type="button" aria-haspopup="menu" aria-expanded={sheet === "seznam"} aria-label={L("Seznamy", "Lists")} {...drz(() => prepni("seznam"))} style={tl(seznamAktivni || sheet === "seznam")}>
+          {ICO[seznamAktivni ? kind : "ul"]}
+        </button>
+        <button type="button" aria-haspopup="menu" aria-expanded={sheet === "zarov"} aria-label={L("Zarovnání", "Alignment")} {...drz(() => prepni("zarov"))} style={tl(kurZarov !== "l" || sheet === "zarov")}>
+          <TmIcZarovnat typ={kurZarov} size={17} />
+        </button>
+        {sazec && !canRedo && (
+          <button type="button" aria-haspopup="menu" aria-expanded={sheet === "sazec"} aria-label={L("Sazeč · rozsadit text", "Typesetter · lay the text out")} {...drz(() => prepni("sazec"))} style={{ ...tl(sheet === "sazec"), fontFamily: FONT_DISPLAY, fontSize: 17 }}>¶</button>
+        )}
+        {canRedo && redo && (
+          <button type="button" aria-label={L("Znovu", "Redo")} title={L("Znovu", "Redo")} {...drz(() => redo())} style={tl(false)}>
+            <TmIcHistorie znovu size={19} />
+          </button>
+        )}
+        {undo && (
+          <button type="button" aria-label={L("Zpět", "Undo")} title={L("Zpět", "Undo")} disabled={!canUndo} {...drz(() => { if (canUndo) undo(); })}
+            style={{ ...tl(false), cursor: canUndo ? "pointer" : "default", opacity: canUndo ? 1 : 0.3 }}>
+            <TmIcHistorie size={19} />
+          </button>
+        )}
+        {onImage && (
+          /* SPONKA · dřív tu byl obrázek. Jenže do textu nepatří jen obrázky:
+             sponka je jméno pro všechno, co se k zápisku přikládá — obrázek,
+             soubor i namluvená věta. Když je co přikládat, otevře list;
+             jinde (rychlé pole) rovnou vybere obrázek, protože list o jedné
+             položce je jen krok navíc.
+             Výběr souboru musí vyjít z klepnutí, ne ze stisknutí — iOS
+             programové otevření dialogu ze stisknutí ignoruje. */
+          naPrilohu
+            ? <button type="button" aria-haspopup="menu" aria-expanded={sheet === "sponka"} aria-label={L("Přiložit obrázek, soubor nebo nahrávku", "Attach an image, a file or a recording")} onPointerDown={(e) => e.preventDefault()} onClick={(e) => { e.preventDefault(); prepni("sponka"); }} style={tl(sheet === "sponka")}><ClipIcon /></button>
+            : <button type="button" aria-label={L("Vložit obrázek", "Insert image")} onPointerDown={(e) => e.preventDefault()} onClick={(e) => { e.preventDefault(); onImage(); }} style={tl(false)}><ClipIcon /></button>
+        )}
+        {/* PRAVÉ TLAČÍTKO · v otevřené poznámce zmenšuje do náhledu (odtud
+            se dá poznámka nastavit a klepnutím na plochu odejít), jinde
+            přepíná klidné psaní. Ikona je v obou případech táž řeč: šipky
+            ven roztahují, šipky dovnitř zmenšují. */}
+        {/* Náhled se odsud odstěhoval. Byl to druhý ovladač téhož zobrazení
+            a stál vedle klidného psaní se skoro stejnou ikonou — dvoje šipky,
+            dvě různé věci. Náhled má teď jediné místo: v hlavě poznámky vedle
+            stahování. Tady zůstává klidné psaní, což je jiná funkce. */}
+        {onZen && (
+          <button type="button" aria-label={zen ? L("Zpět do stránky", "Back to the page") : L("Klidné psaní", "Quiet writing")} {...drz(() => onZen())} style={tl(zen)}>
+            <FamilyIcon id={zen ? "collapse" : "expand"} size={20} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+  /* Lišta musí být přímé dítě těla. Kdyby seděla uvnitř něčeho, co má
+     `filter`, `opacity` nebo `transform`, přestane rozostření brát pozadí
+     stránky a souřadnice by se vztahovaly k tomu předkovi. */
+  return typeof document !== "undefined" ? createPortal(lista, document.body) : null;
+}
+
+const tmFirstImg = (txt) => { const m = String(txt || "").match(/^!img\(([^|)]+)\|/m); return m ? m[1] : null; };
+
+function ExportBtn({ doc, docs, pocet, small, label, jmeno }) {
+  const { t } = useT();
+  const [open, setOpen] = useState(false);
+  const [done, setDone] = useState("");
+  const [pos, setPos] = useState(null);
+  const [pc, setPc] = useState(() => tmPrintCfg());
+  const [setsOpen, setSetsOpen] = useState(false);
+  const boxRef = React.useRef(null);
+  const popRef = React.useRef(null);
+  React.useEffect(() => { const f = () => setPc(tmPrintCfg()); TM_PRINT_LS.add(f); return () => { TM_PRINT_LS.delete(f); }; }, []);
+  // Nabídka žije v portálu · uvnitř karty ji u krátké poznámky ořezával
+  // přetékající list a na poslední formáty se nedalo dosáhnout.
+  const place = React.useCallback(() => {
+    const el = boxRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const w = 244;
+    const left = Math.min(Math.max(8, r.right - w), vw - w - 8);
+    const below = vh - r.bottom - 10;
+    setPos({ left, top: r.bottom + 6, maxH: Math.max(150, Math.min(vh - 24, below > 210 ? below : r.top - 14)), up: below <= 210, bottom: vh - r.top + 6 });
+  }, []);
+  React.useEffect(() => {
+    if (!open) return;
+    place();
+    const h = (e) => {
+      if (boxRef.current && boxRef.current.contains(e.target)) return;
+      if (popRef.current && popRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    const k = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", h, true);
+    window.addEventListener("keydown", k);
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => { document.removeEventListener("pointerdown", h, true); window.removeEventListener("keydown", k); window.removeEventListener("resize", place); window.removeEventListener("scroll", place, true); };
+  }, [open, place]);
+  React.useEffect(() => { if (!done) return; const h = setTimeout(() => setDone(""), 1800); return () => clearTimeout(h); }, [done]);
+  const FMT = [
+    ...(((pocet || 0) > 1) ? [{ k: "zip", label: "Zip", cz: "každý zápis zvlášť, i se složkami", en: "each note as its own file, folders and all", zip: true }] : []),
+    { k: "pdf", label: "PDF", cz: (pocet || 0) > 1 ? "všechno za sebou v jednom listu" : "k tisku i do ruky", en: (pocet || 0) > 1 ? "all of it in one document" : "to print or hand over" },
+    { k: "docx", label: "Word", cz: "když se v tom bude dál psát", en: "when it will be edited further" },
+    { k: "md", label: "Markdown", cz: "text zpátky ve tvých rukou", en: "your text back in your hands" },
+    { k: "txt", label: "Text", cz: "otevře to cokoliv", en: "opens anywhere" },
+  ];
+  const mnoho = (pocet || 0) > 1;
+  const run = (k) => {
+    setOpen(false); setSetsOpen(false);
+    const ds = dejVse();
+    if (!ds.length) { setDone("chyba"); return; }
+    // PDF, Word a text dávají u výběru smysl jako jeden list za druhým;
+    // deset zvlášť stažených souborů nikdo nechce. Archiv je opak — ten
+    // je právě proto, aby zůstaly zápisy zápisy.
+    const d = ds.length > 1 ? tmSlucDok(ds, jmeno) : ds[0];
+    try { if (tmExportDoc(d, k)) setDone(k); } catch (e) {}
+  };
+  const polozka = { display: "flex", alignItems: "flex-start", gap: 8, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: t.textSec, padding: "8px 9px", minHeight: 36, fontFamily: FONT_BODY, fontSize: 13, flexShrink: 0 };
+  const dejVse = () => {
+    try {
+      const v = docs ? (typeof docs === "function" ? docs() : docs) : null;
+      if (v && v.length) return v;
+    } catch (e) {}
+    const d = typeof doc === "function" ? doc() : doc;
+    return d ? [d] : [];
+  };
+  const dej = () => dejVse()[0] || {};
+  const sdilej = async (jak) => {
+    setOpen(false); setSetsOpen(false);
+    const ds = dejVse();
+    if (!ds.length) { setDone("chyba"); return; }
+    const d = ds[0];
+    try {
+      if (jak === "soubor") { const r = await tmSdilejSoubory(ds, "md", jmeno); if (r !== "zruseno") setDone(r); return; }
+      if (jak === "zip") { const r = await tmSdilejZip(ds, jmeno); if (r !== "zruseno") setDone(r); return; }
+      if (jak === "text") { const r = await tmSdilejTexty(ds); if (r !== "zruseno") setDone(r); return; }
+      if (jak === "kopie") { setDone((await tmDoSchranky(tmDocyDoZpravy(ds, 100000))) ? "zkopirovano" : "chyba"); return; }
+      const kam = TM_KAM.find((x) => x.k === jak);
+      if (kam) { window.open(kam.url(tmDocyDoZpravy(ds), ds.length > 1 ? tmZapisu(ds.length) : (d.title || "")), "_blank", "noopener,noreferrer"); setDone("odeslano"); }
+    } catch (e) { setDone("chyba"); }
+  };
+  const setPrint = (px) => { const nx = { ...tmPrintCfg(), ...px }; tmPrintSave(nx); setPc(nx); };
+  const tick = (on) => (
+    <span aria-hidden="true" style={{ flexShrink: 0, position: "relative", width: 34, height: 19, borderRadius: 12, background: on ? t.accent : "transparent", border: `1px solid ${on ? t.accent : t.border}`, transition: "background .18s ease, border-color .18s ease" }}>
+      <span style={{ position: "absolute", top: 2, left: on ? 17 : 2, width: 13, height: 13, borderRadius: "50%", background: on ? t.bg : t.textMuted, transition: "left .18s cubic-bezier(.23,.62,.22,.99)" }} />
+    </span>
+  );
+  const printRow = (label, key) => (
+    <button onClick={() => setPrint({ [key]: !pc[key] })} className="tm-nav-item"
+      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: t.textSec, padding: "6px 9px", minHeight: 34, fontFamily: FONT_BODY, fontSize: 12 }}>
+      <span style={{ flex: 1, minWidth: 0 }}>{label}</span>{tick(!!pc[key])}
+    </button>
+  );
+  return (
+    <span ref={boxRef} style={{ display: "inline-flex", position: "relative" }}>
+      <button title={label ? L("Sdílet nebo stáhnout", "Share or download") : L("Sdílet · stáhnout · PDF, Word, Markdown, text", "Share · download · PDF, Word, Markdown, text")}
+        aria-label={label || L("Sdílet nebo stáhnout", "Share or download")} onClick={() => setOpen((x) => !x)}
+        style={label
+          ? { display: "inline-flex", alignItems: "center", gap: 6, minHeight: 32, padding: "6px 12px", background: open ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${open ? t.accent : t.border}`, borderRadius: 8, cursor: "pointer", color: done === "chyba" ? t.accent : open ? t.accent : t.textSec, fontFamily: FONT_BODY, fontSize: 13, flexShrink: 0 }
+          : { display: "inline-flex", alignItems: "center", justifyContent: "center", width: small ? 28 : 30, height: small ? 28 : 30, background: open ? hexA(t.accent, 0.14) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: done === "chyba" ? t.accent : done ? t.sage : open ? t.accent : t.textMuted, transition: "color .2s ease, background .2s ease" }}>
+        {label ? <span style={{ color: open ? t.accent : t.sand, display: "inline-flex" }}><TmIcSdilet size={15} /></span> : null}
+        {label ? <span>{label}</span> : done === "chyba"
+          ? <FamilyIcon id="warning" size={small ? 14 : 15} />
+          : done
+          ? <FamilyIcon id="check" size={15} />
+          : docs
+          // U složky i u výběru je to o sdílení · šipka dolů by slibovala
+          // stahování, a to je tu až ta druhá půlka nabídky.
+          ? <TmIcSdilet size={15} />
+          : <FamilyIcon id="download" size={15} />}
+        {label && done ? <span style={{ color: t.sage, display: "inline-flex" }}><FamilyIcon id="check" size={13} /></span> : null}
+      </button>
+      {open && pos && createPortal(
+        <div ref={popRef} className="tm-pop tm-scroll" style={{ position: "fixed", left: pos.left, ...(pos.up ? { bottom: pos.bottom } : { top: pos.top }), zIndex: 620, display: "flex", flexDirection: "column", gap: 1, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 5, boxShadow: t.shadowPop, width: 244, maxHeight: pos.maxH, overflowY: "auto", overscrollBehavior: "contain", transformOrigin: pos.up ? "bottom right" : "top right" }}>
+            {/* SDÍLET · nahoře, protože se sdílí častěji než ukládá.
+                Nativní nabídka telefonu zná všechny aplikace, které tam
+                člověk má — vlastní seznam ji nikdy nedožene, tak ji
+                nabídneme první a ostatní cesty jen pro prohlížeče, kde
+                sdílecí nabídka není. */}
+          <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: t.textMuted, padding: "4px 9px 6px", flexShrink: 0 }}>{L("Sdílet", "Share")}</span>
+            {tmLzeSdilet() && (
+              <>
+                <button onClick={() => sdilej("soubor")} className="tm-nav-item" style={polozka}>
+                  <span style={{ width: 22, flexShrink: 0, color: t.sand, display: "inline-flex", justifyContent: "center" }}><TmIcSdilet size={15} /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 13 }}>{mnoho ? L("Sdílet jako soubory", "Share as files") : L("Sdílet jako soubor", "Share as a file")}</span>
+                    <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 1 }}>{mnoho ? (pocet > TM_SDIL_MAX ? L("víc než deset — půjde to jako archiv", "more than ten — it will go as an archive") : tmPocet(pocet, "soubor", "soubory", "souborů", "file", "files") + L(" do nabídky telefonu", " into your phone's sheet")) : L("celý text, otevře se nabídka telefonu", "the whole text, opens your phone's sheet")}</span>
+                  </span>
+                </button>
+                <button onClick={() => sdilej("text")} className="tm-nav-item" style={polozka}>
+                  <span style={{ width: 22, flexShrink: 0, color: t.sand, display: "inline-flex", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 15 }}>„</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Sdílet jako zprávu", "Share as a message")}</span>
+                    <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 1 }}>{mnoho ? L("z každého jen začátek — celé to patří do souboru", "the opening of each — the whole thing belongs in a file") : L("holý text do chatu, delší se zkrátí", "plain text for a chat, long ones get trimmed")}</span>
+                  </span>
+                </button>
+              </>
+            )}
+            <button onClick={() => sdilej("kopie")} className="tm-nav-item" style={polozka}>
+              <span style={{ width: 22, flexShrink: 0, color: t.sand, display: "inline-flex", justifyContent: "center" }}><TmIcKopie size={15} /></span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Zkopírovat text", "Copy the text")}</span>
+              </span>
+            </button>
+            {!tmLzeSdilet() && TM_KAM.map((kam) => (
+              <button key={kam.k} onClick={() => sdilej(kam.k)} className="tm-nav-item" style={polozka}>
+                <span style={{ width: 22, flexShrink: 0, color: t.sand, display: "inline-flex", justifyContent: "center" }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+                <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_BODY, fontSize: 13 }}>{L(kam.cz, kam.en)}</span>
+              </button>
+            ))}
+          <span style={{ height: 1, background: t.borderSoft, margin: "5px 6px", flexShrink: 0 }} />
+          <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: t.textMuted, padding: "4px 9px 6px", flexShrink: 0 }}>{L("Stáhnout jako", "Download as")}</span>
+          {FMT.map((f) => (
+            <button key={f.k} onClick={() => (f.zip ? sdilej("zip") : run(f.k))} className="tm-nav-item"
+              style={{ display: "flex", alignItems: "baseline", gap: 8, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: t.textSec, padding: "8px 9px", minHeight: 36, fontFamily: FONT_BODY, fontSize: 13, flexShrink: 0 }}>
+              <span style={{ color: t.heading, minWidth: 66 }}>{f.label}</span>
+              <span style={{ fontSize: 12, color: t.textMuted, fontStyle: "italic" }}>{L(f.cz, f.en)}</span>
+            </button>
+          ))}
+          <span style={{ height: 1, background: t.borderSoft, margin: "4px 6px", flexShrink: 0 }} />
+          <button onClick={() => setSetsOpen((x) => !x)} className="tm-nav-item"
+            style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: t.textMuted, padding: "7px 9px", minHeight: 34, fontFamily: FONT_BODY, fontSize: 12, flexShrink: 0 }}>
+            <span style={{ flex: 1 }}>{L("Co bude na stránce", "What goes on the page")}</span>
+            <span style={{ fontSize: 12, transition: "transform .18s ease", transform: setsOpen ? "rotate(90deg)" : "none" }}><FamilyIcon id="play" size={16} label={L("Spustit","Play")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+          </button>
+          {setsOpen && (
+            <span style={{ display: "flex", flexDirection: "column", animation: "tmUnfold .24s cubic-bezier(.23,.62,.22,.99) both", flexShrink: 0 }}>
+              {printRow(L("Zápatí se značkou", "Footer with the brand"), "foot")}
+              {printRow(L("Datum", "Date"), "date")}
+              {printRow(L("Čísla stran", "Page numbers"), "pages")}
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, padding: "2px 10px 6px", lineHeight: 1.5 }}>{L("Adresa a datum od prohlížeče jsou vypnuté — na stránce je jen tohle.", "The browser's own URL and date are switched off — only this appears.")}</span>
+            </span>
+          )}
+          <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, padding: "4px 10px 5px", lineHeight: 1.5, flexShrink: 0 }}>{L("PDF se otevře v tiskovém okně — vyber „Uložit jako PDF\".", "PDF opens the print dialog — choose \"Save as PDF\".")}</span>
+        </div>,
+        document.body
+      )}
+    </span>
+  );
+}
+
+function NoteOutline({ bodyRef }) {
+  const { t } = useT();
+  const [open, setOpen] = useState(false);
+  const heads = (() => {
+    const el = bodyRef && bodyRef.current;
+    if (!el) return [];
+    return Array.prototype.slice.call(el.querySelectorAll(".tm-rich > h1, .tm-rich > h2, .tm-rich > h3"))
+      .map((h, i) => ({ i, lvl: h.tagName === "H1" ? 1 : 2, txt: (h.textContent || "").trim() }))
+      .filter((h) => h.txt);
+  })();
+  if (heads.length < 3) return null;
+  const goHead = (i) => {
+    const el = bodyRef && bodyRef.current;
+    if (!el) return;
+    const h = el.querySelectorAll(".tm-rich > h1, .tm-rich > h2, .tm-rich > h3")[i];
+    if (h && h.scrollIntoView) h.scrollIntoView({ behavior: "smooth", block: "start" });
+    setOpen(false);
+  };
+  return (
+    <span style={{ display: "inline-flex", position: "relative" }}>
+      <button title={L("Osnova poznámky", "Note outline")} onClick={() => setOpen((x) => !x)}
+        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, background: open ? hexA(t.accent, 0.14) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: open ? t.accent : t.textMuted }}>
+        <FamilyIcon id="sort" size={15} />
+      </button>
+      {open && (
+        <span style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 40, display: "flex", flexDirection: "column", gap: 1, background: t.card, border: `1px solid ${t.border}`, borderRadius: 11, padding: 5, boxShadow: t.shadow, minWidth: 200, maxWidth: 280, maxHeight: 300, overflowY: "auto" }}>
+          {heads.map((h) => (
+            <button key={h.i} onClick={() => goHead(h.i)} style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: h.lvl === 1 ? t.heading : t.textSec, padding: "6px 9px 6px " + (h.lvl === 1 ? 9 : 22) + "px", minHeight: 30, fontFamily: h.lvl === 1 ? FONT_DISPLAY : FONT_BODY, fontSize: h.lvl === 1 ? 14 : 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.txt}</button>
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function Backlinks({ title, selfId }) {
+  const { t } = useT();
+  const st = useStore();
+  const key = tmNorm(String(title || "").trim());
+  if (!key) return null;
+  const hits = [];
+  const scan = (kind, list) => (list || []).forEach((e) => {
+    if (e.id === selfId) return;
+    const m = String(e.text || "").match(LINK_RE);
+    if (m && m.some((x) => tmNorm(x.slice(2, -2).trim()) === key)) hits.push({ kind, e });
+  });
+  scan("notebook", st.coll.notebook);
+  scan("journal", st.coll.journal);
+  scan("content", st.coll.content);
+  if (!hits.length) return null;
+  return (
+    <div style={{ borderTop: `1px solid ${t.borderSoft}`, marginTop: 16, paddingTop: 12 }}>
+      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.sage, marginBottom: 8 }}>{L("Odkazuje sem", "Links here")} <span style={{ color: t.textMuted }}>{hits.length}</span></div>
+      {hits.slice(0, 12).map(({ kind, e }) => (
+        <button key={kind + e.id} onClick={() => st.setOpenTarget({ kind, id: e.id })}
+          className="tm-nav-item tm-row" style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "9px 8px", margin: "0 -8px", minHeight: 44, color: "inherit", fontFamily: FONT_BODY }}>
+          <span style={{ color: t.sand, display: "inline-flex", flexShrink: 0 }}>{kind === "notebook" ? <TmIcZapisnik size={15} /> : kind === "journal" ? <TmIcDenik size={15} /> : <TmIcPrameny size={15} />}</span>
+          <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_DISPLAY, fontSize: 15, color: t.heading, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title || (e.date ? fmtCZ(e.date) : L("Bez názvu", "Untitled"))}</span>
+          <span style={{ color: t.textMuted, fontSize: 12, flexShrink: 0 }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const TmIcSlozka = ({ size = 18 }) => <FamilyIcon id="folder" size={size} />;
+
+const tmInFolder = (e, folder) => {
+  if (folder === "__none__") return !e.folder;
+  if (!folder) return true;
+  return e.folder === folder || (e.folder || "").indexOf(folder + "/") === 0;
+};
+
+function FolderSheet({ onClose, folder, setFolder, koren, korenNazev, mode, count, onPick }) {
+  const { t } = useT();
+  const st = useStore();
+  const all = (st.coll.notebook || []);
+  const folders = st.nbFolders();
+  // s kořenem se správce nikdy nevynoří nad něj · dno je kořen, ne Zápisník
+  const [cwd, setCwd] = useState(mode === "move" ? (koren || "") : (folder === "__none__" ? (koren || "") : folder || koren || ""));
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  const [renaming, setRenaming] = useState(null);
+  const [rn, setRn] = useState("");
+  const [moving, setMoving] = useState(null);   // cesta složky, kterou stěhuju
+  const [sel, setSel] = useState([]);           // vybrané poznámky uvnitř
+  // tažení uvnitř správce · poznámku i složku lze pustit na složku nebo na
+  // drobenku. Tentýž hák jako v seznamu, jen s jinými akcemi.
+  const boxRef = React.useRef(null);
+  const fState = React.useRef({});
+  const fAct = React.useRef({});
+
+  const kidsOf = (p) => folders.filter((f) => (p ? f.indexOf(p + "/") === 0 : f.indexOf("/") < 0) && (p ? f.slice(p.length + 1).indexOf("/") < 0 : true)).sort((x, y) => x.localeCompare(y, "cs"));
+  const deep = (p) => all.filter((e) => e.folder === p || (e.folder || "").indexOf(p + "/") === 0).length;
+  const here = all.filter((e) => (e.folder || "") === cwd).sort((x, y) => (x.title || "").localeCompare(y.title || "", "cs"));
+  const kids = kidsOf(cwd);
+  const canNest = !cwd || cwd.indexOf("/") < 0;   // dvě úrovně stačí
+  const base = (p) => (p.indexOf("/") >= 0 ? p.slice(p.lastIndexOf("/") + 1) : p);
+  const rel = koren && cwd.indexOf(koren) === 0 ? cwd.slice(koren.length).replace(/^\//, "") : cwd;
+  const parts = rel ? rel.split("/") : [];
+  const absCesta = (i) => (koren ? koren + "/" : "") + parts.slice(0, i + 1).join("/");
+
+  const commitAdd = () => {
+    const v = name.trim().replace(/\//g, "");
+    if (!v) { setAdding(false); return; }
+    st.addNbFolder(cwd ? cwd + "/" + v : v);
+    setName(""); setAdding(false);
+  };
+  const moveHere = () => {
+    if (!moving) return;
+    const nm = base(moving);
+    if (cwd === moving || cwd.indexOf(moving + "/") === 0) { setMoving(null); return; }
+    st.moveNbFolder(moving, cwd);
+    setMoving(null);
+  };
+  const toggle = (id) => setSel((xs) => xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]);
+  const moveSel = (dest) => { if (!sel.length) return; st.setEntriesFolder(sel, dest); setSel([]); };
+
+  fState.current = { selecting: false, sel: [], sortManual: false };
+  fAct.current = {
+    label: (id) => {
+      if (id.indexOf("f:") === 0) return base(id.slice(2));
+      const e = all.find((x) => x.id === id);
+      return (e && e.title) || L("poznámka", "note");
+    },
+    paint: () => {},
+    enter: () => {},
+    reorder: () => {},
+    dropTab: (ids, dest) => {
+      const target = dest === "\u0000root" ? (koren || "") : dest;
+      const fid = ids.find((x) => x.indexOf("f:") === 0);
+      if (fid) { st.moveNbFolder(fid.slice(2), target); return; }
+      const many = (sel.length && ids.some((x) => sel.includes(x))) ? sel : ids;
+      st.setEntriesFolder(many, target);
+      setSel([]);
+    },
+  };
+  const fDragging = useHoldSelect({ rootRef: boxRef, attr: "data-fitem", tabAttr: "data-fdrop", stateRef: fState, actionsRef: fAct, mouseAny: true });
+
+  const rowBase = { display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 46, background: "transparent", border: "none", borderRadius: 8, padding: "7px 8px", margin: "0 -8px", cursor: "pointer", textAlign: "left", color: "inherit", fontFamily: FONT_BODY };
+  const iconBtnS = { background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, width: 30, height: 34, flexShrink: 0, fontSize: 13 };
+
+  return (
+    <CenterSheet center title={mode === "move" ? L("Přesunout do složky · ", "Move to folder · ") + count : L("Složky", "Folders")} onClose={onClose}>
+      <div ref={boxRef} data-fsheet="1" className="tm-fbox" style={{ maxWidth: 620, border: fDragging ? `1px solid ${t.accent}` : "1px solid transparent", borderRadius: 12, transition: "border-color .15s ease" }}>
+        {/* drobenka · v jaké složce zrovna stojím */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", marginBottom: 10, fontFamily: FONT_BODY, fontSize: 13 }}>
+          <button data-fdrop={koren || "\u0000root"} onClick={() => setCwd(koren || "")} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "transparent", border: "none", cursor: "pointer", color: cwd !== (koren || "") ? t.textMuted : t.heading, padding: "5px 2px", minHeight: 32, fontFamily: FONT_BODY, fontSize: 13 }}>
+            <span style={{ color: t.sand, display: "inline-flex" }}><TmIcSlozka size={15} /></span>{koren ? (korenNazev || base(koren)) : L("Zápisník", "Notebook")}
+          </button>
+          {parts.map((p, i) => (
+            <React.Fragment key={p + i}>
+              <span style={{ color: t.textMuted }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+              <button data-fdrop={absCesta(i)} onClick={() => setCwd(absCesta(i))} style={{ background: "transparent", border: "none", cursor: "pointer", color: i === parts.length - 1 ? t.heading : t.textMuted, padding: "5px 2px", minHeight: 32, fontFamily: FONT_BODY, fontSize: 13 }}>{p}</button>
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* co se právě děje · stěhování složky nebo přesun vybraných poznámek */}
+        {moving && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", background: hexA(t.accent, 0.1), border: `1px solid ${t.accent}`, borderRadius: 10, padding: "8px 12px", marginBottom: 10 }}>
+            <span style={{ flex: 1, minWidth: 120, fontFamily: FONT_BODY, fontSize: 13, color: t.heading }}>{L("Stěhuju ", "Moving ")}„{base(moving)}"</span>
+            <button onClick={moveHere} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, minHeight: 32, padding: "6px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Vložit sem", "Put here")}</button>
+            <button onClick={() => setMoving(null)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, minHeight: 32, padding: "6px 12px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13 }}>{L("Zrušit", "Cancel")}</button>
+          </div>
+        )}
+        {sel.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", background: hexA(t.accent, 0.08), border: `1px solid ${t.accent}`, borderRadius: 10, padding: "8px 12px", marginBottom: 10 }}>
+            <span style={{ flex: 1, minWidth: 100, fontFamily: FONT_BODY, fontSize: 13, color: t.heading }}>{sel.length} {L("vybráno", "selected")}</span>
+            <ExportBtn label={L("Sdílet", "Share")} pocet={sel.length} jmeno={L("vyber", "selection")}
+              docs={() => all.filter((e) => sel.includes(e.id)).map((e) => tmDocZapisu(e, "notebook"))} />
+            <Select small value="" onChange={moveSel} placeholder={L("Přesunout do…", "Move to…")} style={{ maxWidth: 170, width: 170 }} options={[
+              koren ? { v: koren, label: korenNazev || base(koren) } : { v: "", label: L("Zápisník (bez složky)", "Notebook (unfiled)") },
+              ...folders.filter((f) => !koren || f.indexOf(koren + "/") === 0).map((f) => ({ v: f, label: koren ? f.slice(koren.length + 1) : f })),
+            ]} />
+            <button onClick={() => setSel([])} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, width: 28, minHeight: 32 }}><FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+          </div>
+        )}
+
+        {mode === "move" && (
+          <button onClick={() => onPick(cwd)} style={{ display: "block", width: "100%", background: t.accent, color: t.onAccent, border: "none", borderRadius: 10, minHeight: 44, padding: "10px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, marginBottom: 12 }}>
+            {cwd ? L("Přesunout sem · ", "Move here · ") + base(cwd) : L("Nechat bez složky", "Leave unfiled")}
+          </button>
+        )}
+
+        {/* podsložky */}
+        {kids.map((p) => (
+          renaming === p ? (
+            <div key={p} style={{ display: "flex", gap: 6, alignItems: "center", padding: "6px 0" }}>
+              <input autoFocus value={rn} onChange={(e) => setRn(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { st.renameNbFolder(p, rn); setRenaming(null); } if (e.key === "Escape") setRenaming(null); }} style={{ ...fieldStyle(t), padding: "8px 12px", fontSize: 13, flex: 1 }} />
+              <button onClick={() => { st.renameNbFolder(p, rn); setRenaming(null); }} style={{ ...iconBtn(t), border: "none", color: t.sand }}><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+            </div>
+          ) : (
+            <div key={p} data-fitem={"f:" + p} data-fdrop={p} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <button data-pickmain="1" onClick={() => setCwd(p)} style={{ ...rowBase, borderBottom: "none", flex: 1, minWidth: 0 }}>
+                <span style={{ color: t.sand, display: "inline-flex", flexShrink: 0 }}><TmIcSlozka size={18} /></span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{base(p)}</span>
+                <span style={{ fontSize: 12, color: t.textMuted, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{deep(p)}</span>
+                <span style={{ color: t.textMuted, fontSize: 13, flexShrink: 0 }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+              </button>
+              {mode !== "move" && (
+                <span style={{ display: "inline-flex", flexShrink: 0, borderBottom: `1px solid ${t.borderSoft}` }}>
+                  <ExportBtn small jmeno={base(p)} pocet={deep(p)}
+                    docs={() => all.filter((e) => (e.folder || "") === p || (e.folder || "").indexOf(p + "/") === 0).map((e) => tmDocZapisu(e, "notebook"))} />
+                  <button title={L("Přesunout složku", "Move folder")} onClick={() => setMoving(p)} style={iconBtnS}>⇄</button>
+                  <button title={L("Přejmenovat", "Rename")} onClick={() => { setRenaming(p); setRn(base(p)); }} style={iconBtnS}><FamilyIcon id="edit" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+                  <button title={L("Smazat složku", "Delete folder")} onClick={() => st.ask(L(`Smazat složku „${base(p)}"? Poznámky zůstanou, jen vyplavou o patro výš.`, `Delete folder "${base(p)}"? The notes stay, they just move up one level.`), () => st.removeNbFolder(p))} style={iconBtnS}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+                </span>
+              )}
+            </div>
+          )
+        ))}
+
+        {adding && (
+          <div style={{ display: "flex", gap: 6, alignItems: "center", padding: "6px 0" }}>
+            <span style={{ color: t.sand, display: "inline-flex" }}><TmIcSlozka size={18} /></span>
+            <input autoFocus value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitAdd(); if (e.key === "Escape") setAdding(false); }} placeholder={L("Název složky…", "Folder name…")} style={{ ...fieldStyle(t), padding: "8px 12px", fontSize: 13, flex: 1 }} />
+            <button onClick={commitAdd} style={{ ...iconBtn(t), border: "none", color: t.sand }}><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+          </div>
+        )}
+
+        {/* poznámky v této složce */}
+        {mode !== "move" && here.map((e) => (
+          <div key={e.id} data-fitem={e.id} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <button data-pickmain="1" onClick={() => toggle(e.id)} style={{ ...rowBase, borderBottom: "none", flex: 1, minWidth: 0, background: sel.includes(e.id) ? hexA(t.accent, 0.07) : "transparent" }}>
+              <span style={{ width: 20, height: 20, flexShrink: 0, borderRadius: 6, border: `1.5px solid ${sel.includes(e.id) ? t.accent : t.border}`, background: sel.includes(e.id) ? t.accent : "transparent", color: t.onAccent, fontSize: 12, lineHeight: "17px", textAlign: "center" }}>{sel.includes(e.id) ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>
+              <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_DISPLAY, fontSize: 15, color: t.textSec, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title || L("Bez názvu", "Untitled")}</span>
+              {e.date && <span style={{ fontSize: 12, color: t.textMuted, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{e.date}</span>}
+            </button>
+            <span style={{ borderBottom: `1px solid ${t.borderSoft}`, display: "inline-flex" }}><span style={{ width: 4 }} /></span>
+          </div>
+        ))}
+
+        {!kids.length && !here.length && !adding && (
+          <Prazdno kind="prvni" plain compact fakt={L("Ve složce nic není.", "This folder is empty.")} pozvani={L("Přetáhni sem poznámku — nebo tu jednu založ.", "Drag a note here — or start one.")} />
+        )}
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
+          {canNest && !adding && mode !== "move" && (
+            <button onClick={() => { setAdding(true); setName(""); }} className="tm-dash" style={{ flex: 1, minWidth: 160, background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.inkSand, fontFamily: FONT_BODY, fontSize: 13, textAlign: "left", minHeight: 44 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nová složka", "New folder")}</button>
+          )}
+          {mode !== "move" && (here.length > 0 || kids.length > 0) && (
+            <span style={{ flex: 1, minWidth: 150, display: "inline-flex" }}>
+              <ExportBtn label={cwd ? L("Sdílet složku", "Share folder") : L("Sdílet vše", "Share all")}
+                jmeno={cwd ? base(cwd) : L("zapisnik", "notebook")}
+                pocet={cwd ? deep(cwd) : all.length}
+                docs={() => all.filter((e) => (cwd ? ((e.folder || "") === cwd || (e.folder || "").indexOf(cwd + "/") === 0) : true)).map((e) => tmDocZapisu(e, "notebook"))} />
+            </span>
+          )}
+          {mode !== "move" && (
+            <button className="tm-earth-action" onClick={() => { setFolder(cwd || ""); onClose(); }} style={{ flex: 1, minWidth: 160, background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "10px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, minHeight: 44 }}>
+              {cwd ? L("Otevřít ", "Open ") + base(cwd) : L("Zobrazit vše", "Show all")}
+            </button>
+          )}
+        </div>
+        {mode !== "move" && !koren && (
+          <button onClick={() => { setFolder("__none__"); onClose(); }} style={{ display: "block", width: "100%", background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", padding: "12px 4px 0", textAlign: "left", minHeight: 36 }}>
+            {L("Jen nezařazené · ", "Unfiled only · ")}{all.filter((e) => !e.folder).length}
+          </button>
+        )}
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, fontStyle: "italic", margin: "14px 0 0", lineHeight: 1.6 }}>{L("Složka říká, co poznámka je. Štítek říká, čeho se týká.", "A folder says what a note is. A tag says what it is about.")}</p>
+      </div>
+    </CenterSheet>
+  );
+}
+
+function useWide(px = 1000) {
+  const [wide, setWide] = useState(() => { try { return window.matchMedia("(min-width: " + px + "px)").matches; } catch (e) { return false; } });
+  React.useEffect(() => {
+    let m; try { m = window.matchMedia("(min-width: " + px + "px)"); } catch (e) { return; }
+    const h = () => setWide(m.matches);
+    h();
+    if (m.addEventListener) m.addEventListener("change", h); else m.addListener(h);
+    return () => { if (m.removeEventListener) m.removeEventListener("change", h); else m.removeListener(h); };
+  }, [px]);
+  return wide;
+}
+
+const nbSorts = () => [
+  { v: "manual", label: L("vlastní pořadí", "custom order") },
+  { v: "dateDesc", label: L("nejnovější", "newest") },
+  { v: "dateAsc", label: L("nejstarší", "oldest") },
+  { v: "title", label: L("podle názvu", "by title") },
+];
+
+function NbTab({ v, active, warm, count, onPick }) {
+  const { t } = useT();
+  const st = useStore();
+  const ref = React.useRef(null);
+  const movable = v !== "Vše";
+  const onOverRef = React.useRef(null);
+  onOverRef.current = (over) => { if (over && over !== "Vše" && over !== v) st.reorderNbTag(v, over); };
+  const disRef = React.useRef(false); disRef.current = !movable;
+  const dragging = useHoldReorder(ref, v, "data-nbtab", onOverRef, disRef, true);
+  return (
+    <button
+      ref={ref}
+      data-nbtab={v}
+      onClick={() => { if (!dragging) onPick(); }}
+      draggable={movable}
+      onDragStart={movable ? (e) => { e.dataTransfer.setData("text/plain", "nbtab:" + v); e.dataTransfer.effectAllowed = "move"; } : undefined}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => { e.preventDefault(); const raw = e.dataTransfer.getData("text/plain") || ""; if (raw.slice(0, 6) !== "nbtab:") return; const dn = raw.slice(6); if (dn && dn !== v && v !== "Vše") st.reorderNbTag(dn, v); }}
+      title={movable ? L("Podrž a přetáhni pro jiné pořadí", "Hold and drag to reorder") : undefined}
+      style={{ background: dragging ? hexA(t.accent, 0.1) : "transparent", border: "none", cursor: movable ? "grab" : "pointer", padding: "8px 10px 9px", borderRadius: dragging ? 8 : 0, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 12, color: active || warm || dragging ? t.accent : t.textMuted, borderBottom: active ? `2px solid ${t.accent}` : "2px solid transparent", marginBottom: -1, transition: "color .45s ease, background .12s ease", userSelect: "none", touchAction: "pan-x", flexShrink: 0 }}
+    >
+      {LV(v)}<span style={{ marginLeft: 5, opacity: warm ? 1 : 0.6, fontSize: 12, transition: "opacity .45s ease" }}>{count}</span>
+    </button>
+  );
+}
+
+const klSmsUrl = (phone, text) => {
+  const n = String(phone || "").replace(/[^+\d]/g, "");
+  if (!text) return "sms:" + n;
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent || "") || (navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1);
+  return "sms:" + n + (ios ? "&" : "?") + "body=" + encodeURIComponent(text);
+};
+
 function richInline(s, t) {
   const out = [];
-  const re = /\{c\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/c\}|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|\{h\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/h\}/g;
+  const re = /\{c\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/c\}|\[\[([^\]\[\n]+)\]\]|\*\*((?:[^*\n]|\*(?!\*))+?)\*\*|~~([^~\n]+)~~|==([^=\n]+)==|\*([^*\n]+)\*|\{h\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/h\}/g;
   let last = 0, m, key = 0;
   while ((m = re.exec(String(s)))) {
     if (m.index > last) out.push(<React.Fragment key={key++}>{String(s).slice(last, m.index)}</React.Fragment>);
     if (m[1] != null) out.push(<span key={key++} style={{ color: inkHex(m[1], t) }}>{richInline(m[2], t)}</span>);
-    else if (m[3] != null) out.push(<strong key={key++} style={{ fontWeight: 700 }}>{richInline(m[3], t)}</strong>);
-    else if (m[4] != null) out.push(<em key={key++}>{richInline(m[4], t)}</em>);
-    else if (m[5] != null) out.push(<mark key={key++} style={{ background: editorHighlight(m[5], t), color: "inherit", borderRadius: 3, padding: "0 2px" }}>{richInline(m[6], t)}</mark>);
+    else if (m[3] != null) out.push(<button key={key++} onClick={(ev) => { ev.stopPropagation(); tmGoLink(m[3]); }} title={L("Otevřít ", "Open ") + m[3]} style={{ background: "transparent", border: "none", borderBottom: `1px solid ${hexA(t.sage, 0.55)}`, padding: 0, cursor: "pointer", color: t.sage, font: "inherit" }}>{m[3]}</button>);
+    else if (m[4] != null) out.push(<strong key={key++} style={{ fontWeight: 700 }}>{richInline(m[4], t)}</strong>);
+    else if (m[5] != null) out.push(<s key={key++} style={{ color: t.textMuted }}>{richInline(m[5], t)}</s>);
+    else if (m[6] != null) out.push(<mark key={key++} style={{ background: hexA(t.sand, 0.26), color: "inherit", borderRadius: 3, padding: "0 2px" }}>{richInline(m[6], t)}</mark>);
+    else if (m[7] != null) out.push(<em key={key++}>{richInline(m[7], t)}</em>);
+    else if (m[8] != null) out.push(<mark key={key++} style={{ background: editorHighlight(m[8], t), color: "inherit", borderRadius: 3, padding: "0 2px" }}>{richInline(m[9], t)}</mark>);
     last = re.lastIndex;
   }
   if (last < String(s).length) out.push(<React.Fragment key={key++}>{String(s).slice(last)}</React.Fragment>);
@@ -1323,14 +3468,48 @@ function RichText({ text, style }) {
   const { t } = useT();
   const lines = String(text || "").split("\n");
   return (
-    <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, lineHeight: 1.75, color: t.textSec, maxWidth: 700, ...style }}>
-      {lines.map((ln, i) => {
+    <div style={{ fontFamily: FONT_BODY, fontSize: "calc(15px * var(--tm-read, 1))", lineHeight: 1.6, color: t.textSec, maxWidth: "32em", ...style }}>
+      {lines.map((cely, i) => {
+        // stejné zarovnání jako v editoru a v náhledu · jeden zdroj pravdy
+        const { al, text: ln } = tmZarov(cely);
+        const A = al ? { textAlign: al } : null;
+        const AF = al ? { justifyContent: tmZarovFlex(al), textAlign: al } : null;
         const mi = ln.match(IMG_RE);
-        if (mi) return <img key={i} src={r2Url(mi[1])} alt="" style={{ width: Math.min(+mi[2], 680), maxWidth: "100%", display: "block", borderRadius: 8, margin: "10px 0", border: `1px solid ${t.borderSoft}` }} />;
-        if (/^##\s/.test(ln)) return <div key={i} style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 11.5, color: t.sage, margin: `${i === 0 ? 0 : 14}px 0 3px` }}>{richInline(ln.slice(3), t)}</div>;
-        if (/^#\s/.test(ln)) return <div key={i} style={{ fontFamily: FONT_DISPLAY, fontSize: 20, color: t.heading, lineHeight: 1.3, margin: `${i === 0 ? 0 : 14}px 0 3px` }}>{richInline(ln.slice(2), t)}</div>;
+        if (mi) return <img key={i} src={r2Url(mi[1])} alt="" style={{ width: Math.min(+mi[2], 680), maxWidth: "100%", display: "block", borderRadius: 8, margin: "10px 0", border: `1px solid ${t.borderSoft}`, ...(al === "center" ? { marginLeft: "auto", marginRight: "auto" } : al === "right" ? { marginLeft: "auto" } : null) }} />;
+        const mgd = ln.match(GD_RE);
+        if (mgd && tmGdEmbed(mgd[1])) return <iframe key={i} src={tmGdEmbed(mgd[1]).src} loading="lazy" allow="autoplay; fullscreen" allowFullScreen title="Google Drive" style={{ width: "100%", maxWidth: 680, height: Math.min(+mgd[2] || 340, 640), display: "block", borderRadius: 8, margin: "10px 0", border: `1px solid ${t.borderSoft}`, background: t.card }} />;
+        const mc = ln.match(CHK_RE);
+        if (mc) {
+          const on = mc[1].toLowerCase() === "x";
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "1px 0", ...AF }}>
+              <span style={{ flexShrink: 0, marginTop: "0.28em", width: 15, height: 15, borderRadius: 4, border: `1.5px solid ${on ? "transparent" : t.border}`, background: on ? t.sage : "transparent", color: t.bg, fontSize: 12, lineHeight: "12px", textAlign: "center" }}>{on ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>
+              <span style={{ color: on ? t.textMuted : "inherit" }}>{richInline(mc[2] || "", t)}</span>
+            </div>
+          );
+        }
+        if (HR_RE.test(ln.trim())) return <div key={i} style={{ height: 1, width: 160, maxWidth: "60%", background: t.borderSoft, margin: "14px 0" }} />;
+        const mo = ln.match(OL_RE);
+        if (mo) return (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "1px 0", ...AF }}>
+            <span style={{ flexShrink: 0, minWidth: 16, textAlign: "right", color: t.textMuted, fontVariantNumeric: "tabular-nums" }}>{mo[1]}.</span>
+            <span>{richInline(mo[2] || "", t)}</span>
+          </div>
+        );
+        const mu = ln.match(UL_RE);
+        if (mu) return (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "1px 0", ...AF }}>
+            <span style={{ flexShrink: 0, width: 16, textAlign: "right", color: t.textMuted }}>•</span>
+            <span>{richInline(mu[1] || "", t)}</span>
+          </div>
+        );
+        const mq = ln.match(QT_RE);
+        if (mq) return <div key={i} style={{ borderLeft: `2px solid ${hexA(t.sage, 0.5)}`, paddingLeft: 12, margin: "2px 0", fontStyle: "italic", color: t.textMuted, ...A }}>{richInline(mq[1] || "", t)}</div>;
+        if (/^###\s/.test(ln)) return <div key={i} style={{ fontFamily: FONT_BODY, fontWeight: 600, fontSize: 15, color: t.heading, margin: `${i === 0 ? 0 : 12}px 0 2px`, ...A }}>{richInline(ln.slice(4), t)}</div>;
+        if (/^##\s/.test(ln)) return <div key={i} style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: t.sage, margin: `${i === 0 ? 0 : 14}px 0 3px`, ...A }}>{richInline(ln.slice(3), t)}</div>;
+        if (/^#\s/.test(ln)) return <div key={i} style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading, lineHeight: 1.3, margin: `${i === 0 ? 0 : 14}px 0 3px`, ...A }}>{richInline(ln.slice(2), t)}</div>;
         if (ln.trim() === "") return <div key={i} style={{ height: "0.85em" }} />;
-        return <div key={i}>{richInline(ln, t)}</div>;
+        return <div key={i} style={A || undefined}>{richInline(ln, t)}</div>;
       })}
     </div>
   );
@@ -1342,7 +3521,9 @@ function figHtml(id, w, t) {
   const url = r2Url(id);
   const b = 'style="all:unset;cursor:pointer;color:#F4F0EB;font-size:12px;line-height:1;padding:3px 6px;border-radius:5px;font-family:sans-serif;"';
   const bar = 'style="position:absolute;top:6px;right:6px;display:flex;gap:1px;background:rgba(20,18,16,0.62);border-radius:8px;padding:2px;"';
-  return '<figure contenteditable="false" data-img="' + id + '" data-w="' + w + '" class="tm-fig" style="position:relative;display:block;margin:10px 0;width:' + w + 'px;max-width:100%;">'
+  const xe = (x) => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const wn = Math.max(60, Math.min(1200, parseInt(w, 10) || 320));
+  return '<figure contenteditable="false" data-img="' + xe(id) + '" data-w="' + wn + '" class="tm-fig" style="position:relative;display:block;margin:10px 0;width:' + wn + 'px;max-width:100%;">'
     + '<img src="' + url + '" alt="" draggable="false" style="width:100%;display:block;border-radius:8px;border:1px solid ' + t.borderSoft + ';" />'
     + '<span class="tm-fig-tools" contenteditable="false" ' + bar + '>'
     + '<button type="button" data-act="up" title="Nahoru" ' + b + '>↑</button>'
@@ -1356,25 +3537,48 @@ function mdToHtml(md, t) {
   const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const inline = (s) => {
     let html = "", last = 0, m;
-    const re = /\{c\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/c\}|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|\{h\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/h\}/g;
+    const re = /\{c\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/c\}|\[\[([^\]\[\n]+)\]\]|\*\*((?:[^*\n]|\*(?!\*))+?)\*\*|~~([^~\n]+)~~|==([^=\n]+)==|\*([^*\n]+)\*|\{h\|(copper|sage|sand|burgundy|slate|plum)\}([\s\S]*?)\{\/h\}/g;
     while ((m = re.exec(s))) {
       if (m.index > last) html += esc(s.slice(last, m.index));
       if (m[1] != null) html += '<span style="color:' + (inkHex(m[1], t) || "") + '">' + inline(m[2]) + "</span>";
-      else if (m[3] != null) html += "<b>" + inline(m[3]) + "</b>";
-      else if (m[4] != null) html += "<i>" + inline(m[4]) + "</i>";
-        else if (m[5] != null) html += '<mark class="tm-hl" data-highlight="' + m[5] + '" style="background:' + editorHighlight(m[5], t) + '">' + inline(m[6]) + '</mark>';
+      // odkaz se v editoru jen obarví · závorky zůstanou vidět, aby se dal upravit
+      else if (m[3] != null) html += '<span class="tm-lk">[[' + esc(m[3]) + "]]</span>";
+      else if (m[4] != null) html += "<b>" + inline(m[4]) + "</b>";
+      else if (m[5] != null) html += "<s>" + inline(m[5]) + "</s>";
+      else if (m[6] != null) html += '<mark class="tm-hl">' + inline(m[6]) + "</mark>";
+      else if (m[7] != null) html += "<i>" + inline(m[7]) + "</i>";
+        else if (m[8] != null) html += '<mark class="tm-hl" data-highlight="' + m[8] + '" style="background:' + editorHighlight(m[8], t) + '">' + inline(m[9]) + '</mark>';
     last = re.lastIndex;
     }
     html += esc(s.slice(last));
     return html;
   };
-  return String(md || "").split("\n").map((ln) => {
+  return String(md || "").split("\n").map((cely) => {
+    // zarovnání bloku · značka {^c} {^r} {^j} sedí přede vším ostatním
+    const { al: zarov, text: ln } = tmZarov(cely);
+    const A = zarov ? ' style="text-align:' + zarov + '"' : "";
     const mi = ln.match(IMG_RE);
     if (mi) return figHtml(mi[1], mi[2], t);
-    if (/^##\s/.test(ln)) return "<h2>" + inline(ln.slice(3)) + "</h2>";
-    if (/^#\s/.test(ln)) return "<h1>" + inline(ln.slice(2)) + "</h1>";
-    if (ln.trim() === "") return "<div><br></div>";
-    return "<div>" + inline(ln) + "</div>";
+    const mg = ln.match(GD_RE);
+    if (mg) { const gh = gdFigHtml(mg[1], mg[2], t); if (gh) return gh; }
+    const mc = ln.match(CHK_RE);
+    if (mc) {
+      const on = mc[1].toLowerCase() === "x";
+      return '<div data-chk="' + (on ? "1" : "0") + '"' + A + '><span class="tm-chk' + (on ? " on" : "") + '" contenteditable="false">✓</span>' + (inline(mc[2] || "") || "<br>") + "</div>";
+    }
+    if (HR_RE.test(ln.trim())) return '<div data-hr="1"><span class="tm-hr" contenteditable="false"></span></div>';
+    const mo = ln.match(OL_RE);
+    if (mo) return '<div data-ol="' + mo[1] + '"' + A + '><span class="tm-mk" contenteditable="false">' + mo[1] + '.</span>' + (inline(mo[2] || "") || "<br>") + "</div>";
+    const mu = ln.match(UL_RE);
+    if (mu) return '<div data-ul="1"' + A + '><span class="tm-mk" contenteditable="false">•</span>' + (inline(mu[1] || "") || "<br>") + "</div>";
+    const mq = ln.match(QT_RE);
+    if (mq) return '<div data-qt="1"' + A + '>' + (inline(mq[1] || "") || "<br>") + "</div>";
+    if (/^###\s/.test(ln)) return "<h3" + A + ">" + inline(ln.slice(4)) + "</h3>";
+    if (/^##\s/.test(ln)) return "<h2" + A + ">" + inline(ln.slice(3)) + "</h2>";
+    if (/^#\s/.test(ln)) return "<h1" + A + ">" + inline(ln.slice(2)) + "</h1>";
+    // i prázdný řádek si zarovnání nese · jinak by ho nový odstavec ztratil
+    if (ln.trim() === "") return "<div" + A + "><br></div>";
+    return "<div" + A + ">" + inline(ln) + "</div>";
   }).join("");
 }
 
@@ -1385,16 +3589,20 @@ function htmlToMd(root) {
       if (n.nodeType === 3) { out += n.nodeValue; return; }
       if (n.nodeType !== 1) return;
       if (n.tagName === "BR") { out += "\n"; return; }
-      if (n.classList && n.classList.contains("tm-fig-tools")) return;
+      if (n.classList && (n.classList.contains("tm-fig-tools") || n.classList.contains("tm-chk") || n.classList.contains("tm-mk") || n.classList.contains("tm-hr"))) return;
       if (n.tagName === "FIGURE" && n.getAttribute("data-img")) { out += "\n!img(" + n.getAttribute("data-img") + "|" + (n.getAttribute("data-w") || "320") + ")\n"; return; }
+      if (n.tagName === "FIGURE" && n.getAttribute("data-gd")) { out += "\n!gd(" + n.getAttribute("data-gd") + "|" + (n.getAttribute("data-h") || "340") + ")\n"; return; }
       const st = (n.getAttribute && n.getAttribute("style")) || "";
       const isB = n.tagName === "B" || n.tagName === "STRONG" || /font-weight:\s*(bold|[6-9]00)/i.test(st);
       const isI = n.tagName === "I" || n.tagName === "EM" || /font-style:\s*italic/i.test(st);
+      const isS = n.tagName === "S" || n.tagName === "STRIKE" || n.tagName === "DEL" || /text-decoration[^;]*line-through/i.test(st);
+      const isM = n.tagName === "MARK" || (/background(-color)?:\s*[^;]+/i.test(st) && !/background(-color)?:\s*(transparent|none|inherit|initial|rgba\(0,\s*0,\s*0,\s*0\))/i.test(st));
       const cName = inkName((n.style && n.style.color) || (n.getAttribute && n.getAttribute("color")) || "");
       let inner = inline(n);
       if (isB && inner.trim()) inner = "**" + inner + "**";
       if (isI && inner.trim()) inner = "*" + inner + "*";
-      if (n.tagName === "MARK" && inner.trim()) { const h=n.getAttribute("data-highlight") || "sand"; if (EDITOR_NAMES.includes(h)) inner="{h|"+h+"}"+inner+"{/h}"; }
+      if (isS && inner.trim()) inner = "~~" + inner + "~~";
+      if (isM && inner.trim()) { const h = n.getAttribute("data-highlight"); inner = EDITOR_NAMES.includes(h) ? "{h|" + h + "}" + inner + "{/h}" : "==" + inner + "=="; }
       if (cName && inner.trim()) inner = "{c|" + cName + "}" + inner + "{/c}";
       out += inner;
     });
@@ -1402,81 +3610,266 @@ function htmlToMd(root) {
   };
   const lines = [];
   root.childNodes.forEach((n) => {
-    if (n.nodeType === 3) { if (n.nodeValue !== "") lines.push(n.nodeValue); return; }
-    if (n.nodeType !== 1) return;
-    const tag = n.tagName;
-    if (tag === "BR") { lines.push(""); return; }
-    const onlyBr = n.childNodes.length === 1 && n.firstChild.nodeType === 1 && n.firstChild.tagName === "BR";
-    if (tag === "FIGURE" && n.getAttribute("data-img")) lines.push("!img(" + n.getAttribute("data-img") + "|" + (n.getAttribute("data-w") || "320") + ")");
-    else if (tag === "H1") lines.push(onlyBr ? "# " : "# " + inline(n));
-    else if (tag === "H2" || tag === "H3") lines.push(onlyBr ? "## " : "## " + inline(n));
-    else if (onlyBr) lines.push("");
-    else inline(n).split("\n").forEach((x) => lines.push(x));
+    const od = lines.length;
+    if (n.nodeType === 3) { if (n.nodeValue !== "") lines.push(n.nodeValue); }
+    else if (n.nodeType === 1) {
+      const tag = n.tagName;
+      if (tag === "BR") { lines.push(""); return; }
+      const onlyBr = n.childNodes.length === 1 && n.firstChild.nodeType === 1 && n.firstChild.tagName === "BR";
+      const at = (k) => (n.getAttribute ? n.getAttribute(k) : null);
+      const chk = at("data-chk");
+      if (chk != null) lines.push("- [" + (chk === "1" ? "x" : " ") + "] " + inline(n).replace(/^\s+/, ""));
+      else if (at("data-hr") != null) lines.push("---");
+      else if (at("data-ol") != null) lines.push((at("data-ol") || "1") + ". " + inline(n).replace(/^\s+/, ""));
+      else if (at("data-ul") != null) lines.push("- " + inline(n).replace(/^\s+/, ""));
+      else if (at("data-qt") != null) lines.push("> " + inline(n).replace(/^\s+/, ""));
+      else if (tag === "FIGURE" && n.getAttribute("data-img")) lines.push("!img(" + n.getAttribute("data-img") + "|" + (n.getAttribute("data-w") || "320") + ")");
+      else if (tag === "FIGURE" && n.getAttribute("data-gd")) lines.push("!gd(" + n.getAttribute("data-gd") + "|" + (n.getAttribute("data-h") || "340") + ")");
+      else if (tag === "H1") lines.push(onlyBr ? "# " : "# " + inline(n));
+      else if (tag === "H3") lines.push(onlyBr ? "### " : "### " + inline(n));
+      else if (tag === "H2") lines.push(onlyBr ? "## " : "## " + inline(n));
+      else if (onlyBr) lines.push("");
+      else inline(n).split("\n").forEach((x) => lines.push(x));
+      // zarovnání bloku → prefix všem řádkům, které z uzlu vznikly
+      const al = ((n.style && n.style.textAlign) || "").toLowerCase();
+      const zn = al === "center" ? "{^c}" : al === "right" ? "{^r}" : al === "justify" ? "{^j}" : "";
+      if (zn) for (let i = od; i < lines.length; i++) if (lines[i] !== "") lines[i] = zn + lines[i];
+    }
   });
-  return lines.join("\n").replace(/\n+$/, "");
+  // Prázdné řádky na konci si člověk nechává schválně (místo na pokračování).
+  // Ořezáváme proto jen ten poslední, ne všechny.
+  const vysledek = lines.join("\n");
+  return vysledek.trim() === "" ? "" : vysledek.replace(/\n+$/, (m) => m.slice(0, -1));
 }
 
 function tmHilite(name, theme) {
-    const sel=window.getSelection(); if(!sel?.rangeCount || sel.isCollapsed)return;
-    const r=sel.getRangeAt(0), mark=document.createElement("mark");
-    mark.setAttribute("data-highlight",name); mark.style.background=editorHighlight(name,theme);
-    mark.appendChild(r.extractContents()); r.insertNode(mark); r.selectNodeContents(mark); sel.removeAllRanges(); sel.addRange(r);
+    if (!name) return tmToggleWrap("mark", "tm-hl");
+    let mark = tmMarkAncestor(["MARK"]);
+    if (!mark) { tmToggleWrap("mark", "tm-hl"); mark = tmMarkAncestor(["MARK"]); }
+    if (mark) { mark.setAttribute("data-highlight", name); mark.style.background = editorHighlight(name, theme); }
   }
-function MdToolbar({ exec, onImage }) {
+function MdToolbar({ exec, onImage, onZen, zen, blockOf, setBlock, insertHr, sazec, zarovnej, undo, redo, canUndo, canRedo }) {
   const { t } = useT();
   const [, force] = useState(0);
   const [palOpen, setPalOpen] = useState(false);
+  const [parOpen, setParOpen] = useState(false);
+  const rootRef = React.useRef(null);
   React.useEffect(() => {
     const h = () => force((x) => x + 1);
     document.addEventListener("selectionchange", h);
     return () => document.removeEventListener("selectionchange", h);
   }, []);
+  // klepnutí mimo lištu zavře otevřenou nabídku
+  React.useEffect(() => {
+    if (!palOpen && !parOpen) return;
+    const h = (e) => { if (rootRef.current && !rootRef.current.contains(e.target)) { setPalOpen(false); setParOpen(false); } };
+    document.addEventListener("pointerdown", h, true);
+    return () => document.removeEventListener("pointerdown", h, true);
+  }, [palOpen, parOpen]);
   const state = (c) => { try { return document.queryCommandState(c); } catch (err) { return false; } };
-  const blockOn = (tag) => { try { return (document.queryCommandValue("formatBlock") || "").toLowerCase() === tag; } catch (err) { return false; } };
+  const kind = (blockOf && blockOf()) || "p";
   const curInk = (() => { try { return inkName(document.queryCommandValue("foreColor"), t); } catch (err) { return null; } })();
-  const btn = (on) => ({ background: on ? hexA(t.accent, 0.16) : "transparent", border: `1px solid ${on ? t.accent : t.borderSoft}`, borderRadius: 8, cursor: "pointer", color: on ? t.accent : t.textSec, padding: "2px 9px", minWidth: 30, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center" });
-  const block = (tag) => () => {
-    const cur = (document.queryCommandValue("formatBlock") || "").toLowerCase();
-    document.execCommand("formatBlock", false, cur === tag ? "div" : tag.toUpperCase());
-  };
+  const btn = (on) => ({ background: on ? hexA(t.accent, 0.16) : "transparent", border: `1px solid ${on ? t.accent : t.borderSoft}`, borderRadius: 8, cursor: "pointer", color: on ? t.accent : t.textSec, padding: "2px 7px", minWidth: 28, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 });
+  const sep = <span style={{ width: 1, height: 15, background: t.borderSoft, margin: "0 1px", flexShrink: 0 }} />;
+  const ICO = {ul: <FamilyIcon id="list-bullets" size={15} />,ol: <FamilyIcon id="list-numbers" size={15} />,chk: <FamilyIcon id="checklist" size={15} />,qt: <FamilyIcon id="quote" size={15} />,hr: <FamilyIcon id="divider" size={15} />};
+  const PAR = [
+    { k: "ul", label: L("Odrážky", "Bullets"), hint: "-" },
+    { k: "ol", label: L("Číslování", "Numbered"), hint: "1." },
+    { k: "chk", label: L("Zaškrtnutí", "Checklist"), hint: "[]" },
+  ];
+  // citát i oddělovač bydlí v menu stylů · dvakrát totéž na dvou místech
+  // znamená, že si člověk nikdy není jistý, které z nich je to pravé
+  const parActive = kind === "ul" || kind === "ol" || kind === "chk";
+  // STYL ODSTAVCE · jedno tlačítko, jehož POPISKEM je název aktuálního bloku.
+  // „Aa" a „AA" nikomu neřeknou, co udělají — a nápověda při najetí myší na
+  // telefonu neexistuje, takže tam ta informace nebyla vůbec. Tenhle ovladač
+  // řeší obojí naráz: říká, co se stane, i to, v čem právě jsi — trvale,
+  // ne na dvě vteřiny jako hláška. Tak to má Google Docs a panel „Aa"
+  // v Poznámkách Applu.
+  // popis té stupnice a proč vypadá, jak vypadá, je u tmStylyBloku
+  const STYLES = tmStylyBloku(t);
+  const curStyle = STYLES.find((x) => x.k === kind) || STYLES[0];
+  const [styOpen, setStyOpen] = useState(false);
+  React.useEffect(() => {
+    if (!styOpen) return;
+    const h = (e) => { if (rootRef.current && !rootRef.current.contains(e.target)) setStyOpen(false); };
+    document.addEventListener("pointerdown", h, true);
+    return () => document.removeEventListener("pointerdown", h, true);
+  }, [styOpen]);
+  /* Barvy textu jsou TOKENY, ne hexy. V poznámce se ukládá jméno ({c|sage}),
+     ne číslo — takže když se přepne motiv, přebarví se i staré poznámky.
+     Kdyby se ukládal hex, byla by šalvěj ze světlého režimu v tmavém
+     nečitelná a nešlo by to už nikdy opravit. */
   const inks = EDITOR_CHOICES.map(name => [name, inkHex(name, t)]);
   return (
-    <div style={{ display: "flex", gap: 5, alignItems: "center", marginBottom: 7, flexWrap: "wrap" }}>
-      <button type="button" title="Nadpis" onPointerDown={exec(block("h1"))} style={{ ...btn(blockOn("h1")), fontFamily: FONT_DISPLAY, fontSize: 14 }}>Aa</button>
-      <button type="button" title="Podnadpis" onPointerDown={exec(block("h2"))} style={{ ...btn(blockOn("h2")), fontFamily: FONT_TAG, fontSize: 10, letterSpacing: "0.1em" }}>AA</button>
-      <button type="button" title={L("Tučně · Ctrl+B", "Bold · Ctrl+B")} onPointerDown={exec(() => document.execCommand("bold"))} style={{ ...btn(state("bold")), fontFamily: FONT_BODY, fontWeight: 700, fontSize: 12.5 }}>B</button>
-      <button type="button" title={L("Kurzíva · Ctrl+I", "Italic · Ctrl+I")} onPointerDown={exec(() => document.execCommand("italic"))} style={{ ...btn(state("italic")), fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5 }}>I</button>
-      <span style={{ width: 1, height: 16, background: t.borderSoft, margin: "0 2px" }} />
+    <div ref={rootRef} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 7 }}>
       <span style={{ position: "relative", display: "inline-flex" }}>
-        <button type="button" title={L("Barva textu", "Text colour")} onPointerDown={(e) => { e.preventDefault(); setPalOpen((x) => !x); }} style={{ ...btn(curInk !== null), padding: "2px 6px", gap: 4 }}>
+        <button type="button" title={L("Styl odstavce", "Paragraph style")} aria-haspopup="menu" aria-expanded={styOpen}
+          onPointerDown={(e) => { e.preventDefault(); setPalOpen(false); setParOpen(false); setStyOpen((x) => !x); }}
+          style={{ ...btn(styOpen || kind !== "p"), padding: "2px 8px", gap: 5, minWidth: 62, justifyContent: "space-between", fontFamily: FONT_BODY, fontSize: 12 }}>
+          <span style={{ whiteSpace: "nowrap" }}>{L(curStyle.cz, curStyle.en)}</span>
+          <span style={{ fontSize: 12, opacity: 0.7 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+        </button>
+        {styOpen && (
+          <span className="tm-pop" style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, zIndex: 40, display: "flex", flexDirection: "column", gap: 1, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 5, boxShadow: t.shadowPop, minWidth: 252, maxWidth: "min(300px, calc(100vw - 34px))", maxHeight: "min(70vh, 520px)", overflowY: "auto", overscrollBehavior: "contain" }}>
+            {STYLES.map((x) => {
+              const on = x.k === kind;
+              return (
+                <button key={x.k} type="button" onPointerDown={(e) => { exec(() => (x.k === "hr" ? insertHr() : setBlock(x.k)))(e); setStyOpen(false); }}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 9, width: "100%", textAlign: "left", background: on ? hexA(t.accent, 0.07) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", padding: "7px 10px 8px", minHeight: 44, color: t.text }}>
+                  {/* aktivní se značí tečkou, ne výplní · výplň by přebila ukázku písma */}
+                  <span aria-hidden="true" style={{ width: 5, height: 5, borderRadius: "50%", flexShrink: 0, marginTop: 7, background: on ? t.accent : "transparent" }} />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    {/* název je vysázený tím stylem, který zapíná · ukázka místo popisu */}
+                    <span style={{ display: "block", ...x.sty }}>{L(x.cz, x.en)}</span>
+                    {x.k === "hr" && <span aria-hidden="true" style={{ display: "block", height: 1, width: 74, background: t.borderSoft, margin: "5px 0 1px" }} />}
+                    <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, lineHeight: 1.4, color: t.textMuted, marginTop: 1 }}>{L(x.cz2, x.en2)}</span>
+                  </span>
+                  {x.key && <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 4, fontFamily: FONT_TAG, fontSize: 12, letterSpacing: "0.06em", color: t.textMuted, opacity: 0.85, whiteSpace: "nowrap" }}>{TM_MAC ? "⌘⇧" : "Ctrl+⇧+"}{x.key}</span>}
+                </button>
+              );
+            })}
+          </span>
+        )}
+      </span>
+      <button type="button" title={L("Tučně · Ctrl+B", "Bold · Ctrl+B")} onPointerDown={exec(() => document.execCommand("bold"))} style={{ ...btn(state("bold")), fontFamily: FONT_BODY, fontWeight: 700, fontSize: 12 }}>B</button>
+      <button type="button" title={L("Kurzíva · Ctrl+I", "Italic · Ctrl+I")} onPointerDown={exec(() => document.execCommand("italic"))} style={{ ...btn(state("italic")), fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12 }}>I</button>
+      <button type="button" title={L("Přeškrtnutí · Ctrl+Shift+X", "Strikethrough · Ctrl+Shift+X")} onPointerDown={exec(() => tmStrike())} style={{ ...btn(tmStrikeOn()), fontFamily: FONT_BODY, fontSize: 12, textDecoration: "line-through" }}>S</button>
+      <button type="button" title={L("Zvýraznit · Ctrl+Shift+H", "Highlight · Ctrl+Shift+H")} onPointerDown={exec(() => tmHilite())} style={{ ...btn(tmHiOn()), padding: "6px 8px", minHeight: 30 }}>
+        <FamilyIcon id="highlight" size={15} />
+      </button>
+      {sep}
+      <span style={{ position: "relative", display: "inline-flex" }}>
+        <button type="button" title={L("Barva textu", "Text colour")} onPointerDown={(e) => { e.preventDefault(); setParOpen(false); setPalOpen((x) => !x); }} style={{ ...btn(curInk !== null), padding: "6px 8px", minHeight: 30, gap: 4 }}>
           <span style={{ width: 13, height: 13, borderRadius: "50%", background: inkHex(curInk, t) || t.text, border: `1px solid ${t.borderSoft}` }} />
-          <span style={{ fontSize: 9 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+          <span style={{ fontSize: 12 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
         </button>
         {palOpen && (
           <span style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, zIndex: 30, display: "inline-flex", flexWrap: "wrap", width: 270, gap: 6, alignItems: "center", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "6px 9px", boxShadow: t.shadow }}>
             {inks.map(([name, hex]) => (
-              <button key={name} type="button" title={L(...EDITOR_LABELS[name])} aria-label={L(...EDITOR_LABELS[name])} onPointerDown={(e) => { exec(() => document.execCommand("foreColor", false, hex))(e); setPalOpen(false); }} style={{ width: 20, height: 20, borderRadius: "50%", cursor: "pointer", background: hex, border: curInk === name ? `2px solid ${t.text}` : `1px solid ${t.borderSoft}`, padding: 0 }} />
+              <button key={name} type="button" title={INK_CZ[name] ? L(INK_CZ[name][0], INK_CZ[name][1]) : name} aria-label={name} onPointerDown={(e) => { exec(() => document.execCommand("foreColor", false, hex))(e); setPalOpen(false); }} style={{ width: 20, height: 20, borderRadius: "50%", cursor: "pointer", background: hex, border: curInk === name ? `2px solid ${t.text}` : `1px solid ${t.borderSoft}`, padding: 0 }} />
             ))}
             <span>{L("Zvýraznit", "Highlight")}</span>
-            {inks.map(([name]) => <button key={"h-"+name} type="button" title={L("Zvýraznit: ", "Highlight: ")+L(...EDITOR_LABELS[name])} aria-label={L("Zvýraznit: ", "Highlight: ")+L(...EDITOR_LABELS[name])} onPointerDown={exec(() => tmHilite(name,t))} style={{width:32,height:32,borderRadius:5,border:`1px solid ${t.border}`,background:editorHighlight(name,t),color:t.text,cursor:"pointer"}}>Aa</button>)}
+            {inks.map(([name]) => <button key={"h-"+name} type="button" title={L("Zvýraznit: ", "Highlight: ")+name} aria-label={L("Zvýraznit: ", "Highlight: ")+name} onPointerDown={exec(() => tmHilite(name,t))} style={{width:32,height:32,borderRadius:5,border:`1px solid ${t.border}`,background:editorHighlight(name,t),color:t.text,cursor:"pointer"}}>Aa</button>)}
             <span style={{ width: 1, height: 16, background: t.borderSoft }} />
-            <button type="button" onPointerDown={(e) => { exec(() => document.execCommand("foreColor", false, t.text))(e); setPalOpen(false); }} style={{ ...btn(curInk === null), fontFamily: FONT_BODY, fontSize: 11, minWidth: 30, padding: "2px 8px" }}>{L("výchozí", "default")}</button>
+            <button type="button" onPointerDown={(e) => { exec(() => document.execCommand("foreColor", false, t.text))(e); setPalOpen(false); }} style={{ ...btn(curInk === null), fontFamily: FONT_BODY, fontSize: 12, minWidth: 30, padding: "2px 8px" }}>{L("výchozí", "default")}</button>
           </span>
         )}
       </span>
-      {onImage && <><span style={{ width: 1, height: 16, background: t.borderSoft, margin: "0 2px" }} />
-      <button type="button" title={L("Vložit obrázek", "Insert image")} onPointerDown={(e) => { e.preventDefault(); onImage(); }} style={{ ...btn(false), padding: "2px 7px" }}><FamilyIcon id="image" size={14} /></button></>}
+      <span style={{ position: "relative", display: "inline-flex" }}>
+        <button type="button" title={L("Seznamy", "Lists")} onPointerDown={(e) => { e.preventDefault(); setPalOpen(false); setParOpen((x) => !x); }} style={{ ...btn(parActive || parOpen), padding: "6px 8px", minHeight: 30, gap: 3 }}>
+          {ICO[parActive ? kind : "ul"]}
+          <span style={{ fontSize: 12 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+        </button>
+        {parOpen && (
+          <span style={{ position: "absolute", top: "calc(100% + 5px)", right: 0, zIndex: 30, display: "flex", flexDirection: "column", gap: 1, background: t.card, border: `1px solid ${t.border}`, borderRadius: 11, padding: 5, boxShadow: t.shadow, minWidth: 196 }}>
+            {PAR.map((p) => (
+              <button key={p.k} type="button" onPointerDown={(e) => { exec(() => setBlock(p.k))(e); setParOpen(false); }}
+                style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", background: kind === p.k ? hexA(t.accent, 0.14) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: kind === p.k ? t.accent : t.textSec, padding: "7px 9px", textAlign: "left", fontFamily: FONT_BODY, fontSize: 13, minHeight: 34 }}>
+                {ICO[p.k]}
+                <span style={{ flex: 1 }}>{p.label}</span>
+                <span style={{ fontSize: 12, color: t.textMuted, fontFamily: FONT_TAG, letterSpacing: "0.04em" }}>{p.hint}</span>
+              </button>
+            ))}
+            
+          </span>
+        )}
+      </span>
+      {zarovnej && <>{sep}
+      {[["l", "Doleva", "Align left"], ["c", "Na střed", "Align centre"], ["r", "Doprava", "Align right"], ["j", "Do bloku", "Justify"]].map(([k, cz, en]) => (
+        <button key={k} type="button" title={L(cz, en)} onPointerDown={exec(() => zarovnej(k))}
+          style={{ ...btn(k !== "l" && state(k === "c" ? "justifyCenter" : k === "r" ? "justifyRight" : "justifyFull")), padding: "6px 8px", minHeight: 30 }}><TmIcZarovnat typ={k} /></button>
+      ))}</>}
+      {sazec && !canRedo && <>{sep}
+      <button type="button" title={L("Sazeč · rozsadí celý text podle významu (offline)", "Typesetter · lays the text out by meaning (offline)")} onPointerDown={(e) => { e.preventDefault(); sazec(); }}
+        style={{ ...btn(false), padding: "2px 9px", fontFamily: FONT_BODY, fontSize: 12 }}>{L("Sazeč", "Typeset")}</button>
+      </>}
+      {canRedo && redo && <>{sep}
+      <button type="button" title={L("Znovu", "Redo")} aria-label={L("Znovu", "Redo")} onPointerDown={(e) => { e.preventDefault(); redo(); }}
+        style={{ ...btn(false), padding: "2px 7px" }}><TmIcHistorie znovu size={14} /></button></>}
+      {undo && <>{sep}
+      <button type="button" title={L("Zpět", "Undo")} aria-label={L("Zpět", "Undo")} disabled={!canUndo}
+        onPointerDown={(e) => { e.preventDefault(); if (canUndo) undo(); }}
+        style={{ ...btn(false), padding: "2px 7px", cursor: canUndo ? "pointer" : "default", opacity: canUndo ? 1 : 0.3 }}><TmIcHistorie size={14} /></button></>}
+      {onImage && <>{sep}
+      {/* Výběr souboru musí vyjít z klepnutí, ne ze stisknutí. Na iOS se
+          programové otevření dialogu z pointerdown ignoruje — tlačítko pak
+          nedělalo nic. preventDefault na stisknutí drží kurzor v textu,
+          samotné otevření visí až na click. */}
+      <button type="button" title={L("Vložit obrázek", "Insert image")} onPointerDown={(e) => { e.preventDefault(); }} onClick={(e) => { e.preventDefault(); onImage(); }} style={{ ...btn(false), padding: "2px 7px" }}><FamilyIcon id="image" size={14} /></button></>}
+      {onZen && <>{sep}
+      <button type="button" title={zen ? L("Zpět do stránky", "Back to the page") : L("Klidné psaní · jen text", "Quiet writing · text only")} onPointerDown={(e) => { e.preventDefault(); onZen(); }} style={{ ...btn(zen), padding: "2px 7px" }}><FamilyIcon id={zen ? "shrink" : "fullscreen"} size={14} /></button></>}
     </div>
   );
 }
 
 // WYSIWYG editor · renders brand formatting directly while typing; stores plain text with markers
-function RichArea({ value, onChange, placeholder = L("Piš…", "Write…") }) {
+function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen: zenAllowed = true, naPrilohu, onZmensit, zamek, stranky, recordingStatus }) {
   const { t } = useT();
+  const siroko = useWide(721);
+  const stx = useStore();
+  const spellOn = !(stx && stx.uiCfg && stx.uiCfg().spell === false);
   const ref = React.useRef(null);
   const last = React.useRef(null);
+  // KLIDNÉ PSANÍ · tentýž editor, jen přestěhovaný do prázdné obrazovky.
+  // Přesun do portálu znamená pro React nové připojení uzlu, takže si po
+  // přepnutí necháme text natéct znovu (last.current = null).
+  const [zen, setZen] = useState(false);
   const imgRef = React.useRef(null);
   const [focused, setFocused] = useState(false);
+  /* PSANÍ PO STRÁNKÁCH
+     Sloupce potřebují pevnou výšku, jinak se text nemá kam zalomit. Bere
+     se ta, která zbývá od horní hrany pole k dolní hraně displeje — pole
+     tím sedne přesně do zbytku obrazovky a nic pod ním neuteče. Klidné
+     psaní má vlastní plochu, tam se stránky nepletou. */
+  const strankyOn = !!stranky && !zen;
+  const strRef = React.useRef(null);
+  const str = useStranky(strRef, strankyOn);
+  React.useEffect(() => {
+    if (!strankyOn) return;
+    const el = strRef.current; if (!el) return;
+    const dorovnejVysku = () => {
+      const r = el.getBoundingClientRect();
+      const vv = window.visualViewport;
+      const vyska = (vv && vv.height) || window.innerHeight;
+      el.style.height = Math.max(240, Math.round(vyska - r.top - 22)) + "px";
+    };
+    dorovnejVysku();
+    const t0 = window.setTimeout(dorovnejVysku, 160);
+    const t1 = window.setTimeout(dorovnejVysku, 520);
+    window.addEventListener("resize", dorovnejVysku);
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", dorovnejVysku);
+    return () => {
+      window.clearTimeout(t0); window.clearTimeout(t1);
+      window.removeEventListener("resize", dorovnejVysku);
+      if (window.visualViewport) window.visualViewport.removeEventListener("resize", dorovnejVysku);
+    };
+  }, [strankyOn]);
+  /* KURZOR SI DRŽÍ SVOU STRÁNKU · píše-li se na konci třetí stránky, musí
+     být vidět třetí stránka. Bez toho by text utekl z displeje na první
+     přetečení řádku — přesně proto stránky v psaní dřív nebyly. */
+  const naKurzor = React.useCallback(() => {
+    const box = strRef.current, pole = ref.current;
+    if (!box || !pole) return;
+    const w = box.clientWidth; if (!w) return;
+    const s = window.getSelection();
+    if (!s || !s.rangeCount || !pole.contains(s.anchorNode)) return;
+    let r = null;
+    try { r = s.getRangeAt(0).getBoundingClientRect(); } catch (err) { return; }
+    if (!r || (!r.width && !r.height && !r.left)) {
+      const blk = tmBlockOfNode(pole, s.anchorNode);
+      if (blk) r = blk.getBoundingClientRect(); else return;
+    }
+    const x = r.left - box.getBoundingClientRect().left + box.scrollLeft;
+    const cil = Math.max(0, Math.floor(x / w)) * w;
+    if (Math.abs(cil - box.scrollLeft) > 2) { try { box.scrollTo({ left: cil, behavior: "smooth" }); } catch (err) { box.scrollLeft = cil; } }
+  }, []);
+  React.useEffect(() => {
+    if (!strankyOn) return;
+    const h = () => window.setTimeout(naKurzor, 0);
+    document.addEventListener("selectionchange", h);
+    return () => document.removeEventListener("selectionchange", h);
+  }, [strankyOn, naKurzor]);
   const updEmpty = (el) => el.setAttribute("data-empty", el.textContent.trim() === "" && !el.querySelector("b,i,span,img") ? "true" : "false");
   React.useEffect(() => {
     const el = ref.current; if (!el) return;
@@ -1486,6 +3879,21 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…") }) {
       updEmpty(el);
     }
   }, [value]);
+  // po přestěhování do klidného psaní (a zpět) je uzel nový — natáhni text znovu
+  React.useEffect(() => {
+    const el = ref.current; if (!el) return;
+    el.innerHTML = mdToHtml(value, t);
+    last.current = value || "";
+    updEmpty(el);
+    if (zen) el.focus();
+  }, [zen]);
+  React.useEffect(() => {
+    if (!zen) return;
+    const k = (e) => { if (e.key === "Escape") setZen(false); };
+    window.addEventListener("keydown", k);
+    tmZamkniStranku();
+    return () => { window.removeEventListener("keydown", k); tmOdemkniStranku(); };
+  }, [zen]);
   // browsers preserve visual styles as inline color/font-size spans (e.g. when
   // un-heading a block) — strip everything except bold/italic semantics
   const cleanup = (el) => {
@@ -1500,10 +3908,12 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…") }) {
       const stAttr = n.getAttribute("style") || "";
       const keepB = /font-weight:\s*(bold|[6-9]00)/i.test(stAttr);
       const keepI = /font-style:\s*italic/i.test(stAttr);
+      const keepAl = (stAttr.match(/text-align:\s*(center|right|justify)/i) || [])[1];
       const cName = inkName(n.style && n.style.color, t);
       n.removeAttribute("style");
       if (keepB) n.style.fontWeight = "700";
       if (keepI) n.style.fontStyle = "italic";
+      if (keepAl) n.style.textAlign = keepAl.toLowerCase();
       if (cName) n.style.color = inkHex(cName, t);
       if (n.tagName === "MARK" && EDITOR_NAMES.includes(n.getAttribute("data-highlight"))) n.style.background = editorHighlight(n.getAttribute("data-highlight"), t);
     });
@@ -1511,12 +3921,333 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…") }) {
   const sync = () => {
     const el = ref.current; if (!el) return;
     cleanup(el);
+    tmNormalize(el);
     const md = htmlToMd(el);
     last.current = md;
     updEmpty(el);
     onChange(md);
   };
-  const exec = (fn) => (e) => { e.preventDefault(); const el = ref.current; if (!el) return; el.focus(); fn(); sync(); };
+  /* KDE STÁL KURZOR, KDYŽ SE SÁHLO NA LIŠTU.
+     Příkazy lišty (zarovnání, tučné, druh bloku) míří na blok pod kurzorem.
+     Na telefonu se ale lišta otevírá jako list nad klávesnicí a na některých
+     zařízeních při tom výběr zmizí; příkaz pak dopadne na začátek textu nebo
+     nikam a vypadá to, že tlačítko nefunguje. Poslední místo uvnitř psacího
+     pole si proto pamatujeme a před každým příkazem ho vrátíme — jen tehdy,
+     když výběr opravdu není v poli. */
+  const rozsahRef = React.useRef(null);
+  React.useEffect(() => {
+    const zapamatuj = () => {
+      const el = ref.current; if (!el) return;
+      const sel = window.getSelection();
+      if (!sel || !sel.rangeCount) return;
+      const r = sel.getRangeAt(0);
+      if (el.contains(r.startContainer)) rozsahRef.current = r.cloneRange();
+    };
+    document.addEventListener("selectionchange", zapamatuj);
+    return () => document.removeEventListener("selectionchange", zapamatuj);
+  }, []);
+  const vratKurzor = () => {
+    const el = ref.current; if (!el) return;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && el.contains(sel.anchorNode)) return;
+    const r = rozsahRef.current;
+    if (!sel || !r || !el.contains(r.startContainer)) return;
+    try { sel.removeAllRanges(); sel.addRange(r); } catch (e) {}
+  };
+  const exec = (fn) => (e) => { e.preventDefault(); const el = ref.current; if (!el) return; el.focus(); vratKurzor(); fn(); sync(); };
+  // blok pod kurzorem · lišta se podle něj rozsvěcí
+  const curBlock = () => {
+    const el = ref.current; if (!el) return null;
+    const s = window.getSelection(); if (!s || !s.rangeCount) return null;
+    if (!el.contains(s.anchorNode)) return null;
+    return tmBlockOfNode(el, s.anchorNode);
+  };
+  const blockOf = () => tmBlockKind(curBlock());
+  const setBlock = (k) => { const el = ref.current; if (el) tmSetBlock(el, k); };
+  const insertHr = () => {
+    const el = ref.current; if (!el) return;
+    const blk = curBlock();
+    const hr = tmMakeBlock("hr");
+    const p = tmMakeBlock("p"); p.appendChild(document.createElement("br"));
+    if (blk) { blk.parentNode.insertBefore(hr, blk.nextSibling); hr.parentNode.insertBefore(p, hr.nextSibling); }
+    else { el.appendChild(hr); el.appendChild(p); }
+    tmSetCaret(p, 0);
+  };
+  // ——— HLASOVÝ ZÁPIS · mluvíš, píše se ———
+  // Vložení jde přes execCommand, takže text přistane na kurzoru a spadne do
+  // stejné historie jako psaní rukou — Ctrl+Z ho vezme zpátky po kusech.
+  const [posloucham, setPosloucham] = useState(false);
+  const [slysim, setSlysim] = useState("");
+  const rozRef = React.useRef(null);
+  // Kam text přistane, rozhoduje uložený rozsah — ne zaostření. Bez toho
+  // by si mikrofon bral kurzor z pole, do kterého člověk zrovna píše,
+  // a při ztraceném zaostření by věta skončila na začátku poznámky.
+  const hlasRange = React.useRef(null);
+  const zapamatujHlas = () => {
+    try {
+      const s = window.getSelection(), el = ref.current;
+      if (s && s.rangeCount && el && el.contains(s.anchorNode)) hlasRange.current = s.getRangeAt(0).cloneRange();
+    } catch (err) {}
+  };
+  const znakVlevo = () => {
+    try {
+      const el = ref.current, s = window.getSelection();
+      if (!el || !s || !s.rangeCount || !el.contains(s.anchorNode)) return "";
+      const r = s.getRangeAt(0).cloneRange(); r.collapse(true); r.setStart(el, 0);
+      return (r.toString() || "").slice(-1);
+    } catch (err) { return ""; }
+  };
+  const vlozHlas = (txt) => {
+    const el = ref.current;
+    if (!el || !txt) return;
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !el.contains(sel.anchorNode)) {
+      if (!hlasRange.current || !el.contains(hlasRange.current.startContainer)) return;
+      el.focus(); sel.removeAllRanges(); sel.addRange(hlasRange.current);
+    }
+    txt.split("\n").forEach((kus, i) => {
+      if (i > 0) document.execCommand("insertParagraph");
+      if (kus) document.execCommand("insertText", false, kus);
+    });
+    zapamatujHlas();
+    lastAuto.current = null;
+    sync();
+  };
+  const diktuj = () => {
+    if (rozRef.current) { try { rozRef.current.stop(); } catch (err) {} return; }
+    const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!R) return;
+    let r;
+    try { r = new R(); } catch (err) { return; }
+    r.lang = LANG === "cs" ? "cs-CZ" : "en-US";
+    r.continuous = true;
+    r.interimResults = true;
+    r.onresult = (ev) => {
+      let hotovo = "", rozepsane = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const a = ev.results[i][0] ? ev.results[i][0].transcript : "";
+        if (ev.results[i].isFinal) hotovo += a; else rozepsane += a;
+      }
+      setSlysim(rozepsane.trim());
+      if (hotovo.trim()) {
+        const pred = znakVlevo();
+        const mezera = pred && !/[\s\n]/.test(pred) ? " " : "";
+        vlozHlas(mezera + tmHlasUprav(hotovo.trim(), LANG, !pred || /[.!?\n]/.test(pred)));
+      }
+    };
+    r.onerror = () => { setSlysim(""); };
+    r.onend = () => { rozRef.current = null; setPosloucham(false); setSlysim(""); };
+    rozRef.current = r;
+    zapamatujHlas();
+    try { r.start(); setPosloucham(true); } catch (err) { rozRef.current = null; setPosloucham(false); }
+  };
+  React.useEffect(() => () => { try { if (rozRef.current) rozRef.current.abort(); } catch (err) {} }, []);
+
+  // ——— SAZEČ · offline agent nad celou poznámkou · Vrátit drží snímek ———
+  const [sazecZpet, setSazecZpet] = React.useState(null);
+  const sazecTm = React.useRef(null);
+  React.useEffect(() => () => { if (sazecTm.current) clearTimeout(sazecTm.current); }, []);
+  const sazec = () => {
+    const el = ref.current; if (!el) return;
+    const pred = el.innerHTML;
+    const md = htmlToMd(el);
+    const po = tmSazec(md);
+    if (po === md) setSazecZpet("nic");
+    else { el.innerHTML = mdToHtml(po, t); sync(); setSazecZpet(pred); }
+    if (sazecTm.current) clearTimeout(sazecTm.current);
+    sazecTm.current = setTimeout(() => setSazecZpet(null), 9000);
+  };
+  const sazecVratit = () => {
+    const el = ref.current;
+    if (el && sazecZpet && sazecZpet !== "nic") { el.innerHTML = sazecZpet; sync(); }
+    setSazecZpet(null);
+  };
+  const zarovnej = (k) => {
+    try { document.execCommand("styleWithCSS", false, true); } catch (err) {}
+    document.execCommand(k === "c" ? "justifyCenter" : k === "r" ? "justifyRight" : k === "j" ? "justifyFull" : "justifyLeft");
+  };
+  // psaní dělá práci · spouštěče se přepíšou na blok hned, jak je dopíšeš.
+  // Poslední přepis si pamatujeme, aby ho Backspace hned vrátil zpátky na
+  // holý text — jinak by se z automatiky stala past.
+  const lastAuto = React.useRef(null);
+  const autoFormat = () => {
+    const el = ref.current; if (!el) return false;
+    const blk = curBlock(); if (!blk) return false;
+    const kind = tmBlockKind(blk);
+    if (kind === "img" || kind === "hr") return false;
+    const off = tmCaretOffset(blk); if (off == null) return false;
+    const all = tmBlockText(blk);
+    const txt = all.slice(0, off);
+    const done = (trigger, hr) => { lastAuto.current = { el: curBlock(), trigger, prev: kind, hr: hr || null }; return true; };
+    if (kind === "p" && txt === "---" && all.trim() === "---") {
+      tmStripStart(blk, 3);
+      const hr = tmMakeBlock("hr");
+      blk.parentNode.insertBefore(hr, blk);
+      if (!blk.querySelector("br")) blk.appendChild(document.createElement("br"));
+      tmSetCaret(blk, 0);
+      return done("---", hr);
+    }
+    if (kind === "ul" && /^\[[ xX]?\]\s$/.test(txt)) { tmStripStart(blk, txt.length); tmSetCaret(blk, 0); tmSetBlock(el, "chk", true); return done(txt); }
+    if (kind !== "p") return false;
+    for (let i = 0; i < TM_AUTO.length; i++) {
+      if (TM_AUTO[i][0].test(txt)) { tmStripStart(blk, txt.length); tmSetCaret(blk, 0); tmSetBlock(el, TM_AUTO[i][1], true); return done(txt); }
+    }
+    return false;
+  };
+  const undoAuto = (la) => {
+    const el = ref.current; if (!el) return;
+    tmSetBlock(el, la.prev, true);
+    if (la.hr && la.hr.parentNode) la.hr.remove();
+    const nb = curBlock();
+    if (nb) {
+      const br = nb.querySelector("br"); if (br) br.remove();
+      nb.appendChild(document.createTextNode(la.trigger));
+      tmSetCaret(nb, la.trigger.length);
+    }
+    lastAuto.current = null;
+  };
+  // ——— našeptávač odkazů ———
+  // Napíšeš „[[" a nabídnou se názvy. Bez toho by odkaz znamenal pamatovat si
+  // přesné znění cizího nadpisu, což nikdo nedělá — a rozbité odkazy jsou
+  // horší než žádné.
+  const [lk, setLk] = useState(null);   // { items, i, x, y }
+  const lkRef = React.useRef(null); lkRef.current = lk;
+  // ——— lomítková nabídka ———
+  // Jedna klávesa místo hledání v liště. Píšeš dál, nabídka se sama zúží.
+  const [sl, setSl] = useState(null);   // { items, i, x, y, n }
+  const slRef = React.useRef(null); slRef.current = sl;
+  const caretXY = () => {
+    let x = 20, y = 120;
+    try {
+      const r = window.getSelection().getRangeAt(0).getClientRects()[0] || ref.current.getBoundingClientRect();
+      x = Math.min(Math.max(8, r.left), window.innerWidth - 250);
+      y = r.bottom + 6;
+    } catch (err) {}
+    return [x, y];
+  };
+  const checkSlash = () => {
+    const blk = curBlock(); if (!blk) { setSl(null); return; }
+    const off = tmCaretOffset(blk); if (off == null) { setSl(null); return; }
+    const m = tmBlockText(blk).slice(0, off).match(/(?:^|\s)\/([^\s/]{0,18})$/);
+    if (!m) { setSl(null); return; }
+    const q = tmNorm(m[1]);
+    const items = TM_SLASH.filter((x) => !q || tmNorm(L(x.cz, x.en)).indexOf(q) >= 0 || tmNorm(x.k).indexOf(q) === 0);
+    if (!items.length) { setSl(null); return; }
+    const xy = caretXY();
+    setSl({ items, i: 0, x: xy[0], y: xy[1], n: m[1].length + 1 });
+  };
+  // smaže n znaků před kurzorem · nabídka po sobě uklidí vlastní „/"
+  // (přes textový uzel, ne přes deleteFromDocument — ten umí blok rozpustit)
+  const eatBack = (n) => {
+    try {
+      const sel = window.getSelection(); if (!sel || !sel.rangeCount) return;
+      const r = sel.getRangeAt(0), node = r.endContainer;
+      if (node.nodeType === 3 && r.endOffset >= n) {
+        const keep = node.nodeValue.slice(0, r.endOffset - n);
+        node.nodeValue = keep + node.nodeValue.slice(r.endOffset);
+        const rr = document.createRange(); rr.setStart(node, keep.length); rr.collapse(true);
+        sel.removeAllRanges(); sel.addRange(rr);
+        return;
+      }
+      for (let i = 0; i < n; i++) sel.modify("extend", "backward", "character");
+      sel.deleteFromDocument();
+      sel.collapseToStart();
+    } catch (err) {}
+  };
+  const pickSlash = (it) => {
+    const el = ref.current; if (!el) { setSl(null); return; }
+    const n = (slRef.current && slRef.current.n) || 1;
+    setSl(null);
+    el.focus();
+    eatBack(n);
+    // po vyjmutí značky může blok osiřet · prázdný blok potřebuje <br>, jinak
+    // kurzor vypadne ven a další psaní přistane vedle (Chrome)
+    const blk0 = curBlock();
+    if (blk0 && tmBlockText(blk0) === "") {
+      const mk = tmIsMarker(blk0.firstElementChild) ? blk0.firstElementChild : null;
+      while (blk0.firstChild) blk0.removeChild(blk0.firstChild);
+      if (mk) blk0.appendChild(mk);
+      blk0.appendChild(document.createElement("br"));
+      tmSetCaret(blk0, 0);
+    }
+    if (it.k === "hr") insertHr();
+    else if (it.k === "img") { if (imgRef.current) imgRef.current.click(); }
+    else if (it.k === "lk") { document.execCommand("insertText", false, "[["); try { checkLink(); } catch (err) {} }
+    else tmSetBlock(el, it.k, true);
+    sync();
+  };
+  const checkLink = () => {
+    const blk = curBlock(); if (!blk) { setLk(null); return; }
+    const off = tmCaretOffset(blk); if (off == null) { setLk(null); return; }
+    const m = tmBlockText(blk).slice(0, off).match(/\[\[([^\]\[\n]{0,48})$/);
+    if (!m) { setLk(null); return; }
+    const q = tmNorm(m[1]);
+    const items = tmTitles().filter((x) => x && (!q || tmNorm(x).indexOf(q) >= 0)).slice(0, 6);
+    if (!items.length) { setLk(null); return; }
+    let x = 20, y = 120;
+    try {
+      const r = window.getSelection().getRangeAt(0).getClientRects()[0] || ref.current.getBoundingClientRect();
+      x = Math.min(Math.max(8, r.left), window.innerWidth - 250);
+      y = r.bottom + 6;
+    } catch (err) {}
+    setLk({ items, i: 0, x, y });
+  };
+  const pickLink = (title) => {
+    const el = ref.current; if (!el) return;
+    const s = window.getSelection(); if (!s || !s.rangeCount) return;
+    const r = s.getRangeAt(0), node = r.endContainer;
+    if (node.nodeType !== 3) { setLk(null); return; }
+    const before = node.nodeValue.slice(0, r.endOffset);
+    const i = before.lastIndexOf("[[");
+    if (i < 0) { setLk(null); return; }
+    // hotový odkaz rovnou obarvíme a kurzor posadíme za něj · psát se pak
+    // pokračuje mimo odkaz, ne dovnitř
+    const tail = node.nodeValue.slice(r.endOffset);
+    const parent = node.parentNode;
+    const sp = document.createElement("span");
+    sp.className = "tm-lk";
+    sp.textContent = "[[" + title + "]]";
+    const after = document.createTextNode(tail);
+    node.nodeValue = before.slice(0, i);
+    parent.insertBefore(sp, node.nextSibling);
+    parent.insertBefore(after, sp.nextSibling);
+    try { const rr = document.createRange(); rr.setStart(after, 0); rr.collapse(true); s.removeAllRanges(); s.addRange(rr); } catch (err) {}
+    setLk(null);
+    el.focus();
+    sync();
+  };
+  const onInput = () => { let did = false; try { did = autoFormat(); } catch (err) {} if (!did) lastAuto.current = null; sync(); try { checkLink(); } catch (err) {} try { checkSlash(); } catch (err) {} if (strankyOn) requestAnimationFrame(naKurzor); };
+  // vložení textu · když v něm jsou značky, rovnou z nich udělej bloky
+  const onPaste = (e) => {
+    e.preventDefault();
+    const raw = e.clipboardData ? e.clipboardData.getData("text/plain") : "";
+    if (!raw) return;
+    const txt = raw.replace(/\r\n?/g, "\n").replace(/^\*\s/gm, "- ").replace(/^(\d{1,3})\)\s/gm, "$1. ");
+    // Odkaz na Google Drive / Dokumenty vložený samotný → rovnou vestavěný náhled
+    const jedno = txt.trim();
+    if (/^https?:\/\/(?:drive|docs)\.google\.com\/\S+$/.test(jedno) && tmGdEmbed(jedno)) {
+      document.execCommand("insertHTML", false, "<div><br></div>" + gdFigHtml(jedno, 340, t) + "<div><br></div>");
+      lastAuto.current = null;
+      sync();
+      return;
+    }
+    if (/^(#{1,2}\s|[-*•]\s|\d{1,3}\.\s|>\s|-{3,}$)/m.test(txt)) document.execCommand("insertHTML", false, mdToHtml(txt, t));
+    else document.execCommand("insertText", false, txt);
+    lastAuto.current = null;
+    sync();
+  };
+  // Otevření systémového dialogu vezme zaostření a s ním i kurzor v textu.
+  // Rozsah si proto schováme dopředu a po návratu ho posadíme zpátky —
+  // jinak obrázek skončí na konci poznámky nebo se nevloží vůbec.
+  const imgRange = React.useRef(null);
+  const openImage = () => {
+    try {
+      const sel = window.getSelection();
+      imgRange.current = (sel && sel.rangeCount && ref.current && ref.current.contains(sel.anchorNode)) ? sel.getRangeAt(0).cloneRange() : null;
+    } catch (e) { imgRange.current = null; }
+    // stejný soubor podruhé neposílá událost, dokud se hodnota nevyprázdní
+    if (imgRef.current) { imgRef.current.value = ""; imgRef.current.click(); }
+  };
   const insertImage = async (file) => {
     if (!file) return;
     try {
@@ -1524,49 +4255,221 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…") }) {
       const gid = uid() + "g";
       await r2Put(gid, blob, file.name);
       const el = ref.current;
-      if (el) { el.focus(); document.execCommand("insertHTML", false, "<div><br></div>" + figHtml(gid, 320, t) + "<div><br></div>"); sync(); }
+      if (el) {
+        el.focus();
+        try {
+          const r = imgRange.current;
+          if (r && el.contains(r.startContainer)) { const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+        } catch (e) {}
+        document.execCommand("insertHTML", false, "<div><br></div>" + figHtml(gid, 320, t) + "<div><br></div>");
+        sync();
+      }
     } catch (err) {}
+    imgRange.current = null;
     if (imgRef.current) imgRef.current.value = "";
   };
   const figAction = (e) => {
-    const tgt = e.target && (e.target.nodeType === 1 ? e.target : e.target.parentElement);
+    const tgt0 = e.target && (e.target.nodeType === 1 ? e.target : e.target.parentElement);
+    const chk = tgt0 && tgt0.closest && tgt0.closest(".tm-chk");
+    if (chk) {
+      e.preventDefault(); e.stopPropagation();
+      const line = chk.parentElement;
+      const on = line.getAttribute("data-chk") === "1";
+      line.setAttribute("data-chk", on ? "0" : "1");
+      chk.classList.toggle("on", !on);
+      sync();
+      return;
+    }
+    const tgt = tgt0;
     const b = tgt && tgt.closest && tgt.closest("[data-act]");
     if (!b) return;
     e.preventDefault(); e.stopPropagation();
     const fig = b.closest("figure"); if (!fig) return;
     const act = b.getAttribute("data-act");
+    if (act === "open") { const u = fig.getAttribute("data-gd"); if (u && /^https:\/\//i.test(u)) window.open(u, "_blank", "noopener,noreferrer"); return; }
     if (act === "del") fig.remove();
     else if (act === "up") { const p = fig.previousElementSibling; if (p) fig.parentNode.insertBefore(fig, p); }
     else if (act === "down") { const nx = fig.nextElementSibling; if (nx) fig.parentNode.insertBefore(nx, fig); }
+    else if (fig.getAttribute("data-gd")) { let h = parseInt(fig.getAttribute("data-h") || "340", 10); h = act === "plus" ? Math.min(640, h + 60) : Math.max(200, h - 60); fig.setAttribute("data-h", String(h)); const f = fig.querySelector("iframe"); if (f) f.style.height = h + "px"; }
     else { let w = parseInt(fig.getAttribute("data-w") || "320", 10); w = act === "plus" ? Math.min(680, w + 60) : Math.max(120, w - 60); fig.setAttribute("data-w", String(w)); fig.style.width = w + "px"; }
     sync();
   };
-  return (
-    <div>
-      {focused && <MdToolbar exec={exec} onImage={() => imgRef.current && imgRef.current.click()} />}
+  // kolik už toho je · v klidném psaní vlevo dole, jinak pod textem, oboje šeptem
+  const stats = React.useMemo(() => {
+    const txt = tmPlain(value || "").replace(/\s+/g, " ").trim();
+    const w = txt ? txt.split(" ").length : 0;
+    return { w, c: (value || "").length, min: Math.max(1, Math.round(w / 200)) };
+  }, [value]);
+  const body = (
+    <div className={zen ? "tm-inner" : undefined}>
+      {/* Dělba podle působnosti, ne zdvojení. Na telefonu je při psaní jediná
+          lišta — ta nad klávesnicí; horní by se stejně odscrollovala pryč.
+          Na širokém plátně zůstává lišta nad textem, protože tam nikam
+          neuteče a klávesnice nic nezakrývá. */}
+      {siroko && recordingStatus}
+      {(focused || zen || recordingStatus) && (siroko
+        ? <MdToolbar exec={exec} onImage={openImage} onZen={zenAllowed ? () => setZen((z) => !z) : null} zen={zen} blockOf={blockOf} setBlock={setBlock} insertHr={insertHr} sazec={sazec} zarovnej={zarovnej} undo={stx && stx.undo} redo={stx && stx.redo} canUndo={!!(stx && stx.canUndo)} canRedo={!!(stx && stx.canRedo)} />
+        : <PsaciLista recordingStatus={recordingStatus} exec={exec} onImage={openImage} naPrilohu={naPrilohu} onZmensit={onZmensit} onZen={zenAllowed ? () => setZen((z) => !z) : null} zen={zen} focused={focused} blockOf={blockOf} setBlock={setBlock} insertHr={insertHr} sazec={sazec} undo={stx && stx.undo} redo={stx && stx.redo} canUndo={!!(stx && stx.canUndo)} canRedo={!!(stx && stx.canRedo)} />)}
+      {posloucham && (
+        <div style={{ display: "flex", alignItems: "center", gap: 9, background: t.callout, border: `1px solid ${hexA(t.accent, 0.35)}`, borderRadius: 8, padding: "6px 12px", margin: "6px 0" }}>
+          <span aria-hidden="true" className="tm-pulz" style={{ width: 8, height: 8, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: slysim ? t.textSec : t.textMuted, fontStyle: slysim ? "normal" : "italic", flex: 1, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{slysim || L("Poslouchám… mluv. „Tečka“, „čárka“ a „nový odstavec“ se napíšou jako znaménko.", "Listening… speak. Say “period”, “comma” or “new paragraph” for punctuation.")}</span>
+          <button onClick={diktuj} style={{ background: "transparent", border: `1px solid ${t.accent}`, borderRadius: 999, color: t.accentInk || t.accent, cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, padding: "4px 12px", flexShrink: 0 }}>{L("Dost", "Stop")}</button>
+        </div>
+      )}
+      {sazecZpet && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 8, padding: "7px 12px", margin: "6px 0" }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, flex: 1, lineHeight: 1.5 }}>{sazecZpet === "nic" ? L("Sazeč prošel text — už je vysázený.", "The typesetter read the text — it is already set.") : L("Sazeč rozsadil text podle významu.", "The typesetter laid the text out by meaning.")}</span>
+          {sazecZpet !== "nic" && <button onClick={sazecVratit} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.textSec, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, padding: "4px 12px", flexShrink: 0 }}>{L("Vrátit", "Undo")}</button>}
+          <button onClick={() => setSazecZpet(null)} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 13, padding: "2px 4px", flexShrink: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+        </div>
+      )}
       <input ref={imgRef} type="file" accept="image/*" onChange={(e) => insertImage(e.target.files && e.target.files[0])} style={{ display: "none" }} />
+      <div className={strankyOn ? "tm-strwrap" : undefined}>
+      <div ref={strRef} className={strankyOn ? "tm-stranky tm-psstranky" : undefined}>
+      <div className={strankyOn ? "tm-strcol" : undefined}>
       <div
         ref={ref}
         className="tm-rich"
-        contentEditable
+        contentEditable={!zamek}
         suppressContentEditableWarning
         data-placeholder={placeholder}
-        spellCheck={false}
+        spellCheck={zen && spellOn}
         onMouseDown={figAction}
-        onInput={sync}
+        onInput={onInput}
         onFocus={() => { setFocused(true); try { document.execCommand("styleWithCSS", false, true); } catch (err) {} }}
-        onBlur={() => setFocused(false)}
-        onPaste={(e) => { e.preventDefault(); const txt = e.clipboardData.getData("text/plain"); document.execCommand("insertText", false, txt); }}
+        onBlur={() => { setFocused(false); setTimeout(() => { setLk(null); setSl(null); }, 120); }}
+        onPaste={onPaste}
         onKeyDown={(e) => {
+          const el = ref.current; if (!el) return;
+          // zkratky pro bloky · stejná řada jako v jiných editorech
+          if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+            const K = { "1": "h1", "2": "h2", "3": "h3", "0": "p", "8": "ul", "7": "ol", "9": "chk" };
+            const k = K[e.key];
+            if (k) { e.preventDefault(); tmSetBlock(el, k, true); sync(); return; }
+            if (e.key === "X" || e.key === "x") { e.preventDefault(); tmStrike(); sync(); return; }
+            if (e.key === "H" || e.key === "h") { e.preventDefault(); tmHilite(); sync(); return; }
+            if (e.key === "K" || e.key === "k") { e.preventDefault(); document.execCommand("insertText", false, "[["); try { checkLink(); } catch (err) {} return; }
+          }
+          // nabídka pod lomítkem si bere šipky, Enter a Escape jako první
+          const S0 = slRef.current;
+          if (S0) {
+            if (e.key === "ArrowDown") { e.preventDefault(); setSl({ ...S0, i: (S0.i + 1) % S0.items.length }); return; }
+            if (e.key === "ArrowUp") { e.preventDefault(); setSl({ ...S0, i: (S0.i - 1 + S0.items.length) % S0.items.length }); return; }
+            if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pickSlash(S0.items[S0.i]); return; }
+            if (e.key === "Escape") { e.preventDefault(); setSl(null); return; }
+          }
+          // našeptávač si bere šipky, Enter a Escape dřív než editor
+          const L0 = lkRef.current;
+          if (L0) {
+            if (e.key === "ArrowDown") { e.preventDefault(); setLk({ ...L0, i: (L0.i + 1) % L0.items.length }); return; }
+            if (e.key === "ArrowUp") { e.preventDefault(); setLk({ ...L0, i: (L0.i - 1 + L0.items.length) % L0.items.length }); return; }
+            if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pickLink(L0.items[L0.i]); return; }
+            if (e.key === "Escape") { e.preventDefault(); setLk(null); return; }
+          }
           if (e.key === "Enter" && !e.shiftKey) {
-            requestAnimationFrame(() => {
-              const cur = (document.queryCommandValue("formatBlock") || "").toLowerCase();
-              if (cur === "h1" || cur === "h2" || cur === "h3") { document.execCommand("formatBlock", false, "div"); sync(); }
-            });
+            const blk = curBlock(); if (!blk) return;
+            const kind = tmBlockKind(blk);
+            // „-", „1.", „[]" a Enter · značka bez mezery taky založí seznam
+            if (kind === "p" || kind === "ul") {
+              const off0 = tmCaretOffset(blk);
+              const all0 = tmBlockText(blk);
+              if (off0 != null && off0 === all0.length) {
+                for (let i = 0; i < TM_AUTO_BARE.length; i++) {
+                  if (!TM_AUTO_BARE[i][0].test(all0)) continue;
+                  if (kind === "ul" && TM_AUTO_BARE[i][1] !== "chk") break;   // v odrážce dává smysl jen přepis na úkol
+                  e.preventDefault();
+                  tmStripStart(blk, all0.length);
+                  tmSetCaret(blk, 0);
+                  tmSetBlock(el, TM_AUTO_BARE[i][1], true);
+                  lastAuto.current = { el: curBlock(), trigger: all0, prev: kind, hr: null };
+                  sync();
+                  return;
+                }
+              }
+            }
+            // seznam pokračuje sám · Enter na prázdné položce ho ukončí
+            if (kind === "chk" || kind === "ul" || kind === "ol" || kind === "qt") {
+              e.preventDefault();
+              if (tmBlockText(blk).trim() === "") {
+                const p = tmMakeBlock("p");
+                tmFill(p, Array.prototype.slice.call(blk.childNodes));
+                blk.parentNode.replaceChild(p, blk);
+                tmSetCaret(p, 0);
+              } else tmSplitBlock(el, blk, kind);
+              sync(); return;
+            }
+            // za nadpisem se píše tělo textu
+            if (kind === "h1" || kind === "h2" || kind === "h3") { e.preventDefault(); tmSplitBlock(el, blk, "p"); sync(); return; }
+            if (kind === "hr") {
+              e.preventDefault();
+              const p = tmMakeBlock("p"); p.appendChild(document.createElement("br"));
+              blk.parentNode.insertBefore(p, blk.nextSibling);
+              tmSetCaret(p, 0); sync(); return;
+            }
+            requestAnimationFrame(() => { try { tmNormalize(el); } catch (err) {} });
+            return;
+          }
+          // Backspace na začátku řádku sundá značku, než začne mazat text
+          if (e.key === "Backspace") {
+            const s = window.getSelection();
+            if (!s || !s.isCollapsed) return;
+            const blk = curBlock(); if (!blk) return;
+            const kind = tmBlockKind(blk);
+            // hned po automatickém přepisu vrať holý text („1. " zůstane „1. ")
+            const la = lastAuto.current;
+            if (la && la.el === blk && tmBlockText(blk) === "" && tmCaretOffset(blk) === 0) { e.preventDefault(); undoAuto(la); sync(); return; }
+            if (kind === "hr") { e.preventDefault(); const pv = blk.previousElementSibling; blk.remove(); if (pv) tmSetCaret(pv, null); sync(); return; }
+            if ((kind === "chk" || kind === "ul" || kind === "ol" || kind === "qt") && tmCaretOffset(blk) === 0) {
+              e.preventDefault(); tmSetBlock(el, "p", true); sync();
+            }
           }
         }}
       />
+      </div>
+      </div>
+      {strankyOn && <CisloStranky strana={str.strana} pocet={str.pocet} t={t} />}
+      </div>
+      {(focused || zen) && stats.w > 0 && (
+        <div style={{ marginTop: 6, display: "flex", gap: 10, alignItems: "center", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.13em", fontSize: 12, color: t.textMuted, opacity: 0.85 }}>
+          <span>{stats.w} {L("slov", "words")}</span>
+          <span style={{ width: 1, height: 9, background: t.borderSoft }} />
+          <span>{L("čtení ~", "read ~")}{stats.min} min</span>
+          {zen && <><span style={{ width: 1, height: 9, background: t.borderSoft }} /><span>{stats.c} {L("znaků", "chars")}</span></>}
+        </div>
+      )}
+      {sl && createPortal(
+        <div className="tm-pop" style={{ position: "fixed", left: sl.x, top: sl.y, zIndex: 500, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 5, boxShadow: t.shadowPop, minWidth: 226, maxWidth: 280, maxHeight: 292, overflowY: "auto" }}>
+          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.textMuted, padding: "3px 9px 5px" }}>{L("Vložit…", "Insert…")}</div>
+          {sl.items.map((x, i) => (
+            <button key={x.k} onMouseDown={(ev) => { ev.preventDefault(); pickSlash(x); }}
+              style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", background: i === sl.i ? hexA(t.accent, 0.14) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: i === sl.i ? t.accent : t.textSec, padding: "7px 9px", minHeight: 34, fontFamily: FONT_BODY, fontSize: 13 }}>
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{L(x.cz, x.en)}</span>
+              {x.hint && <span style={{ fontSize: 12, color: t.textMuted, fontFamily: FONT_TAG, letterSpacing: "0.04em" }}>{x.hint}</span>}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+      {lk && createPortal(
+        <div className="tm-pop" style={{ position: "fixed", left: lk.x, top: lk.y, zIndex: 500, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 5, boxShadow: t.shadowPop, minWidth: 210, maxWidth: 260 }}>
+          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.textMuted, padding: "3px 9px 5px" }}>{L("Odkaz na…", "Link to…")}</div>
+          {lk.items.map((x, i) => (
+            <button key={x} onMouseDown={(e) => { e.preventDefault(); pickLink(x); }}
+              style={{ display: "block", width: "100%", textAlign: "left", background: i === lk.i ? hexA(t.accent, 0.14) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: i === lk.i ? t.accent : t.textSec, padding: "7px 9px", minHeight: 32, fontFamily: FONT_BODY, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x}</button>
+          ))}
+        </div>,
+        document.body
+      )}
     </div>
+  );
+  if (!zen) return body;
+  return createPortal(
+    <>
+      <button className="tm-zenout" onClick={() => setZen(false)} title="Esc"><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+      <div className="tm-zen" onMouseDown={(e) => { if (e.target === e.currentTarget && ref.current) ref.current.focus(); }}>{body}</div>
+    </>,
+    document.body
   );
 }
 
@@ -1585,7 +4488,7 @@ function InlineText({ value, placeholder, onSave }) {
 
 // více štítků na jeden zápis · `tags` je zdroj pravdy, `tag` zůstává (první) kvůli zpětné kompatibilitě
 const entryTags = (e) => (e && Array.isArray(e.tags) && e.tags.length) ? e.tags : (e && e.tag ? [e.tag] : []);
-function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel, noDrag, kind = "notebook", onExpand, full }) {
+function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel, noDrag, kind = "notebook", onExpand, full, holdManaged, current, onZmensit }) {
   const { t } = useT();
   const st = useStore();
   const [open, setOpen] = useState(false);
@@ -1596,49 +4499,82 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
   const rootRef = React.useRef(null);
   const fileRef = React.useRef(null);
   const stRef = React.useRef(st); stRef.current = st;
-  const selRef = React.useRef(selecting); selRef.current = selecting || !!noDrag;
+  // holdManaged · o dlouhý stisk se stará celý seznam, karta se do něj neplete
+  const selRef = React.useRef(selecting); selRef.current = selecting || !!noDrag || !!holdManaged;
   const autosize = () => { const el = taRef.current; if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + 2 + "px"; } };
   React.useEffect(() => { if (effOpen) autosize(); }, [effOpen]);
+  // otevřená poznámka se zapíše do „naposledy" · jen ta na celou plochu,
+  // rozbalený řádek v seznamu ještě neznamená, že se v ní člověk zdržel
+  React.useEffect(() => { if (full && entry.id) st.pushRecent(entry.id); }, [full, entry.id]);
 
   const onOverRef = React.useRef(null);
   onOverRef.current = (overId) => stRef.current.reorderEntry(kind, entry.id, overId);
   const isTouchDraggingLocal = useHoldReorder(rootRef, entry.id, "data-card-" + kind, onOverRef, selRef);
 
+  // Seznam příloh se skládá z toho, co záznam drží TEĎ, ne z toho, co držel,
+  // když se tahle funkce vyrobila. Nahrávka běžící dvacet minut jinak při
+  // uložení vrátila přílohy do stavu před svým začátkem — a fotka přidaná
+  // mezitím zmizela i s bajty (sběrač ji do dne smazal jako osiřelou).
   const attachFiles = async (fileList) => {
     const added = await filesToAtts(fileList, st.ask);
-    if (added.length) { st.updateEntry(kind, entry.id, { att: [...(entry.att || []), ...added] }); setOpen(true); }
+    if (added.length) {
+      const ted = (stRef.current.coll[kind] || []).find((e) => e.id === entry.id) || entry;
+      stRef.current.updateEntry(kind, entry.id, { att: [...(ted.att || []), ...added] });
+      setOpen(true);
+    }
     if (fileRef.current) fileRef.current.value = "";
   };
+  /* NAHRÁVKA · někdy je rychlejší větu říct než napsat. Nahrává se do téže
+     přílohy jako zvukový soubor, takže přehrávání, sdílení i mazání už
+     existují a nic se kvůli tomu nezdvojuje. Nahrávání drží jediný proud
+     ze zařízení — po zastavení se poctivě zavře, jinak by na telefonu
+     zůstala svítit tečka u mikrofonu. */
+  const [recording,setRecording] = useState(null);
+  const recorderRef = React.useRef(null);
+  const attachRef = React.useRef(attachFiles); attachRef.current=attachFiles;
+  React.useEffect(()=>{
+    const controller=createVoiceRecorder({mediaDevices:navigator.mediaDevices,Recorder:globalThis.MediaRecorder,onState:setRecording,
+      onSave:blob=>{const ext=/ogg/.test(blob.type)?"ogg":/mp4|mpeg|m4a/.test(blob.type)?"m4a":"webm";return attachRef.current([new File([blob],L("Nahrávka ","Recording ")+new Date().toISOString().slice(0,16).replace(/:/g,"-")+"."+ext,{type:blob.type})]);},
+      onError:reason=>stRef.current.ask(reason==="save"?L("Nahrávku se nepodařilo uložit.","The recording could not be saved."):reason==="unsupported"?L("Tento prohlížeč neumí nahrávat zvuk.","This browser cannot record audio."):L("Nahrávání se nepodařilo. Zkontroluj povolení mikrofonu a zkus to znovu.","Recording failed. Check microphone permission and try again."),null)});
+    recorderRef.current=controller;return()=>controller.dispose();
+  },[entry.id]);
+  const recordingStatus=recording?<RecordingStatus state={recording} t={t} lang={LANG} onStop={()=>recorderRef.current.stop()} onCancel={()=>recorderRef.current.cancel()}/>:null;
+  const naPrilohu = druh => { if(druh==="nahravka")recorderRef.current.start();else fileRef.current?.click(); };
 
   const colorOf = (name) => ((tags.find((x) => x[0] === name)) || [])[1] || "default";
   const selTags = entryTags(entry);
   const toggleTag = (name) => { const cur = entryTags(entry); const next = cur.includes(name) ? cur.filter((x) => x !== name) : [...cur, name]; st.updateEntry(kind, entry.id, { tags: next, tag: next[0] || "" }); };
   const isTouchDragging = isTouchDraggingLocal;
-  const preview = (entry.text || "").split("\n").filter(Boolean).slice(0, 2).join(" · ");
+  const preview = tmPlain(entry.text).split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 2).join(" · ");
   return (
     <div
       ref={rootRef}
       className={effOpen || selecting ? undefined : kind === "journal" ? "tm-grow" : "tm-lift"}
       {...{ ["data-card-" + kind]: entry.id }}
+      data-pick={entry.id}
       draggable={!selecting && !noDrag && !full}
       onDragStart={!selecting ? (e) => { e.dataTransfer.setData("text/plain", "card-" + kind + ":" + entry.id); e.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); const d = (e.dataTransfer.getData("text/plain") || "").split(":"); if (d[0] === "card-" + kind && d[1] && d[1] !== entry.id) st.reorderEntry(kind, d[1], entry.id); }}
-      onMouseDown={selecting ? () => onToggleSel(entry.id) : undefined}
-      onMouseEnter={selecting ? (e) => { if (e.buttons === 1) onDragSel(entry.id); } : undefined}
-      style={{ border: `1px solid ${isTouchDragging ? t.accent : selected ? t.accent : over ? t.sage : t.borderSoft}`, borderRadius: 10, margin: "8px 0", overflow: "hidden", background: isTouchDragging ? hexA(t.accent, 0.09) : selected ? hexA(t.accent, 0.07) : t.sheet, boxShadow: isTouchDragging ? "0 8px 22px rgba(0,0,0,0.28)" : effOpen ? t.shadow : "none", transform: isTouchDragging ? "scale(1.015)" : "none", transition: "border-color .12s ease, background .12s ease, transform .12s ease, box-shadow .12s ease", userSelect: selecting || isTouchDragging ? "none" : "auto" }}
+      onClick={selecting ? (ev) => { if (TM_GESTURE) return; onToggleSel(entry.id, ev.shiftKey); } : undefined}
+      onMouseEnter={selecting ? (e) => { if (e.buttons === 1 && !TM_GESTURE) onDragSel(entry.id); } : undefined}
+      /* Na celé ploše už je rámeček stránka sama · karta v kartě byla ten
+         druhý rámeček, na který se člověk ptal. V seznamu zůstává. */
+      style={full
+        ? { border: "none", borderRadius: 0, margin: 0, background: "transparent", boxShadow: "none", userSelect: "auto" }
+        : { border: `1px solid ${isTouchDragging || selected ? t.accent : current ? t.sage : over ? t.sage : t.borderSoft}`, borderRadius: 12, margin: "8px 0", overflow: "hidden", background: isTouchDragging ? hexA(t.accent, 0.09) : selected ? hexA(t.accent, 0.07) : current ? hexA(t.sage, 0.09) : t.sheet, boxShadow: isTouchDragging ? "0 8px 22px rgba(0,0,0,0.28)" : effOpen ? t.shadow : "none", transform: isTouchDragging ? "scale(1.015)" : "none", transition: "border-color .12s ease, background .12s ease, transform .12s ease, box-shadow .12s ease", userSelect: selecting || isTouchDragging ? "none" : "auto" }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 12px 12px 14px" }}>
         {selecting && (
-          <span style={{ width: 17, height: 17, marginTop: 3, borderRadius: 6, flexShrink: 0, border: `1.5px solid ${selected ? t.accent : t.border}`, background: selected ? t.accent : "transparent", color: t.bg, fontSize: 11, lineHeight: "15px", textAlign: "center" }}>{selected ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>
+          <span className="tm-selmark" style={{ width: 22, height: 22, marginTop: 1, borderRadius: 7, flexShrink: 0, border: `1.5px solid ${selected ? t.accent : t.border}`, background: selected ? t.accent : "transparent", color: t.onAccent, fontSize: 12, lineHeight: "19px", textAlign: "center", touchAction: "none" }}>{selected ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>
         )}
         {effOpen && !selecting ? (
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <input value={entry.title} onChange={(e) => st.updateEntry(kind, entry.id, { title: e.target.value })} placeholder={kind === "journal" ? L("Název (nepovinný)…", "Title (optional)…") : L("Název…", "Title…")} style={{ flex: 1, minWidth: 160, background: "transparent", border: "none", borderBottom: `1px solid transparent`, fontFamily: FONT_DISPLAY, fontSize: full ? 26 : 18, color: t.heading, outline: "none", padding: "0 0 2px" }} />
+              <input data-guide={full ? (kind === "journal" ? "denik.write" : "zapisnik.write") : undefined} value={entry.title} onChange={(e) => st.updateEntry(kind, entry.id, { title: e.target.value })} placeholder={kind === "journal" ? L("Název (nepovinný)…", "Title (optional)…") : L("Název…", "Title…")} style={{ flex: 1, minWidth: 160, background: "transparent", border: "none", borderBottom: `1px solid transparent`, fontFamily: FONT_DISPLAY, fontSize: full ? 26 : 18, color: t.heading, outline: "none", padding: "0 0 2px" }} />
               <button onClick={() => setTagPick((x) => !x)} title={L("Změnit kategorie", "Change categories")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", gap: 5, flexWrap: "wrap" }}>{selTags.length ? selTags.map((n) => <Tag key={n} label={n} color={colorOf(n)} />) : <Tag label={L("+ štítek", "+ tag")} color="default" />}</button>
-              <input type="date" value={entry.date || ""} onChange={(e) => st.updateEntry(kind, entry.id, { date: e.target.value })} title={L("Datum poznámky — podle něj se řadí", "Note date — used for sorting")} style={{ background: "transparent", border: "none", color: entry.date ? t.textMuted : hexA(t.textMuted, 0.5), fontFamily: FONT_BODY, fontSize: 11.5, outline: "none", padding: 0, colorScheme: t.mode === "light" ? "light" : "dark", width: 110 }} />
+              <input type="date" value={entry.date || ""} onChange={(e) => st.updateEntry(kind, entry.id, { date: e.target.value })} title={L("Datum poznámky — podle něj se řadí", "Note date — used for sorting")} style={{ background: "transparent", border: "none", color: entry.date ? t.textMuted : hexA(t.textMuted, 0.5), fontFamily: FONT_BODY, fontSize: 12, outline: "none", padding: 0, colorScheme: t.mode === "light" ? "light" : "dark", width: 110 }} />
             </div>
             {tagPick && (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
@@ -1649,34 +4585,55 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
             )}
           </div>
         ) : (
-          <button onClick={() => { if (selecting) return; if (!full && onExpand) onExpand(entry.id); else setOpen(true); }} style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
+          <button data-pickmain="1" onClick={() => { if (selecting) return; if (!full && onExpand) onExpand(entry.id); else setOpen(true); }} style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               {kind === "journal"
-                ? <><span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading }}>{entry.date ? fmtCZ(entry.date) : (entry.title || L("Bez data", "No date"))}</span>
+                ? <><span style={{ fontFamily: FONT_DISPLAY, fontSize: 17, color: t.heading }}>{entry.date ? fmtCZ(entry.date) : (entry.title || L("Bez data", "No date"))}</span>
                   {entry.title && entry.date && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{entry.title}</span>}</>
-                : <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading }}>{entry.title}</span>}
+                : <span style={{ fontFamily: FONT_DISPLAY, fontSize: 17, color: t.heading }}>{entry.title}</span>}
               <PinDot id={entry.id} />
               {selTags.map((n) => <Tag key={n} label={n} color={colorOf(n)} />)}
-              {kind !== "journal" && entry.date && <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>{entry.date}</span>}
+              {kind !== "journal" && entry.date && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{entry.date}</span>}
             </div>
-            {preview && <div className={kind === "journal" ? "tm-jsnip" : undefined} style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{preview}</div>}
+            {preview && <div className={"tm-snip" + (kind === "journal" ? " tm-jsnip" : "")} style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{preview}</div>}
           </button>
         )}
         {!selecting && (
           <span style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
+            {full && <NoteOutline bodyRef={rootRef} />}
+            {/* Šipky ven · z psaní se poznámka ROZEVÍRÁ do čtení přes celý
+                displej. Dosud mířily dovnitř, jako by se něco smršťovalo. */}
+            {full && onZmensit && (
+              <button title={L("Otevřít čtení", "Open reading")} aria-label={L("Otevřít čtení", "Open reading")} onClick={() => onZmensit()} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}>
+                <FamilyIcon id="fullscreen" size={15} />
+              </button>
+            )}
+            {(full || open) && <ExportBtn small doc={() => ({ title: entry.title || (entry.date ? fmtCZ(entry.date) : L("Poznámka", "Note")), date: entry.date || "", room: kind === "journal" ? L("Deník", "Journal") : L("Zápisník", "Notebook"), text: entry.text || "" })} />}
             {full && <PinToggle entry={entry} />}
             {open && !full && <button title="Sbalit" onClick={() => { setOpen(false); setTagPick(false); }} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="collapse" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
-            <button title={entry.star ? L("Odebrat hvězdičku", "Remove star") : L("Označit hvězdičkou", "Star it")} onClick={() => st.updateEntry(kind, entry.id, { star: !entry.star })} style={{ ...iconBtn(t), border: "none", color: entry.star ? t.accent : t.textMuted, opacity: entry.star ? 1 : 0.55, fontSize: 14 }}>{entry.star ? "★" : "☆"}</button>
+            <button title={entry.star ? L("Odebrat hvězdičku", "Remove star") : L("Označit hvězdičkou", "Star it")} onClick={() => st.updateEntry(kind, entry.id, { star: !entry.star })} style={{ ...iconBtn(t), border: "none", color: entry.star ? t.accent : t.textMuted, opacity: entry.star ? 1 : 0.55, fontSize: 13 }}>{entry.star ? "★" : "☆"}</button>
             <input ref={fileRef} type="file" multiple onChange={(e) => attachFiles(e.target.files)} style={{ display: "none" }} />
-            <button title={L("Přiložit obrázek / soubor", "Attach image / file")} onClick={() => fileRef.current && fileRef.current.click()} className={kind === "journal" && !effOpen ? "tm-mhide" : undefined} style={{ ...iconBtn(t), border: "none", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ClipIcon /></button>
-            {(st.editMode || full) && <button title={L("Do koše", "To trash")} onClick={() => st.ask(L(`Přesunout „${entry.title}" do koše?`, `Move "${entry.title}" to trash?`), () => st.removeEntry(kind, entry.id))} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+            {/* V otevřené poznámce sponka bydlí v psací liště u palce, ne
+                nahoře u kraje. Dvakrát tatáž věc na jedné obrazovce mate. */}
+            {!full && <button title={L("Přiložit obrázek / soubor", "Attach image / file")} onClick={() => fileRef.current && fileRef.current.click()} className={kind === "journal" && !effOpen ? "tm-mhide" : undefined} style={{ ...iconBtn(t), border: "none", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ClipIcon /></button>}
+            {/* Na celé ploše by křížek koše stál přesně pod křížkem, který
+                stránku zavírá — dva stejné znaky nad sebou, každý s jiným
+                koncem. Koš má na celé ploše své místo v nastavení poznámky. */}
+            {st.editMode && !full && <button title={L("Do koše", "To trash")} onClick={() => st.ask(L(`Přesunout „${entry.title}" do koše?`, `Move "${entry.title}" to trash?`), () => st.removeEntry(kind, entry.id), { soft: true })} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
           </span>
         )}
       </div>
       {effOpen && !selecting && (
-        <div style={{ padding: "2px 16px 16px 14px" }}>
-          <RichArea value={entry.text || ""} onChange={(v) => st.updateEntry(kind, entry.id, { text: v })} />
-          <AttachmentStrip att={entry.att} onRemove={st.editMode ? ((id) => st.updateEntry(kind, entry.id, { att: (entry.att || []).filter((x) => x.id !== id) })) : undefined} />
+        <div style={{ padding: full ? "6px 0 16px" : "2px 16px 16px 14px" }}>
+          {!full && recordingStatus}
+          {entry.zamek && (
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10, fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>
+              <span style={{ color: t.sage }}>◉</span>{L("Text je zamčený — otevři nastavení poznámky a odemkni ho.", "The text is locked — open the note settings to unlock it.")}
+            </div>
+          )}
+          <RichArea recordingStatus={full ? recordingStatus : null} value={entry.text || ""} onChange={(v) => st.updateEntry(kind, entry.id, { text: v })} zamek={!!entry.zamek} naPrilohu={full ? naPrilohu : undefined} onZmensit={full ? onZmensit : undefined} stranky={full && entry.rezim === "stranky"} />
+          <AttachmentStrip att={entry.att} onRemove={(st.editMode || full) && !entry.zamek ? ((id) => st.updateEntry(kind, entry.id, { att: (entry.att || []).filter((x) => x.id !== id) })) : undefined} />
+          {full && <Backlinks title={entry.title} selfId={entry.id} />}
         </div>
       )}
     </div>
@@ -1728,7 +4685,7 @@ function NbTagManager({ ops, onDone }) {
   const [newName, setNewName] = useState("");
   return (
     <div style={{ background: t.callout, border: `1px solid ${t.border}`, borderRadius: 10, padding: 14, marginBottom: 12 , boxShadow: t.shadow }}>
-      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 11, color: t.sage, marginBottom: 10 }}>Kategorie</div>
+      <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.sage, marginBottom: 10 }}>Kategorie</div>
       {list.map(([n, c]) => (
         <NbTagRow key={n} n={n} c={c} ops={ops} renaming={renaming} setRenaming={setRenaming} newName={newName} setNewName={setNewName} />
       ))}
@@ -1739,20 +4696,29 @@ function NbTagManager({ ops, onDone }) {
             <button key={c} title={c} onClick={() => setColor(c)} style={{ width: 16, height: 16, borderRadius: "50%", cursor: "pointer", background: (tags[c] || tags.default).fg, border: color === c ? `2px solid ${t.heading}` : "2px solid transparent", padding: 0 }} />
           ))}
         </span>
-        <button onClick={() => { if (name.trim()) { ops.add(name.trim(), color); setName(""); } }} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Přidat", "Add")}</button>
+        <button onClick={() => { if (name.trim()) { ops.add(name.trim(), color); setName(""); } }} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Přidat", "Add")}</button>
         <button onClick={onDone} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Hotovo", "Done")}</button>
       </div>
     </div>
   );
 }
 
-function PageNotebook() {
+function PageNotebook({ koren, korenNazev }) {
   const { t } = useT();
   const st = useStore();
-  React.useEffect(() => { st.importNotebook(); st.migrateCzNotebook(); }, []);
-  React.useEffect(() => { if (st.coll.nbImported) st.importPractices(); }, [st.coll.nbImported]);
+  // jméno kořene na displeji · v datech zůstává cesta beze změny
+  const korenLabel = koren ? (korenNazev || koren) : "";
+
+  React.useEffect(() => { if (koren) return; st.importNotebook(); st.migrateCzNotebook(); }, []);
+  // zařazení štítků tvorby nesmí čekat na návštěvu druhé místnosti
+  React.useEffect(() => { if (koren) return; if (st.coll.nbImported) st.importPractices(); }, [st.coll.nbImported]);
+  // úklid smí přijít až po obou setbách · řetěz vlajek nbImported → practicesSeeded → nbSorted
+  // Nabízí se jen slovní zásoba téhle místnosti; barvu si ale poznámka
+  // najde v celém seznamu, aby štítek z druhé místnosti nezešedl.
   const tags = st.nbTags();
-  const all = st.coll.notebook || [];
+  const vseTagy = st.nbTags();
+  // poznámky ze zápisníku tvorby sem nepatří · žijí v Tvorbě obsahu
+  const all = (st.coll.notebook || []);
   const [qOpen, setQOpen] = useState(false);
   const [fOpen, setFOpen] = useState(false);
   const [view, setView] = useState("Vše");
@@ -1762,98 +4728,399 @@ function PageNotebook() {
   const [managing, setManaging] = useState(false);
   const [moveTag, setMoveTag] = useState("");
   const [offlineOnly, setOfflineOnly] = useState(false);
-  const [sortBy, setSortBy] = useState("manual");
+  const [starOnly, setStarOnly] = useState(false);
+  const [folder, setFolder] = useState(koren || "");   // "" = vše, "__none__" = nezařazené · s kořenem začíná v něm
+  const [treeOpen, setTreeOpen] = useState(null);  // null | "browse" | "move"
+  // zobrazení a řazení si místnost pamatuje sama · přežije zavření aplikace
+  const meta = st.pageMetaOf("zapisnik");
+  const vw = tmViewOk(meta.view);
+  const setVw = (v) => st.setPageMeta("zapisnik", { view: v });
+  const sortBy = meta.sort || "manual";
+  const setSortBy = (v) => st.setPageMeta("zapisnik", { sort: v });
   const [full, setFull] = useState(null);
+  // zmenšený náhled otevřené poznámky · zavírá se spolu s ní
+  const [nahled, setNahled] = useState(false);
+  /* TŘI PATRA, NE DVĚ. Ze seznamu se poznámka otevře do ČTENÍ; odtud vede
+     klepnutí o patro dál do PSANÍ; ze psaní se vrací do seznamu. Dřív
+     klepnutí ve čtení skočilo rovnou zpátky na začátek seznamu, takže
+     člověk musel poznámku hledat znovu. Na širokém okně čtení není —
+     tam stojí seznam a text vedle sebe. */
+  const otevri = (id) => { setFull(id); if (!wide) setNahled(true); };
+  const [nast, setNast] = useState(false);
+  React.useEffect(() => { if (!full) { setNahled(false); setNast(false); } }, [full]);
   const [q, setQ] = useState("");
+  const wide = useWide();
+  const [newSignal, setNewSignal] = useState(0);
+  const [quickOpen, setQuickOpen] = useState(false);
+  // tiché potvrzení rychlé poznámky · žádný toast: pero se na okamžik promění
+  // v bindu a počet u Poznámek se přičte a krátce zahřeje mědí. Zpráva žije
+  // v místě pravdy (u čísla), ne v překryvu, který by žádal pozornost.
+  const [qSaved, setQSaved] = useState(false);
+  const qSavedTm = React.useRef(null);
+  React.useEffect(() => () => { if (qSavedTm.current) clearTimeout(qSavedTm.current); }, []);
+  /* Dokud je otevřená poznámka na celé ploše, tah prstem do strany nemá
+     přepínat místnosti — prst tam patří textu. */
+  React.useEffect(() => {
+    if (!full || wide) return;
+    tmListovaniStuj();
+    return () => tmListovaniJdi();
+  }, [full, wide]);
+  // přišlo se sem z hledání · otevři přesně tu poznámku
+  React.useEffect(() => {
+    /* Dřív si nález bral vždycky hlavní Zápisník. Od chvíle, kdy poznámky
+       tvorby v hlavním nejsou, by se takový nález otevřel do prázdna —
+       proto si každý zápisník bere jen to, co u něj skutečně leží. */
+    const tgt = st.openTarget;
+    if (!tgt || tgt.kind !== "notebook") return;
+    const e = (st.coll.notebook || []).find((x) => x.id === tgt.id);
+    if (!e) return;
+    const patriSem = koren ? tmInFolder(e, koren) : true;
+    if (!patriSem) return;
+    setView("Vše");
+    setFolder(koren || "");
+    otevri(tgt.id);
+    st.setOpenTarget(null);
+  }, [st.openTarget]);
 
-  let shown = view === "Vše" ? all : all.filter((e) => entryTags(e).includes(view));
+  // složka zúží, štítek zúží dál · počty na dlaždicích ukazují, co je v této složce
+  const inFolder = all.filter((e) => tmInFolder(e, folder));
+  let shown = view === "Vše" ? inFolder : inFolder.filter((e) => entryTags(e).includes(view));
   if (q.trim()) { const nq = tmNorm(q); shown = shown.filter((e) => tmNorm((e.title || "") + " " + (e.text || "")).includes(nq)); }
   if (sortBy === "dateDesc") shown = [...shown].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   if (sortBy === "dateAsc") shown = [...shown].sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999"));
+  if (sortBy === "title") shown = [...shown].sort((a, b) => (a.title || "").localeCompare(b.title || "", "cs"));
+  if (starOnly) shown = shown.filter((e) => e.star);
   shown = [...shown.filter((e) => e.star), ...shown.filter((e) => !e.star)];
-  const toggleSel = (id) => setSel((xs) => xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]);
+  // Shift-klepnutí označí celý úsek od posledního označení · na počítači je to
+  // rychlejší než klikat po jedné a lidem to sedí v ruce ze správců souborů
+  const lastSelRef = React.useRef(null);
+  const toggleSel = (id, shift) => {
+    const ids = shown.map((e) => e.id);
+    if (shift && lastSelRef.current != null) {
+      const a = ids.indexOf(lastSelRef.current), b = ids.indexOf(id);
+      if (a >= 0 && b >= 0) {
+        const span = ids.slice(Math.min(a, b), Math.max(a, b) + 1);
+        setSel((xs) => Array.from(new Set([...xs, ...span])));
+        lastSelRef.current = id;
+        return;
+      }
+    }
+    lastSelRef.current = id;
+    setSel((xs) => xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]);
+  };
   const dragSel = (id) => setSel((xs) => xs.includes(id) ? xs : [...xs, id]);
-  const exitSelect = () => { setSelecting(false); setSel([]); setMoveTag(""); };
+  const exitSelect = () => { setSelecting(false); setSel([]); setMoveTag(""); lastSelRef.current = null; };
+  /* KOPIE VYBRANÝCH · jedním zápisem, ne po jedné. Kdyby se volalo
+     `addEntry` v cyklu, každý zápis by vycházel z týchž sbírek a poslední
+     by přepsal předchozí — přesně ta past, kvůli které se v dávce 43
+     přepisovaly poznámky. */
+  const kopirujVybrane = () => {
+    const ids = sel.slice();
+    if (!ids.length) return;
+    st.persistColl((c) => {
+      const list = c.notebook || [];
+      const nove = list.filter((e) => ids.includes(e.id)).map((e, i) => ({ ...e, id: uid() + i.toString(36), title: (e.title || L("Bez názvu", "Untitled")) + L(" (kopie)", " (copy)"), date: todayISO(), star: false }));
+      return { ...c, notebook: [...nove, ...list] };
+    });
+    exitSelect();
+    setUndoBar({ text: L("Kopií vytvořeno · ", "Copies made · ") + ids.length });
+  };
+
+  // ——— dlouhý stisk · výběr, přeuspořádání, puštění na dlaždici ———
+  const listRef = React.useRef(null);
+  const [undoBar, setUndoBar] = useState(null);
+  const holdState = React.useRef({});
+  holdState.current = { selecting, sel, sortManual: sortBy === "manual" };
+  const holdAct = React.useRef({});
+  holdAct.current = {
+    label: (id) => { const e = all.find((x) => x.id === id); return (e && e.title) || L("Poznámka", "Note"); },
+    paint: (id, add) => setSel((xs) => add ? (xs.includes(id) ? xs : [...xs, id]) : xs.filter((x) => x !== id)),
+    enter: (id) => { setSelecting(true); setSel([id]); },
+    reorder: (dragId, overId) => st.reorderEntry("notebook", dragId, overId),
+    dropTab: (ids, tab) => {
+      const before = ids.map((id) => { const e = all.find((x) => x.id === id); return e ? { id, tags: entryTags(e) } : null; }).filter(Boolean);
+      if (!before.length) return;
+      st.setEntriesTag("notebook", ids, tab);
+      exitSelect();
+      // v proužku stojí cíl, ne název · název právě držel v ruce, cíl je to nové
+      setUndoBar({
+        text: before.length > 1 ? before.length + " → " + tab : L("Přesunuto do ", "Moved to ") + tab,
+        fn: () => before.forEach((b) => st.updateEntry("notebook", b.id, { tags: b.tags, tag: b.tags[0] || "" })),
+      });
+    },
+  };
+  const holding = useHoldSelect({ rootRef: listRef, attr: "data-pick", tabAttr: "data-nbtab", stateRef: holdState, actionsRef: holdAct });
+
+  // ——— klávesnice ———
+  // ⌘N nová poznámka · Esc zavře otevřenou, pak zruší výběr, pak složku.
+  // Escape se drží pořadí „nejdřív to nejmenší", aby jedno klepnutí nikdy
+  // nezavřelo víc, než člověk čekal.
+  React.useEffect(() => {
+    const h = (e) => {
+      const tag = (e.target && e.target.tagName) || "";
+      const typing = tag === "INPUT" || tag === "TEXTAREA" || (e.target && e.target.isContentEditable);
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === "n" || e.key === "N")) {
+        if (typing) return;
+        e.preventDefault();
+        setFull(null); exitSelect();
+        setNewSignal((x) => x + 1);
+        return;
+      }
+      if (e.key === "Escape") {
+        if (document.querySelector(".tm-zen")) return;
+        if (!tmEscVolno()) return;   // nad stránkou stojí překryv · klávesa patří jemu
+        if (typing && !full) return;
+        if (full) { setFull(null); return; }
+        if (selecting) { exitSelect(); return; }
+        if (folder && folder !== (koren || "")) setFolder(koren || "");
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [full, selecting, folder]);
+
+  const selectAll = () => setSel(shown.map((e) => e.id));
+  const bulkMove = (tag) => {
+    const ids = [...sel];
+    const before = ids.map((id) => { const e = all.find((x) => x.id === id); return e ? { id, tags: entryTags(e) } : null; }).filter(Boolean);
+    st.setEntriesTag("notebook", ids, tag);
+    exitSelect();
+    setUndoBar({ text: ids.length + " → " + tag, fn: () => before.forEach((b) => st.updateEntry("notebook", b.id, { tags: b.tags, tag: b.tags[0] || "" })) });
+  };
+  const bulkFolder = (path) => {
+    const ids = [...sel];
+    const before = ids.map((id) => { const e = all.find((x) => x.id === id); return e ? { id, folder: e.folder || "" } : null; }).filter(Boolean);
+    st.setEntriesFolder(ids, path);
+    exitSelect();
+    setUndoBar({ text: ids.length + " → " + (path || L("Nezařazené", "Unfiled")), fn: () => before.forEach((b) => st.updateEntry("notebook", b.id, { folder: b.folder })) });
+  };
+  const bulkTrash = () => {
+    const ids = [...sel];
+    st.removeEntries("notebook", ids);
+    exitSelect();
+    setUndoBar({ text: L("Přesunuto do koše · ", "Moved to trash · ") + ids.length, fn: () => st.restoreEntries("notebook", ids) });
+  };
 
   const saveQuick = () => {
     const v = quick.trim();
     if (!v) return;
     const title = v.length > 46 ? v.slice(0, 44).trimEnd() + "…" : v;
-    st.addEntry("notebook", { id: uid(), date: todayISO(), title, tag: "Poznámky", text: v });
+    // výchozí štítek patří místnosti, ve které se píše
+    const vychozi = (tags[0] || ["Poznámky"])[0];
+    st.addEntry("notebook", { id: uid(), date: todayISO(), title, tag: vychozi, tags: [vychozi], text: v, ...(koren ? { folder: koren } : {}) });
     setQuick("");
+    setQSaved(true);
+    if (qSavedTm.current) clearTimeout(qSavedTm.current);
+    qSavedTm.current = setTimeout(() => setQSaved(false), 1600);
+    setQuickOpen(false);
   };
 
-  const counts = { "Vše": all.length };
-  tags.forEach(([n]) => { counts[n] = all.filter((e) => entryTags(e).includes(n)).length; });
+  const counts = { "Vše": inFolder.length };
+  tags.forEach(([n]) => { counts[n] = inFolder.filter((e) => entryTags(e).includes(n)).length; });
+  // vestavěný zápisník ukazuje jen štítky, které v jeho kořeni opravdu žijí
+  const scopeAll = koren ? all.filter((e) => tmInFolder(e, koren)) : all;
+  /* Štítky, které žijí jen v zápisníku tvorby („Tvorba obsahu", „Hooky",
+     „Příběh"…), by v hlavním Zápisníku po oddělení zůstaly jako prázdná
+     jména. Prázdný štítek, který si člověk založil sám, ale zůstává — ten
+     čeká na svou první poznámku. */
+  const maTu = (n) => scopeAll.some((e) => entryTags(e).includes(n));
+  const tabTags = koren ? tags.filter(([n]) => maTu(n)) : tags;
 
   if (offlineOnly) shown = shown.filter((e) => isEntryPinned(e.id));
   const fullEntry = full ? all.find((e) => e.id === full) : null;
+  // poznámka v jiném zobrazení · tvář v galerii je první obrázek v textu,
+  // jinak iniciála názvu — poznámka bez obrázku má pořád svůj obličej
+  const colorOfTag = (n) => ((vseTagy.find((x) => x[0] === n)) || [])[1] || "default";
+  const nItem = (e) => {
+    const img = tmFirstImg(e.text);
+    const plain = tmPlain(e.text).split("\n").map((x) => x.trim()).filter(Boolean).join(" ");
+    return {
+      id: e.id,
+      title: e.title || L("Bez názvu", "Untitled"),
+      date: e.date || "",
+      preview: plain,
+      star: !!e.star,
+      meta: entryTags(e).slice(0, 2).map((n) => <Tag key={n} label={n} color={colorOfTag(n)} />),
+      metaGal: entryTags(e).slice(0, 1).map((n) => <Tag key={n} label={n} color={colorOfTag(n)} />),
+      face: { img: img ? r2Url(img) : null, text: plain.slice(0, 260) || null, ini: (e.title || "·").trim().charAt(0).toUpperCase() },
+    };
+  };
 
   return (
     <>
-      {fullEntry && (
-        <CenterSheet title={fullEntry.title || (fullEntry.date ? fmtCZ(fullEntry.date) : L("Poznámka", "Note"))} onClose={() => setFull(null)}>
-          <NotebookCard entry={fullEntry} tags={tags} full />
+      {fullEntry && !wide && !nahled && (
+        /* V hlavě stojí MÍSTNOST. Jméno souboru je hned pod ní jako
+           přepisovatelný nadpis — dvakrát totéž na jedné obrazovce jen
+           zabíralo řádek a nic nepřidávalo. */
+        <CenterSheet title={korenLabel || L("Zápisník", "Notebook")} onClose={() => setFull(null)}
+          naradi={<button onClick={() => setNast(true)} title={L("Nastavení poznámky", "Note settings")} style={{ flexShrink: 0, background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30 }}><TmIcNastaveni size={16} /></button>}>
+          <NotebookCard entry={fullEntry} tags={tags} full onZmensit={() => setNahled(true)} />
         </CenterSheet>
       )}
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcZapisnik size={38} /></span>} pageKey="zapisnik" kicker={L("Poznámky, nápady a souvislosti.", "Notes, ideas and connections.")}>{L("Zápisník", "Notebook")}</PageTitle>
-      {st.editMode && <p style={pProse(t)}><span style={{ color: t.textMuted }}>{L("Klik otevře a rovnou píšeš · podrž a přetáhni · výběrem označíš víc najednou.", "Click opens and you write right away · hold and drag · select to mark several at once.")}</span></p>}
-
-      <div style={{ display: "flex", gap: 10, alignItems: "center", background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
-        <span style={{ color: t.sand, display: "inline-flex" }}><PenIcon size={14} /></span>
-        <input value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveQuick(); }} placeholder={L("Rychlá poznámka… (Enter uloží do Poznámek)", "Quick note… (Enter saves it)")} style={{ flex: 1, background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 14.5, outline: "none" }} />
-        {quick.trim() && <button onClick={saveQuick} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "5px 13px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12.5 }}>{L("Uložit", "Save")}</button>}
-      </div>
-
-      <div className="tm-typerow" style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
-        <span className="tm-deskonly" style={{ display: "inline-flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${q ? t.accent : t.borderSoft}`, marginRight: 6 }}><span style={{ color: t.textMuted, display: "inline-flex" }}><TmIcLupa size={13} /></span><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13, outline: "none", padding: "4px 2px", width: 110 }} /></span>
-        {["Vše", ...tags.map(([n]) => n)].map((v) => (
-          <button key={v} onClick={() => setView(v)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: "8px 10px 9px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 11.5, color: view === v ? t.accent : t.textMuted, borderBottom: view === v ? `2px solid ${t.accent}` : "2px solid transparent", marginBottom: -1 }}>
-            {LV(v)}<span style={{ marginLeft: 5, opacity: 0.6, fontSize: 10 }}>{counts[v] || 0}</span>
-          </button>
-        ))}
-        <span style={{ flex: 1 }} />
-        <button className="tm-monly" onClick={() => setQOpen((x) => !x)} title={L("Hledat", "Search")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: qOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: qOpen ? t.accent : t.textMuted }}><TmIcLupa size={15} /></button>
-        <button className="tm-monly" onClick={() => setFOpen((x) => !x)} title={L("Filtry a řazení", "Filters and sorting")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, background: fOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: fOpen ? t.accent : t.textMuted, fontSize: 13 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
-        <span className="tm-deskonly" style={{ display: "contents" }}>
-        <button onClick={() => setOfflineOnly((x) => !x)} title={L("Zobrazit jen offline uložené", "Show only offline-saved")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: offlineOnly ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${offlineOnly ? t.accent : "transparent"}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: offlineOnly ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: offlineOnly ? t.accent : t.textMuted, flexShrink: 0 }} />offline</button>
-        <Select ghost value={sortBy} onChange={setSortBy} style={{ width: "auto" }} options={[{ v: "manual", label: L("vlastní pořadí", "custom order") }, { v: "dateDesc", label: L("nejnovější", "newest") }, { v: "dateAsc", label: L("nejstarší", "oldest") }]} />
-        </span>
-        <button title="Spravovat kategorie" onClick={() => setManaging((x) => !x)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 14, padding: "4px 8px" }}>⋯</button>
-        {st.editMode && <button onClick={() => selecting ? exitSelect() : setSelecting(true)} style={{ background: selecting ? t.activeNav : "transparent", border: `1px solid ${selecting ? t.accent : t.border}`, borderRadius: 14, padding: "3px 12px", cursor: "pointer", color: selecting ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, marginLeft: 6 }}>{selecting ? L("Zrušit výběr", "Cancel selection") : L("☑ Vybrat", "☑ Select")}</button>}
-      </div>
-
-      {qOpen && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${q ? t.accent : t.borderSoft}`, margin: "0 0 12px", paddingBottom: 6 }}>
-          <span style={{ color: t.textMuted, display: "inline-flex" }}><TmIcLupa size={13} /></span>
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat v zápisníku…", "Search the notebook…")} style={{ flex: 1, background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, outline: "none", padding: "4px 2px" }} />
-        </div>
+      {fullEntry && !wide && !nahled && nast && (
+        <NastaveniPoznamky entry={fullEntry} kind="notebook" tags={tags} onClose={() => setNast(false)} onPryc={() => { setNast(false); setFull(null); }} />
       )}
+      {fullEntry && !wide && nahled && (
+        <NahledPoznamky entry={fullEntry} kind="notebook" tags={tags} onZavri={() => setNahled(false)} onPsat={() => setNahled(false)} />
+      )}
+      {!koren && <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcZapisnik size={38} /></span>} pageKey="zapisnik" kicker={L("Poznámky, nápady a souvislosti.", "Notes, ideas and connections.")}
+        right={<HdrIcon on={qOpen || !!q} title={L("Hledat v zápisníku", "Search the notebook")} onClick={() => setQOpen((x) => !x)}><TmIcLupa size={17} /></HdrIcon>}>{L("Zápisník", "Notebook")}</PageTitle>}
+
+      {qOpen && <HdrSearch value={q} onChange={setQ} onClose={() => setQOpen(false)} placeholder={L("Hledat v zápisníku…", "Search the notebook…")} />}
+
+      {/* jeden řádek, dvě cesty · pero je rychlá poznámka, zbytek řádku
+          otevře plný formulář. Dva řádky pro dvě verze téhož byly navíc. */}
+      {!selecting && (
+        quickOpen ? (
+          <div style={{ display: "flex", gap: 10, alignItems: "center", background: t.card, border: `1px solid ${t.accent}`, borderRadius: 22, padding: "10px 16px", marginBottom: 14 }}>
+            <span key={qSaved ? "b" : "p"} className="tm-turn" style={{ color: t.sand, display: "inline-flex", width: 15, justifyContent: "center" }}>{qSaved ? <Bindu size={7} /> : <PenIcon size={14} />}</span>
+            <input autoFocus value={quick} onChange={(e) => setQuick(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveQuick(); if (e.key === "Escape") { setQuick(""); setQuickOpen(false); } }} placeholder={L("Rychlá poznámka… (Enter uloží do Poznámek)", "Quick note… (Enter saves it)")} style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 15, outline: "none" }} />
+            {quick.trim()
+              ? <button onClick={saveQuick} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "5px 13px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, flexShrink: 0 }}>{L("Uložit", "Save")}</button>
+              : <button onClick={() => setQuickOpen(false)} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, width: 26, flexShrink: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+          </div>
+        ) : (
+          <div className="tm-dash" style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 14 }}>
+            <button onClick={() => { setQuick(""); setQuickOpen(true); }} title={L("Rychlá poznámka", "Quick note")}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, minHeight: 46, background: "transparent", border: "none", cursor: "pointer", color: t.inkSand, flexShrink: 0 }}>
+              <span key={qSaved ? "b" : "p"} className="tm-turn" style={{ display: "inline-flex" }}>{qSaved ? <Bindu size={7} /> : <PenIcon size={15} />}</span>
+            </button>
+            <button data-guide="zapisnik.write" onClick={() => setNewSignal((x) => x + 1)}
+              style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", color: t.inkSand, fontFamily: FONT_BODY, fontSize: 15, padding: "12px 14px 12px 10px", minHeight: 46 }}>
+              <FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nová poznámka", "New note")}
+            </button>
+          </div>
+        )
+      )}
+      <span aria-live="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>{qSaved ? L("Uloženo do Poznámek", "Saved to Notes") : ""}</span>
+
+      {/* pás kategorií se posouvá, vedle něj mají pevné místo jen tři ikony */}
+      <div data-guide={!koren ? "zapisnik.entries" : undefined} className="tm-tabsrow" style={{ borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
+        <div className="tm-typerow" style={{ display: "flex", gap: 2, alignItems: "center", flex: 1, minWidth: 0 }}>
+          {["Vše", ...tabTags.map(([n]) => n)].map((v) => (
+            <NbTab key={v} v={v} active={view === v} warm={qSaved && v === "Poznámky"} count={counts[v] || 0} onPick={() => setView(v)} />
+          ))}
+        </div>
+        <div className="tm-tabsctrl">
+          {koren && <HdrIcon on={qOpen || !!q} title={L("Hledat", "Search")} onClick={() => setQOpen((x) => !x)}><TmIcLupa size={17} /></HdrIcon>}
+          <ViewCycle value={vw} onChange={setVw} />
+          <HdrIcon on={!!folder && folder !== (koren || "")} title={L("Složky", "Folders")} onClick={() => setTreeOpen("browse")}><TmIcSlozka size={17} /></HdrIcon>
+          <HdrIcon on={fOpen || sortBy !== "manual" || offlineOnly || starOnly} title={L("Filtry, řazení a nastavení", "Filters, sorting and settings")} onClick={() => setFOpen((x) => !x)}><TmIcFiltr /></HdrIcon>
+        </div>
+      </div>
+
       {fOpen && (
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, margin: "0 0 12px" }}>
-          <button onClick={() => setOfflineOnly((x) => !x)} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: offlineOnly ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${offlineOnly ? t.accent : t.borderSoft}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: offlineOnly ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: offlineOnly ? t.accent : t.textMuted, flexShrink: 0 }} />offline</button>
-          <Select ghost value={sortBy} onChange={setSortBy} style={{ width: "auto" }} options={[{ v: "manual", label: L("vlastní pořadí", "custom order") }, { v: "dateDesc", label: L("nejnovější", "newest") }, { v: "dateAsc", label: L("nejstarší", "oldest") }]} />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", padding: "2px 2px 0", margin: "0 0 14px" }}>
+          <HdrLbl>{L("Řazení", "Sorting")}</HdrLbl>
+          {nbSorts().map((so) => <FiltrPill key={so.v} on={sortBy === so.v} onClick={() => setSortBy(so.v)}>{so.label}</FiltrPill>)}
+          <HdrLbl>{L("Filtr", "Filter")}</HdrLbl>
+          <FiltrPill on={starOnly} onClick={() => setStarOnly((x) => !x)}>★ {L("jen oblíbené", "starred only")}</FiltrPill>
+          <FiltrPill on={offlineOnly} onClick={() => setOfflineOnly((x) => !x)}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", display: "inline-block", marginRight: 5 }} />offline</FiltrPill>
+          <HdrLbl>{L("Nastavení", "Settings")}</HdrLbl>
+          <FiltrPill on={selecting} onClick={() => selecting ? exitSelect() : setSelecting(true)}>{selecting ? L("Zrušit výběr", "Cancel selection") : L("☑ Vybrat", "☑ Select")}</FiltrPill>
+          <FiltrPill on={managing} onClick={() => setManaging((x) => !x)}>{L("Kategorie", "Categories")}</FiltrPill>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${t.borderSoft}`, borderRadius: 999, padding: "3px 6px 3px 12px", minHeight: 34, color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12 }}>
+            {L("Text", "Text")}
+            <button onClick={() => st.setReadScale(Math.round((st.readScale() - 0.08) * 100) / 100)} disabled={st.readScale() <= 0.86} title={L("Menší", "Smaller")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textSec, width: 26, minHeight: 28, fontSize: 12, opacity: st.readScale() <= 0.86 ? 0.35 : 1 }}>A</button>
+            <button onClick={() => st.setReadScale(Math.round((st.readScale() + 0.08) * 100) / 100)} disabled={st.readScale() >= 1.44} title={L("Větší", "Larger")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textSec, width: 26, minHeight: 28, fontSize: 15, opacity: st.readScale() >= 1.44 ? 0.35 : 1 }}>A</button>
+            {Math.abs(st.readScale() - 1) > 0.01 && <button onClick={() => st.setReadScale(1)} title={L("Výchozí", "Default")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.accent, width: 24, minHeight: 28, fontSize: 12 }}>↺</button>}
+          </span>
         </div>
       )}
 
-      {managing && <NbTagManager onDone={() => setManaging(false)} ops={{ list: tags, add: st.addNbTag, rename: st.renameNbTag, reorder: st.reorderNbTag, remove: st.removeNbTag, protectedName: "Poznámky", attr: "data-nbtag" }} />}
-      {!selecting && <AddEntry kind="notebook" tags={tags} label={L("Nová poznámka", "New note")} />}
+      {/* drobenka · kde jsem a jak zpátky — s kořenem se cesty píší od něj */}
+      {folder && folder !== (koren || "") && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", margin: "0 0 12px", fontFamily: FONT_BODY, fontSize: 13 }}>
+          <button onClick={() => setFolder(koren || "")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, padding: "5px 2px", minHeight: 32, fontFamily: FONT_BODY, fontSize: 13 }}>{L("Vše", "All")}</button>
+          {folder === "__none__"
+            ? <><span style={{ color: t.textMuted }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span><span style={{ color: t.heading, fontStyle: "italic" }}>{L("Nezařazené", "Unfiled")}</span></>
+            : (koren && folder.indexOf(koren + "/") === 0 ? folder.slice(koren.length + 1) : folder).split("/").map((part, i, arr) => (
+                <React.Fragment key={part + i}>
+                  <span style={{ color: t.textMuted }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+                  {i === arr.length - 1
+                    ? <span style={{ color: t.heading, display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ color: t.sand, display: "inline-flex" }}><TmIcSlozka size={15} /></span>{part}</span>
+                    : <button onClick={() => setFolder((koren ? koren + "/" : "") + arr.slice(0, i + 1).join("/"))} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, padding: "5px 2px", minHeight: 32, fontFamily: FONT_BODY, fontSize: 13 }}>{part}</button>}
+                </React.Fragment>
+              ))}
+          <button onClick={() => setFolder(koren || "")} title={L("Zrušit složku", "Clear folder")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, marginLeft: 2, width: 28, height: 32, fontSize: 13 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+        </div>
+      )}
 
-      <div className="tm-scroll" style={{ marginTop: 18, maxHeight: "min(620px, 62vh)", overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "4px 10px 10px" }}>
-        {shown.map((e) => (
-          <NotebookCard key={e.id} entry={e} tags={tags} selecting={selecting} selected={sel.includes(e.id)} onToggleSel={toggleSel} onDragSel={dragSel} noDrag={sortBy !== "manual"} onExpand={setFull} />
-        ))}
-        {shown.length === 0 && <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.textMuted, padding: "18px 0" }}>{L("V této kategorii zatím nic není.", "Nothing in this category yet.")}</p>}
+      {treeOpen && (
+        <FolderSheet
+          onClose={() => setTreeOpen(null)}
+          folder={folder}
+          setFolder={setFolder}
+          koren={koren}
+          korenNazev={korenLabel}
+          mode={treeOpen === "move" ? "move" : "browse"}
+          count={sel.length}
+          onPick={(p) => { bulkFolder(p); setTreeOpen(null); }}
+        />
+      )}
+
+      {managing && <NbTagManager onDone={() => setManaging(false)} ops={{ list: tags, add: (n, c) => st.addNbTag(n, c), rename: st.renameNbTag, reorder: st.reorderNbTag, remove: st.removeNbTag, protectedName: koren ? null : "Poznámky", attr: "data-nbtag" }} />}
+      {!selecting && <AddEntry kind="notebook" tags={tags} label={L("Nová poznámka", "New note")} folder={folder && folder !== "__none__" ? folder : (koren || "")} openSignal={newSignal} hideButton />}
+
+      {/* naposledy otevřené · krátká paměť na to, kde jsem byl. Ukáže se jen
+          v čistém pohledu — jinak by lezla do cesty tomu, co člověk hledá. */}
+      {(() => {
+        if (folder || view !== "Vše" || q.trim() || selecting || starOnly) return null;
+        const rec = st.recentIds().map((id) => all.find((e) => e.id === id)).filter(Boolean).slice(0, 5);
+        if (rec.length < 2) return null;
+        return (
+          <div className="tm-recent" style={{ display: "flex", alignItems: "center", gap: 7, margin: "0 0 12px", overflowX: "auto", scrollbarWidth: "none" }}>
+            <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.textMuted, flexShrink: 0 }}>{L("Naposledy", "Recent")}</span>
+            {rec.map((e) => (
+              <button key={e.id} onClick={() => otevri(e.id)} title={e.title}
+                style={{ display: "inline-flex", alignItems: "center", flexShrink: 0, maxWidth: 160, minHeight: 30, background: "transparent", border: `1px solid ${full === e.id ? t.sage : t.borderSoft}`, borderRadius: 999, padding: "4px 12px", cursor: "pointer", color: full === e.id ? t.heading : t.textSec, fontFamily: FONT_BODY, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {e.title || L("Bez názvu", "Untitled")}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* na široké obrazovce seznam a text vedle sebe · poznámka nezakrývá
+          to, z čeho jsi ji vybral, a dá se přeskakovat mezi nimi */}
+      <div className={wide ? "tm-2pane" : undefined} style={{ marginTop: 18 }}>
+        <div ref={listRef} className="tm-scroll tm-dnolist" style={{ maxHeight: wide ? "min(720px, calc(70 * var(--tm-vh)))" : "min(620px, calc(62 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${holding ? t.accent : t.borderSoft}`, borderRadius: 20, padding: "4px 10px 10px", transition: "border-color .15s ease" }}>
+          {vw === "rows" && shown.map((e) => (
+            <NotebookCard key={e.id} entry={e} tags={tags} selecting={selecting} selected={sel.includes(e.id)} onToggleSel={toggleSel} onDragSel={dragSel} noDrag={sortBy !== "manual"} onExpand={otevri} holdManaged current={wide && full === e.id} />
+          ))}
+          {vw !== "rows" && shown.length > 0 && (
+            <RoomView view={vw} items={shown.map(nItem)} selecting={selecting} selIds={sel} onToggleSel={toggleSel} onOpen={otevri} current={wide ? full : null} />
+          )}
+          {shown.length === 0 && <Prazdno kind="prvni" plain compact fakt={L("V téhle kategorii zatím nic není.", "Nothing in this category yet.")} />}
+        </div>
+        {wide && (
+          <div className="tm-scroll" style={{ maxHeight: "min(720px, calc(70 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: fullEntry ? "4px 6px 10px" : 0, background: t.bg }}>
+            {fullEntry
+              ? <NotebookCard key={fullEntry.id} entry={fullEntry} tags={tags} full />
+              : (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", minHeight: 260, padding: "30px 20px", textAlign: "center" }}>
+                  <span style={{ color: t.sand, opacity: 0.35, display: "inline-flex" }}><TmIcZapisnik size={44} /></span>
+                  <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, margin: "14px 0 0", maxWidth: 260, lineHeight: 1.65 }}>{L("Vyber poznámku vlevo, nebo si novou založ ⌘N.", "Pick a note on the left, or start a new one with ⌘N.")}</p>
+                </div>
+              )}
+          </div>
+        )}
       </div>
 
-      {selecting && sel.length > 0 && (
-        <div style={{ position: "sticky", bottom: 16, display: "flex", alignItems: "center", gap: 10, background: t.bg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 14px", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", zIndex: 50, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heading }}>{sel.length} {L("vybráno", "selected")}</span>
+      {selecting && (
+        <div className="tm-selbar" style={{ position: "sticky", bottom: 16, display: "flex", alignItems: "center", gap: 8, background: t.bg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 14px", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", zIndex: 50, flexWrap: "wrap", marginTop: 10 }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.heading }}>{sel.length} {L("vybráno", "selected")}</span>
+          <button onClick={() => sel.length === shown.length ? setSel([]) : selectAll()} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 999, minHeight: 32, padding: "4px 12px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12 }}>{sel.length === shown.length && shown.length > 0 ? L("Zrušit vše", "Clear all") : L("Vybrat vše", "Select all")}</button>
           <span style={{ flex: 1 }} />
-          <Select small value={moveTag} onChange={(v) => { st.setEntriesTag("notebook", sel, v); exitSelect(); }} placeholder={L("Přesunout do…", "Move to…")} style={{ maxWidth: 170, width: 170 }} options={tags.map(([n]) => n)} />
-          <button onClick={() => st.ask(L(`Přesunout ${sel.length} poznámek do koše?`, `Move ${sel.length} notes to trash?`), () => { st.removeEntries("notebook", sel); exitSelect(); })} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 14px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13 }}>{L("Do koše", "To trash")}</button>
+          {sel.length > 0 && <ExportBtn label={L("Sdílet", "Share")} pocet={sel.length} jmeno={L("zapisnik-vyber", "notebook-selection")} docs={() => all.filter((e) => sel.includes(e.id)).map((e) => tmDocZapisu(e, "notebook"))} />}
+          {sel.length > 0 && <button onClick={kopirujVybrane} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, minHeight: 32, padding: "6px 12px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 13 }}><span style={{ color: t.sand, display: "inline-flex" }}><TmIcKopie size={14} /></span>{L("Kopie", "Copy")}</button>}
+          {sel.length > 0 && <button onClick={() => setTreeOpen("move")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, minHeight: 32, padding: "6px 12px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 13 }}><span style={{ color: t.sand, display: "inline-flex" }}><TmIcSlozka size={14} /></span>{L("Do složky", "To folder")}</button>}
+          {sel.length > 0 && <Select small value={moveTag} onChange={bulkMove} placeholder={L("Štítek…", "Tag…")} style={{ maxWidth: 140, width: 140 }} options={tags.map(([n]) => n)} />}
+          {sel.length > 0 && <button onClick={() => st.ask(L(`Přesunout ${sel.length} poznámek do koše?`, `Move ${sel.length} notes to trash?`), bulkTrash)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, minHeight: 32, padding: "6px 14px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13 }}>{L("Do koše", "To trash")}</button>}
+          <button onClick={exitSelect} title={L("Zrušit výběr", "Cancel selection")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, width: 30, height: 32 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         </div>
       )}
+      {!selecting && <UndoBar bar={undoBar} onClose={() => setUndoBar(null)} />}
     </>
   );
 }
@@ -1879,7 +5146,13 @@ function PageJournal() {
   const [selecting, setSelecting] = useState(false);
   const [sel, setSel] = useState([]);
   const [managing, setManaging] = useState(false);
-  const [sortBy, setSortBy] = useState("dateDesc");
+  // Deník nemá ruční pořadí · pořadí určuje čas a vytahovat zápis z proudu
+  // by rozbilo to jediné, na čem deník stojí
+  const jmeta = st.pageMetaOf("denik");
+  const vw = tmViewOk(jmeta.view || "seznam");
+  const setVw = (v) => st.setPageMeta("denik", { view: v });
+  const sortBy = jmeta.sort === "dateAsc" ? "dateAsc" : "dateDesc";
+  const setSortBy = (v) => st.setPageMeta("denik", { sort: v });
   const [limit, setLimit] = useState(40);
   const [offlineOnly, setOfflineOnly] = useState(false);
   const [starOnly, setStarOnly] = useState(false);
@@ -1890,6 +5163,11 @@ function PageJournal() {
   const [qOpen, setQOpen] = useState(false);
   const [fOpen, setFOpen] = useState(false);
   const [openMonths, setOpenMonths] = useState({});
+  // přišlo se sem z hledání · otevři přesně ten zápis a cíl zahoď
+  React.useEffect(() => {
+    const tgt = st.openTarget;
+    if (tgt && tgt.kind === "journal") { setFull(tgt.id); st.setOpenTarget(null); }
+  }, [st.openTarget]);
 
   // ---- Dnes · jedna psací plocha — deník začíná dneškem, ne archivem ----
   const today = todayISO();
@@ -1912,8 +5190,9 @@ function PageJournal() {
   let shown = view === "Vše" ? all : all.filter((e) => entryTags(e).includes(view));
   if (fMonth !== "vše") shown = shown.filter((e) => (e.date || "").slice(0, 7) === fMonth);
   if (q.trim()) { const nq = tmNorm(q); shown = shown.filter((e) => tmNorm((e.title || "") + " " + (e.text || "")).includes(nq)); }
-  if (sortBy === "dateDesc") shown = [...shown].sort((x, y) => (y.date || "").localeCompare(x.date || ""));
-  if (sortBy === "dateAsc") shown = [...shown].sort((x, y) => (x.date || "9999").localeCompare(y.date || "9999"));
+  shown = sortBy === "dateAsc"
+    ? [...shown].sort((x, y) => (x.date || "9999").localeCompare(y.date || "9999"))
+    : [...shown].sort((x, y) => (y.date || "").localeCompare(x.date || ""));
   if (offlineOnly) shown = shown.filter((e) => isEntryPinned(e.id));
   if (starOnly) shown = shown.filter((e) => e.star);
   if (!selecting && todayEntry && composerOpen) shown = shown.filter((e) => e.id !== todayEntry.id);
@@ -1921,47 +5200,179 @@ function PageJournal() {
   const months = Array.from(new Set(all.map((e) => (e.date || "").slice(0, 7)).filter((m) => /^\d{4}-\d{2}$/.test(m)))).sort().reverse();
   const monthLabel = (ym) => { const s = new Date(ym + "-01T12:00:00").toLocaleDateString(LANG === "cs" ? "cs-CZ" : "en-GB", { month: "long", year: "numeric" }); return s.charAt(0).toUpperCase() + s.slice(1); };
   const dayName = new Date(today + "T12:00:00").toLocaleDateString(LANG === "cs" ? "cs-CZ" : "en-GB", { weekday: "long" });
+  // otázka dne · tichá ruka do prázdné plochy — rotuje po dnech ze čtyř večerních otázek
+  const dayQ = PLAN_QS[today.split("-").reduce((a, x) => a + parseInt(x, 10), 0) % PLAN_QS.length];
+  /* PODNĚT TÝDNE · nabídka, ne pole. Prázdná stránka musí vždycky vyhrát —
+     kdo chce psát rovnou, píše rovnou; podnět jen leží nad plochou. Vypnout
+     jde natrvalo (nastavení) i jen na tenhle týden (×). Volba se drží podle
+     čísla týdne, takže odmítnutí příští pondělí samo vyprší. */
+  const wk = today.slice(0, 4) + "T" + tmIsoWeek(today);
+  const promptOn = jmeta.promptOff !== true;
+  const promptHidden = jmeta.promptSkip === wk;
+  const prompt = tmPromptFor(today, jmeta.promptShift && jmeta.promptShift.w === wk ? jmeta.promptShift.n : 0);
+  const promptOkruh = TM_PROMPT_OKRUH[prompt.k] || TM_PROMPT_OKRUH.telo;
+  // návrat bez viny · po týdnu ticha jen fakt a ruka, žádné počítání zameškaného
+  const lastBefore = all.filter((e) => e.date && e.date < today).map((e) => e.date).sort().pop();
+  // prvních pár slov posledního zápisu · z prázdna se stane vlákno
+  const lastSnip = (() => {
+    if (!lastBefore) return "";
+    const e = all.filter((x) => x.date === lastBefore).sort((a, b) => String(b.id).localeCompare(String(a.id)))[0];
+    const txt = tmPlain((e && (e.title || e.text)) || "").replace(/\s+/g, " ").trim();
+    return txt.length > 42 ? txt.slice(0, 40).trimEnd() + "…" : txt;
+  })();
+  const gapDays = lastBefore ? Math.round((new Date(today) - new Date(lastBefore)) / 86400000) : 0;
 
   const fullEntry = full ? all.find((e) => e.id === full) : null;
+  const [jNahled, setJNahled] = useState(false);
+  // seznam → čtení → psaní · stejná tři patra jako v Zápisníku
+  const otevri = (id) => { setFull(id); setJNahled(true); };
+  const [jNast, setJNast] = useState(false);
+  React.useEffect(() => { if (!full) { setJNahled(false); setJNast(false); } }, [full]);
+  React.useEffect(() => { if (!full) return; tmListovaniStuj(); return () => tmListovaniJdi(); }, [full]);
 
   const toggleSel = (id) => setSel((xs) => xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]);
   const dragSel = (id) => setSel((xs) => xs.includes(id) ? xs : [...xs, id]);
   const exitSelect = () => { setSelecting(false); setSel([]); };
+  /* Kopie vybraných zápisků · jedním zápisem do sbírek, viz Zápisník. */
+  const jKopie = () => {
+    const ids = sel.slice();
+    if (!ids.length) return;
+    st.persistColl((c) => {
+      const list = c.journal || [];
+      const nove = list.filter((e) => ids.includes(e.id)).map((e, i) => ({ ...e, id: uid() + i.toString(36), title: (e.title || "") + L(" (kopie)", " (copy)"), date: todayISO(), star: false }));
+      return { ...c, journal: [...nove, ...list] };
+    });
+    exitSelect();
+    setJUndo({ text: L("Kopií vytvořeno · ", "Copies made · ") + ids.length });
+  };
   const starred = all.filter((e) => e.star).length;
+
+  // ——— sdílená kostra · dlaždice, gesta, hromadné akce ———
+  const jCounts = { "Vše": all.length };
+  tags.forEach(([n]) => { jCounts[n] = all.filter((e) => entryTags(e).includes(n)).length; });
+  const colorOfJTag = (n) => ((tags.find((x) => x[0] === n)) || [])[1] || "default";
+  const jItem = (e) => {
+    const img = tmFirstImg(e.text);
+    const plain = tmPlain(e.text).split("\n").map((x) => x.trim()).filter(Boolean).join(" ");
+    return {
+      id: e.id,
+      title: e.title || (e.date ? fmtCZ(e.date) : L("Bez data", "No date")),
+      date: e.title && e.date ? fmtCZ(e.date) : "",
+      preview: plain,
+      star: !!e.star,
+      meta: entryTags(e).slice(0, 2).map((n) => <Tag key={n} label={n} color={colorOfJTag(n)} />),
+      metaGal: entryTags(e).slice(0, 1).map((n) => <Tag key={n} label={n} color={colorOfJTag(n)} />),
+      face: { img: img ? r2Url(img) : null, text: plain.slice(0, 260) || null, ini: (e.date || "·").slice(0, 4) },
+    };
+  };
+  const jListRef = React.useRef(null);
+  const [jUndo, setJUndo] = useState(null);
+  const jState = React.useRef({});
+  jState.current = { selecting, sel, sortManual: false };   // deník nemá ruční pořadí
+  const jAct = React.useRef({});
+  jAct.current = {
+    label: (id) => { const e = all.find((x) => x.id === id); return (e && (e.title || (e.date ? fmtCZ(e.date) : ""))) || L("Zápisek", "Entry"); },
+    paint: (id, add) => setSel((xs) => add ? (xs.includes(id) ? xs : [...xs, id]) : xs.filter((x) => x !== id)),
+    enter: (id) => { setSelecting(true); setSel([id]); },
+    reorder: () => {},
+    dropTab: (ids, tag) => {
+      const before = ids.map((id) => { const e = all.find((x) => x.id === id); return e ? { id, tags: entryTags(e) } : null; }).filter(Boolean);
+      if (!before.length) return;
+      st.setEntriesTag("journal", ids, tag);
+      exitSelect();
+      setJUndo({ text: before.length > 1 ? before.length + " → " + tag : L("Přesunuto do ", "Moved to ") + tag, fn: () => before.forEach((b) => st.updateEntry("journal", b.id, { tags: b.tags, tag: b.tags[0] || "" })) });
+    },
+  };
+  const jHolding = useHoldSelect({ rootRef: jListRef, attr: "data-pick", tabAttr: "data-jtab", stateRef: jState, actionsRef: jAct });
+  const jSelectAll = () => setSel(visible.map((e) => e.id));
+  const jBulkTag = (tag) => {
+    const ids = [...sel];
+    const before = ids.map((id) => { const e = all.find((x) => x.id === id); return e ? { id, tags: entryTags(e) } : null; }).filter(Boolean);
+    st.setEntriesTag("journal", ids, tag);
+    exitSelect();
+    setJUndo({ text: ids.length + " → " + tag, fn: () => before.forEach((b) => st.updateEntry("journal", b.id, { tags: b.tags, tag: b.tags[0] || "" })) });
+  };
+  const jBulkTrash = () => {
+    const ids = [...sel];
+    st.removeEntries("journal", ids);
+    exitSelect();
+    setJUndo({ text: L("Přesunuto do koše · ", "Moved to trash · ") + ids.length, fn: () => st.restoreEntries("journal", ids) });
+  };
   const todayTagColor = todayEntry && todayEntry.tag ? ((tags.find(([n]) => n === todayEntry.tag) || [])[1] || "default") : "default";
 
   return (
     <>
-      {fullEntry && (
-        <CenterSheet center title={(fullEntry.date ? fmtCZ(fullEntry.date) + (fullEntry.title ? " · " : "") : "") + (fullEntry.title || "")} onClose={() => setFull(null)}>
-          <NotebookCard kind="journal" entry={fullEntry} tags={tags} full />
+      {fullEntry && !jNahled && (
+        <CenterSheet center title={L("Deník", "Journal") + (fullEntry.date ? " · " + fmtCZ(fullEntry.date) : "")} onClose={() => setFull(null)}
+          naradi={<button onClick={() => setJNast(true)} title={L("Nastavení zápisku", "Entry settings")} style={{ flexShrink: 0, background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30 }}><TmIcNastaveni size={16} /></button>}>
+          <NotebookCard kind="journal" entry={fullEntry} tags={tags} full onZmensit={() => setJNahled(true)} />
         </CenterSheet>
       )}
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcDenik size={38} /></span>} pageKey="denik" kicker={L("Psaná praxe · od prosince 2020", "Written practice · since December 2020")}>{L("Deník", "Journal")}</PageTitle>
-      <p style={pProse(t)}>{L("Psáno z cesty, ne z vrcholu.", "Written from the path, not the summit.")}</p>
+      {fullEntry && !jNahled && jNast && (
+        <NastaveniPoznamky entry={fullEntry} kind="journal" tags={tags} onClose={() => setJNast(false)} onPryc={() => { setJNast(false); setFull(null); }} />
+      )}
+      {fullEntry && jNahled && (
+        <NahledPoznamky entry={fullEntry} kind="journal" tags={tags} onZavri={() => setJNahled(false)} onPsat={() => setJNahled(false)} />
+      )}
+      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcDenik size={38} /></span>} pageKey="denik" kicker={L("Místo pro tvá slova", "A place for your words")}
+        right={<HdrIcon on={qOpen || !!q} title={L("Hledat v deníku", "Search the journal")} onClick={() => setQOpen((x) => !x)}><TmIcLupa size={17} /></HdrIcon>}>{L("Deník", "Journal")}</PageTitle>
+      <p className="tm-prose" style={pProse(t)}>{L("Psáno z cesty, ne z vrcholu.", "Written from the path, not the summit.")}</p>
 
       {!selecting && composerOpen && (
-        <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "14px 16px", margin: "12px 0 6px", boxShadow: t.shadow }}>
-          <div style={{ ...subLabel(t), marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: t.sand, display: "inline-flex" }}><PenIcon size={12} /></span>
-            <span>{L("Dnes", "Today")} · {dayName} {fmtCZ(today)}</span>
+        <div style={{ margin: "12px 0 6px" }}>
+          {/* Řádek nad plochou nese jen nářadí. Datum říká podnět, den říká
+              stránka — „Dnes · pondělí 9. 8." bylo potřetí totéž. Ukazuje se
+              proto jen tehdy, když je co ovládat. */}
+          <div style={{ ...subLabel(t), marginBottom: 8, display: todayEntry ? "flex" : "none", alignItems: "center", gap: 8 }}>
             {todayEntry && entryTags(todayEntry).map((n) => <Tag key={n} label={n} color={((tags.find(([x]) => x === n)) || [])[1] || "default"} />)}
             <span style={{ flex: 1 }} />
             {todayEntry && <><input ref={todayFileRef} type="file" multiple onChange={(ev) => attachToday(ev.target.files)} style={{ display: "none" }} /><button title={L("Přiložit soubor", "Attach file")} onClick={() => todayFileRef.current && todayFileRef.current.click()} style={{ ...iconBtn(t), border: "none", color: t.textMuted, width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ClipIcon size={13} /></button></>}
-            {todayEntry && (todayEntry.text || "").trim() && <button onClick={() => { st.updateEntry("journal", todayEntry.id, { committed: true }); setEditingToday(false); setDraftId(null); }} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "4px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12.5 }}>{L("Uložit", "Save")}</button>}
-            {todayEntry && <button title={L("Otevřít jako stránku", "Open as page")} onClick={() => setFull(todayEntry.id)} style={{ ...iconBtn(t), border: "none", color: t.textMuted, fontSize: 13 }}>⤢</button>}
+            {todayEntry && (todayEntry.text || "").trim() && <button onClick={() => { st.updateEntry("journal", todayEntry.id, { committed: true }); setEditingToday(false); setDraftId(null); }} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "4px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}>{L("Uložit", "Save")}</button>}
+            {todayEntry && <button title={L("Otevřít jako stránku", "Open as page")} onClick={() => otevri(todayEntry.id)} style={{ ...iconBtn(t), border: "none", color: t.textMuted, fontSize: 13 }}>⤢</button>}
             {todayEntry && <button title={L("Zahodit dnešní zápis", "Discard today's entry")} onClick={() => st.ask(L("Odstranit dnešní zápis a začít znovu?", "Remove today's entry and start over?"), () => { st.removeEntry("journal", todayEntry.id); setDraftId(null); setEditingToday(false); })} style={{ ...iconBtn(t), border: "none", color: t.textMuted, fontSize: 13, padding: 0, width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><TrashIcon size={13} /></button>}
           </div>
+          {/* „Naposledy jsi psal…" odstraněno. Bylo to jediné místo v deníku,
+              které měřilo mezeru mezi zápisy — a měřená mezera je jen tišší
+              podoba série. Nad plochou zůstal podnět týdne a nic jiného. */}
+          {!todayEntry && promptOn && !promptHidden && (
+            <div style={{ borderLeft: `2px solid ${hexA(t.sage, 0.55)}`, padding: "1px 0 2px 12px", margin: "2px 0 12px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 3 }}>
+                <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, lineHeight: 1.5, color: t.sage, paddingTop: 4 }}>{L("Podnět týdne", "This week's prompt")} · {L(promptOkruh.cz, promptOkruh.en)}</span>
+                <button onClick={() => st.setPageMeta("denik", { promptShift: { w: wk, n: ((jmeta.promptShift && jmeta.promptShift.w === wk ? jmeta.promptShift.n : 0) + 1) } })} title={L("Jiný podnět", "A different prompt")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12, padding: "3px 4px", minHeight: 28 }}>{L("Jiný", "Another")}</button>
+                <button onClick={() => st.setPageMeta("denik", { promptSkip: wk })} title={L("Skrýt na tento týden", "Hide for this week")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1, padding: "3px 2px", minHeight: 28, width: 24 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+              </div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 17, lineHeight: 1.45, color: t.inkSand || t.sand }}>{L(prompt.cz, prompt.en)}</div>
+            </div>
+          )}
+          {/* Prázdná plocha zůstane prázdná. Dřív sem po skrytí podnětu naskočila
+              některá z večerních otázek z Praxe — jenže ty patří k reflexi dne,
+              ne do deníku, a hlavně: kdo podnět odklidí, chce ticho, ne jinou
+              otázku na jeho místě. */}
           <RichArea key={todayEntry ? todayEntry.id : "novy"} value={todayEntry ? todayEntry.text || "" : ""} onChange={writeToday} placeholder={L("Piš…", "Write…")} />
+          {/* „ZAPSAT DEN BEZ PSANÍ" ZRUŠENO. Zakládalo to zápisek s textem
+              „— beze slov", aby den nevypadal jako vynechaný. Jenže tím do
+              deníku přibyl záznam, který nic neříká a v archivu pak navždycky
+              leží mezi skutečnými. Chránilo to sérii, kterou ale nemá cenu
+              počítat: nic v literatuře nepodporuje, že by denní nutkání psaní
+              prospívalo — spíš naopak. A hlavně: aplikace už jednu lepší větu
+              má, u prázdného dne v Kompasu — „Nechat to tak je taky odpověď."
+              Prázdný den je poctivější než prázdný zápis. Kdo chce den přesto
+              označit, má na to stav dne v Praxi; deník je na slova. */}
+          {!todayEntry && promptOn && promptHidden && (
+            <button onClick={() => st.setPageMeta("denik", { promptSkip: "" })}
+              style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, padding: "8px 2px 2px", minHeight: 36, textAlign: "left" }}>
+              {L("Vrátit podnět týdne", "Bring the week's prompt back")}
+            </button>
+          )}
           {todayEntry && <AttachmentStrip att={todayEntry.att} onRemove={st.editMode ? ((id) => st.updateEntry("journal", todayEntry.id, { att: (todayEntry.att || []).filter((x) => x.id !== id) })) : undefined} />}
         </div>
       )}
       {!selecting && !composerOpen && todayEntry && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "10px 14px", margin: "12px 0 6px", boxShadow: t.shadow }}>
           <span style={{ color: t.sand, display: "inline-flex" }}><PenIcon size={12} /></span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec }}>{L("Dnešní zápis uložen", "Today's entry saved")} · {fmtCZ(today)}</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{L("Dnešní zápis uložen", "Today's entry saved")} · {fmtCZ(today)}</span>
           <span style={{ flex: 1 }} />
-          <button onClick={() => setEditingToday(true)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "4px 14px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12.5 }}>{L("Upravit", "Edit")}</button>
+          <button onClick={() => setEditingToday(true)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "4px 14px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12 }}>{L("Upravit", "Edit")}</button>
         </div>
       )}
 
@@ -1969,38 +5380,58 @@ function PageJournal() {
         <div style={{ margin: "12px 0 4px" }}>
           <div style={{ ...subLabel(t), marginBottom: 4 }}>{L("Na tento den", "On this day")}</div>
           {echoes.map((e) => (
-            <button key={e.id} onClick={() => setFull(e.id)} className="tm-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 8, padding: "6px 8px", cursor: "pointer" }}>
-              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 16, color: t.sand, flexShrink: 0 }}>{(e.date || "").slice(0, 4)}</span>
+            <button key={e.id} onClick={() => otevri(e.id)} className="tm-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 8, padding: "6px 8px", cursor: "pointer" }}>
+              <span style={{ fontFamily: FONT_DISPLAY, fontSize: 15, color: t.sand, flexShrink: 0 }}>{(e.date || "").slice(0, 4)}</span>
               <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title || (e.text || "").split("\n").filter(Boolean)[0] || ""}</span>
             </button>
           ))}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", borderBottom: `1px solid ${t.border}`, margin: "10px 0 12px", paddingBottom: 8 }}>
-        <button className="tm-monly" onClick={() => setQOpen((x) => !x)} title={L("Hledat", "Search")} style={{ display: "none", alignItems: "center", gap: 7, background: "transparent", border: "none", borderBottom: `1px solid ${qOpen ? t.accent : t.borderSoft}`, borderRadius: 0, cursor: "pointer", color: qOpen ? t.accent : t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "5px 4px 6px", minWidth: 120 }}><TmIcLupa size={14} />{L("hledat v deníku…", "search the journal…")}</button>
-        <button className="tm-monly" onClick={() => setFOpen((x) => !x)} title={L("Filtry", "Filters")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 32, height: 32, background: fOpen ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 8, cursor: "pointer", color: fOpen ? t.accent : t.textMuted, fontSize: 13 }}><FamilyIcon id="expand" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
-        <input className={"tm-jsearch" + (qOpen ? " open" : "")} value={q} onChange={(e) => { setQ(e.target.value); }} placeholder={L("Hledat v deníku…", "Search the journal…")} style={{ background: "transparent", border: "none", borderBottom: `1px solid ${q ? t.accent : t.borderSoft}`, color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, outline: "none", padding: "4px 2px", width: 150 }} />
-        <div className={"tm-jfilters" + (fOpen ? " open" : "")} style={{ display: "contents" }}>
-        <Select ghost value={view} onChange={setView} style={{ width: "auto" }} options={[{ v: "Vše", label: LV("Vše") }, ...tags.map(([n]) => ({ v: n, label: n }))]} />
-        <Select ghost value={fMonth} onChange={(v) => { setFMonth(v); setLimit(40); }} style={{ width: "auto" }} options={[{ v: "vše", label: L("celý proud", "all time") }, ...months.map((m) => ({ v: m, label: monthLabel(m) }))]} />
-        <button onClick={() => setStarOnly((x) => !x)} title={L("Jen oblíbené", "Only starred")} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: starOnly ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${starOnly ? t.accent : "transparent"}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: starOnly ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}><span style={{ fontSize: 11, lineHeight: 1 }}>★</span>{L("oblíbené", "starred")}</button>
-        <span style={{ flex: 1 }} />
-        <button onClick={() => setOfflineOnly((x) => !x)} title={L("Zobrazit jen offline uložené", "Show only offline-saved")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: offlineOnly ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${offlineOnly ? t.accent : "transparent"}`, borderRadius: 999, padding: "4px 10px", cursor: "pointer", color: offlineOnly ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: offlineOnly ? t.accent : t.textMuted, flexShrink: 0 }} />offline</button>
-        <Select ghost value={sortBy} onChange={setSortBy} style={{ width: "auto" }} options={[{ v: "dateDesc", label: L("nejnovější", "newest") }, { v: "dateAsc", label: L("nejstarší", "oldest") }, { v: "manual", label: L("vlastní pořadí", "custom order") }]} />
+      {qOpen && <HdrSearch value={q} onChange={setQ} onClose={() => setQOpen(false)} placeholder={L("Hledat v deníku…", "Search the journal…")} />}
+
+      <div data-guide="denik.entries" className="tm-tabsrow" style={{ borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
+        <div className="tm-typerow" style={{ display: "flex", gap: 2, alignItems: "center", flex: 1, minWidth: 0 }}>
+          {["Vše", ...tags.map(([n]) => n)].map((v) => (
+            <button key={v} data-jtab={v} onClick={() => setView(v)}
+              style={{ background: "transparent", border: "none", cursor: "pointer", padding: "8px 10px 9px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 12, color: view === v ? t.accent : t.textMuted, borderBottom: view === v ? `2px solid ${t.accent}` : "2px solid transparent", marginBottom: -1, flexShrink: 0 }}>
+              {LV(v)}<span style={{ marginLeft: 5, opacity: 0.6, fontSize: 12 }}>{jCounts[v] || 0}</span>
+            </button>
+          ))}
         </div>
-        <button title="Spravovat kategorie" onClick={() => setManaging((x) => !x)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 14, padding: "4px 8px" }}>⋯</button>
-        {st.editMode && <button onClick={() => selecting ? exitSelect() : setSelecting(true)} style={{ background: selecting ? t.activeNav : "transparent", border: `1px solid ${selecting ? t.accent : t.border}`, borderRadius: 14, padding: "3px 12px", cursor: "pointer", color: selecting ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, marginLeft: 6 }}>{selecting ? L("Zrušit výběr", "Cancel selection") : L("☑ Vybrat", "☑ Select")}</button>}
+        <div className="tm-tabsctrl">
+          <ViewCycle value={vw} onChange={setVw} />
+          <HdrIcon on={fOpen || fMonth !== "vše" || offlineOnly || starOnly} title={L("Filtry, řazení a nastavení", "Filters, sorting and settings")} onClick={() => setFOpen((x) => !x)}><TmIcFiltr /></HdrIcon>
+        </div>
       </div>
 
-      {managing && <NbTagManager onDone={() => setManaging(false)} ops={{ list: tags, add: st.addJTag, rename: st.renameJTag, reorder: st.reorderJTag, remove: st.removeJTag, protectedName: "Den", attr: "data-jtag" }} />}
-      {!selecting && <AddEntry kind="journal" tags={tags} label={L("Samostatný zápisek", "Separate entry")} />}
+      {fOpen && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", padding: "2px 2px 0", margin: "0 0 14px" }}>
+          <HdrLbl>{L("Řazení", "Sorting")}</HdrLbl>
+          <FiltrPill on={sortBy === "dateDesc"} onClick={() => setSortBy("dateDesc")}>{L("nejnovější", "newest")}</FiltrPill>
+          <FiltrPill on={sortBy === "dateAsc"} onClick={() => setSortBy("dateAsc")}>{L("nejstarší", "oldest")}</FiltrPill>
+          <HdrLbl>{L("Filtr", "Filter")}</HdrLbl>
+          <Select ghost value={fMonth} onChange={(v) => { setFMonth(v); setLimit(40); }} style={{ width: "auto" }} options={[{ v: "vše", label: L("celý proud", "all time") }, ...months.map((m) => ({ v: m, label: monthLabel(m) }))]} />
+          <FiltrPill on={starOnly} onClick={() => setStarOnly((x) => !x)}>★ {L("jen oblíbené", "starred only")}</FiltrPill>
+          <FiltrPill on={offlineOnly} onClick={() => setOfflineOnly((x) => !x)}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", display: "inline-block", marginRight: 5 }} />offline</FiltrPill>
+          <HdrLbl>{L("Nastavení", "Settings")}</HdrLbl>
+          <FiltrPill on={selecting} onClick={() => selecting ? exitSelect() : setSelecting(true)}>{selecting ? L("Zrušit výběr", "Cancel selection") : L("☑ Vybrat", "☑ Select")}</FiltrPill>
+          <FiltrPill on={managing} onClick={() => setManaging((x) => !x)}>{L("Kategorie", "Categories")}</FiltrPill>
+          <FiltrPill on={promptOn} onClick={() => st.setPageMeta("denik", { promptOff: promptOn, promptSkip: "" })}>{L("Podnět týdne", "Weekly prompt")}</FiltrPill>
+        </div>
+      )}
 
-      <div className="tm-wave tm-scroll" style={{ marginTop: 12, maxHeight: "min(680px, 64vh)", overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "4px 12px 12px" }}>
-        {(() => {
+      {managing && <NbTagManager onDone={() => setManaging(false)} ops={{ list: tags, add: st.addJTag, rename: st.renameJTag, reorder: st.reorderJTag, remove: st.removeJTag, protectedName: "Den", attr: "data-jtag" }} />}
+      {!selecting && <AddEntry guide="denik.write" kind="journal" tags={tags} label={L("Samostatný zápisek", "Separate entry")} />}
+
+      <div ref={jListRef} className="tm-wave tm-scroll tm-dnolist" style={{ marginTop: 12, maxHeight: "min(680px, calc(64 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${jHolding ? t.accent : t.borderSoft}`, borderRadius: 12, padding: "4px 12px 12px", transition: "border-color .15s ease" }}>
+        {vw !== "rows" && visible.length > 0 && (
+          <RoomView view={vw} items={visible.map(jItem)} selecting={selecting} selIds={sel} onToggleSel={toggleSel} onOpen={otevri} />
+        )}
+        {vw === "rows" && (() => {
           let lastYM = null;
           const curYM0 = months[0] || todayISO().slice(0, 7);
-          const grouping = sortBy !== "manual" && !q.trim();
+          const grouping = !q.trim();
           const out = [];
           visible.forEach((e) => {
             const ym = (e.date || "").slice(0, 7);
@@ -2008,33 +5439,38 @@ function PageJournal() {
               lastYM = ym;
               const openM = ym === curYM0 || !!openMonths[ym];
               out.push(
-                <button key={"m" + ym} onClick={() => setOpenMonths((x) => ({ ...x, [ym]: !openM }))} style={{ width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", fontFamily: FONT_DISPLAY, fontSize: 19, color: t.textSec, margin: "22px 0 2px", padding: 0, display: "flex", alignItems: "center", gap: 12 }}>
+                <button key={"m" + ym} onClick={() => setOpenMonths((x) => ({ ...x, [ym]: !openM }))} style={{ width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", fontFamily: FONT_DISPLAY, fontSize: 17, color: t.textSec, margin: "22px 0 2px", padding: 0, display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ transition: "transform .18s ease", transform: openM ? "rotate(90deg)" : "none", color: t.sage, display: "inline-flex" }}><TmIcChev size={14} /></span>
                   {monthLabel(ym)}
                   <span style={{ flex: 1, height: 1, background: t.borderSoft }} />
-                  {!openM && <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.textMuted }}>{all.filter((x) => (x.date || "").slice(0, 7) === ym).length} {L("zápisků", "entries")}</span>}
+                  {!openM && <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.textMuted }}>{all.filter((x) => (x.date || "").slice(0, 7) === ym).length} {L("zápisků", "entries")}</span>}
                 </button>
               );
             }
             const shownM = !grouping || !ym || ym === curYM0 || !!openMonths[ym];
-            if (shownM) out.push(<NotebookCard key={e.id} kind="journal" entry={e} tags={tags} selecting={selecting} selected={sel.includes(e.id)} onToggleSel={toggleSel} onDragSel={dragSel} noDrag={sortBy !== "manual"} onExpand={setFull} />);
+            if (shownM) out.push(<NotebookCard key={e.id} kind="journal" entry={e} tags={tags} selecting={selecting} selected={sel.includes(e.id)} onToggleSel={toggleSel} onDragSel={dragSel} noDrag onExpand={otevri} holdManaged />);
           });
           return out;
         })()}
         {!q.trim() && shown.length > limit && (
-          <button onClick={() => setLimit((l) => l + 40)} className="tm-dash" style={{ width: "100%", background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 13.5, margin: "8px 0 4px" }}>{L("Načíst starší · zbývá", "Load older · remaining")} {shown.length - limit}</button>
+          <button onClick={() => setLimit((l) => l + 40)} className="tm-dash" style={{ width: "100%", background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.inkSand, fontFamily: FONT_BODY, fontSize: 13, margin: "8px 0 4px" }}>{L("Načíst starší · zbývá", "Load older · remaining")} {shown.length - limit}</button>
         )}
-        {shown.length === 0 && <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.textMuted, padding: "18px 0" }}>{L("V tomto pohledu zatím nic není.", "Nothing in this view yet.")}</p>}
+        {shown.length === 0 && <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, padding: "18px 0" }}>{L("V tomto pohledu zatím nic není.", "Nothing in this view yet.")}</p>}
       </div>
 
-      {selecting && sel.length > 0 && (
-        <div style={{ position: "sticky", bottom: 16, display: "flex", alignItems: "center", gap: 10, background: t.bg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 14px", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", zIndex: 50, flexWrap: "wrap", marginTop: 10 }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.heading }}>{sel.length} {L("vybráno", "selected")}</span>
+      {selecting && (
+        <div className="tm-selbar" style={{ position: "sticky", bottom: 16, display: "flex", alignItems: "center", gap: 8, background: t.bg, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 14px", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", zIndex: 50, flexWrap: "wrap", marginTop: 10 }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.heading }}>{sel.length} {L("vybráno", "selected")}</span>
+          <button onClick={() => sel.length === visible.length ? setSel([]) : jSelectAll()} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 999, minHeight: 32, padding: "4px 12px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12 }}>{sel.length === visible.length && visible.length > 0 ? L("Zrušit vše", "Clear all") : L("Vybrat vše", "Select all")}</button>
           <span style={{ flex: 1 }} />
-          <Select small value="" onChange={(v) => { st.setEntriesTag("journal", sel, v); exitSelect(); }} placeholder={L("Přesunout do…", "Move to…")} style={{ maxWidth: 170, width: 170 }} options={tags.map(([n]) => n)} />
-          <button onClick={() => st.ask(L(`Přesunout ${sel.length} zápisků do koše?`, `Move ${sel.length} entries to trash?`), () => { st.removeEntries("journal", sel); exitSelect(); })} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 14px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13 }}>{L("Do koše", "To trash")}</button>
+          {sel.length > 0 && <ExportBtn label={L("Sdílet", "Share")} pocet={sel.length} jmeno={L("denik-vyber", "journal-selection")} docs={() => all.filter((e) => sel.includes(e.id)).map((e) => tmDocZapisu(e, "journal"))} />}
+          {sel.length > 0 && <button onClick={jKopie} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, minHeight: 32, padding: "6px 12px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 13 }}><span style={{ color: t.sand, display: "inline-flex" }}><TmIcKopie size={14} /></span>{L("Kopie", "Copy")}</button>}
+          {sel.length > 0 && <Select small value="" onChange={jBulkTag} placeholder={L("Štítek…", "Tag…")} style={{ maxWidth: 150, width: 150 }} options={tags.map(([n]) => n)} />}
+          {sel.length > 0 && <button onClick={() => st.ask(L(`Přesunout ${sel.length} zápisků do koše?`, `Move ${sel.length} entries to trash?`), jBulkTrash)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, minHeight: 32, padding: "6px 14px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13 }}>{L("Do koše", "To trash")}</button>}
+          <button onClick={exitSelect} title={L("Zrušit výběr", "Cancel selection")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, width: 30, height: 32 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         </div>
       )}
+      {!selecting && <UndoBar bar={jUndo} onClose={() => setJUndo(null)} />}
     </>
   );
 }
@@ -2087,7 +5523,7 @@ function PageTrash() {
       <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcKos size={38} /></span>} artKey="kos" kicker={L("Odstraněné položky", "Deleted items")}>{L("Koš", "Trash")}</PageTitle>
       <p style={pProse(t)}>{L("Smazané položky zůstávají v koši, dokud je odsud nevrátíš nebo trvale nesmažeš.", "Deleted items stay in the trash until you restore them or delete them permanently.")} <span style={{ color: t.textMuted }}>{L("Obnovení vrátí položku na původní místo.", "Restoring puts the item back where it was.")}</span></p>
       {items.length === 0 ? (
-        <div style={{ padding: "40px 0", textAlign: "center", fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 14, color: t.textMuted }}>{L("Koš je prázdný.", "The trash is empty.")}</div>
+        <div data-guide="kos.overview" style={{ padding: "40px 0", textAlign: "center", fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 14, color: t.textMuted }}>{L("Koš je prázdný.", "The trash is empty.")}</div>
       ) : (
         <>
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
@@ -2101,7 +5537,7 @@ function PageTrash() {
                 <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{byKind[k].length}</span>
               </div>
               {byKind[k].map((it) => (
-                <div key={it.tid} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 4px", borderBottom: `1px solid ${t.borderSoft}` }}>
+                <div key={it.tid} data-guide="kos.overview" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 4px", borderBottom: `1px solid ${t.borderSoft}` }}>
                   <span style={{ flex: 1, fontFamily: FONT_BODY, fontSize: 14, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, flexShrink: 0 }}>{ago(it.trashedAt)}</span>
                   <button title={L("Obnovit", "Restore")} onClick={() => st.restoreTrash(it.tid)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 12, padding: "3px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12 }}>↺ obnovit</button>
@@ -6187,7 +9623,7 @@ function TExPick({ onPick, onClose, onNew }) {
       <input ref={inRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat cvik…", "Search exercises…")} style={{ ...tPickInp(t), width: "100%", marginBottom: 10 }} />
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
         <TChip label={L("Vše", "All")} active={!fPats.length} onClick={() => setFPats([])} />
-        {T_PATTERNS.map((p) => <TChip key={p.k} label={L(p.cz, p.en)} active={fPats.includes(p.k)} onInfo={() => setPatInfo(p.k)} onClick={() => setFPats(fPats.includes(p.k) ? fPats.filter((x) => x !== p.k) : [...fPats, p.k])} />)}
+        {T_PATTERNS.map((p) => <TChip key={p.k} label={L(p.cz, p.en)} active={fPats.includes(p.k)} onClick={() => setFPats(fPats.includes(p.k) ? fPats.filter((x) => x !== p.k) : [...fPats, p.k])} />)}
       </div>
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
         <TMultiSel label={L("Náročnost", "Demand")} values={fLvls} onChange={setFLvls} options={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
@@ -6908,7 +10344,8 @@ function useTmVoices() {
 }
 
 // ---- haptics ---------------------------------------------------------------
-const tmBuzz = (pattern, on) => { if (!on) return; try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {} };
+let TM_HAPTICS = true;
+const tmBuzz = (pattern, on) => { if (!on || !TM_HAPTICS) return; try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {} };
 
 // ---- SEZNAMY · sdílená generace -----------------------------------------
 // Přepínač zobrazení, hledání v hlavičce, filtrační pilulky, pruh „vrátit"
@@ -6950,8 +10387,11 @@ const {
   TM_PROMPT_OKRUH, tmPromptFor, TM_PRAHY, tmPrahKlic, tmPrahMa,
   WB_ZNAMENI, tmWbOf, tmWbDates, usePraxeStats,
   fmtCZ, todayISO, shiftISO, moonPhaseOf, moonName, sunsetOf,
-  journalArchive: JOURNAL_FULL, flow: FLOW,
+  journalArchive: JOURNAL_FULL, flow: FLOW, mandalaAvailable: false,
 });
+
+const {SetSection,SetSwitch,SetChoice}=createSettingsUI({useT,L});
+const PageHabit = createPracticePage({useT,useStore,L,PageTitle,BufferedInput,TmIcPraxe,TmIcPrameny,TmPasPrahu,DayView,PraxeOverview,CenterSheet,pProse});
 
 // ---- KOMPAS · sdílená orientace ------------------------------------------
 // Týž soubor jako v osobní aplikaci (src/shared/ui/compass.jsx). Klientský
@@ -6992,6 +10432,7 @@ const { OriginBadge, ContentDetail, ContentRow, PageContent } = createSourcesUI(
   iconBtn, fieldStyle, tmPlain, tmToTop,
   C_TYPES, C_TYPE_LABEL, C_TYPE_COLOR, C_PROGRESS, C_PROG_LABEL, C_PROG_COLOR,
   C_CATS, C_CATS_BY_TYPE, C_CAT_LABEL, tmDocPramene,
+  ExportBtn, gdEmbed: tmGdEmbed,
 });
 
 
@@ -10049,32 +13490,80 @@ function TvClientRest({ sec, onDone, onSkip }) {
   );
 }
 
-function TvClientRunner({ sessionId, onClose }) {
+function TvClientGuideArt({ ex, size = 120, fluid = false, ...rest }) {
+  const { t } = useT();
+  if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted}/>;
+  const atlas = ex && (UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
+  if (ex?.art) return <TmPostava poza={ex.art} size={size} stroke={rest.stroke || t.text}/>;
+  return ex && T_FIGS[ex.id] ? <TExArt ex={ex} size={size} fluid={fluid} {...rest}/> : null;
+}
+// The prescription can contain coach-created exercises absent from the local
+// library. Its instructions stay read-only and above the active session.
+function TvClientExerciseDetail({ exId, onClose }) {
+  const { t } = useT();
+  const st = useStore();
+  const rec = tvClientRec(st, exId);
+  const row = st.tvExerciseOf(exId) || (st.coll.tEx || []).find(ex => ex.id === exId);
+  const sections = [
+    ["focus", L("Bod pozornosti", "Focus point")],
+    ["startPosition", L("Výchozí pozice", "Starting position")],
+    ["execution", L("Provedení", "Execution")],
+    ["watchFor", L("Na co dát pozor", "Watch for")],
+    ["progression", L("Progrese", "Progression")],
+  ].filter(([key]) => TL(rec?.[key]));
+  return <CenterSheet title={tvName(rec) || L("Cvik", "Exercise")} onClose={onClose} vrstva={280}>
+    {row && <div style={{color:t.text,display:"flex",justifyContent:"center",margin:"10px 0 20px"}}><TvClientGuideArt ex={row} size={200}/></div>}
+    {sections.map(([key,label])=><section key={key} style={{marginBottom:20}}>
+      <h3 style={{fontFamily:FONT_TAG,fontSize:12,letterSpacing:".12em",textTransform:"uppercase",fontWeight:500,color:t.accentInk||t.accent,margin:"0 0 7px"}}>{label}</h3>
+      <div style={{fontFamily:FONT_BODY,fontSize:15,lineHeight:1.7,color:t.textSec,whiteSpace:"pre-wrap"}}><TrainingSourceText text={TL(rec[key])} color={t.accentInk||t.accent}/></div>
+    </section>)}
+    {!sections.length&&<p style={{fontFamily:FONT_BODY,color:t.textSec,lineHeight:1.65}}>{L("K tomuto cviku zatím nejsou připojené podrobné pokyny.", "Detailed instructions have not been attached to this exercise yet.")}</p>}
+  </CenterSheet>;
+}
+const { TvPlanOverview: TvClientPlanOverview, TvGuide: TvClientGuidedSession } = createTrainingGuideUI({
+  useT, useStore, L, TL, TV, FONT_BODY, FONT_TAG, FONT_DISPLAY,
+  hexA, tvQuiet, FamilyIcon, TrainingSourceText, TExArt: TvClientGuideArt, TvField,
+  tmCompile, useTmEngine, useWakeLock, tmAudio: { unlock: () => tmAudio.unlock() }, isCzech: tvCz,
+  exerciseRow: (st, id) => st.tvExerciseOf(id) || (st.coll.tEx || []).find(ex => ex.id === id),
+  exerciseRecord: tvClientRec,
+  blockName: (block, st) => tvName(tvClientRec(st, block.exId)) || TL(block.name),
+});
+
+function TvClientRunner({ sessionId, onClose, onOpenEx }) {
   const { t } = useT();
   const st = useStore();
   const ses = st.tvSessionOf(sessionId);
   const all = st.tvSessions();
   const [rest, setRest] = useState(null);
-  const [done, setDone] = useState(false);
+  const [view, setView] = useState(() => ses?.state === "done" ? "summary" : ses && TV.countSets(ses).completed > 0 ? "guide" : "plan");
+  const done = view === "summary";
+  const setDone = (value) => { setRest(null); setView(value ? "summary" : "guide"); };
   const [eff, setEff] = useState(ses?.effort ?? 85);
   const [pain,setPain]=useState(!!ses?.painJoints?.length);
   const [technique,setTechnique]=useState((ses?.blocks||[]).filter(b=>b.techniqueFlagged).map(b=>b.id));
   const [note, setNote] = useState(ses?.note || "");
   const nonce = React.useRef(0);
-  React.useEffect(() => {
-    const h = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", h);
-    return () => document.removeEventListener("keydown", h);
-  }, [onClose]);
+  React.useEffect(() => tmEscVrstva(onClose), [onClose]);
   if (!ses) return null;
   const counts = TV.countSets(ses);
   const patch = (fn) => st.tvEditSession(sessionId, fn);
   const finish = () => {
-    st.tvEditSession(sessionId, (x) => TV.finishSession({...x,blocks:x.blocks.map(b=>({...b,techniqueFlagged:technique.includes(b.id)}))}, { effort: eff, note, painJoints: pain ? ["reported"] : [], now: Date.now() }));
+    st.tvEditSession(sessionId, (x) => TV.finishSession({...x,blocks:x.blocks.map(b=>({...b,techniqueFlagged:technique.includes(b.id)}))}, { effort: eff, note, painJoints: pain ? ["reported"] : [], now: ses.state === "done" && ses.endedAt ? ses.endedAt : Date.now() }));
     onClose();
   };
+  if (view === "plan" || view === "guide") return createPortal(
+    <div data-tm-stage data-tv-stage-view={view} style={{ position: "fixed", inset: 0, zIndex: 260, background: t.bg, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "calc(12px + env(safe-area-inset-top)) 14px calc(24px + env(safe-area-inset-bottom))" }}>
+      <div style={{ maxWidth: 560, margin: "0 auto", minHeight: "100%", display: "flex", flexDirection: "column" }}>
+        {view === "plan" ? <TvClientPlanOverview session={ses} onClose={onClose} onOpenEx={onOpenEx}
+          onStart={() => { tmAudio.unlock(); setView("guide"); }} onList={() => setView("list")} />
+          : <TvClientGuidedSession session={ses} onSession={patch} onOpenEx={onOpenEx} onClose={onClose}
+            prevFor={id => TV.lastUseOf(all, id, { who: ses.who || "", exceptSessionId: sessionId })}
+            onFinish={() => setDone(true)} onList={() => setView("list")} />}
+      </div>
+    </div>, document.body);
   return createPortal(
-    <div data-tm-stage style={{ position: "fixed", inset: 0, zIndex: 260, background: t.bg, overflowY: "auto", WebkitOverflowScrolling: "touch",
+    <div data-tm-stage data-tv-stage-view={view} style={{ position: "fixed", inset: 0, zIndex: 260, background: t.bg, overflowY: "auto", WebkitOverflowScrolling: "touch",
       padding: `calc(16px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom))` }}>
       <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -10084,26 +13573,31 @@ function TvClientRunner({ sessionId, onClose }) {
               {counts.workingDone}/{counts.working} {L("pracovních sérií", "working sets")}
             </div>
           </div>
-          <button onClick={onClose} style={{ ...tvQuiet(t), marginLeft: "auto" }}>{L("Zavřít", "Close")}</button>
+          {!done ? <button onClick={() => { setRest(null); setView("guide"); }} style={{ ...tvQuiet(t), marginLeft: "auto" }}>{L("Průvodce", "Guide")}</button> : null}
+          <button onClick={onClose} style={{ ...tvQuiet(t), marginLeft: done ? "auto" : 0 }}>{L("Zavřít", "Close")}</button>
         </div>
 
         {rest ? <TvClientRest key={rest.nonce} sec={rest.sec} onDone={() => setRest(null)} onSkip={() => setRest(null)} /> : null}
 
         {done ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: t.heading }}>{L("Hotovo", "Done")}</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: t.heading }}>{L("Shrnutí tréninku", "Workout summary")}</div>
+            <button onClick={() => setView("list")} style={{ ...tvQuiet(t), alignSelf: "flex-start" }}>{L("Zpět k sériím", "Back to sets")}</button>
             <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textSec }}>
               {counts.completed} {L("sérií zapsáno", "sets written down")} · {counts.skipped} {L("vynecháno", "skipped")}
             </div>
             <div>
               <div style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted, marginBottom: 6 }}>{L("Úsilí dne", "Effort today")}</div>
-              <TEffort value={eff} onChange={setEff} />
+              <TEffort value={eff} onChange={value=>{setEff(value);patch(s=>({...s,effort:value}));}} />
             </div>
-            <label style={{fontFamily:FONT_BODY,color:t.textSec}}><input type="checkbox" checked={pain} onChange={e=>setPain(e.target.checked)}/>{L("Při cvičení se objevila bolest", "I experienced pain while exercising")}</label>
+            <label style={{fontFamily:FONT_BODY,color:t.textSec}}><input type="checkbox" checked={pain} onChange={e=>{const value=e.target.checked;setPain(value);patch(s=>({...s,painJoints:value?["reported"]:[]}));}}/>{L("Při cvičení se objevila bolest", "I experienced pain while exercising")}</label>
             {pain?<p>{L("Bolestivý cvik neopakuj. Do poznámky napiš, kde a při čem se bolest objevila, a domluv úpravu s trenérem.", "Do not repeat the painful exercise. Note where and when it occurred and agree on an adjustment with your coach.")}</p>:null}
-            <details><summary>{L("Technika k probrání", "Technique to discuss")}</summary>{ses.blocks.map(b=><label key={b.id} style={{display:"block",padding:"7px 0"}}><input type="checkbox" checked={technique.includes(b.id)} onChange={()=>setTechnique(v=>v.includes(b.id)?v.filter(id=>id!==b.id):[...v,b.id])}/>{TL(b.name)}</label>)}</details>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={L("Poznámka pro trenéra", "A note for your coach")}
+            <details><summary>{L("Technika k probrání", "Technique to discuss")}</summary>{ses.blocks.map(b=><label key={b.id} style={{display:"block",padding:"7px 0"}}><input type="checkbox" checked={technique.includes(b.id)} onChange={()=>{const next=technique.includes(b.id)?technique.filter(id=>id!==b.id):[...technique,b.id];setTechnique(next);patch(s=>({...s,blocks:s.blocks.map(x=>({...x,techniqueFlagged:next.includes(x.id)}))}));}}/>{TL(b.name)}</label>)}</details>
+            <textarea value={note} onChange={(e) => {const value=e.target.value;setNote(value);patch(s=>({...s,note:value}));}} rows={2} aria-label={L("Poznámka k tréninku", "Workout note")} aria-describedby="tv-client-note-sharing" placeholder={L("Poznámka k tréninku", "Workout note")}
               style={{ width: "100%", background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 10, color: t.textSec, fontFamily: FONT_BODY, fontSize: 14 }} />
+            <p id="tv-client-note-sharing" style={{ margin: 0, color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5, lineHeight: 1.6 }}>{st.coll.share?.training
+              ? L("Sdílení tréninku máš zapnuté. Po synchronizaci trenér uvidí i tuto poznámku.", "Workout sharing is on. Your coach will also see this note after syncing.")
+              : L("Poznámka zůstává u tebe. Sdílení tréninku můžeš změnit v Nastavení → Místnosti a sdílení.", "This note stays with you. You can change workout sharing in Settings → Rooms and sharing.")}</p>
             <button onClick={finish} className="tm-cta" style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 12, padding: "14px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 50 }}>
               {L("Hotovo", "Done")}
             </button>
@@ -10149,7 +13643,7 @@ function TvClientPlan({ onRun }) {
     );
   }
 
-  const dateOf = (p, s) => ((sched[p.id] || {})[s.id]) || s.date || "";
+  const dateOf = (p, s) => recordFor(p, s)?.date || ((sched[p.id] || {})[s.id]) || s.date || "";
   const recordFor = (p, s) => sessions.find((x) => x.planId === p.id && x.planSessionId === s.id) || null;
 
   const start = (p, s) => {
@@ -10182,14 +13676,14 @@ function TvClientPlan({ onRun }) {
                 const isDone = rec && rec.state === "done";
                 const d = dateOf(p, s);
                 return (
-                  <div key={s.id} style={{ display: "grid", gridTemplateColumns: "26px minmax(0,1fr) 122px auto", gap: 8, alignItems: "center", padding: "8px 2px", borderTop: `1px solid ${t.borderSoft}` }}>
+                  <div key={s.id} style={{ display: "grid", gridTemplateColumns: "26px minmax(0,1fr) auto", gap: 8, alignItems: "center", padding: "8px 2px", borderTop: `1px solid ${t.borderSoft}` }}>
                     <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, color: t.textMuted }}>{s.w || i + 1}</span>
-                    <button onClick={() => setOpen(open === s.id ? null : s.id)} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: isDone ? t.textMuted : t.heading, fontFamily: FONT_BODY, fontSize: 14.5, textDecoration: isDone ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <button onClick={() => setOpen(open === s.id ? null : s.id)} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: isDone ? t.textMuted : t.heading, fontFamily: FONT_BODY, fontSize: 14.5, gridColumn:"2 / -1", textDecoration: isDone ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {tpl ? L(tpl.cz, tpl.en) : L("Trénink", "Workout")}
                     </button>
-                    <input type="date" value={d} onChange={(e) => st.tvSetSched(p.id, s.id, e.target.value)}
-                      aria-label={L("Kdy to uděláš", "When you will do it")}
-                      style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 7, padding: "6px", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12.5, minHeight: 36 }} />
+                    <input type="date" value={d} disabled={!!rec} onChange={(e) => {if(!rec)st.tvSetSched(p.id, s.id, e.target.value);}}
+                      aria-label={rec?L("Datum zaznamenaného tréninku", "Recorded workout date"):L("Kdy to uděláš", "When you will do it")}
+                      style={{ gridColumn:2,width:"100%",minWidth:0,boxSizing:"border-box", background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 7, padding: "6px", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12.5, minHeight: 36 }} />
                     <button onClick={() => start(p, s)} style={{ background: isDone ? "transparent" : t.accent, color: isDone ? t.textSec : t.onAccent, border: isDone ? `1px solid ${t.borderSoft}` : "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, minHeight: 38 }}>
                       {isDone ? L("Otevřít", "Open") : L("Začít", "Begin")}
                     </button>
@@ -10226,6 +13720,7 @@ function TvClientHistory({ onRun }) {
   const st = useStore();
   const sessions = st.tvSessions().filter((x) => x.state === "done").sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0));
   const [exId, setExId] = useState("");
+  const [visibleCount, setVisibleCount] = useState(30);
   const opts = React.useMemo(() => {
     const set = new Map();
     for (const s of sessions) for (const b of s.blocks || []) if (!set.has(b.exId)) set.set(b.exId, TL(b.name));
@@ -10265,7 +13760,7 @@ function TvClientHistory({ onRun }) {
       ) : null}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {sessions.slice(0, 30).map((s) => {
+        {sessions.slice(0, visibleCount).map((s) => {
           const c = TV.countSets(s);
           return (
             <button key={s.id} onClick={() => onRun(s.id)} className="tm-lift"
@@ -10281,6 +13776,7 @@ function TvClientHistory({ onRun }) {
           );
         })}
         {!sessions.length ? <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.textMuted }}>{L("Zatím nic zapsaného.", "Nothing written down yet.")}</div> : null}
+        {sessions.length > visibleCount && <button onClick={() => setVisibleCount(n => n + 30)} style={{alignSelf:"center",background:"transparent",color:t.accent,border:`1px solid ${t.borderSoft}`,borderRadius:10,minHeight:44,padding:"8px 16px",fontFamily:FONT_BODY,cursor:"pointer"}}>{L("Načíst další tréninky", "Load more sessions")} · {Math.min(30, sessions.length - visibleCount)}</button>}
       </div>
     </div>
   );
@@ -10300,6 +13796,7 @@ function PageTrenink() {
   const [run, setRun] = useState(null);
   const [clock, setClock] = useState(null);
   const [openEx, setOpenEx] = useState(null);
+  useGuideAction("trenink",action=>{setRun(null);setClock(null);setOpenEx(null);setTab(action==="trenink.library"?"knihovna":action==="trenink.results"?"zaznam":"dnes");});
 
   const exs = st.coll.tEx || [];
   const del = st.tvDelivered();
@@ -10312,8 +13809,9 @@ function PageTrenink() {
   const [fEq, setFEq] = useState([]);
   const [q, setQ] = useState("");
   const [fShelf, setFShelf] = useState([]);
+  const [wholeLibrary,setWholeLibrary]=useState(false);
   const filtered = exs.filter((x) =>
-    tExOnShelf(x, fShelf) &&
+    (wholeLibrary || TV.isWorkingExercise(x.id)) && tExOnShelf(x, fShelf) &&
     (!fPats.length || fPats.includes(x.pat)) &&
     (!fMus.length || fMus.some((m) => resolveMuscleMap(x).primary.includes(m) || resolveMuscleMap(x).secondary.includes(m))) &&
     (!fEq.length || fEq.some((e) => (x.eq || []).includes(e))) &&
@@ -10322,7 +13820,7 @@ function PageTrenink() {
   const sorted = [...filtered].sort((a, b) => (patOrder[a.pat] - patOrder[b.pat]) || (tLvlOf(a) - tLvlOf(b)));
   const EX_PAGE = 24;
   const [exShown, setExShown] = useState(EX_PAGE);
-  React.useEffect(() => { setExShown(EX_PAGE); }, [fPats, fMus, fEq, q, fShelf]);
+  React.useEffect(() => { setExShown(EX_PAGE); }, [fPats, fMus, fEq, q, fShelf, wholeLibrary]);
 
   // ---- dnes ----
   const today = todayISO();
@@ -10373,51 +13871,16 @@ function PageTrenink() {
       ) : null}
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18 }}>
-        {tabs.slice(0,3).map((x) => <TChip key={x.k} label={L(x.cz, x.en)} active={tab === x.k} onClick={() => setTab(x.k)} />)}
+        {tabs.slice(0,3).map((x) => <span key={x.k} data-guide={x.k === "zaznam" ? "trenink.results" : undefined} style={{display:"inline-flex"}}><TChip label={L(x.cz, x.en)} active={tab === x.k} onClick={() => setTab(x.k)} /></span>)}
       </div>
 
       <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,marginBottom:12}}>
         <button style={tvQuiet(t)} disabled={planStatus.state==="loading"} onClick={()=>window.dispatchEvent(new Event("tm-plan-refresh"))}>{L("Obnovit plán", "Refresh plan")}</button>
         <span role="status">{planStatus.state==="error"?L("Aktualizaci se nepodařilo ověřit. Poslední uložený plán zůstává dostupný.", "Could not check updates. The last saved plan remains available."):planStatus.state==="loading"?L("Ověřuji plán…", "Checking plan…"):planStatus.at?L("Plán ověřen", "Plan checked")+" · "+new Date(planStatus.at).toLocaleTimeString():""}</span>
-        <details><summary>{L("Další nástroje", "More tools")}</summary>{tabs.slice(3).map(x=><button key={x.k} style={tvQuiet(t)} onClick={()=>setTab(x.k)}>{L(x.cz,x.en)}</button>)}</details>
+        <div style={{marginLeft:"auto",display:"flex",gap:12}}>{tabs.slice(3).map(x=><button key={x.k} style={tvQuiet(t)} onClick={()=>setTab(x.k)}>{L(x.cz,x.en)}</button>)}</div>
       </div>
       {(tab === "plan" || tab === "zaznam") && <TrainingGoals t={t} plans={del?.plans || []} sessions={sessions} />}
-      {tab === "dnes" && (
-        <div className="tm-view" style={{ padding: "20px 18px", textAlign: "center" }}>
-          {todays.length ? (
-            <>
-              <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: "clamp(26px, calc(5.5 * var(--tm-vw)), 36px)", lineHeight: 1.2, color: t.heading }}>
-                {L(todays[0].tpl.cz, todays[0].tpl.en)}
-              </div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, margin: "8px 0 18px" }}>
-                {(todays[0].tpl.blocks || []).length} {L("cviků", "exercises")}
-              </div>
-              <button onClick={() => begin(todays[0])} className="tm-cta"
-                style={{ display: "inline-flex", alignItems: "center", gap: 10, background: t.accent, color: t.onAccent, border: "none", borderRadius: 12, padding: "15px 42px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 17, minHeight: 54 }}>
-                {L("Začít", "Begin")}
-              </button>
-              {todays.length > 1 ? (
-                <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, marginTop: 12 }}>
-                  {L("a pak · ", "then · ")}{todays.slice(1).map((h) => L(h.tpl.cz, h.tpl.en)).join(" · ")}
-                </div>
-              ) : null}
-            </>
-          ) : doneToday ? (
-            <>
-              <Bindu size={7} style={{ margin: "0 auto 10px" }} />
-              <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 28, color: t.heading }}>{L("Odtrénováno.", "Done for today.")}</div>
-              <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, marginTop: 6 }}>{L("Další trénink najdeš ve svém plánu.", "Find the next session in your plan.")}</div>
-            </>
-          ) : (
-            <>
-              <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 28, color: t.heading }}>{L("Dnes nic nemáš.", "Nothing today.")}</div>
-              <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, margin: "8px auto 0", maxWidth: 400, lineHeight: 1.65 }}>
-                {L("Podívej se do plánu, nebo prostě jdi. I bez zápisu to platí.", "Look at the plan, or simply go. It counts without being written down.")}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      {tab === "dnes" && <ClientTrainingCalendar t={t} lang={LANG} plans={del?.plans||[]} templates={del?.templates||[]} schedule={sched} sessions={sessions} onPlan={()=>setTab("plan")} onRun={onRunSession} onStart={row=>{const next=TV.startSession(row.template,{date:row.date||todayISO(),plan:row.plan,planSession:row.planned});st.tvPutSession(next);onRunSession(next.id);}}/>}
 
       {tab === "plan" && <TvClientPlan onRun={onRunSession} />}
       {tab === "zaznam" && <TvClientHistory onRun={onRunSession} />}
@@ -10425,6 +13888,7 @@ function PageTrenink() {
 
       {tab === "knihovna" && (
         <>
+          <div style={{display:"flex",gap:12,marginBottom:14}}><button style={tvQuiet(t)} aria-pressed={!wholeLibrary} onClick={()=>setWholeLibrary(false)}>{L("Pracovní výběr","Working library")}</button><button style={tvQuiet(t)} aria-pressed={wholeLibrary} onClick={()=>setWholeLibrary(true)}>{L("Celá knihovna","Full library")}</button></div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
             <TChip label={L("Vše", "All")} active={!fPats.length} onClick={() => setFPats([])} />
             {T_PATTERNS.map((p) => <TChip key={p.k} label={L(p.cz, p.en)} active={fPats.includes(p.k)} onClick={() => setFPats(fPats.includes(p.k) ? fPats.filter((x) => x !== p.k) : [...fPats, p.k])} />)}
@@ -10432,7 +13896,7 @@ function PageTrenink() {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
             <TMultiSel label={L("Svaly", "Muscles")} values={fMus} onChange={setFMus} options={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))} />
             <TMultiSel label={L("Vybavení", "Equipment")} values={fEq} onChange={setFEq} options={T_EQUIP.map((e) => ({ v: e.k, label: L(e.cz, e.en) }))} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ ...inpStyle, width: 160 }} />
+            <input data-guide="trenink.library" aria-label={L("Hledat cvik","Search exercises")} value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ ...inpStyle, width: 160 }} />
             <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginLeft: "auto" }}>{sorted.length} {L("cviků", "exercises")}</span>
           </div>
           <div className="tm-reveal" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(235px, 1fr))", gap: 12 }}>
@@ -10446,9 +13910,9 @@ function PageTrenink() {
         </>
       )}
 
-      {run && <TvClientRunner sessionId={run} onClose={() => setRun(null)} />}
+      {run && <TvClientRunner sessionId={run} onClose={() => setRun(null)} onOpenEx={setOpenEx} />}
       {clock && <TmStage program={clock.program} name={clock.name} mode={clock.mode} onClose={() => setClock(null)} />}
-      {openEx && <TExDetail exId={openEx} onClose={() => setOpenEx(null)} onOpen={(id) => setOpenEx(id)} />}
+      {openEx && (run ? <TvClientExerciseDetail exId={openEx} onClose={() => setOpenEx(null)} /> : <TExDetail exId={openEx} onClose={() => setOpenEx(null)} onOpen={(id) => setOpenEx(id)} />)}
     </>
   );
 }
@@ -10555,7 +14019,7 @@ function OfflineBadge() {
    Nová významná verze se smí ukázat i tomu, kdo starou už viděl. Starý
    `tmGuideSeen` se čte jako verze 1 a nikdy se nemaže; nic jiného
    v nastavení se tím nedotkne. */
-const TM_GUIDE_VERZE = 3;
+const TM_GUIDE_VERZE = APP_GUIDE_VERSION;
 const tmGuideVidel = () => {
   try {
     const v = parseInt(localStorage.getItem("tmGuideVersion") || "", 10);
@@ -10879,7 +14343,7 @@ async function bkcFetch(path, opts) {
   if (o.body !== undefined) { init.body = JSON.stringify(o.body); init.headers["Content-Type"] = "application/json"; }
   if (o.idempotencyKey) init.headers["Idempotency-Key"] = o.idempotencyKey;
   let res;
-  try { res = await fetch(BKC_API + path, init); }
+  try { res = await clientFetch(BKC_API + path, init); }
   catch (e) { const err = new Error("network"); err.code = "OFFLINE"; throw err; }
   let body = null;
   try { body = await res.json(); } catch (e) { body = null; }
@@ -10905,17 +14369,24 @@ const bkcWhen = (ms, tz) => bkcDay(BK.localDateISO(ms, tz || bkcTz())) + " · " 
 const bkcCredits = (n) => BK.credits(n, LANG);
 
 function useBkc(path, deps, opts) {
-  const [state, setState] = useState({ data: null, err: null, loading: true });
-  const ziv = React.useRef(true);
+  const [state, setState] = useState({ path, data: null, err: null, loading: true });
+  const request = React.useRef(0);
+  const skip = !!(opts && opts.skip);
   const nacti = React.useCallback(() => {
-    setState((s) => ({ ...s, loading: true }));
+    const version = ++request.current;
+    setState((s) => ({ path, data: s.path === path ? s.data : null, err: null, loading: true }));
     bkcFetch(path).then(
-      (b) => { if (ziv.current) setState({ data: b, err: null, loading: false }); },
-      (e) => { if (ziv.current) setState((s) => ({ data: s.data, err: e, loading: false })); }
+      (b) => { if (version === request.current) setState({ path, data: b, err: null, loading: false }); },
+      (e) => { if (version === request.current) setState({ path, data: null, err: e, loading: false }); }
     );
   }, [path]);
-  React.useEffect(() => { ziv.current = true; if (!(opts && opts.skip)) nacti(); return () => { ziv.current = false; }; }, deps || [path]);
-  return { ...state, reload: nacti };
+  React.useEffect(() => {
+    if (!skip) nacti();
+    // Superseded paths, retries and unmounted views cannot publish stale slots.
+    return () => { request.current++; };
+  }, [path, skip, ...(deps || [])]);
+  const current = state.path === path ? state : { data: null, err: null, loading: true };
+  return { ...current, reload: nacti };
 }
 
 function BkcStav({ status }) {
@@ -10970,6 +14441,7 @@ function PageTerminy() {
   const [rezervuji, setRezervuji] = useState(false);
   const [otevreny, setOtevreny] = useState(null);
   const [obnov, setObnov] = useState(0);
+  useGuideAction("terminy",()=>{setRezervuji(false);setOtevreny(null);});
   const ctx = useBkc("/booking/context", [obnov]);
   const moje = useBkc("/bookings", [obnov]);
   const znovu = () => setObnov((x) => x + 1);
@@ -10981,7 +14453,7 @@ function PageTerminy() {
 
   return (
     <>
-      <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPraxe size={38} /></span>} kicker={L("Kdy se vidíme.", "When we meet.")}>{L("Termíny", "Sessions")}</PageTitle>
+      <PageTitle guide="terminy.bookings" pageKey="terminy" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPraxe size={38} /></span>} kicker={L("Kdy se vidíme.", "When we meet.")}>{L("Termíny", "Sessions")}</PageTitle>
 
       {ctx.loading && !ctx.data && <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, fontStyle: "italic" }}>{L("Načítám…", "Loading…")}</p>}
       {ctx.err && <BkcHlaska e={ctx.err} onRetry={znovu} />}
@@ -11015,9 +14487,11 @@ function PageTerminy() {
       {/* Když si rezervovat nejde, řekne se to rovnou — prázdný kalendář
           plný zašedlých buněk nikomu nic nevysvětlí. */}
       {ctx.data && !c.enabled && (
-        <div style={{ marginBottom: 22 }}>
+        <div data-guide="terminy.calendar" style={{ marginBottom: 22 }}>
           <p className="tm-prose" style={pProse(t)}>
-            {c.reason === "NO_CREDIT" || c.reason === "NO_CLIENT"
+            {c.reason === "NO_CLIENT"
+              ? L("Rezervace pro tebe zatím nejsou otevřené. Domluv se s Tanmayem.", "Booking is not open for you yet. Talk to Tanmay.")
+              : c.reason === "NO_CREDIT"
               ? L("Nemáš teď aktivní kredit pro rezervaci. Domluv se s Tanmayem.", "You have no active credit for booking right now. Talk to Tanmay.")
               : L("Zatím tu pro tebe není otevřená žádná služba. Domluv se s Tanmayem.", "No service is open for you yet. Talk to Tanmay.")}
           </p>
@@ -11025,7 +14499,7 @@ function PageTerminy() {
       )}
 
       {ctx.data && c.enabled && !rezervuji && (
-        <button onClick={() => setRezervuji(true)} style={{ ...bkcBtn(t, true), marginBottom: 24 }}>{L("Rezervovat", "Book a session")}</button>
+        <button data-guide="terminy.calendar" onClick={() => setRezervuji(true)} style={{ ...bkcBtn(t, true), marginBottom: 24 }}>{L("Rezervovat", "Book a session")}</button>
       )}
 
       {rezervuji && <BkcRezervace ctx={c} onClose={() => setRezervuji(false)} onDone={() => { setRezervuji(false); znovu(); }} />}
@@ -11054,6 +14528,19 @@ function PageTerminy() {
 /* ════════ REZERVACE · čtyři kroky ══════════════════════════════════════
    Služba → místo → čas → souhrn. Nic víc. Tlačítko na konci se jmenuje
    Rezervovat, ne Dokončit objednávku: nic se tu nekupuje. */
+function BkcKrok({ n, label, children, hotovo }) {
+  const { t } = useT();
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span style={{ width: 20, height: 20, borderRadius: "50%", background: hotovo ? t.accent : "transparent", border: `1px solid ${hotovo ? t.accent : t.border}`, color: hotovo ? t.onAccent : t.textMuted, fontFamily: FONT_TAG, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n}</span>
+        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage }}>{label}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function BkcRezervace({ ctx, onClose, onDone }) {
   const { t } = useT();
   const sluzby = ctx.services || [];
@@ -11083,15 +14570,6 @@ function BkcRezervace({ ctx, onClose, onDone }) {
       });
   };
 
-  const Krok = ({ n, label, children, hotovo }) => (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ width: 20, height: 20, borderRadius: "50%", background: hotovo ? t.accent : "transparent", border: `1px solid ${hotovo ? t.accent : t.border}`, color: hotovo ? t.onAccent : t.textMuted, fontFamily: FONT_TAG, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n}</span>
-        <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage }}>{label}</span>
-      </div>
-      {children}
-    </div>
-  );
 
   return (
     <div style={{ border: `1px solid ${t.border}`, borderRadius: 16, padding: "16px 16px 20px", marginBottom: 24 }}>
@@ -11100,7 +14578,7 @@ function BkcRezervace({ ctx, onClose, onDone }) {
         <button onClick={onClose} aria-label={L("Zavřít", "Close")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, width: 34, height: 34, cursor: "pointer", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
       </div>
 
-      <Krok n="1" label={L("Co", "What")} hotovo={!!sid}>
+      <BkcKrok n="1" label={L("Co", "What")} hotovo={!!sid}>
         {sluzby.map((s) => (
           <button key={s.id} onClick={() => setSid(s.id)}
             style={{ display: "block", width: "100%", textAlign: "left", background: sid === s.id ? hexA(t.accent, 0.1) : "transparent",
@@ -11114,27 +14592,27 @@ function BkcRezervace({ ctx, onClose, onDone }) {
               ? <span style={{ display: "block", fontSize: 13, color: t.textSec, marginTop: 5, lineHeight: 1.55 }}>{LANG === "cs" ? s.descriptionCs : s.descriptionEn}</span> : null}
           </button>
         ))}
-      </Krok>
+      </BkcKrok>
 
       {sid && mista.length > 1 && (
-        <Krok n="2" label={L("Kde", "Where")} hotovo={!!lid}>
+        <BkcKrok n="2" label={L("Kde", "Where")} hotovo={!!lid}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {mista.map((m) => (
               <button key={m.id} onClick={() => setLid(m.id)}
                 style={{ ...bkcBtn(t, lid === m.id), fontSize: 14 }}>{bkcName(m)}</button>
             ))}
           </div>
-        </Krok>
+        </BkcKrok>
       )}
 
       {sid && (mista.length <= 1 || lid) && (
-        <Krok n={mista.length > 1 ? "3" : "2"} label={L("Kdy", "When")} hotovo={!!cas}>
+        <BkcKrok n={mista.length > 1 ? "3" : "2"} label={L("Kdy", "When")} hotovo={!!cas}>
           <BkcSloty serviceId={sid} locationId={misto ? misto.id : null} vybrany={cas} onPick={setCas} />
-        </Krok>
+        </BkcKrok>
       )}
 
       {cas && (
-        <Krok n={mista.length > 1 ? "4" : "3"} label={L("Souhrn", "Summary")} hotovo={false}>
+        <BkcKrok n={mista.length > 1 ? "4" : "3"} label={L("Souhrn", "Summary")} hotovo={false}>
           <div style={{ background: t.callout, borderRadius: 12, padding: "14px 16px", fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.8, color: t.text }}>
             <div>{bkcName(sluzba)} · {sluzba.durationMin} min</div>
             {misto && <div style={{ color: t.textSec }}>{bkcName(misto)}</div>}
@@ -11153,7 +14631,7 @@ function BkcRezervace({ ctx, onClose, onDone }) {
           <button disabled={posilam} onClick={posli} style={{ ...bkcBtn(t, true), marginTop: 14, width: "100%" }}>
             {posilam ? L("Odesílám…", "Sending…") : L("Rezervovat", "Book it")}
           </button>
-        </Krok>
+        </BkcKrok>
       )}
       {chyba && !cas && <BkcHlaska e={chyba} />}
     </div>
@@ -11718,8 +15196,14 @@ export default function App() {
   // Bez tohohle zněla anglická verze česky vyslovená.
   React.useEffect(() => { try { document.documentElement.lang = lang === "cs" ? "cs" : "en"; } catch (e) {} }, [lang]);
   const [page, setPage] = useState("praxe"); // the house opens into the day · Praxe is the threshold
+  const startupNavigation = React.useRef(createClientStartupNavigation());
+  const startupRequest = React.useRef(typeof location !== "undefined" ? new URL(location.href).searchParams.get("open") : null);
+  const navigationUsed = React.useRef(false);
+  const [coll, setColl] = useState(() => (typeof window !== "undefined" ? loadColl() : { goals: {}, journal: [], notebook: [] }));
   const [menuOpen, setMenuOpen] = useState(false);
+  const [findOpen, setFindOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [guideRequest,setGuideRequest] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [member, setMember] = useState(null); // null = zjišťuje se / offline, false = brána
   const [memberName, setMemberName] = useState("");
@@ -11743,41 +15227,49 @@ export default function App() {
   // `""` = offline nebo starší Worker bez otisku, jinak otisk vlastníka.
   const [ownerId, setOwnerId] = useState(null);
   const [ownerSwitched, setOwnerSwitched] = useState(false);
+  const [accountStatus, setAccountStatus] = useState("loading");
+  const [stateHydrated, setStateHydrated] = useState(false);
   React.useEffect(() => {
     let dead = false;
-    fetch("/api/me", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((b) => {
-        if (dead) return;
-        if (b && typeof b.member === "boolean") { setMember(b.member); setMemberName(b.name || ""); }
-        const tag = (b && b.owner) || "";
-        if (tag) {
-          const prev = ownerLoad();
-          if (prev && prev !== tag) {
-            // U klávesnice sedí někdo jiný než minule. Cizí dokument stranou —
-            // ale jen když si nový otisk umíme zapsat. Kdyby ten zápis selhal,
-            // odkládali bychom obsah znovu při každém dalším otevření.
-            ownerSave(tag);
-            if (ownerLoad() === tag) {
-              ownerQuarantine(prev);
-              setColl(COLL_EMPTY());
-              setEdits({});
-              setOwnerSwitched(true);
-            }
-          } else {
-            ownerSave(tag);
-          }
-        }
-        setOwnerId(tag);
-      })
-      .catch(() => { if (!dead) setOwnerId(""); });
-    return () => { dead = true; };
+    clientAccount.initializeWith(async data => {
+      const prev = ownerLoad(), tag = data.owner;
+      if (prev && prev !== tag) {
+        await ownerQuarantine(prev);
+        window.localStorage.setItem("tm_files_namespace", "tanmay_files_" + tag);
+        setColl(COLL_EMPTY()); setEdits({});
+        _collRef.current = COLL_EMPTY(); _editsRef.current = {};
+        histRef.current = { past: [], future: [], last: 0 };
+        setOwnerSwitched(true);
+      }
+      if (prev === tag && typeof caches !== "undefined") {
+        // This compatibility copy is optional; a full cache keeps the old
+        // originals intact and must not prevent opening the verified account.
+        await scopeLegacyClientPins(caches, tag, () => ownerLoad() === tag).catch(() => {});
+      }
+      if (ownerLoad() !== prev) throw new Error("account changed during local recovery");
+      ownerSave(tag);
+      if (ownerLoad() !== tag) throw new Error("owner storage unavailable");
+    });
+    const reflect = state => {
+      if (dead) return;
+      setAccountStatus(state.status);
+      if (typeof state.member === "boolean") { setMember(state.member); setMemberName(state.name); }
+      if (state.owner && ["ready", "membership"].includes(state.status)) setOwnerId(state.owner);
+    };
+    const unsubscribe = clientAccount.subscribe(reflect);
+    reflect(clientAccount.getSnapshot());
+    const verify = () => { if (document.visibilityState !== "hidden") clientAccount.verify(); };
+    const storage = event => { if (event.key === LS_OWNER) clientAccount.localOwnerChanged(event.newValue); };
+    verify();
+    window.addEventListener("online", verify); window.addEventListener("focus", verify); window.addEventListener("pageshow", verify);
+    window.addEventListener("storage", storage); document.addEventListener("visibilitychange", verify);
+    return () => { dead = true; unsubscribe(); window.removeEventListener("online", verify); window.removeEventListener("focus", verify); window.removeEventListener("pageshow", verify); window.removeEventListener("storage", storage); document.removeEventListener("visibilitychange", verify); };
   }, []);
   const saveName = (name) => {
     const v = String(name || "").trim();
     if (v === memberName) return;
     setMemberName(v);
-    fetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: v }) }).catch(() => {});
+    clientFetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: v }) }).catch(() => {});
   };
   const [personalTarget,setPersonalTarget] = useState({});
   const [settingsSection,setSettingsSection] = useState("");
@@ -11822,9 +15314,7 @@ export default function App() {
   const tabFirstRef = React.useRef(true);
   const dockAnimRef = React.useRef(false);
 
-  React.useEffect(() => {
-    try { if (TM_GUIDE_AUTOSHOW && typeof localStorage !== "undefined" && tmGuideVidel() < TM_GUIDE_VERZE) setGuideOpen(true); } catch (e) {}
-  }, []);
+  const guideConsidered = React.useRef(false);
   const [sideHidden, setSideHidden] = useState(() => { try { return localStorage.getItem("tm-side-hidden") === "1"; } catch (e) { return false; } });
   const toggleSide = () => setSideHidden((h) => { const n = !h; try { localStorage.setItem("tm-side-hidden", n ? "1" : "0"); } catch (e) {} return n; });
   // ---- mobile · a swipe from the left edge opens the menu, a left swipe closes it.
@@ -11840,6 +15330,48 @@ export default function App() {
       m.setAttribute("content", (m.getAttribute("content") || "") + ", viewport-fit=cover");
     }
   }, []);
+  // Pevné rozvržení na telefonu · dvojklep ani dva prsty s ním nehnou.
+  // Meta patří do index.html, ale odsud ji umíme přepsat i za běhu, takže
+  // to funguje i bez zásahu do Workers projektu.
+  React.useEffect(() => {
+    try {
+      let m = document.querySelector('meta[name="viewport"]');
+      if (!m) { m = document.createElement("meta"); m.setAttribute("name", "viewport"); document.head.appendChild(m); }
+      // MĚŘÍTKO ROZHRANÍ · minule to nefungovalo kvůli jedné větě ve specifikaci:
+      // když je ve výřezu zároveň `width` i `initial-scale`, prohlížeč vezme
+      // VĚTŠÍ z obou šířek. `width=305, initial-scale=1` na 390px displeji tedy
+      // skončilo na 390 — zvětšování nedělalo nic. A `width=424` naopak vyhrálo
+      // nad initial-scale, takže zmenšování zabralo, ale rozhodilo rozvržení,
+      // protože měřítko okna nikdo nesrovnal.
+      // Řešení: `width` vůbec neuvádět. Samotné initial-scale šířku výřezu
+      // odvodí (displej ÷ měřítko) a min/max ho zamknou, takže zůstane vypnuté
+      // i gesto přiblížení dvěma prsty.
+      const sc = readScale();
+      const rd = (v) => { try { document.documentElement.style.setProperty("--tm-read", v); } catch (e) {} };
+      const one = Math.abs(sc - 1) < 0.005;
+      const q = Math.round(sc * 1000) / 1000;
+      m.setAttribute("content", one
+        ? "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover"
+        : "initial-scale=" + q + ", minimum-scale=" + q + ", maximum-scale=" + q + ", viewport-fit=cover");
+      // Zabralo to? Na počítači se výřez ignoruje — tam ať se zvětší aspoň
+      // čtený text, jinak by nastavení nedělalo vůbec nic.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        try {
+          const w = document.documentElement.clientWidth || 0;
+          const scr = (window.screen && window.screen.width) || w;
+          const took = one || Math.abs(w - scr / sc) < Math.max(8, scr * 0.06);
+          rd(took ? "1" : String(sc));
+        } catch (e) { rd("1"); }
+      }));
+      const stop = (e) => { if (e.touches && e.touches.length > 1) e.preventDefault(); };
+      document.addEventListener("touchmove", stop, { passive: false });
+      let last = 0;
+      const dbl = (e) => { const n = Date.now(); if (n - last < 320) e.preventDefault(); last = n; };
+      document.addEventListener("touchend", dbl, { passive: false });
+      return () => { document.removeEventListener("touchmove", stop); document.removeEventListener("touchend", dbl); };
+    } catch (e) {}
+  }, [coll.readScale]);
+
   const swipeRef = React.useRef(null);
   const rootTouchStart = (e) => {
     if (window.innerWidth > 820) { swipeRef.current = null; return; } // desktop: no gesture, no overlay
@@ -11861,20 +15393,20 @@ export default function App() {
   // do dneška rychle po sobě by se jinak přepsaly — druhý zápis by četl
   // zastaralý snímek a první by z něj vypadl.
   const updateDay = (date, patch) => setEdits((prev) => {
+    if (clientAccount.getSnapshot().status === "changed") return prev;
     const stary = prev[date] || {};
     const p = typeof patch === "function" ? patch(stary) : patch;
     const next = { ...prev, [date]: { ...stary, ...p } };
     saveEdits(next);
     return next;
   });
-  const habitDefs = () => (coll.habitDefs || HABIT_DEFAULTS).map((x) => (x.name ? x : { ...x, name: L(x.cz || "", x.en || "") }));
+  const habitDefs = () => clientHabitDefinitions(coll, edits, HABIT_DEFAULTS).map((x) => (x.name ? x : { ...x, name: L(x.cz || "", x.en || "") }));
   const activeHabits = () => habitDefs().filter((x) => !x.archived);
   const setHabitDefs = (list) => persistColl((c) => ({ ...c, habitDefs: list }));
   const dayStatusLabels = () => coll.dayStatusLabels || {};
   const setDayStatusLabel = (key, label) => persistColl((c) => ({ ...c, dayStatusLabels: { ...(c.dayStatusLabels || {}), [key]: label } }));
-  const getDay = (date) => { const base = FLOW_BY[date] || { d: date, s: "", h: EMPTY_H }; const e = edits[date] || {}; const h = e.h || base.h || EMPTY_H; const sVal = e.s != null ? e.s : (base.s || ""); const actSlots = ((coll.habitDefs || HABIT_DEFAULTS).filter((x) => !x.archived)).map((x) => x.slot); const c = actSlots.reduce((a, sl) => a + (h[sl] ? 1 : 0), 0); return { d: date, h, s: sVal, c, p: Math.round((c / Math.max(1, actSlots.length)) * 100), sched: e.sched || {}, note: e.note || "", plan: e.plan || {}, tasks: e.tasks || [], wb: e.wb || null }; };
+  const getDay = (date) => { const base = FLOW_BY[date] || { d: date, s: "", h: EMPTY_H }; const e = edits[date] || {}; const h = e.h || base.h || EMPTY_H; const sVal = e.s != null ? e.s : (base.s || ""); const actSlots = activeHabits().map((x) => x.slot); const c = actSlots.reduce((a, sl) => a + (h[sl] ? 1 : 0), 0); return { d: date, h, s: sVal, c, p: Math.round((c / Math.max(1, actSlots.length)) * 100), sched: e.sched || {}, note: e.note || "", plan: e.plan || {}, tasks: e.tasks || [], wb: e.wb || null }; };
   const has = (date) => !!(FLOW_BY[date] || edits[date]);
-  const [coll, setColl] = useState(() => (typeof window !== "undefined" ? loadColl() : { goals: {}, journal: [], notebook: [] }));
   // Kam se má otevřít, když se sem přišlo odjinud (z hledání, z dnešního cíle).
   const [openTarget, setOpenTarget] = useState(null); // { kind: "goal"|"area", id }
   const [editMode, setEditMode] = useState(false);
@@ -11904,6 +15436,7 @@ export default function App() {
      pořád přijme, ale ohlásí se — a test hlídá, že ve zdroji žádné takové
      volání není. */
   const persistColl = (updater) => setColl((prev) => {
+    if (clientAccount.getSnapshot().status === "changed") return prev;
     if (typeof updater !== "function" && typeof console !== "undefined") {
       try { console.error("persistColl dostal hotový objekt místo aktualizace — hrozí přepsání cizího zápisu", updater); } catch (e) {}
     }
@@ -11958,6 +15491,7 @@ export default function App() {
   const _editsRef = React.useRef(edits); _editsRef.current = edits;
   React.useEffect(() => {
     window.tmMigrateMedia = async (dryRun = false) => {
+      if (!await clientAccount.verify() || !_syncReady.current) return { aborted: true };
       const stats = { found: 0, foundImg: 0, uploaded: 0, failed: 0, skipped: 0 };
       const nc = await migrateNode(JSON.parse(JSON.stringify(_collRef.current)), stats, dryRun);
       const ne = await migrateNode(JSON.parse(JSON.stringify(_editsRef.current)), stats, dryRun);
@@ -11967,6 +15501,8 @@ export default function App() {
     };
     // Přílohy uložené offline pošleme nahoru, jakmile je signál.
     window.tmPrilohyNahoru = async () => {
+      if (!await clientAccount.verify() || !_syncReady.current) return { cekalo: 0, nahrano: 0, aborted: true };
+      const owner = clientAccount.getSnapshot().owner;
       const cekaji = new Map();
       tmMistniPrilohy(_collRef.current, cekaji);
       tmMistniPrilohy(_editsRef.current, cekaji);
@@ -11980,7 +15516,7 @@ export default function App() {
           hotove.add(id);
         } catch (e) { /* zkusí se příště */ }
       }
-      if (hotove.size) {
+      if (hotove.size && clientAccount.isCurrent(owner)) {
         // Místní kopie se maže až potom, co je povýšený odkaz zapsaný.
         let ulozeno = 0;
         setColl((prev) => { const nx = tmPovysPrilohy(prev, hotove); if (nx !== prev && saveColl(nx)) ulozeno++; return nx; });
@@ -11990,6 +15526,7 @@ export default function App() {
       return { cekalo: cekaji.size, nahrano: hotove.size };
     };
     window.tmGcFiles = async (dryRun = false, ignoreAge = false) => {
+      if (!await clientAccount.verify() || !_syncReady.current) return { stored: 0, deleted: 0, aborted: true };
       const refs = new Set();
       collectFileRefs(_collRef.current, refs);
       collectFileRefs(_editsRef.current, refs);
@@ -12001,7 +15538,7 @@ export default function App() {
       // na které se jen nepovedlo podívat.
       try { const sv = await syncFetch("/api/state"); if (sv.druh === SYNC_OK && sv.telo && sv.telo.doc) { collectFileRefs(sv.telo.doc, refs); stateOk = true; } } catch (e) {}
       let files = [];
-      try { const lr = await fetch("/api/files", { cache: "no-store" }); files = (await lr.json()).files || []; } catch (e) {}
+      try { const lr = await clientFetch("/api/files", { cache: "no-store" }); files = (await lr.json()).files || []; } catch (e) {}
       const cutoff = Date.now() - 24 * 60 * 60 * 1000;
       const orphansAll = files.filter((f) => !refs.has(f.id));
       // Never delete files younger than ~24h: their reference may not have synced yet.
@@ -12022,7 +15559,7 @@ export default function App() {
           console.warn("[file gc] aborted: " + orphans.length + "/" + files.length + " orphans - too many");
           return { stored: files.length, referenced: refs.size, orphans: orphans.length, deleted: 0, aborted: true };
         }
-        for (const f of orphans) { try { await fetch("/api/files/" + encodeURIComponent(f.id), { method: "DELETE" }); } catch (e) {} }
+        for (const f of orphans) { try { await clientFetch("/api/files/" + encodeURIComponent(f.id), { method: "DELETE" }); } catch (e) {} }
       }
       const out = { stored: files.length, referenced: refs.size, orphans: orphansAll.length, eligible: orphans.length, tooYoung, deleted: dryRun ? 0 : orphans.length };
       console.log("[file gc]", dryRun ? "DRY RUN - nothing deleted" : "APPLIED", out);
@@ -12068,7 +15605,7 @@ export default function App() {
     // NÁVYKY · jen počty za posledních 30 dní a jména návyků. Žádná poznámka,
     // žádný text, žádný stav dne.
     if (sh.habits) {
-      const defs = (c.habitDefs || HABIT_DEFAULTS);
+      const defs = clientHabitDefinitions(c, e, HABIT_DEFAULTS);
       const dnes = new Date(todayISO() + "T12:00:00");
       const days = [];
       for (let i = 0; i < SHARE_WINDOW_DAYS; i++) {
@@ -12168,25 +15705,29 @@ export default function App() {
   };
   // Jedno odeslání. Vrátí true, když server dokument přijal. Bez kontroly
   // verze jen tehdy, když ji volající sám právě provedl (vědomé přepsání).
-  const _push = async (opts) => {
+  const _documentSyncQueue = React.useRef(createDocumentSyncQueue());
+  const _push = (opts) => _documentSyncQueue.current(async () => {
+    if (!_syncReady.current || !clientAccount.isCurrent(ownerId)) return false;
     const c = _collRef.current, e = _editsRef.current;
     const cur = _serializeDoc(c, e);
+    let baseVersion = _ver.current;
     if (!(opts && opts.force)) {
       if (cur === _lastSynced.current) return true; // nic nového
       const m = await _readVer();
-      if (m && m.ver > _ver.current) {
+      if (!m) return false;
+      if (m && m.ver > baseVersion) {
         // Teprve teď stojí za to stáhnout celý dokument.
         const s = await _readServer();
-        if (s && s.doc && s.doc.coll && s.ver > _ver.current) { setConflict({ doc: s.doc, ver: s.ver }); return false; }
-        if (s) _ver.current = Math.max(_ver.current, s.ver);
+        if (s && s.doc && s.doc.coll && s.ver > baseVersion) { setConflict({ doc: s.doc, ver: s.ver }); return false; }
+        if (s) baseVersion = Math.max(baseVersion, s.ver);
       } else if (m) {
-        _ver.current = Math.max(_ver.current, m.ver);
+        baseVersion = Math.max(baseVersion, m.ver);
       }
     }
     const v = await syncFetch("/api/state", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ doc: { coll: c, edits: e }, share: _shareOf(c, e), baseVersion: _ver.current }),
+      body: JSON.stringify({ doc: { coll: c, edits: e }, share: _shareOf(c, e), baseVersion }),
     });
     // Stav 200 sám o sobě není potvrzení zápisu: přihlašovací stránka Accessu
     // i SPA fallback ho vrací taky. Rozhoduje tělo odpovědi.
@@ -12198,13 +15739,14 @@ export default function App() {
     if (v.druh !== SYNC_OK) { oznamSelhani(v); return false; }
     const pv = (v.telo && v.telo.version) || 0;
     if (v.telo && v.telo.bytes) setDocBytes(v.telo.bytes); if (v.telo && v.telo.limit) setDocLimit(v.telo.limit);
-    _ver.current = pv || _ver.current + 1;
+    _ver.current = Math.max(_ver.current, pv || baseVersion + 1);
     _lastSynced.current = cur;
     syncMarkSave(_ver.current, tmDocSig(cur));
-    setSyncErr(null); setSyncPending(false);
+    _dirty.current = _serializeDoc(_collRef.current, _editsRef.current) !== cur;
+    setSyncErr(null); setSyncPending(_dirty.current);
     setSyncOdlozeno(false); _druhSelhani.current = null; // prošlo · příští selhání je nová epizoda
     return true;
-  };
+  });
   const _pushRef = React.useRef(_push); _pushRef.current = _push;
   // „Zkusit znovu" v proužku. Když úvodní čtení nikdy neprošlo, nemá smysl
   // posílat — zopakuje se celé podání ruky.
@@ -12223,10 +15765,13 @@ export default function App() {
   React.useEffect(() => {
     // Dokud nevíme, komu úložiště patří, neodesíláme nic a nic nepřijímáme.
     if (ownerId === null) return;
+    if (member !== true) return;
     let dead = false;
     let gc = null;
+    let reading = false;
     const syncOnce = async () => {
-      if (dead || _syncReady.current) return;
+      if (dead || reading || _syncReady.current) return;
+      reading = true;
       try {
         // Přes syncFetch: 200 s HTML (přihlašovací stránka Accessu nebo SPA
         // fallback) se dřív dalo přečíst jako platnou odpověď.
@@ -12244,7 +15789,8 @@ export default function App() {
         const mine = _serializeDoc(_collRef.current, _editsRef.current);
         const nepreneseno = !!mark && mark.sig !== tmDocSig(mine);
         const serverPosunut = !!mark && sver > (mark.v || 0);
-        if (sdoc && typeof sdoc === "object" && sdoc.coll && !_dirty.current && !nepreneseno) {
+        const decision = bootstrapSyncDecision({ hasRemote: !!(sdoc && typeof sdoc === "object" && sdoc.coll), changedDuringRead: _dirty.current, unsynced: nepreneseno, serverAdvanced: serverPosunut });
+        if (decision === "remote") {
           // server holds a real document AND we have no unsynced local work -> adopt it
           // Chybějící `edits` na serveru neznamená „smaž denní záznamy".
           const se = (sdoc.edits && typeof sdoc.edits === "object") ? sdoc.edits : _editsRef.current;
@@ -12254,26 +15800,32 @@ export default function App() {
           _lastSynced.current = cur;
           _ver.current = sver;
           syncMarkSave(sver, tmDocSig(cur));
-        } else if (sdoc && typeof sdoc === "object" && sdoc.coll && nepreneseno && serverPosunut) {
+          _dirty.current = false;
+        } else if (decision === "conflict") {
           // obojí se pohnulo · tady se nerozhoduje za člověka
-          _ver.current = mark.v || 0;
+          _ver.current = mark?.v || 0;
           _lastSynced.current = mine;
           setConflict({ doc: sdoc, ver: sver });
         } else {
           // no valid server document yet, OR we hold local work the server has
           // not seen -> keep local and push it (never clobber the user's writes)
-          if (_dirty.current || nepreneseno || (JSON.stringify(_collRef.current) || "").length > 1000) {
+          if (_dirty.current || nepreneseno || mine !== _serializeDoc(COLL_EMPTY(), {})) {
             const pv0 = await syncFetch("/api/state", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ doc: { coll: _collRef.current, edits: _editsRef.current }, share: _shareOf(_collRef.current, _editsRef.current) }),
+              body: JSON.stringify({ doc: { coll: _collRef.current, edits: _editsRef.current }, share: _shareOf(_collRef.current, _editsRef.current), baseVersion: sver }),
             });
+            if (pv0.stav === 409 && pv0.telo?.code === "conflict") {
+              const remote = await _readServer();
+              if (remote?.doc?.coll) { setConflict({ doc: remote.doc, ver: remote.ver }); _syncReady.current = true; setStateHydrated(true); return; }
+            }
             if (pv0.druh !== SYNC_OK) { oznamSelhani(pv0); throw new Error("state PUT " + pv0.stav); }
             const pv = (pv0.telo && pv0.telo.version) || 0;
             if (pv0.telo && pv0.telo.bytes) setDocBytes(pv0.telo.bytes);
             _ver.current = pv || sver + 1;
             syncMarkSave(_ver.current, tmDocSig(mine));
-            setSyncErr(null); setSyncPending(false);
+            _dirty.current = _serializeDoc(_collRef.current, _editsRef.current) !== mine;
+            setSyncErr(null); setSyncPending(_dirty.current);
             setSyncOdlozeno(false); _druhSelhani.current = null;
           } else {
             _ver.current = sver;
@@ -12281,6 +15833,7 @@ export default function App() {
           _lastSynced.current = mine;
         }
         _syncReady.current = true;
+        setStateHydrated(true);
         // Safety-net garbage collection, once per load, in the background.
         // Respects the 24h age guard, so freshly-uploaded files are never touched.
         gc = setTimeout(() => { try { window.tmGcFiles && window.tmGcFiles(false); } catch (e) {} }, 8000);
@@ -12289,7 +15842,7 @@ export default function App() {
         // network comes back. Bez tohohle se relace zahájená offline
         // nesynchronizovala až do dalšího načtení stránky.
         _syncReady.current = false;
-      }
+      } finally { reading = false; }
     };
     syncOnce();
     _syncOnceRef.current = syncOnce;
@@ -12302,7 +15855,7 @@ export default function App() {
     };
     window.addEventListener("online", onOnline);
     return () => { dead = true; window.removeEventListener("online", onOnline); if (gc) clearTimeout(gc); };
-  }, [ownerId]);
+  }, [ownerId, member]);
   // DVĚ OTEVŘENÉ KARTY · sdílejí jedno úložiště a o sobě nevěděly. Druhá karta
   // držela stav z chvíle, kdy se otevřela, a prvním zápisem přepsala celý
   // dokument zpátky. Cizí zápis se pozná a buď se tiše dorovná (nemáme co
@@ -12310,6 +15863,7 @@ export default function App() {
   React.useEffect(() => {
     const onStorage = (e) => {
       if (!e || (e.key !== LS_COLL && e.key !== LS_KEY)) return;
+      if (!clientAccount.isCurrent(ownerLoad())) return;
       if (e.newValue == null) return;
       let c = null, ed = {};
       try {
@@ -12347,12 +15901,13 @@ export default function App() {
   // Delivered plans refresh independently of private client state.
   React.useEffect(() => {
     if (ownerId === null) return;
+    if (!stateHydrated || member !== true || conflict) return;
     let dead=false, sequence=0;
     const announce = detail => window.dispatchEvent(new CustomEvent("tm-plan-status",{detail}));
     const pull = async () => {
       const requestId=++sequence; announce({state:"loading"});
       try {
-        const r=await fetch("/api/plan",{cache:"no-store"});
+        const r=await clientFetch("/api/plan",{cache:"no-store"});
         if(!r.ok)throw Error(); const b=await r.json();
         if(dead||requestId!==sequence)return;
         if(TV.deliveryIssues(b.doc).length)throw Error();
@@ -12360,13 +15915,13 @@ export default function App() {
         if((old.deliveredRevision||0)>(b.updated_at||0))return;
         if(TV.planContent(old.delivered)!==TV.planContent(b.doc)||old.deliveredRevision!==b.updated_at) persistColl(c=>TV.patchTraining(c,{delivered:b.doc||null,deliveredRevision:b.updated_at,deliveredAt:Date.now()}));
         announce({state:"ready",at:Date.now()});
-        if(b.updated_at) fetch("/api/plan/received",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({revision:b.updated_at})}).catch(()=>{});
+        if(b.updated_at) clientFetch("/api/plan/received",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({revision:b.updated_at})}).catch(()=>{});
       } catch {if(!dead&&requestId===sequence)announce({state:"error"});}
     };
     const visible=()=>{if(document.visibilityState==="visible")pull();};
     pull();window.addEventListener("online",pull);window.addEventListener("tm-plan-refresh",pull);document.addEventListener("visibilitychange",visible);
     return ()=>{dead=true;window.removeEventListener("online",pull);window.removeEventListener("tm-plan-refresh",pull);document.removeEventListener("visibilitychange",visible);};
-  },[ownerId]);
+  },[ownerId,stateHydrated,member,!!conflict]);
 
   // ---- cíle od Tanmaye ------------------------------------------------------
   // Týž kanál jako plán: leží mimo klientův stavový dokument, klient je nikdy
@@ -12375,9 +15930,10 @@ export default function App() {
   // nedostane, protože ji odstraňuje `coachGoalForClient` na serveru, ne my.
   React.useEffect(() => {
     if (ownerId === null) return;
+    if (!stateHydrated || member !== true || conflict) return;
     let dead = false;
     const pull = () => {
-      fetch("/api/goals", { cache: "no-store" })
+      clientFetch("/api/goals", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
         .then((b) => {
           if (dead || !b) return;
@@ -12391,18 +15947,21 @@ export default function App() {
     };
     pull();
     const onOnline = () => pull();
+    const onVisible = () => { if (document.visibilityState === "visible") pull(); };
     window.addEventListener("online", onOnline);
-    return () => { dead = true; window.removeEventListener("online", onOnline); };
-  }, [ownerId]);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { dead = true; window.removeEventListener("online", onOnline); document.removeEventListener("visibilitychange", onVisible); };
+  }, [ownerId,stateHydrated,member,!!conflict]);
 
   // ---- prameny od Tanmaye ---------------------------------------------------
   // Kanonický obsah drží on, klientova poznámka žije zvlášť a nikam neodchází.
   // Když pramen přestane sdílet, zmizí ze seznamu — poznámka zůstane.
   React.useEffect(() => {
     if (ownerId === null) return;
+    if (!stateHydrated || member !== true || conflict) return;
     let dead = false;
     const pull = () => {
-      fetch("/api/sources", { cache: "no-store" })
+      clientFetch("/api/sources", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
         .then((b) => {
           if (dead || !b) return;
@@ -12414,9 +15973,11 @@ export default function App() {
     };
     pull();
     const onOnline = () => pull();
+    const onVisible = () => { if (document.visibilityState === "visible") pull(); };
     window.addEventListener("online", onOnline);
-    return () => { dead = true; window.removeEventListener("online", onOnline); };
-  }, [ownerId]);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { dead = true; window.removeEventListener("online", onOnline); document.removeEventListener("visibilitychange", onVisible); };
+  }, [ownerId,stateHydrated,member,!!conflict]);
 
   // Debounced push of local changes to the server (only once sync is ready).
   React.useEffect(() => {
@@ -12429,15 +15990,35 @@ export default function App() {
     if (conflict) return; // čeká rozhodnutí člověka — dokud nepadne, neodesíláme nic
     const h = setTimeout(() => { _pushRef.current(); }, 1500);
     return () => clearTimeout(h);
-  }, [coll, edits, conflict]);
+  }, [coll, edits, conflict, stateHydrated]);
+  // odkazy [[…]] · čím doplňovat a co udělat po klepnutí
+  const _collRefLk = React.useRef(coll); _collRefLk.current = coll;
+  React.useEffect(() => {
+    TM_LINK_TITLES = () => {
+      const c = _collRefLk.current || {};
+      const out = [];
+      const add = (l) => (l || []).forEach((e) => { if (e.title && out.indexOf(e.title) < 0) out.push(e.title); });
+      add(c.notebook); add(c.content); add(c.journal);
+      return out;
+    };
+    TM_LINK_GO = (title) => {
+      const c = _collRefLk.current || {};
+      const key = tmNorm(String(title || "").trim());
+      const find = (kind) => (c[kind] || []).find((e) => tmNorm(String(e.title || "").trim()) === key);
+      const hit = ["notebook", "content", "journal"].map((k) => ({ k, e: find(k) })).find((x) => x.e);
+      if (hit) setOpenTarget({ kind: hit.k, id: hit.e.id });
+      else setConfirmBox({ msg: L(`Poznámka „${title}" zatím neexistuje.`, `There is no note called "${title}" yet.`) });
+    };
+    return () => { TM_LINK_TITLES = null; TM_LINK_GO = null; };
+  }, []);
   const addEntry = (kind, entry) => persistColl((c) => ({ ...c, [kind]: [entry, ...(c[kind] || [])] }));
   const setFinCfg = (patch) => persistColl((c) => ({ ...c, finCfg: { ...(c.finCfg || {}), ...patch } }));
   const setMemento = (patch) => persistColl((c) => ({ ...c, memento: { ...(c.memento || {}), ...patch } }));
   const setMandala = (patch) => persistColl((c) => ({ ...c, mandala: { ...(c.mandala || {}), ...patch } }));
-  const malaList = () => coll.mala || MALA_DEFAULT;
-  const malaAdd = (id, d) => persistColl((c) => ({ ...c, mala: (c.mala || MALA_DEFAULT).map((m) => m.id === id ? { ...m, count: Math.max(0, (m.count || 0) + d) } : m) }));
-  const malaAddDeity = (nm) => persistColl((c) => ({ ...c, mala: [...(c.mala || MALA_DEFAULT), { id: uid() + "d", name: nm, count: 0 }] }));
-  const malaRemoveDeity = (id) => persistColl((c) => ({ ...c, mala: (c.mala || MALA_DEFAULT).filter((m) => m.id !== id) }));
+  const malaList = () => coll.mala || [];
+  const malaAdd = (id, d) => persistColl((c) => ({ ...c, mala: (c.mala || []).map((m) => m.id === id ? { ...m, count: Math.max(0, (m.count || 0) + d) } : m) }));
+  const malaAddDeity = (nm) => persistColl((c) => ({ ...c, mala: [...(c.mala || []), { id: uid() + "d", name: nm, count: 0 }] }));
+  const malaRemoveDeity = (id) => persistColl((c) => ({ ...c, mala: (c.mala || []).filter((m) => m.id !== id) }));
   const setKlCfg = (patch) => persistColl((c) => ({ ...c, klCfg: { ...(c.klCfg || {}), ...patch } }));
   const updateEntry = (kind, id, patch) => persistColl((c) => ({ ...c, [kind]: (c[kind] || []).map((e) => (e.id === id ? { ...e, ...patch } : e)) }));
   const trashAdd = (draft, item) => ({ ...draft, trash: [{ ...item, trashedAt: Date.now() }, ...((draft.trash) || [])] });
@@ -12686,6 +16267,42 @@ export default function App() {
   const setAreaMonth = (name, rom, v) => persistColl((c) => ({ ...c, areaMonths: { ...(c.areaMonths || {}), [name]: { ...((c.areaMonths || {})[name] || {}), [rom]: v } } }));
   const goalMetaOf = (name) => (coll.goalMeta || {})[name] || {};
   const setGoalMeta = (name, patch) => persistColl((c) => ({ ...c, goalMeta: { ...(c.goalMeta || {}), [name]: { ...((c.goalMeta || {})[name] || {}), ...patch } } }));
+  const readScale = () => { const v = +(coll.readScale || 1); return v >= 0.85 && v <= 1.45 ? v : 1; };
+  const setReadScale = (v) => persistColl((c) => ({ ...c, readScale: Math.max(0.85, Math.min(1.45, +v || 1)) }));
+  React.useEffect(()=>{TM_HAPTICS=coll.ui?.haptics!==false;document.documentElement.setAttribute("data-tm-motion",coll.ui?.motion||"full");},[coll.ui]);
+  const uiCfg = () => ({ spell: true, home: "praxe", motion: "full", haptics: true, askTrash: true, ...(coll.uiCfg || {}), ...(coll.ui || {}) });
+  const setUiCfg = (patch) => persistColl((c) => ({ ...c, ui: { ...(c.uiCfg || {}), ...(c.ui || {}), ...patch } }));
+  const recentIds = () => coll.recent || [];
+  const pushRecent = (id) => setColl((cur) => {
+    if (clientAccount.getSnapshot().status === "changed") return cur;
+    const prev = cur.recent || [];
+    if (prev[0] === id) return cur;
+    const next = { ...cur, recent: [id, ...prev.filter((x) => x !== id)].slice(0, 8) };
+    saveColl(next);
+    return next;
+  });
+  const nbFolders = () => writerFolders(coll);
+  const addNbFolder = (path) => {
+    if (addWriterFolder(coll, path) === coll) return false;
+    persistColl(c => addWriterFolder(c, path)); return true;
+  };
+  const renameNbFolder = (path, name) => {
+    const nm = String(name || "").trim().replace(/\//g, "");
+    if (!nm) return;
+    const parent = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) + "/" : "";
+    persistColl(c => moveWriterFolder(c, path, parent + nm));
+  };
+  const moveNbFolder = (path, destParent) => {
+    if (path === destParent || (destParent && destParent.startsWith(path + "/"))) return;
+    const name = path.slice(path.lastIndexOf("/") + 1);
+    persistColl(c => moveWriterFolder(c, path, destParent ? destParent + "/" + name : name));
+  };
+  const removeNbFolder = path => persistColl(c => removeWriterFolder(c, path));
+  const setEntriesFolder = (ids, folder) => {
+    const selected = new Set(ids);
+    persistColl(c => ({ ...c, notebook: (c.notebook || []).map(e => selected.has(e.id) ? { ...e, folder: folder || "" } : e) }));
+  };
+  const restoreEntries = (kind, ids) => persistColl(c => restoreWriterEntries(c, kind, ids, restoreCascade));
   const pageMetaOf = (key) => (coll.pageMeta || {})[key] || (coll.pageMeta || {})[PAGEKEY_LEGACY[key]] || {};
   const setPageMeta = (key, patch) => persistColl((c) => ({ ...c, pageMeta: { ...(c.pageMeta || {}), [key]: { ...((c.pageMeta || {})[key] || {}), ...patch } } }));
   const areaMetaOf = (name) => (coll.areaMeta || {})[name] || {};
@@ -12813,9 +16430,7 @@ export default function App() {
   };
   const importPractices = () => {
     if (coll.practicesSeeded) return;
-    const tags2 = nbTags().some(([n]) => n.toLowerCase() === "praxe") ? nbTags() : [...nbTags(), ["Praxe", "moss"]];
-    const entries = PRACTICES_SEED.map((p) => ({ id: uid() + Math.random().toString(36).slice(2, 5), date: "", title: p.n, tag: "Praxe", text: p.b }));
-    persistColl((c) => ({ ...c, practicesSeeded: true, nbTags: tags2, notebook: [...(c.notebook || []), ...entries] }));
+    persistColl(c => ({ ...c, practicesSeeded: true }));
   };
   const removeEntries = (kind, ids) => {
     const idSet = new Set(ids);
@@ -13362,6 +16977,11 @@ export default function App() {
   // co si člověk nezapnul, se nezapne.
   const storedModules = migrateClientModules(coll.modules || null);
   const enabledModules = storedModules; // null = první spuštění → uvítání s výběrem
+  React.useEffect(() => {
+    if (guideConsidered.current || !stateHydrated || member !== true || !enabledModules || conflict || accountStatus !== "ready") return;
+    guideConsidered.current = true;
+    try { if (TM_GUIDE_AUTOSHOW && tmGuideVidel() < TM_GUIDE_VERZE) setGuideOpen(true); } catch {}
+  }, [stateHydrated, member, accountStatus, !!enabledModules, !!conflict]);
   const activeModules = [
     ...(enabledModules || []),
     ...(mementoZap ? ["memento"] : []),
@@ -13371,11 +16991,31 @@ export default function App() {
     [member, activeModules.join(","), JSON.stringify(coll.share || {})]
   );
   const isEnabled = (key) => roomVisible(caps, key);
-  React.useEffect(()=>{const room=new URL(location.href).searchParams.get("open");if(room&&CLIENT_ROOMS.includes(room)&&roomVisible(caps,room)){setPage(room);const u=new URL(location.href);u.searchParams.delete("open");history.replaceState({},"",u);}},[caps.together]);
+  React.useEffect(() => {
+    const onKey = event => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.key.toLowerCase() !== "k") return;
+      if (!member || !stateHydrated || accountStatus === "changed") return;
+      event.preventDefault(); setFindOpen(value => !value); setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [member, stateHydrated, accountStatus]);
+  React.useEffect(() => { setFindOpen(false); }, [ownerId, accountStatus]);
   const navDefaults = {sidebar: ["praxe","trenink","terminy","kompas","prameny","denik","zapisnik","memento","spolu","kos"], dock: dockTabsFor(isEnabled)};
   const navConfig = coll.ui?.navigation || {};
   const dockTabs = navigationRooms(navConfig, CLIENT_ROOMS, navDefaults, "dock").filter(isEnabled);
   const sideRooms = navigationRooms(navConfig, CLIENT_ROOMS, navDefaults, "sidebar").filter(isEnabled);
+  React.useEffect(() => {
+    const choice = startupNavigation.current({
+      ready: stateHydrated && member === true && !conflict, owner: ownerId,
+      changed: accountStatus === "changed" || ownerSwitched, interacted: navigationUsed.current,
+      preferred: uiCfg().home, requested: startupRequest.current,
+      available: CLIENT_ROOMS.filter(room => isEnabled(room) && !roomPlacement(navConfig, room, navDefaults).hidden),
+    });
+    if (!choice) return;
+    if (choice.room) setPage(choice.room);
+    if (startupRequest.current) { const url = new URL(location.href); url.searchParams.delete("open"); history.replaceState({}, "", url); }
+  }, [stateHydrated, member, ownerId, ownerSwitched, accountStatus, !!conflict, coll.ui, coll.uiCfg, activeModules.join(",")]);
   React.useEffect(()=>{if(roomPlacement(navConfig,page,navDefaults).hidden){const next=sideRooms.find(k=>k!=="kos")||dockTabs[0]||"__navigation";setPage(next);}},[JSON.stringify(navConfig)]);
 
   const saveNavigation = navigation => persistColl(c=>({...c,ui:{...c.ui,navigation}}));
@@ -13414,13 +17054,15 @@ export default function App() {
     if (page!=="__navigation" && !isEnabled(owner)) setPage("praxe");
   }, [enabledModules, mementoZap, page]);
 
-  const store = { caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
+  const store = { readScale, setReadScale, uiCfg, setUiCfg, recentIds, pushRecent, nbFolders, addNbFolder, renameNbFolder, removeNbFolder, moveNbFolder, setEntriesFolder, restoreEntries, persistColl, undo, redo, canUndo: () => histRef.current.past.length > 0, canRedo: () => histRef.current.future.length > 0, caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
     tvSessions, tvSessionOf, tvPutSession, tvEditSession, tvDropSession, tvPrefs, tvSetPrefs,
     tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, syncPending,
     tmCfg, setTmCfg, tmSpecOf, setTmSpec,
     setSore, unsetSore, soreNow, tSaidBump };
 
-  const go = (k) => { setSlideDir(null); setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
+  React.useEffect(()=>{if(!openTarget)return;const dest=({notebook:"zapisnik",journal:"denik",content:"prameny",goal:"kompas",area:"kompas"})[openTarget.kind];if(dest&&isEnabled(dest))setPage(dest);},[openTarget?.kind,openTarget?.id]);
+
+  const go = (k) => { navigationUsed.current = true; setSlideDir(null); setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
 
 
   // one nav button · shared by the four groups and by the trash at the very
@@ -13464,7 +17106,7 @@ export default function App() {
 
   return (
     <ThemeCtx.Provider value={{ t, tags }}>
-      <StoreCtx.Provider value={store}>
+      <StoreCtx.Provider value={store}><GuideNavigationProvider request={guideRequest}>
         <OfflineBadge />
       <div onTouchStart={rootTouchStart} onTouchMove={rootTouchMove} style={{ minHeight: "100vh", background: t.bg, color: t.text, display: "flex", position: "relative" }}>
         <style>{`
@@ -13485,13 +17127,94 @@ export default function App() {
           @media (prefers-reduced-motion: reduce) { .tm-wb-dot:hover, .tm-wb-mark:hover { transform: none; } }
           .tm-thead { border-bottom: 1.5px solid ${t.border}; }
           input, textarea { caret-color: ${t.accent}; }
-          .tm-rich { font-family: ${FONT_BODY}; font-size: 14.5px; line-height: 1.78; color: ${t.textSec}; outline: none; min-height: 26px; caret-color: ${t.accent}; white-space: pre-wrap; overflow-wrap: break-word; max-width: 700px; }
-          .tm-rich h1 { font-family: ${FONT_DISPLAY}; font-weight: ${LANG === "cs" ? 400 : 500}; font-size: 20px; line-height: 1.3; color: ${t.heading}; margin: 14px 0 3px; }
-          .tm-rich h2, .tm-rich h3 { font-family: ${FONT_TAG}; text-transform: uppercase; letter-spacing: 0.14em; font-size: 11.5px; font-weight: 500; color: ${t.sage}; margin: 14px 0 3px; }
+          .tm-2pane { display: grid; grid-template-columns: minmax(300px, 42fr) minmax(0, 58fr); gap: 14px; align-items: start; }
+          @media (min-width: 1320px) { .tm-2pane { grid-template-columns: minmax(320px, 38fr) minmax(0, 62fr); } }
+          .tm-sklo { background: ${hexA(t.card,0.97)}; -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); }
+          @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+            .tm-sklo { background: ${t.card}; }
+          }
+          .tm-sklo::-webkit-scrollbar { display: none; }
+          /* Rezerva pod textem · bez ní se poslední řádek nedá dostat zpod
+             lišty ven. Třicet procent výšky je tolik, aby se kurzor vždycky
+             dal odrolovat nad ni. */
+          body.tm-psani .tm-rich { padding-bottom: 32vh; }
+          /* Při psaní dok zmizí. Bez klávesnice (počítač s úzkým oknem,
+             připojená klávesnice) by lišta seděla přímo na něm — a při psaní
+             stejně nemá kam vést. Vrací se s odloženým perem. */
+          body.tm-psani .tm-tabbar { display: none !important; }
+          @keyframes tmPulz { 0%, 100% { opacity: 1; } 50% { opacity: 0.42; } }
+          .tm-pulz { animation: tmPulz 1.5s ease-in-out infinite; }
+          @media (prefers-reduced-motion: reduce) { .tm-pulz { animation: none; } }
+          .tm-rich mark, .tm-rich .tm-hl { background: ${hexA(t.sand, 0.26)}; color: inherit; border-radius: 3px; padding: 0 2px; }
+          .tm-rich s { color: ${t.textMuted}; }
+          .tm-rich { --tm-fs: calc(15px * var(--tm-read, 1)); --tm-lh: 1.6; --tm-gap: calc(12px * var(--tm-read, 1)); font-family: ${FONT_BODY}; font-size: var(--tm-fs); line-height: var(--tm-lh); color: ${t.textSec}; outline: none; min-height: 26px; caret-color: ${t.accent}; white-space: pre-wrap; overflow-wrap: break-word; max-width: calc(460px * var(--tm-read, 1)); font-optical-sizing: auto; }
+          /* TŘI ÚROVNĚ NADPISU · každá na jiné ose, ne jen o kus menší.
+             Nadpis nese velikost a serif, Podnadpis verzálky a barvu,
+             Mezinadpis tučnost. Tři velikosti téhož písma by se v odstavci
+             textu daly zaměnit — tři různé osy nikdy. (Dropbox Paper má
+             třetí úroveň jako tučné tělo a lidem se plete s běžným textem.) */
+          .tm-rich h1 { font-family: ${FONT_DISPLAY}; font-weight: ${tmTypeScale().h1.weight}; font-size: calc(${tmTypeScale().h1.size}px * var(--tm-read, 1)); line-height: ${tmTypeScale().h1.lh}; letter-spacing: -0.004em; color: ${t.heading}; margin: calc(40px * var(--tm-read, 1)) 0 calc(14px * var(--tm-read, 1)); }
+          .tm-rich h2 { font-family: ${FONT_DISPLAY}; font-weight: ${tmTypeScale().h2.weight}; font-size: calc(${tmTypeScale().h2.size}px * var(--tm-read, 1)); line-height: ${tmTypeScale().h2.lh}; color: ${t.heading}; margin: calc(30px * var(--tm-read, 1)) 0 calc(12px * var(--tm-read, 1)); }
+          .tm-rich h3 { font-family: ${FONT_BODY}; font-weight: ${tmTypeScale().h3.weight}; text-transform: uppercase; letter-spacing: 0.10em; font-size: calc(${tmTypeScale().h3.size}px * var(--tm-read, 1)); line-height: ${tmTypeScale().h3.lh}; color: ${t.textMuted}; margin: calc(26px * var(--tm-read, 1)) 0 calc(10px * var(--tm-read, 1)); }
+          .tm-rich h1 + h2, .tm-rich h2 + h3, .tm-rich h1 + h3 { margin-top: calc(12px * var(--tm-read, 1)); }
           .tm-rich h1:first-child, .tm-rich h2:first-child, .tm-rich h3:first-child { margin-top: 0; }
           .tm-rich b, .tm-rich strong { font-weight: 700; }
           .tm-rich i, .tm-rich em { font-style: italic; }
           .tm-rich[data-empty="true"]:before { content: attr(data-placeholder); color: ${t.textMuted}; font-style: italic; pointer-events: none; }
+          /* zaškrtávací řádek · políčko stojí mimo text, aby se do něj nedalo psát */
+          .tm-rich [data-chk] { position: relative; padding-left: calc(24px * var(--tm-read, 1)); margin-bottom: calc(6px * var(--tm-read, 1)); }
+          /* Políčko stálo o pixel výš než text. Jeho „em" se počítá z vlastního
+             desetibodového písma, ne z řádku, na kterém sedí — relativně se to
+             zapsat nedalo. Teď se střed počítá ze skutečné výšky řádku
+             (velikost × proklad) a políčko roste s velikostí čtení. */
+          .tm-rich .tm-chk { position: absolute; left: 0; top: calc((var(--tm-fs, 15px) * var(--tm-lh, 1.6) - 14px * var(--tm-read, 1)) / 2 - 0.5px); width: calc(14px * var(--tm-read, 1)); height: calc(14px * var(--tm-read, 1)); border-radius: 2px; border: 1px solid ${t.textMuted}; display: inline-flex; align-items: center; justify-content: center; font-size: calc(10px * var(--tm-read, 1)); line-height: 1; color: transparent; cursor: pointer; user-select: none; transition: background .16s ease, border-color .16s ease, color .16s ease; }
+          .tm-rich .tm-chk.on { background: ${t.sage}; border-color: transparent; color: ${t.bg}; }
+          .tm-rich [data-chk="1"] { color: ${t.textMuted}; }
+          /* seznamy · značka stojí mimo text, aby se do ní nedalo psát ani ji smazat po znacích */
+          .tm-rich [data-ol], .tm-rich [data-ul] { position: relative; padding-left: calc(24px * var(--tm-read, 1)); margin-bottom: calc(6px * var(--tm-read, 1)); }
+          .tm-rich .tm-mk { position: absolute; left: 0; top: 0; width: calc(16px * var(--tm-read, 1)); text-align: right; color: ${t.textMuted}; user-select: none; -webkit-user-select: none; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+          .tm-rich [data-ul] .tm-mk { font-size: 0; }
+          .tm-rich [data-ul] .tm-mk:after { content: ""; display: inline-block; width: calc(5px * var(--tm-read, 1)); height: calc(5px * var(--tm-read, 1)); border-radius: 50%; border: 1px solid ${t.textMuted}; vertical-align: middle; margin-top: calc(10px * var(--tm-read, 1)); }
+          .tm-rich [data-qt] { border-left: 1px solid ${hexA(t.sage, 0.55)}; padding-left: calc(18px * var(--tm-read, 1)); margin: calc(20px * var(--tm-read, 1)) 0; line-height: ${tmTypeScale().qt.lh}; font-style: italic; color: ${t.text || t.textSec}; }
+          /* odkaz v editoru · vidí se, že to je odkaz, ale dá se do něj psát */
+          .tm-rich .tm-lk { color: ${t.info}; }
+          .tm-rich [data-hr] { padding: 7px 0; }
+          .tm-rich .tm-hr { display: block; height: 1px; width: 160px; max-width: 60%; background: ${t.borderSoft}; }
+          /* klidné psaní · jen text a okraje */
+          /* STRÁNKY · text se láme do sloupců na šířku displeje a jde jimi
+             projít do strany. Nových stránek přibývá samo, jak text roste —
+             sloupce jsou jediné, co v prohlížeči umí sazbu tímhle způsobem.
+             Šířka sloupce musí odpovídat vnitřní šířce plochy: proto 100 %
+             výřezu minus dvakrát osmnáct pixelů výplně. */
+          /* Šířku sloupce nastavuje háček ze skutečné šířky plochy (sloupec
+             + mezera = přesně jedna stránka). Zápis v CSS je jen záloha pro
+             první okamžik, než si háček plochu změří. Vodorovný posun je
+             zavřený: hýbe s ním jen háček, aby jedno přejetí prstem otočilo
+             jednu stránku a ne deset. */
+          .tm-stranky { scroll-behavior: smooth; overflow-x: hidden; overscroll-behavior-x: contain; touch-action: pan-y; box-sizing: border-box; padding-left: 18px; padding-right: 18px; }
+          /* SLOUPCE PATŘÍ OBALU, NE PSACÍMU POLI.
+             Když sloupce nesla přímo plocha s contenteditable, Chromium jí
+             po zaostření plnil sloupce jen do poloviny výšky — text se
+             rozlezl na dvojnásobek stránek a spodek každé zůstal prázdný.
+             Sloupce proto drží obal a psací pole je uvnitř obyčejný blok:
+             sazba pak vypadá stejně, ať se čte nebo píše. */
+          .tm-strcol { height: 100%; column-width: var(--tm-str-w, calc(100 * var(--tm-vw) - 36px)); column-gap: 36px; column-fill: auto; }
+          .tm-stranky .tm-rich { max-width: none !important; margin: 0 !important; }
+          .tm-strwrap { position: relative; }
+          /* Psací plocha po stránkách sahá až k okrajům listu · osmnáct
+             pixelů výplně uvnitř dělá stejný okraj jako u čteného textu. */
+          .tm-psstranky { margin-left: -16px; margin-right: -16px; padding-bottom: 22px; }
+          .tm-psstranky > .tm-rich { padding-top: 2px; }
+          .tm-zen { position: fixed; inset: 0; z-index: 400; background: ${t.bg}; overflow-y: auto; padding: calc(54px + env(safe-area-inset-top)) 20px calc(40px + env(safe-area-inset-bottom)); animation: tmfade .3s cubic-bezier(.23,.62,.22,.99) both; }
+          .tm-zen .tm-inner { max-width: 660px; margin: 0 auto; }
+          .tm-zen .tm-rich { --tm-fs: calc(17px * var(--tm-read, 1)); --tm-lh: 1.80; max-width: calc(520px * var(--tm-read, 1)); margin: 0 auto; }
+          /* v klidném psaní roste text o dva body · nadpisy táhnou stejným
+             poměrem, aby se žebřík nezploštil právě tam, kde se čte nejvíc */
+          .tm-zen .tm-rich h1 { font-size: calc(${LANG === "cs" ? 32 : 34}px * var(--tm-read, 1)); }
+          .tm-zen .tm-rich h2 { font-size: calc(${LANG === "cs" ? 25 : 27}px * var(--tm-read, 1)); }
+          .tm-zen .tm-rich h3 { font-size: calc(14px * var(--tm-read, 1)); }
+          .tm-zen .tm-rich [data-qt] { line-height: 1.9; }
+          .tm-zenout { position: fixed; top: calc(12px + env(safe-area-inset-top)); right: 14px; z-index: 401; background: ${t.card}; border: 1px solid ${t.borderSoft}; border-radius: 999px; width: 38px; height: 38px; cursor: pointer; color: ${t.textMuted}; font-size: 15px; line-height: 1; }
           ::selection { background: ${hexA(t.accent, 0.30)}; }
           input::placeholder, textarea::placeholder { color: ${t.placeholder}; opacity: 1; }
           /* brand-wide thin, muted scrollbar — applied globally + to any .tm-scroll opt-in */
@@ -13686,13 +17409,36 @@ export default function App() {
             <button onClick={keepMine} style={{ background: "transparent", color: t.text, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Nechat moji", "Keep mine")}</button>
           </div>
         )}
+        {accountStatus === "changed" && createPortal(
+          <div role="alertdialog" aria-modal="true" aria-labelledby="tm-account-changed-title" style={{ position:"fixed", inset:0, zIndex:10010, background:t.bg, display:"grid", placeItems:"center", padding:24 }}>
+            <div style={{maxWidth:440,color:t.text,fontFamily:FONT_BODY,lineHeight:1.6}}>
+              <h2 id="tm-account-changed-title" style={{fontFamily:FONT_DISPLAY,fontWeight:400}}>{L("V prohlížeči je přihlášen jiný účet", "A different account is signed in")}</h2>
+              <p>{L("Původní zápisy zůstávají uložené v tomto zařízení. Aplikaci znovu načti, aby se otevřel prostor přihlášeného člověka.", "The original entries remain saved on this device. Reload to open the signed-in person's workspace.")}</p>
+              <button onClick={()=>location.reload()} style={{...tmButton(t),minHeight:44}}>{L("Načíst přihlášený účet", "Load the signed-in account")}</button>
+            </div>
+          </div>, document.body
+        )}
+        {ownerId === null && accountStatus === "offline" && ownerLoad() && (
+          <div role="status" style={{position:"fixed",top:0,left:0,right:0,zIndex:399,background:t.card,color:t.text,borderBottom:`1px solid ${t.border}`,padding:"10px 14px",display:"flex",gap:12,alignItems:"center",fontFamily:FONT_BODY,fontSize:13}}>
+            <span style={{flex:1}}>{L("Jsi offline. Otevíráš poslední obsah uložený na tomto zařízení. Změny počkají na ověření účtu a připojení.", "You are offline. This is the last content saved on this device. Changes will wait for account verification and a connection.")}</span>
+            <button onClick={()=>clientAccount.verify()} style={{...tmButton(t),minHeight:44}}>{L("Zkusit znovu", "Try again")}</button>
+          </div>
+        )}
+        {ownerId === null && (accountStatus !== "offline" || !ownerLoad()) && accountStatus !== "changed" && createPortal(
+          <div role="status" style={{position:"fixed",inset:0,zIndex:10000,background:t.bg,display:"grid",placeItems:"center",padding:24,color:t.text,fontFamily:FONT_BODY}}>
+            <div>{accountStatus === "offline" ? L("Pro první otevření se připoj k internetu. Potom bude tvůj uložený obsah dostupný i offline.", "Connect to the internet to open your workspace for the first time. After that, saved content will also be available offline.") : accountStatus === "storage" ? L("Místní úložiště se nepodařilo připravit. Původní zápisy zůstávají zachované.", "Local storage could not be prepared. The original entries have been preserved.") : accountStatus === "sign-in" ? L("Přihlas se znovu ke svému účtu.", "Sign in to your account again.") : L("Otevírám tvůj prostor…", "Opening your workspace…")}
+              {accountStatus === "sign-in" && <button onClick={()=>location.reload()} style={{...tmButton(t),display:"block",marginTop:16}}>{L("Načíst a přihlásit", "Reload and sign in")}</button>}
+              {["storage", "offline"].includes(accountStatus) && <button onClick={()=>clientAccount.verify()} style={{...tmButton(t),display:"block",marginTop:16}}>{L("Zkusit znovu", "Try again")}</button>}
+            </div>
+          </div>,document.body
+        )}
         {ownerSwitched && (
           <div role="status" aria-live="polite" style={{ position: "fixed", top: saveErr ? 44 : 0, left: 0, right: 0, zIndex: 399, background: t.card, color: t.text, borderBottom: `1px solid ${t.border}`, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
             <span style={{ flex: 1, minWidth: 200 }}>{L("Tohle zařízení naposledy použil někdo jiný. Jeho obsah je odložený stranou, tvůj prostor je prázdný.", "Someone else used this device last. Their content is set aside; your space starts empty.")}</span>
             <button onClick={() => setOwnerSwitched(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
           </div>
         )}
-        {member !== false && (pickerOpen || !enabledModules) && (
+        {member === true && stateHydrated && !conflict && (pickerOpen || !enabledModules) && (
           <ModulePicker
             t={t}
             firstRun={!enabledModules}
@@ -13716,6 +17462,10 @@ export default function App() {
           </button>
             <button className="tm-gear" onClick={() => { setMenuOpen(false); setAppearanceOpen(false); setSetsOpen(true); }} title={L("Nastavení", "Settings")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, marginTop: -12, background: "transparent", border: "none", borderRadius: 10, color: t.navIcon, cursor: "pointer", flexShrink: 0 }}><TmIcNastaveni size={19} /></button>
           </div>
+          <button className="tm-sidebar-search tm-nav-item" onClick={() => { setMenuOpen(false); setFindOpen(true); }} aria-label={L("Hledat v aplikaci", "Search the app")}
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 44, marginBottom: 16, padding: "10px 12px", borderRadius: 9, border: `1px solid ${t.navHairline}`, background: "transparent", color: t.navText, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14 }}>
+            <TmIcLupa size={17} /><span style={{flex:1,textAlign:"left"}}>{L("Hledat", "Search")}</span><span style={{color:t.navMuted,fontSize:11}}>⌘ / Ctrl K</span>
+          </button>
           {[...NAV_GROUPS_ALL,NAV_EXTRAS].map((g) => {
             const items = g.items.filter((f) => isEnabled(f.key) && sideRooms.includes(f.key));
             if (!items.length) return null;
@@ -13800,7 +17550,15 @@ export default function App() {
           </nav>
         </TmDok>
 
-        {guideOpen && <TmGuide onClose={() => setGuideOpen(false)} />}
+        {findOpen && member && stateHydrated && accountStatus !== "changed" && <ClientSearch key={ownerId || "offline"} t={t} lang={lang} records={coll} goals={allGoals()} sources={allSources()} enabled={isEnabled} Sheet={CenterSheet}
+          onClose={() => setFindOpen(false)} onPick={hit => { if (!isEnabled(hit.room)) return; setFindOpen(false); setOpenTarget({ kind: hit.kind, id: hit.id }); go(hit.room); }} />}
+
+        {guideOpen && <AppGuide registerEscape={tmEscVrstva} t={t} lang={lang} role="client" currentRoom={setsOpen?"nastaveni":page}
+          availableRooms={[...CLIENT_ROOMS.filter(k=>isEnabled(k)&&!roomPlacement(navConfig,k,navDefaults).hidden),"nastaveni"]}
+          availableSteps={isEnabled("spolu")?undefined:APP_GUIDE_STEPS.filter(x=>x.id!=="nastaveni.calendar").map(x=>x.id)}
+          contextBlocked={!stateHydrated||member!==true||!enabledModules||!!conflict||menuOpen||pickerOpen||findOpen||!!confirmBox}
+          onNavigate={(room,step)=>{setMenuOpen(false);if(room==="nastaveni"){setSetsOpen(true);setSettingsSection(({account:"account",rooms:"rooms",calendar:"calendar",version:"version"})[step.anchor.split(".")[1]]||"account");}else{setSetsOpen(false);go(room);}setGuideRequest({room,action:step.action,nonce:Date.now()});}}
+          onClose={()=>{tmGuideOznac();setGuideOpen(false);setGuideRequest(null);}} /> }
 
         <PersonalSettingsBridge onOpen={target=>{setPersonalTarget(target);setSettingsSection(({profile:"account",calendar:"calendar",sources:"version"})[target.section]||"account");setSetsOpen(true);}}/>
         {setsOpen && (
@@ -13825,10 +17583,9 @@ export default function App() {
               </button>
             ))}
 
-            <details style={{marginTop:20,borderTop:`1px solid ${t.borderSoft}`,padding:"16px 0"}}>
-              <summary style={{cursor:"pointer",minHeight:44}}>{L("Stránky a navigace","Pages and navigation")}</summary>
+            <SetSection title={L("Stránky a navigace","Pages and navigation")} id="rooms" open={settingsSection==="rooms"} onOpen={setSettingsSection}>
               <NavigationSettings t={t} lang={lang} config={navConfig} keys={CLIENT_ROOMS} defaults={navDefaults} onChange={saveNavigation} enabled={isEnabled} onEnable={enableNavigationRoom} onOpen={k=>{setSetsOpen(false);go(k);}}/>
-            </details>
+            </SetSection>
             <VzhledSekce
               open={appearanceOpen} onToggle={() => setAppearanceOpen(v => !v)}
               preset={appearance.preset}
@@ -13837,19 +17594,26 @@ export default function App() {
               onSignature={pouzitSignature}
             />
 
-            <details open={settingsSection==="account"} onToggle={e=>{if(e.currentTarget.open)setSettingsSection("account");else setSettingsSection(v=>v==="account"?"":v);}} style={{borderTop:`1px solid ${t.borderSoft}`,padding:"14px 0"}}>
-              <summary style={{cursor:"pointer",minHeight:44,fontFamily:FONT_TAG,letterSpacing:".16em",textTransform:"uppercase",fontSize:12,color:t.sage}}>{L("Účet","Account")}</summary>
+
+            <SetSection title={L("Čtení a psaní","Reading and writing")} id="reading" open={settingsSection==="reading"} onOpen={setSettingsSection}>
+              <SetChoice label={L("Velikost textu","Text size")} value={String(readScale())} options={[{v:"0.92",label:"A−"},{v:"1",label:L("výchozí","default")},{v:"1.12",label:"A+"},{v:"1.28",label:"A++"}]} onChange={v=>setReadScale(+v)}/>
+              <SetSwitch label={L("Kontrola pravopisu při psaní","Spell check while writing")} on={uiCfg().spell!==false} onChange={v=>setUiCfg({spell:v})}/>
+              <SetChoice label={L("Kam se otevírá dům","Which room opens first")} value={uiCfg().home||"praxe"} options={CLIENT_ROOMS.filter(k=>k!=="kos"&&isEnabled(k)&&!roomPlacement(navConfig,k,navDefaults).hidden).map(k=>({v:k,label:navigationLabel(k,lang)}))} onChange={home=>setUiCfg({home})}/>
+            </SetSection>
+            <SetSection title={L("Pohyb a dotyk","Motion and touch")} id="motion" open={settingsSection==="motion"} onOpen={setSettingsSection}>
+              <SetChoice label={L("Přechody","Transitions")} value={uiCfg().motion||"full"} options={[{v:"full",label:L("plné","full")},{v:"calm",label:L("tlumené","calm")},{v:"off",label:L("žádné","none")}]} onChange={motion=>setUiCfg({motion})}/>
+              <SetSwitch label={L("Odezva dotykem","Haptic response")} on={uiCfg().haptics!==false} onChange={haptics=>setUiCfg({haptics})}/>
+            </SetSection>
+            <SetSection title={L("Účet","Account")} id="account" open={settingsSection==="account"} onOpen={setSettingsSection}>
               <PersonalSettingsSections t={t} lang={lang} section="profile" togetherEnabled={isEnabled("spolu")}/>
-            </details>
-            {isEnabled("spolu")&&<details open={settingsSection==="calendar"} onToggle={e=>{if(e.currentTarget.open)setSettingsSection("calendar");else setSettingsSection(v=>v==="calendar"?"":v);}} style={{borderTop:`1px solid ${t.borderSoft}`,padding:"14px 0"}}>
-              <summary style={{cursor:"pointer",minHeight:44,fontFamily:FONT_TAG,letterSpacing:".16em",textTransform:"uppercase",fontSize:12,color:t.sage}}>{L("Kalendář","Calendar")}</summary>
+            </SetSection>
+            {isEnabled("spolu")&&<SetSection title={L("Kalendář","Calendar")} id="calendar" open={settingsSection==="calendar"} onOpen={setSettingsSection}>
               <PersonalSettingsSections t={t} lang={lang} section="calendar" togetherEnabled/>
-            </details>}
+            </SetSection>}
             {/* VERZE A SOUKROMÍ · co v telefonu opravdu běží a kam se data
                 ukládají. Bez tohohle se ladí naslepo a slib o soukromí visí
                 jen na textu průvodce. */}
-            <details open={settingsSection==="version"} onToggle={e=>{if(e.currentTarget.open)setSettingsSection("version");else setSettingsSection(v=>v==="version"?"":v);}} style={{padding:"14px 0",borderTop:`1px solid ${t.borderSoft}`}}>
-              <summary style={{cursor:"pointer",minHeight:44,fontFamily:FONT_TAG,textTransform:"uppercase",letterSpacing:".16em",fontSize:12,color:t.sage}}>{L("Verze","Version")}</summary>
+            <SetSection title={L("Verze","Version")} id="version" open={settingsSection==="version"} onOpen={setSettingsSection}>
               <PersonalSettingsSections t={t} lang={lang} section="sources" topic={personalTarget.topic} reveal={personalTarget.section==="sources"} trainingSources={APP_METHOD_SOURCES}/>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, padding: "3px 0" }}>
                 <span>{L("Sdílené produktové jádro", "Shared product core")}</span>
@@ -13881,7 +17645,7 @@ export default function App() {
                 {L("Tvoje data leží ve tvém vlastním prostoru. Tany vidí jen to, co si zapneš ve Sdílení — Deník, Zápisník ani Ohlédnutí mezi to nepatří a nikdy patřit nebudou.",
                    "Your data lives in your own space. Tanmay sees only what you switch on in Sharing — Journal, Notebook and the evening review are not part of it and never will be.")}
               </div>
-            </details>
+            </SetSection>
           </CenterSheet>
         )}
 
@@ -13911,7 +17675,7 @@ export default function App() {
           </>
         )}
       </div>
-      </StoreCtx.Provider>
+      </GuideNavigationProvider></StoreCtx.Provider>
     </ThemeCtx.Provider>
   );
 }

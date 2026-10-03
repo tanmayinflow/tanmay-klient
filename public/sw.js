@@ -2,7 +2,7 @@
 // index.html: network-first (always fresh online, cached fallback offline).
 // hashed assets + fonts: cache-first (immutable). /api/*: never cached.
 // Only caches real app responses (200, same-origin, not an Access redirect).
-const VERSION = "tanmay-v3";
+const VERSION = "tanmay-v4";
 const SHELL = "shell-" + VERSION;
 const ASSETS = "assets-" + VERSION;
 
@@ -14,7 +14,7 @@ self.addEventListener("activate", (event) => {
     // "pinned" drží připnutá média přihlášeného člověka. Nesmaže ho výměna
     // verze (offline přílohy by zmizely), ale při střídání účtu na jednom
     // zařízení ho ruší aplikace sama — viz ownerQuarantine v App.tsx.
-    await Promise.all(keys.filter((k) => !k.endsWith(VERSION) && k !== "pinned").map((k) => caches.delete(k)));
+    await Promise.all(keys.filter((k) => !k.endsWith(VERSION) && k !== "pinned" && !k.startsWith("pinned__owner_")).map((k) => caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -33,14 +33,11 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // API. Pinned media (/api/files/<id>) is served from the "pinned" cache when
-  // present so pinned entries open offline; everything else on /api is network-only.
+  // Private media is network-first. Only a transport failure may use an
+  // exact owner-scoped pin; denied access is never replaced by cached data.
   if (url.origin === location.origin && url.pathname.startsWith("/api/")) {
     if (url.pathname.startsWith("/api/files/") && url.pathname !== "/api/files") {
-      event.respondWith((async () => {
-        try { const cache = await caches.open("pinned"); const hit = await cache.match(req); if (hit) return hit; } catch (e) {}
-        return fetch(req);
-      })());
+      event.respondWith(privateFile(req));
     }
     return;
   }
@@ -66,6 +63,25 @@ self.addEventListener("fetch", (event) => {
   // Same-origin hashed assets (JS/CSS/img/fonts): cache-first.
   event.respondWith(cacheFirst(req, ASSETS));
 });
+
+async function privateFile(req) {
+  const owner = new URL(req.url).searchParams.get("owner");
+  // Old URLs stay readable online, but cannot identify an offline account.
+  if (!/^[a-f0-9]{16}$/.test(owner || "")) return fetch(req);
+  const headers = new Headers(req.headers);
+  if (headers.has("X-Tanmay-Owner") && headers.get("X-Tanmay-Owner") !== owner) {
+    return new Response("", { status: 409 });
+  }
+  headers.set("X-Tanmay-Owner", owner);
+  try {
+    return await fetch(new Request(req, { headers, mode: "same-origin", redirect: "manual" }));
+  } catch (error) {
+    const cache = await caches.open("pinned");
+    const hit = await cache.match(req);
+    if (hit && ulozitelne(hit)) return hit;
+    throw error;
+  }
+}
 
 async function networkFirstDoc(req) {
   const address = new URL(req.url);
