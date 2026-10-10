@@ -226,7 +226,7 @@ export function createIconUI(deps) {
 // ----------------------------------------------------------------------
 // Boční panel a dok volají tyhle komponenty jménem. Kresba je táž jako
 // od začátku — registr nahoře slouží jen kurátorované řadě a výběru.
-export function TmIcTerminy({ size = 17 }) { return <TmIcon id="clock" size={size} />; }
+export function TmIcTerminy({ size = 17 }) { return <TmIcon id="appointments" size={size} />; }
 
 export function TmIcMemento({ size = 17 }) { return <TmIcon id="hourglass" size={size} />; }
 

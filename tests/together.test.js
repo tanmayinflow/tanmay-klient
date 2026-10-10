@@ -178,6 +178,16 @@ test('plans need both confirmations; editing resets consent; another client cann
   assert.equal((await call('coach:tanmay','plan',{id:p.id,revision:0,action:'confirm'})).status,409);
   await call('coach:tanmay','plan',{id:p.id,revision:p.revision,action:'confirm'});p=(await call('client:a')).plans[0];assert.equal((await call('client:a','plan',{id:p.id,revision:p.revision,action:'done'})).status,200);
 });
+test('nested compass and practice tools cannot return as standalone navigation from old preferences',()=>{
+  const nested = ['oblasti','cile','atomic'];
+  const config = { order: nested, dockOrder: nested, rooms: Object.fromEntries(nested.map(key=>[key,{hidden:false,sidebar:true,dock:true}])) };
+  for (const keys of [MAIN_ROOMS, CLIENT_ROOMS]) {
+    const defaults = {sidebar:keys,dock:['praxe','kompas']};
+    for (const place of ['sidebar','dock']) assert.ok(!navigationRooms(config,keys,defaults,place).some(key=>nested.includes(key)));
+    for (const key of nested) assert.deepEqual(updatePlacement(config,key,{dock:true},keys,defaults),config);
+  }
+});
+
 test('navigation allows an empty dock and every available room, with preserved preferences',()=>{
   const defaults={sidebar:MAIN_ROOMS,dock:['praxe','kompas']};let c={};
   c=updatePlacement(c,'spolu',{hidden:false,sidebar:false,dock:true},MAIN_ROOMS,defaults);assert.ok(navigationRooms(c,MAIN_ROOMS,defaults,'dock').includes('spolu'));

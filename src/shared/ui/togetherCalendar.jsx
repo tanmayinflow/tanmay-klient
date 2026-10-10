@@ -77,8 +77,8 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
       .tg-calendar button.tg-calendar-day[aria-pressed=true]{border:1.5px solid var(--calendar-ink);font-weight:600;background:var(--calendar-active)}
       .tg-calendar button.tg-calendar-day[aria-pressed=true][data-estimated=true]{border-style:dashed}
       .tg-calendar button.tg-calendar-day[aria-pressed=true][data-recorded=true]{background:var(--calendar-fill);box-shadow:inset 0 0 0 2px var(--calendar-on)}
-      .tg-calendar button.tg-calendar-day:hover:not(:disabled){color:var(--calendar-text);border-color:var(--calendar-ink);background:var(--calendar-active)}
-      .tg-calendar button.tg-calendar-day[data-recorded=true]:hover:not(:disabled){color:var(--calendar-on);background:var(--calendar-fill)}
+      .tg-calendar button.tg-calendar-day:hover:not(:disabled){color:var(--calendar-text)}
+      .tg-calendar button.tg-calendar-day[data-recorded=true]:hover:not(:disabled){color:var(--calendar-on)}
       .tg-calendar :is(button,a):focus-visible{outline:2px solid var(--calendar-ink);outline-offset:2px}
       .tg-calendar .tg-calendar-key{display:flex;flex-wrap:wrap;gap:8px 14px;margin:12px 0 0;font-size:12px;line-height:1.5}
       .tg-calendar .tg-calendar-key>span{display:inline-flex;align-items:center;gap:6px}

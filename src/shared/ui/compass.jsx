@@ -11,7 +11,6 @@ import { EmptyRoomArt } from "./states.jsx";
 //
 // Rozdíl role se řeší tím, co se do továrny předá:
 //   · `sideSlot`    druhý sloupec dnešního kroku · sdílené Pomodoro
-//   · `AreaVlqSlot` dvě otázky ke krajině · komponenta, ne kopie
 //   · `hasCoachGoals` má tenhle dům cíle od trenéra? · rozhoduje o štítku
 //
 // Dvě třídy cíle se v rozhraní jmenují Moje a Od Kryštofa. Nikde „locked",
@@ -22,6 +21,7 @@ import { EmptyRoomArt } from "./states.jsx";
 import React, { useState } from "react";
 import { TmIcon, tmIconId, createIconUI } from "./icons.jsx";
 import { GOAL_OWNER, TM_UTEK, tmOtocFor, mayEditGoalField, goalOwnerLabel, G_VIEWS } from "../product/compass.js";
+import { areaReviewWeek, areaReviewWeekEnd, shiftAreaReviewWeek, areaReviewFor, areaReviewDraft, areaReviewWeeks, canSaveAreaReview, saveAreaReview } from "../product/areaReviews.js";
 
 export function createCompassUI(deps) {
   const {
@@ -29,7 +29,7 @@ export function createCompassUI(deps) {
     // atomy
     Tag, Select, ProgressBar, MetaSection, PropRow,
     // stavební prvky domu
-    PageTitle, Divider, Eyebrow, Prazdno, LinkPill, Drawer, CenterSheet, DayTasks, DotTap,
+    PageTitle, Divider, Eyebrow, Prazdno, LinkPill, Drawer, CenterSheet, DayTasks,
     // ikony
     TmIcKompas, TmIcOblasti, TmIcCile, TmIcPraxe, TmRyt,
     // styly
@@ -49,6 +49,20 @@ export function createCompassUI(deps) {
   const { TmObjIcon, TmIconPickerButton } = createIconUI({ useT, L });
 
   const lang = () => (getLang ? getLang() : "cs");
+
+  function useReviewDay() {
+    const [date, setDate] = useState(todayISO);
+    React.useEffect(() => {
+      const refresh = () => setDate(todayISO());
+      const timer = setInterval(refresh, 60000);
+      window.addEventListener("focus", refresh);
+      return () => { clearInterval(timer); window.removeEventListener("focus", refresh); };
+    }, []);
+    return date;
+  }
+
+  const reviewDateLabel = date => new Intl.DateTimeFormat(lang() === "en" ? "en-GB" : "cs-CZ", { day: "numeric", month: "numeric" }).format(new Date(date + "T12:00:00"));
+  const reviewWeekLabel = week => `${reviewDateLabel(week)} ${L("až", "to")} ${reviewDateLabel(areaReviewWeekEnd(week))}`;
 
   // ---- rytiny krajin ------------------------------------------------------
   // Rytina má přednost před emoji vždycky, když pro krajinu existuje. Dřív se
@@ -263,104 +277,173 @@ export function createCompassUI(deps) {
   function AreaChips({ onOpen, onAdd }) {
     const { t } = useT();
     const st = useStore();
+    const date = useReviewDay();
+    const [overview, setOverview] = useState(false);
+    const areas = st.listAreas();
+    const reviewed = areas.filter(a => areaReviewFor(st.areaVlqOf?.(a.name), date));
+    const next = areas.find(a => !areaReviewFor(st.areaVlqOf?.(a.name), date));
     const all = st.allGoals();
     return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10, fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textSec }}>
+          <span style={{ flex: "1 1 170px" }}>{L("Tento týden", "This week")} · {reviewed.length} {L("z", "of")} {areas.length} {L("zhodnoceno", "reviewed")}</span>
+          <button onClick={() => setOverview(!overview)} aria-expanded={overview} style={{ background: "transparent", border: "none", padding: "8px 0", minHeight: 44, color: t.accentInk || t.accent, font: "inherit", cursor: "pointer" }}>{overview ? L("Zavřít přehled", "Close overview") : L("Přehled týdnů", "Weekly overview")}</button>
+        </div>
+        {overview && <div style={{ marginBottom: 14 }}><AreaTable onOpen={onOpen} /></div>}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {st.listAreas().map((a) => {
+        {areas.map((a) => {
           const gs = all.filter((g) => g.area === a.name || (g.areas || []).includes(a.name));
           const done = gs.filter((g) => g.status === "Completed").length;
+          const weekReview = areaReviewFor(st.areaVlqOf?.(a.name), date);
+          const status = weekReview ? L("Tento týden zhodnoceno", "Reviewed this week") : L("Tento týden ještě nezhodnoceno", "Not reviewed this week yet");
           return (
-            <button key={a.name} onClick={() => onOpen(a.name)} title={`${done} / ${gs.length} ${L("cílů", "goals")}`} className="tm-nav-item tm-lift tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: "8px 15px 8px 15px", padding: "6px 13px", minHeight: 44, maxWidth: "100%", cursor: "pointer" }}>
+            <button key={a.name} onClick={() => onOpen(a.name)} title={`${status} · ${done} / ${gs.length} ${L("cílů", "goals")}`} aria-label={`${areaLabel(a.name)} · ${status}`} className="tm-nav-item tm-lift tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "6px 13px", minHeight: 44, maxWidth: "100%", cursor: "pointer" }}>
               <AreaGlyph name={a.name} size={15} />
               <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text }}>{areaLabel(a.name)}</span>
-              <span style={{ width: 34, height: 3, borderRadius: 2, background: t.borderSoft, position: "relative", overflow: "hidden" }}>
-                <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${gs.length ? Math.round((done / gs.length) * 100) : 0}%`, background: t.accent, transition: "width .55s cubic-bezier(.25,.8,.3,1)" }} />
-              </span>
+              {weekReview ? <FamilyIcon id="check" size={13} style={{ color: t.accentInk || t.accent, flexShrink: 0 }} /> : <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: "50%", border: `1px solid ${t.textMuted}`, opacity: .6, flexShrink: 0 }} />}
               {gs.length > 0 && <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, fontVariantNumeric: "tabular-nums" }}>{done}/{gs.length}</span>}
             </button>
           );
         })}
-        {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px solid transparent`, borderRadius: "8px 15px 8px 15px", minWidth: 44, minHeight: 44, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+        {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px solid transparent`, borderRadius: 10, minWidth: 44, minHeight: 44, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+      </div>
+      {next && <button onClick={() => onOpen(next.name)} style={{ background: "transparent", border: "none", minHeight: 44, padding: "8px 0", fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.accentInk || t.accent, cursor: "pointer" }}>{L("Zhodnotit další krajinu", "Review the next landscape")} ›</button>}
       </div>
     );
   }
 
   // ---- tabulka krajin -----------------------------------------------------
   function AreaTable({ onOpen, guide }) {
-    const { t, tags } = useT();
+    const { t } = useT();
     const st = useStore();
+    const date = useReviewDay();
+    const currentWeek = areaReviewWeek(date);
+    const [chosenWeek, setChosenWeek] = useState(null);
+    const week = chosenWeek || currentWeek;
     const all = st.allGoals();
-    const statFor = (name) => {
-      const gs = all.filter((g) => g.area === name || (g.areas || []).includes(name));
-      return { done: gs.filter((g) => g.status === "Completed").length, total: gs.length };
-    };
-    const lastRating = (a) => {
-      const months = st.monthsOf(a);
-      for (let i = ROM.length - 1; i >= 0; i--) if (months[ROM[i]] != null) return { v: months[ROM[i]], m: ROM[i] };
-      return null;
-    };
-    const cols = "1fr 120px 90px";
-    const th = { fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 12, color: t.sage, padding: "9px 12px", borderBottom: `1px solid ${t.border}` };
+    const areas = st.listAreas();
+    const count = areas.filter(a => areaReviewFor(st.areaVlqOf?.(a.name), week)).length;
+    const cols = "minmax(0, 1.1fr) minmax(92px, 1fr) 46px";
+    const th = { fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 12, color: t.textMuted, padding: "9px 8px", borderBottom: `1px solid ${t.border}` };
+    const nav = { background: "transparent", border: "none", color: t.textSec, minWidth: 44, minHeight: 44, cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13 };
     return (
-      <div style={{ border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-sm)", overflow: "hidden" }}>
-        <div data-guide={st.listAreas().length ? undefined : guide} style={{ display: "grid", gridTemplateColumns: cols, background: t.tableHead }}>
-          <div style={th}>{L("Krajina", "Landscape")}</div><div style={th}>{L("Poslední hodnocení", "Latest rating")}</div><div style={{ ...th, textAlign: "right" }}>{L("Cíle", "Goals")}</div>
+      <section aria-label={L("Týdenní přehled krajin", "Weekly landscape overview")} className="tm-area-overview">
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", marginBottom: 4 }}>
+          <button aria-label={L("Předchozí týden", "Previous week")} onClick={() => setChosenWeek(shiftAreaReviewWeek(week, -1))} style={nav}>‹</button>
+          <span style={{ flex: 1, fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textSec, textAlign: "center" }}>{reviewWeekLabel(week)} {week.slice(0, 4)}</span>
+          <button aria-label={L("Následující týden", "Next week")} disabled={week >= currentWeek} onClick={() => setChosenWeek(shiftAreaReviewWeek(week, 1))} style={{ ...nav, opacity: week >= currentWeek ? .3 : 1 }}>›</button>
+          {week !== currentWeek && <button onClick={() => setChosenWeek(null)} style={nav}>{L("Tento týden", "This week")}</button>}
         </div>
-        {st.listAreas().map((a) => {
-          const r = lastRating(a);
-          const s2 = statFor(a.name);
-          return (
-            <button key={a.name} data-guide={guide} onClick={() => onOpen && onOpen(a.name)} className="tm-nav-item" style={{ display: "grid", width: "100%", gridTemplateColumns: cols, alignItems: "center", minHeight: 44, background: "transparent", border: "none", cursor: "pointer", textAlign: "left", borderBottom: "none" }}>
-              <span style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 9 }}>
-                <AreaGlyph name={a.name} size={15} />
-                <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text }}>{areaLabel(a.name)}</span>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: (tags[AREA_COLOR[a.name]] || tags.default).fg }} />
-              </span>
-              <span style={{ padding: "8px 12px", fontFamily: "var(--tm-font-body)", fontSize: 13, color: r ? t.sand : t.textMuted }}>{r ? `★ ${r.v} · ${r.m}` : "—"}</span>
-              <span style={{ padding: "10px 12px", textAlign: "right", fontFamily: "var(--tm-font-body)", fontSize: 13, color: s2.done > 0 ? t.text : t.textMuted }}>{s2.total ? `${s2.done} / ${s2.total}` : "—"}</span>
-            </button>
-          );
-        })}
-      </div>
+        <p style={{ margin: "0 8px 8px", fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{count} {L("z", "of")} {areas.length} {L("krajin zhodnoceno. Klepnutím otevřeš zápis.", "landscapes reviewed. Tap to open a review.")}</p>
+        <div style={{ border: `1px solid ${t.border}`, borderRadius: 10, overflow: "hidden" }}>
+          <div data-guide={areas.length ? undefined : guide} style={{ display: "grid", gridTemplateColumns: cols }}>
+            <div style={th}>{L("Krajina", "Landscape")}</div><div style={th}>{L("Důležitost / praxe", "Importance / practice")}</div><div style={{ ...th, textAlign: "right" }}>{L("Cíle", "Goals")}</div>
+          </div>
+          {areas.map(a => {
+            const review = areaReviewFor(st.areaVlqOf?.(a.name), week);
+            const goals = all.filter(g => g.area === a.name || (g.areas || []).includes(a.name));
+            const done = goals.filter(g => g.status === "Completed").length;
+            return <button key={a.name} data-guide={guide} onClick={() => onOpen?.(a.name, week)} className="tm-nav-item" style={{ display: "grid", width: "100%", gridTemplateColumns: cols, alignItems: "center", minHeight: 56, padding: 0, background: "transparent", border: "none", borderBottom: `1px solid ${t.borderSoft}`, cursor: "pointer", textAlign: "left" }}>
+              <span style={{ padding: "10px 8px", display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}><AreaGlyph name={a.name} size={15} /><span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.text, overflowWrap: "anywhere" }}>{areaLabel(a.name)}</span></span>
+              <span style={{ padding: "8px", fontFamily: "var(--tm-font-body)", fontSize: 12, color: review ? t.accentInk || t.accent : t.textMuted }}>{review ? <><span style={{ display: "block" }}>{review.dulezitost} / {review.zit} <span style={{ color: t.textMuted }}>({L("z 5", "of 5")})</span></span><span style={{ fontSize: 11 }}>{L("Zhodnoceno", "Reviewed")}</span></> : L("Bez hodnocení", "Not reviewed")}</span>
+              <span style={{ padding: "10px 8px", textAlign: "right", fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{done}/{goals.length}</span>
+            </button>;
+          })}
+        </div>
+      </section>
     );
   }
 
-  // ---- dvě otázky ke krajině ---------------------------------------------
-  // Trojka může znamenat dvě zcela různé věci: buď mi na té oblasti nezáleží
-  // a je to v pořádku, nebo mi na ní záleží hodně a týden jsem se jí nedotkl.
-  // To první je klid. To druhé je to jediné, co má cenu vědět — a jedno číslo
-  // to nikdy neřekne. Rozdíl se schválně nikde nebarví a nikde nesčítá.
-  function AreaVlq({ name }) {
+  // A review becomes a dated record only after the person saves both answers.
+  function AreaScore({ label, hint, value, onChange, color }) {
+    const { t } = useT();
+    return <fieldset style={{ border: "none", margin: 0, padding: 0, minWidth: 0 }}>
+      <legend style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, marginBottom: 3 }}>{label}</legend>
+      <p style={{ margin: "0 0 6px", fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{hint}</p>
+      <div style={{ display: "flex", gap: 2 }}>
+        {[1, 2, 3, 4, 5].map(n => <button key={n} type="button" aria-label={`${label} · ${n} ${L("z 5", "of 5")}`} aria-pressed={n === value} onClick={() => onChange(n)} style={{ width: 44, height: 44, padding: 0, background: "transparent", border: "none", color: n === value ? color : t.textMuted, cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13 }}><span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: "50%", border: `1px solid ${n === value ? color : t.border}`, background: n === value ? color : "transparent", color: n === value ? t.bg : t.textMuted, fontWeight: n === value ? 600 : 400 }}>{n}</span></button>)}
+      </div>
+    </fieldset>;
+  }
+
+  function AreaWeekEditor({ name, value, date }) {
     const { t } = useT();
     const st = useStore();
-    if (typeof st.areaVlqOf !== "function") return null;
-    const v = st.areaVlqOf(name);
-    const set = (patch) => st.setAreaVlq(name, patch);
-    const dul = v.dulezitost || 0, zit = v.zit || 0;
-    const obe = dul > 0 && zit > 0;
-    const rozdil = obe ? dul - zit : null;
-    return (
-      <div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px 30px", alignItems: "flex-end" }}>
-          <DotTap label={L("Důležité mi to je", "It matters to me")} value={dul} onChange={(x) => set({ dulezitost: x })} color={t.sand} />
-          <DotTap label={L("Posledních 7 dní podle toho žiju", "Lived it these 7 days")} value={zit} onChange={(x) => set({ zit: x })} color={t.sage} />
-        </div>
-        {obe && (
-          <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${t.borderSoft}` }}>
-            <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec }}>
-              {L("Rozdíl ", "Gap ")}<span style={{ fontFamily: "var(--tm-font-display)", fontSize: 19, color: t.textSec }}>{Math.abs(rozdil)}</span>
-            </span>
-            <div style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted, marginTop: 5, lineHeight: 1.55 }}>
-              {rozdil > 0
-                ? L("Záleží ti na tom víc, než kolik z toho poslední týden bylo. To je jediné, co má cenu vědět.", "It matters more than the past week showed. That is the only thing worth knowing here.")
-                : rozdil < 0
-                  ? L("Bylo toho víc, než kolik na tom podle tebe záleží. Někdy je to poctivá odpověď, někdy setrvačnost.", "There was more of it than you say it matters. Sometimes that is honest, sometimes momentum.")
-                  : L("Sedí to. Nic k řešení.", "They match. Nothing to solve.")}
-            </div>
-          </div>
-        )}
+    const [draft, setDraft] = useState(() => areaReviewDraft(value, date));
+    const [dirty, setDirty] = useState(false);
+    const saved = areaReviewFor(value, date);
+    React.useEffect(() => { if (!dirty) setDraft(areaReviewDraft(value, date)); }, [saved, dirty]);
+    const change = patch => { setDraft(v => ({ ...v, ...patch })); setDirty(true); };
+    const complete = canSaveAreaReview(draft);
+    const save = () => {
+      const now = todayISO();
+      if (areaReviewWeek(now) !== areaReviewWeek(date) || !complete) return;
+      const at = Date.now();
+      st.persistColl(coll => saveAreaReview(coll, name, now, draft, at));
+      setDirty(false);
+    };
+    const gap = complete ? draft.dulezitost - draft.zit : null;
+    return <div className="tm-area-week-editor">
+      <div style={{ display: "grid", gap: 14 }}>
+        <AreaScore label={L("Jak moc mi na této krajině záleží?", "How much does this landscape matter to me?")} hint={L("1 málo · 5 velmi", "1 a little · 5 a lot")} value={draft.dulezitost} onChange={n => change({ dulezitost: n })} color={t.accentInk || t.accent} />
+        <AreaScore label={L("Kolik prostoru jsem jí tento týden dal?", "How much room did I give it this week?")} hint={L("1 téměř žádný · 5 tolik, kolik jsem potřeboval", "1 almost none · 5 as much as I needed")} value={draft.zit} onChange={n => change({ zit: n })} color={t.accentInk || t.accent} />
       </div>
-    );
+      {complete && <p style={{ margin: "12px 0", fontFamily: "var(--tm-font-body)", fontSize: 12, lineHeight: 1.6, color: t.textSec }}>{gap > 0 ? L("Záleží ti na tom víc, než kolik prostoru to dostalo. Co můžeš příští týden udělat jinak?", "It matters more than the room it received. What could you do differently next week?") : gap < 0 ? L("Dostal se sem větší díl tvé pozornosti. Chceš ho tu nechat i příští týden?", "This received a larger share of your attention. Do you want to keep that next week?") : L("Důležitost a praxe jsou teď v rovnováze. Co ti pomáhá ji držet?", "Importance and practice are in balance. What helps you keep it that way?")}</p>}
+      <label style={{ display: "block", marginTop: 12, fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textSec }}>{L("Jeden krok na příští týden", "One step for next week")} <span style={{ color: t.textMuted }}>({L("nepovinné", "optional")})</span>
+        <textarea value={draft.nextStep} maxLength={600} rows={2} onChange={e => change({ nextStep: e.target.value })} placeholder={L("Co konkrétně uděláš?", "What will you do?")} style={{ ...fieldStyle(t), display: "block", width: "100%", boxSizing: "border-box", background: "transparent", resize: "vertical", marginTop: 6, minHeight: 62 }} />
+      </label>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, marginTop: 12 }}>
+        <button onClick={save} disabled={!complete || (!!saved && !dirty)} style={{ minHeight: 44, padding: "9px 16px", border: `1px solid ${t.border}`, borderRadius: 10, background: "transparent", color: t.accentInk || t.accent, opacity: !complete || (!!saved && !dirty) ? .5 : 1, cursor: !complete || (!!saved && !dirty) ? "default" : "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{saved ? L("Uložit úpravu", "Save changes") : L("Uložit hodnocení týdne", "Save weekly review")}</button>
+        <span aria-live="polite" style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{dirty ? L("Neuložené změny", "Unsaved changes") : saved ? L("Uloženo", "Saved") : L("Vyber obě odpovědi.", "Choose both answers.")}</span>
+      </div>
+    </div>;
+  }
+
+  function AreaVlq({ name, initialWeek }) {
+    const { t } = useT();
+    const st = useStore();
+    const date = useReviewDay();
+    const current = areaReviewWeek(date);
+    const [selected, setSelected] = useState(initialWeek || null);
+    const [historyPage, setHistoryPage] = useState(0);
+    const week = selected && selected <= current ? selected : current;
+    const value = st.areaVlqOf?.(name) || {};
+    const review = areaReviewFor(value, week);
+    const savedCurrent = areaReviewFor(value, date);
+    const savedWeeks = areaReviewWeeks(value, date);
+    const oldest = savedWeeks.at(-1) || current;
+    const firstShown = shiftAreaReviewWeek(current, -historyPage * 8);
+    const shown = Array.from({ length: 8 }, (_, i) => shiftAreaReviewWeek(firstShown, -i));
+    const button = { background: "transparent", border: "none", minHeight: 44, padding: "6px 0", fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.accentInk || t.accent, cursor: "pointer" };
+    return <section className="tm-area-review" aria-label={L("Týdenní hodnocení krajiny", "Weekly landscape review")}>
+      <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: savedCurrent ? t.accentInk || t.accent : t.textMuted, marginBottom: 8 }} aria-live="polite">{savedCurrent ? L("Tento týden zhodnoceno", "Reviewed this week") : L("Tento týden ještě nezhodnoceno", "Not reviewed this week yet")}</div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+        <h3 style={{ flex: 1, margin: 0, fontFamily: "var(--tm-font-display)", fontSize: 21, fontWeight: 400, color: t.heading }}>{reviewWeekLabel(week)} {week.slice(0, 4)}</h3>
+        {week !== current && <button onClick={() => { setSelected(null); setHistoryPage(0); }} style={button}>{L("Tento týden", "This week")}</button>}
+      </div>
+      <div hidden={week !== current}><AreaWeekEditor key={name + current} name={name} value={value} date={date} /></div>
+      {week !== current && (review ? <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, lineHeight: 1.7, color: t.textSec }}>
+        <div>{L("Důležitost", "Importance")}: {review.dulezitost} {L("z 5", "of 5")}</div>
+        <div>{L("Praxe", "Practice")}: {review.zit} {L("z 5", "of 5")}</div>
+        {typeof review.nextStep === "string" && review.nextStep && <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><span style={{ color: t.textMuted }}>{L("Zvolený další krok", "Chosen next step")}: </span>{review.nextStep}</p>}
+        <p style={{ fontSize: 12, color: t.textMuted }}>{L("Uloženo", "Saved")} {new Intl.DateTimeFormat(lang() === "en" ? "en-GB" : "cs-CZ", { day: "numeric", month: "numeric", year: "numeric" }).format(new Date(review.reviewedAt))}</p>
+      </div> : <p style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textMuted }}>{L("Pro tento týden tu hodnocení není.", "There is no review for this week.")}</p>)}
+      <div style={{ marginTop: 22, paddingTop: 14, borderTop: `1px solid ${t.borderSoft}` }}>
+        <div style={{ fontFamily: "var(--tm-font-tag)", fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: t.textMuted, marginBottom: 9 }}>{L("Přehled týdnů", "Weekly history")}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
+          {shown.map(key => {
+            const r = areaReviewFor(value, key);
+            return <button key={key} onClick={() => setSelected(key)} aria-pressed={week === key} aria-label={`${reviewWeekLabel(key)} ${key.slice(0, 4)} · ${r ? L("zhodnoceno, praxe ", "reviewed, practice ") + r.zit + L(" z 5", " of 5") : L("bez hodnocení", "not reviewed")}`} style={{ background: "transparent", border: `1px solid ${week === key ? t.accentInk || t.accent : t.borderSoft}`, borderRadius: 10, minHeight: 58, padding: "7px 3px", cursor: "pointer", fontFamily: "var(--tm-font-body)", color: t.textSec, fontSize: 12 }}><span style={{ display: "block", fontSize: 11, color: t.textMuted }}>{reviewDateLabel(key)}</span><span style={{ display: "block", marginTop: 4 }}>{r ? `${r.zit}/5` : "·"}</span></button>;
+          })}
+        </div>
+        <p style={{ fontFamily: "var(--tm-font-body)", fontSize: 11, lineHeight: 1.5, color: t.textMuted, margin: "7px 0 0" }}>{L("Číslo ukazuje praxi. Tečka znamená týden bez hodnocení.", "The number shows practice. A dot means a week without a review.")}</p>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+          {shown.at(-1) > oldest ? <button onClick={() => setHistoryPage(n => n + 1)} style={button}>{L("Starší týdny", "Older weeks")}</button> : <span />}
+          {historyPage > 0 && <button onClick={() => setHistoryPage(n => Math.max(0, n - 1))} style={button}>{L("Novější týdny", "Newer weeks")}</button>}
+        </div>
+      </div>
+      {(value.dulezitost || value.zit) && <details style={{ marginTop: 12, fontFamily: "var(--tm-font-body)", fontSize: 12, lineHeight: 1.6, color: t.textMuted }}><summary style={{ cursor: "pointer", minHeight: 44, display: "list-item", alignContent: "center" }}>{L("Starší hodnocení bez data", "Earlier undated rating")}</summary><p>{L("Důležitost", "Importance")}: {value.dulezitost || "·"}/5 · {L("Praxe", "Practice")}: {value.zit || "·"}/5</p><p>{L("Tento záznam nemá datum. Do týdenního přehledu se nezapočítává.", "This record has no date and is not counted in the weekly overview.")}</p></details>}
+    </section>;
   }
 
   // ---- detail cíle --------------------------------------------------------
@@ -506,7 +589,7 @@ export function createCompassUI(deps) {
   }
 
   // ---- detail krajiny -----------------------------------------------------
-  function AreaDetail({ name, openGoal, onClose, onExpand }) {
+  function AreaDetail({ name, openGoal, onClose, onExpand, initialWeek }) {
     const { t } = useT();
     const st = useStore();
     const a = st.listAreas().find((x) => x.name === name);
@@ -533,9 +616,9 @@ export function createCompassUI(deps) {
         <ProgressBar value={gs.length ? done / gs.length : 0} />
         <div style={{ height: 18 }} />
         <div style={{ ...eyebrow, marginBottom: 10 }}>{L("Jak to teď stojí", "Where this stands")}</div>
-        <AreaVlq name={a.name} />
+        <AreaVlq key={a.name} name={a.name} initialWeek={initialWeek} />
         <div style={{ height: 18 }} />
-        <div style={{ ...eyebrow, marginBottom: 8 }}>{L("Hodnocení po měsících", "Ratings by month")}</div>
+        <details style={{ marginBottom: 18 }}><summary style={{ ...eyebrow, minHeight: 44, cursor: "pointer", alignContent: "center" }}>{L("Hodnocení po měsících", "Ratings by month")}</summary><p style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{L("Původní měsíční záznamy zůstávají samostatně. Neoznačují žádný týden jako zhodnocený.", "Original monthly records are kept separately. They do not mark any week as reviewed.")}</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, marginBottom: 18 }}>
           {ROM.map((r) => (
             <div key={r} style={{ textAlign: "center", border: `1px solid ${months[r] != null ? t.border : t.borderSoft}`, borderRadius: "var(--tm-r-sm)", padding: "6px 2px", background: months[r] != null ? t.card : "transparent" }}>
@@ -550,7 +633,7 @@ export function createCompassUI(deps) {
               )}
             </div>
           ))}
-        </div>
+        </div></details>
         <MetaSection meta={st.areaMetaOf(a.name)} onPatch={(p) => st.setAreaMeta(a.name, p)} placeholder={L("Piš k této krajině…", "Write about this landscape…")} />
         <div style={{ height: 14 }} />
         <div style={{ ...eyebrow, marginBottom: 6 }}>{L("Cíle", "Goals")} · {gs.length}</div>
@@ -604,7 +687,7 @@ export function createCompassUI(deps) {
       else if (tgt.kind === "area") { setSel({ type: "area", id: tgt.id }); st.setOpenTarget(null); }
     }, [st.openTarget]);
     const applyMove = (patchOf) => (n, v, over) => { st.dragGoal(n, over, patchOf(v)); if (sortBy !== "manual") setSortBy("manual"); };
-    const openArea = (name) => setSel({ type: "area", id: name });
+    const openArea = (name, week) => setSel({ type: "area", id: name, week });
 
     const all = st.allGoals();
     const areaNames = st.listAreas().map((a) => a.name);
@@ -631,7 +714,7 @@ export function createCompassUI(deps) {
         <>
           <button onClick={() => setFull(null)} className="tm-tap-c" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "8px 0 16px", minHeight: 34, display: "inline-flex", alignItems: "center", gap: 6 }}>{L("‹ Zpět", "‹ Back")}</button>
           {full.type === "area"
-            ? <AreaDetail name={full.id} openGoal={(n) => setFull({ type: "goal", id: n })} onClose={() => setFull(null)} />
+            ? <AreaDetail initialWeek={full.week} name={full.id} openGoal={(n) => setFull({ type: "goal", id: n })} onClose={() => setFull(null)} />
             : <GoalDetail name={full.id} wide openArea={(n) => setFull({ type: "area", id: n })} onClose={() => setFull(null)} />}
         </>
       );
@@ -670,9 +753,9 @@ export function createCompassUI(deps) {
         {view === "Completed" && (completed.length ? <div style={grid}>{completed.map((g) => <GoalCard key={g.name} g={g} onOpen={openGoal} />)}</div> : <Prazdno kind="hotovo" plain compact fakt={L("V tomhle výběru zatím nic dokončeného.", "Nothing completed in this selection yet.")} />)}
         {view === "Archiv" && (archived.length ? <div style={grid}>{archived.map((g) => <GoalCard key={g.name} g={g} onOpen={openGoal} />)}</div> : <Prazdno kind="hotovo" plain compact fakt={L("Archiv je prázdný.", "The archive is empty.")} />)}
 
-        <Drawer open={!!sel} onClose={() => setSel(null)}>
+        <Drawer className="tm-compass-surface" open={!!sel} onClose={() => setSel(null)}>
           {sel && sel.type === "goal" && <GoalDetail name={sel.id} openArea={openArea} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
-          {sel && sel.type === "area" && <AreaDetail name={sel.id} openGoal={openGoal} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
+          {sel && sel.type === "area" && <AreaDetail initialWeek={sel.week} name={sel.id} openGoal={openGoal} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
         </Drawer>
       </>
     );
@@ -774,12 +857,12 @@ export function createCompassUI(deps) {
           </>
         )}
         <div style={{ marginTop: 8 }}>
-          <button onClick={() => go("cile")} className="tm-tap-c" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "6px 0", minHeight: 30 }}>{L("všech", "all")} {live.length} {L("cílů ›", "goals ›")}</button>
+          <button onClick={() => setDilna(true)} className="tm-tap-c" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "6px 0", minHeight: 30 }}>{L("všech", "all")} {live.length} {L("cílů ›", "goals ›")}</button>
         </div>
         <span style={{ display: "block", height: 30 }} />
         <Eyebrow>{L("Krajina", "The landscape")}</Eyebrow>
         {addingArea && <AddAreaForm onDone={() => setAddingArea(false)} />}
-        <AreaChips onOpen={(name) => setSel({ type: "area", id: name })} onAdd={() => setAddingArea(true)} />
+        <AreaChips onOpen={(name, week) => setSel({ type: "area", id: name, week })} onAdd={() => setAddingArea(true)} />
         <Divider />
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
           <span style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent }}>{L("Dílna", "The workshop")}</span>
@@ -787,13 +870,13 @@ export function createCompassUI(deps) {
           <span data-guide="kompas.goals" style={{display:"inline-block"}}><LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcCile size={13} /></span>} label={L("Otevřít dílnu", "Open the workshop")} onClick={() => setDilna(true)} /></span>
         </div>
         {dilna && (
-          <CenterSheet title={L("Dílna · cíle a krajiny", "Workshop · goals and landscapes")} onClose={() => setDilna(false)}>
+          <CenterSheet className="tm-compass-surface" title={L("Dílna · cíle a krajiny", "Workshop · goals and landscapes")} onClose={() => setDilna(false)}>
             <GoalWorkspace withAreas />
           </CenterSheet>
         )}
-        <Drawer open={!!sel} onClose={() => setSel(null)}>
+        <Drawer className="tm-compass-surface" open={!!sel} onClose={() => setSel(null)}>
           {sel && sel.type === "goal" && <GoalDetail name={sel.id} openArea={(n) => setSel({ type: "area", id: n })} onClose={() => setSel(null)} />}
-          {sel && sel.type === "area" && <AreaDetail name={sel.id} openGoal={(n) => setSel({ type: "goal", id: n })} onClose={() => setSel(null)} />}
+          {sel && sel.type === "area" && <AreaDetail initialWeek={sel.week} name={sel.id} openGoal={(n) => setSel({ type: "goal", id: n })} onClose={() => setSel(null)} />}
         </Drawer>
       </>
     );
@@ -813,7 +896,7 @@ export function createCompassUI(deps) {
         <>
           <button onClick={() => setFull(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "0 0 16px", display: "inline-flex", alignItems: "center", gap: 6 }}>{L("‹ Zpět", "‹ Back")}</button>
           {full.type === "area"
-            ? <AreaDetail name={full.id} openGoal={(n) => setFull({ type: "goal", id: n })} onClose={() => setFull(null)} />
+            ? <AreaDetail initialWeek={full.week} name={full.id} openGoal={(n) => setFull({ type: "goal", id: n })} onClose={() => setFull(null)} />
             : <GoalDetail name={full.id} wide openArea={(n) => setFull({ type: "area", id: n })} onClose={() => setFull(null)} />}
         </>
       );
@@ -822,13 +905,13 @@ export function createCompassUI(deps) {
       <>
         {go && <button onClick={() => go("kompas")} className="tm-nav-item" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "0 8px 14px 0", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 8 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Kompas", "Compass")}</button>}
         <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcOblasti size={34} /></span>} pageKey="oblasti" kicker={L("Kompas", "Compass")}>{L("Krajiny", "Landscapes")}</PageTitle>
-        <p className="tm-prose" style={pProse(t)}>{st.listAreas().length} {L("krajin života · poslední hodnocení · splněné cíle včetně archivovaných.", "life landscapes · latest ratings · completed goals including archived.")}{st.editMode && <span style={{ color: t.textMuted }}>{L(" Klikni na krajinu a otevři detail s měsíčním hodnocením.", " Click a landscape to open its detail with monthly ratings.")}</span>}</p>
+        <p className="tm-prose" style={pProse(t)}>{st.listAreas().length} {L("krajin života. Týdenní hodnocení a splněné cíle včetně archivovaných.", "life landscapes. Weekly reviews and completed goals including archived.")}{st.editMode && <span style={{ color: t.textMuted }}>{L(" Klepnutím na krajinu otevřeš její hodnocení.", " Tap a landscape to open its reviews.")}</span>}</p>
         {adding ? <AddAreaForm onDone={() => setAdding(false)} /> : (
           <button onClick={() => setAdding(true)} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: "var(--tm-r-sm)", padding: "11px 13px", minHeight: 40, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nová krajina", "New landscape")}</button>
         )}
-        <AreaTable guide="oblasti.overview" onOpen={(name) => setSel({ type: "area", id: name })} />
-        <Drawer open={!!sel} onClose={() => setSel(null)}>
-          {sel && sel.type === "area" && <AreaDetail name={sel.id} openGoal={(n) => setSel({ type: "goal", id: n })} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
+        <AreaTable guide="oblasti.overview" onOpen={(name, week) => setSel({ type: "area", id: name, week })} />
+        <Drawer className="tm-compass-surface" open={!!sel} onClose={() => setSel(null)}>
+          {sel && sel.type === "area" && <AreaDetail initialWeek={sel.week} name={sel.id} openGoal={(n) => setSel({ type: "goal", id: n })} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
           {sel && sel.type === "goal" && <GoalDetail name={sel.id} openArea={(n) => setSel({ type: "area", id: n })} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
         </Drawer>
       </>

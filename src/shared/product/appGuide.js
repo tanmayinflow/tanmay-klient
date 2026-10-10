@@ -1,7 +1,7 @@
 import { ROOM_COPY } from './rooms.js';
 import { CLIENT_ALWAYS, CLIENT_OPTIONAL, CLIENT_HIDDEN, CLIENT_INFRA } from './roles.js';
 
-export const APP_GUIDE_VERSION = 4;
+export const APP_GUIDE_VERSION = 5;
 
 // Copy describes real controls, never data owned by either person. An adapter
 // opens a view; a guide step must never save, submit, pair or grant access.
@@ -117,6 +117,13 @@ export function getGuideTours({ role = 'client', availableRooms = [], availableS
     });
   }
   return [...byRoom.values()];
+}
+
+// Combine only the already permission-filtered tours. Every step retains its
+// actual room so navigation, pause handling and highlights remain contextual.
+export function combineGuideTours(tours, lang = 'cs') {
+  if (!tours.length) return null;
+  return { room: '__all__', label: lang === 'en' ? 'Show everything' : 'Ukázat vše', steps: tours.flatMap(tour => tour.steps) };
 }
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), Math.max(min, max));

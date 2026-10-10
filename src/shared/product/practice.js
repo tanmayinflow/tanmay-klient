@@ -319,7 +319,7 @@ export function makeWbZnameni(icons) {
     { k: "grat", Ic: icons.TmWbMiska, cz: "Vděčnost", en: "Gratitude",
       pCz: "Návrat pozornosti k vděčnosti a spojení s ní.", pEn: "I brought my attention to gratitude and connected with it." },
     { k: "bodhi", Ic: icons.TmWbDiamant, cz: "Bódhičitta", en: "Bodhicitta",
-      pCz: "Kultivace vznešeného záměru — bódhičitty, přání dobra všem bytostem.", pEn: "I cultivated a noble intention — bodhicitta, the wish for the good of all beings." },
+      pCz: "Probouzet se pro dobro všech bytostí. Dnes dát soucitu konkrétní podobu.", pEn: "Awaken for the benefit of all beings. Give compassion a concrete form today." },
     { k: "wild", Ic: icons.TmWbKruh, cz: "Praxe ve světě", en: "Practice in the world",
       pCz: "Můj záměr a vnitřní kontemplace se projevily ve skutečném jednání.", pEn: "My intention and inner contemplation took form in real action." },
   ];

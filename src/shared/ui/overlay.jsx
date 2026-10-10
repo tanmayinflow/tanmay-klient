@@ -34,10 +34,16 @@ import {
  * @param {function} o.escKdyz      vrátí false, když Escape teď nepatří téhle vrstvě
  */
 export function useVrstva({ close, ref, zamek = true, historie = true, escKdyz }) {
+  const closeRef = React.useRef(close);
+  const escWhenRef = React.useRef(escKdyz);
+  closeRef.current = close;
+  escWhenRef.current = escKdyz;
+  // Registration order belongs to the layer's lifetime. Re-registering after
+  // a save can move its parent above a nested drawer in the Escape stack.
   React.useEffect(() => tmEscVrstva(() => {
-    if (escKdyz && !escKdyz()) return;
-    close();
-  }), [close, escKdyz]);
+    if (escWhenRef.current && !escWhenRef.current()) return;
+    closeRef.current();
+  }), []);
   // Zámek stránky patří k životu vrstvy, ne k jejímu překreslování. Volající
   // posílají `close` obvykle inline, takže je po každém zápisu do úložiště
   // nová — kdyby zámek visel na ní, pouštěl by se a znovu zavíral a stránka
@@ -51,8 +57,6 @@ export function useVrstva({ close, ref, zamek = true, historie = true, escKdyz }
     if (!ref || !ref.current) return undefined;
     return tmChytFocus(ref.current);
   }, []);
-  const closeRef = React.useRef(close);
-  closeRef.current = close;
   React.useEffect(() => {
     if (!historie) return undefined;
     return tmHistorieVrstva(() => closeRef.current());
@@ -72,7 +76,7 @@ export function createOverlay(useT, L) {
 
   const tmDvirka = (t, barva) => ({ width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "12px 0", minHeight: 44, display: "flex", alignItems: "center", gap: 10, color: barva || t.text, fontFamily: "var(--tm-font-body)", fontSize: 15, fontWeight: 500 });
 
-  function CenterSheet({ title, onClose, children, center, naradi, vrstva = 80 }) {
+  function CenterSheet({ title, onClose, children, center, naradi, vrstva = 80, className = "" }) {
     const { t } = useT();
     const korenRef = React.useRef(null);
     // zavření si vybere svých dvě stě milisekund · list odplouvá, neuteče
@@ -102,7 +106,7 @@ export function createOverlay(useT, L) {
           aria-modal="true"
           aria-label={typeof title === "string" ? title : undefined}
           onClick={(e) => e.stopPropagation()}
-          className={"tm-scroll tm-cs " + (center ? "" : "tm-centersheet") + (out ? " tm-out" : "")}
+          className={"tm-scroll tm-cs " + (center ? "" : "tm-centersheet") + (out ? " tm-out" : "") + " " + className}
           style={{ width: "min(920px, calc(96 * var(--tm-vw)))", maxHeight: "min(calc(88 * var(--tm-vh)), 980px)", overflowY: "auto", overscrollBehavior: "contain", background: t.bg, border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-sheet)", boxShadow: t.shadowSheet, padding: "24px clamp(18px, calc(3 * var(--tm-vw)), 34px) 34px", animation: "tmSheetIn .38s cubic-bezier(.23,.62,.22,.99) both" }}
         >
           <div className="tm-cs-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, position: "sticky", top: -24, zIndex: 2, background: t.bg, padding: "6px 0" }}>
@@ -133,7 +137,7 @@ export function createOverlay(useT, L) {
   // uvěznit její `position: fixed`. Na počítači přijíždí zprava, na telefonu
   // (≤820 px, přes CSS) je z ní spodní list s držadlem — stáhnout přes ~90 px
   // a zavře se, jinak se vrátí.
-  function Drawer({ open, onClose, children, titulek, vrstva = 190 }) {
+  function Drawer({ open, onClose, children, titulek, vrstva = 190, className = "" }) {
     const { t } = useT();
     const korenRef = React.useRef(null);
     const [dragY, setDragY] = React.useState(0);
@@ -154,7 +158,7 @@ export function createOverlay(useT, L) {
     if (!live) return null;
     return (
       <DrawerTelo
-        t={t} korenRef={korenRef} out={out} onClose={onClose} titulek={titulek} vrstva={vrstva}
+        t={t} korenRef={korenRef} out={out} onClose={onClose} titulek={titulek} vrstva={vrstva} className={className}
         dragY={dragY} setDragY={setDragY} snapping={snapping} setSnapping={setSnapping}
         touched={touched} setTouched={setTouched} startRef={startRef}
       >{children}</DrawerTelo>
@@ -164,7 +168,7 @@ export function createOverlay(useT, L) {
   /* Tělo je vlastní komponenta, aby hooky vrstvy (Escape, zámek, focus,
      historie) běžely jen po dobu, kdy zásuvka opravdu stojí. Kdyby seděly
      v `Drawer`, běžely by i zavřené a Escape by patřil neexistující vrstvě. */
-  function DrawerTelo({ t, korenRef, out, onClose, titulek, vrstva, children, dragY, setDragY, snapping, setSnapping, touched, setTouched, startRef }) {
+  function DrawerTelo({ t, korenRef, out, onClose, titulek, vrstva, children, dragY, setDragY, snapping, setSnapping, touched, setTouched, startRef, className }) {
     useVrstva({ close: onClose, ref: korenRef });
     const onGripStart = (e) => { startRef.current = e.touches[0].clientY; setTouched(true); setSnapping(false); };
     const onGripMove = (e) => {
@@ -186,7 +190,7 @@ export function createOverlay(useT, L) {
           role="dialog"
           aria-modal="true"
           aria-label={titulek || undefined}
-          className={"tm-drawer" + (out ? " tm-out" : "")}
+          className={"tm-drawer" + (out ? " tm-out" : "") + " " + className}
           style={{
             position: "fixed", zIndex: vrstva, background: t.bg, overflowY: "auto", WebkitOverflowScrolling: "touch",
             animation: touched ? "none" : undefined,

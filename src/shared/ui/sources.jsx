@@ -482,9 +482,9 @@ export function createSourcesUI(deps) {
               <div style={{ textAlign: "center", padding: "30px 14px 26px", animation: "tmsettle .4s ease-out" }}>
                 <TmArtKapka size={130} color={t.sand} />
                 <Prazdno kind="prvni"
-                  fakt={L("Prázdný sešit.", "An empty notebook.")}
-                  pozvani={L("Sem patří to, co ještě nemá tvar.", "This is where things go before they have a shape.")}
-                  uvolneni={L("Nemusí to dávat smysl hned. Od toho to je zapsané.", "It doesn't have to make sense yet. That's what writing it down is for.")} />
+                  fakt={L("Zatím žádný pramen.", "No sources yet.")}
+                  pozvani={L("Knihy, filmy, podcasty a tvoje poznámky.", "Books, films, podcasts and your notes.")}
+                  uvolneni={L("Ulož, co tě čeká nebo co už znáš. Poznamenej si, co si z toho odnášíš.", "Save what you plan to explore or already know. Note what you want to take from it.")} />
               </div>
             )}
           </div>

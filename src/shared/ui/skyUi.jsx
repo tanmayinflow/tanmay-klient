@@ -47,7 +47,7 @@ export const SKY_CSS=`
 .tg-astrology h2{font-size:34px;margin:0}.tg-astrology h3{font-size:26px;margin:0}.tg-astrology h4{font-size:21px;margin:22px 0 8px}
 .tg-astrology :is(button,select,input,textarea){font:14px/1.5 var(--tm-font-body);color:var(--astro-text);max-width:100%;caret-color:var(--astro-ink)}
 .tg-astrology button{min-height:44px;padding:8px 12px;border:1px solid var(--astro-line);border-radius:7px;background:transparent;cursor:pointer;touch-action:manipulation;transition:color .2s,border-color .2s,background-color .2s}
-.tg-astrology button:hover:not(:disabled){color:var(--astro-ink);border-color:var(--astro-ink)}.tg-astrology button:disabled{opacity:.45;cursor:default}
+.tg-astrology button:hover:not(:disabled){color:var(--astro-ink)}.tg-astrology button:disabled{opacity:.45;cursor:default}
 .tg-astrology :is(.sky-date button,.sky-quiet,.sky-links button){appearance:none;-webkit-appearance:none;background:transparent!important;background-image:none!important;box-shadow:none;-webkit-tap-highlight-color:transparent;user-select:none}
 .tg-astrology input[type=number]{appearance:textfield;-moz-appearance:textfield}
 .tg-astrology input[type=number]::-webkit-inner-spin-button,.tg-astrology input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}

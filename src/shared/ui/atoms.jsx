@@ -35,9 +35,9 @@ export function createAtoms(deps) {
 
   function LinkPill({ icon, label, onClick }) {
     const { t } = useT();
-    const [h, setH] = useState(false);
+
     return (
-      <button className="tm-pill" onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{ display: "inline-flex", alignItems: "center", gap: 7, cursor: "pointer", background: h ? t.cardHover : "transparent", border: `1px solid ${t.border}`, borderRadius: 20, padding: "6px 14px", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, transition: "background .15s ease" }}>
+      <button className="tm-pill" onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 7, cursor: "pointer", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 20, padding: "6px 14px", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, transition: "background .15s ease" }}>
         <span>{icon}</span>{label}<span className="tm-arrow" style={{ color: t.accent }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
       </button>
     );

@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useId } from 'react';
 import { createPortal } from 'react-dom';
-import { getGuideTours, guideArrow, placeGuidePanel, visibleGuideRect } from '../product/appGuide.js';
+import { getGuideTours, combineGuideTours, guideArrow, placeGuidePanel, visibleGuideRect } from '../product/appGuide.js';
 
 function viewportNow() {
   const v = window.visualViewport;
@@ -51,6 +51,8 @@ export function AppGuide({ t, lang = 'cs', role = 'client', currentRoom,
   contextBlocked = false, insets = {}, registerEscape }) {
   const L = (cs, en) => lang === 'en' ? en : cs;
   const tours = getGuideTours({ role, availableRooms, availableSteps, lang });
+  const combined = combineGuideTours(tours, lang);
+  const choices = combined ? [combined, ...tours] : [];
   const [selected, setSelected] = useState(() => tours.some(tour => tour.room === currentRoom) ? currentRoom : tours[0]?.room || '');
   const [mode, setMode] = useState('choose');
   const [index, setIndex] = useState(0);
@@ -61,7 +63,7 @@ export function AppGuide({ t, lang = 'cs', role = 'client', currentRoom,
   const panelRef = useRef(null), titleRef = useRef(null), originRef = useRef(null);
   const navigation = useRef(onNavigate), closeRef = useRef(onClose), context = useRef(null);
   navigation.current = onNavigate; closeRef.current = onClose;
-  const tour = tours.find(item => item.room === selected);
+  const tour = choices.find(item => item.room === selected);
   const step = mode === 'tour' ? tour?.steps[Math.min(index, tour.steps.length - 1)] : null;
   const uid = useId().replace(/:/g, ''), titleId = `tm-guide-title-${uid}`, textId = `tm-guide-text-${uid}`;
   const resolvedInsets = { top: 8, bottom: geometry.viewport.width <= 820 ? 86 : 12, ...insets };
@@ -82,7 +84,7 @@ export function AppGuide({ t, lang = 'cs', role = 'client', currentRoom,
   // loses the step immediately. It never re-enables the module to continue.
   const allowedSignature = tours.map(item => `${item.room}:${item.steps.map(s => s.id).join(',')}`).join('|');
   useEffect(() => {
-    if (!tours.some(item => item.room === selected)) {
+    if (!choices.some(item => item.room === selected)) {
       setMode('choose'); setIndex(0); setPaused(false);
       setSelected(tours.find(item => item.room === currentRoom)?.room || tours[0]?.room || '');
     } else if (index >= (tour?.steps.length || 0)) setIndex(0);
@@ -223,7 +225,7 @@ export function AppGuide({ t, lang = 'cs', role = 'client', currentRoom,
   const liveContext = !!step && step.room === currentRoom && !contextBlocked && !paused;
   const rect = liveContext && geometry.phase === 'ready' ? geometry.rect : null;
   const usableHeight = Math.max(80, geometry.viewport.height - (resolvedInsets.top || 0) - (resolvedInsets.bottom || 0) - 24);
-  const maxHeight = Math.min(mode === 'choose' ? 330 : 272, usableHeight);
+  const maxHeight = Math.min(mode === 'choose' ? 560 : 272, usableHeight);
   // Reserve the full tour card height even while its temporary loading/pause
   // text is shorter. Otherwise a tight viewport could alternate between
   // the short fallback (fits) and the full explanation (does not fit).
@@ -273,11 +275,18 @@ export function AppGuide({ t, lang = 'cs', role = 'client', currentRoom,
       {mode === 'choose' ? <>
         <p style={{ margin: '0 0 12px', color: t.textSec || t.text }}>{L('Krátké kroky přímo na stránce. Během průvodce můžeš aplikaci dál používat.', 'Short steps on the page itself. You can keep using the app during the guide.')}</p>
         {tours.length ? <>
-          <label htmlFor={`tm-guide-tour-${uid}`} style={{ display: 'block', marginBottom: 5 }}>{L('Co chceš prozkoumat?', 'What would you like to explore?')}</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <select id={`tm-guide-tour-${uid}`} value={selected} onChange={event => setSelected(event.target.value)} style={{ minWidth: 0, flex: 1, minHeight: 44, border: `1px solid ${t.border}`, borderRadius: 6, background: 'transparent', color: t.text, padding: '7px 10px', font: 'inherit' }}>{tours.map(item => <option key={item.room} value={item.room}>{item.label} · {item.steps.length} {lang === 'en' ? (item.steps.length === 1 ? 'step' : 'steps') : item.steps.length === 1 ? 'krok' : item.steps.length < 5 ? 'kroky' : 'kroků'}</option>)}</select>
-            <button type="button" onClick={start} disabled={!tour} style={primary}>{L('Ukázat', 'Show me')}<GuideIcon kind="next" size={15}/></button>
-          </div>
+          <div id={`tm-guide-tour-label-${uid}`} style={{ marginBottom: 5 }}>{L('Co chceš prozkoumat?', 'What would you like to explore?')}</div>
+          <details className="tm-guide-picker" style={{ border: `1px solid ${t.border}`, borderRadius: 8 }}>
+            <summary aria-label={`${L('Co chceš prozkoumat?', 'What would you like to explore?')} ${tour?.label || ''}`} style={{ minHeight: 44, padding: '10px 12px', cursor: 'pointer', color: t.text }}>{tour?.label}</summary>
+            <div role="group" aria-label={L('Části průvodce', 'Guide sections')} style={{ maxHeight: 210, overflowY: 'auto', overscrollBehavior: 'contain', padding: '0 8px 8px' }}>
+              {choices.map(item => <button key={item.room} type="button" aria-pressed={item.room === selected} onClick={event => { setSelected(item.room); const picker = event.currentTarget.closest('details'); if (picker) { picker.open = false; picker.querySelector('summary')?.focus(); } }} style={{ display: 'block', textAlign: 'left', width: '100%', minHeight: 52, padding: '9px 5px', border: 0, borderBottom: `1px solid ${t.borderSoft || t.border}`, borderRadius: 0, background: 'transparent', color: item.room === selected ? t.accentInk || t.accent : t.text, font: 'inherit', cursor: 'pointer' }}>
+                <span style={{ display: 'block', fontWeight: item.room === selected ? 600 : 400 }}>{item.label} <span style={{ fontSize: 11, color: t.textMuted }}>{item.steps.length} {lang === 'en' ? (item.steps.length === 1 ? 'step' : 'steps') : item.steps.length === 1 ? 'krok' : item.steps.length < 5 ? 'kroky' : 'kroků'}</span></span>
+                <span style={{ display: 'block', color: t.textSec, fontSize: 12, lineHeight: 1.5 }}>{item.room === '__all__' ? L('Postupně všechny tvoje dostupné stránky.', 'All your available pages, one by one.') : item.steps[0]?.title}</span>
+              </button>)}
+            </div>
+          </details>
+          <p style={{ color: t.textSec, fontSize: 12, margin: '8px 0' }}>{selected === '__all__' ? L('Projdeme všechny dostupné části. Kdykoli můžeš přestat nebo se vrátit.', 'Explore every available section. You can stop or go back at any time.') : tour?.steps.map(item => item.title).join(' · ')}</p>
+          <button type="button" onClick={start} disabled={!tour} style={{ ...primary, width: '100%' }}>{L('Spustit průvodce', 'Start guide')}<GuideIcon kind="next" size={15}/></button>
         </> : <p role="status" style={{ margin: '0 0 6px' }}>{L('Průvodce tu zatím nemá dostupnou stránku.', 'There is no available page to guide you through yet.')}</p>}
       </> : <>
         <div style={{ fontFamily: 'var(--ff-tag,"Barlow Condensed",sans-serif)', color: t.textMuted || t.text, marginBottom: 7, fontSize: 12, letterSpacing: '.06em', fontVariantNumeric: 'tabular-nums' }} aria-live="polite">{tour?.label} · {Math.min(index + 1, tour?.steps.length || 0)} / {tour?.steps.length || 0}</div>

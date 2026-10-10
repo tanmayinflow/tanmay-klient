@@ -1,6 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { APP_GUIDE_STEPS, getGuideTours, visibleGuideRect, placeGuidePanel, guideArrow } from '../src/shared/product/appGuide.js';
+import { APP_GUIDE_STEPS, getGuideTours, combineGuideTours, visibleGuideRect, placeGuidePanel, guideArrow } from '../src/shared/product/appGuide.js';
+
+test('show everything retains page transitions and the effective permissions', () => {
+  const tours = getGuideTours({ role: 'client', availableRooms: ['praxe', 'trenink', 'klienti', 'nastaveni'], availableSteps: ['praxe.today', 'trenink.calendar', 'klienti.overview', 'nastaveni.version'] });
+  const combined = combineGuideTours(tours);
+  assert.equal(combined.room, '__all__');
+  assert.equal(combined.label, 'Ukázat vše');
+  assert.deepEqual(combined.steps, tours.flatMap(tour => tour.steps));
+  assert.deepEqual([...new Set(combined.steps.map(step => step.room))], ['praxe', 'trenink', 'nastaveni']);
+  assert.ok(!combined.steps.some(step => step.room === 'klienti'));
+  assert.equal(combineGuideTours(tours, 'en').label, 'Show everything');
+  assert.equal(combineGuideTours([]), null);
+});
 
 test('client tour cannot expose coach rooms even when caller supplies all room ids', () => {
   const availableRooms = [...new Set(APP_GUIDE_STEPS.map(step => step.room))];

@@ -24,7 +24,7 @@ const {TmIcon,TM_ICONS,tmIconId,tmResolveIcon}=jsxModule('src/shared/ui/icons.js
 const render=props=>renderToStaticMarkup(React.createElement(TmIcon,props));
 
 test('every shipped icon renders at small and regular sizes without exposing decorative names',()=>{
- assert.equal(Object.keys(TM_ICONS).length,157);
+ assert.equal(Object.keys(TM_ICONS).length,158);
  for(const id of Object.keys(TM_ICONS))for(const size of [9,16,20,24,40]){
   const html=render({id,size});assert.ok(html.includes(`data-tm-icon="${id}"`));
   assert.ok(html.includes('aria-hidden="true"'));assert.ok(!/undefined|NaN/.test(html));

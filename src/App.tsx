@@ -10,6 +10,7 @@ import { MorningSpells } from "./shared/ui/morningSpells.jsx";
 import { ANTI_DOOM_SPELLS } from "./shared/product/antiDoomSpells.js";
 import { readClientAttachmentBlob } from "./clientAttachments.js";
 import { createTrainingGuideUI } from "./shared/ui/trainingGuide.jsx";
+import { TRAINING_TIMER_MODES as TM_MODES, TRAINING_FLOWS as TM_FLOWS, TRAINING_TIMER_NOTE } from "./shared/product/trainingTimerCopy.js";
 import { ClientSearch } from "./ClientSearch.jsx";
 import { writerFolders, addWriterFolder, moveWriterFolder, removeWriterFolder, restoreWriterEntries } from "./writerRecords.js";
 import { createVoiceRecorder } from "./shared/product/voiceRecorder.js";
@@ -688,9 +689,9 @@ function makePagePicker(st, pageKey, field, maxSide) {
 
 function NavCard({ icon, title, sub, onClick }) {
   const { t } = useT();
-  const [hover, setHover] = useState(false);
+
   return (
-    <button onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} className="tm-lift" style={{ flex: 1, minWidth: 150, textAlign: "left", cursor: "pointer", background: hover ? t.cardHover : t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "16px 18px" }}>
+    <button onClick={onClick} className="tm-lift" style={{ flex: 1, minWidth: 150, textAlign: "left", cursor: "pointer", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "16px 18px" }}>
       <div style={{ fontSize: 22, marginBottom: 8 }}>{icon}</div>
       <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{title}</div>
       {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, marginTop: 2 }}>{sub}</div>}
@@ -1206,7 +1207,7 @@ function AreaInlineEditor() {
             onDragOver={(e) => { e.preventDefault(); setOverN(a.name); }}
             onDragLeave={() => setOverN((x) => (x === a.name ? null : x))}
             onDrop={(e) => { e.preventDefault(); if (dragN && dragN !== a.name) st.reorderArea(dragN, a.name); setDragN(null); setOverN(null); }}
-            style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, background: t.card, border: `1px solid transparent`, opacity: dragN === a.name ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
+            style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 10, background: "transparent", border: `1px solid ${overN === a.name ? t.accent : t.borderSoft}`, opacity: dragN === a.name ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
           >
             <span
               draggable
@@ -2785,7 +2786,7 @@ function PsaciLista({ exec, onImage, onZen, zen, focused, blockOf, setBlock, ins
               </span>
             </button>
           )}
-          
+
         </div>
       )}
       {/* Plovoucí oblázek zarovnaný s rámečkem poznámky: psací pole otevřené
@@ -3688,7 +3689,7 @@ function MdToolbar({ exec, onImage, onZen, zen, blockOf, setBlock, insertHr, saz
                 <span style={{ fontSize: 12, color: t.textMuted, fontFamily: FONT_TAG, letterSpacing: "0.04em" }}>{p.hint}</span>
               </button>
             ))}
-            
+
           </span>
         )}
       </span>
@@ -9692,7 +9693,7 @@ function TExShelf({ ex, size = 10.5 }) {
 function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag }) {
   const { t } = useT();
   const st = useStore();
-  const [h, setH] = useState(false);
+
   const [over, setOver] = useState(false);
   const pat = T_PAT[ex.pat] || T_PATTERNS[0];
   const rootRef = React.useRef(null);
@@ -9709,7 +9710,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
       onDragLeave={() => setOver(false)}
       onDrop={drag ? (e) => { e.preventDefault(); setOver(false); const p = (e.dataTransfer.getData("text/plain") || "").split(":"); if (p[0] === "tex" && p[1] !== ex.id) st.reorderEntry("tEx", p[1], ex.id); } : undefined}
       style={{ position: "relative", display: "flex", borderRadius: 10, outline: over ? `2px solid ${t.accent}` : "none" }}>
-    <button onClick={selecting ? onToggleSel : onOpen} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : h ? t.cardHover : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: 0, overflow: "hidden", transition: "all .18s ease", transform: h && !selecting ? "translateY(-2px)" : "none", boxShadow: h && !selecting ? t.shadowLift : t.shadow, display: "flex", flexDirection: "column", alignItems: "stretch" }}>
+    <button onClick={selecting ? onToggleSel : onOpen} style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: 0, overflow: "hidden", transition: "all .18s ease", boxShadow: t.shadow, display: "flex", flexDirection: "column", alignItems: "stretch" }}>
       {/* DESKA PŘES CELOU KARTU · ilustrace sahá k okrajům rámečku cviku,
           na telefonu i na počítači. Lněné pole plátu je čtvercové a vyplní
           šířku beze zbytku; cvik bez plátu kreslí velkou procedurální figuru. */}
@@ -9959,16 +9960,6 @@ const TM_BLOCK = Object.fromEntries(TM_BLOCKS.map((b) => [b.k, b]));
 const TM_TONE = (t, tone) => (tone === "accent" ? t.accent : tone === "sage" ? t.sage : tone === "sand" ? t.sand : t.textMuted);
 const tmTone = (seg) => (seg ? (TM_BLOCK[seg.k] || {}).tone || "accent" : "accent");
 
-const TM_MODES = [
-  { k: "countdown", cz: "Odpočet", en: "Countdown", say: ["Jeden úsek, jeden konec.", "One stretch of time, one end."] },
-  { k: "stopwatch", cz: "Stopky", en: "Stopwatch", say: ["Čas běží nahoru. Ty rozhodneš, kdy dost.", "Time counts up. You decide when it is enough."] },
-  { k: "interval", cz: "Intervaly", en: "Intervals", say: ["Práce a pauza, kolo za kolem.", "Work and rest, round after round."] },
-  { k: "tabata", cz: "Tabata", en: "Tabata", say: ["Dvacet vteřin naplno, deset na nádech. Osmkrát.", "Twenty seconds all in, ten to breathe. Eight times."] },
-  { k: "emom", cz: "EMOM", en: "EMOM", say: ["Každou minutu znovu. Co zbyde, je pauza.", "Every minute, on the minute. What's left over is your rest."] },
-  { k: "amrap", cz: "AMRAP", en: "AMRAP", say: ["Kolik kol stihneš, tolik jich je.", "As many rounds as you can hold."] },
-  // There is no seventh mode. A run you want to keep is a workout — it lives in Tréninky,
-  // where it can be planned, progressed and remembered. A clock is a clock.
-];
 const TM_MODE = Object.fromEntries(TM_MODES.map((m) => [m.k, m]));
 
 // ---- time, written the way a person reads it -------------------------------
@@ -11149,15 +11140,6 @@ function TmVoicePicker() {
 // little more: what to show, whether it waits for a human (dur === null), whether
 // it should keep quiet, and the row it writes back to.
 // ======================================================================
-const TM_FLOWS = [
-  { k: "sets", cz: "Série a pauzy", en: "Sets and rests", say: ["Cvik po cviku, sérii po sérii. Ty rozhoduješ, kdy dál.", "Exercise by exercise, set by set. You decide when to go on."] },
-  { k: "rounds", cz: "Kruh", en: "Circuit", say: ["Celý okruh dokola, pak pauza. A znovu.", "The whole round, then a rest. And again."] },
-  { k: "emom", cz: "EMOM", en: "EMOM", say: ["Každý úsek jeden cvik. Co uděláš rychleji, to je tvoje pauza.", "One exercise per slot. Whatever you save is your rest."] },
-  { k: "amrap", cz: "AMRAP", en: "AMRAP", say: ["Jedno okno. Kolik kol stihneš, tolik jich je.", "One window. As many rounds as you can hold."] },
-  { k: "interval", cz: "Intervaly", en: "Intervals", say: ["Práce a pauza se střídají samy. Ty jen dýcháš a jedeš.", "Work and rest take turns by themselves. You just breathe and go."] },
-  { k: "mobility", cz: "Mobilita", en: "Mobility", say: ["Bez spěchu a bez pípání. Čas jen drží tvar.", "No hurry and no beeping. The clock only holds the shape."] },
-  { k: "recovery", cz: "Regenerace", en: "Recovery", say: ["Jen odpočet. Nic víc tu nemá co dělat.", "A countdown, and nothing else."] },
-];
 const TM_FLOW = Object.fromEntries(TM_FLOWS.map((f) => [f.k, f]));
 const TM_FCFG = { rounds: 3, every: 60, work: 40, rest: 20, window: 720, roundRest: 90 };
 const tmFlowOf = (wo) => (wo && TM_FLOW[wo.flow] ? wo.flow : "sets");
@@ -11243,8 +11225,7 @@ function TmHome({ onRun }) {
       {/* A run worth keeping is a workout. It belongs in Tréninky, where it can be
           planned, progressed and remembered — none of which a "preset" could ever do. */}
       <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontStyle: "italic", color: t.textMuted, lineHeight: 1.65, marginBottom: 22 }}>
-        {L("Tohle je hodiny, nic víc. Běh, který si chceš nechat, je trénink — ulož si ho mezi Tréninky a můžeš ho naplánovat, posouvat a mít v deníku.",
-           "This is a clock, nothing more. A run you want to keep is a workout — save it in Training, and it can be planned, progressed and logged.")}
+        {L(TRAINING_TIMER_NOTE[0], TRAINING_TIMER_NOTE[1])}
       </div>
 
       {/* ---- settings */}
@@ -13721,12 +13702,13 @@ function PageTrenink() {
   const st = useStore();
   React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, []);
   const [tab, setTab] = useState("dnes");
+  const [daysResetKey, setDaysResetKey] = useState(0);
   const [planStatus,setPlanStatus] = useState({state:""});
   React.useEffect(()=>{const fn=e=>setPlanStatus(e.detail);window.addEventListener("tm-plan-status",fn);window.dispatchEvent(new Event("tm-plan-refresh"));return ()=>window.removeEventListener("tm-plan-status",fn);},[]);
   const [run, setRun] = useState(null);
   const [clock, setClock] = useState(null);
   const [openEx, setOpenEx] = useState(null);
-  useGuideAction("trenink",action=>{setRun(null);setClock(null);setOpenEx(null);setTab(action==="trenink.library"?"knihovna":action==="trenink.results"?"zaznam":"dnes");});
+  useGuideAction("trenink",action=>{setRun(null);setClock(null);setOpenEx(null);setDaysResetKey((key)=>key+1);setTab(action==="trenink.library"?"knihovna":action==="trenink.results"?"zaznam":"dnes");});
 
   const exs = st.coll.tEx || [];
   const del = st.tvDelivered();
@@ -13801,7 +13783,7 @@ function PageTrenink() {
       ) : null}
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18 }}>
-        {tabs.map((x) => <span key={x.k} data-guide={x.k === "zaznam" ? "trenink.results" : undefined} style={{display:"inline-flex",marginLeft:x.k === "knihovna" ? "auto" : undefined}}><TChip label={L(x.cz, x.en)} active={tab === x.k} onClick={() => setTab(x.k)} /></span>)}
+        {tabs.map((x) => <span key={x.k} data-guide={x.k === "zaznam" ? "trenink.results" : undefined} style={{display:"inline-flex",marginLeft:x.k === "knihovna" ? "auto" : undefined}}><TChip label={L(x.cz, x.en)} active={tab === x.k} onClick={() => { if (x.k === "dnes") setDaysResetKey((key) => key + 1); setTab(x.k); }} /></span>)}
       </div>
 
       <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,marginBottom:12}}>
@@ -13810,7 +13792,7 @@ function PageTrenink() {
 
       </div>
       {(tab === "plan" || tab === "zaznam") && <TrainingGoals t={t} plans={del?.plans || []} sessions={sessions} />}
-      {tab === "dnes" && <ClientTrainingCalendar t={t} lang={LANG} plans={del?.plans||[]} templates={del?.templates||[]} schedule={sched} sessions={sessions} onPlan={()=>setTab("plan")} onRun={onRunSession} onStart={row=>{const next=TV.startSession(row.template,{date:row.date||todayISO(),plan:row.plan,planSession:row.planned});st.tvPutSession(next);onRunSession(next.id);}}/>}
+      {tab === "dnes" && <ClientTrainingCalendar t={t} lang={LANG} resetKey={daysResetKey} plans={del?.plans||[]} templates={del?.templates||[]} schedule={sched} sessions={sessions} onPlan={()=>setTab("plan")} onRun={onRunSession} onStart={row=>{const next=TV.startSession(row.template,{date:row.date||todayISO(),plan:row.plan,planSession:row.planned});st.tvPutSession(next);onRunSession(next.id);}}/>}
 
       {tab === "plan" && <TvClientPlan onRun={onRunSession} />}
       {tab === "zaznam" && <TvClientHistory onRun={onRunSession} />}
@@ -16058,6 +16040,7 @@ export default function App() {
     const moveKey = (obj) => { if (obj && obj[old] !== undefined) { const o = { ...obj }; o[nw] = o[old]; delete o[old]; return o; } return obj; };
     next.areaMeta = moveKey(coll.areaMeta);
     next.areaMonths = moveKey(coll.areaMonths);
+    next.areaVlq = moveKey(coll.areaVlq);
     if (coll.areaOrder) next.areaOrder = coll.areaOrder.map((n) => (n === old ? nw : n));
     persistColl(next);
   };
@@ -17275,30 +17258,30 @@ export default function App() {
           }
                   /* HOVER · celá choreografie kurzoru žije jen tam, kde kurzor je.
              Na dotykových zařízeních neexistuje — žádné lepivé stavy, žádný jank. */
-          @media (hover: hover) {
-            .tm-nav-item:hover { background: ${t.cardHover} !important; }
-            .tm-cal-day:hover { background: ${t.cardHover} !important; }
-            .tm-wb-dot:hover { transform: scale(1.22); }
-            .tm-wb-mark:hover { transform: scale(1.18); opacity: 1 !important; }
-            .tm-trow:hover { background: ${t.cardHover}; }
+          @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+            .tm-nav-item:hover { color: ${t.text}; }
+            .tm-cal-day:hover { transform: scale(1.02); }
+            .tm-wb-dot:hover { transform: scale(1.06); }
+            .tm-wb-mark:hover { transform: scale(1.04); opacity: 1 !important; }
+            .tm-trow:hover { color: ${t.text}; }
             *::-webkit-scrollbar-thumb:hover { background: ${t.textMuted}; background-clip: content-box; }
-            .tm-mand-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -14px rgba(0,0,0,.45); }
-            .tm-mand-add:hover { border-color: var(--tm-accent, ${t.accent}) !important; }
-            .tm-lift:hover { transform: translateY(-2px); box-shadow: ${t.shadowLift} !important; }
-            .tm-grow:hover { transform: scale(1.03); box-shadow: ${t.shadowLift} !important; position: relative; z-index: 2; }
-            .tm-wave:has(.tm-grow:hover) .tm-grow:not(:hover) { transform: scale(0.985); }
-                      .tm-day-pill:hover { transform: scale(1.14); position: relative; z-index: 2; background: ${t.cardHover} !important; box-shadow: ${t.shadowLift} !important; }
-            .tm-wavex:has(.tm-day-pill:hover) .tm-day-pill:not(:hover) { transform: scale(0.93); }
-            .tm-chip:hover { background: ${t.cardHover} !important; color: ${t.text} !important; }
-            .tm-sidebar .tm-nav-item:hover { transform: translateX(3px); }
-            .tm-logo:hover { transform: translateY(-1px); }
-            .tm-lift:hover .tm-openlbl { transform: translateX(3px); }
-            .tm-pill:hover .tm-arrow { transform: translateX(3px); }
-            .tm-dash:hover { border-color: ${hexA(t.accent, 0.6)} !important; color: ${t.accent} !important; background: ${hexA(t.accent, 0.05)}; }
+            .tm-mand-card:hover { transform: scale(1.01); }
+            .tm-mand-add:hover { color: var(--tm-accent, ${t.accent}); }
+            .tm-lift:hover { transform: scale(1.01); }
+            .tm-grow:hover { transform: scale(1.015); }
+
+                      .tm-day-pill:hover { transform: scale(1.02); }
+
+            .tm-chip:hover { color: ${t.text} !important; }
+            .tm-sidebar .tm-nav-item:hover { transform: none; }
+            .tm-logo:hover { transform: scale(1.01); }
+            .tm-lift:hover .tm-openlbl { color: ${t.text}; }
+            .tm-pill:hover .tm-arrow { transform: translateX(1px); }
+            .tm-dash:hover { color: ${t.accent} !important; }
             .tm-tab:hover { color: ${t.text} !important; }
-            .tm-cellpop:hover { transform: scale(1.4); }
-            .tm-motionrow:hover { background: ${t.cardHover}; transform: translateX(3px); }
-            .tm-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 30px -12px ${hexA(t.accent, 0.6)}; }
+            .tm-cellpop:hover { transform: scale(1.04); }
+            .tm-motionrow:hover { color: ${t.text}; }
+            .tm-cta:hover { transform: scale(1.01); }
           }
 `}</style>
 

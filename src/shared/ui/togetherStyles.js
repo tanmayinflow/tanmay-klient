@@ -17,7 +17,7 @@ export const togetherStyles=`
 .tm-together-section+.tm-together-section{border-top:0}
 .tm-together button,.tm-together select,.tm-together input,.tm-together textarea{font-family:var(--tm-font-body);font-size:14px;font-weight:400;color:var(--tg-text);min-height:44px;border:1px solid var(--tg-line);border-radius:8px;background:transparent;padding:10px 12px;max-width:100%;box-sizing:border-box}
 .tm-together button{cursor:pointer;line-height:1.25;transition:color .16s ease,border-color .16s ease}
-.tm-together button:hover:not(:disabled){border-color:var(--tg-accent);color:var(--tg-accent)}
+.tm-together button:hover:not(:disabled){color:var(--tg-accent)}
 .tm-together button:disabled{opacity:.5;cursor:default}
 .tm-together :is(.tg-arrow-control,.tg-choice-nav button,.tg-cycle-map-center-back,.tg-calendar-nav button){appearance:none;-webkit-appearance:none;background:transparent!important;background-image:none!important;box-shadow:none;border-color:transparent;border-radius:0;-webkit-tap-highlight-color:transparent;user-select:none}
 .tm-together .tg-arrow-control{display:inline-flex;align-items:center;justify-content:center}

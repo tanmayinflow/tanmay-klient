@@ -979,7 +979,8 @@ export function createPracticeUI(deps) {
               onDragOver={(e) => { e.preventDefault(); setOverSlot(d.slot); }}
               onDragLeave={() => setOverSlot((x) => (x === d.slot ? null : x))}
               onDrop={(e) => { e.preventDefault(); dropOn(d.slot); }}
-              style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, background: t.card, border: `1px solid transparent`, opacity: dragSlot === d.slot ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
+              className="tm-habit-editor-row"
+              style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 5, padding: "5px 8px", borderRadius: 8, background: "transparent", border: `1px solid ${overSlot === d.slot ? t.accent : 'transparent'}`, opacity: dragSlot === d.slot ? 0.45 : 1, transition: "border-color .12s ease, opacity .12s ease" }}
             >
               <span
                 draggable
