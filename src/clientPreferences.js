@@ -11,10 +11,8 @@ export function createClientStartupNavigation() {
   };
 }
 
-// New clients choose their own habits. Older clients without explicit
-// definitions still need the original slot meanings for recorded history.
-export function clientHabitDefinitions(collection, days, legacyDefinitions) {
-  if (Array.isArray(collection?.habitDefs)) return collection.habitDefs;
-  const recorded = Object.values(days || {}).some(day => Array.isArray(day?.h) && day.h.some(value => value === 1 || value === 2));
-  return recorded ? legacyDefinitions : [];
+// Both apps start with the same owner-approved product habits. An explicit
+// personal selection (including an empty list) remains authoritative.
+export function clientHabitDefinitions(collection, _days, defaultDefinitions) {
+  return Array.isArray(collection?.habitDefs) ? collection.habitDefs : defaultDefinitions;
 }

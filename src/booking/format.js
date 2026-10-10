@@ -43,7 +43,7 @@ export const LEDGER_COPY = Object.freeze({
 
 export const CONFIRMATION_COPY = Object.freeze({
   [CONFIRMATION_MODE.AUTO]: { cs: "Rezervace se potvrdí hned.", en: "The booking confirms straight away." },
-  [CONFIRMATION_MODE.REQUEST]: { cs: "Termín se drží, dokud ho Tanmay nepotvrdí.", en: "The time is held until Tanmay confirms it." },
+  [CONFIRMATION_MODE.REQUEST]: { cs: "Termín se drží, dokud ho Kryštof nepotvrdí.", en: "The time is held until Kryštof confirms it." },
 });
 
 // One sentence per refusal. It says what happened and what to do, and it
@@ -55,7 +55,7 @@ export const ERROR_COPY = Object.freeze({
   [ERR.PACKAGE_EXPIRED]: { cs: "Balíček už není platný.", en: "The package is no longer valid." },
   [ERR.BOOKING_TOO_SOON]: { cs: "Tenhle termín je už moc blízko. Vyber pozdější.", en: "This time is too close. Choose a later one." },
   [ERR.BOOKING_TOO_FAR]: { cs: "Tak daleko se zatím rezervovat nedá.", en: "You cannot book that far ahead yet." },
-  [ERR.CANCELLATION_CLOSED]: { cs: "Termín už nejde přesunout online. Napiš Tanmayovi.", en: "This booking can no longer be changed online. Message Tanmay." },
+  [ERR.CANCELLATION_CLOSED]: { cs: "Termín už nejde přesunout online. Napiš Kryštofovi.", en: "This booking can no longer be changed online. Message Kryštof." },
   [ERR.INVALID_TRANSITION]: { cs: "Tenhle krok už u téhle rezervace nejde.", en: "That step is no longer possible for this booking." },
   [ERR.NOT_AUTHORIZED]: { cs: "Tohle není tvoje rezervace.", en: "This booking is not yours." },
   [ERR.SYNC_PENDING]: { cs: "Čeká na synchronizaci s kalendářem.", en: "Waiting to sync with the calendar." },

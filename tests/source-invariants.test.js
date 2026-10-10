@@ -31,8 +31,13 @@ test("trenérská správa klientů v klientském sestavení vůbec není", () =>
 test("místnost trenéra není v klientské aplikaci směrovaná", () => {
   assert.doesNotMatch(app, /case\s+"klienti"/);
   assert.doesNotMatch(app, /case\s+"hospodareni"/);
-  assert.doesNotMatch(app, /case\s+"mandala"/);
   assert.doesNotMatch(app, /case\s+"socsite"/);
+});
+
+test("shared Mandala uses the client's own empty gallery and recitation state", () => {
+  assert.match(app, /case\s+"mandala": return <PageMandala/);
+  assert.doesNotMatch(app, /\bMALA_DEFAULT\b/);
+  assert.match(app, /const malaList = \(\) => coll.mala \|\| \[\]/);
 });
 
 test("střídání účtu odklidí i média předchozího člověka", () => {

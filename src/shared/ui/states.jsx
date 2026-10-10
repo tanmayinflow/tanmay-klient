@@ -9,6 +9,15 @@
 // Klientská aplikace tenhle tvar neměla vůbec a psala si prázdné stavy
 // pokaždé znovu. Teď je jeden.
 import React from "react";
+import { ROOM_ART } from "./roomArt.js";
+
+// Use the same original object engravings in the page heading and its empty state.
+export function EmptyRoomArt({ room, size = 150, color = "var(--tm-text-muted)" }) {
+  const file = ROOM_ART[room];
+  if (!file) return null;
+  const mask = `url('/media/icons/${file}') center / contain no-repeat`;
+  return <span aria-hidden="true" data-empty-art={room} style={{display:"block",width:size,maxWidth:"100%",height:size,margin:"0 auto",background:color,mask,WebkitMask:mask,opacity:.68,pointerEvents:"none"}} />;
+}
 
 export function createStates(useT, L) {
   // ————————————————————————————————————————————————————————————

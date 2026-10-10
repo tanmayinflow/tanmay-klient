@@ -1,5 +1,6 @@
 // Public artwork only; exact original files, checked in both application repositories.
 export const ICON_ASSET_HASHES = {
+  "appointments-hourglass-v1.png": "c388fba99c3539f6dcb1974eab7e07f50d7ff31246aa03f03df30467413d820c",
   "sources-pine-cone-v2.png": "6f9f19086996fef2606d8018092cb1d833c3a01a7cbcdfd90343520186bc789a",
   "sources-pine-cone-v1.png": "5c09f9f1ba60351083ea54f563457196767b78d178b28a538b71cbe8151cf9cf",
   "sources-tree-v2.png": "249ae5003d36be4564b0ff05b87f1fe263eb90c9214f875c9c2871a153c6cbde",

@@ -5,7 +5,8 @@ import { APP_GUIDE_STEPS, getGuideTours, visibleGuideRect, placeGuidePanel, guid
 test('client tour cannot expose coach rooms even when caller supplies all room ids', () => {
   const availableRooms = [...new Set(APP_GUIDE_STEPS.map(step => step.room))];
   const tours = getGuideTours({ role: 'client', availableRooms });
-  for (const room of ['klienti', 'hospodareni', 'socsite', 'mandala']) assert.ok(!tours.some(tour => tour.room === room), room);
+  for (const room of ['klienti', 'hospodareni', 'socsite']) assert.ok(!tours.some(tour => tour.room === room), room);
+  for (const room of ['memento', 'mandala']) assert.ok(tours.some(tour => tour.room === room), room);
   assert.ok(tours.some(tour => tour.room === 'terminy'));
   assert.ok(!getGuideTours({ role: 'coach', availableRooms }).some(tour => tour.room === 'terminy'));
 });

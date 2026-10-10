@@ -1,5 +1,6 @@
 import {useGuideAction} from "./guideNavigation.jsx";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
+import { EmptyRoomArt } from "./states.jsx";
 // ----------------------------------------------------------------------
 // KOMPAS · jedna orientace pro oba domy
 // ----------------------------------------------------------------------
@@ -9,11 +10,11 @@ import { TmIcon as FamilyIcon } from "./icons.jsx";
 // žádní čekající, žádný spouštěč, žádný výběr krajiny v detailu.
 //
 // Rozdíl role se řeší tím, co se do továrny předá:
-//   · `sideSlot`    druhý sloupec dnešního kroku · Pomodoro má jen osobní dům
+//   · `sideSlot`    druhý sloupec dnešního kroku · sdílené Pomodoro
 //   · `AreaVlqSlot` dvě otázky ke krajině · komponenta, ne kopie
 //   · `hasCoachGoals` má tenhle dům cíle od trenéra? · rozhoduje o štítku
 //
-// Dvě třídy cíle se v rozhraní jmenují Moje a Od Tanmaye. Nikde „locked",
+// Dvě třídy cíle se v rozhraní jmenují Moje a Od Kryštofa. Nikde „locked",
 // nikde „admin goal", nikde „system-owned". Co smí kdo měnit, neříká
 // tahle vrstva — ptá se `mayEditGoalField` v product/compass.js.
 //
@@ -75,7 +76,7 @@ export function createCompassUI(deps) {
     return <span style={{ display: "inline-flex", color: t.sand, flexShrink: 0 }}><TmObjIcon obj={{ icon }} kind="area" size={size + 1} /></span>;
   }
 
-  // ---- Moje / Od Tanmaye --------------------------------------------------
+  // ---- Moje / Od Kryštofa --------------------------------------------------
   // Klidný štítek, ne zámek. Ukáže se u cíle od trenéra vždy; u vlastního jen
   // v domě, kde obě třídy současně existují — jinak by „Moje" bylo šumem.
   function OwnerBadge({ g }) {
@@ -269,7 +270,7 @@ export function createCompassUI(deps) {
           const gs = all.filter((g) => g.area === a.name || (g.areas || []).includes(a.name));
           const done = gs.filter((g) => g.status === "Completed").length;
           return (
-            <button key={a.name} onClick={() => onOpen(a.name)} title={`${done} / ${gs.length} ${L("cílů", "goals")}`} className="tm-nav-item tm-lift" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: "3px 12px 3px 12px", padding: "6px 13px", minHeight: 38, cursor: "pointer" }}>
+            <button key={a.name} onClick={() => onOpen(a.name)} title={`${done} / ${gs.length} ${L("cílů", "goals")}`} className="tm-nav-item tm-lift tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: "8px 15px 8px 15px", padding: "6px 13px", minHeight: 44, maxWidth: "100%", cursor: "pointer" }}>
               <AreaGlyph name={a.name} size={15} />
               <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text }}>{areaLabel(a.name)}</span>
               <span style={{ width: 34, height: 3, borderRadius: 2, background: t.borderSoft, position: "relative", overflow: "hidden" }}>
@@ -279,7 +280,7 @@ export function createCompassUI(deps) {
             </button>
           );
         })}
-        {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px solid transparent`, borderRadius: "3px 12px 3px 12px", minWidth: 38, minHeight: 38, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+        {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px solid transparent`, borderRadius: "8px 15px 8px 15px", minWidth: 44, minHeight: 44, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
       </div>
     );
   }
@@ -392,7 +393,7 @@ export function createCompassUI(deps) {
         {odTanmaye && (g.intent || g.target) && (
           <div style={{ borderLeft: `2px solid ${hexA(t.accent, 0.4)}`, paddingLeft: 12, margin: "0 0 16px" }}>
             {g.intent && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 14, color: t.textSec, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{g.intent}</div>}
-            <div style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted, marginTop: 6 }}>{L("Zadání píše Tanmay. Postup, krok a poznámka jsou tvoje.", "Tanmay writes the assignment. The progress, the step and the note are yours.")}</div>
+            <div style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted, marginTop: 6 }}>{L("Zadání píše Kryštof. Postup, krok a poznámka jsou tvoje.", "Kryštof writes the assignment. The progress, the step and the note are yours.")}</div>
           </div>
         )}
         {!odTanmaye && (
@@ -472,7 +473,7 @@ export function createCompassUI(deps) {
           {inToday && <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.sage }}><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("v dnešním plánu", "in today's plan")}</span>}
           {odTanmaye && g.status !== "Completed" && (
             <button onClick={() => st.editGoal(g.name, { requestDone: !g.requestDone })} style={{ marginLeft: 12, background: g.requestDone ? hexA(t.sage, 0.14) : "transparent", border: `1px solid ${g.requestDone ? hexA(t.sage, 0.5) : t.border}`, borderRadius: "var(--tm-r-pill)", padding: "6px 14px", minHeight: 38, cursor: "pointer", color: g.requestDone ? t.sage : t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>
-              {g.requestDone ? L("✓ označeno jako hotové · čeká na Tanmaye", "✓ marked done · waiting for Tanmay") : L("Označit jako hotové", "Mark as done")}
+              {g.requestDone ? L("✓ označeno jako hotové · čeká na Kryštofa", "✓ marked done · waiting for Kryštof") : L("Označit jako hotové", "Mark as done")}
             </button>
           )}
           {st.editMode && smiSmazat && (
@@ -650,7 +651,7 @@ export function createCompassUI(deps) {
           <span style={{ flex: 1 }} />
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0" }}>
-          <Select small value={fArea} onChange={setFArea} style={{ flex: "1 1 0", minWidth: 0, maxWidth: 180 }} options={[{ v: "Vše", label: L("Vše", "All") }, ...areaNames]} />
+          <Select small value={fArea} onChange={setFArea} style={{ flex: "1 1 0", minWidth: 0, maxWidth: 180 }} options={[{ v: "Vše", label: L("Vše", "All") }, ...areaNames.map(name => ({ v: name, label: areaLabel(name) }))]} />
           <Select small value={fPrio} onChange={setFPrio} style={{ flex: "1 1 0", minWidth: 0, maxWidth: 140 }} options={[{ v: "Vše", label: L("Vše", "All") }, ...PRIOS.map((x) => ({ v: x, label: PL(x) }))]} />
           <Select small value={sortBy} onChange={setSortBy} style={{ flex: "1 1 0", minWidth: 0, maxWidth: 150 }} options={[{ v: "manual", label: L("vlastní pořadí", "custom order") }, { v: "prio", label: L("priorita", "priority") }, { v: "dateAsc", label: L("datum ↑", "date ↑") }, { v: "dateDesc", label: L("datum ↓", "date ↓") }, { v: "name", label: "A–Z" }]} />
         </div>
@@ -717,7 +718,7 @@ export function createCompassUI(deps) {
         <span style={{ display: "block", height: 30 }} />
         <Eyebrow>{L("V pohybu", "In motion")}</Eyebrow>
         {shown.length === 0 && waiting.length === 0 ? (
-          <Prazdno kind="prvni"
+          <Prazdno kind="prvni" mark={<EmptyRoomArt room="kompas" color={t.textMuted} />}
             fakt={L("Kompas zatím nikam neukazuje.", "The compass doesn't point anywhere yet.")}
             pozvani={L("Napiš jednu věc, ke které se chceš vracet.", "Write one thing you want to keep returning to.")}
             uvolneni={L("Nemusí to být velké. Musí to být tvoje.", "It doesn't have to be big. It has to be yours.")}

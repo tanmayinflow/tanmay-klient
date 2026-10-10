@@ -20,12 +20,15 @@ export const ROLES = Object.freeze({ COACH: "coach", CLIENT: "client" });
 /** Místnosti, které klientská aplikace má vždycky. */
 export const CLIENT_ALWAYS = Object.freeze(["praxe", "trenink", "terminy", "kompas", "prameny"]);
 
+/** Soukromé prostory přístupné jen přes původní nenápadné vstupy. */
+export const CLIENT_HIDDEN = Object.freeze(["memento", "mandala"]);
+
 /** Místnosti, které si klient zapíná sám a které jsou ve výchozím stavu vypnuté. */
-export const CLIENT_OPTIONAL = Object.freeze(["denik", "zapisnik", "memento", "spolu"]);
+export const CLIENT_OPTIONAL = Object.freeze(["denik", "zapisnik", "spolu"]);
 
 /** Místnosti, které v klientské aplikaci nikdy nejsou. Ne skryté — nejsou. */
 export const CLIENT_NEVER = Object.freeze([
-  "klienti", "hospodareni", "socsite", "mandala", "asistent",
+  "klienti", "hospodareni", "socsite", "asistent",
 ]);
 
 /** Infrastruktura. Není to praxe, žije pod mapou domu. */
@@ -34,7 +37,7 @@ export const CLIENT_INFRA = Object.freeze(["nastaveni", "pruvodce", "kos"]);
 const CAP_KEYS = Object.freeze([
   // místnosti
   "practice", "training", "booking", "compass", "sources",
-  "journal", "notebook", "memento", "together",
+  "journal", "notebook", "memento", "mandala", "together",
   // činnosti
   "editTrainingPrescription", "viewTrainingResults",
   "manageClients", "manageAvailability", "managePackages",
@@ -82,6 +85,7 @@ export function deriveCapabilities(input) {
   const mods = Array.isArray(input && input.modules) ? input.modules : null;
   const on = (key) => {
     if (CLIENT_ALWAYS.indexOf(key) !== -1) return true;
+    if (CLIENT_HIDDEN.indexOf(key) !== -1) return true;
     if (CLIENT_OPTIONAL.indexOf(key) === -1) return false;
     return !!(mods && mods.indexOf(key) !== -1);
   };
@@ -94,6 +98,7 @@ export function deriveCapabilities(input) {
   caps.journal = on("denik");
   caps.notebook = on("zapisnik");
   caps.memento = on("memento");
+  caps.mandala = on("mandala");
   caps.together = on("spolu");
 
   caps.viewTrainingResults = true;   // vlastní výsledky, ne cizí
@@ -125,6 +130,7 @@ export const ROOM_CAPABILITY = Object.freeze({
   denik: "journal",
   zapisnik: "notebook",
   memento: "memento",
+  mandala: "mandala",
   spolu: "together",
   klienti: "manageClients",
   hospodareni: "manageFinances",

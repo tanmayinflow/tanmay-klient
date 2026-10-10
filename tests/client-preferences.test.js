@@ -27,10 +27,10 @@ test('switching owners or already navigating while offline preserves the current
     assert.equal(choose(context), null);
   }
 });
-test('fresh clients do not inherit owner habits, even after other day entries', () => {
+test('fresh clients receive the same product habit defaults, even after other day entries', () => {
   const legacy = [{ slot: 0, name: 'Legacy habit' }];
-  assert.deepEqual(clientHabitDefinitions({}, {}, legacy), []);
-  assert.deepEqual(clientHabitDefinitions({}, { '2026-10-02': { h: [0, 0], note: 'Personal day' } }, legacy), []);
+  assert.deepEqual(clientHabitDefinitions({}, {}, legacy), legacy);
+  assert.deepEqual(clientHabitDefinitions({}, { '2026-10-02': { h: [0, 0], note: 'Personal day' } }, legacy), legacy);
 });
 test('existing habit slot history and explicitly chosen definitions remain intact', () => {
   const legacy = [{ slot: 0, name: 'Legacy habit' }], days = { '2026-10-01': { h: [1, 0] } };

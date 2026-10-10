@@ -16,7 +16,7 @@
 //                 a může požádat o uzavření
 //
 // V rozhraní se to nesmí jmenovat „locked", „admin goal" ani „system-owned".
-// Jsou to jen dvě jména: Moje a Od Tanmaye.
+// Jsou to jen dvě jména: Moje a Od Kryštofa.
 
 export const GOAL_OWNER = Object.freeze({ CLIENT: "client", COACH: "coach" });
 
@@ -102,7 +102,7 @@ export function sanitizeClientProgress(p) {
 
 /**
  * Jeden seznam cílů pro Kompas.
- * @param {object[]} vlastni  cíle, které si klient (nebo Tanmay v osobní aplikaci) založil
+ * @param {object[]} vlastni  cíle, které si klient (nebo Kryštof v osobní aplikaci) založil
  * @param {object}   odTrenera dokument od trenéra, už očištěný pro klienta
  * @param {object}   postup   `{ [goalId]: { status, step, note, requestDone } }`
  */
@@ -153,8 +153,8 @@ export function mayEditGoalField(role, goal, field) {
 /** Jak se ta dvě jména vyslovují. Ne „locked", ne „admin". */
 export function goalOwnerLabel(goal, lang) {
   const coach = goal && goal.owner === GOAL_OWNER.COACH;
-  if (lang === "en") return coach ? "From Tanmay" : "Mine";
-  return coach ? "Od Tanmaye" : "Moje";
+  if (lang === "en") return coach ? "From Kryštof" : "Mine";
+  return coach ? "Od Kryštofa" : "Moje";
 }
 
 // ----------------------------------------------------------------------

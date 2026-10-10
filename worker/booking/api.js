@@ -1,7 +1,7 @@
 // Booking · the endpoints.
 //
 // Two surfaces over one domain. The coach surface lives in the Main App
-// Worker behind Tanmay's own Access boundary; the client surface lives in the
+// Worker behind Kryštof's own Access boundary; the client surface lives in the
 // Client App Worker, where the identity comes from the Access header and
 // never from the request body.
 //
@@ -808,8 +808,8 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
     if (path === "/api/client/booking/context" && method === "GET") {
       if (!client) {
         return ok({ enabled: false, reason: "NO_CLIENT",
-          message: { cs: "Rezervace pro tebe zatím nejsou otevřené. Domluv se s Tanmayem.",
-                     en: "Booking is not open for you yet. Talk to Tanmay." } });
+          message: { cs: "Rezervace pro tebe zatím nejsou otevřené. Domluv se s Kryštofem.",
+                     en: "Booking is not open for you yet. Talk to Kryštof." } });
       }
       const [services, locations, summary] = await Promise.all([
         R.listServices(db, { activeOnly: true }),

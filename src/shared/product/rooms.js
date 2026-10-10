@@ -57,16 +57,15 @@ export function roomName(key, lang) {
 // vším infrastruktura. Obě aplikace kreslí tutéž mapu; liší se jen tím,
 // které místnosti do ní role pustí.
 export const NAV_MODEL = [
-  { key: "den",       cz: "Den",           en: "Day",            rooms: ["praxe", "trenink", "terminy"] },
+  { key: "den",       cz: "Den",           en: "Day",            rooms: ["praxe", "trenink", "terminy", "denik"] },
   { key: "smer",      cz: "Směr",          en: "Direction",      rooms: ["kompas"] },
-  { key: "pamet",     cz: "Paměť",         en: "Memory",         rooms: ["denik", "zapisnik", "prameny"] },
-  { key: "volitelne", cz: "Volitelně",     en: "Optional",       rooms: ["spolu", "memento"] },
-  { key: "svet",      cz: "Svět",          en: "World",          rooms: ["klienti", "hospodareni", "socsite"] },
+  { key: "pamet",     cz: "Paměť",         en: "Memory",         rooms: ["zapisnik", "prameny"] },
+  { key: "svet",      cz: "Svět",          en: "World",          rooms: ["spolu", "klienti", "hospodareni", "socsite"] },
 ];
 
 // Pořadí doku na mobilu. Rezervace ani trénink nesmí spadnout do přetečení —
 // proto stojí hned za Praxí a před vším volitelným.
-export const DOCK_PRIORITY = ["praxe", "trenink", "terminy", "kompas", "prameny", "denik", "zapisnik", "memento"];
+export const DOCK_PRIORITY = ["praxe", "trenink", "terminy", "kompas", "prameny", "denik", "zapisnik"];
 
 /** Mapa domu pro danou roli a zapnuté místnosti.
  *  `visible(key)` rozhoduje jediná capability vrstva (product/roles.js),

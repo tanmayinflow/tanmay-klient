@@ -60,7 +60,7 @@ ${s} .tm-cs-body { padding: 40px var(--land-sheet-pad) 34px !important; }
 ${s} .tm-nahled-head { z-index: 2; top: 0 !important; left: 0 !important; right: 0 !important; padding: calc(13px + env(safe-area-inset-top)) 18px 10px; }
 /* The scroll viewport reaches behind the fixed header; padding sets only its initial position. */
 ${s} .tm-nahled-telo { top: 0 !important; padding-top: calc(98px + env(safe-area-inset-top)) !important; }
-${s} .tm-pomo-backdrop { background-color: var(--tm-bg) !important; background-image: var(--land-field) !important; background-size: 768px auto !important; }
+${s} .tm-pomo-full:not([data-photo="true"]) .tm-pomo-backdrop { background-color: var(--tm-bg) !important; background-image: var(--land-field) !important; background-size: 768px auto !important; }
 ${s} .tm-wb-dot[aria-pressed="true"] { background: var(--tm-accent) !important; border-color: var(--tm-accent) !important; }
 /* Category strips sit directly on the field, including their fixed controls. */
 ${s} :is(.tm-tabsrow,.tm-typerow,.tm-tabsctrl), ${s} .tm-tabsctrl::before, ${s} .tm-tabsctrl > button { background: transparent !important; }
@@ -92,6 +92,10 @@ ${s} .tm-page-title:is([data-art-room="prameny"],[data-art-room="denik"]) { min-
 ${s} .tm-page-title:is([data-art-room="prameny"],[data-art-room="denik"])::before { inset: -4px 52px auto auto; width: 152px; height: 106px; background-size: contain; background-position: right top; opacity: .5; }
 ${s} .tm-page-title[data-art-room="denik"]::before { top: 18px; }
 ${s} .tm-page-title[data-art-room="prameny"]::before { top: -8px; width: 126px; height: 88px; transform: none; }
+${s} .tm-page-title[data-art-room="terminy"] { min-height: 122px; margin-bottom: 18px; }
+${s} .tm-page-title[data-art-room="terminy"]::before { inset: -4px 12px auto auto; width: 122px; height: 116px; }
+${s} .tm-page-title[data-art-room="terminy"]::after { content: none; }
+@media (max-width: 370px) { ${s} .tm-page-title[data-art-room="terminy"]::before { right: 0; width: 96px; height: 104px; } }
 ${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"]) { min-height: 104px; }
 ${s} .tm-page-title:is([data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"])::before { inset: 0 8px auto auto; width: 128px; height: 100px; opacity: .32; }
 ${s} .tm-page-title[data-art-room="praxe"]::before { inset: 0 8px auto auto; width: 142px; height: 100px; background-size: contain; background-position: right top; opacity: .28; }

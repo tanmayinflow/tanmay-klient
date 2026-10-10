@@ -1,5 +1,5 @@
 import { ROOM_COPY } from './rooms.js';
-import { CLIENT_ALWAYS, CLIENT_OPTIONAL, CLIENT_INFRA } from './roles.js';
+import { CLIENT_ALWAYS, CLIENT_OPTIONAL, CLIENT_HIDDEN, CLIENT_INFRA } from './roles.js';
 
 export const APP_GUIDE_VERSION = 4;
 
@@ -88,8 +88,8 @@ export const APP_GUIDE_STEPS = Object.freeze([
     ['Verze pomůže určit, kterou podobu aplikace používáš. Zdroje jsou schované uvnitř této části a můžeš je kdykoli rozvinout.', 'Version identifies the app you are using. Sources sit inside this section and can be expanded whenever you need them.']),
 ]);
 
-const clientRooms = new Set([...CLIENT_ALWAYS, ...CLIENT_OPTIONAL, ...CLIENT_INFRA, 'atomic', 'oblasti', 'cile']);
-const coachOnly = new Set(['klienti', 'hospodareni', 'socsite', 'mandala']);
+const clientRooms = new Set([...CLIENT_ALWAYS, ...CLIENT_OPTIONAL, ...CLIENT_HIDDEN, ...CLIENT_INFRA, 'atomic', 'oblasti', 'cile']);
+const coachOnly = new Set(['klienti', 'hospodareni', 'socsite']);
 
 export function guideText(value, lang = 'cs') {
   return Array.isArray(value) ? value[lang === 'en' ? 1 : 0] : String(value || '');

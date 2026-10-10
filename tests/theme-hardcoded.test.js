@@ -83,7 +83,9 @@ test("v rozhraní nepřibyl náhodný hex", () => {
 
 test("značkové body se jmenují, ne píší", () => {
   assert.match(app, /from "\.\/shared\/ui\/themeRegistry\.js"/);
-  assert.match(app, /BRAND\.(linen|forest|copper)/);
+  assert.match(app, /createGoogleCalendar\(\{[^}]*\bBRAND\b/);
+  const calendar = readFileSync(join(root, "src/shared/product/googleCalendar.js"), "utf8");
+  assert.match(calendar, /BRAND\.(linen|forest|copper)/);
 });
 
 test("Movement Atlas keeps source artwork and adapts compositing to the theme", () => {

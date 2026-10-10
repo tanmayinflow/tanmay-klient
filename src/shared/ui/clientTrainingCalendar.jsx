@@ -2,6 +2,7 @@ import React,{useMemo,useState} from "react";
 import {calendarDays,clientSchedule} from "../../training/clientSchedule.js";
 import {todayISO} from "../product/practice.js";
 import {TmIcon} from "./icons.jsx";
+import {EmptyRoomArt} from "./states.jsx";
 import {FONT_BODY,FONT_TAG} from "./type.js";
 
 export function ClientTrainingCalendar({t,lang,plans,templates,schedule,sessions,onStart,onRun,onPlan}) {
@@ -11,7 +12,7 @@ export function ClientTrainingCalendar({t,lang,plans,templates,schedule,sessions
   const daily=rows.filter(r=>r.date===day);
   const move=delta=>{const d=new Date(`${month}-15T12:00:00`);d.setMonth(d.getMonth()+delta);setMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);};
   const quiet={background:"transparent",border:"none",color:t.accentInk||t.accent,minWidth:44,minHeight:44,cursor:"pointer",fontFamily:FONT_BODY};
-  return <section aria-label={L("Kalendář tréninku","Training calendar")}>
+  return <section style={{maxWidth:760,margin:"0 auto"}} aria-label={L("Kalendář tréninku","Training calendar")}>
     <div data-guide="trenink.calendar" style={{display:"flex",alignItems:"center",gap:8,margin:"6px 0 12px"}}>
       <h2 style={{fontFamily:"var(--tm-font-display)",fontWeight:400,fontSize:25,color:t.heading,margin:0,flex:1}}>{new Date(`${month}-01T12:00:00`).toLocaleDateString(lang==="en"?"en-GB":"cs-CZ",{month:"long",year:"numeric"})}</h2>
       <button style={quiet} aria-label={L("Předchozí měsíc","Previous month")} onClick={()=>move(-1)}><TmIcon id="back" size={16}/></button>
@@ -31,7 +32,7 @@ export function ClientTrainingCalendar({t,lang,plans,templates,schedule,sessions
       {daily.length?daily.map(row=><div key={row.id} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 0",borderBottom:`1px solid ${t.borderSoft}`}}>
         <div style={{flex:1,minWidth:0,fontFamily:FONT_BODY,color:t.heading}}>{L(row.record?.cz||row.template?.cz,row.record?.en||row.template?.en)||L("Trénink","Workout")}<span style={{display:"block",fontSize:12,color:t.textMuted,marginTop:4}}>{row.record?.state==="done"?L("Odtrénováno","Completed"):row.record?L("Rozcvičeno, můžeš pokračovat","In progress, ready to resume"):row.template?L(`${row.template.blocks?.length||0} cviků`,`${row.template.blocks?.length||0} exercises`):L("Zadání není dostupné. Obnov plán.","Prescription unavailable. Refresh your plan.")}</span></div>
         <button disabled={!row.record&&!row.template} style={{...quiet,opacity:!row.record&&!row.template ? .45:1}} onClick={()=>row.record?onRun(row.record.id):onStart(row)}>{row.record?.state==="done"?L("Otevřít","Open"):row.record?L("Pokračovat","Resume"):L("Začít","Begin")}</button>
-      </div>):<p style={{fontFamily:FONT_BODY,color:t.textSec,fontSize:14,lineHeight:1.6}}>{L("Na tento den nemáš naplánovaný trénink. Dny jednotlivých lekcí si vybereš v Mém plánu.","No training is scheduled for this day. Choose dates for your sessions in My plan.")}</p>}
+      </div>):<div style={{textAlign:"center",padding:"12px 0"}}><EmptyRoomArt room="trenink" size={136} color={t.sand}/><p style={{fontFamily:FONT_BODY,color:t.textSec,fontSize:14,lineHeight:1.6}}>{L("Na tento den nemáš naplánovaný trénink. Dny jednotlivých lekcí si vybereš v Mém plánu.","No training is scheduled for this day. Choose dates for your sessions in My plan.")}</p></div>}
       <button onClick={onPlan} style={{...quiet,padding:0}}>{L("Můj plán","My plan")} <TmIcon id="forward" size={12}/></button>
     </div>
   </section>;

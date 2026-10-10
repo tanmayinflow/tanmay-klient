@@ -20,6 +20,7 @@ import { TmIcon as FamilyIcon } from "./icons.jsx";
 // Písmo se bere z CSS proměnných (--tm-font-*), aby přepnutí jazyka
 // nemuselo procházet přes JS proměnnou, která by se v továrně zamrazila.
 import React, { useState } from "react";
+import { PracticeCalendarExport } from "./practiceCalendar.jsx";
 import { TmIcon, tmIconId, createIconUI } from "./icons.jsx";
 
 export function createPracticeUI(deps) {
@@ -1172,6 +1173,7 @@ export function createPracticeUI(deps) {
             {DenVPraxi ? <DenVPraxi date={date} /> : null}
             <Toggle summary={L("Plán", "Plan")} color="orange" centered bezHrany><EditableSchedule date={date} /></Toggle>
             {AllDayEvents && <AllDayEvents date={date} />}
+            <PracticeCalendarExport date={date} schedule={day.sched} allDay={st.coll.calendarAllDay || []} t={t} L={L}/>
             <div style={{ height: 20 }} />
             <div style={{ ...subLabel(t), marginBottom: 4 }}>{L("Dnešní cíle", "Today's goals")}</div>
             <DayTasks date={date} />

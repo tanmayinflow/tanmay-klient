@@ -167,6 +167,6 @@ export function mayEditSourceField(role, source, field) {
 
 export function sourceOriginLabel(source, lang) {
   const coach = source && source.origin === SOURCE_ORIGIN.COACH;
-  if (lang === "en") return coach ? "From Tanmay" : "Mine";
-  return coach ? "Od Tanmaye" : "Můj";
+  if (lang === "en") return coach ? "From Kryštof" : "Mine";
+  return coach ? "Od Kryštofa" : "Můj";
 }

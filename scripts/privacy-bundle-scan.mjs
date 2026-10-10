@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------------------
 // Schovat není totéž co nemít. Tenhle skript čte hotový `dist/` — tedy přesně
 // to, co se posílá do prohlížeče — a hledá stopy osobní aplikace: soukromé
-// psaní, hospodaření, správu klientů, tvorbu obsahu, osobní Mandalu,
+// psaní, hospodaření, správu klientů, tvorbu obsahu, osobní osivo Mandaly,
 // asistenta a vazbu na osobní databázi.
 //
 // Nález nikdy nevypisuje nalezený text. Jen značku, její otisk a místo.
@@ -37,11 +37,12 @@ const MARKERS = [
   { name: "client-admin-roster",  re: /\bKlRosterCard\b/,        why: "seznam jiných klientů" },
   { name: "coach-api",            re: /\/api\/klienti/,          why: "trenérská cesta" },
   { name: "coach-plan-write",     re: /\/api\/klient-plan/,      why: "zápis plánu je trenérova věc" },
-  { name: "personal-mandala",     re: /\bMANDALA_STUDY\b|\bTmMandalaWheel\b/, why: "osobní Mandala" },
+  // The generic Mandala page was explicitly approved for Client on 2026-10-10.
+  // Main's private default recitation list must still never enter its bundle.
+  { name: "main-mandala-seed",    re: /\bMALA_DEFAULT\b|["']vajrabhairava["']|["']kalachakra["']/, why: "osobní osivo recitací vlastníka" },
   { name: "ai-assistant",         re: /\bAsistentPanel\b|\basDoOpenAI\b/,     why: "asistent" },
   { name: "main-database",        re: /["'`]tanmay-data["'`]/,   why: "vazba na osobní databázi" },
   { name: "main-files-bucket",    re: /["'`]tanmay-files["'`]/,  why: "vazba na osobní úložiště" },
-  { name: "pomodoro",             re: /\bPomodoroTimer\b/,       why: "pomodoro se do klientského domu nepřenáší" },
   { name: "stale-palette",        re: /\bTHEME_ATELIER\b|\bTHEME_BRAND\b|\bTM_PALETTE\b/, why: "vyřazená paleta" },
   // Vlna 2 · trenérova strana Kompasu a Pramenů. Klient smí číst svoje cíle
   // a prameny, ale nesmí mít v balíku obrazovku, kterou je někdo zadává,

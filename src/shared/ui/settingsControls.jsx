@@ -47,10 +47,10 @@ function SetChoice({ label, value, options, onChange }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "8px 8px" }}>
       <span style={{ flex: "1 1 130px", minWidth: 0, fontFamily: FONT_BODY, fontSize: 13, color: t.text }}>{label}</span>
-      <span style={{ display: "inline-flex", gap: 4, flexShrink: 0, flexWrap: "wrap" }}>
+      <span style={{ display: "inline-flex", gap: 4, flex: "0 1 auto", minWidth: 0, maxWidth: "100%", flexWrap: "wrap" }}>
         {options.map((o) => (
           <button key={o.v} aria-pressed={value === o.v} onClick={() => onChange(o.v)}
-            style={{ background: value === o.v ? hexA(t.accent, 0.14) : "transparent", border: `1px solid ${value === o.v ? t.accent : t.borderSoft}`, borderRadius: 999, padding: "6px 13px", minHeight: 34, cursor: "pointer", color: value === o.v ? t.accent : t.textSec, fontFamily: FONT_BODY, fontSize: 12, transition: "border-color .18s ease, color .18s ease, background .18s ease" }}>{o.label}</button>
+            style={{ background: value === o.v ? hexA(t.accent, 0.14) : "transparent", border: `1px solid ${value === o.v ? t.accent : t.borderSoft}`, borderRadius: 999, padding: "6px 13px", minHeight: 44, maxWidth: "100%", overflowWrap: "anywhere", cursor: "pointer", color: value === o.v ? t.accent : t.textSec, fontFamily: FONT_BODY, fontSize: 12, transition: "border-color .18s ease, color .18s ease, background .18s ease" }}>{o.label}</button>
         ))}
       </span>
     </div>

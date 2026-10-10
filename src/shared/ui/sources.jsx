@@ -12,7 +12,7 @@ import { SourceCover } from "./sourceCover.jsx";
 //   · `ExportBtn`   sdílení hotového dokumentu · zatím jen osobní aplikace
 //   · `gdEmbed`     vkládání odkazů z Google Drive · totéž
 //   · adaptér dat   `st.allSources()` a `st.updateSourceNote()` rozhodují,
-//                   jestli je pramen klientův, nebo od Tanmaye
+//                   jestli je pramen klientův, nebo od Kryštofa
 //
 // MŮJ PRAMEN    celý jeho. Trenér ho nevidí.
 // OD TANMAYE    trenér drží název, autora, výňatek, pokyn a to, proč na něm
@@ -47,7 +47,7 @@ export function createSourcesUI(deps) {
   /** Prameny z adaptéru dat. Osobní dům vrací svou kolekci, klient sloučený seznam. */
   const sourcesOf = (st) => (typeof st.allSources === "function" ? st.allSources() : (st.coll.content || []));
 
-  // Můj / Od Tanmaye · klidný štítek, ne zámek. U vlastního se ukáže jen tam,
+  // Můj / Od Kryštofa · klidný štítek, ne zámek. U vlastního se ukáže jen tam,
   // kde obě třídy současně existují — jinak by „Můj" byl šum.
   function OriginBadge({ s }) {
     const { t } = useT();
@@ -196,7 +196,7 @@ export function createSourcesUI(deps) {
               text: (e.carry ? "> " + e.carry + "\n\n" : "") + (e.text || ""),
             })} />}
           </div>
-          {odTanmaye && <div style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted, margin: "-2px 0 8px", lineHeight: 1.55 }}>{L("Tvoje. Tanmay to nečte.", "Yours. Tanmay does not read this.")}</div>}
+          {odTanmaye && <div style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted, margin: "-2px 0 8px", lineHeight: 1.55 }}>{L("Tvoje. Kryštof to nečte.", "Yours. Kryštof does not read this.")}</div>}
           <RichArea value={odTanmaye ? (e.note || "") : (e.text || "")} onChange={(v) => upd(odTanmaye ? { note: v } : { text: v })} placeholder={L("Co si z toho odnáším…", "What I take from it…")} />
         </div>
       </div>
@@ -271,7 +271,7 @@ export function createSourcesUI(deps) {
     const [full, setFull] = useState(null); // full-page id
     const [study,setStudy] = useState(false);
     React.useEffect(() => { if (full) tmToTop(); }, [full]);
-    // Prameny, které Tanmay odebral ze sdílení · poznámka po nich zůstává.
+    // Prameny, které Kryštof odebral ze sdílení · poznámka po nich zůstává.
     const sirotci = typeof st.orphanSourceNotes === "function" ? st.orphanSourceNotes() : [];
     const [adding, setAdding] = useState(false);
     const [newTitle, setNewTitle] = useState("");
@@ -493,7 +493,7 @@ export function createSourcesUI(deps) {
         {sirotci.length > 0 && (
           <div style={{ marginTop: 12, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "12px 14px", background: t.callout }}>
             <div style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.sage, marginBottom: 6 }}>{L("Tvoje poznámky k odebraným pramenům", "Your notes on sources no longer shared")}</div>
-            <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, lineHeight: 1.6, marginBottom: 8 }}>{L("Tanmay tyhle prameny přestal sdílet. Tvoje poznámky k nim zůstaly u tebe.", "Tanmay stopped sharing these. What you wrote about them stayed yours.")}</div>
+            <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, lineHeight: 1.6, marginBottom: 8 }}>{L("Kryštof tyhle prameny přestal sdílet. Tvoje poznámky k nim zůstaly u tebe.", "Kryštof stopped sharing these. What you wrote about them stayed yours.")}</div>
             {sirotci.map((o) => (
               <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderTop: `1px solid ${t.borderSoft}` }}>
                 <span style={{ flex: 1, minWidth: 0, fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tmPlain(o.note || o.carry || "").slice(0, 90) || L("(bez textu)", "(no text)")}</span>

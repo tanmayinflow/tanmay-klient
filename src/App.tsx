@@ -1,3 +1,13 @@
+import { createGoogleCalendar } from "./shared/product/googleCalendar.js";
+import { createCalendarUI } from "./shared/ui/googleCalendar.jsx";
+import { createMementoUI } from "./shared/ui/memento.jsx";
+import { createAllDayEvents } from "./shared/ui/calendarAllDay.jsx";
+import { createPomodoroUI } from "./shared/ui/pomodoro.jsx";
+import { POMO_DEFAULTS, appendPomoBlocks, pomoAccountScope } from "./shared/product/pomodoro.js";
+import { createDisclosure } from "./shared/ui/disclosure.jsx";
+import { createMandalaUI } from "./shared/ui/mandala.jsx";
+import { MorningSpells } from "./shared/ui/morningSpells.jsx";
+import { ANTI_DOOM_SPELLS } from "./shared/product/antiDoomSpells.js";
 import { readClientAttachmentBlob } from "./clientAttachments.js";
 import { createTrainingGuideUI } from "./shared/ui/trainingGuide.jsx";
 import { ClientSearch } from "./ClientSearch.jsx";
@@ -15,7 +25,7 @@ import { MOBILITY_ART } from './library/mobility-art.js';
 import { ExerciseAtlasImage } from './shared/ui/ExerciseAtlasImage.jsx';
 import { TogetherPage, TogetherIcon } from "./shared/ui/together.jsx";
 import { AppGuide } from "./shared/ui/appGuide.jsx";
-import { APP_GUIDE_VERSION, APP_GUIDE_STEPS } from "./shared/product/appGuide.js";
+import { APP_GUIDE_VERSION } from "./shared/product/appGuide.js";
 import { GuideNavigationProvider, useGuideAction } from "./shared/ui/guideNavigation.jsx";
 import {createSettingsUI} from "./shared/ui/settingsControls.jsx";
 import { NavigationSettings } from "./shared/ui/navigationSettings.jsx";
@@ -25,7 +35,6 @@ import { CLIENT_ROOMS, navigationRooms, roomPlacement, navigationLabel } from ".
 import { ClientTrainingCalendar } from "./shared/ui/clientTrainingCalendar.jsx";
 import { TrainingGoals } from "./shared/ui/trainingGoals.jsx";
 import { editorInk, editorHighlight, EDITOR_INKS, EDITOR_CHOICES, EDITOR_NAMES, EDITOR_LABELS } from "./shared/ui/editorPalette.js";
-import { LifeDots } from "./shared/ui/lifeDots.jsx";
 import { SidebarLines } from "./shared/ui/sidebarLines.jsx";
 import { TmIcon as FamilyIcon } from "./shared/ui/icons.jsx";
 import { TrainingSourceText } from './shared/ui/TrainingSourceText.jsx';
@@ -62,7 +71,8 @@ import { habitSummary, goalSummary, validateShareSnapshot, SHARE_WINDOW_DAYS } f
 import { createFigure } from "./shared/ui/figure.jsx";
 import { useVrstva, createOverlay } from "./shared/ui/overlay.jsx";
 import { tmToTop, tmEscVrstva, tmEscVolno, tmZamkniStranku, tmOdemkniStranku, tmListovaniStuj, tmListovaniJdi, tmListovaniSpi, TM_ZAMEK } from "./shared/ui/overlay.js";
-import { createStates } from "./shared/ui/states.jsx";
+import { createStates, EmptyRoomArt } from "./shared/ui/states.jsx";
+import { retiredPracticeCandidates, archiveRetiredPracticeNotes } from "./retiredNotebook.js";
 import { createPracticeUI } from "./shared/ui/practice.jsx";
 import { createPracticePage } from "./shared/ui/practicePage.jsx";
 import { createAtoms } from "./shared/ui/atoms.jsx";
@@ -546,7 +556,7 @@ const NB_DEFAULT_TAGS = [
   ["Vhledy", "sage"],
   ["Poezie a písně", "taupe"],
   ["Tělo", "burgundy"],
-  ["Tanmay", "sand"],
+  ["Praxe", "sand"],
 ];
 // Notion-éra → česká police · staré názvy se už nikde neukážou, data se převedou
 const NB_TAG_MIGRATE = { "Notes": "Poznámky", "Self reflection": "Vhledy", "Wisdom": "Vhledy", "Poetry / Art": "Poezie a písně", "Song": "Poezie a písně", "Body": "Tělo", "Practices": "Praxe" };
@@ -623,20 +633,6 @@ const ACH_SHORT = { "Highly Achievable": "highly achievable", "Moderately Achiev
 
 
 
-function Toggle({ summary, color = "green", children, open: openProp = false }) {
-  const { t, tags } = useT();
-  const [open, setOpen] = useState(openProp);
-  const tc = tags[color] || tags.green;
-  return (
-    <div style={{ borderRadius: 8, background: open ? t.card : "transparent", border: `1px solid ${t.borderSoft}`, margin: "8px 0", overflow: "hidden" }}>
-      <button onClick={() => setOpen((o) => !o)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, color: tc.fg, fontFamily: FONT_BODY, fontSize: 15, fontWeight: 500 }}>
-        <span style={{ transition: "transform 0.18s ease", transform: open ? "rotate(90deg)" : "rotate(0deg)", color: t.sage, fontSize: 11 }}><FamilyIcon id="play" size={16} label={L("Spustit","Play")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
-        {summary}
-      </button>
-      {open && <div style={{ padding: "0 16px 16px 38px", color: t.textSec, fontFamily: FONT_BODY, fontSize: 14.5, lineHeight: 1.7, animation: "tmsettle .24s ease-out" }}>{children}</div>}
-    </div>
-  );
-}
 
 function MiniCallout({ icon, children }) {
   const { t } = useT();
@@ -655,6 +651,7 @@ function MiniCallout({ icon, children }) {
 // zásobník, stránka pod ním se rolovala a focus po zavření skončil na
 // začátku dokumentu. Teď to obojí drží src/shared/ui/overlay.jsx.
 const { CenterSheet, Drawer, TmSipka } = createOverlay(useT, L);
+const Toggle = createDisclosure({ useT, TmSipka });
 const { Prazdno, TmArtKapka } = createStates(useT, L);
 // VZHLED · týž oddíl jako v osobní aplikaci. Jeden zdroj, dvě role.
 const { VzhledSekce } = createAppearanceUI(useT, L);
@@ -763,23 +760,6 @@ const twoCol = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(
 // each visit — Vajrayāna, the Stoa, the desert, the forest. The room sits on no
 // map: its door is the day itself — click the date and see the whole life.
 // Owner-selected wording and attributions, including free renderings, preserved as supplied.
-const MEMENTO_QUOTES = [
-  {"cz":"Většina lidí zapomíná, že tu jednou všichni skončíme. Kdo si to pamatuje, přestane se hádat.","en":"Most people forget that we all come to an end here. Those who remember stop quarrelling.","src":"Buddha · Dhammapada (volné podání)","srcEn":"The Buddha · Dhammapada (free rendering)"},
-  {"cz":"Všechno, co je složené, se rozpadne. Usiluj a nepolevuj.","en":"Everything that is put together falls apart. Strive on, and do not let up.","src":"Buddha · poslední slova (volné podání)","srcEn":"The Buddha · last words (free rendering)"},
-  {"cz":"Moje náboženství je žít a zemřít bez lítosti.","en":"My religion is to live and die without regret.","src":"Milaräpa (tradičně připisováno)","srcEn":"Milarepa (traditionally attributed)"},
-  {"cz":"Smrt je jistá. Její hodina není.","en":"Death is certain. Its hour is not.","src":"Čtyři připomínky (volné podání)","srcEn":"The Four Reminders (free rendering)"},
-  {"cz":"Zítřek, nebo příští život — nikdo neví, co přijde dřív.","en":"Tomorrow or the next life — nobody knows which comes first.","src":"Tibetské přísloví","srcEn":"Tibetan proverb"},
-  {"cz":"Že se po výdechu znovu nadechneš a že se po usnutí probudíš — to je ten zázrak.","en":"That you breathe in again after breathing out, that you wake up after falling asleep — that is the wonder.","src":"Nágárdžuna · Dopis příteli (volné podání)","srcEn":"Nagarjuna · Letter to a Friend (free rendering)"},
-  {"cz":"Tvůj život se každým dnem zkracuje. Nikdy se neprodlužuje.","en":"Your life gets shorter every day. It never gets longer.","src":"Devět úvah o smrti (volné podání)","srcEn":"The Nine Contemplations of Death (free rendering)"},
-  {"cz":"Ve chvíli smrti ti pomůže jen to, co sis v sobě vypěstoval.","en":"At the moment of death, only what you cultivated inside yourself is of any use.","src":"Devět úvah o smrti (volné podání)","srcEn":"The Nine Contemplations of Death (free rendering)"},
-  {"cz":"Jednou z tebe zbydou kosti. Dneska s nimi ještě můžeš hýbat.","en":"One day only bones will be left of you. Today you can still move them.","src":"Úvaha na pohřebišti (volné podání)","srcEn":"Charnel-ground contemplation (free rendering)"},
-  {"cz":"Nauč se usínat tak, jak bys chtěl umírat.","en":"Learn to fall asleep the way you would want to die.","src":"Jóga spánku (volné podání)","srcEn":"Sleep yoga (free rendering)"},
-  {"cz":"Vnitřní klid je teď. Protože nějaké později tu bude vždycky.","en":"The inner peace is now. Because there will be always some later.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
-  {"cz":"A pak zemřeš bez lítosti. Zemřeš jako urozený. Zemřeš jako král.","en":"So then you die without regret. You die, you are a noble one. You die like a king.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
-  {"cz":"Když zítra umřeš, lidem to možná bude líto dva dny.","en":"If tomorrow you die, maybe people are sad for two days.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
-  {"cz":"Každý okamžik je čerstvý. Každý okamžik je nový život. Každý okamžik je čerstvý.","en":"Every moment is fresh. Every moment is a new life. Every moment is fresh.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
-  {"cz":"Pak pochopíš, že jediné, co je stálé, je nestálost.","en":"So you understand that the only thing that is permanent is impermanence.","src":"Kršnavadžra (doslovně)","srcEn":"Krsnavajra (verbatim)"},
-];
 
 
 
@@ -788,70 +768,8 @@ const MEMENTO_QUOTES = [
 
 
 
-function PageMemento({ go }) {
-  const { t } = useT();
-  const st = useStore();
-  const mem = st.coll.memento || {};
-  // Start from the visit rotation; browsing stays local to this open page.
-  const [qi, setQi] = useState(() => (mem.opens || 0) % MEMENTO_QUOTES.length);
-  const counted = React.useRef(false);
-  React.useEffect(() => { if (counted.current) return; counted.current = true; st.setMemento({ opens: ((st.coll.memento || {}).opens || 0) + 1 }); }, []);
-  const [editing, setEditing] = useState(!mem.birth);
-  const [birthDraft, setBirthDraft] = useState(mem.birth || "");
-  const [spanDraft, setSpanDraft] = useState(String(mem.span || 76));
-  const birth = mem.birth || "";
-  const span = Math.max(30, Math.min(120, +(mem.span || 76)));
-  const total = Math.round(span * 365.25);
-  const lived = birth ? Math.max(0, Math.min(total, Math.floor((new Date(todayISO() + "T12:00:00Z").getTime() - new Date(birth + "T12:00:00Z").getTime()) / 86400000) + 1)) : 0;
-  const springs = birth ? Math.max(0, span - Math.floor((lived - 1) / 365.25)) : 0;
-  const q = MEMENTO_QUOTES[qi];
-  const saveCfg = () => {
-    const b = (birthDraft || "").trim();
-    if (!b) return;
-    st.setMemento({ birth: b, span: Math.max(30, Math.min(120, +spanDraft || 76)) });
-    setEditing(false);
-  };
-  return (
-    <div className="tm-view" style={{ maxWidth: 680, margin: "0 auto" }}>
-      <button onClick={() => go("praxe")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13.5, padding: "0 0 10px", display: "inline-flex", alignItems: "center", gap: 6 }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Praxe", "Practice")}</button>
-      <div style={{ textAlign: "center", margin: "26px 0 0" }}>
-        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.34em", fontSize: 11, color: t.sage }}>memento mori</div>
-        <div data-guide="memento.view" aria-live="polite" aria-atomic="true">
-        <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 22, lineHeight: 1.55, color: t.heading, maxWidth: 560, margin: "22px auto 0" }}>{L(q.cz, q.en)}</div>
-        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 10.5, color: t.textMuted, marginTop: 10 }}>{L(q.src, q.srcEn)}</div>
-        </div>
-        <nav data-guide="memento.reflection" className="tm-spell-controls" aria-label={L("Procházení citátů", "Browse quotes")}>
-          <button type="button" onClick={() => setQi(index => (index - 1 + MEMENTO_QUOTES.length) % MEMENTO_QUOTES.length)} aria-label={L("Předchozí citát", "Previous quote")}><FamilyIcon id="back" size={18} /></button>
-          <span style={{ color: t.textMuted }} aria-label={L(`Citát ${qi + 1} z ${MEMENTO_QUOTES.length}`, `Quote ${qi + 1} of ${MEMENTO_QUOTES.length}`)}>{qi + 1} / {MEMENTO_QUOTES.length}</span>
-          <button type="button" onClick={() => setQi(index => (index + 1) % MEMENTO_QUOTES.length)} aria-label={L("Další citát", "Next quote")}><FamilyIcon id="forward" size={18} /></button>
-        </nav>
-        <div style={{ width: 44, height: 1, background: t.accent, opacity: 0.7, margin: "26px auto" }} />
-      </div>
-      {editing ? (
-        <div style={{ maxWidth: 380, margin: "0 auto", background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "18px 20px" }}>
-          <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec, lineHeight: 1.65, marginBottom: 14 }}>{L("Aby místnost věděla, kolik dní neseš.", "So the room knows how many days you carry.")}</div>
-          <div style={{ ...subLabel(t), marginBottom: 4 }}>{L("Datum narození", "Date of birth")}</div>
-          <input type="date" value={birthDraft} onChange={(e) => setBirthDraft(e.target.value)} style={{ ...fieldStyle(t), width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", WebkitAppearance: "none", appearance: "none", padding: "7px 10px", fontSize: 13.5, marginBottom: 12 }} />
-          <div style={{ ...subLabel(t), marginBottom: 4 }}>{L("Délka života · roky", "Life span · years")}</div>
-          <input type="number" min={30} max={120} value={spanDraft} onChange={(e) => setSpanDraft(e.target.value)} style={{ ...fieldStyle(t), width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "7px 10px", fontSize: 13.5, marginBottom: 16 }} />
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            {birth && <button onClick={() => setEditing(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Zrušit", "Cancel")}</button>}
-            <button onClick={saveCfg} style={{ background: t.accent, color: t.bg, border: "none", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500 }}>{L("Uložit", "Save")}</button>
-          </div>
-        </div>
-      ) : (
-        <div>
-          <LifeDots total={total} lived={lived} t={t} L={L} />
-          <div style={{ textAlign: "center", marginTop: 18 }}>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{L("Den", "Day")} {lived.toLocaleString(L("cs-CZ", "en-GB"))} {L("z asi", "of about")} {total.toLocaleString(L("cs-CZ", "en-GB"))}.</div>
-            <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5, color: t.textMuted, marginTop: 3 }}>{L(`Před tebou ještě asi ${springs} jar.`, `About ${springs} springs still ahead.`)}</div>
-            {st.editMode && <button onClick={() => { setBirthDraft(birth); setSpanDraft(String(span)); setEditing(true); }} style={{ marginTop: 12, background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5 }}>{L("Upravit", "Edit")}</button>}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+
+const PageMemento = createMementoUI({useT,useStore,L});
 
 
 function PageAtomic() {
@@ -1239,8 +1157,7 @@ function PageCover({ cover, icon }) {
 // ---- Pomodoro · běžec na úrovni modulu. Časovač nepatří stránce, ale domu:
 // přežije přepnutí karty i zavření aplikace (stav žije v localStorage,
 // dokončené bloky čekají ve frontě, než si je Kompas vyzvedne do záznamů).
-let POMO_KEEP = null;
-let POMO_IV = null;
+
 
 
 
@@ -5091,7 +5008,7 @@ function PageNotebook({ koren, korenNazev }) {
           {vw !== "rows" && shown.length > 0 && (
             <RoomView view={vw} items={shown.map(nItem)} selecting={selecting} selIds={sel} onToggleSel={toggleSel} onOpen={otevri} current={wide ? full : null} />
           )}
-          {shown.length === 0 && <Prazdno kind="prvni" plain compact fakt={L("V téhle kategorii zatím nic není.", "Nothing in this category yet.")} />}
+          {shown.length === 0 && <Prazdno kind={all.length ? "nic" : "prvni"} plain={all.length > 0} compact={all.length > 0} mark={!all.length && <EmptyRoomArt room="zapisnik" color={t.sand} />} fakt={all.length ? L("V téhle kategorii zatím nic není.", "Nothing in this category yet.") : L("Prázdný zápisník.", "An empty notebook.")} pozvani={!all.length && L("Místo pro tvé vlastní poznámky.", "A place for your own notes.")} />}
         </div>
         {wide && (
           <div className="tm-scroll" style={{ maxHeight: "min(720px, calc(70 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: fullEntry ? "4px 6px 10px" : 0, background: t.bg }}>
@@ -5455,7 +5372,7 @@ function PageJournal() {
         {!q.trim() && shown.length > limit && (
           <button onClick={() => setLimit((l) => l + 40)} className="tm-dash" style={{ width: "100%", background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "10px 14px", cursor: "pointer", color: t.inkSand, fontFamily: FONT_BODY, fontSize: 13, margin: "8px 0 4px" }}>{L("Načíst starší · zbývá", "Load older · remaining")} {shown.length - limit}</button>
         )}
-        {shown.length === 0 && <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, padding: "18px 0" }}>{L("V tomto pohledu zatím nic není.", "Nothing in this view yet.")}</p>}
+        {shown.length === 0 && <Prazdno kind={all.length ? "nic" : "prvni"} plain={all.length > 0} compact={all.length > 0} mark={!all.length && <EmptyRoomArt room="denik" color={t.sand} />} fakt={all.length ? L("V tomto pohledu zatím nic není.", "Nothing in this view yet.") : L("Zatím tu není žádný zápis.", "No entries yet.")} pozvani={!all.length && L("Začni dneškem. Stačí pár slov.", "Begin with today. A few words are enough.")} />}
       </div>
 
       {selecting && (
@@ -10387,18 +10304,31 @@ const {
   TM_PROMPT_OKRUH, tmPromptFor, TM_PRAHY, tmPrahKlic, tmPrahMa,
   WB_ZNAMENI, tmWbOf, tmWbDates, usePraxeStats,
   fmtCZ, todayISO, shiftISO, moonPhaseOf, moonName, sunsetOf,
-  journalArchive: JOURNAL_FULL, flow: FLOW, mandalaAvailable: false,
+  AllDayEvents: createAllDayEvents({useT,useStore,L,uid,shiftISO}), journalArchive: JOURNAL_FULL, flow: FLOW,
 });
 
+const { PageMandala } = createMandalaUI({useT,useStore,L,uid,resizeImageToBlob,r2Put,r2Del,imgSrc,Toggle,Eyebrow,BRAND});
+const personalCalendar = createGoogleCalendar({role:"client",L,todayISO,BRAND,
+  getAccount:()=>pomoAccountScope(clientAccount.getSnapshot(),ownerLoad()),
+  canRequest:()=>["ready","checking"].includes(clientAccount.getSnapshot().status),
+  verifyAccount:()=>clientAccount.verify()});
 const {SetSection,SetSwitch,SetChoice}=createSettingsUI({useT,L});
-const PageHabit = createPracticePage({useT,useStore,L,PageTitle,BufferedInput,TmIcPraxe,TmIcPrameny,TmPasPrahu,DayView,PraxeOverview,CenterSheet,pProse});
+const {CalAuto,CalSettings}=createCalendarUI({useT,useStore,L,getLang:()=>LANG,fmtCZ,engine:personalCalendar,SetSection,SetSwitch,SetChoice,PersonalSettingsSections});
+const PageHabit = createPracticePage({useT,useStore,L,PageTitle,BufferedInput,TmIcPraxe,TmIcPrameny,TmPasPrahu,DayView,PraxeOverview,CenterSheet,pProse,SourceMorning:()=> <MorningSpells items={ANTI_DOOM_SPELLS} L={L}/>});
 
 // ---- KOMPAS · sdílená orientace ------------------------------------------
 // Týž soubor jako v osobní aplikaci (src/shared/ui/compass.jsx). Klientský
 // Kompas byl o generaci pozadu: emoji místo rytin, natvrdo anglické popisky
 // v detailu cíle, žádní čekající, žádný spouštěč, žádný výběr krajiny.
-// Rozdíl role se předává: klient nemá Pomodoro vedle dnešního kroku a
-// u cílů od Tanmaye smí měnit jen svůj postup.
+// Pomodoro je sdílené. U přidělených cílů klient mění jen svůj postup.
+const { PomodoroTimer, TmPomoFronta } = createPomodoroUI({
+  useT, useStore, L, uid, todayISO, fmtSize, readFileAsAtt, attUrl, iconBtn,
+  CenterSheet, Drawer, Prazdno, Eyebrow, ArrowOutIcon, TmIcNastaveni,
+  storageScope: () => pomoAccountScope(clientAccount.getSnapshot(), ownerLoad()),
+  readPersistedBlocks: () => loadColl().pomoLog || [],
+  allowWake: () => loadColl().ui?.wake !== false, onStorageFailure: tmSaveFailed,
+});
+
 const {
   AreaGlyph, OwnerBadge, GoalCard, Board, AddGoalForm, AddAreaForm, AreaChips, AreaTable,
   AreaVlq, GoalDetail, AreaDetail, GoalWorkspace, PageDivine, PageAreas, PageGoals,
@@ -10413,7 +10343,7 @@ const {
   areaClean, areaLabel,
   todayISO, fmtCZ, tmToTop,
   role: "client",
-  sideSlot: null,
+  sideSlot: <><Eyebrow>Pomodoro</Eyebrow><PomodoroTimer /></>,
 });
 
 // ---- PRAMENY · sdílená knihovna ------------------------------------------
@@ -13597,7 +13527,7 @@ function TvClientRunner({ sessionId, onClose, onOpenEx }) {
               style={{ width: "100%", background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 10, color: t.textSec, fontFamily: FONT_BODY, fontSize: 14 }} />
             <p id="tv-client-note-sharing" style={{ margin: 0, color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5, lineHeight: 1.6 }}>{st.coll.share?.training
               ? L("Sdílení tréninku máš zapnuté. Po synchronizaci trenér uvidí i tuto poznámku.", "Workout sharing is on. Your coach will also see this note after syncing.")
-              : L("Poznámka zůstává u tebe. Sdílení tréninku můžeš změnit v Nastavení → Místnosti a sdílení.", "This note stays with you. You can change workout sharing in Settings → Rooms and sharing.")}</p>
+              : L("Poznámka zůstává u tebe. Sdílení tréninku můžeš změnit v Nastavení → Sdílení s trenérem.", "This note stays with you. You can change workout sharing in Settings → Sharing with your coach.")}</p>
             <button onClick={finish} className="tm-cta" style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 12, padding: "14px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 50 }}>
               {L("Hotovo", "Done")}
             </button>
@@ -13847,17 +13777,17 @@ function PageTrenink() {
   const onRunSession = (id) => setRun(id);
 
   const tabs = [
-    { k: "dnes", cz: "Dnes", en: "Today" },
+    { k: "dnes", cz: "Dny", en: "Days" },
     { k: "plan", cz: "Můj plán", en: "My plan" },
     { k: "zaznam", cz: "Můj pokrok", en: "My progress" },
-    { k: "knihovna", cz: "Knihovna", en: "Library" },
     { k: "casovac", cz: "Časovač", en: "Timer" },
+    { k: "knihovna", cz: "Knihovna", en: "Library" },
   ];
   const inpStyle = { background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 14, padding: "8px 12px", outline: "none" };
 
   return (
     <>
-      <PageTitle pageKey="trenink" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcTrenink size={40} /></span>} kicker={L("Co tě čeká a co už máš za sebou.", "What to do, and what you did.")}>
+      <PageTitle pageKey="trenink" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcTrenink size={40} /></span>} kicker={L("Plán, provedení, záznam.", "Plan, execution, record.")}>
         {L("Trénink", "Training")}
       </PageTitle>
 
@@ -13871,13 +13801,13 @@ function PageTrenink() {
       ) : null}
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18 }}>
-        {tabs.slice(0,3).map((x) => <span key={x.k} data-guide={x.k === "zaznam" ? "trenink.results" : undefined} style={{display:"inline-flex"}}><TChip label={L(x.cz, x.en)} active={tab === x.k} onClick={() => setTab(x.k)} /></span>)}
+        {tabs.map((x) => <span key={x.k} data-guide={x.k === "zaznam" ? "trenink.results" : undefined} style={{display:"inline-flex",marginLeft:x.k === "knihovna" ? "auto" : undefined}}><TChip label={L(x.cz, x.en)} active={tab === x.k} onClick={() => setTab(x.k)} /></span>)}
       </div>
 
       <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,marginBottom:12}}>
         <button style={tvQuiet(t)} disabled={planStatus.state==="loading"} onClick={()=>window.dispatchEvent(new Event("tm-plan-refresh"))}>{L("Obnovit plán", "Refresh plan")}</button>
         <span role="status">{planStatus.state==="error"?L("Aktualizaci se nepodařilo ověřit. Poslední uložený plán zůstává dostupný.", "Could not check updates. The last saved plan remains available."):planStatus.state==="loading"?L("Ověřuji plán…", "Checking plan…"):planStatus.at?L("Plán ověřen", "Plan checked")+" · "+new Date(planStatus.at).toLocaleTimeString():""}</span>
-        <div style={{marginLeft:"auto",display:"flex",gap:12}}>{tabs.slice(3).map(x=><button key={x.k} style={tvQuiet(t)} onClick={()=>setTab(x.k)}>{L(x.cz,x.en)}</button>)}</div>
+
       </div>
       {(tab === "plan" || tab === "zaznam") && <TrainingGoals t={t} plans={del?.plans || []} sessions={sessions} />}
       {tab === "dnes" && <ClientTrainingCalendar t={t} lang={LANG} plans={del?.plans||[]} templates={del?.templates||[]} schedule={sched} sessions={sessions} onPlan={()=>setTab("plan")} onRun={onRunSession} onStart={row=>{const next=TV.startSession(row.template,{date:row.date||todayISO(),plan:row.plan,planSession:row.planned});st.tvPutSession(next);onRunSession(next.id);}}/>}
@@ -13946,7 +13876,7 @@ function TmWbDiamant({ size = 15 }) { return <FamilyIcon id="bodhicitta" size={s
 function TmWbKruh({ size = 15 }) { return <FamilyIcon id="world-practice" size={size} />; }
 function TmIcOblasti({ size = 15 }) { return <FamilyIcon id="areas" size={size} />; }
 function TmIcCile({ size = 15 }) { return <FamilyIcon id="target" size={size} />; }
-const NAV_ICONS = { spolu: TogetherIcon, oblasti: TmIcKompas, cile: TmIcKompas, atomic: TmIcPraxe,  praxe: TmIcPraxe, trenink: TmIcTrenink, terminy: TmIcTerminy, denik: TmIcDenik, kompas: TmIcKompas, zapisnik: TmIcZapisnik, prameny: TmIcPrameny, memento: TmIcMemento, kos: TmIcKos };
+const NAV_ICONS = { mandala: TmIcKompas, spolu: TogetherIcon, oblasti: TmIcKompas, cile: TmIcKompas, atomic: TmIcPraxe,  praxe: TmIcPraxe, trenink: TmIcTrenink, terminy: TmIcTerminy, denik: TmIcDenik, kompas: TmIcKompas, zapisnik: TmIcZapisnik, prameny: TmIcPrameny, memento: TmIcMemento, kos: TmIcKos };
 
 // ---- MAPA DOMU · boční panel je mapa života, ne seznam aplikací -----------
 // Skupiny i jejich pořadí leží ve sdíleném jádru (src/shared/product/rooms.js),
@@ -13954,9 +13884,9 @@ const NAV_ICONS = { spolu: TogetherIcon, oblasti: TmIcKompas, cile: TmIcKompas, 
 // úložiště, pageMeta i sync na ně visí; mění se jen vyslovená vrstva.
 // Klientská mapa je model V2 podle produktového kontraktu: Den (Praxe,
 // Trénink, Termíny), Směr (Kompas), Paměť (Deník, Zápisník, Prameny),
-// Volitelně (Memento mori). Svět tu není — Hospodaření, Klienti ani Tvorba
+// Svět nabízí jen zapnuté Spolu. Hospodaření, Klienti ani Tvorba
 // obsahu do klientského domu nepatří a nejsou v tomhle balíku vůbec.
-const NAV_EMOJI = { praxe: "🔥", trenink: "▲", terminy: "◷", kompas: "🎲", denik: "✎", zapisnik: "📓", prameny: "▤", memento: "☾" };
+const NAV_EMOJI = { praxe: "🔥", trenink: "▲", terminy: "◷", kompas: "🎲", denik: "✎", zapisnik: "📓", prameny: "▤", };
 const NAV_GROUPS_ALL = navGroupsFor(() => true).map((g) => ({
   cz: g.cz, en: g.en,
   items: g.rooms.map((k) => ({ key: k, icon: NAV_EMOJI[k] || "·", cz: ROOM_COPY[k].cz, en: ROOM_COPY[k].en })),
@@ -14202,16 +14132,16 @@ function TmGuide({ onClose }) {
     {
       kicker: L("Tvoje", "Yours"),
       title: L("Deník a Zápisník jsou jen tvoje", "Journal and Notebook are yours alone"),
-      body: L("Obě místnosti jsou vypnuté, dokud si je neotevřeš v Místnostech. Trenér k jejich obsahu nemá žádnou cestu — ani přes aplikaci, ani přes server. Nevidí text, názvy ani počty.",
-              "Both rooms stay closed until you open them yourself in Rooms. Your trainer has no path to what is inside — not through the app, not through the server. No text, no titles, no counts."),
+      body: L("Obě místnosti jsou vypnuté, dokud si je neotevřeš v Nastavení → Stránky a navigace. Trenér k jejich obsahu nemá žádnou cestu — ani přes aplikaci, ani přes server. Nevidí text, názvy ani počty.",
+              "Both rooms stay closed until you open them in Settings → Pages and navigation. Your trainer has no path to what is inside — not through the app, not through the server. No text, no titles, no counts."),
       tips: [L("Zavření místnosti nic nemaže. Zápisy zůstanou, jen zmizí z navigace.", "Closing a room deletes nothing. The entries stay, they just leave the navigation.")],
     },
     {
       kicker: L("Sdílení", "Sharing"),
-      title: L("Co uvidí Tany, rozhoduješ ty", "You decide what Tanmay sees"),
+      title: L("Co uvidí Kryštof, rozhoduješ ty", "You decide what Kryštof sees"),
       body: L("Sdílet jde průběh návyků za posledních třicet dní, názvy a stav vybraných cílů a tvoje odcvičené části plánu. Nic víc. Ohlédnutí, Deník, Zápisník, Memento ani přílohy se neposílají nikdy — ani souhrnem.",
               "You can share the last thirty days of habit progress, the names and status of selected goals, and what you trained from the plan. Nothing else. The evening review, Journal, Notebook, Memento and attachments are never sent — not even as a summary."),
-      tips: [L("Vypnutí platí hned a dosavadní souhrn se zneplatní. Najdeš ho pod Sdílením v levém sloupci.", "Switching it off applies immediately and voids the previous summary. It lives under Sharing in the left column.")],
+      tips: [L("Vypnutí platí hned a dosavadní souhrn se zneplatní. Nastavení najdeš pod Sdílení s trenérem.", "Switching it off applies immediately and voids the previous summary. Find it in Settings → Sharing with your coach.")],
     },
     {
       kicker: L("Bez signálu", "Offline"),
@@ -14326,7 +14256,7 @@ function TmGuide({ onClose }) {
    Krátká cesta ke čtyřem otázkám: kdy se vidíme, kolik mi zbývá, kdy si
    můžu vzít další čas, a jak ten domluvený přesunout nebo zrušit.
 
-   Co tady nikdy nebude: cizí rezervace, názvy toho, čím je Tanmay obsazený,
+   Co tady nikdy nebude: cizí rezervace, názvy toho, čím je Kryštof obsazený,
    počet ostatních klientů, jeho poznámky. Server o nich ani neřekne — tohle
    rozhraní o ně ani nežádá.
 
@@ -14453,10 +14383,11 @@ function PageTerminy() {
 
   return (
     <>
-      <PageTitle guide="terminy.bookings" pageKey="terminy" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPraxe size={38} /></span>} kicker={L("Kdy se vidíme.", "When we meet.")}>{L("Termíny", "Sessions")}</PageTitle>
+      <PageTitle guide="terminy.bookings" pageKey="terminy" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcTerminy size={38} /></span>} kicker={L("Kdy se vidíme.", "When we meet.")}>{L("Termíny", "Sessions")}</PageTitle>
 
       {ctx.loading && !ctx.data && <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, fontStyle: "italic" }}>{L("Načítám…", "Loading…")}</p>}
       {ctx.err && <BkcHlaska e={ctx.err} onRetry={znovu} />}
+      {moje.err && <BkcHlaska e={moje.err} onRetry={znovu} />}
 
       {/* Další setkání je to hlavní, co sem člověk chodí zjistit. */}
       {pristi.length > 0 ? (
@@ -14464,8 +14395,8 @@ function PageTerminy() {
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage, marginBottom: 8 }}>{L("Další setkání", "Next session")}</div>
           <BkcTermin b={pristi[0]} onOpen={setOtevreny} />
         </div>
-      ) : ctx.data ? (
-        <p className="tm-prose" style={{ ...pProse(t), marginBottom: 18 }}>{L("Zatím nemáš domluvený žádný termín.", "You have no session arranged yet.")}</p>
+      ) : ctx.data && moje.data && !moje.err ? (
+        <Prazdno mark={<EmptyRoomArt room="terminy" color={t.sand} />} fakt={L("Zatím nemáš domluvený žádný termín.", "You have no session arranged yet.")} />
       ) : null}
 
       {/* Zůstatek · číslo, ne graf. A hned pod ním, co se s ním dá udělat. */}
@@ -14490,10 +14421,10 @@ function PageTerminy() {
         <div data-guide="terminy.calendar" style={{ marginBottom: 22 }}>
           <p className="tm-prose" style={pProse(t)}>
             {c.reason === "NO_CLIENT"
-              ? L("Rezervace pro tebe zatím nejsou otevřené. Domluv se s Tanmayem.", "Booking is not open for you yet. Talk to Tanmay.")
+              ? L("Rezervace pro tebe zatím nejsou otevřené. Domluv se s Kryštofem.", "Booking is not open for you yet. Talk to Kryštof.")
               : c.reason === "NO_CREDIT"
-              ? L("Nemáš teď aktivní kredit pro rezervaci. Domluv se s Tanmayem.", "You have no active credit for booking right now. Talk to Tanmay.")
-              : L("Zatím tu pro tebe není otevřená žádná služba. Domluv se s Tanmayem.", "No service is open for you yet. Talk to Tanmay.")}
+              ? L("Nemáš teď aktivní kredit pro rezervaci. Domluv se s Kryštofem.", "You have no active credit for booking right now. Talk to Kryštof.")
+              : L("Zatím tu pro tebe není otevřená žádná služba. Domluv se s Kryštofem.", "No service is open for you yet. Talk to Kryštof.")}
           </p>
         </div>
       )}
@@ -14658,8 +14589,8 @@ function BkcSloty({ serviceId, locationId, vybrany, onPick, excludeBooking }) {
     return (
       <div>
         <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, lineHeight: 1.6 }}>
-          {L("V nejbližších třech týdnech není volný čas. Zkus se podívat dál, nebo napiš Tanmayovi.",
-             "There is no free time in the next three weeks. Look further ahead, or message Tanmay.")}
+          {L("V nejbližších třech týdnech není volný čas. Zkus se podívat dál, nebo napiš Kryštofovi.",
+             "There is no free time in the next three weeks. Look further ahead, or message Kryštof.")}
         </p>
         <button onClick={() => setFrom(BK.shiftDateISO(from, 21))} style={bkcBtn(t)}>{L("Načíst další dny", "Load more days")}</button>
       </div>
@@ -14853,16 +14784,15 @@ function BkcKniha() {
 // kvůli kterým tenhle dům stojí, a nikdo je nemá vypínat — držel je dřív
 // „výběr modulů", a kdo si při uvítání odklikl málo, přišel o rezervace.
 //
-// Vybírá se jen soukromé psaní a Memento mori. Všechno je ve výchozím stavu
+// Vybírá se soukromé psaní a Spolu. Všechno je ve výchozím stavu
 // vypnuté: nikdo nemá být postaven před prázdný deník, který si nevyžádal.
 const ALWAYS_ROOMS = CLIENT_ALWAYS.map((k) => ({
   key: k, cz: ROOM_COPY[k].cz, en: ROOM_COPY[k].en,
 }));
 const MODULES = [
   { key: "spolu", icon: <TogetherIcon size={20}/>, label: "Together", lcs: "Spolu", dcs: "Soukromý cyklus a společné plány. Sdílení určuješ ty.", den: "Private cycle tracking and shared plans. You choose what to share." },
-  { key: "denik",    icon: "✎",  label: "Journal",      lcs: "Deník",         dcs: "Vlastní zápisy. Tany je nikdy nevidí.",        den: "Your own entries. Tanmay never sees them." },
-  { key: "zapisnik", icon: "📓", label: "Notebook",     lcs: "Zápisník",      dcs: "Poznámky, texty, myšlenky. Jen tvoje.",        den: "Notes, texts, thoughts. Yours only." },
-  { key: "memento",  icon: "☾",  label: "Memento mori", lcs: "Memento mori",  dcs: "Připomínka pomíjivosti. Bez upozornění, dokud si je nezapneš.", den: "A reminder of impermanence. No notifications until you ask for them." },
+  { key: "denik",    icon: <TmIcDenik size={20}/>,  label: "Journal",      lcs: "Deník",         dcs: "Vlastní zápisy. Kryštof je nikdy nevidí.",        den: "Your own entries. Kryštof never sees them." },
+  { key: "zapisnik", icon: <TmIcZapisnik size={20}/>, label: "Notebook",     lcs: "Zápisník",      dcs: "Poznámky, texty, myšlenky. Jen tvoje.",        den: "Notes, texts, thoughts. Yours only." },
 ];
 const MOD_KEYS = MODULES.map((m) => m.key);
 
@@ -14977,7 +14907,8 @@ function InviteGate() {
 
 /** Soukromé místnosti a vědomé sdílení — první spuštění i pozdější správa.
  *  Dům samotný se nevybírá: Praxe, Trénink, Termíny, Kompas a Prameny tu jsou
- *  vždycky. Vybírá se jen soukromé psaní, Memento mori a to, co uvidí Tany.
+ *  vždycky. Při uvítání se vybírají vlastní místnosti; později tento panel
+ *  spravuje jen souhlasy se sdílením s trenérem.
  *  Motiv se bere z tokenů, ne z pevných barev — jinak by uvítání svítilo
  *  tmavě i v Linen a bylo by to první, co člověk v domě uvidí jinak. */
 function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled, onConfirm, onClose }) {
@@ -15001,9 +14932,9 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
   );
   const toggle = (key) => setSel((s) => (s.indexOf(key) !== -1 ? s.filter((k) => k !== key) : [...s, key]));
   const ordered = MODULES.map((m) => m.key).filter((k) => sel.indexOf(k) !== -1);
-  return (
-    <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 300, background: t.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflowY: "auto" }}>
-      <div style={{ width: "100%", maxWidth: 620, background: t.bg, border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: t.shadowSheet, padding: "clamp(28px, 5vw, 48px)", textAlign: "center" }}>
+  const content = (
+      <div style={{ width: "100%", minWidth: 0, boxSizing: "border-box", textAlign: "center" }}>
+        {firstRun && <>
         <div style={{ fontFamily: FONT_LOGO, fontWeight: 300, fontSize: 40, color: t.heading, letterSpacing: "0.04em" }}>
           t<span style={{ position: "relative" }}>a<Bindu size={5} style={{ position: "absolute", top: 5, left: 4 }} /></span>nmay
         </div>
@@ -15035,13 +14966,13 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={L("jméno", "name")}
-            style={{ width: "100%", boxSizing: "border-box", background: t.sheet, border: `1px solid ${t.border}`, borderRadius: 10, padding: "12px 16px", color: t.text, fontFamily: FONT_BODY, fontSize: 15, outline: "none" }}
+            style={{ width: "100%", boxSizing: "border-box", background: t.sheet, border: `1px solid ${t.border}`, borderRadius: 10, padding: "12px 16px", color: t.text, fontFamily: FONT_BODY, fontSize: 16, outline: "none" }}
           />
         </div>
         <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 10.5, color: t.sage, marginBottom: 8, textAlign: "left" }}>
           {L("Soukromé místnosti", "Private rooms")}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10, textAlign: "left" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 10, textAlign: "left" }}>
           {MODULES.map((m) => {
             const on = sel.indexOf(m.key) !== -1;
             return (
@@ -15056,13 +14987,14 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
             );
           })}
         </div>
-        <div style={{ textAlign: "left", marginTop: 24 }}>
-          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 10.5, color: t.sage, marginBottom: 4 }}>
-            {L("Vědomé sdílení s Tanym", "Conscious sharing with Tanmay")}
-          </div>
+        </>}
+        <div style={{ textAlign: "left", marginTop: firstRun ? 24 : 0 }}>
+          {firstRun && <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 10.5, color: t.sage, marginBottom: 4 }}>
+            {L("Sdílení s trenérem", "Sharing with your coach")}
+          </div>}
           <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginBottom: 12 }}>
-            {L("Tany uvidí jen to, co tady zapneš — přesný rozsah je popsaný u každého přepínače. Vypnuto = nevidí nic a dosavadní souhrn se zneplatní. Kdykoli to změníš (Sdílení v levém sloupci).",
-               "Tanmay sees only what you turn on here — the exact scope sits next to each switch. Off = he sees nothing and the previous summary is voided. Change it any time (Sharing in the left column).")}
+            {L("Trenér uvidí jen to, co tady zapneš. Rozsah je popsaný u každé volby. Vypnutím se dosavadní souhrn zneplatní. Změny potvrď tlačítkem Uložit.",
+               "Your coach sees only what you enable here. Each option explains its scope. Turning sharing off invalidates the previous summary. Confirm changes with Save.")}
           </div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 8 }}>
             <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: t.accent, flexShrink: 0, marginTop: 6 }} />
@@ -15130,12 +15062,16 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
             </button>
           )}
         </div>
-        <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, marginTop: 26 }}>
+        {firstRun && <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, marginTop: 26 }}>
           Trust the body. Hold the practice. Listen to the wild.
-        </div>
+        </div>}
       </div>
-    </div>
   );
+  return firstRun ? createPortal(
+    <div role="dialog" aria-modal="true" aria-label={L("Vítej ve svém prostoru", "Welcome to your space")} style={{position:"fixed",inset:0,zIndex:300,background:t.overlay,display:"flex",alignItems:"center",justifyContent:"center",padding:"max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom))",boxSizing:"border-box"}}>
+      <div style={{width:"100%",maxWidth:620,maxHeight:"100%",overflowY:"auto",overscrollBehavior:"contain",boxSizing:"border-box",background:t.bg,border:`1px solid ${t.border}`,borderRadius:14,boxShadow:t.shadowSheet,padding:"clamp(20px, 5vw, 40px)"}}>{content}</div>
+    </div>, document.body
+  ) : <CenterSheet vrstva={90} title={L("Sdílení s trenérem", "Sharing with your coach")} onClose={onClose}>{content}</CenterSheet>;
 }
 
 
@@ -15405,7 +15341,7 @@ export default function App() {
   const setHabitDefs = (list) => persistColl((c) => ({ ...c, habitDefs: list }));
   const dayStatusLabels = () => coll.dayStatusLabels || {};
   const setDayStatusLabel = (key, label) => persistColl((c) => ({ ...c, dayStatusLabels: { ...(c.dayStatusLabels || {}), [key]: label } }));
-  const getDay = (date) => { const base = FLOW_BY[date] || { d: date, s: "", h: EMPTY_H }; const e = edits[date] || {}; const h = e.h || base.h || EMPTY_H; const sVal = e.s != null ? e.s : (base.s || ""); const actSlots = activeHabits().map((x) => x.slot); const c = actSlots.reduce((a, sl) => a + (h[sl] ? 1 : 0), 0); return { d: date, h, s: sVal, c, p: Math.round((c / Math.max(1, actSlots.length)) * 100), sched: e.sched || {}, note: e.note || "", plan: e.plan || {}, tasks: e.tasks || [], wb: e.wb || null }; };
+  const getDay = (date) => { const base = FLOW_BY[date] || { d: date, s: "", h: EMPTY_H }; const e = edits[date] || {}; const h = e.h || base.h || EMPTY_H; const sVal = e.s != null ? e.s : (base.s || ""); const actSlots = activeHabits().map((x) => x.slot); const c = actSlots.reduce((a, sl) => a + (h[sl] === 1 ? 1 : 0), 0); const r = actSlots.reduce((a, sl) => a + (h[sl] === 2 ? 1 : 0), 0); const n = Math.max(0, actSlots.length - r); return { d: date, h, s: sVal, c, r, n, p: Math.round((c / Math.max(1, n)) * 100), sched: e.sched || {}, note: e.note || "", plan: e.plan || {}, tasks: e.tasks || [], wb: e.wb || null }; };
   const has = (date) => !!(FLOW_BY[date] || edits[date]);
   // Kam se má otevřít, když se sem přišlo odjinud (z hledání, z dnešního cíle).
   const [openTarget, setOpenTarget] = useState(null); // { kind: "goal"|"area", id }
@@ -15923,7 +15859,7 @@ export default function App() {
     return ()=>{dead=true;window.removeEventListener("online",pull);window.removeEventListener("tm-plan-refresh",pull);document.removeEventListener("visibilitychange",visible);};
   },[ownerId,stateHydrated,member,!!conflict]);
 
-  // ---- cíle od Tanmaye ------------------------------------------------------
+  // ---- cíle od Kryštofa ------------------------------------------------------
   // Týž kanál jako plán: leží mimo klientův stavový dokument, klient je nikdy
   // nepřepisuje a jeho vlastní postup k nim žije zvlášť v `coll.goalProgress`.
   // Server posílá cíl už očištěný — trenérova poznámka k němu se sem nikdy
@@ -15953,7 +15889,7 @@ export default function App() {
     return () => { dead = true; window.removeEventListener("online", onOnline); document.removeEventListener("visibilitychange", onVisible); };
   }, [ownerId,stateHydrated,member,!!conflict]);
 
-  // ---- prameny od Tanmaye ---------------------------------------------------
+  // ---- prameny od Kryštofa ---------------------------------------------------
   // Kanonický obsah drží on, klientova poznámka žije zvlášť a nikam neodchází.
   // Když pramen přestane sdílet, zmizí ze seznamu — poznámka zůstane.
   React.useEffect(() => {
@@ -16013,6 +15949,12 @@ export default function App() {
   }, []);
   const addEntry = (kind, entry) => persistColl((c) => ({ ...c, [kind]: [entry, ...(c[kind] || [])] }));
   const setFinCfg = (patch) => persistColl((c) => ({ ...c, finCfg: { ...(c.finCfg || {}), ...patch } }));
+  const calCfg = () => personalCalendar.config(coll.cal || {});
+  const setCalCfg = patch => { const owner=pomoAccountScope(clientAccount.getSnapshot(),ownerLoad()); return persistColl(prev => owner && owner===pomoAccountScope(clientAccount.getSnapshot(),ownerLoad()) ? ({...prev,cal:personalCalendar.config({...prev.cal,...patch})}) : prev); };
+  const updateCalendarDays = change => new Promise(resolve => setEdits(prev => { const next=change(prev); if(next!==prev){_editsRef.current=next;saveEdits(next);} queueMicrotask(()=>resolve(next!==prev)); return next; }));
+  const getCalendarDay = date => ({...getDay(date),...(_editsRef.current[date] || {})});
+  const setCalState = patch => { const owner=pomoAccountScope(clientAccount.getSnapshot(),ownerLoad()); return persistColl(prev => owner && owner===pomoAccountScope(clientAccount.getSnapshot(),ownerLoad()) ? ({...prev,calShadow:patch.shadow || {},calTomb:patch.tomb || {}}) : prev); };
+  const setCalendarAllDay = (change) => persistColl(prev => ({...prev, calendarAllDay: change(prev.calendarAllDay || [])}));
   const setMemento = (patch) => persistColl((c) => ({ ...c, memento: { ...(c.memento || {}), ...patch } }));
   const setMandala = (patch) => persistColl((c) => ({ ...c, mandala: { ...(c.mandala || {}), ...patch } }));
   const malaList = () => coll.mala || [];
@@ -16043,7 +15985,7 @@ export default function App() {
   // ---- Goal system: Notion-shaped (status · priority · target · achievability · archive) ----
   const goalPatchOf = (name) => (coll.goalEdits || {})[name] || {};
   // Zápis do cíle prochází jedinou tabulkou pravomocí (product/compass.js).
-  // U cíle od Tanmaye se z návrhu vezme jen postup — název, záměr, termín ani
+  // U cíle od Kryštofa se z návrhu vezme jen postup — název, záměr, termín ani
   // trenérova poznámka se odsud přepsat nedají, a to ani přes API.
   const editGoal = (name, patch) => {
     const cg = coachGoalByName(name);
@@ -16133,8 +16075,8 @@ export default function App() {
     persistColl(next);
   };
   // ---- CÍLE · dvě třídy, jeden seznam --------------------------------------
-  // Cíl je buď klientův, nebo od Tanmaye. V rozhraní se jmenují Moje a
-  // Od Tanmaye a vypadají stejně; liší se jen tím, kdo jim smí měnit zadání.
+  // Cíl je buď klientův, nebo od Kryštofa. V rozhraní se jmenují Moje a
+  // Od Kryštofa a vypadají stejně; liší se jen tím, kdo jim smí měnit zadání.
   // Doručený dokument se sem přimíchává až tady, v adaptéru dat — kreslicí
   // vrstva je pro oba domy jedna a o rozdílu rolí neví nic než štítek.
   const coachGoalsDoc = () => (coll.coachGoals && Array.isArray(coll.coachGoals.goals)) ? coll.coachGoals : { v: 1, at: 0, goals: [] };
@@ -16152,7 +16094,7 @@ export default function App() {
   const allGoals = () => mergeGoals(vlastniGoals(), coachGoalsDoc(), goalProgress());
 
   // ---- PRAMENY · dva původy, jeden seznam ---------------------------------
-  // Sdílený pramen drží Tanmay. Klientova poznámka k němu žije zvlášť
+  // Sdílený pramen drží Kryštof. Klientova poznámka k němu žije zvlášť
   // v `coll.sourceNotes` a odsud nikdy neodchází — ani do `_shareOf`.
   const coachSourcesDoc = () => (coll.coachSources && Array.isArray(coll.coachSources.sources)) ? coll.coachSources : { v: 1, at: 0, sources: [] };
   const sourceNotes = () => coll.sourceNotes || {};
@@ -16169,7 +16111,7 @@ export default function App() {
     if (!Object.keys(cisty).length) return;
     persistColl((c) => ({ ...c, sourceNotes: { ...(c.sourceNotes || {}), [id]: { ...((c.sourceNotes || {})[id] || {}), ...cisty } } }));
   };
-  /** Prameny, které Tanmay odebral, ale klient si k nim něco napsal. */
+  /** Prameny, které Kryštof odebral, ale klient si k nim něco napsal. */
   const orphanSourceNotes = () => orphanedNotes(coachSourcesDoc(), sourceNotes());
   /** „Nechat si to" · z osiřelé poznámky vznikne vlastní pramen. */
   const keepOrphanNote = (id) => {
@@ -16192,7 +16134,7 @@ export default function App() {
     persistColl((c) => ({ ...c, content: [{ id: nid, title: kopie.name, author: kopie.author, type: kopie.type || "Article", progress: "Ready to start", text: kopie.note || "", carry: kopie.carry || "", forkedFrom: cs.id }, ...(c.content || [])] }));
     return nid;
   };
-  /** Cíl od Tanmaye podle jména, nebo null. Jméno je v obou třídách klíč. */
+  /** Cíl od Kryštofa podle jména, nebo null. Jméno je v obou třídách klíč. */
   const coachGoalByName = (name) => allGoals().find((g) => g.name === name && g.owner === GOAL_OWNER.COACH) || null;
   const orderGoals = (list) => {
     const ord = coll.goalOrder;
@@ -16233,7 +16175,7 @@ export default function App() {
   };
   // built-in goal can be trashed too via editGoal({ archive:true }) — but full trash requires removing from GOALS which is constant. Instead we mark it with goalEdits.trashed and hide from lists.
   const trashBuiltinGoal = (name) => {
-    // Cíl od Tanmaye klient nemaže — zmizí, až ho Tanmay odebere nebo pustí.
+    // Cíl od Kryštofa klient nemaže — zmizí, až ho Kryštof odebere nebo pustí.
     if (coachGoalByName(name)) return;
     const g = GOALS.find((x) => x.name === name);
     if (!g) return;
@@ -16317,15 +16259,11 @@ export default function App() {
     next = trashAdd(next, { tid: uid(), kind: "comment", data: { goalName: name, note: n }, label: `„${n.text.slice(0, 40)}…" · ${name}` });
     persistColl(next);
   };
-  const POMO_DEFAULTS = { focus: 25, short: 5, long: 15, every: 4, sound: true, bg: null };
   const pomoSettings = () => ({ ...POMO_DEFAULTS, ...(coll.pomoSet || {}) });
   const setPomoSettings = (patch) => persistColl((c) => ({ ...c, pomoSet: { ...(c.pomoSet || {}), ...patch } }));
   const pomoStats = () => coll.pomoStats || { total: 0, days: {} };
-  const addPomoTree = () => {
-    const st0 = pomoStats();
-    const d = todayISO();
-    persistColl((c) => { const s = c.pomoStats || {}; return { ...c, pomoStats: { total: (s.total || 0) + 1, days: { ...(s.days || {}), [d]: ((s.days || {})[d] || 0) + 1 } } }; });
-  };
+  const addPomoTree = () => addPomoBlocks([]);
+  const addPomoBlocks = list => persistColl(c => appendPomoBlocks(c, list, todayISO()));
   const nbTags = () => coll.nbTags || NB_DEFAULT_TAGS;
   const addNbTag = (name, color) => { if (nbTags().some(([n]) => n.toLowerCase() === name.toLowerCase())) return false; persistColl((c) => ({ ...c, nbTags: [...(c.nbTags || NB_DEFAULT_TAGS), [name, color || "default"]] })); return true; };
   const renameNbTag = (oldName, newName) => {
@@ -16428,9 +16366,12 @@ export default function App() {
     const imported = NOTEBOOK_FULL.map((n) => ({ id: uid() + Math.random().toString(36).slice(2, 5), date: "", title: n.n, tag: nbCanonTag((n.t || [])[0]), text: n.b || "" }));
     persistColl((c) => ({ ...c, nbImported: true, notebook: [...(c.notebook || []), ...imported] }));
   };
-  const importPractices = () => {
-    if (coll.practicesSeeded) return;
-    persistColl(c => ({ ...c, practicesSeeded: true }));
+  const importPractices = async () => {
+    if (coll.retiredPracticeNotesV1) return;
+    const owner = clientAccount.getSnapshot().owner;
+    const candidates = coll.practicesSeeded ? await retiredPracticeCandidates(coll.notebook) : [];
+    if (!owner || clientAccount.getSnapshot().owner !== owner) return;
+    persistColl(c => ({ ...archiveRetiredPracticeNotes(c, candidates), practicesSeeded: true }));
   };
   const removeEntries = (kind, ids) => {
     const idSet = new Set(ids);
@@ -16960,18 +16901,13 @@ export default function App() {
   // ---- ROLE A CAPABILITY · jedna vrstva, ne stovky podmínek ---------------
   // Praxe, Trénink, Termíny, Kompas a Prameny jsou vždycky doma — bez nich
   // nemá klientská aplikace smysl a nikdo je nemá vypínat. Volitelné jsou
-  // jen soukromé místnosti: Deník, Zápisník a Memento mori, a ty jsou
+  // jen soukromé místnosti: Deník, Zápisník a Spolu, a ty jsou
   // ve výchozím stavu vypnuté. Co která role smí, rozhoduje jediná tabulka
   // ve sdíleném jádru (src/shared/product/roles.js), ne podmínka v komponentě.
   //
   // Role je zamrazená v buildu. Klient ji nepřepíše ani localStorage, ani
   // adresou — a Main-only kód v tomhle balíku vůbec není.
   const TM_ROLE = ROLES.CLIENT;
-  /* MEMENTO MORI · vypnuté, dokud si ho člověk vědomě nezapne.
-     Zapnutí místnosti nezapíná žádné připomínky — ty mají vlastní souhlas,
-     a ten se tímhle nedotkne. */
-  const mementoZap = !!(coll.memento || {}).zapnuto;
-  const setMementoZap = (v) => setMemento({ zapnuto: !!v });
   // Uložená volba modulů z verze V1 se převede: vždy dostupné místnosti ze
   // seznamu zmizí (drží je CLIENT_ALWAYS), Hospodaření zmizí úplně, a nic,
   // co si člověk nezapnul, se nezapne.
@@ -16982,10 +16918,7 @@ export default function App() {
     guideConsidered.current = true;
     try { if (TM_GUIDE_AUTOSHOW && tmGuideVidel() < TM_GUIDE_VERZE) setGuideOpen(true); } catch {}
   }, [stateHydrated, member, accountStatus, !!enabledModules, !!conflict]);
-  const activeModules = [
-    ...(enabledModules || []),
-    ...(mementoZap ? ["memento"] : []),
-  ];
+  const activeModules = enabledModules || [];
   const caps = React.useMemo(
     () => deriveCapabilities({ role: TM_ROLE, member: member !== false, modules: activeModules, share: coll.share || {} }),
     [member, activeModules.join(","), JSON.stringify(coll.share || {})]
@@ -17001,7 +16934,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [member, stateHydrated, accountStatus]);
   React.useEffect(() => { setFindOpen(false); }, [ownerId, accountStatus]);
-  const navDefaults = {sidebar: ["praxe","trenink","terminy","kompas","prameny","denik","zapisnik","memento","spolu","kos"], dock: dockTabsFor(isEnabled)};
+  const navDefaults = {sidebar: ["praxe","trenink","terminy","denik","kompas","zapisnik","prameny","spolu","kos"], dock: dockTabsFor(isEnabled)};
   const navConfig = coll.ui?.navigation || {};
   const dockTabs = navigationRooms(navConfig, CLIENT_ROOMS, navDefaults, "dock").filter(isEnabled);
   const sideRooms = navigationRooms(navConfig, CLIENT_ROOMS, navDefaults, "sidebar").filter(isEnabled);
@@ -17010,16 +16943,16 @@ export default function App() {
       ready: stateHydrated && member === true && !conflict, owner: ownerId,
       changed: accountStatus === "changed" || ownerSwitched, interacted: navigationUsed.current,
       preferred: uiCfg().home, requested: startupRequest.current,
-      available: CLIENT_ROOMS.filter(room => isEnabled(room) && !roomPlacement(navConfig, room, navDefaults).hidden),
+      available: [...CLIENT_ROOMS.filter(room => isEnabled(room) && !roomPlacement(navConfig, room, navDefaults).hidden), "memento", "mandala"],
     });
     if (!choice) return;
     if (choice.room) setPage(choice.room);
     if (startupRequest.current) { const url = new URL(location.href); url.searchParams.delete("open"); history.replaceState({}, "", url); }
   }, [stateHydrated, member, ownerId, ownerSwitched, accountStatus, !!conflict, coll.ui, coll.uiCfg, activeModules.join(",")]);
-  React.useEffect(()=>{if(roomPlacement(navConfig,page,navDefaults).hidden){const next=sideRooms.find(k=>k!=="kos")||dockTabs[0]||"__navigation";setPage(next);}},[JSON.stringify(navConfig)]);
+  React.useEffect(()=>{if(CLIENT_ROOMS.includes(page)&&roomPlacement(navConfig,page,navDefaults).hidden){const next=sideRooms.find(k=>k!=="kos")||dockTabs[0]||"__navigation";setPage(next);}},[JSON.stringify(navConfig)]);
 
   const saveNavigation = navigation => persistColl(c=>({...c,ui:{...c.ui,navigation}}));
-  const enableNavigationRoom = key => persistColl(c=>({...c, modules:[...new Set([...(c.modules||[]),...(CLIENT_OPTIONAL.includes(key)?[key]:[])])], ...(key==="memento"?{memento:{...c.memento,zapnuto:true}}:{})}));
+  const enableNavigationRoom = key => persistColl(c=>({...c, modules:[...new Set([...(c.modules||[]),...(CLIENT_OPTIONAL.includes(key)?[key]:[])])]}));
   React.useEffect(() => {
     const el = tabScrollRef.current; if (!el) return;
     const TABS = dockTabs;
@@ -17052,9 +16985,9 @@ export default function App() {
   React.useEffect(() => {
     const owner = page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page;
     if (page!=="__navigation" && !isEnabled(owner)) setPage("praxe");
-  }, [enabledModules, mementoZap, page]);
+  }, [enabledModules, page]);
 
-  const store = { readScale, setReadScale, uiCfg, setUiCfg, recentIds, pushRecent, nbFolders, addNbFolder, renameNbFolder, removeNbFolder, moveNbFolder, setEntriesFolder, restoreEntries, persistColl, undo, redo, canUndo: () => histRef.current.past.length > 0, canRedo: () => histRef.current.future.length > 0, caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
+  const store = { readScale, setReadScale, uiCfg, setUiCfg, recentIds, pushRecent, nbFolders, addNbFolder, renameNbFolder, removeNbFolder, moveNbFolder, setEntriesFolder, restoreEntries, persistColl, undo, redo, canUndo: () => histRef.current.past.length > 0, canRedo: () => histRef.current.future.length > 0, caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, addPomoBlocks, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, calCfg, setCalCfg, getCalendarDay, updateCalendarDays, setCalState, setCalendarAllDay, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
     tvSessions, tvSessionOf, tvPutSession, tvEditSession, tvDropSession, tvPrefs, tvSetPrefs,
     tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, syncPending,
     tmCfg, setTmCfg, tmSpecOf, setTmSpec,
@@ -17096,7 +17029,8 @@ export default function App() {
       case "denik": return <PageJournal />;
       case "terminy": return <PageTerminy />;
       case "kos": return <PageTrash />;
-      case "memento": return mementoZap ? <PageMemento go={go} /> : <PageHabit go={go} />;
+      case "memento": return <PageMemento go={go} />;
+      case "mandala": return <PageMandala go={go} />;
       // Klienti, Hospodaření, Tvorba obsahu a osobní Mandala nejsou skryté
       // místnosti — v klientském sestavení neexistují. Kdyby se sem stav
       // dostal starým odkazem, otevře se práh domu.
@@ -17108,6 +17042,8 @@ export default function App() {
     <ThemeCtx.Provider value={{ t, tags }}>
       <StoreCtx.Provider value={store}><GuideNavigationProvider request={guideRequest}>
         <OfflineBadge />
+        {stateHydrated && pomoAccountScope({ status: accountStatus, owner: ownerId, member }, ownerLoad()) && <TmPomoFronta key={ownerId} />}
+        {stateHydrated && pomoAccountScope({ status: accountStatus, owner: ownerId, member }, ownerLoad()) && <CalAuto key={"calendar:"+ownerId} />}
       <div onTouchStart={rootTouchStart} onTouchMove={rootTouchMove} style={{ minHeight: "100vh", background: t.bg, color: t.text, display: "flex", position: "relative" }}>
         <style>{`
           /* Řezy podle typografické specifikace V2: Cormorant 300/400/500 (+ kurzíva),
@@ -17328,23 +17264,14 @@ export default function App() {
           @media (prefers-reduced-motion: reduce) { .tm-cta, .tm-cta:hover { transform: none; } }
           @media (prefers-reduced-motion: reduce) { .tm-page { animation: none; } }
           .tm-topbar { position: sticky; top: 0; z-index: 40; background: ${hexA(t.bg, 0.82)}; backdrop-filter: blur(14px) saturate(1.1); -webkit-backdrop-filter: blur(14px) saturate(1.1); }
-          .tm-sidebar { transition: margin-left .25s ease; }
-          .tm-sidebar.collapsed { margin-left: -269px; }
+          .tm-sidebar { margin: 12px 0 12px 12px; transition: margin-left .25s ease, box-shadow .25s ease; }
+          .tm-sidebar.collapsed { margin-left: -281px; }
           ${shellTabletCss()}
           ${shellMobileCss(t)}
-          /* ---- Co je v klientském domě jinak -----------------------------
-             Řádek typů v Pramenech se na telefonu roluje vodorovně, aby se
-             nezalamoval do tří pater. A list (CenterSheet) je tu zatím
-             starší generace než v osobní aplikaci: sedá zespodu, ne přes
-             celý displej. Až se list přenese do sdíleného jádra, tahle
-             výjimka zmizí — do té doby přebíjí sdílené pravidlo, protože
-             jinak by se v klientské aplikaci nekreslil vůbec. */
           @media (max-width: 820px) {
             .tm-typerow { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; }
             .tm-typerow button { white-space: nowrap; flex-shrink: 0; }
             .tm-typerow::-webkit-scrollbar { display: none; }
-            .tm-cs-veil { padding: 0 !important; align-items: flex-end !important; }
-            .tm-centersheet { width: 100% !important; max-height: calc(100 * var(--tm-dvh) - 40px - env(safe-area-inset-top)) !important; border-radius: 18px 18px 0 0 !important; border-left: none !important; border-right: none !important; border-bottom: none !important; padding-bottom: calc(26px + env(safe-area-inset-bottom)) !important; }
           }
                   /* HOVER · celá choreografie kurzoru žije jen tam, kde kurzor je.
              Na dotykových zařízeních neexistuje — žádné lepivé stavy, žádný jank. */
@@ -17452,42 +17379,73 @@ export default function App() {
         )}
 
         <TmGround />
-        <aside className={`tm-sidebar${menuOpen ? " open" : ""}${sideHidden ? " collapsed" : ""}`} style={{ width: 268, flexShrink: 0, background: t.bgSidebar, borderRight: `1px solid ${t.navBorder}`, padding: "26px 16px", overflowY: "auto", position: "relative", zIndex: 1 }}>
+        <aside className={`tm-sidebar${menuOpen ? " open" : ""}${sideHidden ? " collapsed" : ""}`} style={{ width: 268, flexShrink: 0, background: t.bgSidebar, border: `1px solid ${t.navHairline}`, borderRadius: 22, boxShadow: t.shadowLift, height: "calc(100 * var(--tm-vh) - 24px)", alignSelf: "flex-start", position: "sticky", top: 12, padding: "22px 14px", overflowY: "auto", overscrollBehavior: "contain", zIndex: 1 }}>
           <SidebarLines />
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <button className="tm-logo" onClick={() => go("praxe")} title={L("Zpět do dneška", "Back to today")} aria-label={L("Zpět do dneška", "Back to today")} style={{ display: "block", flex: "1 1 auto", minWidth: 0, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "0 8px 22px" }}>
-            <span style={{ fontFamily: FONT_LOGO, fontWeight: 300, fontSize: 30, color: t.heading, letterSpacing: "0.04em" }}>
+            <button className="tm-logo" onClick={() => go("mandala")} title={L("Osobní mandala · Aspekty Já", "Personal mandala · Aspects of the self")} style={{ display: "block", flex: "1 1 auto", minWidth: 0, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "0 8px 22px" }}>
+            <span style={{ fontFamily: FONT_LOGO, fontWeight: 300, fontSize: 28, color: t.heading, letterSpacing: "0.04em" }}>
               t<span style={{ position: "relative" }}>a<Bindu size={5} style={{ position: "absolute", top: 4, left: 3.5 }} /></span>nmay
             </span>
           </button>
             <button className="tm-gear" onClick={() => { setMenuOpen(false); setAppearanceOpen(false); setSetsOpen(true); }} title={L("Nastavení", "Settings")} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, marginTop: -12, background: "transparent", border: "none", borderRadius: 10, color: t.navIcon, cursor: "pointer", flexShrink: 0 }}><TmIcNastaveni size={19} /></button>
           </div>
-          <button className="tm-sidebar-search tm-nav-item" onClick={() => { setMenuOpen(false); setFindOpen(true); }} aria-label={L("Hledat v aplikaci", "Search the app")}
-            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 44, marginBottom: 16, padding: "10px 12px", borderRadius: 9, border: `1px solid ${t.navHairline}`, background: "transparent", color: t.navText, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 14 }}>
-            <TmIcLupa size={17} /><span style={{flex:1,textAlign:"left"}}>{L("Hledat", "Search")}</span><span style={{color:t.navMuted,fontSize:11}}>⌘ / Ctrl K</span>
-          </button>
+          {/* jedno pole pro celý dům · na počítači ⌘K, na telefonu tenhle řádek */}
+          {/* Jeden rámeček, dvoje dveře: vlevo „najdi mi to“, vpravo „udělej
+              mi to“. Tlačítko v tlačítku nejde (neplatné HTML), takže rámeček
+              nese obal a uvnitř sedí dvě samostatná tlačítka oddělená vlasovou
+              linkou. Panel tím nepřibude ani o řádek — na telefonu se pořád
+              vejde celý a nemusí rolovat. */}
+          <div className="tm-sidebar-search" style={{ display: "flex", alignItems: "stretch", minHeight: 44, marginBottom: 16, borderRadius: 9, border: `1px solid ${t.navHairline}`, overflow: "hidden" }}>
+            <button className="tm-nav-item" onClick={() => { setMenuOpen(false); setFindOpen(true); }}
+              style={{ flex: 1, minWidth: 0, textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", border: "none", borderRadius: 0, background: "transparent", cursor: "pointer", color: t.navTextSec, fontFamily: FONT_BODY, fontSize: 13 }}>
+              <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}><TmIcLupa size={15} /></span>
+              {L("Hledat všude", "Search everywhere")}
+              <span className="tm-mhide" style={{ marginLeft: "auto", fontFamily: FONT_TAG, letterSpacing: "0.1em", fontSize: 12, color: t.navMuted }}>⌘K</span>
+            </button>
+
+          </div>
           {[...NAV_GROUPS_ALL,NAV_EXTRAS].map((g) => {
             const items = g.items.filter((f) => isEnabled(f.key) && sideRooms.includes(f.key));
             if (!items.length) return null;
             return (
-              <div key={g.cz} style={{ marginBottom: 16 }}>
-                <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 10.5, color: t.navKicker, padding: "0 8px 6px" }}>{L(g.cz, g.en)}</div>
-                {items.map((f) => renderNavItem(f))}
-              </div>
+            <div key={g.cz} style={{ marginBottom: 16 }}>
+              <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 12, color: t.navKicker, padding: "0 8px 6px" }}>{L(g.cz, g.en)}</div>
+              {items.map((f) => renderNavItem(f))}
+            </div>
             );
           })}
-          <div style={{ marginTop: 24, padding: "0 8px" }}>
-            <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12.5, color: t.navMuted, lineHeight: 1.6 }}>{L("Důvěřuj tělu. Drž svou praxi. Naslouchej divočině.", "Trust the body. Hold the practice. Listen to the wild.")}</div>
+          <div className="tm-sbmotto" style={{ marginTop: 24, padding: "0 8px" }}>
+            <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.navMuted, lineHeight: 1.6 }}>{L("Důvěřuj tělu. Drž svou praxi. Naslouchej divočině.", "Trust the body. Hold the practice. Listen to the wild.")}</div>
           </div>
-          <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.navHairline}` }}>
-            <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
-              <span style={{ fontSize: 15, width: 20, textAlign: "center", color: t.navAccent }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>{L("Místnosti", "Rooms")}
+          <div className="tm-sbdno" style={{ marginTop: 20, paddingTop: 12, borderTop: `1px solid ${t.navHairline}` }}>
+            {/* ZPĚT A ZNOVU · na počítači je Ctrl+Z, na telefonu nebylo nic.
+                Historie žije v refu, ale každý zápis projde přes setColl, takže
+                se panel překreslí a počty jsou při čtení už aktuální. */}
+            {/* Zpět a Znovu sedí v jedné řádce s Košem, u pravého okraje panelu.
+                Jsou to ikony, ne tlačítka s popiskem — vedle Koše by dvě široká
+                tlačítka nad ním vypadala jako druhá navigace. */}
+            <div className="tm-history" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ flex: 1, minWidth: 0 }}>{sideRooms.includes("kos") && renderNavItem(NAV_TRASH, true)}</span>
+              {[
+                { lbl: L("Zpět", "Undo"), on: undo, off: !histRef.current.past.length, d: "M9 5 4 10l5 5", a: "M4 10h9a5 5 0 0 1 0 10h-2" },
+                { lbl: L("Znovu", "Redo"), on: redo, off: !histRef.current.future.length, d: "M15 5l5 5-5 5", a: "M20 10h-9a5 5 0 0 0 0 10h2" },
+              ].map((r) => (
+                <button key={r.lbl} className={`tm-nav-item${r.on === redo ? " tm-redo" : " tm-undo"}`} onClick={r.on} disabled={r.off} title={r.lbl} aria-label={r.lbl}
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, flexShrink: 0, borderRadius: 9, border: "none", background: "transparent", cursor: r.off ? "default" : "pointer", opacity: r.off ? 0.3 : 1, color: t.navTextSec }}>
+                  <FamilyIcon id={r.on === redo ? "redo" : "undo"} size={17} style={{ color: t.navIcon }}/>
+                </button>
+              ))}
+              <span style={{ width: 4 }} />
+            </div>
+            {/* NASTAVENÍ. Na počítači k němu dosud nevedla ŽÁDNÁ cesta — ozubené
+                kolečko v hlavičce panelu je schované za mobilním dotazem, takže
+                se na širokém okně nikdy neukázalo. Tady sedí vedle Průvodce,
+                kam patří: obojí je o aplikaci, ne o obsahu. */}
+            <button className="tm-nav-item tm-mhide" onClick={() => { setAppearanceOpen(false); setSetsOpen(true); }} title={L("Nastavení aplikace", "App settings")} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, minHeight: 40, padding: "8px", borderRadius: 9, border: "none", background: "transparent", cursor: "pointer", color: t.navTextSec, fontFamily: FONT_BODY, fontSize: 13 }}>
+              <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}><TmIcNastaveni size={15} /></span>
+              {L("Nastavení", "Settings")}
             </button>
-            <button onClick={() => setPickerOpen(true)} className="tm-nav-item" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
-              <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}><TmIcSdileni size={15} /></span>{L("Sdílení", "Sharing")}
-            </button>
-            {sideRooms.includes("kos") && renderNavItem(NAV_TRASH, true)}
-            <button className="tm-nav-item tm-mhide" onClick={() => setGuideOpen(true)} title={L("Průvodce aplikací", "App guide")} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 14 }}>
+            <button className="tm-nav-item tm-mhide" onClick={() => setGuideOpen(true)} title={L("Průvodce aplikací", "App guide")} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: t.navMuted, fontFamily: FONT_BODY, fontSize: 13 }}>
               <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}><TmIcPruvodce size={15} /></span>
               {L("Průvodce", "Guide")}
             </button>
@@ -17498,13 +17456,13 @@ export default function App() {
 
         <main
           onTouchStart={(e) => { const p0 = e.touches[0]; let n = e.target, hs = false; while (n && n !== document.body) { if (n.scrollWidth - n.clientWidth > 8) { const o = getComputedStyle(n).overflowX; if (o === "auto" || o === "scroll") { hs = true; break; } } n = n.parentElement; } pswipeRef.current = { x: p0.clientX, y: p0.clientY, blocked: p0.clientX < 28 || hs }; }}
-          onTouchEnd={(e) => { const st0 = pswipeRef.current; pswipeRef.current = null; if (!st0 || st0.blocked || touchArmedRef.current) return; const p1 = e.changedTouches[0]; const dx = p1.clientX - st0.x, dy = Math.abs(p1.clientY - st0.y); if (Math.abs(dx) < 64 || Math.abs(dx) < dy * 1.4) return; const TABS = dockTabs; if (TABS.length < 2) return; const cur = TABS.indexOf(page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page); if (cur === -1) return; const nx = (cur + (dx < 0 ? 1 : -1) + TABS.length) % TABS.length; setSlideDir(dx < 0 ? "left" : "right"); setPage(TABS[nx]); if (typeof window !== "undefined") window.scrollTo(0, 0); }}
+          onTouchEnd={(e) => { const st0 = pswipeRef.current; pswipeRef.current = null; if (!st0 || st0.blocked || touchArmedRef.current || TM_GESTURE || tmListovaniSpi()) return; const p1 = e.changedTouches[0]; const dx = p1.clientX - st0.x, dy = Math.abs(p1.clientY - st0.y); if (Math.abs(dx) < 64 || Math.abs(dx) < dy * 1.4) return; const TABS = dockTabs; if (TABS.length < 2) return; const cur = TABS.indexOf(page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page); if (cur === -1) return; const nx = (cur + (dx < 0 ? 1 : -1) + TABS.length) % TABS.length; setSlideDir(dx < 0 ? "left" : "right"); setPage(TABS[nx]); if (typeof window !== "undefined") window.scrollTo(0, 0); }}
           style={{ flex: 1, minWidth: 0, position: "relative", zIndex: 1 }}>
           <div className="tm-topbar" style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderBottom: `1px solid ${t.borderSoft}` }}>
             <button className="tm-sidetoggle" onClick={toggleSide} title={sideHidden ? L("Zobrazit panel", "Show panel") : L("Schovat panel", "Hide panel")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.textMuted, cursor: "pointer", padding: "6px 10px", fontSize: 13, lineHeight: 1 }}>{sideHidden ? "»" : "«"}</button>
             <button className="tm-burger" onClick={() => setMenuOpen(true)} style={{ display: "none", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.text, cursor: "pointer", padding: "6px 10px", fontSize: 16 }}><FamilyIcon id="menu" size={16} label={L("Nabídka","Menu")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.textMuted, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(() => { const d = new Date(); return `${d.toLocaleDateString(LANG === "cs" ? "cs-CZ" : "en-GB", { weekday: "long" })} · ${d.getDate()}. ${d.getMonth() + 1}.`; })()}</div>
+              <div onClick={() => go("memento")} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go("memento"); } }} title="memento mori" aria-label="memento mori" className="tm-tap-c" style={{ display: "flex", alignItems: "center", minHeight: 30, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 12, color: t.textMuted, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(() => { const d = new Date(); return `${d.toLocaleDateString(LANG === "cs" ? "cs-CZ" : "en-GB", { weekday: "long" })} · ${d.getDate()}. ${d.getMonth() + 1}.`; })()}</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: 10.5, color: t.textMuted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>☾ {moonName(moonPhaseOf(todayISO()))}{(() => { const su = sunsetOf(todayISO()); return su ? ` · ${L("západ", "sunset")} ${su}` : ""; })()}</div>
             </div>
             <button
@@ -17521,7 +17479,7 @@ export default function App() {
               <span key={mode} className="tm-turn" style={{ display: "inline-flex", alignItems: "center" }}>{mode === "dark" ? <TmIcMesic size={13} /> : <TmIcSlunce size={13} />}</span>{L("Vzhled", "Appearance")}
             </button>
           </div>
-          <div key={page} className={"tm-page tm-reveal" + (slideDir ? " tm-slide-" + slideDir : "")} style={{ maxWidth: 1160, margin: "0 auto", padding: "44px clamp(28px, 4vw, 72px) 120px" }}>{render()}</div>
+          <div key={page} data-room={page} className={"tm-page tm-reveal" + (slideDir ? " tm-slide-" + slideDir : "")} style={{ maxWidth: 1160, margin: "0 auto", padding: "44px clamp(28px, calc(4 * var(--tm-vw)), 72px) 120px" }}>{render()}</div>
         </main>
 
         {/* MOBIL · spodní navigace: čtyři místnosti + mapa celého domu.
@@ -17554,8 +17512,7 @@ export default function App() {
           onClose={() => setFindOpen(false)} onPick={hit => { if (!isEnabled(hit.room)) return; setFindOpen(false); setOpenTarget({ kind: hit.kind, id: hit.id }); go(hit.room); }} />}
 
         {guideOpen && <AppGuide registerEscape={tmEscVrstva} t={t} lang={lang} role="client" currentRoom={setsOpen?"nastaveni":page}
-          availableRooms={[...CLIENT_ROOMS.filter(k=>isEnabled(k)&&!roomPlacement(navConfig,k,navDefaults).hidden),"nastaveni"]}
-          availableSteps={isEnabled("spolu")?undefined:APP_GUIDE_STEPS.filter(x=>x.id!=="nastaveni.calendar").map(x=>x.id)}
+          availableRooms={[...CLIENT_ROOMS.filter(k=>isEnabled(k)&&!roomPlacement(navConfig,k,navDefaults).hidden),"memento","mandala","nastaveni"]}
           contextBlocked={!stateHydrated||member!==true||!enabledModules||!!conflict||menuOpen||pickerOpen||findOpen||!!confirmBox}
           onNavigate={(room,step)=>{setMenuOpen(false);if(room==="nastaveni"){setSetsOpen(true);setSettingsSection(({account:"account",rooms:"rooms",calendar:"calendar",version:"version"})[step.anchor.split(".")[1]]||"account");}else{setSetsOpen(false);go(room);}setGuideRequest({room,action:step.action,nonce:Date.now()});}}
           onClose={()=>{tmGuideOznac();setGuideOpen(false);setGuideRequest(null);}} /> }
@@ -17563,18 +17520,13 @@ export default function App() {
         <PersonalSettingsBridge onOpen={target=>{setPersonalTarget(target);setSettingsSection(({profile:"account",calendar:"calendar",sources:"version"})[target.section]||"account");setSetsOpen(true);}}/>
         {setsOpen && (
           <CenterSheet title={L("Nastavení", "Settings")} onClose={() => setSetsOpen(false)}>
-            <button onClick={() => { if (!mementoZap) return; setSetsOpen(false); go("memento"); }} title={mementoZap ? "memento mori" : undefined} style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: mementoZap ? "pointer" : "default", padding: 0, fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginBottom: 16 }}>
+            <button onClick={() => { setSetsOpen(false); go("memento"); }} title="memento mori" style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: 0, fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, marginBottom: 16 }}>
               {fmtCZ(todayISO())} · ☾ {moonName(moonPhaseOf(todayISO()))}{(() => { const su = sunsetOf(todayISO()); return su ? ` · ${L("západ", "sunset")} ${su}` : ""; })()}
             </button>
             {[
               { ic: editMode ? "✎" : "●", lbl: editMode ? L("Editace zapnuta — klepni pro zamčení", "Editing on — tap to lock") : L("Zamčeno — klepni pro editaci", "Locked — tap to edit"), act: editMode, on: () => setEditMode((e) => !e) },
               { ic: lang === "cs" ? "CZ" : "EN", lbl: L("Jazyk · čeština / angličtina", "Language · Czech / English"), on: toggleLang },
-              { icn: TmIcSdileni, lbl: L("Místnosti a sdílení", "Rooms and sharing"), on: () => { setSetsOpen(false); setPickerOpen(true); } },
-              { ic: mementoZap ? "◉" : "○", act: mementoZap,
-                lbl: mementoZap
-                  ? L("Memento mori · zapnuto, klepni pro vypnutí", "Memento mori · on, tap to turn off")
-                  : L("Memento mori · volitelný prostor, klepni pro zapnutí", "Memento mori · an optional space, tap to turn on"),
-                on: () => setMementoZap(!mementoZap) },
+              { icn: TmIcSdileni, lbl: L("Sdílení s trenérem", "Sharing with your coach"), on: () => setPickerOpen(true) },
               { ic: "?", lbl: L("Průvodce aplikací", "App guide"), on: () => { setSetsOpen(false); setGuideOpen(true); } },
             ].map((r, i) => (
               <button key={i} className="tm-nav-item" onClick={r.on} style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: r.act ? t.activeNav : "transparent", border: `1px solid ${r.act ? t.accent : "transparent"}`, borderRadius: 10, padding: "13px 12px", cursor: "pointer", color: r.act ? t.accent : t.text, fontFamily: FONT_BODY, fontSize: 14.5 }}>
@@ -17584,7 +17536,7 @@ export default function App() {
             ))}
 
             <SetSection title={L("Stránky a navigace","Pages and navigation")} id="rooms" open={settingsSection==="rooms"} onOpen={setSettingsSection}>
-              <NavigationSettings t={t} lang={lang} config={navConfig} keys={CLIENT_ROOMS} defaults={navDefaults} onChange={saveNavigation} enabled={isEnabled} onEnable={enableNavigationRoom} onOpen={k=>{setSetsOpen(false);go(k);}}/>
+              <NavigationSettings t={t} lang={lang} config={navConfig} icons={NAV_ICONS} keys={CLIENT_ROOMS} defaults={navDefaults} onChange={saveNavigation} enabled={isEnabled} onEnable={enableNavigationRoom} onOpen={k=>{setSetsOpen(false);go(k);}}/>
             </SetSection>
             <VzhledSekce
               open={appearanceOpen} onToggle={() => setAppearanceOpen(v => !v)}
@@ -17607,9 +17559,7 @@ export default function App() {
             <SetSection title={L("Účet","Account")} id="account" open={settingsSection==="account"} onOpen={setSettingsSection}>
               <PersonalSettingsSections t={t} lang={lang} section="profile" togetherEnabled={isEnabled("spolu")}/>
             </SetSection>
-            {isEnabled("spolu")&&<SetSection title={L("Kalendář","Calendar")} id="calendar" open={settingsSection==="calendar"} onOpen={setSettingsSection}>
-              <PersonalSettingsSections t={t} lang={lang} section="calendar" togetherEnabled/>
-            </SetSection>}
+            <CalSettings settingsId="calendar" open={settingsSection==="calendar"} onOpen={setSettingsSection} togetherEnabled={isEnabled("spolu")}/>
             {/* VERZE A SOUKROMÍ · co v telefonu opravdu běží a kam se data
                 ukládají. Bez tohohle se ladí naslepo a slib o soukromí visí
                 jen na textu průvodce. */}
@@ -17642,8 +17592,8 @@ export default function App() {
                 </div>
               )}
               <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginTop: 10 }}>
-                {L("Tvoje data leží ve tvém vlastním prostoru. Tany vidí jen to, co si zapneš ve Sdílení — Deník, Zápisník ani Ohlédnutí mezi to nepatří a nikdy patřit nebudou.",
-                   "Your data lives in your own space. Tanmay sees only what you switch on in Sharing — Journal, Notebook and the evening review are not part of it and never will be.")}
+                {L("Tvoje data leží ve tvém vlastním prostoru. Kryštof vidí jen to, co si zapneš ve Sdílení — Deník, Zápisník ani Ohlédnutí mezi to nepatří a nikdy patřit nebudou.",
+                   "Your data lives in your own space. Kryštof sees only what you switch on in Sharing — Journal, Notebook and the evening review are not part of it and never will be.")}
               </div>
             </SetSection>
           </CenterSheet>

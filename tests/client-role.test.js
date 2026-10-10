@@ -11,7 +11,7 @@ import worker from "../worker/index.js";
 import { makeEnv, req } from "./helpers/env.js";
 import {
   ROLES, deriveCapabilities, roomVisible, migrateClientModules,
-  CLIENT_ALWAYS, CLIENT_OPTIONAL, CLIENT_NEVER,
+  CLIENT_ALWAYS, CLIENT_OPTIONAL, CLIENT_NEVER, CLIENT_HIDDEN,
 } from "../src/shared/product/roles.js";
 import { navGroupsFor, dockTabsFor, ROOM_COPY, COPY } from "../src/shared/product/rooms.js";
 import { validateShareSnapshot, coachClientRow, habitSummary, goalSummary } from "../src/shared/product/visibility.js";
@@ -49,6 +49,17 @@ test("soukromé místnosti jsou ve výchozím stavu zavřené", () => {
   for (const k of CLIENT_OPTIONAL) {
     assert.equal(roomVisible(caps, k), false, k + " se nesmí otevřít bez volby člověka");
   }
+});
+
+test("Memento a Mandala jsou soukromé skryté vstupy bez přepínače", () => {
+  const caps = deriveCapabilities({ role: ROLES.CLIENT, member: true, modules: [] });
+  for (const room of CLIENT_HIDDEN) {
+    assert.equal(roomVisible(caps, room), true);
+    assert.equal(CLIENT_OPTIONAL.includes(room), false);
+    assert.ok(!navGroupsFor(k => roomVisible(caps, k)).some(g => g.rooms.includes(room)));
+    assert.ok(!dockTabsFor(k => roomVisible(caps, k)).includes(room));
+  }
+  assert.deepEqual(migrateClientModules(["denik", "memento"]), ["denik"]);
 });
 
 test("místnosti trenéra pro klienta neexistují ani jako capability", () => {
@@ -103,13 +114,15 @@ test("zapnuté soukromé místnosti přibudou za kritické, ne před ně", () =>
   const caps = deriveCapabilities({ role: ROLES.CLIENT, member: true, modules: ["denik", "zapisnik", "memento"], share: {} });
   const tabs = dockTabsFor((k) => roomVisible(caps, k));
   assert.deepEqual(tabs.slice(0, 5), ["praxe", "trenink", "terminy", "kompas", "prameny"]);
-  assert.deepEqual(tabs.slice(5), ["denik", "zapisnik", "memento"]);
+  assert.deepEqual(tabs.slice(5), ["denik", "zapisnik"]);
 });
 
-test("mapa domu je Den, Směr, Paměť a Volitelně, bez Světa", () => {
+test("mapa domu odpovídá Main a přidává Svět jen se zapnutým Spolu", () => {
   const caps = deriveCapabilities({ role: ROLES.CLIENT, member: true, modules: ["denik", "zapisnik", "memento"], share: {} });
   const groups = navGroupsFor((k) => roomVisible(caps, k)).map((g) => g.key);
-  assert.deepEqual(groups, ["den", "smer", "pamet", "volitelne"]);
+  assert.deepEqual(groups, ["den", "smer", "pamet"]);
+  const withTogether = deriveCapabilities({ role: ROLES.CLIENT, member: true, modules: ["spolu"] });
+  assert.deepEqual(navGroupsFor(k => roomVisible(withTogether, k)).map(g => g.key), ["den", "smer", "pamet", "svet"]);
 });
 
 test("prázdná skupina se nekreslí", () => {
@@ -359,7 +372,7 @@ test("klientská aplikace nemá obrazovku, kterou se cíle zadávají", () => {
   assert.ok(!/\/api\/klienti/.test(app), "trenérská cesta do klienta nepatří");
 });
 
-test("v rozhraní se to jmenuje Moje a Od Tanmaye, ne zámek", () => {
+test("v rozhraní se to jmenuje Moje a Od Kryštofa, ne zámek", () => {
   const compass = readFileSync(new URL("../src/shared/ui/compass.jsx", import.meta.url), "utf8");
   const sources = readFileSync(new URL("../src/shared/ui/sources.jsx", import.meta.url), "utf8");
   const domain = readFileSync(new URL("../src/shared/product/compass.js", import.meta.url), "utf8");
@@ -369,9 +382,9 @@ test("v rozhraní se to jmenuje Moje a Od Tanmaye, ne zámek", () => {
       assert.ok(text.indexOf(slovo) === -1, jmeno + " nesmí říkat " + slovo);
     }
   }
-  assert.match(domain, /Od Tanmaye/, "cíl od trenéra má jméno");
+  assert.match(domain, /Od Kryštofa/, "cíl od trenéra má jméno");
   assert.match(domain, /"Moje"/, "vlastní cíl taky");
-  assert.match(dsrc, /Od Tanmaye/);
+  assert.match(dsrc, /Od Kryštofa/);
   assert.match(dsrc, /"Můj"/);
 });
 
