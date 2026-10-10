@@ -23,3 +23,8 @@ export const TRAINING_TIMER_NOTE = [
   "Časovač pouze měří čas. Průběh a výsledky si zaznamenej u konkrétního tréninku.",
   "The timer only measures time. Record your session and results in the workout itself.",
 ];
+
+export function trainingTimerSegmentCount(count) {
+  const unit = count === 1 ? "úsek" : count >= 2 && count <= 4 ? "úseky" : "úseků";
+  return [`${count} ${unit}`, `${count} segments`];
+}

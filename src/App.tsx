@@ -10,7 +10,7 @@ import { MorningSpells } from "./shared/ui/morningSpells.jsx";
 import { ANTI_DOOM_SPELLS } from "./shared/product/antiDoomSpells.js";
 import { readClientAttachmentBlob } from "./clientAttachments.js";
 import { createTrainingGuideUI } from "./shared/ui/trainingGuide.jsx";
-import { TRAINING_TIMER_MODES as TM_MODES, TRAINING_FLOWS as TM_FLOWS, TRAINING_TIMER_NOTE } from "./shared/product/trainingTimerCopy.js";
+import { TRAINING_TIMER_MODES as TM_MODES, TRAINING_FLOWS as TM_FLOWS, TRAINING_TIMER_NOTE, trainingTimerSegmentCount } from "./shared/product/trainingTimerCopy.js";
 import { ClientSearch } from "./ClientSearch.jsx";
 import { writerFolders, addWriterFolder, moveWriterFolder, removeWriterFolder, restoreWriterEntries } from "./writerRecords.js";
 import { createVoiceRecorder } from "./shared/product/voiceRecorder.js";
@@ -11217,7 +11217,7 @@ function TmHome({ onRun }) {
                 <TmIcon name="play" size={15} /> {L("Spustit", "Start")}
               </button>
               <span style={{ marginLeft: "auto", fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted }}>
-                {compiled.open ? L("bez konce", "no end") : tmFmtWords(compiled.planned) + " · " + compiled.count + " " + L("úseků", "segments")}
+                {compiled.open ? L("bez konce", "no end") : tmFmtWords(compiled.planned) + " · " + L(...trainingTimerSegmentCount(compiled.count))}
               </span>
             </div>
       </div>
@@ -14355,13 +14355,16 @@ function PageTerminy() {
   const [obnov, setObnov] = useState(0);
   useGuideAction("terminy",()=>{setRezervuji(false);setOtevreny(null);});
   const ctx = useBkc("/booking/context", [obnov]);
-  const moje = useBkc("/bookings", [obnov]);
+  // A member may have training access before a booking account is linked.
+  // Wait for that account context, including on retry, before reading its data.
+  const accountReady = !!ctx.data && !ctx.loading && !ctx.err && ctx.data.reason !== "NO_CLIENT";
+  const moje = useBkc("/bookings", [ctx.data], { skip: !accountReady });
   const znovu = () => setObnov((x) => x + 1);
 
   const c = ctx.data || {};
-  const kredity = c.credits || { available: 0, reserved: 0 };
-  const pristi = (moje.data && moje.data.upcoming) || [];
-  const minule = (moje.data && moje.data.past) || [];
+  const kredity = accountReady ? c.credits : null;
+  const pristi = (accountReady && moje.data && moje.data.upcoming) || [];
+  const minule = (accountReady && moje.data && moje.data.past) || [];
 
   return (
     <>
@@ -14369,7 +14372,7 @@ function PageTerminy() {
 
       {ctx.loading && !ctx.data && <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, fontStyle: "italic" }}>{L("Načítám…", "Loading…")}</p>}
       {ctx.err && <BkcHlaska e={ctx.err} onRetry={znovu} />}
-      {moje.err && <BkcHlaska e={moje.err} onRetry={znovu} />}
+      {accountReady && moje.err && <BkcHlaska e={moje.err} onRetry={znovu} />}
 
       {/* Další setkání je to hlavní, co sem člověk chodí zjistit. */}
       {pristi.length > 0 ? (
@@ -14377,12 +14380,12 @@ function PageTerminy() {
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage, marginBottom: 8 }}>{L("Další setkání", "Next session")}</div>
           <BkcTermin b={pristi[0]} onOpen={setOtevreny} />
         </div>
-      ) : ctx.data && moje.data && !moje.err ? (
+      ) : accountReady && moje.data && !moje.err ? (
         <Prazdno mark={<EmptyRoomArt room="terminy" color={t.sand} />} fakt={L("Zatím nemáš domluvený žádný termín.", "You have no session arranged yet.")} />
       ) : null}
 
       {/* Zůstatek · číslo, ne graf. A hned pod ním, co se s ním dá udělat. */}
-      {ctx.data && (
+      {kredity && (
         <div style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "14px 16px", marginBottom: 22 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
             <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage }}>{L("Zůstatek", "Balance")}</span>
@@ -14399,25 +14402,27 @@ function PageTerminy() {
 
       {/* Když si rezervovat nejde, řekne se to rovnou — prázdný kalendář
           plný zašedlých buněk nikomu nic nevysvětlí. */}
-      {ctx.data && !c.enabled && (
+      {ctx.data && !ctx.loading && !ctx.err && !c.enabled && (
         <div data-guide="terminy.calendar" style={{ marginBottom: 22 }}>
-          <p className="tm-prose" style={pProse(t)}>
-            {c.reason === "NO_CLIENT"
-              ? L("Rezervace pro tebe zatím nejsou otevřené. Domluv se s Kryštofem.", "Booking is not open for you yet. Talk to Kryštof.")
-              : c.reason === "NO_CREDIT"
+          {c.reason === "NO_CLIENT" ? (
+            <Prazdno mark={<EmptyRoomArt room="terminy" color={t.sand} />}
+              fakt={L("Rezervace pro tebe zatím nejsou otevřené.", "Booking is not open for you yet.")}
+              pozvani={L("Domluv se s Kryštofem.", "Talk to Kryštof.")} />
+          ) : <p className="tm-prose" style={pProse(t)}>
+            {c.reason === "NO_CREDIT"
               ? L("Nemáš teď aktivní kredit pro rezervaci. Domluv se s Kryštofem.", "You have no active credit for booking right now. Talk to Kryštof.")
               : L("Zatím tu pro tebe není otevřená žádná služba. Domluv se s Kryštofem.", "No service is open for you yet. Talk to Kryštof.")}
-          </p>
+          </p>}
         </div>
       )}
 
-      {ctx.data && c.enabled && !rezervuji && (
+      {accountReady && c.enabled && !rezervuji && (
         <button data-guide="terminy.calendar" onClick={() => setRezervuji(true)} style={{ ...bkcBtn(t, true), marginBottom: 24 }}>{L("Rezervovat", "Book a session")}</button>
       )}
 
-      {rezervuji && <BkcRezervace ctx={c} onClose={() => setRezervuji(false)} onDone={() => { setRezervuji(false); znovu(); }} />}
+      {accountReady && rezervuji && <BkcRezervace ctx={c} onClose={() => setRezervuji(false)} onDone={() => { setRezervuji(false); znovu(); }} />}
 
-      {ctx.data && (kredity.available > 0 || kredity.reserved > 0 || kredity.consumed > 0) && <BkcKniha />}
+      {kredity && (kredity.available > 0 || kredity.reserved > 0 || kredity.consumed > 0) && <BkcKniha />}
 
       {pristi.length > 1 && (
         <div style={{ marginBottom: 22 }}>
@@ -14433,7 +14438,7 @@ function PageTerminy() {
         </div>
       )}
 
-      {otevreny && <BkcDetail b={otevreny} onClose={() => setOtevreny(null)} onChanged={() => { setOtevreny(null); znovu(); }} />}
+      {accountReady && otevreny && <BkcDetail b={otevreny} onClose={() => setOtevreny(null)} onChanged={() => { setOtevreny(null); znovu(); }} />}
     </>
   );
 }
