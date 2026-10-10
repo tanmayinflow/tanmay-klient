@@ -1,4 +1,5 @@
 import { STATE_LIMIT, ensureStateStorage, encodeState, readStateMeta, readStateDocument, writeStateDocument, stateFailure } from "../src/shared/product/stateStorage.js";
+import { handleContentLibrary } from "./contentLibrary.js";
 import { handleTogether } from "../src/shared/product/togetherApi.js";
 import { clientProfile, handleClientProfile, handleLegacyClientName } from "./clientProfile.js";
 import { createSkyTimeZoneHandler } from "../src/shared/product/skyGeocodingApi.js";
@@ -450,6 +451,7 @@ export default {
       if (!(await isMember(env, userId))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
+      if (url.pathname === "/api/content-library") return handleContentLibrary(request, env);
       if (url.pathname === "/api/sky/timezone") return handleSkyTimeZone(request,{rateKey:userId});
       if (url.pathname === "/api/personal-profile") return handleClientProfile(request, env.DB, userId);
       if (url.pathname === "/api/together" || url.pathname.startsWith("/api/together/")) return handleTogether(request, env.DB, `client:${userId}`, { owner: true });
