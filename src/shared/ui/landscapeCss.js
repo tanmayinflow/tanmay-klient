@@ -42,8 +42,16 @@ ${s} .tm-tabbar button[aria-current="page"] { background: transparent !important
 ${s} .tm-tabbar button[aria-current="page"] > span:first-child { color: var(--tm-nav-accent) !important; }
 ${s} :is(.tm-sidebar,.tm-tabbar) button:focus-visible { outline-color: var(--tm-nav-accent) !important; }
 ${s} :is(.tm-drawer,.tm-calcard,.tm-card,.tm-topbar) { background-image: var(--land-card-material) !important; background-size: 768px auto !important; }
-${s} :is(.tm-cs,.tm-nahled,.tm-zen) { background-color: var(--tm-document) !important; background-image: var(--land-panel-material) !important; background-size: 768px auto !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-${s} :is(.tm-cs,.tm-drawer).tm-compass-surface { background-color: var(--tm-bg) !important; background-image: var(--land-field) !important; background-size: 768px auto !important; }
+/* A detail or settings view keeps the room's material, including private writing. */
+${s} :is(.tm-cs,.tm-drawer,.tm-nahled,.tm-zen) { background-color: var(--tm-bg) !important; background-image: var(--land-field) !important; background-size: 768px auto !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+/* Native range tracks otherwise retain a bright system-white remainder. */
+${s} input[type="range"] { appearance: none; -webkit-appearance: none; background: transparent; color: var(--tm-link); height: 32px; cursor: pointer; }
+${s} input[type="range"]::-webkit-slider-runnable-track { height: 6px; border: 1px solid var(--tm-border); border-radius: 999px; background: transparent; }
+${s} input[type="range"]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border: 0; border-radius: 50%; background: var(--tm-link); }
+${s} input[type="range"]::-moz-range-track { height: 4px; border: 1px solid var(--tm-border); border-radius: 999px; background: transparent; }
+${s} input[type="range"]::-moz-range-progress { height: 4px; background: transparent; }
+${s} input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--tm-link); }
+${s} input[type="range"]:disabled { opacity: .45; cursor: default; }
 /* Earth headers carry the website's actual outgoing contour; controls stay outside the mask. */
 ${s} :is(.tm-cs-head,.tm-nahled-head) { isolation: isolate; background-color: var(--land-header-bg) !important; background-image: var(--land-header-material) !important; background-position: center top; background-size: 768px auto; color: var(--land-header-ink) !important; border-bottom-color: transparent !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -46px; height: 130px; z-index: -1; background-color: var(--land-header-bg); background-image: var(--land-header-material); background-position: center bottom; background-size: 768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; pointer-events: none; }
@@ -102,6 +110,11 @@ ${s} .tm-page-title:is([data-art-room="kompas"],[data-art-room="hospodareni"],[d
 ${s} .tm-page-title[data-art-room="praxe"]::before { inset: 0 8px auto auto; width: 142px; height: 100px; background-size: contain; background-position: right top; opacity: .28; }
 ${s} .tm-page-title[data-art-room="hospodareni"]::before { inset: 62px -8px auto auto; width: 80px; height: 60px; }
 ${s} .tm-page-title[data-art-room="hospodareni"] { min-height: 138px; }
+/* The two-word Content heading needs the full line on phones. */
+@media (max-width: 600px) {
+  ${s} .tm-page-title[data-art-room="socsite"] { padding-bottom: 64px; min-height: 0; }
+  ${s} .tm-page-title[data-art-room="socsite"]::before { inset: auto 8px 0 auto; width: 96px; height: 64px; }
+}
 ${s} .tm-page-title[data-art-room="trenink"] { min-height: 144px; }
 ${s} .tm-page-title[data-art-room="trenink"]::before { inset: 0 0 auto auto; width: 194px; height: 124px; background-size: contain; background-position: right top; opacity: .65; }
 ${s} .tm-page[data-room="klienti"] .tm-page-title { min-height: 140px; }

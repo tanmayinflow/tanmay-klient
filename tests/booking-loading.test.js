@@ -8,7 +8,7 @@ const source = fs.readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8
 const ast = ts.createSourceFile('App.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const client = source.includes('function useBkc(');
 const hookName = client ? 'useBkc' : 'useBkLoad';
-const selected = new Set([hookName, 'BkcRezervace', 'BkcKrok', 'PageTerminy']);
+const selected = new Set([hookName, 'BkcRezervace', 'BkcKrok', 'BkcKniha', 'PageTerminy']);
 const code = ast.statements.filter(n => ts.isFunctionDeclaration(n) && selected.has(n.name?.text))
   .map(n => n.getText(ast)).join('\n');
 
@@ -71,6 +71,58 @@ function renderedText(node) {
   if (node && typeof node === 'object') return renderedText(node.children);
   return typeof node === 'string' || typeof node === 'number' ? String(node) : '';
 }
+
+if (client) test('open credit history reloads after a booking mutation and remains open', async () => {
+  const { reads, fetcher } = deferredReads();
+  const h = harness(fetcher);
+  let open = false;
+  const props = refresh => ({ refresh, open, onOpen: value => { open = value; } });
+  const closed = h.render('BkcKniha', props(0));
+  assert.equal(reads.length, 0);
+  closed.props.onClick();
+  h.render('BkcKniha', props(0));
+  assert.deepEqual(reads.map(r => r.path), ['/credits']);
+  reads[0].resolve({ ok: true, entries: [] }); await tick();
+  h.render('BkcKniha', props(0));
+  const updated = h.render('BkcKniha', props(1));
+  assert.deepEqual(reads.map(r => r.path), ['/credits', '/credits']);
+  assert.equal(findNodes(updated, 'button').length, 0, 'mutation does not collapse the history');
+  reads[1].resolve({ ok: true, entries: [] }); await tick();
+  h.unmount();
+});
+
+if (client) test('closed credit history does not read data until requested, even after a booking mutation', () => {
+  const { reads, fetcher } = deferredReads();
+  const h = harness(fetcher);
+  h.render('BkcKniha', { refresh: 0, open: false, onOpen() {} });
+  h.render('BkcKniha', { refresh: 1, open: false, onOpen() {} });
+  assert.equal(reads.length, 0);
+  h.unmount();
+});
+
+if (client) test('page retains open credit history across a slow booking context refresh', async () => {
+  const { reads, fetcher } = deferredReads();
+  const h = harness(fetcher);
+  const account = { ok: true, enabled: true, credits: { available: 4, reserved: 1 } };
+  h.render('PageTerminy');
+  reads[0].resolve(account); await tick();
+  h.render('PageTerminy');
+  reads[1].resolve({ ok: true, upcoming: [{ id: 'mine' }], past: [] }); await tick();
+  const initial = h.render('PageTerminy');
+  findNodes(initial, h.context.BkcKniha)[0].props.onOpen(true);
+  findNodes(initial, h.context.BkcTermin)[0].props.onOpen({ id: 'mine' });
+  const detail = h.render('PageTerminy');
+  findNodes(detail, h.context.BkcDetail)[0].props.onChanged();
+  h.render('PageTerminy');
+  const loading = h.render('PageTerminy');
+  assert.equal(findNodes(loading, h.context.BkcKniha).length, 0, 'account data waits for its refreshed context');
+  reads[2].resolve({ ...account, credits: { available: 5, reserved: 0 } }); await tick();
+  const refreshed = h.render('PageTerminy');
+  const [history] = findNodes(refreshed, h.context.BkcKniha);
+  assert.equal(history.props.open, true, 'returning history is still open');
+  assert.equal(history.props.refresh, 1);
+  h.unmount();
+});
 
 if (client) test('an unlinked member sees an honest booking state without account reads or an invented balance', async () => {
   const { reads, fetcher } = deferredReads();

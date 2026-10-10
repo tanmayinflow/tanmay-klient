@@ -1,6 +1,6 @@
 import { ROOM_COPY } from "./rooms.js";
 export const MAIN_ROOMS = ["praxe","trenink","denik","kompas","zapisnik","prameny","spolu","klienti","hospodareni","socsite","memento","mandala","kos"];
-export const CLIENT_ROOMS = ["praxe","trenink","terminy","kompas","prameny","spolu","denik","zapisnik","kos"];
+export const CLIENT_ROOMS = ["praxe","trenink","terminy","kompas","prameny","spolu","denik","zapisnik","hospodareni","socsite","kos"];
 export const DEFAULT_MAIN_DOCK = ["trenink","denik","kompas","praxe","zapisnik","prameny"];
 export function roomPlacement(config,key,defaults) {
   const row=config?.rooms?.[key];

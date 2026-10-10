@@ -17,7 +17,8 @@ test('show everything retains page transitions and the effective permissions', (
 test('client tour cannot expose coach rooms even when caller supplies all room ids', () => {
   const availableRooms = [...new Set(APP_GUIDE_STEPS.map(step => step.room))];
   const tours = getGuideTours({ role: 'client', availableRooms });
-  for (const room of ['klienti', 'hospodareni', 'socsite']) assert.ok(!tours.some(tour => tour.room === room), room);
+  for (const room of ['klienti']) assert.ok(!tours.some(tour => tour.room === room), room);
+  for (const room of ['hospodareni', 'socsite']) assert.ok(tours.some(tour => tour.room === room), room);
   for (const room of ['memento', 'mandala']) assert.ok(tours.some(tour => tour.room === room), room);
   assert.ok(tours.some(tour => tour.room === 'terminy'));
   assert.ok(!getGuideTours({ role: 'coach', availableRooms }).some(tour => tour.room === 'terminy'));
@@ -27,7 +28,7 @@ test('guide never enables absent optional rooms or expands a missing allowlist',
   assert.deepEqual(getGuideTours(), []);
   const tours = getGuideTours({ role: 'client', availableRooms: ['praxe', 'trenink', 'kompas', 'nastaveni'] });
   assert.deepEqual(tours.map(tour => tour.room), ['praxe', 'trenink', 'kompas', 'nastaveni']);
-  for (const room of ['spolu', 'denik', 'zapisnik', 'memento', 'prameny']) assert.ok(!tours.some(tour => tour.room === room));
+  for (const room of ['spolu', 'denik', 'zapisnik', 'hospodareni', 'socsite', 'memento', 'prameny']) assert.ok(!tours.some(tour => tour.room === room));
   assert.ok(getGuideTours({ availableRooms: ['spolu'] }).some(tour => tour.room === 'spolu'));
 });
 

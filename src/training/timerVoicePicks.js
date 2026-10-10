@@ -1,0 +1,25 @@
+// Existing Main voice recommendations, shared by both applications.
+// Displayed only when the browser actually exposes the corresponding English voice.
+export const TM_VOICE_PICKS = [
+  { test: /^zoe.*(premium|enhanced)/i, cz: "Zoe · Premium", en: "Zoe · Premium", dcz: "Anglický ženský hlas ve vyšší kvalitě.", den: "An English female voice in enhanced quality.", plat: "iOS" },
+  { test: /^ava.*(premium|enhanced)/i, cz: "Ava · Premium", en: "Ava · Premium", dcz: "Jasný ženský hlas, zřetelný i v hluku.", den: "A clear female voice, legible even in noise.", plat: "iOS" },
+  { test: /^evan.*(premium|enhanced)/i, cz: "Evan · Enhanced", en: "Evan · Enhanced", dcz: "Mladý mužský hlas s energií. Do tempa.", den: "A young male voice with energy. On the beat.", plat: "iOS" },
+  { test: /^nathan.*(premium|enhanced)/i, cz: "Nathan · Enhanced", en: "Nathan · Enhanced", dcz: "Hluboký mužský hlas, klidný.", den: "A deep male voice, calm.", plat: "iOS" },
+  { test: /^serena.*(premium|enhanced)/i, cz: "Serena · Premium", en: "Serena · Premium", dcz: "Britská angličtina, ženský hlas, elegantní.", den: "British English, female, elegant.", plat: "iOS" },
+  { test: /^oliver.*(premium|enhanced)/i, cz: "Oliver · Enhanced", en: "Oliver · Enhanced", dcz: "Britský mužský hlas, věcný.", den: "A British male voice, matter-of-fact.", plat: "iOS" },
+  { test: /^tom.*(premium|enhanced)/i, cz: "Tom · Enhanced", en: "Tom · Enhanced", dcz: "Mužský hlas, tichý a jistý.", den: "A male voice, quiet and sure.", plat: "iOS" },
+  { test: /^allison.*(premium|enhanced)/i, cz: "Allison · Enhanced", en: "Allison · Enhanced", dcz: "Ženský hlas, přátelský.", den: "A female voice, friendly.", plat: "iOS" },
+  { test: /^samantha.*(premium|enhanced)/i, cz: "Samantha · Enhanced", en: "Samantha · Enhanced", dcz: "Klasický hlas iPhonu ve vylepšené verzi.", den: "The classic iPhone voice, enhanced.", plat: "iOS" },
+  { test: /^daniel.*(premium|enhanced)/i, cz: "Daniel · Enhanced", en: "Daniel · Enhanced", dcz: "Britský mužský hlas, zřetelný.", den: "A British male voice, distinct.", plat: "iOS" },
+  { test: /^karen.*(premium|enhanced)/i, cz: "Karen · Enhanced", en: "Karen · Enhanced", dcz: "Australská angličtina, ženský hlas.", den: "Australian English, female.", plat: "iOS" },
+  { test: /^google uk english female/i, cz: "Google UK · žena", en: "Google UK · female", dcz: "Britský ženský hlas ze sítě. Chrome, Android.", den: "A British female network voice. Chrome, Android.", plat: "Chrome" },
+  { test: /^google uk english male/i, cz: "Google UK · muž", en: "Google UK · male", dcz: "Britský mužský hlas ze sítě. Chrome, Android.", den: "A British male network voice. Chrome, Android.", plat: "Chrome" },
+  { test: /^google us english/i, cz: "Google US", en: "Google US", dcz: "Americký hlas ze sítě. Chrome, Android.", den: "An American network voice. Chrome, Android.", plat: "Chrome" },
+  { test: /aria.*online.*natural/i, cz: "Microsoft Aria · Natural", en: "Microsoft Aria · Natural", dcz: "Americký ženský hlas, neurální. Edge.", den: "American female, neural. Edge.", plat: "Edge" },
+  { test: /guy.*online.*natural/i, cz: "Microsoft Guy · Natural", en: "Microsoft Guy · Natural", dcz: "Americký mužský hlas, neurální. Edge.", den: "American male, neural. Edge.", plat: "Edge" },
+  { test: /sonia.*online.*natural/i, cz: "Microsoft Sonia · Natural", en: "Microsoft Sonia · Natural", dcz: "Britský ženský hlas, neurální. Edge.", den: "British female, neural. Edge.", plat: "Edge" },
+  { test: /ryan.*online.*natural/i, cz: "Microsoft Ryan · Natural", en: "Microsoft Ryan · Natural", dcz: "Britský mužský hlas, neurální. Edge.", den: "British male, neural. Edge.", plat: "Edge" },
+  { test: /^siri/i, cz: "Siri", en: "Siri", dcz: "Hlas Siri, když ho systém stránce půjčí.", den: "The Siri voice, when the system lends it to the page.", plat: "iOS" },
+  { test: /^samantha$/i, cz: "Samantha", en: "Samantha", dcz: "Základní hlas iPhonu. Bez stažení.", den: "The iPhone's base voice. No download.", plat: "iOS" },
+  { test: /^daniel$/i, cz: "Daniel", en: "Daniel", dcz: "Základní britský hlas iPhonu.", den: "The iPhone's base British voice.", plat: "iOS" },
+];

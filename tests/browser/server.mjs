@@ -4,6 +4,7 @@
 import http from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { join, extname } from "node:path";
+import { createBookingFixture } from "./booking-fixture.mjs";
 
 const ROOT = process.argv[2] || "dist";
 const PORT = Number(process.argv[3] || 8791);
@@ -13,8 +14,9 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css
 
 export const state = { me: { member: true, name: "Test", owner: "aaaaaaaaaaaaaaaa" }, doc: null, version: 0, files: new Map(), plan: null, share: null, goals: null, sources: null , force: { kod: "", metoda: "" } };
 
-export function createServer() {
-  return http.createServer(async (req, res) => {
+export function createServer({ bookingFactory = createBookingFixture } = {}) {
+  const bookingFixtures = new Map();
+  const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, "http://x");
     const send = (code, body, type) => { res.writeHead(code, { "Content-Type": type || "application/json" }); res.end(body); };
     // řídicí cesty jen pro zkoušku — v nasazení neexistují
@@ -85,27 +87,29 @@ export function createServer() {
       res.writeHead(200, { "Content-Type": f.t || "application/octet-stream", "X-Content-Type-Options": "nosniff" });
       return res.end(f.b);
     }
-    // ---- rezervace v klientské aplikaci ----------------------------------
+    // Stateful, isolated real Worker: create/move/cancel and credit history
+    // survive navigation and reload instead of returning a misleading success.
+    // Stateful, isolated real Worker: create/move/cancel and credit history
+    // survive navigation and reload instead of returning a misleading success.
     if (u.pathname.startsWith("/api/client/")) {
-      const p = u.pathname.slice("/api/client/".length);
-      const den = (d) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
-      const cas = (d, h) => Date.parse(den(d) + "T" + String(h).padStart(2, "0") + ":00:00Z");
-      const rezervace = (id, d, h, stav) => ({
-        id, startsAt: cas(d, h), endsAt: cas(d, h) + 3600000, timezone: "Europe/Prague",
-        localDate: den(d), status: stav || "CONFIRMED", confirmationMode: "AUTO", creditUnits: 1,
-        clientNote: "", meetingUrl: "", version: 1,
-        service: { id: "svc_zk", nameCs: "Osobní trénink", nameEn: "Personal training", durationMin: 60, cancelBeforeMin: 1440, creditUnits: 1, priceMinor: 0, currency: "CZK" },
-        location: { id: "loc_zk", type: "STUDIO", nameCs: "Studio", nameEn: "Studio", address: "", mapUrl: "", instructionsCs: "", instructionsEn: "" },
-      });
-      if (p === "booking/context") return send(200, JSON.stringify({ ok: true, enabled: true, timezone: "Europe/Prague",
-        services: [{ id: "svc_zk", nameCs: "Osobní trénink", nameEn: "Personal training", descriptionCs: "", descriptionEn: "", durationMin: 60, creditUnits: 1, priceMinor: 0, currency: "CZK", confirmationMode: "AUTO", cancelBeforeMin: 1440, minNoticeMin: 0, bookingHorizonDays: 60, lateCancelRefunds: false, locations: [{ id: "loc_zk", type: "STUDIO", nameCs: "Studio", nameEn: "Studio", timezone: "Europe/Prague", onlineMode: "" }] }],
-        credits: { available: 4, reserved: 1, consumed: 2, packages: [{ id: "cp1", name: "10 sezení", available: 4, reserved: 1, expiresAt: null }] }, locationsCount: 1 }));
-      if (p.startsWith("booking/slots")) return send(200, JSON.stringify({ ok: true, timezone: "Europe/Prague", from: den(0), to: den(6),
-        days: [{ date: den(1), slots: [{ startsAt: cas(1, 9), endsAt: cas(1, 10) }, { startsAt: cas(1, 11), endsAt: cas(1, 12) }] }], googleChecked: false }));
-      if (p === "bookings") return send(200, JSON.stringify({ ok: true, upcoming: [rezervace("bk1", 2, 10)], past: [rezervace("bk0", -7, 10, "COMPLETED")] }));
-      if (p === "credits") return send(200, JSON.stringify({ ok: true, balance: { available: 4, reserved: 1, consumed: 2, purchased: 7 }, packages: [], entries: [{ at: Date.now() - 86400000, kind: "PURCHASE", units: 7, reason: "", bookingId: null }] }));
-      if (/^bookings\/[^/]+\/cancel-preview$/.test(p)) return send(200, JSON.stringify({ ok: true, preview: { late: false, unitsReturned: 1, unitsKept: 0, balanceAfter: 5 } }));
-      return send(200, JSON.stringify({ ok: true }));
+      try {
+        const owner = state.me.owner || "preview";
+        const expectedOwner = req.headers["x-tanmay-owner"];
+        if (expectedOwner && expectedOwner !== owner) return send(409, JSON.stringify({ ok: false, code: "account-changed" }));
+        if (!bookingFixtures.has(owner)) bookingFixtures.set(owner, Promise.resolve(bookingFactory(owner)));
+        const fixture = await bookingFixtures.get(owner);
+        let body = ""; for await (const chunk of req) body += chunk;
+        const result = await fixture.fetch(u.pathname + u.search, {
+          // The outer browser fixture uses a readable synthetic owner tag.
+          // Bind the validated tag to this isolated Worker's actual identity.
+          method: req.method, headers: { ...req.headers, "x-tanmay-owner": fixture.owner }, ...(body ? { body } : {}),
+        });
+        res.writeHead(result.status, Object.fromEntries(result.headers));
+        return res.end(Buffer.from(await result.arrayBuffer()));
+      } catch (error) {
+        console.error("Local booking fixture failed", error);
+        return send(500, JSON.stringify({ ok: false, error: "PREVIEW_BOOKING_ERROR" }));
+      }
     }
     if (u.pathname === "/api/files") return send(200, JSON.stringify({ files: [] }));
     if (u.pathname.startsWith("/api/files/")) {
@@ -127,6 +131,8 @@ export function createServer() {
       res.writeHead(200, h); res.end(buf);
     } catch { send(404, "no", "text/plain"); }
   });
+  server.on("close", () => { for (const fixture of bookingFixtures.values()) fixture.then(value => value.close(), () => {}); });
+  return server;
 }
 
 if (process.argv[1] && process.argv[1].endsWith("server.mjs")) createServer().listen(PORT, () => console.log("listening " + PORT));

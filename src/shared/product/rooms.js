@@ -25,11 +25,10 @@ export const ROOM_COPY = {
   kos:          { cz: "Koš",          en: "Trash" },
   nastaveni:    { cz: "Nastavení",    en: "Settings" },
   pruvodce:     { cz: "Průvodce",     en: "Guide" },
-  // Main-only. Uvedené proto, aby se jméno nikde nerozešlo, ne proto,
-  // aby je klientská aplikace směla vykreslit — o tom rozhoduje roles.js.
+  // Role a volitelné osobní místnosti určuje roles.js; data zůstávají soukromá.
   klienti:      { cz: "Klienti",      en: "Clients" },
   hospodareni:  { cz: "Hospodaření",  en: "Stewardship" },
-  socsite:      { cz: "Tvorba",       en: "Content" },
+  socsite:      { cz: "Tvorba obsahu", en: "Content" },
   mandala:      { cz: "Mandala",      en: "Mandala" },
 };
 

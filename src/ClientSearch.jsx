@@ -4,7 +4,7 @@ import { searchClientRecords } from "./clientSearch.js";
 export function ClientSearch({ t, lang, records, goals, sources, enabled, onPick, onClose, Sheet }) {
   const [query, setQuery] = useState("");
   const cs = lang !== "en";
-  const names = cs ? { zapisnik: "Zápisník", denik: "Deník", prameny: "Prameny", kompas: "Kompas" } : { zapisnik: "Notebook", denik: "Journal", prameny: "Sources", kompas: "Compass" };
+  const names = cs ? { zapisnik: "Zápisník", denik: "Deník", prameny: "Prameny", kompas: "Kompas", hospodareni:"Hospodaření", socsite:"Tvorba obsahu" } : { zapisnik: "Notebook", denik: "Journal", prameny: "Sources", kompas: "Compass", hospodareni:"Stewardship", socsite:"Content" };
   const matches = searchClientRecords({ query, records, goals, sources, enabled });
   return <Sheet title={cs ? "Hledat v aplikaci" : "Search the app"} onClose={onClose}>
     <input autoFocus type="search" aria-label={cs ? "Hledat v aplikaci" : "Search the app"} value={query} onChange={event => setQuery(event.target.value)} placeholder={cs ? "Název nebo několik slov…" : "A title or a few words…"}

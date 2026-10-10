@@ -68,8 +68,8 @@ test("místnosti trenéra pro klienta neexistují ani jako capability", () => {
     assert.equal(roomVisible(caps, k), false, k + " nesmí být klientovi vidět");
   }
   assert.equal(caps.manageClients, false);
-  assert.equal(caps.manageFinances, false);
-  assert.equal(caps.manageContent, false);
+  assert.equal(caps.manageFinances, true, "vlastní zapnuté Hospodaření");
+  assert.equal(caps.manageContent, true, "vlastní zapnutá Tvorba");
   assert.equal(caps.manageAvailability, false);
   assert.equal(caps.managePackages, false);
 });
@@ -88,7 +88,7 @@ test("capability se nedá odemknout uloženým stavem", () => {
     share: { habits: true },
   });
   assert.equal(caps.manageClients, false);
-  assert.equal(caps.manageFinances, false);
+  assert.equal(caps.manageFinances, true, "souhlas otevírá jen vlastní Hospodaření");
   assert.equal(caps.journal, true, "vlastní Deník se zapnout smí");
 });
 
@@ -167,8 +167,8 @@ test("migrace nevypne soukromou místnost, kterou člověk měl", () => {
   assert.deepEqual(migrateClientModules(["praxe", "denik", "zapisnik"]), ["denik", "zapisnik"]);
 });
 
-test("Hospodaření z uložené volby zmizí", () => {
-  assert.deepEqual(migrateClientModules(["hospodareni", "praxe"]), []);
+test("výslovná volba Hospodaření přežije migraci", () => {
+  assert.deepEqual(migrateClientModules(["hospodareni", "praxe"]), ["hospodareni"]);
 });
 
 test("první spuštění zůstane prvním spuštěním", () => {
@@ -252,7 +252,7 @@ test("do sloupce modulů se nedostane nic mimo povolený seznam", async () => {
     body: { doc: { coll: { modules: ["denik", "hospodareni", "klienti", "../../etc"] } } },
   }), env);
   const row = await env.DB.prepare("SELECT modules FROM members WHERE user_id = ?").bind("klient-a-example-test").first();
-  assert.deepEqual(JSON.parse(row.modules), ["denik"]);
+  assert.deepEqual(JSON.parse(row.modules), ["denik", "hospodareni"]);
 });
 
 test("řádek pro trenéra je povolený seznam polí, ne dokument", () => {

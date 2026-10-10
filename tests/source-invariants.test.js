@@ -30,8 +30,9 @@ test("trenérská správa klientů v klientském sestavení vůbec není", () =>
 
 test("místnost trenéra není v klientské aplikaci směrovaná", () => {
   assert.doesNotMatch(app, /case\s+"klienti"/);
-  assert.doesNotMatch(app, /case\s+"hospodareni"/);
-  assert.doesNotMatch(app, /case\s+"socsite"/);
+  assert.match(app, /case\s+"hospodareni": return <PagePersonalFinances/);
+  assert.match(app, /case\s+"socsite": return <PagePersonalContent/);
+  assert.doesNotMatch(app, /SOC_DOCS|SOC_HOOKS_SEED|SOC_PILIRE_SEED|finOsvcSeed|Birthday gift for sister/);
 });
 
 test("shared Mandala uses the client's own empty gallery and recitation state", () => {

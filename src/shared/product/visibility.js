@@ -28,6 +28,7 @@ export const CLIENT_PRIVATE_FIELDS = Object.freeze([
   "journal", "notebook", "reflection", "evening", "plan_answers", "deeper",
   "wb", "mood", "body", "memento", "source_notes", "attachments", "audio",
   "private_goals", "habit_notes", "note", "tasks",
+  "income", "expenses", "finCfg", "socItems", "socPillars",
 ]);
 
 /** Trenérovo. Nikdy neodchází ke klientovi. */

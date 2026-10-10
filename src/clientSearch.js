@@ -1,7 +1,8 @@
 import { tmPlain } from "./shared/lang/text.js";
+import { personalNotebookRoom } from "./shared/product/personalRooms.js";
 
 const norm = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase();
-const textOf = record => tmPlain([record.text, record.note, record.intent, record.step, record.excerpt, record.instruction, record.why, record.carry].filter(Boolean).join("\n"));
+const textOf = record => tmPlain([record.text, record.script, record.note, record.intent, record.step, record.excerpt, record.instruction, record.why, record.carry].filter(Boolean).join("\n"));
 
 // Only current-account records and the already sanitized visible coach feeds enter here.
 // No persistence, network request, trash, private coach metadata or historical account cache.
@@ -9,7 +10,11 @@ export function searchClientRecords({ query, records = {}, goals = [], sources =
   const terms = norm(query).trim().split(/\s+/).filter(Boolean);
   if (!terms.length) return [];
   const groups = [
-    ["notebook", "zapisnik", records.notebook || []],
+    ["notebook", "zapisnik", (records.notebook || []).filter(entry=>personalNotebookRoom(entry,enabled("socsite"))==="zapisnik")],
+    ["notebook", "socsite", (records.notebook || []).filter(entry=>personalNotebookRoom(entry,enabled("socsite"))==="socsite")],
+    ["socItems", "socsite", (records.socItems || []).filter(entry=>entry&&!entry.arch)],
+    ["income", "hospodareni", records.income || []],
+    ["expenses", "hospodareni", records.expenses || []],
     ["journal", "denik", records.journal || []],
     ["content", "prameny", sources],
     ["goal", "kompas", goals],
@@ -19,7 +24,7 @@ export function searchClientRecords({ query, records = {}, goals = [], sources =
     if (!enabled(room)) continue;
     for (const entry of entries) {
       if (!entry || entry.trashed || entry.unsharedAt || entry.archivedAt) continue;
-      const title = String(entry.title || entry.name || entry.date || "");
+      const title = String(entry.title || entry.name || entry.item || entry.source || entry.date || "");
       const body = textOf(entry);
       const heading = norm(title), haystack = norm([title, entry.author, entry.date, body].filter(Boolean).join(" "));
       if (!terms.every(term => haystack.includes(term))) continue;

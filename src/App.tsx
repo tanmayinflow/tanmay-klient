@@ -1,3 +1,6 @@
+import { tmAudio } from "./training/timerAudio.js";
+import { tmVoice, tmNum, tmVL, timerConfig } from "./training/timerVoice.js";
+import { createTimerSettings } from "./shared/ui/timerSettings.jsx";
 import { createGoogleCalendar } from "./shared/product/googleCalendar.js";
 import { createCalendarUI } from "./shared/ui/googleCalendar.jsx";
 import { createMementoUI } from "./shared/ui/memento.jsx";
@@ -111,6 +114,8 @@ import { bootstrapSyncDecision } from "./shared/product/bootstrapSync.js";
 import { createClientSession } from "./clientSession.js";
 import { createClientStartupNavigation, clientHabitDefinitions } from "./clientPreferences.js";
 import { scopeLegacyClientPins } from "./clientPinned.js";
+import { createPersonalRoomsUI } from "./shared/ui/personalRooms.jsx";
+import { personalNotebookRoom } from "./shared/product/personalRooms.js";
 import { createDocumentSyncQueue } from "./shared/product/documentSyncQueue.js";
 
 /**
@@ -123,7 +128,7 @@ import { createDocumentSyncQueue } from "./shared/product/documentSyncQueue.js";
  * records and contact.
  *
  * CLIENT EDITION · vzhled, ikony a rozložení jsou odvozené z osobní verze,
- * data ale nikdy. Do osobního Deníku, Zápisníku, Hospodaření, Tvorby
+ * data ale nikdy. Do Kryštofova Deníku, Zápisníku, Hospodaření, Tvorby
  * obsahu, Mandaly ani k jiným klientům odsud nevede žádná cesta.
  *
  * Aktivní produkt se udržuje v tomhle zdroji. Data importovaná z dřívějška
@@ -3121,8 +3126,8 @@ const tmInFolder = (e, folder) => {
 function FolderSheet({ onClose, folder, setFolder, koren, korenNazev, mode, count, onPick }) {
   const { t } = useT();
   const st = useStore();
-  const all = (st.coll.notebook || []);
-  const folders = st.nbFolders();
+  const all = (st.coll.notebook || []).filter(e => koren ? tmInFolder(e, koren) : personalNotebookRoom(e, st.contentAvailable) === "zapisnik");
+  const folders = st.nbFolders().filter(f => koren ? (f === koren || f.startsWith(koren + "/")) : personalNotebookRoom({folder:f}, st.contentAvailable) === "zapisnik");
   // s kořenem se správce nikdy nevynoří nad něj · dno je kořen, ne Zápisník
   const [cwd, setCwd] = useState(mode === "move" ? (koren || "") : (folder === "__none__" ? (koren || "") : folder || koren || ""));
   const [adding, setAdding] = useState(false);
@@ -4635,8 +4640,8 @@ function PageNotebook({ koren, korenNazev }) {
   // najde v celém seznamu, aby štítek z druhé místnosti nezešedl.
   const tags = st.nbTags();
   const vseTagy = st.nbTags();
-  // poznámky ze zápisníku tvorby sem nepatří · žijí v Tvorbě obsahu
-  const all = (st.coll.notebook || []);
+  // Poznámky tvorby se oddělí až při dostupné stránce Tvorba obsahu.
+  const all = (st.coll.notebook || []).filter(e => koren ? tmInFolder(e, koren) : personalNotebookRoom(e, st.contentAvailable) === "zapisnik");
   const [qOpen, setQOpen] = useState(false);
   const [fOpen, setFOpen] = useState(false);
   const [view, setView] = useState("Vše");
@@ -10088,168 +10093,7 @@ function tmAdvance(compiled, cur, el) {
   return { idx, segStart, lastEl: el, cues, finished };
 }
 
-// ---- sound · the same sine-and-air voice the pomodoro speaks in -------------
-// One lazily-built AudioContext, unlocked by the first tap (iOS demands a
-// gesture). Everything is synthesised — the app ships no audio files.
-const tmAudio = (() => {
-  let ctx = null, master = null, vol = 0.7, on = true;
-  const ensure = () => {
-    if (ctx) return ctx;
-    try {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return null;
-      ctx = new Ctx();
-      master = ctx.createGain();
-      master.gain.value = vol;
-      master.connect(ctx.destination);
-    } catch (e) { ctx = null; }
-    return ctx;
-  };
-  const tone = (freq, dur, peak, when, type) => {
-    const c = ensure();
-    if (!c || !on) return;
-    const t = c.currentTime + (when || 0);
-    const o = c.createOscillator(), g = c.createGain();
-    o.type = type || "sine";
-    o.frequency.setValueAtTime(freq, t);
-    o.connect(g).connect(master);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.start(t); o.stop(t + dur + 0.05);
-  };
-  return {
-    unlock() { const c = ensure(); if (c && c.state === "suspended") c.resume().catch(() => {}); },
-    set(enabled, volume) {
-      on = !!enabled;
-      vol = Math.max(0, Math.min(1, volume == null ? vol : volume));
-      if (master) master.gain.value = vol;
-    },
-    count(n) { tone(n <= 3 ? 660 : 520, 0.14, 0.16, 0, "sine"); },   // 5·4·3·2·1
-    ten() { tone(440, 0.18, 0.10); },
-    half() { tone(392, 0.22, 0.07); },
-    go() { tone(784, 0.16, 0.20); tone(1175, 0.5, 0.12, 0.10); },     // rising, open
-    rest() { tone(392, 0.4, 0.12); tone(294, 0.6, 0.07, 0.05); },     // falling, settling
-    tick() { tone(880, 0.05, 0.05); },
-    finish() { [0, 0.55].forEach((dt) => { tone(587, 1.4, 0.16, dt); tone(1174, 0.9, 0.04, dt); }); }, // the pomodoro gong
-  };
-})();
-
-// ---- voice · the browser's own, but not whichever one it happened to hand us ---
-// A robot voice is almost never the API's fault. It is what you get when nobody
-// chooses: getVoices() is asked once, too early, comes back empty, and the platform
-// falls back to the oldest, flattest engine it owns. Three things fix it:
-//
-//   1. WAIT for the list. Voices load asynchronously; the good ones arrive last.
-//   2. CHOOSE from it. Google's network voices, Apple's Siri voices and Microsoft's
-//      neural ones are on a different planet from eSpeak and the legacy SAPI ones.
-//      We score them and pick the best for the language the page is currently in.
-//   3. STOP INTERRUPTING. cancel() before every utterance chops the speech mid-word,
-//      which is most of what "robotic" actually sounds like. Only a countdown has the
-//      right to cut someone off.
-//
-// The language follows the page, not the browser: flip the app to English and the
-// timer starts speaking English, with an English voice, mid-workout.
-const TM_VOICE_GOOD = /google|natural|neural|premium|enhanced|siri|online|zuzana|iveta|jakub|vlasta|samantha|ava|serena|allison|daniel|libby|aria|jenny|guy|sonia/i;
-const TM_VOICE_POOR = /espeak|compact|eloquence|pico|festival|desktop/i;
-const TM_NUM = {
-  cs: ["nula", "jedna", "dva", "tři", "čtyři", "pět", "šest", "sedm", "osm", "devět", "deset", "jedenáct", "dvanáct", "třináct", "čtrnáct", "patnáct", "šestnáct", "sedmnáct", "osmnáct", "devatenáct", "dvacet"],
-  en: ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"],
-};
-// A TTS engine reading "kolo 3" may or may not say "tři". Spelled out, it always does.
-const tmNum = (n) => { const a = TM_NUM[LANG === "cs" ? "cs" : "en"]; return n >= 0 && n < a.length ? a[n] : String(n); };
-
-const tmVoice = (() => {
-  let on = true, rate = 1, uris = { cs: "", en: "" }, voices = [], listeners = [];
-  const S = () => (typeof window !== "undefined" && window.speechSynthesis) || null;
-  const refresh = () => {
-    const s = S();
-    if (!s) return;
-    try { voices = s.getVoices() || []; } catch (e) { voices = []; }
-    listeners.forEach((fn) => { try { fn(voices); } catch (e) {} });
-  };
-  if (S()) {
-    refresh();
-    try { S().addEventListener("voiceschanged", refresh); } catch (e) { try { S().onvoiceschanged = refresh; } catch (e2) {} }
-  }
-  // Speaking the right language and being a good voice are two different questions.
-  // Conflating them (a single score with a "-1 means no" sentinel) meant a machine whose
-  // only Czech voice was eSpeak scored below zero and got filtered out entirely — the
-  // timer would simply have gone mute. Rank badness; never exclude on it.
-  const speaks = (v, pre) => (v.lang || "").toLowerCase().replace("_", "-").startsWith(pre);
-  const score = (v, pre) => {
-    const lang = (v.lang || "").toLowerCase().replace("_", "-");
-    let s = 0;
-    if (TM_VOICE_GOOD.test(v.name)) s += 40;
-    if (TM_VOICE_POOR.test(v.name)) s -= 60;
-    if (v.localService === false) s += 25;   // Chrome's cloud voices are the good ones
-    if (pre === "en" && /^en-(us|gb)/.test(lang)) s += 10;
-    if (v.default) s += 4;
-    return s;
-  };
-  const listFor = (pre) => voices.filter((v) => speaks(v, pre)).sort((a, b) => score(b, pre) - score(a, pre));
-  const pick = (pre) => {
-    const list = listFor(pre);
-    if (!list.length) return null;
-    const wanted = uris[pre];
-    return (wanted && list.find((v) => v.voiceURI === wanted)) || list[0];
-  };
-  const speak = (u, interrupt) => {
-    const s = S();
-    if (!s) return;
-    try {
-      // Chrome will silently swallow a speak() issued in the same tick as a cancel().
-      if (interrupt && (s.speaking || s.pending)) { s.cancel(); setTimeout(() => { try { s.speak(u); } catch (e) {} }, 30); }
-      else s.speak(u);
-      if (s.paused) s.resume();   // Chrome parks the queue on long runs; nudge it awake
-    } catch (e) {}
-  };
-  return {
-    voices: () => voices,
-    listFor,
-    current: (pre) => pick(pre),
-    onChange(fn) { listeners.push(fn); refresh(); return () => { listeners = listeners.filter((x) => x !== fn); }; },
-    set(enabled, opts) {
-      on = !!enabled;
-      if (opts) {
-        if (opts.rate) rate = Math.max(0.6, Math.min(1.6, opts.rate));
-        if (opts.cs !== undefined) uris.cs = opts.cs || "";
-        if (opts.en !== undefined) uris.en = opts.en || "";
-      }
-      if (!enabled) this.stop();
-    },
-    // Some engines clip the first word of the first utterance. A silent one warms them up.
-    prime() {
-      const s = S();
-      if (!s || !on) return;
-      try { const u = new window.SpeechSynthesisUtterance(" "); u.volume = 0; s.speak(u); } catch (e) {}
-    },
-    // interrupt: only a countdown may cut someone off. Everything else waits its turn —
-    // cutting speech off mid-word is most of what "robotic" sounds like.
-    say(text, interrupt) {
-      const s = S();
-      if (!on || !s || !text) return;
-      const pre = LANG === "cs" ? "cs" : "en";
-      const v = pick(pre);
-      try {
-        const u = new window.SpeechSynthesisUtterance(String(text));
-        if (v) { u.voice = v; u.lang = v.lang; } else u.lang = pre === "cs" ? "cs-CZ" : "en-US";
-        u.rate = rate;      // a hair under 1 reads as spoken, not announced
-        u.pitch = 1.02;
-        u.volume = 1;
-        speak(u, !!interrupt);
-      } catch (e) {}
-    },
-    stop() { const s = S(); if (s) { try { s.cancel(); } catch (e) {} } },
-  };
-})();
-
-// the settings panel needs to re-render when the voices finally arrive
-function useTmVoices() {
-  const [v, setV] = useState(() => tmVoice.voices());
-  React.useEffect(() => tmVoice.onChange((list) => setV(list)), []);
-  return v;
-}
+// Timer sound and English speech are shared by both applications.
 
 // ---- haptics ---------------------------------------------------------------
 let TM_HAPTICS = true;
@@ -10297,6 +10141,8 @@ const {
   fmtCZ, todayISO, shiftISO, moonPhaseOf, moonName, sunsetOf,
   AllDayEvents: createAllDayEvents({useT,useStore,L,uid,shiftISO}), journalArchive: JOURNAL_FULL, flow: FLOW,
 });
+
+const {PagePersonalFinances,PagePersonalContent} = createPersonalRoomsUI({useT,useStore,L,PageTitle,CenterSheet,RichArea,uid,todayISO});
 
 const { PageMandala } = createMandalaUI({useT,useStore,L,uid,resizeImageToBlob,r2Put,r2Del,imgSrc,Toggle,Eyebrow,BRAND});
 const personalCalendar = createGoogleCalendar({role:"client",L,todayISO,BRAND,
@@ -10426,32 +10272,32 @@ function useTmEngine(compiled, cfg, onFinish) {
         if (c.voice && q.n <= 3) tmVoice.say(tmNum(q.n), true);
       } else if (q.c === "ten") {
         tmAudio.ten();
-        if (c.voice) tmVoice.say(L("ještě deset vteřin", "ten seconds to go"));
+        if (c.voice) tmVoice.say(tmVL("ještě deset vteřin", "ten seconds to go"));
       } else if (q.c === "half") {
         tmAudio.half();
-        if (c.voice) tmVoice.say(L("půlka je za tebou", "halfway there"));
+        if (c.voice) tmVoice.say(tmVL("půlka je za tebou", "halfway there"));
       } else if (q.c === "seg") {
         const seg = compiled.segs[q.idx];
         if (q.kind === "rest") {
           tmAudio.rest(); tmBuzz([25, 60, 25], c.haptics);
-          if (c.voice) tmVoice.say(seg && seg.dur ? L("pauza, " + tmNum(seg.dur) + " vteřin", "rest, " + tmNum(seg.dur) + " seconds") : L("pauza", "rest"), true);
+          if (c.voice) tmVoice.say(seg && seg.dur ? tmVL("pauza, " + tmNum(seg.dur) + " vteřin", "rest, " + tmNum(seg.dur) + " seconds") : tmVL("pauza", "rest"), true);
         } else {
           tmAudio.go(); tmBuzz([50], c.haptics);
           if (c.voice) {
             // On a real workout the useful thing to hear is the exercise. On the last
             // round, the useful thing to hear is that it IS the last round.
-            const line = seg && seg.k === "set" ? TL(seg.label)
-              : seg && seg.round && seg.rounds && seg.round === seg.rounds ? L("poslední kolo", "last round")
-              : seg && seg.round ? L("kolo " + tmNum(seg.round), "round " + tmNum(seg.round))
-              : seg && seg.k === "prep" ? L("připrav se", "get ready")
-              : L("teď", "go");
+            const line = seg && seg.k === "set" ? (Array.isArray(seg.label) ? seg.label[1] || "next set" : "next set")
+              : seg && seg.round && seg.rounds && seg.round === seg.rounds ? tmVL("poslední kolo", "last round")
+              : seg && seg.round ? tmVL("kolo " + tmNum(seg.round), "round " + tmNum(seg.round))
+              : seg && seg.k === "prep" ? tmVL("připrav se", "get ready")
+              : tmVL("teď", "go");
             tmVoice.say(line, true);
           }
         }
       } else if (q.c === "finish") {
         tmAudio.finish();
         tmBuzz([80, 70, 80, 70, 140], c.haptics);
-        if (c.voice) tmVoice.say(L("Hotovo. Dobrá práce.", "That's it. Good work."));
+        if (c.voice) tmVoice.say(tmVL("Hotovo. Dobrá práce.", "That's it. Good work."));
       }
     }
   };
@@ -10699,9 +10545,9 @@ function TmStage({ program, name, mode, onClose }) {
   useWakeLock(cfg.wake && eng.status === "running");
 
   React.useEffect(() => {
-    tmAudio.set(!muted && cfg.sound, cfg.volume);
+    tmAudio.set(!muted && cfg.sound, cfg.volume, cfg.soundSet);
     tmVoice.set(cfg.voice && !muted, { rate: cfg.voiceRate, cs: cfg.voiceCs, en: cfg.voiceEn });
-  }, [muted, cfg.sound, cfg.volume, cfg.voice, cfg.voiceRate, cfg.voiceCs, cfg.voiceEn]);
+  }, [muted, cfg.sound, cfg.volume, cfg.soundSet, cfg.voice, cfg.voiceRate, cfg.voiceCs, cfg.voiceEn]);
   React.useEffect(() => {
     tmVoice.prime();
     const id = setTimeout(() => eng.start(), 120);
@@ -11068,60 +10914,7 @@ function TmSwitch({ on, onChange, label }) {
   );
 }
 
-// ---- choosing the voice · because the default one is rarely the good one -----
-// The list is whatever the machine happens to own, so it is never assumed and never
-// hard-coded — it is read, ranked, and shown. The ranking floats the voices that
-// actually sound like people (Google's network voices, Siri, the neural Microsoft
-// ones) to the top, and sinks eSpeak and the legacy desktop engines. The panel always
-// speaks about the language the page is in right now: switch the app to English and
-// this becomes the English voice picker.
-function TmVoicePicker() {
-  const { t } = useT();
-  const st = useStore();
-  const cfg = st.tmCfg();
-  useTmVoices();
-  const pre = LANG === "cs" ? "cs" : "en";
-  const list = tmVoice.listFor(pre);
-  const key = pre === "cs" ? "voiceCs" : "voiceEn";
-  const chosen = cfg[key] || "";
-  const active = tmVoice.current(pre);
-  const preview = () => {
-    tmVoice.set(true, { rate: cfg.voiceRate, cs: cfg.voiceCs, en: cfg.voiceEn });
-    tmVoice.say(L("Tři. Dva. Jedna. Poslední kolo.", "Three. Two. One. Last round."), true);
-    if (!cfg.voice) setTimeout(() => tmVoice.set(false), 4000);
-  };
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 230 }}>
-      <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10, color: t.sage }}>
-        {L("Hlas", "Voice")} · {pre === "cs" ? "čeština" : "English"}
-      </span>
-      {list.length === 0 ? (
-        <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontStyle: "italic", color: t.textMuted, maxWidth: 240, lineHeight: 1.5 }}>
-          {L("Tenhle prohlížeč zatím žádný český hlas nenabízí. V Chrome jsou ty nejlepší (Google čeština) — na iPhonu je najdeš v Nastavení → Zpřístupnění → Mluvený obsah → Hlasy.",
-             "This browser offers no voice for English yet. Chrome's network voices are the good ones; on iOS you add them in Settings → Accessibility → Spoken Content → Voices.")}
-        </span>
-      ) : (
-        <>
-          <Select small value={chosen} onChange={(v) => { st.setTmCfg({ [key]: v }); tmVoice.set(true, { rate: cfg.voiceRate, cs: pre === "cs" ? v : cfg.voiceCs, en: pre === "en" ? v : cfg.voiceEn }); setTimeout(() => tmVoice.say(L("Poslední kolo.", "Last round."), true), 60); if (!cfg.voice) setTimeout(() => tmVoice.set(false), 3000); }}
-            options={[{ v: "", label: L("Nejlepší dostupný", "Best available") + (active ? " · " + active.name : "") }, ...list.map((v) => ({ v: v.voiceURI, label: v.name + (v.localService === false ? " ·" : "") }))]}
-            style={{ maxWidth: 240 }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <button onClick={preview} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}>
-              <TmIcon name="sound" size={13} /> {L("Poslechnout", "Hear it")}
-            </button>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted }}>{L("tempo", "pace")}</span>
-              <input type="range" min="80" max="130" value={Math.round((cfg.voiceRate || 1) * 100)}
-                onChange={(e) => st.setTmCfg({ voiceRate: Number(e.target.value) / 100 })}
-                onMouseUp={preview} onTouchEnd={preview}
-                style={{ width: 92, accentColor: "var(--tm-accent, #B87333)" }} />
-            </span>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+const { TmSoundSetPicker, TmVoicePicker, useTmVoices } = createTimerSettings({ useT, useStore, L, hexA, TChip, TmIcon });
 
 // ======================================================================
 // SESSION · a workout, turned into the steps of a practice
@@ -11235,18 +11028,19 @@ function TmHome({ onRun }) {
       {settings && (
         <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "16px 18px", display: "flex", gap: 26, flexWrap: "wrap", alignItems: "flex-start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <TmSwitch on={cfg.sound} onChange={(v) => { st.setTmCfg({ sound: v }); tmAudio.set(v, cfg.volume); }} label={L("Zvuk", "Sound")} />
+            <TmSwitch on={cfg.sound} onChange={(v) => { st.setTmCfg({ sound: v }); tmAudio.set(v, cfg.volume, cfg.soundSet); }} label={L("Zvuk", "Sound")} />
             <TmSwitch on={cfg.voice} onChange={(v) => { st.setTmCfg({ voice: v }); tmVoice.set(v, { rate: cfg.voiceRate, cs: cfg.voiceCs, en: cfg.voiceEn }); }} label={L("Hlasový odpočet", "Voice countdown")} />
             <TmSwitch on={cfg.haptics} onChange={(v) => st.setTmCfg({ haptics: v })} label={L("Vibrace", "Haptics")} />
             <TmSwitch on={cfg.wake} onChange={(v) => st.setTmCfg({ wake: v })} label={L("Nenechat zhasnout displej", "Keep the screen awake")} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10, color: t.sage }}>{L("Hlasitost", "Volume")}</span>
-            <input type="range" min="0" max="100" value={Math.round(cfg.volume * 100)}
-              onChange={(e) => { const v = Number(e.target.value) / 100; st.setTmCfg({ volume: v }); tmAudio.set(cfg.sound, v); }}
+            <input aria-label={L("Hlasitost časovače", "Timer volume")} type="range" min="0" max="100" value={Math.round(cfg.volume * 100)}
+              onChange={(e) => { const v = Number(e.target.value) / 100; st.setTmCfg({ volume: v }); tmAudio.set(cfg.sound, v, cfg.soundSet); }}
               onMouseUp={() => tmAudio.count(3)} onTouchEnd={() => tmAudio.count(3)}
               style={{ width: 160, accentColor: "var(--tm-accent, #B87333)" }} />
           </div>
+          <TmSoundSetPicker />
           <TmStepper label={L("Odpočet na start", "Count-in")} value={cfg.countIn} onChange={(v) => st.setTmCfg({ countIn: typeof v === "function" ? v(st.tmCfg().countIn) : v })} min={0} max={30} step={1} fmt={(x) => (x ? x + " s" : L("žádný", "none"))} width={72} />
           <TmVoicePicker />
         </div>
@@ -13721,9 +13515,8 @@ function PageTrenink() {
   const [fEq, setFEq] = useState([]);
   const [q, setQ] = useState("");
   const [fShelf, setFShelf] = useState([]);
-  const [wholeLibrary,setWholeLibrary]=useState(false);
   const filtered = exs.filter((x) =>
-    (wholeLibrary || TV.isWorkingExercise(x.id)) && tExOnShelf(x, fShelf) &&
+    tExOnShelf(x, fShelf) &&
     (!fPats.length || fPats.includes(x.pat)) &&
     (!fMus.length || fMus.some((m) => resolveMuscleMap(x).primary.includes(m) || resolveMuscleMap(x).secondary.includes(m))) &&
     (!fEq.length || fEq.some((e) => (x.eq || []).includes(e))) &&
@@ -13732,7 +13525,7 @@ function PageTrenink() {
   const sorted = [...filtered].sort((a, b) => (patOrder[a.pat] - patOrder[b.pat]) || (tLvlOf(a) - tLvlOf(b)));
   const EX_PAGE = 24;
   const [exShown, setExShown] = useState(EX_PAGE);
-  React.useEffect(() => { setExShown(EX_PAGE); }, [fPats, fMus, fEq, q, fShelf, wholeLibrary]);
+  React.useEffect(() => { setExShown(EX_PAGE); }, [fPats, fMus, fEq, q, fShelf]);
 
   // ---- dnes ----
   const today = todayISO();
@@ -13763,7 +13556,6 @@ function PageTrenink() {
     { k: "plan", cz: "Můj plán", en: "My plan" },
     { k: "zaznam", cz: "Můj pokrok", en: "My progress" },
     { k: "casovac", cz: "Časovač", en: "Timer" },
-    { k: "knihovna", cz: "Knihovna", en: "Library" },
   ];
   const inpStyle = { background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 14, padding: "8px 12px", outline: "none" };
 
@@ -13786,11 +13578,11 @@ function PageTrenink() {
         {tabs.map((x) => <span key={x.k} data-guide={x.k === "zaznam" ? "trenink.results" : undefined} style={{display:"inline-flex",marginLeft:x.k === "knihovna" ? "auto" : undefined}}><TChip label={L(x.cz, x.en)} active={tab === x.k} onClick={() => { if (x.k === "dnes") setDaysResetKey((key) => key + 1); setTab(x.k); }} /></span>)}
       </div>
 
-      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,marginBottom:12}}>
+      <div data-training-toolbar="" style={{display:"flex",gap:8,alignItems:"center",fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,marginBottom:6}}>
         <button style={tvQuiet(t)} disabled={planStatus.state==="loading"} onClick={()=>window.dispatchEvent(new Event("tm-plan-refresh"))}>{L("Obnovit plán", "Refresh plan")}</button>
-        <span role="status">{planStatus.state==="error"?L("Aktualizaci se nepodařilo ověřit. Poslední uložený plán zůstává dostupný.", "Could not check updates. The last saved plan remains available."):planStatus.state==="loading"?L("Ověřuji plán…", "Checking plan…"):planStatus.at?L("Plán ověřen", "Plan checked")+" · "+new Date(planStatus.at).toLocaleTimeString():""}</span>
-
+        <span style={{marginLeft:"auto"}}><TChip label={L("Knihovna", "Library")} active={tab === "knihovna"} onClick={()=>setTab("knihovna")} /></span>
       </div>
+      <div role="status" style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,marginBottom:12,lineHeight:1.5}}>{planStatus.state==="error"?L("Aktualizaci se nepodařilo ověřit. Poslední uložený plán zůstává dostupný.", "Could not check updates. The last saved plan remains available."):planStatus.state==="loading"?L("Ověřuji plán…", "Checking plan…"):planStatus.at?L("Plán ověřen", "Plan checked")+" · "+new Date(planStatus.at).toLocaleTimeString():""}</div>
       {(tab === "plan" || tab === "zaznam") && <TrainingGoals t={t} plans={del?.plans || []} sessions={sessions} />}
       {tab === "dnes" && <ClientTrainingCalendar t={t} lang={LANG} resetKey={daysResetKey} plans={del?.plans||[]} templates={del?.templates||[]} schedule={sched} sessions={sessions} onPlan={()=>setTab("plan")} onRun={onRunSession} onStart={row=>{const next=TV.startSession(row.template,{date:row.date||todayISO(),plan:row.plan,planSession:row.planned});st.tvPutSession(next);onRunSession(next.id);}}/>}
 
@@ -13800,7 +13592,6 @@ function PageTrenink() {
 
       {tab === "knihovna" && (
         <>
-          <div style={{display:"flex",gap:12,marginBottom:14}}><button style={tvQuiet(t)} aria-pressed={!wholeLibrary} onClick={()=>setWholeLibrary(false)}>{L("Pracovní výběr","Working library")}</button><button style={tvQuiet(t)} aria-pressed={wholeLibrary} onClick={()=>setWholeLibrary(true)}>{L("Celá knihovna","Full library")}</button></div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
             <TChip label={L("Vše", "All")} active={!fPats.length} onClick={() => setFPats([])} />
             {T_PATTERNS.map((p) => <TChip key={p.k} label={L(p.cz, p.en)} active={fPats.includes(p.k)} onClick={() => setFPats(fPats.includes(p.k) ? fPats.filter((x) => x !== p.k) : [...fPats, p.k])} />)}
@@ -13858,7 +13649,9 @@ function TmWbDiamant({ size = 15 }) { return <FamilyIcon id="bodhicitta" size={s
 function TmWbKruh({ size = 15 }) { return <FamilyIcon id="world-practice" size={size} />; }
 function TmIcOblasti({ size = 15 }) { return <FamilyIcon id="areas" size={size} />; }
 function TmIcCile({ size = 15 }) { return <FamilyIcon id="target" size={size} />; }
-const NAV_ICONS = { mandala: TmIcKompas, spolu: TogetherIcon, oblasti: TmIcKompas, cile: TmIcKompas, atomic: TmIcPraxe,  praxe: TmIcPraxe, trenink: TmIcTrenink, terminy: TmIcTerminy, denik: TmIcDenik, kompas: TmIcKompas, zapisnik: TmIcZapisnik, prameny: TmIcPrameny, memento: TmIcMemento, kos: TmIcKos };
+function TmIcHospodareni({ size = 17 }) { return <FamilyIcon id="stewardship" size={size} />; }
+function TmIcSocsite({ size = 17 }) { return <FamilyIcon id="voice" size={size} />; }
+const NAV_ICONS = { hospodareni: TmIcHospodareni, socsite: TmIcSocsite, mandala: TmIcKompas, spolu: TogetherIcon, oblasti: TmIcKompas, cile: TmIcKompas, atomic: TmIcPraxe,  praxe: TmIcPraxe, trenink: TmIcTrenink, terminy: TmIcTerminy, denik: TmIcDenik, kompas: TmIcKompas, zapisnik: TmIcZapisnik, prameny: TmIcPrameny, memento: TmIcMemento, kos: TmIcKos };
 
 // ---- MAPA DOMU · boční panel je mapa života, ne seznam aplikací -----------
 // Skupiny i jejich pořadí leží ve sdíleném jádru (src/shared/product/rooms.js),
@@ -13866,8 +13659,8 @@ const NAV_ICONS = { mandala: TmIcKompas, spolu: TogetherIcon, oblasti: TmIcKompa
 // úložiště, pageMeta i sync na ně visí; mění se jen vyslovená vrstva.
 // Klientská mapa je model V2 podle produktového kontraktu: Den (Praxe,
 // Trénink, Termíny), Směr (Kompas), Paměť (Deník, Zápisník, Prameny),
-// Svět nabízí jen zapnuté Spolu. Hospodaření, Klienti ani Tvorba
-// obsahu do klientského domu nepatří a nejsou v tomhle balíku vůbec.
+// Svět nabízí zapnuté soukromé Spolu, Hospodaření a Tvorbu obsahu.
+// Správa klientů zůstává pouze trenérovi.
 const NAV_EMOJI = { praxe: "🔥", trenink: "▲", terminy: "◷", kompas: "🎲", denik: "✎", zapisnik: "📓", prameny: "▤", };
 const NAV_GROUPS_ALL = navGroupsFor(() => true).map((g) => ({
   cz: g.cz, en: g.en,
@@ -13877,7 +13670,7 @@ const NAV_EXTRAS = {cz:"Další stránky",en:"More pages",items:["oblasti","cile
 const NAV_TRASH = { key: "kos", icon: "🗑", cz: "Koš", en: "Trash" };
 // old Notion-era page keys → current rooms · keeps stored pageMeta (titles,
 // icons, subtitles) alive across the rename without any data migration
-const PAGEKEY_LEGACY = { kompas: "divine", praxe: "habit", zapisnik: "notebook", prameny: "content", denik: "journal", kos: "trash", oblasti: "areas", cile: "goals" };
+const PAGEKEY_LEGACY = { kompas: "divine", praxe: "habit", zapisnik: "notebook", prameny: "content", hospodareni: "finances", denik: "journal", kos: "trash", oblasti: "areas", cile: "goals" };
 // Flat view for anything that needs one item per page key.
 const FAVORITES = [...NAV_GROUPS_ALL.flatMap((g) => g.items), NAV_TRASH];
 
@@ -14353,6 +14146,7 @@ function PageTerminy() {
   const [rezervuji, setRezervuji] = useState(false);
   const [otevreny, setOtevreny] = useState(null);
   const [obnov, setObnov] = useState(0);
+  const [creditHistoryOpen, setCreditHistoryOpen] = useState(false);
   useGuideAction("terminy",()=>{setRezervuji(false);setOtevreny(null);});
   const ctx = useBkc("/booking/context", [obnov]);
   // A member may have training access before a booking account is linked.
@@ -14422,7 +14216,7 @@ function PageTerminy() {
 
       {accountReady && rezervuji && <BkcRezervace ctx={c} onClose={() => setRezervuji(false)} onDone={() => { setRezervuji(false); znovu(); }} />}
 
-      {kredity && (kredity.available > 0 || kredity.reserved > 0 || kredity.consumed > 0) && <BkcKniha />}
+      {kredity && (kredity.available > 0 || kredity.reserved > 0 || kredity.consumed > 0) && <BkcKniha refresh={obnov} open={creditHistoryOpen} onOpen={setCreditHistoryOpen} />}
 
       {pristi.length > 1 && (
         <div style={{ marginBottom: 22 }}>
@@ -14732,10 +14526,9 @@ function BkcDetail({ b, onClose, onChanged }) {
 /* ---- kreditní kniha ------------------------------------------------------
    Zůstatek je nahoře v Termínech. Tohle je to, co za ním stojí — a otevře se
    jen když si to někdo vyžádá, protože většinu dní stačí jedno číslo. */
-function BkcKniha() {
+function BkcKniha({ refresh = 0, open: otevreno, onOpen: setOtevreno }) {
   const { t } = useT();
-  const [otevreno, setOtevreno] = useState(false);
-  const { data, err, reload } = useBkc("/credits", [otevreno], { skip: !otevreno });
+  const { data, err, reload } = useBkc("/credits", [otevreno, refresh], { skip: !otevreno });
   if (!otevreno) {
     return (
       <button onClick={() => setOtevreno(true)} style={{ ...bkcBtn(t), marginBottom: 22 }}>
@@ -14780,6 +14573,8 @@ const MODULES = [
   { key: "spolu", icon: <TogetherIcon size={20}/>, label: "Together", lcs: "Spolu", dcs: "Soukromý cyklus a společné plány. Sdílení určuješ ty.", den: "Private cycle tracking and shared plans. You choose what to share." },
   { key: "denik",    icon: <TmIcDenik size={20}/>,  label: "Journal",      lcs: "Deník",         dcs: "Vlastní zápisy. Kryštof je nikdy nevidí.",        den: "Your own entries. Kryštof never sees them." },
   { key: "zapisnik", icon: <TmIcZapisnik size={20}/>, label: "Notebook",     lcs: "Zápisník",      dcs: "Poznámky, texty, myšlenky. Jen tvoje.",        den: "Notes, texts, thoughts. Yours only." },
+  { key: "hospodareni", icon: <TmIcHospodareni size={20}/>, label: "Stewardship", lcs: "Hospodaření", dcs: "Tvoje příjmy, výdaje a měsíční přehled.", den: "Your income, expenses and monthly overview." },
+  { key: "socsite", icon: <TmIcSocsite size={20}/>, label: "Content", lcs: "Tvorba obsahu", dcs: "Nápady, vlastní podklady a plán publikování.", den: "Ideas, your own resources and publishing plans." },
 ];
 const MOD_KEYS = MODULES.map((m) => m.key);
 
@@ -16387,7 +16182,7 @@ export default function App() {
     if (kind === "klNotes") return L("Poznámka", "Note") + " · " + (e.date || "—");
     if (kind === "klPacks") return L("Balíček", "Package") + " · " + (e.name || "—");
     if (kind === "klComms") return L("Komunikace", "Communication") + " · " + (e.date || "—");
-    return e.title || e.date || L("záznam", "entry");
+    return e.title || e.item || e.source || e.date || L("záznam", "entry");
   };
   // Everything a cascade delete swept up, put back exactly where it stood.
   const restoreCascade = (draft, cx) => {
@@ -16805,17 +16600,15 @@ export default function App() {
     return tvApply(next);
   });
   // ---- the timer · settings, presets, history ----
-  // The voice is remembered per language, not once: the Czech voice you like and the
-  // English one you like are two different voices, and the page can switch between them.
+  // The English voice choice is independent of the interface language.
   // The voice is off until it is asked for. A workout must never depend on being
   // talked to — the beeps carry everything the voice does, and a spoken timer in a
   // shared gym is an imposition on everyone else in the room.
-  const TM_CFG_DEFAULT = { sound: true, volume: 0.7, voice: false, haptics: true, wake: true, countIn: 5, lastMode: "interval", specs: {}, voiceCs: "", voiceEn: "", voiceRate: 1 };
-  const tmCfg = () => ({ ...TM_CFG_DEFAULT, ...(coll.tmCfg || {}) });
-  const setTmCfg = (patch) => persistColl((c) => ({ ...c, tmCfg: { ...TM_CFG_DEFAULT, ...(c.tmCfg || {}), ...patch } }));
+  const tmCfg = () => timerConfig(coll.tmCfg);
+  const setTmCfg = (patch) => persistColl((c) => ({ ...c, tmCfg: { ...timerConfig(c.tmCfg), ...patch, voiceLang: "en", soundV: 2 } }));
   const tmSpecOf = (mode) => ({ ...(TM_DEFAULTS[mode] || {}), ...(((coll.tmCfg || {}).specs || {})[mode] || {}) });
   const setTmSpec = (mode, spec) => persistColl((c) => {
-    const cur = { ...TM_CFG_DEFAULT, ...(c.tmCfg || {}) };
+    const cur = timerConfig(c.tmCfg);
     return { ...c, tmCfg: { ...cur, lastMode: mode, specs: { ...(cur.specs || {}), [mode]: spec } } };
   });
   // ---- ACCEPTING A PROGRESSION ------------------------------------------------
@@ -16889,7 +16682,7 @@ export default function App() {
   // ---- ROLE A CAPABILITY · jedna vrstva, ne stovky podmínek ---------------
   // Praxe, Trénink, Termíny, Kompas a Prameny jsou vždycky doma — bez nich
   // nemá klientská aplikace smysl a nikdo je nemá vypínat. Volitelné jsou
-  // jen soukromé místnosti: Deník, Zápisník a Spolu, a ty jsou
+  // soukromé místnosti: Deník, Zápisník, Spolu, Hospodaření a Tvorba, které jsou
   // ve výchozím stavu vypnuté. Co která role smí, rozhoduje jediná tabulka
   // ve sdíleném jádru (src/shared/product/roles.js), ne podmínka v komponentě.
   //
@@ -16897,7 +16690,7 @@ export default function App() {
   // adresou — a Main-only kód v tomhle balíku vůbec není.
   const TM_ROLE = ROLES.CLIENT;
   // Uložená volba modulů z verze V1 se převede: vždy dostupné místnosti ze
-  // seznamu zmizí (drží je CLIENT_ALWAYS), Hospodaření zmizí úplně, a nic,
+  // seznamu zmizí (drží je CLIENT_ALWAYS) a nic,
   // co si člověk nezapnul, se nezapne.
   const storedModules = migrateClientModules(coll.modules || null);
   const enabledModules = storedModules; // null = první spuštění → uvítání s výběrem
@@ -16922,7 +16715,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [member, stateHydrated, accountStatus]);
   React.useEffect(() => { setFindOpen(false); }, [ownerId, accountStatus]);
-  const navDefaults = {sidebar: ["praxe","trenink","terminy","denik","kompas","zapisnik","prameny","spolu","kos"], dock: dockTabsFor(isEnabled)};
+  const navDefaults = {sidebar: ["praxe","trenink","terminy","denik","kompas","zapisnik","prameny","spolu","hospodareni","socsite","kos"], dock: dockTabsFor(isEnabled)};
   const navConfig = coll.ui?.navigation || {};
   const dockTabs = navigationRooms(navConfig, CLIENT_ROOMS, navDefaults, "dock").filter(isEnabled);
   const sideRooms = navigationRooms(navConfig, CLIENT_ROOMS, navDefaults, "sidebar").filter(isEnabled);
@@ -16975,13 +16768,14 @@ export default function App() {
     if (page!=="__navigation" && !isEnabled(owner)) setPage("praxe");
   }, [enabledModules, page]);
 
-  const store = { readScale, setReadScale, uiCfg, setUiCfg, recentIds, pushRecent, nbFolders, addNbFolder, renameNbFolder, removeNbFolder, moveNbFolder, setEntriesFolder, restoreEntries, persistColl, undo, redo, canUndo: () => histRef.current.past.length > 0, canRedo: () => histRef.current.future.length > 0, caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, addPomoBlocks, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, calCfg, setCalCfg, getCalendarDay, updateCalendarDays, setCalState, setCalendarAllDay, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
+  const contentAvailable = isEnabled("socsite") && !roomPlacement(navConfig,"socsite",navDefaults).hidden;
+  const store = { contentAvailable, journalAvailable: isEnabled("denik") && !roomPlacement(navConfig,"denik",navDefaults).hidden, readScale, setReadScale, uiCfg, setUiCfg, recentIds, pushRecent, nbFolders, addNbFolder, renameNbFolder, removeNbFolder, moveNbFolder, setEntriesFolder, restoreEntries, persistColl, undo, redo, canUndo: () => histRef.current.past.length > 0, canRedo: () => histRef.current.future.length > 0, caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, addPomoBlocks, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, calCfg, setCalCfg, getCalendarDay, updateCalendarDays, setCalState, setCalendarAllDay, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
     tvSessions, tvSessionOf, tvPutSession, tvEditSession, tvDropSession, tvPrefs, tvSetPrefs,
     tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, syncPending,
     tmCfg, setTmCfg, tmSpecOf, setTmSpec,
     setSore, unsetSore, soreNow, tSaidBump };
 
-  React.useEffect(()=>{if(!openTarget)return;const dest=({notebook:"zapisnik",journal:"denik",content:"prameny",goal:"kompas",area:"kompas"})[openTarget.kind];if(dest&&isEnabled(dest))setPage(dest);},[openTarget?.kind,openTarget?.id]);
+  React.useEffect(()=>{if(!openTarget)return;const note=openTarget.kind==="notebook"?(coll.notebook||[]).find(entry=>entry.id===openTarget.id):null;const dest=note?personalNotebookRoom(note,contentAvailable):({notebook:"zapisnik",journal:"denik",content:"prameny",goal:"kompas",area:"kompas",socItems:"socsite",income:"hospodareni",expenses:"hospodareni"})[openTarget.kind];if(dest&&isEnabled(dest))setPage(dest);},[openTarget?.kind,openTarget?.id,contentAvailable]);
 
   const go = (k) => { navigationUsed.current = true; setSlideDir(null); setPage(k); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); };
 
@@ -17015,13 +16809,13 @@ export default function App() {
       case "zapisnik": return <PageNotebook />;
       case "prameny": return <PageContent />;
       case "denik": return <PageJournal />;
+      case "hospodareni": return <PagePersonalFinances />;
+      case "socsite": return <PagePersonalContent />;
       case "terminy": return <PageTerminy />;
       case "kos": return <PageTrash />;
       case "memento": return <PageMemento go={go} />;
       case "mandala": return <PageMandala go={go} />;
-      // Klienti, Hospodaření, Tvorba obsahu a osobní Mandala nejsou skryté
-      // místnosti — v klientském sestavení neexistují. Kdyby se sem stav
-      // dostal starým odkazem, otevře se práh domu.
+      // Trenérská správa klientů v klientském sestavení neexistuje.
       default: return <PageHabit go={go} />;
     }
   };
@@ -17496,7 +17290,7 @@ export default function App() {
           </nav>
         </TmDok>
 
-        {findOpen && member && stateHydrated && accountStatus !== "changed" && <ClientSearch key={ownerId || "offline"} t={t} lang={lang} records={coll} goals={allGoals()} sources={allSources()} enabled={isEnabled} Sheet={CenterSheet}
+        {findOpen && member && stateHydrated && accountStatus !== "changed" && <ClientSearch key={ownerId || "offline"} t={t} lang={lang} records={coll} goals={allGoals()} sources={allSources()} enabled={key=>isEnabled(key)&&!roomPlacement(navConfig,key,navDefaults).hidden} Sheet={CenterSheet}
           onClose={() => setFindOpen(false)} onPick={hit => { if (!isEnabled(hit.room)) return; setFindOpen(false); setOpenTarget({ kind: hit.kind, id: hit.id }); go(hit.room); }} />}
 
         {guideOpen && <AppGuide registerEscape={tmEscVrstva} t={t} lang={lang} role="client" currentRoom={setsOpen?"nastaveni":page}

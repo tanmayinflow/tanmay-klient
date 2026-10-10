@@ -70,7 +70,7 @@ export function createAtoms(deps) {
     const title = meta.title || children;
     const kick = meta.kicker || kicker;
     const editable = pageKey && st.editMode;
-    const h1Style = { fontFamily: "var(--tm-font-display)", fontWeight: 300, fontSize: 46, lineHeight: 1.1, color: t.heading, margin: 0, display: "flex", alignItems: "center", gap: 14 };
+    const h1Style = { fontFamily: "var(--tm-font-display)", fontWeight: 300, fontSize: "clamp(36px, 11vw, 46px)", lineHeight: 1.1, color: t.heading, margin: 0, display: "flex", alignItems: "center", gap: 14, minWidth: 0 };
     const titleStyle = right ? { ...h1Style, minWidth: 0 } : h1Style;
     const iconNode = icon && <span className="tm-page-icon">{typeof icon === "string" ? <span style={{ fontSize: 48 }}>{icon}</span> : React.isValidElement(icon) && typeof icon.type !== "string" ? React.cloneElement(icon, { size: 48 }) : icon}</span>;
     return (
@@ -85,7 +85,7 @@ export function createAtoms(deps) {
             {iconNode}
             {editable
               ? <BufferedInput value={typeof title === "string" ? title : ""} onCommit={(v) => st.setPageMeta(pageKey, { title: v })} placeholder={L("Název stránky…", "Page title…")} style={{ ...h1Style, display: "block", borderBottom: `1px solid transparent` }} />
-              : title}
+              : <span className="tm-page-title-text" style={{minWidth:0,overflowWrap:"anywhere"}}>{title}</span>}
             {right && <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>{right}</span>}
           </h1>
         </div>
@@ -219,6 +219,7 @@ export function createAtoms(deps) {
         onPointerLeave={onInfo ? clear : undefined} onPointerCancel={onInfo ? clear : undefined}
         onContextMenu={onInfo ? (e) => e.preventDefault() : undefined}
         className="tm-chip"
+        aria-pressed={active === undefined ? undefined : !!active}
         style={{ background: active ? t.card : "transparent", border: `1px solid ${active ? t.border : "transparent"}`, borderRadius: "var(--tm-r-pill)", padding: "8px 14px", minHeight: "var(--tm-tap-compact)", display: "inline-flex", alignItems: "center", cursor: "pointer", color: active ? t.heading : t.textMuted, boxShadow: active ? t.shadow : "none", fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, whiteSpace: "nowrap", WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "manipulation" }}>
         {label}
       </button>

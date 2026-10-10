@@ -1196,7 +1196,7 @@ export function createPracticeUI(deps) {
             {/* Deník dne · v klientském domě je Deník volitelný a soukromý.
                 Když ho člověk nemá otevřený, tenhle pruh v kartě nevzniká —
                 ne že by se schoval. */}
-            {(() => { const c = (st && st.caps) || caps; return (!c || c.journal !== false) ? <JournalOfDay date={date} go={go} /> : null; })()}
+            {(() => { const c = (st && st.caps) || caps; return st.journalAvailable !== false && (!c || c.journal !== false) ? <JournalOfDay date={date} go={go} /> : null; })()}
           </div>
         )}
       </div>

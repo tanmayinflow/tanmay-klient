@@ -25,7 +25,7 @@ export function ClientTrainingCalendar({t,lang,plans,templates,schedule,sessions
   },[day,month,scrollKey]);
   const marksFor=value=>rows.filter(row=>row.date===value).slice(0,3).map(row=>({solid:row.record?.state==="done",color:row.record?.state==="done"?t.sage:t.accent}));
   const quiet={background:"transparent",border:"none",color:t.accentInk||t.accent,minWidth:44,minHeight:44,cursor:"pointer",fontFamily:FONT_BODY};
-  const arrow={...quiet,border:`1px solid ${t.border}`,borderRadius:6,color:t.textMuted,padding:"6px 10px",fontSize:12,display:"inline-flex",alignItems:"center",justifyContent:"center"};
+  const arrow={...quiet,color:t.textMuted,padding:"6px 10px",fontSize:12,display:"inline-flex",alignItems:"center",justifyContent:"center"};
   const calendarButton={...quiet,border:`1px solid ${t.borderSoft}`,borderRadius:14,padding:"7px 10px",fontSize:12,color:t.textMuted};
   const renderMarks=value=><span aria-hidden="true" style={{display:"flex",gap:3,justifyContent:"center",minHeight:6,marginTop:3}}>{marksFor(value).map((mark,i)=><span key={i} style={{width:5.5,height:5.5,borderRadius:"50%",background:mark.solid?mark.color:"transparent",border:`1px solid ${mark.color}`}}/>)}</span>;
   return <section style={{maxWidth:760,margin:"0 auto"}} aria-label={L("Kalendář tréninku","Training calendar")}>

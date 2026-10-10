@@ -89,7 +89,7 @@ export const APP_GUIDE_STEPS = Object.freeze([
 ]);
 
 const clientRooms = new Set([...CLIENT_ALWAYS, ...CLIENT_OPTIONAL, ...CLIENT_HIDDEN, ...CLIENT_INFRA, 'atomic', 'oblasti', 'cile']);
-const coachOnly = new Set(['klienti', 'hospodareni', 'socsite']);
+const coachOnly = new Set(['klienti']);
 
 export function guideText(value, lang = 'cs') {
   return Array.isArray(value) ? value[lang === 'en' ? 1 : 0] : String(value || '');

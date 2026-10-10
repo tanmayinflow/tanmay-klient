@@ -24,11 +24,11 @@ export const CLIENT_ALWAYS = Object.freeze(["praxe", "trenink", "terminy", "komp
 export const CLIENT_HIDDEN = Object.freeze(["memento", "mandala"]);
 
 /** Místnosti, které si klient zapíná sám a které jsou ve výchozím stavu vypnuté. */
-export const CLIENT_OPTIONAL = Object.freeze(["denik", "zapisnik", "spolu"]);
+export const CLIENT_OPTIONAL = Object.freeze(["denik", "zapisnik", "spolu", "hospodareni", "socsite"]);
 
 /** Místnosti, které v klientské aplikaci nikdy nejsou. Ne skryté — nejsou. */
 export const CLIENT_NEVER = Object.freeze([
-  "klienti", "hospodareni", "socsite", "asistent",
+  "klienti", "asistent",
 ]);
 
 /** Infrastruktura. Není to praxe, žije pod mapou domu. */
@@ -106,8 +106,8 @@ export function deriveCapabilities(input) {
   caps.manageClients = false;
   caps.manageAvailability = false;
   caps.managePackages = false;
-  caps.manageContent = false;
-  caps.manageFinances = false;
+  caps.manageContent = on("socsite");
+  caps.manageFinances = on("hospodareni");
 
   const share = (input && input.share) || {};
   caps.consciousShareHabits = !!share.habits && caps.practice;
@@ -154,8 +154,8 @@ export function clientSelectableModules() {
  * Migrace starší volby modulů na model V2.
  * Nezapíná nic, co si člověk nezapnul, a nevypíná nic, co měl. Místnosti,
  * které jsou nově vždy k dispozici, ze seznamu prostě zmizí — drží je
- * CLIENT_ALWAYS, ne uložená volba. Hospodaření se z klientské volby
- * odstraňuje, protože ta místnost v klientském domě není.
+ * CLIENT_ALWAYS, ne uložená volba. Nové soukromé místnosti se zachovají
+ * pouze tehdy, když si je člověk výslovně zapnul.
  */
 export function migrateClientModules(stored) {
   if (!Array.isArray(stored)) return null;      // ještě nevybral · uvítání rozhodne
