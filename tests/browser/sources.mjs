@@ -3,7 +3,7 @@
 // Sdílená vrstva (src/shared/ui/sources.jsx) běží v osobní i klientské
 // aplikaci. Tenhle soubor se ptá skutečné aplikace: vykreslí se místnost,
 // najde se hledání, přepne se zobrazení, otevře se detail. V klientské
-// aplikaci navíc ověřuje sdílený pramen — že nese štítek Od Tanmaye, že se
+// aplikaci navíc ověřuje sdílený pramen — že nese štítek Od Kryštofa, že se
 // jeho zadání nedá přepsat, že klientova poznámka je označená jako soukromá
 // a že po odebrání ze sdílení nezmizí.
 //
@@ -35,6 +35,7 @@ try {
     localStorage.setItem("tm-lang", "cs");
     localStorage.setItem("tm-theme", "light");
     localStorage.setItem("tmGuideVersion", "999");
+    if (!localStorage.getItem("tanmay_coll_v1")) localStorage.setItem("tanmay_coll_v1", JSON.stringify({ modules: ["praxe", "trenink", "terminy", "prameny"], jImported: true, nbImported: true, journal: [], notebook: [] }));
   });
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(1800);
@@ -106,10 +107,10 @@ try {
   check("vlastní pramen se dá založit", zalozen);
 
   if (KLIENT) {
-    // Sdílený pramen od Tanmaye.
+    // Sdílený pramen od Kryštofa.
     const dorucen = await page.evaluate(async () => {
       const doc = { v: 1, at: Date.now(), sources: [{
-        id: "cs-1", title: "Dech a klid mysli", author: "Tanmay", type: "Article",
+        id: "cs-1", title: "Dech a klid mysli", author: "Kryštof", type: "Article",
         why: "Protože ti v prvním týdnu půjde hlavně o zpomalení.",
         instruction: "Přečti si první tři odstavce a zkus to jednou večer.",
         excerpt: "Nádech se počítá do čtyř, výdech do šesti.",
@@ -127,13 +128,13 @@ try {
       const txt = document.body.innerText || "";
       return {
         pramen: txt.indexOf("Dech a klid mysli") !== -1,
-        odT: /OD TANMAYE|Od Tanmaye/.test(txt),
+        odT: /OD KRYŠTOFA|Od Kryštofa/.test(txt),
         muj: /MŮJ\b|Můj\b/.test(txt),
         zakazana: ["Locked", "Admin", "System-owned"].filter((w) => txt.indexOf(w) !== -1),
       };
     });
     check("sdílený pramen je vidět", vidi.pramen, JSON.stringify(vidi));
-    check("nese štítek Od Tanmaye", vidi.odT);
+    check("nese štítek Od Kryštofa", vidi.odT);
     check("vlastní pramen se v tu chvíli jmenuje Můj", vidi.muj);
     check("ani tady nikde nestojí Locked", vidi.zakazana.length === 0, vidi.zakazana.join(", "));
 
@@ -150,7 +151,7 @@ try {
         proc: csTxt.indexOf("Protože ti v prvním týdnu") !== -1,
         pokyn: csTxt.indexOf("Přečti si první tři odstavce") !== -1,
         vynatek: csTxt.indexOf("Nádech se počítá do čtyř") !== -1,
-        soukrome: csTxt.indexOf("Tanmay to nečte") !== -1,
+        soukrome: csTxt.indexOf("Kryštof to nečte") !== -1,
         kopie: csTxt.indexOf("Udělat vlastní kopii") !== -1,
         koš: csTxt.indexOf("Do koše") !== -1,
         // zadání se nesmí dát přepsat: žádné pole pro autora ani datum
@@ -160,7 +161,7 @@ try {
     });
     check("detail sdíleného pramene se otevřel", detail.otevreno, JSON.stringify(detail));
     check("proč na něm záleží je vidět", detail.proc);
-    check("pokyn od Tanmaye je vidět", detail.pokyn);
+    check("pokyn od Kryštofa je vidět", detail.pokyn);
     check("výňatek je vidět", detail.vynatek);
     check("klientova poznámka je označená jako soukromá", detail.soukrome);
     check("dá se z něj udělat vlastní kopie", detail.kopie);
@@ -212,7 +213,8 @@ try {
   const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const p2 = await ctx2.newPage();
   const errs2 = []; p2.on("pageerror", (e) => errs2.push(String(e).split("\n")[0]));
-  await p2.addInitScript(() => { localStorage.setItem("tm-lang", "en"); localStorage.setItem("tmGuideVersion", "999"); });
+  await p2.addInitScript(() => { localStorage.setItem("tm-lang", "en"); localStorage.setItem("tmGuideVersion", "999");
+    if (!localStorage.getItem("tanmay_coll_v1")) localStorage.setItem("tanmay_coll_v1", JSON.stringify({ modules: ["praxe", "trenink", "terminy", "prameny"], jImported: true, nbImported: true, journal: [], notebook: [] })); });
   await p2.goto(BASE, { waitUntil: "domcontentloaded" });
   await p2.waitForTimeout(1800);
   const en = await p2.evaluate(async () => {

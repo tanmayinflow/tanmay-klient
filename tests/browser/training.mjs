@@ -75,6 +75,7 @@ try {
 
   check("dá se začít", await hit(page, "Začít"));
   await page.waitForTimeout(800);
+  check("přehled dne otevře průvodce tréninkem", await hit(page, "Spustit trénink"));
   const stageText = await page.evaluate(() => (document.querySelector("[data-tm-stage]") || {}).innerText || "");
   check("běžící trénink ukazuje plán i poznámku trenéra", /Dřep/.test(stageText) && /do boxu/.test(stageText), stageText.slice(0, 140).replace(/\n/g, " "));
   check("soukromá poznámka trenéra tu není", !/privateNote/.test(JSON.stringify(state.plan)));
@@ -107,7 +108,8 @@ try {
   check("doručený plán zůstal, jak přišel", !!tv2.delivered && (tv2.delivered.templates[0].blocks[0].sets[0].planned || {}).targetReps === 10);
 
   // dokončit
-  check("dá se ukončit", await hit(page, "Ukončit trénink"));
+  check("pauza po sérii jde přeskočit", await hit(page, "Přeskočit pauzu"));
+  check("rozcvičený trénink jde z průvodce ukončit dřív", await hit(page, "Ukončit dřív"));
   await page.waitForTimeout(500);
   check("a potvrdit", await hit(page, "Hotovo"));
   await page.waitForTimeout(2600);
@@ -163,6 +165,7 @@ try {
     await page2.waitForTimeout(2000);
     check("desetinná · dá se začít", await hit(page2, "Začít"));
     await page2.waitForTimeout(800);
+    check("desetinná · přehled dne otevře průvodce", await hit(page2, "Spustit trénink"));
     const kg = page2.locator("[data-tm-stage] label", { hasText: /KG/i }).first().locator("input");
     const found = await kg.count();
     check("desetinná · pole v kilogramech je na scéně", found > 0);

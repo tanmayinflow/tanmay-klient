@@ -18,7 +18,7 @@ let browser;
 try { browser = await chromium.launch({ executablePath: EXE, args: ["--no-sandbox"] }); }
 catch (e) { console.log("SKIP · Chromium se nepodařilo spustit: " + e.message); srv.close(); process.exit(0); }
 
-state.me = { member: true, name: "Zkušební", owner: "abc123" };
+state.me = { member: true, name: "Zkušební", owner: "aaaaaaaaaaaaaaaa" };
 
 async function otevri(ctx, lang) {
   const page = await ctx.newPage();
@@ -32,6 +32,7 @@ async function otevri(ctx, lang) {
   });
   await page.addInitScript((l) => {
     localStorage.setItem("tm-lang", l);
+    localStorage.setItem("tmGuideVersion", "999");
     localStorage.setItem("tanmay_coll_v1", JSON.stringify({ modules: ["praxe", "trenink", "terminy", "denik"] }));
   }, lang);
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
@@ -109,7 +110,7 @@ try {
     const trenerske = zadosti.filter((u) => /\/api\/booking\//.test(u) || /\/api\/klienti/.test(u));
     check("klientská aplikace nikdy nezavolá trenérskou cestu", trenerske.length === 0, trenerske.slice(0, 2).join(" "));
     const txt = await page.evaluate(() => document.body.innerText);
-    check("klient nevidí jméno jiného klienta", !/Zkušební Klient/.test(txt) || true);
+    check("klient nevidí jméno jiného klienta", !/Zkušební Klient/.test(txt));
     check("klient nevidí, čím je Tanmay obsazený", !/Obsazeno|zubař/.test(txt));
     await ctx.close();
   }

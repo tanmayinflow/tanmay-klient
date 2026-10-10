@@ -297,6 +297,10 @@ function withSecurityHeaders(res) {
 // ---- R2 files ---------------------------------------------------------------
 const ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 
+function decodePathId(value) {
+  try { return decodeURIComponent(value); } catch { return ""; }
+}
+
 // Typ obsahu si u nahrávání určuje ten, kdo nahrává. Kdyby se takový soubor
 // podal zpět jako text/html, běžel by cizí kód na naší doméně a viděl by na
 // všechno, co tu člověk má. Vlastní médium podáváme, jak přišlo; cokoli
@@ -376,18 +380,19 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/health") {
+      if (!userIdFrom(request)) return unauthorized();
       const result = { db: "unknown", files: "unknown", identity: "unknown" };
       try {
         const row = await env.DB.prepare("SELECT 1 AS ok").first();
         result.db = row && row.ok === 1 ? "ok" : "unexpected";
-      } catch (e) {
-        result.db = "error: " + e.message;
+      } catch {
+        result.db = "error";
       }
       try {
         await env.FILES.head("__healthcheck__");
         result.files = "ok";
-      } catch (e) {
-        result.files = "error: " + e.message;
+      } catch {
+        result.files = "error";
       }
       result.identity = userIdFrom(request) || "missing";
       // Stav schématu · po nasazení se dá ověřit z aplikace, ne ručním SQL.
@@ -411,10 +416,10 @@ export default {
           memberColumns: clenSloupce,
           ready: nutne.every((n) => jsou.has(n)) && ["name", "share", "modules"].every((c) => clenSloupce.indexOf(c) !== -1),
         };
-      } catch (e) {
-        result.schema = { error: e.message };
+      } catch {
+        result.schema = { error: "unavailable" };
       }
-      return Response.json(result);
+      return Response.json(result, { headers: { "Cache-Control": "no-store" } });
     }
 
     // Everything under /api/* is per-user; without an Access identity there is no user.
@@ -479,7 +484,7 @@ export default {
         return handleFilesList(request, env, userId);
       }
       if (url.pathname.startsWith("/api/files/")) {
-        const id = decodeURIComponent(url.pathname.slice("/api/files/".length));
+        const id = decodePathId(url.pathname.slice("/api/files/".length));
         return handleFiles(request, env, userId, id);
       }
       return Response.json({ ok: false, error: "not found" }, { status: 404 });

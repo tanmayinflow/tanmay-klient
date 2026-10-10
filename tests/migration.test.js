@@ -99,7 +99,7 @@ test("migrace nikdy nemaže · v kódu není DROP ani DELETE nad chráněnou tab
 
 test("stav schématu se dá přečíst z aplikace, ne ručním SQL", async () => {
   const env = makeEnv();
-  const r = await worker.fetch(req("/api/health"), env);
+  const r = await worker.fetch(req("/api/health", { email: "migration@example.test" }), env);
   assert.equal(r.status, 200);
   const b = await r.json();
   assert.ok(b.schema, "health musí hlásit stav schématu");

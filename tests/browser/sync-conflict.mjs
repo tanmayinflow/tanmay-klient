@@ -56,6 +56,7 @@ const writeJournal = (page, title) => page.evaluate((t) => {
 }, title);
 // Zápis na obrazovce: nový cíl dne v Praxi je skutečný zápis do dne.
 async function typeToday(page, text) {
+  await page.getByRole("tab", { name: /^(Den|Day)$/ }).click();
   const inp = page.getByPlaceholder(/Nový cíl dne|New goal for today/).first();
   await inp.click({ timeout: 4000 });
   await inp.fill(text);

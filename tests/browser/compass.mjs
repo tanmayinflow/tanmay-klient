@@ -4,7 +4,7 @@
 // aplikaci. Tenhle soubor se ptá skutečné aplikace, jestli se místnost opravdu
 // vykreslí, jestli se dílna otevře, jestli se detail cíle dá otevřít a zavřít
 // a jestli po tom všem nezůstane zamčená stránka. V klientské aplikaci navíc
-// ověřuje, že cíl od Tanmaye nese klidný štítek „Od Tanmaye" — ne „Locked".
+// ověřuje, že cíl od Kryštofa nese klidný štítek „Od Kryštofa" — ne „Locked".
 //
 //   npm run build && node tests/browser/compass.mjs
 import { createServer } from "./server.mjs";
@@ -65,7 +65,7 @@ try {
       dilna: txt.indexOf("otevřít dílnu") !== -1,
       // Zakázaná slovní zásoba · rozdíl vlastnictví se nesmí jmenovat zámek.
       zakazana: ["locked", "admin goal", "system-owned"].filter((w) => txt.indexOf(w) !== -1),
-      odTanmaye: txt.indexOf("od tanmaye") !== -1,
+      odTanmaye: txt.indexOf("od kryštofa") !== -1,
       chipy: document.querySelectorAll(".tm-lift").length,
     };
   });
@@ -132,7 +132,7 @@ try {
   const poDetailu = await page.evaluate(() => getComputedStyle(document.body).position);
   check("po detailu krajiny zámek nezůstal", poDetailu !== "fixed", poDetailu);
 
-  // Cíl od Tanmaye · jen klientská aplikace. Musí se jmenovat klidně,
+  // Cíl od Kryštofa · jen klientská aplikace. Musí se jmenovat klidně,
   // zadání nesmí být přepsatelné a trenérova poznámka se k němu nedostane.
   if (KLIENT) {
     const dorucen = await page.evaluate(async () => {
@@ -152,14 +152,14 @@ try {
       const txt = document.body.innerText || "";
       return {
         vidi: txt.indexOf("Ranní mobilita každý den") !== -1,
-        stitek: txt.indexOf("Od Tanmaye") !== -1 || txt.indexOf("OD TANMAYE") !== -1,
+        stitek: txt.indexOf("Od Kryštofa") !== -1 || txt.indexOf("OD KRYŠTOFA") !== -1,
         moje: txt.indexOf("Moje") !== -1 || txt.indexOf("MOJE") !== -1,
         tajemstvi: txt.indexOf("TAJNÁ TRENÉROVA POZNÁMKA") !== -1,
         zakazana: ["Locked", "locked", "Admin goal", "System-owned"].filter((w) => txt.indexOf(w) !== -1),
       };
     });
-    check("cíl od Tanmaye je v Kompasu vidět", cg.vidi, JSON.stringify(cg));
-    check("nese štítek Od Tanmaye", cg.stitek);
+    check("cíl od Kryštofa je v Kompasu vidět", cg.vidi, JSON.stringify(cg));
+    check("nese štítek Od Kryštofa", cg.stitek);
     // Vlastní cíl klientská aplikace neseeduje — založíme si ho, ať je vidět,
     // že se obě třídy v jednom seznamu rozliší klidně a bez zámku.
     const zalozen = await page.evaluate(async () => {
@@ -186,7 +186,7 @@ try {
     check("vlastní cíl se dá založit", zalozen);
     const obe = await page.evaluate(() => {
       const txt = (document.body.innerText || "");
-      return { moje: /MOJE|Moje/.test(txt), odT: /OD TANMAYE|Od Tanmaye/.test(txt) };
+      return { moje: /MOJE|Moje/.test(txt), odT: /OD KRYŠTOFA|Od Kryštofa/.test(txt) };
     });
     check("vlastní cíle se v tu chvíli jmenují Moje", obe.moje, JSON.stringify(obe));
     check("obě třídy stojí vedle sebe", obe.moje && obe.odT, JSON.stringify(obe));
@@ -217,13 +217,13 @@ try {
         tajemstvi: txt.indexOf("TAJNÁ TRENÉROVA POZNÁMKA") !== -1,
       };
     });
-    check("detail cíle od Tanmaye se otevřel", pokus.otevreno, JSON.stringify(pokus));
-    check("záměr od Tanmaye je vidět", pokus.zamer);
+    check("detail cíle od Kryštofa se otevřel", pokus.otevreno, JSON.stringify(pokus));
+    check("záměr od Kryštofa je vidět", pokus.zamer);
     check("klient má svůj krok", pokus.mujKrok);
     check("klient může požádat o uzavření", pokus.oznacit);
     check("spouštěč se u cizího zadání nenabízí", !pokus.spoustec);
     check("dosažitelnost se u cizího zadání nenabízí", !pokus.dosazitelnost);
-    check("termín od Tanmaye není pole k přepsání", pokus.datumPoli === 0, String(pokus.datumPoli));
+    check("termín od Kryštofa není pole k přepsání", pokus.datumPoli === 0, String(pokus.datumPoli));
     check("trenérova poznámka není ani v detailu", !pokus.tajemstvi);
     await page.keyboard.press("Escape");
     await page.waitForTimeout(500);
