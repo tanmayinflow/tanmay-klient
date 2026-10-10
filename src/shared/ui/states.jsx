@@ -14,8 +14,9 @@ import React from "react";
 const EMPTY_ROOM_ART = new Set(['kompas','trenink','denik','zapisnik','terminy']);
 export function EmptyRoomArt({ room, size = 150, color = "var(--tm-text-muted)" }) {
   if (!EMPTY_ROOM_ART.has(room)) return null;
-  const art = "url('/media/icons/empty-" + room + "-v2.webp') center/contain no-repeat";
-  return <span aria-hidden="true" data-empty-art={room} style={{display:"block",width:size,maxWidth:"100%",aspectRatio:"1",margin:"0 auto",pointerEvents:"none",backgroundColor:color,mask:art,WebkitMask:art}} />;
+  const landscape = room === 'kompas';
+  const art = "url('/media/icons/empty-" + room + (landscape ? "-wide-v3.webp" : "-v2.webp") + "') center/contain no-repeat";
+  return <span aria-hidden="true" data-empty-art={room} style={{display:"block",width:landscape?"100%":size,maxWidth:landscape?560:"100%",aspectRatio:landscape?"2 / 1":"1",margin:"0 auto",pointerEvents:"none",backgroundColor:color,mask:art,WebkitMask:art}} />;
 }
 
 export function createStates(useT, L) {
@@ -82,15 +83,8 @@ export function createStates(useT, L) {
   // Jedna kapka nad třemi kruhy na hladině. Nic to nevysvětluje, jen to drží
   // prázdnou stránku, aby nevypadala jako porucha.
   function TmArtKapka({ size = 130, color }) {
-    return (
-      <svg width={size} height={size * 110 / 120} viewBox="0 0 120 110" fill="none" stroke={color || "currentColor"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block", margin: "0 auto" }}>
-        <path d="M60 14c8.5 11 14.5 19 14.5 27a14.5 14.5 0 1 1-29 0c0-8 6-16 14.5-27Z" />
-        <path d="M54 44a7 7 0 0 0 5 6" opacity=".4" />
-        <ellipse cx="60" cy="88" rx="15" ry="3.6" opacity=".7" />
-        <ellipse cx="60" cy="88" rx="27" ry="6.4" opacity=".4" />
-        <ellipse cx="60" cy="88" rx="40" ry="9.5" opacity=".2" />
-      </svg>
-    );
+    const art = "url('/media/icons/empty-prameny-v3.webp') center/contain no-repeat";
+    return <span aria-hidden="true" data-empty-art="prameny" style={{display:"block",width:size,maxWidth:"100%",aspectRatio:"1",margin:"0 auto",pointerEvents:"none",backgroundColor:color||"currentColor",mask:art,WebkitMask:art}} />;
   }
 
   return { Prazdno, TmArtKapka };

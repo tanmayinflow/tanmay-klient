@@ -10,7 +10,7 @@ export const ROOM_ART = Object.freeze({
   hospodareni: 'finance-illustration-v1.png',
   socsite: 'content-illustration-v1.png',
   kos: 'basket-illustration-v2.png',
-  terminy: 'appointments-hourglass-v1.png',
+  terminy: 'empty-trenink-v2.webp',
 });
 
 export function roomArtCss() {

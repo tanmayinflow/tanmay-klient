@@ -1,3 +1,6 @@
+import {createContentWorkshopUI} from './shared/ui/contentWorkshop.jsx';
+
+import {mergeContentSnapshot,fetchContentLibrary} from './shared/product/contentWorkshop.js';
 import { tmAudio } from "./training/timerAudio.js";
 import { tmVoice, tmNum, tmVL, timerConfig } from "./training/timerVoice.js";
 import { createTimerSettings } from "./shared/ui/timerSettings.jsx";
@@ -114,7 +117,7 @@ import { bootstrapSyncDecision } from "./shared/product/bootstrapSync.js";
 import { createClientSession } from "./clientSession.js";
 import { createClientStartupNavigation, clientHabitDefinitions } from "./clientPreferences.js";
 import { scopeLegacyClientPins } from "./clientPinned.js";
-import { createPersonalRoomsUI } from "./shared/ui/personalRooms.jsx";
+import { createFinanceRoom } from "./shared/ui/financeRoom.jsx";
 import { personalNotebookRoom } from "./shared/product/personalRooms.js";
 import { createDocumentSyncQueue } from "./shared/product/documentSyncQueue.js";
 
@@ -4638,7 +4641,7 @@ function PageNotebook({ koren, korenNazev }) {
   // úklid smí přijít až po obou setbách · řetěz vlajek nbImported → practicesSeeded → nbSorted
   // Nabízí se jen slovní zásoba téhle místnosti; barvu si ale poznámka
   // najde v celém seznamu, aby štítek z druhé místnosti nezešedl.
-  const tags = st.nbTags();
+  const tags = st.nbTagsFor(koren ? "soc" : "nb");
   const vseTagy = st.nbTags();
   // Poznámky tvorby se oddělí až při dostupné stránce Tvorba obsahu.
   const all = (st.coll.notebook || []).filter(e => koren ? tmInFolder(e, koren) : personalNotebookRoom(e, st.contentAvailable) === "zapisnik");
@@ -4655,11 +4658,12 @@ function PageNotebook({ koren, korenNazev }) {
   const [folder, setFolder] = useState(koren || "");   // "" = vše, "__none__" = nezařazené · s kořenem začíná v něm
   const [treeOpen, setTreeOpen] = useState(null);  // null | "browse" | "move"
   // zobrazení a řazení si místnost pamatuje sama · přežije zavření aplikace
-  const meta = st.pageMetaOf("zapisnik");
+  const notebookMetaKey = koren ? "content-notes" : "zapisnik";
+  const meta = st.pageMetaOf(notebookMetaKey);
   const vw = tmViewOk(meta.view);
-  const setVw = (v) => st.setPageMeta("zapisnik", { view: v });
+  const setVw = (v) => st.setPageMeta(notebookMetaKey, { view: v });
   const sortBy = meta.sort || "manual";
-  const setSortBy = (v) => st.setPageMeta("zapisnik", { sort: v });
+  const setSortBy = (v) => st.setPageMeta(notebookMetaKey, { sort: v });
   const [full, setFull] = useState(null);
   // zmenšený náhled otevřené poznámky · zavírá se spolu s ní
   const [nahled, setNahled] = useState(false);
@@ -4982,7 +4986,7 @@ function PageNotebook({ koren, korenNazev }) {
         />
       )}
 
-      {managing && <NbTagManager onDone={() => setManaging(false)} ops={{ list: tags, add: (n, c) => st.addNbTag(n, c), rename: st.renameNbTag, reorder: st.reorderNbTag, remove: st.removeNbTag, protectedName: koren ? null : "Poznámky", attr: "data-nbtag" }} />}
+      {managing && <NbTagManager onDone={() => setManaging(false)} ops={{ list: tags, add: (n, c) => st.addNbTag(n, c, koren ? "soc" : "nb"), rename: st.renameNbTag, reorder: st.reorderNbTag, remove: st.removeNbTag, protectedName: koren ? null : "Poznámky", attr: "data-nbtag" }} />}
       {!selecting && <AddEntry kind="notebook" tags={tags} label={L("Nová poznámka", "New note")} folder={folder && folder !== "__none__" ? folder : (koren || "")} openSignal={newSignal} hideButton />}
 
       {/* naposledy otevřené · krátká paměť na to, kde jsem byl. Ukáže se jen
@@ -10142,7 +10146,8 @@ const {
   AllDayEvents: createAllDayEvents({useT,useStore,L,uid,shiftISO}), journalArchive: JOURNAL_FULL, flow: FLOW,
 });
 
-const {PagePersonalFinances,PagePersonalContent} = createPersonalRoomsUI({useT,useStore,L,PageTitle,CenterSheet,RichArea,uid,todayISO});
+const {FinanceRoom: PagePersonalFinances} = createFinanceRoom({useT,useStore,L,PageTitle,CenterSheet,uid,todayISO});
+const {PageContentWorkshop} = createContentWorkshopUI({useT,useStore,L,PageTitle,PageNotebook,Divider,Toggle,Tag,Select,CenterSheet,BufferedInput,RostouciText,ExportBtn,uid,todayISO,hexA,pProse,fieldStyle,iconBtn,gdEmbed:tmGdEmbed});
 
 const { PageMandala } = createMandalaUI({useT,useStore,L,uid,resizeImageToBlob,r2Put,r2Del,imgSrc,Toggle,Eyebrow,BRAND});
 const personalCalendar = createGoogleCalendar({role:"client",L,todayISO,BRAND,
@@ -16048,11 +16053,12 @@ export default function App() {
   const addPomoTree = () => addPomoBlocks([]);
   const addPomoBlocks = list => persistColl(c => appendPomoBlocks(c, list, todayISO()));
   const nbTags = () => coll.nbTags || NB_DEFAULT_TAGS;
-  const addNbTag = (name, color) => { if (nbTags().some(([n]) => n.toLowerCase() === name.toLowerCase())) return false; persistColl((c) => ({ ...c, nbTags: [...(c.nbTags || NB_DEFAULT_TAGS), [name, color || "default"]] })); return true; };
+  const nbTagsFor = obor => nbTags().filter(([name]) => ((coll.nbTagObor || {})[name] || "nb") === obor || (obor === "nb" && !contentAvailable));
+  const addNbTag = (name, color, obor = "nb") => { if (nbTags().some(([n]) => n.toLowerCase() === name.toLowerCase())) return false; persistColl((c) => ({ ...c, nbTags: [...(c.nbTags || NB_DEFAULT_TAGS), [name, color || "default"]], nbTagObor: {...(c.nbTagObor || {}), [name]:obor} })); return true; };
   const renameNbTag = (oldName, newName) => {
     const tags2 = nbTags().map(([n, c]) => [n === oldName ? newName : n, c]);
     const nb = (coll.notebook || []).map((e) => { const et = entryTags(e); if (!et.includes(oldName)) return e; const fin = et.map((x) => x === oldName ? newName : x); return { ...e, tags: fin, tag: fin[0] }; });
-    persistColl((c) => ({ ...c, nbTags: tags2, notebook: nb }));
+    persistColl((c) => { const scope={...(c.nbTagObor||{})};if(scope[oldName]){scope[newName]=scope[oldName];delete scope[oldName];}return {...c,nbTags:tags2,notebook:nb,nbTagObor:scope}; });
   };
   const reorderNbTag = (dragName, overName) => {
     const arr = [...nbTags()];
@@ -16769,7 +16775,15 @@ export default function App() {
   }, [enabledModules, page]);
 
   const contentAvailable = isEnabled("socsite") && !roomPlacement(navConfig,"socsite",navDefaults).hidden;
-  const store = { contentAvailable, journalAvailable: isEnabled("denik") && !roomPlacement(navConfig,"denik",navDefaults).hidden, readScale, setReadScale, uiCfg, setUiCfg, recentIds, pushRecent, nbFolders, addNbFolder, renameNbFolder, removeNbFolder, moveNbFolder, setEntriesFolder, restoreEntries, persistColl, undo, redo, canUndo: () => histRef.current.past.length > 0, canRedo: () => histRef.current.future.length > 0, caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, addPomoBlocks, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, calCfg, setCalCfg, getCalendarDay, updateCalendarDays, setCalState, setCalendarAllDay, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
+  const loadContentLibrary = async () => {
+    const owner=clientAccount.getSnapshot().owner;
+    if(!owner||!stateHydrated||conflict||!clientAccount.isCurrent(owner))throw Error("content unavailable");
+    const snapshot=await fetchContentLibrary(clientFetch);
+    if(!clientAccount.isCurrent(owner)||ownerLoad()!==owner)throw Error("account changed");
+    persistColl(prev=>clientAccount.isCurrent(owner)?mergeContentSnapshot(prev,snapshot,NB_DEFAULT_TAGS):prev);
+    return snapshot.version;
+  };
+  const store = { loadContentLibrary, contentLibraryReady:stateHydrated && !conflict && member === true, nbTagsFor, contentAvailable, journalAvailable: isEnabled("denik") && !roomPlacement(navConfig,"denik",navDefaults).hidden, readScale, setReadScale, uiCfg, setUiCfg, recentIds, pushRecent, nbFolders, addNbFolder, renameNbFolder, removeNbFolder, moveNbFolder, setEntriesFolder, restoreEntries, persistColl, undo, redo, canUndo: () => histRef.current.past.length > 0, canRedo: () => histRef.current.future.length > 0, caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, addPomoBlocks, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, calCfg, setCalCfg, getCalendarDay, updateCalendarDays, setCalState, setCalendarAllDay, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
     tvSessions, tvSessionOf, tvPutSession, tvEditSession, tvDropSession, tvPrefs, tvSetPrefs,
     tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, syncPending,
     tmCfg, setTmCfg, tmSpecOf, setTmSpec,
@@ -16810,7 +16824,7 @@ export default function App() {
       case "prameny": return <PageContent />;
       case "denik": return <PageJournal />;
       case "hospodareni": return <PagePersonalFinances />;
-      case "socsite": return <PagePersonalContent />;
+      case "socsite": return <PageContentWorkshop />;
       case "terminy": return <PageTerminy />;
       case "kos": return <PageTrash />;
       case "memento": return <PageMemento go={go} />;

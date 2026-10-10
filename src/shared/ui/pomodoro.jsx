@@ -2,11 +2,10 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
 import { useVrstva } from "./overlay.jsx";
-import { BRAND } from "./themeRegistry.js";
 import { FONT_BODY, FONT_TAG, FONT_DISPLAY_EN as FONT_DISPLAY } from "./type.js";
 import { hexA } from "./color.js";
 import { TM_SOUNDS, tmPlaySound } from "./pomodoroSound.js";
-import { pomodoroPalette } from "./pomodoroPalette.js";
+import { pomodoroPalette, pomodoroPickerPalette } from "./pomodoroPalette.js";
 import { createPomoStorage } from "../product/pomodoro.js";
 
 // Shared Main/Client timer. Only dependencies and account storage scope differ.
@@ -40,6 +39,36 @@ const POMO_CATS = [
 ];
 const pomoCatLabel = (k) => { const c = POMO_CATS.find((x) => x.k === k); return c ? L(c.cz, c.en) : k; };
 const pomoCatColor = (t, tags, k) => ({ prace: t.accent, studium: (tags.slate || tags.blue).fg, tvorba: (tags.plum || tags.purple).fg, meditace: (tags.moss || tags.green).fg, ostatni: (tags.stone || tags.gray).fg }[k] || t.sand);
+
+function FocusPicker({ note, setNote, cat, pickCat, onClose, photo = false }) {
+  const { t, tags } = useT();
+  const palette = pomodoroPickerPalette(t, photo);
+  const headingRef = React.useRef(null);
+  const inputId = React.useId();
+  React.useEffect(() => {
+    const trigger = document.activeElement;
+    // Focus the heading without opening the phone keyboard before it is wanted.
+    headingRef.current?.focus({ preventScroll: true });
+    return () => {
+      requestAnimationFrame(() => { if (trigger?.isConnected) trigger.focus({ preventScroll: true }); });
+    };
+  }, []);
+  return <div className="tm-pomo-picker" role="group" aria-labelledby={inputId + "-label"}
+    onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); } }}
+    style={{ width: "100%", maxWidth: 420, boxSizing: "border-box", margin: "0 auto", textAlign: "center", padding: "18px 16px 10px", border: `1px solid ${palette.border}`, borderRadius: 18, background: palette.background, color: palette.ink, "--pomo-placeholder": palette.placeholder, "--pomo-focus": palette.focus }}>
+    <style>{`.tm-pomo-picker input::placeholder{color:var(--pomo-placeholder)!important;opacity:1!important}.tm-pomo-picker :is(input,button):focus-visible{outline:2px solid var(--pomo-focus)!important;outline-offset:3px}.tm-pomo-picker input:focus{border-color:var(--pomo-focus)!important}`}</style>
+    <label ref={headingRef} tabIndex={-1} id={inputId + "-label"} htmlFor={inputId} style={{ display: "block", fontFamily: FONT_DISPLAY, fontSize: 21, lineHeight: 1.3, color: palette.ink, marginBottom: 12, outline: "none" }}>{L("Na co se soustředíš?", "What are you focusing on?")}</label>
+    <input id={inputId} value={note} onChange={event => setNote(event.target.value)} placeholder={L("Konkrétně… (nepovinné)", "Specifically… (optional)")}
+      style={{ width: "100%", minHeight: 44, boxSizing: "border-box", background: palette.input, border: `1px solid ${palette.border}`, borderRadius: 10, padding: "10px 12px", color: palette.ink, caretColor: palette.focus, fontFamily: FONT_BODY, fontSize: 16, outline: "none", textAlign: "left", marginBottom: 12 }} />
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+      {POMO_CATS.map(category => <button key={category.k} onClick={() => pickCat(category.k)}
+        style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44, background: "transparent", border: `1px solid ${cat === category.k ? palette.focus : palette.border}`, borderRadius: 999, padding: "9px 14px", cursor: "pointer", color: palette.ink, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12 }}>
+        <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: "50%", background: pomoCatColor(t, tags, category.k) }} />{L(category.cz, category.en)}
+      </button>)}
+    </div>
+    <button onClick={onClose} style={{ marginTop: 6, minHeight: 44, padding: "8px 18px", background: "transparent", border: "none", cursor: "pointer", color: palette.secondary, fontFamily: FONT_BODY, fontSize: 13 }}>{L("Zpět", "Back")}</button>
+  </div>;
+}
 
 const TM_POMO_HR = "tmPomoHranice";
 function pomoHraniceHotova(bid) {
@@ -447,24 +476,9 @@ function PomodoroTimer() {
     </div>
   ); };
 
-  // Výběr kategorie · překryje ciferník, klepnutí na kategorii rovnou spouští
-  const renderPicker = () => (
-    <div style={{ position: "absolute", inset: 0, zIndex: 5, background: "rgba(16,14,12,0.86)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 18, animation: "tmDim .2s ease both" }} onClick={() => setPickOpen(false)}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, textAlign: "center" }}>
-        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 12, color: "rgba(244,240,235,0.7)", marginBottom: 10 }}>{L("Na co se soustředíš?", "What are you focusing on?")}</div>
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={L("konkrétně… (nepovinné)", "specifically… (optional)")} style={{ width: "100%", boxSizing: "border-box", background: "rgba(244,240,235,0.08)", border: "1px solid rgba(244,240,235,0.25)", borderRadius: 10, padding: "9px 12px", color: BRAND.linen, fontFamily: FONT_BODY, fontSize: 13, outline: "none", textAlign: "center", marginBottom: 12 }} />
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-          {POMO_CATS.map((c) => (
-            <button key={c.k} onClick={() => pickCat(c.k)} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: cat === c.k ? "rgba(244,240,235,0.16)" : "rgba(244,240,235,0.07)", border: `1px solid ${cat === c.k ? "rgba(244,240,235,0.6)" : "rgba(244,240,235,0.28)"}`, borderRadius: 999, padding: "9px 16px", cursor: "pointer", color: BRAND.linen, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: pomoCatColor(t, tags, c.k) }} />
-              {L(c.cz, c.en)}
-            </button>
-          ))}
-        </div>
-        <button onClick={() => setPickOpen(false)} style={{ marginTop: 14, background: "transparent", border: "none", cursor: "pointer", color: "rgba(244,240,235,0.55)", fontFamily: FONT_BODY, fontSize: 12 }}>{L("zpět", "back")}</button>
-      </div>
-    </div>
-  );
+  // In-flow replacement on paper, so all controls still fit at 320 px. The
+  // fullscreen version stays inside its existing document.body portal.
+  const renderPicker = () => <FocusPicker note={note} setNote={setNote} cat={cat} pickCat={pickCat} onClose={() => setPickOpen(false)} photo={fs && !!bg} />;
 
   return (
     <div>
@@ -473,7 +487,7 @@ function PomodoroTimer() {
           všechno ostatní. Tma zůstala tam, kam patří — na celou obrazovku. */}
       <div style={{ position: "relative" }}>
         {pickOpen && !fs && renderPicker()}
-        <div style={{ position: "relative", padding: "6px 0 4px", textAlign: "center" }}>
+        <div hidden={pickOpen && !fs} style={{ position: "relative", padding: "6px 0 4px", textAlign: "center" }}>
           {/* Bez rámečku zmizelo i `overflow: hidden`, které řadu režimů dřív
               ořezávalo. Na telefonu je ta řada širší než displej, tak se roluje
               sama v sobě — jinak by roztáhla celou stránku. */}
@@ -533,8 +547,8 @@ function PomodoroTimer() {
       {fs && <PomodoroFullscreen onClose={() => { setPickOpen(false); setFs(false); }} photo={!!bg} background={full.background}>
           {bg && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
           <div className="tm-pomo-backdrop" style={{ position: "absolute", inset: 0, background: bg ? "linear-gradient(180deg, rgba(28,28,26,0.68) 0%, rgba(28,28,26,0.86) 100%)" : POMO_DUSK }} />
-          {pickOpen && renderPicker()}
-          <div style={{ position: "relative", minHeight: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "calc(20px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom))", textAlign: "center" }}>
+          {pickOpen && <div style={{ position: "relative", minHeight: "100%", display: "grid", alignItems: "center", boxSizing: "border-box", padding: "calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))" }}>{renderPicker()}</div>}
+          <div inert={pickOpen || undefined} style={{ position: "relative", minHeight: "100%", boxSizing: "border-box", display: pickOpen ? "none" : "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "calc(20px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom))", textAlign: "center" }}>
             <button onClick={() => setFs(false)} title={L("Zavřít celou obrazovku", "Close fullscreen")} aria-label={L("Zavřít celou obrazovku", "Close fullscreen")} style={{ position: "absolute", top: "calc(16px + env(safe-area-inset-top))", right: 18, background: full.wash, border: `1px solid ${full.line}`, borderRadius: 999, width: 44, height: 44, cursor: "pointer", color: full.ink, fontSize: 15, lineHeight: 1 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%", gap: 6, margin: "44px 0 26px" }}>
               {MODES.map(([k, label]) => (

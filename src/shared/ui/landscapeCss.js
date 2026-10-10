@@ -70,7 +70,6 @@ ${s} .tm-nahled-head { z-index: 2; top: 0 !important; left: 0 !important; right:
 /* The scroll viewport reaches behind the fixed header; padding sets only its initial position. */
 ${s} .tm-nahled-telo { top: 0 !important; padding-top: calc(98px + env(safe-area-inset-top)) !important; }
 ${s} .tm-pomo-full:not([data-photo="true"]) .tm-pomo-backdrop { background-color: var(--tm-bg) !important; background-image: var(--land-field) !important; background-size: 768px auto !important; }
-${s} .tm-wb-dot[aria-pressed="true"] { background: var(--tm-accent) !important; border-color: var(--tm-accent) !important; }
 /* Category strips sit directly on the field, including their fixed controls. */
 ${s} :is(.tm-tabsrow,.tm-typerow,.tm-tabsctrl), ${s} .tm-tabsctrl::before, ${s} .tm-tabsctrl > button { background: transparent !important; }
 ${s} :is(.tm-tabsrow,.tm-tab-rail,[role="tablist"]) { border-bottom-color: transparent !important; }

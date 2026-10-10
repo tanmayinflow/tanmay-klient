@@ -31,5 +31,8 @@ export const ICON_ASSET_HASHES = {
   "content-icon-small-v1.png": "04e8839aba415f73f12d1658ae9d2016239a2741766ead06a75edad3d287c1c8",
   "content-illustration-v1.png": "59a8ae865be46a390d4778335035d7af93cb606883a3ae7e4df6f5d6d3111f1f",
   "basket-icon-v1.png": "3c4ca471e185bd6fde80f33ce1084bd6f550339d32821cb2bdd42afce412d379",
-  "basket-illustration-v2.png": "1c8de6131c3224698efe3ca61391551f742aec6275a5d2e7e42d5fda8d31a529"
+  "basket-illustration-v2.png": "1c8de6131c3224698efe3ca61391551f742aec6275a5d2e7e42d5fda8d31a529",
+  "empty-trenink-v2.webp": "a345463ca5cc03d9fe453ab594182f5e0f0f3c0d1e433d3c008e4b57db441de0",
+  "empty-kompas-wide-v3.webp": "45a86cc80a3175593322eaf72812f4a2732b114a264d3f6dbc63a8b565a60260",
+  "empty-prameny-v3.webp": "a77369afcb435eb48e61a8a4734ae5e4ed0f2a093a91e48992eaec1256af8e0b"
 };

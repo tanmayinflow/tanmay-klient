@@ -21,6 +21,7 @@ import { TmIcon as FamilyIcon } from "./icons.jsx";
 // nemuselo procházet přes JS proměnnou, která by se v továrně zamrazila.
 import React, { useState } from "react";
 import { PracticeCalendarExport } from "./practiceCalendar.jsx";
+import { wellbeingPalette } from "./wellbeingPalette.js";
 import { TmIcon, tmIconId, createIconUI } from "./icons.jsx";
 
 export function createPracticeUI(deps) {
@@ -353,7 +354,7 @@ export function createPracticeUI(deps) {
     );
 
     return (
-      <div style={{ marginTop: 14, borderTop: `1px solid ${t.borderSoft}`, paddingTop: 12 }}>
+      <div data-practice-journal style={{ marginTop: 14, paddingTop: 12 }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
           <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><PenIcon size={12} /></span>} label={L("Otevřít deník", "Open journal")} onClick={() => go("denik")} />
         </div>
@@ -404,7 +405,8 @@ export function createPracticeUI(deps) {
   }
 
   function WellbeingTracker() {
-    const { t } = useT();
+    const { t, tags } = useT();
+    const colors = wellbeingPalette(t, tags);
     const st = useStore();
     const date = st.selDate;
     const cur = tmWbOf(st, date) || { sleep: null, mood: 0, energy: 0, well: 0, theme: "", grat: false, bodhi: false, wild: false };
@@ -441,9 +443,9 @@ export function createPracticeUI(deps) {
                 <button className="tm-iconbtn" onClick={() => sleepStep(1)} aria-label={L("O půl hodiny víc", "Half an hour more")} style={iconBtn(t)}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
               </span>
             </div>
-            <DotTap label={L("Nálada", "Mood")} value={cur.mood} onChange={(v) => set({ mood: v })} color={t.sage} />
-            <DotTap label={L("Energie", "Energy")} value={cur.energy} onChange={(v) => set({ energy: v })} color={t.sand} />
-            <DotTap label={L("Potenciál dne", "Day potential")} value={cur.well} onChange={(v) => set({ well: v })} color={t.accent} />
+            <DotTap label={L("Nálada", "Mood")} value={cur.mood} onChange={(v) => set({ mood: v })} color={colors.mood} />
+            <DotTap label={L("Energie", "Energy")} value={cur.energy} onChange={(v) => set({ energy: v })} color={colors.energy} />
+            <DotTap label={L("Potenciál dne", "Day potential")} value={cur.well} onChange={(v) => set({ well: v })} color={colors.well} />
             <ZnameniDne cur={cur} set={set} rekni={rekni} />
           </div>
           {/* Vyhrazený řádek nápovědy · má svou výšku pořád, i když mlčí,
@@ -499,7 +501,8 @@ export function createPracticeUI(deps) {
 
   // Tělo · the record, kept at the foot of the page with the other graphs
   function BodyHistory() {
-    const { t } = useT();
+    const { t, tags } = useT();
+    const colors = wellbeingPalette(t, tags);
     const st = useStore();
     const date = st.selDate;
     const wbOf = (d) => tmWbOf(st, d);
@@ -522,13 +525,13 @@ export function createPracticeUI(deps) {
       <div>
         {/* potential + energy over time */}
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: H, display: "block" }}>
-          <polyline points={`0,${H} ${ptsWell} ${W},${H}`} fill={hexA(t.accent, 0.10)} stroke="none" />
-          <polyline points={ptsEnergy} fill="none" stroke={t.sand} strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="4 3" opacity="0.85" />
-          <polyline points={ptsWell} fill="none" stroke={t.accent} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+          <polyline points={`0,${H} ${ptsWell} ${W},${H}`} fill={hexA(colors.well, 0.10)} stroke="none" />
+          <polyline points={ptsEnergy} fill="none" stroke={colors.energy} strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="4 3" />
+          <polyline points={ptsWell} fill="none" stroke={colors.well} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
         </svg>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 14px", marginTop: 4, marginBottom: 12 }}>
-          <span style={{ ...subLabel(t), marginBottom: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 2, background: t.accent, display: "inline-block" }} />{L("Potenciál", "Potential")}{prumer ? " · ø " + prumer : ""}</span>
-          <span style={{ ...subLabel(t), marginBottom: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 0, borderTop: `2px solid transparent`, display: "inline-block" }} />{L("Energie", "Energy")}</span>
+          <span style={{ ...subLabel(t), marginBottom: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 2, background: colors.well, display: "inline-block" }} />{L("Potenciál", "Potential")}{prumer ? " · ø " + prumer : ""}</span>
+          <span style={{ ...subLabel(t), marginBottom: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 14, height: 0, borderTop: `2px dashed ${colors.energy}`, display: "inline-block" }} />{L("Energie", "Energy")}</span>
           <span style={{ ...subLabel(t), marginBottom: 0 }}>{L("posledních", "last")} {last30.length} {L("zaznamenaných dní", "recorded days")}</span>
         </div>
 
@@ -541,9 +544,9 @@ export function createPracticeUI(deps) {
             <button key={d} onClick={() => st.setSelDate(d)} title={L("Otevřít den", "Open day")} style={{ width: "100%", textAlign: "left", background: d === date ? t.card : "transparent", border: "none", cursor: "pointer", display: "grid", gridTemplateColumns: "44px 44px auto auto auto auto 1fr", alignItems: "center", gap: 12, padding: "8px 6px", borderBottom: "none", borderRadius: 6 }}>
               <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{fmtShort(d)}</span>
               <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textSec }}>{w.sleep != null ? w.sleep + " h" : "—"}</span>
-              <DotMeter value={w.mood} color={t.sage} />
-              <DotMeter value={w.energy} color={t.sand} />
-              <DotMeter value={w.well} color={t.accent} />
+              <DotMeter value={w.mood} color={colors.mood} />
+              <DotMeter value={w.energy} color={colors.energy} />
+              <DotMeter value={w.well} color={colors.well} />
               <span style={{ fontSize: 13 }}>
                 <span title="Gratitude" style={{ opacity: w.grat ? 1 : 0.2, display: "inline-flex", color: t.sand }}><TmWbMiska size={14} /></span>
                 <span title="Bodhichitta" style={{ opacity: w.bodhi ? 1 : 0.2, display: "inline-flex", color: t.sand }}><TmWbDiamant size={14} /></span>

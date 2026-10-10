@@ -21,9 +21,13 @@ import { createHash } from "node:crypto";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = join(ROOT, "dist");
 
+// Approved owner content travels only through the authenticated Content API.
+// It must never appear in this public bundle.
+
 // Značka = jméno, vzor, a proč tu nesmí být. Vzory jsou záměrně konkrétní:
 // obecné slovo („journal") by hlásilo klientův vlastní Deník, který tam patří.
 const MARKERS = [
+  { name: "main-content-source", re: /Effective Storytelling Framework|IG BACKGROUND MUSIC LIBRARY|Meatless Monday Workouts|Greetings!/, why: "příspěvky a podklady vlastníka patří jen do ověřeného API" },
   // Literal titles survive minification even when the seed constant is renamed.
   { name: "main-practice-manifest", re: /Personal manifest|Refuge for work on the internet/, why: "osobní praxe a manifest vlastníka" },
   { name: "main-journal-seed",    re: /\bJOURNAL_FULL\b/,        why: "osobní Deník Tanmaye" },

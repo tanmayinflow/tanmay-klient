@@ -31,7 +31,10 @@ test("trenérská správa klientů v klientském sestavení vůbec není", () =>
 test("místnost trenéra není v klientské aplikaci směrovaná", () => {
   assert.doesNotMatch(app, /case\s+"klienti"/);
   assert.match(app, /case\s+"hospodareni": return <PagePersonalFinances/);
-  assert.match(app, /case\s+"socsite": return <PagePersonalContent/);
+  assert.match(app, /case\s+"socsite": return <PageContentWorkshop/);
+  assert.match(app, /await fetchContentLibrary\(clientFetch\)/);
+  assert.match(app, /mergeContentSnapshot\(prev,snapshot,NB_DEFAULT_TAGS\)/);
+  assert.doesNotMatch(app, /CONTENT_OWNER_SNAPSHOT|defaultContentSnapshot|combineApprovedContentSnapshot/);
   assert.doesNotMatch(app, /SOC_DOCS|SOC_HOOKS_SEED|SOC_PILIRE_SEED|finOsvcSeed|Birthday gift for sister/);
 });
 

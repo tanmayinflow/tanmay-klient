@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 const ROOT = fileURLToPath(new URL("../src/shared/", import.meta.url));
 
@@ -31,14 +32,31 @@ const HLIDANE = [
   "hexA", "uid", "todayISO", "fmtCZ", "areaLabel", "areaClean",
 ];
 
+// Resource copy can contain ordinary words such as AREAS. Parse identifiers
+// rather than scanning prose; template expressions still remain real code.
+function identifiers(src, filename = 'shared.jsx') {
+  const tree=ts.createSourceFile(filename,src,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+  const names=new Set();
+  const visit=node=>{if(ts.isIdentifier(node))names.add(node.text);ts.forEachChild(node,visit);};
+  visit(tree);
+  return names;
+}
+
+test('identifier audit excludes literal copy but checks template expressions',()=>{
+  assert.equal(identifiers('const text = `YOUR MAIN AREAS`; // GOALS').has('AREAS'),false);
+  assert.equal(identifiers('const text = "GOALS";').has('GOALS'),false);
+  assert.equal(identifiers('const text = `Count: ${AREAS.length}`;').has('AREAS'),true);
+  assert.equal(identifiers('const value = GOALS;').has('GOALS'),true);
+});
+
 test("sdílené jádro nesahá po ničem, co si nepřineslo", () => {
   const spatne = [];
   for (const f of walk(ROOT)) {
     const src = readFileSync(f, "utf8");
     const rel = f.slice(ROOT.length);
+    const used=identifiers(src,f);
     for (const jmeno of HLIDANE) {
-      const re = new RegExp("\\b" + jmeno + "\\b", "g");
-      if (!re.test(src)) continue;
+      if (!used.has(jmeno)) continue;
       // odkud smí pocházet: import, deklarace, destrukturalizace parametru
       const zdroj = new RegExp(
         "(?:^|\\n)\\s*(?:import[^\\n]*\\b" + jmeno + "\\b" +

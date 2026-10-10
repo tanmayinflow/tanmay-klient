@@ -1,16 +1,18 @@
-// Reuse the approved, full-resolution website materials. Constant-color veils
-// keep each palette's hue and reduce texture contrast without modifying assets.
+// Reuse the approved, full-resolution website materials. These are already
+// quiet photographs, so a near-opaque veil would erase their natural grain.
+// Palette anchors stay unchanged; three measured tint adjustments protect
+// small text against the actual darkest/brightest pixels of the photographs.
 import { hexA } from "./color.js";
 
 export const MATERIAL_RECIPES = Object.freeze({
   "landscape-day": { field: "linen", fieldVeil: 0, navVeil: 0, header: "#754437", headerInk: "#F4F0EB", headerVeil: .65, art: "#1C1C1A", active: "#D69E87" },
   "landscape-night": { field: "ashes", fieldVeil: 0, navVeil: 0, header: "#754437", headerInk: "#F4F0EB", headerVeil: .65, art: "#E5D8C4", active: "#743627" },
-  "monument-clay": { field: "linen", fieldVeil: .91, navVeil: .78, header: "#26303B", headerInk: "#EBEBDD", headerVeil: .88, art: "#26303B" },
-  "sand-burnt-earth": { field: "linen", fieldVeil: .9, navVeil: .8, header: "#754437", headerInk: "#D3C7AD", headerVeil: .98, art: "#28374A" },
-  "garnet-slate": { field: "linen", fieldVeil: .92, navVeil: .82, header: "#6E2C29", headerInk: "#F7DEC1", headerVeil: .92, art: "#6E2C29" },
-  "nagtang-black": { field: "ashes", fieldVeil: .76, navVeil: .72, header: "#141311", headerInk: "#D4A54A", headerVeil: .94, art: "#D4A54A", active: "#141311" },
-  "mineral-pigments": { field: "linen", fieldVeil: .92, navVeil: .88, header: "#1E3F73", headerInk: "#FBF7EE", headerVeil: .94, art: "#1E3F73" },
-  "signature-day": { field: "linen", fieldVeil: .94, navVeil: .65, header: "#2E3D35", headerInk: "#F4F0EB", headerVeil: .92, art: "#2E3D35" },
+  "monument-clay": { field: "linen", fieldVeil: .36, navVeil: .32, header: "#26303B", headerInk: "#EBEBDD", headerVeil: .65, art: "#26303B" },
+  "sand-burnt-earth": { field: "linen", fieldVeil: .32, navVeil: .34, header: "#754437", headerInk: "#D3C7AD", headerTint: "#643A2F", headerVeil: .85, art: "#28374A" },
+  "garnet-slate": { field: "linen", fieldTint: "#F8E1C7", fieldVeil: .4, navVeil: .34, header: "#6E2C29", headerInk: "#F7DEC1", headerVeil: .65, art: "#6E2C29" },
+  "nagtang-black": { field: "ashes", fieldVeil: .14, navVeil: .52, header: "#141311", headerMaterial: "ashes", headerInk: "#D4A54A", headerVeil: .3, art: "#D4A54A", active: "#141311" },
+  "mineral-pigments": { field: "linen", fieldVeil: .4, navVeil: .36, header: "#1E3F73", headerInk: "#FBF7EE", headerVeil: .65, art: "#1E3F73" },
+  "signature-day": { field: "linen", fieldTint: "#F9F7F4", fieldVeil: .64, cardVeil: .64, navVeil: .32, header: "#2E3D35", headerInk: "#F4F0EB", headerVeil: .65, art: "#2E3D35" },
 });
 
 export function materialLayer(color, material, veil) {
@@ -22,11 +24,11 @@ export function themeMaterialVars(id, p) {
   const r = MATERIAL_RECIPES[id] || MATERIAL_RECIPES['landscape-day'];
   const lightNav = p.polarity === 'dark';
   const nav = materialLayer(p.navigation, lightNav ? 'linen' : 'ashes', r.navVeil);
-  const header = materialLayer(r.header, 'earth', r.headerVeil);
+  const header = materialLayer(r.headerTint || r.header, r.headerMaterial || 'earth', r.headerVeil);
   return {
-    '--land-field': materialLayer(p.background, r.field, r.fieldVeil),
-    '--land-card-material': materialLayer(p.card, r.field, .95),
-    '--land-panel-material': materialLayer(p.documentSurface, r.field, .96),
+    '--land-field': materialLayer(r.fieldTint || p.background, r.field, r.fieldVeil),
+    '--land-card-material': materialLayer(p.card, r.field, r.cardVeil ?? .58),
+    '--land-panel-material': materialLayer(p.documentSurface, r.field, r.cardVeil ?? .58),
     '--land-nav-material': nav, '--land-nav-bg': p.navigation,
     '--land-header-material': header, '--land-header-bg': r.header,
     '--land-header-ink': r.headerInk, '--land-art-ink': r.art,
