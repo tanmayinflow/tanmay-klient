@@ -81,7 +81,7 @@ import { createFigure } from "./shared/ui/figure.jsx";
 import { useVrstva, createOverlay } from "./shared/ui/overlay.jsx";
 import { tmToTop, tmEscVrstva, tmEscVolno, tmZamkniStranku, tmOdemkniStranku, tmListovaniStuj, tmListovaniJdi, tmListovaniSpi, TM_ZAMEK } from "./shared/ui/overlay.js";
 import { createStates, EmptyRoomArt } from "./shared/ui/states.jsx";
-import { retiredPracticeCandidates, archiveRetiredPracticeNotes } from "./retiredNotebook.js";
+import { prepareRetiredPracticeNotesV2 } from "./retiredNotebook.js";
 import { createPracticeUI } from "./shared/ui/practice.jsx";
 import { createPracticePage } from "./shared/ui/practicePage.jsx";
 import { createAtoms } from "./shared/ui/atoms.jsx";
@@ -4639,9 +4639,7 @@ function PageNotebook({ koren, korenNazev }) {
   const korenLabel = koren ? (korenNazev || koren) : "";
 
   React.useEffect(() => { if (koren) return; st.importNotebook(); st.migrateCzNotebook(); }, []);
-  // zařazení štítků tvorby nesmí čekat na návštěvu druhé místnosti
-  React.useEffect(() => { if (koren) return; if (st.coll.nbImported) st.importPractices(); }, [st.coll.nbImported]);
-  // úklid smí přijít až po obou setbách · řetěz vlajek nbImported → practicesSeeded → nbSorted
+  // Historical practice cleanup runs only after account hydration in the store.
   // Nabízí se jen slovní zásoba téhle místnosti; barvu si ale poznámka
   // najde v celém seznamu, aby štítek z druhé místnosti nezešedl.
   const tags = st.nbTagsFor(koren ? "soc" : "nb");
@@ -16158,13 +16156,24 @@ export default function App() {
     const imported = NOTEBOOK_FULL.map((n) => ({ id: uid() + Math.random().toString(36).slice(2, 5), date: "", title: n.n, tag: nbCanonTag((n.t || [])[0]), text: n.b || "" }));
     persistColl((c) => ({ ...c, nbImported: true, notebook: [...(c.notebook || []), ...imported] }));
   };
-  const importPractices = async () => {
-    if (coll.retiredPracticeNotesV1) return;
+  const importPractices = async (cancelled = () => false) => {
+    if (!stateHydrated || member !== true || conflict || cancelled()) return;
     const owner = clientAccount.getSnapshot().owner;
-    const candidates = coll.practicesSeeded ? await retiredPracticeCandidates(coll.notebook) : [];
-    if (!owner || clientAccount.getSnapshot().owner !== owner) return;
-    persistColl(c => ({ ...archiveRetiredPracticeNotes(c, candidates), practicesSeeded: true }));
+    const current = () => !cancelled() && owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
+    if (!current()) return;
+    const migrate = await prepareRetiredPracticeNotesV2(_collRef.current);
+    if (!current()) return;
+    persistColl(c => current() ? migrate(c) : c);
   };
+  const importPracticesRef = React.useRef(importPractices);
+  importPracticesRef.current = importPractices;
+  React.useEffect(() => {
+    if (!stateHydrated || member !== true || conflict || coll.retiredPracticeNotesV2) return;
+    let cancelled = false;
+    // Failed hashing does not complete the migration; a later hydration retries.
+    importPracticesRef.current(() => cancelled).catch(() => {});
+    return () => { cancelled = true; };
+  }, [ownerId, accountStatus, stateHydrated, member, conflict, coll.notebook, coll.retiredPracticeNotesV2]);
   const removeEntries = (kind, ids) => {
     const idSet = new Set(ids);
     const list = coll[kind] || [];
@@ -17369,6 +17378,10 @@ export default function App() {
                 <span>{L("Sdílené produktové jádro", "Shared product core")}</span>
                 <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: t.textMuted }}>{SHARED_CORE_VERSION}</span>
               </div>
+              {TM_BEZICI_BUNDLE?.match(/\/index-([A-Za-z0-9_-]+)\.js$/)?.[1] && <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, padding: "3px 0" }}>
+                <span>{L("Sestavení aplikace", "App build")}</span>
+                <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: t.textMuted }}>{TM_BEZICI_BUNDLE.match(/\/index-([A-Za-z0-9_-]+)\.js$/)[1]}</span>
+              </div>}
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, padding: "3px 0" }}>
                 <span>{L("Průvodce", "Guide")}</span>
                 <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: t.textMuted }}>v{TM_GUIDE_VERZE}</span>

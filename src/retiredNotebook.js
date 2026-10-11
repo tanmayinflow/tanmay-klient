@@ -27,3 +27,37 @@ export function archiveRetiredPracticeNotes(coll, candidates, now = Date.now()) 
   });
   return {...coll,retiredPracticeNotesV1:true,notebook:kept,trash:[...archived,...(coll.trash || [])]};
 }
+
+// V2 repairs prematurely completed V1 runs. It recognizes the same six bodies,
+// but only in their original import shape or documented system normalization.
+// A custom folder, category, attachment, flag or additional field is preserved.
+const PRACTICE_TAGS = new Set(['Praxe','Practices']);
+const ORIGINAL_FIELDS = new Set(['id','title','text','date','tag','tags','folder','star','pinned','att','attachments']);
+const originalPractice = entry => eligible(entry)
+  && typeof entry.id === 'string' && !!entry.id
+  && Object.keys(entry).every(key => ORIGINAL_FIELDS.has(key))
+  && PRACTICE_TAGS.has(entry.tag)
+  && (entry.tags === undefined || (Array.isArray(entry.tags) && entry.tags.length === 1 && PRACTICE_TAGS.has(entry.tags[0])))
+  && (entry.folder === undefined || entry.folder === '' || entry.folder === 'Praxe');
+const notebookSignature = notebook => JSON.stringify(notebook || []);
+
+export async function prepareRetiredPracticeNotesV2(coll, {approved = RETIRED, now = Date.now()} = {}) {
+  if (coll.retiredPracticeNotesV2) return current => current;
+  const before = notebookSignature(coll.notebook);
+  const candidates = await retiredPracticeCandidates((coll.notebook || []).filter(originalPractice), approved);
+  const matches = new Map(candidates.map(entry => [entry.id, entry.signature]));
+  return current => {
+    // A newer document/edit must be inspected on its own, not sealed by a hash
+    // prepared for older records. The account effect retries when data changes.
+    if (current.retiredPracticeNotesV2 || notebookSignature(current.notebook) !== before) return current;
+    const notebook = [], trash = [...(current.trash || [])];
+    (current.notebook || []).forEach((entry,index) => {
+      if (!originalPractice(entry) || matches.get(entry.id) !== signature(entry)) { notebook.push(entry); return; }
+      const tid = 'retired-practice-v2-' + entry.id;
+      if (!trash.some(item => item.tid === tid && item.entryKind === 'notebook' && notebookSignature(item.data) === notebookSignature(entry))) {
+        trash.unshift({tid,kind:'entry',entryKind:'notebook',index,data:entry,label:entry.title,trashedAt:now});
+      }
+    });
+    return {...current,retiredPracticeNotesV2:true,notebook,trash};
+  };
+}
