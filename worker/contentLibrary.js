@@ -1,4 +1,4 @@
-import {validateContentSnapshot,exportContentSnapshot} from '../src/shared/product/contentWorkshop.js';
+import {validateContentSnapshot,exportContentSnapshot,projectClientContentLibrary} from '../src/shared/product/contentWorkshop.js';
 
 // Fixed private R2 object, populated explicitly by the owner. No user-supplied
 // path, public asset, account backup or live subscription participates here.
@@ -18,7 +18,7 @@ export async function handleContentLibrary(request,env) {
     // file bypassed the app's scoped exporter. Never reflect invalid data.
     const {report}=exportContentSnapshot(snapshot,{version:snapshot.version,source:snapshot.source});
     if(report.attachments||report.privateReferences)throw Error('private references');
-    return Response.json(snapshot,{headers});
+    return Response.json(await projectClientContentLibrary(snapshot),{headers});
   } catch {
     return Response.json({ok:false,error:'content unavailable'},{status:503,headers});
   }

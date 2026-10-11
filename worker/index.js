@@ -1,5 +1,6 @@
 import { STATE_LIMIT, ensureStateStorage, encodeState, readStateMeta, readStateDocument, writeStateDocument, stateFailure } from "../src/shared/product/stateStorage.js";
 import { handleContentLibrary } from "./contentLibrary.js";
+import { marketFrameResponse } from "../src/shared/product/marketFramePolicy.js";
 import { handleTogether } from "../src/shared/product/togetherApi.js";
 import { clientProfile, handleClientProfile, handleLegacyClientName } from "./clientProfile.js";
 import { createSkyTimeZoneHandler } from "../src/shared/product/skyGeocodingApi.js";
@@ -270,7 +271,7 @@ const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
-  "frame-src https://accounts.google.com",
+  "frame-src 'self' https://accounts.google.com",
   "frame-ancestors 'none'",
   "form-action 'self'",
   "script-src 'self' '" + INDEX_INLINE_SCRIPT_HASH + "' https://accounts.google.com",
@@ -492,6 +493,7 @@ export default {
       return Response.json({ ok: false, error: "not found" }, { status: 404 });
     }
 
+    if (url.pathname === "/market-chart.html") return marketFrameResponse(withSecurityHeaders(await env.ASSETS.fetch(request)));
     return withSecurityHeaders(await env.ASSETS.fetch(request));
   },
 };

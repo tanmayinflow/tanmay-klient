@@ -51,7 +51,8 @@ test('unknown and hostile-looking ids fall back safely while saved custom symbol
  assert.equal(tmResolveIcon({icon:'🦊'},'habit').char,'🦊');
 });
 test('all room artwork and raster variants are exact, first-party files',()=>{
- assert.equal(Object.keys(ROOM_ART).length,11);
+ assert.equal(Object.keys(ROOM_ART).length,10);
+ assert.equal(ROOM_ART.hospodareni,undefined); // Owner removed the Finance header illustration.
  for(const [file,hash] of Object.entries(ICON_ASSET_HASHES)){
   const bytes=fs.readFileSync(path.join('public/media/icons',file));
   assert.equal(createHash('sha256').update(bytes).digest('hex'),hash,file);

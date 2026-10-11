@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../worker/index.js';
 import {CONTENT_LIBRARY_KEY} from '../worker/contentLibrary.js';
+import {projectClientContentLibrary} from '../src/shared/product/contentWorkshop.js';
 import {makeEnv,req} from './helpers/env.js';
 const A='content-a@example.test',B='content-b@example.test';
-const snapshot=()=>({version:'qa-approved-v1',source:'synthetic test only',socItems:[{id:'post',title:'Sample draft'}],socHooks:[],socPillars:[],notebook:[{id:'resource',folder:'Sociální sítě/Podklady',text:'Sample resource'}],socTopics:[]});
+const snapshot=()=>({version:'qa-approved-v1',source:'synthetic test only',socItems:[{id:'post',title:'Greetings!'},{id:'excluded',title:'Excluded synthetic idea'}],socHooks:[],socPillars:[],notebook:[{id:'resource',folder:'Sociální sítě/Podklady',text:'Sample resource'}],socTopics:[]});
 async function join(env,email=A){await worker.fetch(req('/api/me',{email}),env);assert.equal((await worker.fetch(req('/api/join',{email,method:'POST',body:{word:'otevri se'}}),env)).status,200);}
 async function publish(env,doc=snapshot()){await env.FILES.put(CONTENT_LIBRARY_KEY,JSON.stringify(doc));}
 test('Content delivery requires both Access identity and joined membership',async()=>{
@@ -12,13 +13,13 @@ test('Content delivery requires both Access identity and joined membership',asyn
   assert.equal((await worker.fetch(req('/api/content-library'),env)).status,401);
   assert.equal((await worker.fetch(req('/api/content-library',{email:A}),env)).status,403);
   await join(env);const response=await worker.fetch(req('/api/content-library',{email:A}),env);
-  assert.equal(response.status,200);assert.deepEqual(await response.json(),snapshot());assert.equal(response.headers.get('cache-control'),'private, no-store');
+  assert.equal(response.status,200);assert.deepEqual(await response.json(),await projectClientContentLibrary(snapshot()));assert.equal(response.headers.get('cache-control'),'private, no-store');
 });
 test('All joined clients receive independent copies of the same approved read-only snapshot',async()=>{
   const env=makeEnv();await publish(env);await join(env,A);await join(env,B);
-  for(const email of [A,B])assert.deepEqual(await (await worker.fetch(req('/api/content-library',{email}),env)).json(),snapshot());
+  for(const email of [A,B])assert.deepEqual(await (await worker.fetch(req('/api/content-library',{email}),env)).json(),await projectClientContentLibrary(snapshot()));
   for(const method of ['POST','PUT','PATCH','DELETE'])assert.equal((await worker.fetch(req('/api/content-library',{email:A,method,body:{version:'replacement'}}),env)).status,405);
-  assert.deepEqual(await (await worker.fetch(req('/api/content-library',{email:A}),env)).json(),snapshot());
+  assert.deepEqual(await (await worker.fetch(req('/api/content-library',{email:A}),env)).json(),await projectClientContentLibrary(snapshot()));
 });
 test('Mounted owner and identity collision guards also protect Content delivery',async()=>{
   const env=makeEnv();await publish(env);await join(env,A);await join(env,B);
@@ -35,7 +36,7 @@ test('Absent or malformed delivery fails closed without exposing unrelated colle
 });
 test('Content endpoint ignores supplied paths and never lists the private publication object',async()=>{
   const env=makeEnv();await join(env);await publish(env);
-  const response=await worker.fetch(req('/api/content-library?key=files/another-user/private',{email:A}),env);assert.deepEqual(await response.json(),snapshot());
+  const response=await worker.fetch(req('/api/content-library?key=files/another-user/private',{email:A}),env);assert.deepEqual(await response.json(),await projectClientContentLibrary(snapshot()));
   const files=await (await worker.fetch(req('/api/files',{email:A}),env)).json();assert.equal(JSON.stringify(files).includes('published'),false);
   const attempt=await worker.fetch(req('/api/files/'+encodeURIComponent(CONTENT_LIBRARY_KEY),{email:A}),env);assert.notEqual(attempt.status,200);
 });

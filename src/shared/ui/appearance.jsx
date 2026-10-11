@@ -78,7 +78,7 @@ export function createAppearanceUI(useT, L) {
           <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={{ transform: open ? "rotate(90deg)" : "none", flexShrink: 0 }}><path d="M4 2 8 6 4 10" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
           <span style={{ ...label(false), marginBottom: 0 }}>{L("Vzhled", "Appearance")}</span>
         </button>
-        {open && <div id="tm-vzhled-content">
+        {open && <div id="tm-vzhled-content" style={{paddingBottom:24}}>
         <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, lineHeight: 1.55, marginBottom: 12 }}>
           {L("Vzhled je jen to, jak tahle aplikace vypadá na tomhle zařízení. Nemění, co je vidět, co se sdílí ani co znamenají stavy.",
              "An appearance is only how this app looks on this device. It changes nothing about what is visible, what is shared, or what a status means.")}

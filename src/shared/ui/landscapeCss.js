@@ -42,6 +42,8 @@ ${s} .tm-tabbar button[aria-current="page"] { background: transparent !important
 ${s} .tm-tabbar button[aria-current="page"] > span:first-child { color: var(--tm-nav-accent) !important; }
 ${s} :is(.tm-sidebar,.tm-tabbar) button:focus-visible { outline-color: var(--tm-nav-accent) !important; }
 ${s} :is(.tm-drawer,.tm-calcard,.tm-card,.tm-topbar) { background-image: var(--land-card-material) !important; background-size: 768px auto !important; }
+${s} .tm-select-menu { background-image: var(--land-panel-material) !important; background-size: 768px auto !important; }
+${s} .tm-select-trigger { background-color: transparent !important; }
 /* A detail or settings view keeps the room's material, including private writing. */
 ${s} :is(.tm-cs,.tm-drawer,.tm-nahled,.tm-zen) { background-color: var(--tm-bg) !important; background-image: var(--land-field) !important; background-size: 768px auto !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 /* Native range tracks otherwise retain a bright system-white remainder. */
@@ -107,8 +109,8 @@ ${s} .tm-page-title[data-art-room="terminy"]::after { content: none; }
 ${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"]) { min-height: 104px; }
 ${s} .tm-page-title:is([data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"])::before { inset: 0 8px auto auto; width: 128px; height: 100px; opacity: .32; }
 ${s} .tm-page-title[data-art-room="praxe"]::before { inset: 0 8px auto auto; width: 142px; height: 100px; background-size: contain; background-position: right top; opacity: .28; }
-${s} .tm-page-title[data-art-room="hospodareni"]::before { inset: 62px -8px auto auto; width: 80px; height: 60px; }
-${s} .tm-page-title[data-art-room="hospodareni"] { min-height: 138px; }
+${s} .tm-page-title[data-art-room="hospodareni"]::before { content: none; }
+${s} .tm-page-title[data-art-room="hospodareni"] { min-height: 0; }
 /* The two-word Content heading needs the full line on phones. */
 @media (max-width: 600px) {
   ${s} .tm-page-title[data-art-room="socsite"] { padding-bottom: 64px; min-height: 0; }

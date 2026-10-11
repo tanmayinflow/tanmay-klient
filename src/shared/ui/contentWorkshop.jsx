@@ -9,6 +9,18 @@ export function createContentWorkshopUI({useT,useStore,L,PageTitle,PageNotebook,
 function GdriveVlozka({url,onChange,vyska}) { const {t}=useT(); const g=gdEmbed(url); return <div><BufferedInput value={url||''} onCommit={v=>onChange(v.trim())} placeholder={L('Odkaz na soubor nebo složku v Google Drive…','Google Drive file or folder link…')} style={{width:'100%',background:'transparent',color:t.text,border:0,borderBottom:'1px solid '+t.borderSoft,padding:'8px 0',fontFamily:FONT_BODY}}/>{url&&!g&&<p role="status" style={{color:t.textSec}}>{L('Zkontroluj odkaz na Google Drive.','Check the Google Drive link.')}</p>}{g&&<div style={{position:'relative',marginTop:10}}><iframe src={g.src} loading="lazy" allow="autoplay; fullscreen" allowFullScreen title="Google Drive" style={{width:'100%',height:vyska||300,borderRadius:8,border:'1px solid '+t.borderSoft}}/><a href={url} target="_blank" rel="noreferrer" style={{...iconBtn(t),position:'absolute',top:6,right:6,background:t.bg}} aria-label={L('Otevřít v Drive','Open in Drive')}><FamilyIcon id="arrow-out" size={16}/></a></div>}</div>;}
 const socLbl = (t) => ({ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage });
 
+function ContentText({value='',onCommit,label,multiline=false,placeholder=''}) {
+  const [draft,setDraft]=useState(value),cancel=React.useRef(false);
+  React.useEffect(()=>setDraft(value),[value]);
+  const props={value:draft,'aria-label':label,placeholder,className:'tm-content-edit-text',onFocus:()=>{cancel.current=false;},onChange:event=>setDraft(event.target.value),onBlur:()=>{if(cancel.current){setDraft(value);return;}if(draft!==value)onCommit(draft);},onKeyDown:event=>{if(event.key==='Escape'){event.stopPropagation();cancel.current=true;setDraft(value);event.currentTarget.blur();}if(event.key==='Enter'&&!multiline&&!event.nativeEvent.isComposing)event.currentTarget.blur();}};
+  return multiline?<textarea {...props} rows={2}/>:<input {...props}/>;
+}
+function ContentCopy({name,cs,en,heading=false}) {
+  const st=useStore(),language=L('cs','en'),key=name+'.'+language,meta=st.pageMetaOf('socsite'),value=meta.contentCopy?.[key]??L(cs,en);
+  if(st.editMode)return <ContentText value={value} label={L('Upravit text: ','Edit copy: ')+L(cs,en)} multiline={!heading} onCommit={text=>st.setPageMeta('socsite',{contentCopy:{...meta.contentCopy,[key]:text}})}/>;
+  return <>{value}</>;
+}
+
 function SocChip({ color = "default", on = true, onClick, title, children, small }) {
   const { tags } = useT();
   const c = tags[color] || tags.default;
@@ -68,41 +80,49 @@ function SocPilire({ items }) {
   const st = useStore();
   const pilire = st.coll.socPillars || [];
   const [novy, setNovy] = useState("");
+  const language=L('cz','en'),purpose=language==='cz'?'ucz':'uen';
+  const topics=st.coll.socTopics||contentTopics;
+  const writeTopics=transform=>st.persistColl(current=>({...current,socTopics:transform(current.socTopics||contentTopics)}));
+  const updateTopic=(index,transform)=>writeTopics(list=>list.map((topic,i)=>i===index?transform(topic):topic));
+  const addPillar=()=>{if(!novy.trim())return;st.addEntry('socPillars',{id:uid(),cz:novy.trim(),en:novy.trim(),ucz:'',uen:'',color:'stone'});setNovy('');};
   const max = Math.max(1, ...pilire.map((p) => items.filter((i) => i.pillar === p.id).length));
   return (
     <div>
-      <p style={{ ...pProse(t), fontSize: 13 }}>{L("Jméno pilíře nese i jeho účel. Rovnováha není povinnost — ale když jeden pilíř dlouho mlčí, ptej se proč.", "A pillar's name carries its purpose. Balance isn't a duty — but when one pillar stays silent for long, ask why.")}</p>
+      <div style={{ ...pProse(t), fontSize: 13 }}><ContentCopy name="pillarsIntro" cs="Jméno pilíře nese i jeho účel. Rovnováha není povinnost — ale když jeden pilíř dlouho mlčí, ptej se proč." en="A pillar's name carries its purpose. Balance isn't a duty — but when one pillar stays silent for long, ask why."/></div>
       {pilire.map((p) => {
         const n = items.filter((i) => i.pillar === p.id).length;
         const c = tags[p.color] || tags.default;
         return (
-          <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
+          <div key={p.id} className="tm-content-pillar" style={{ display: "flex", alignItems: "center", flexWrap:'wrap', gap: 10, padding: "6px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
             <span style={{ width: 9, height: 9, borderRadius: 5, background: c.fg, flexShrink: 0 }} />
-            <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text, flexShrink: 0 }}>{L(p.cz, p.en)}</span>
-            <span style={{ fontFamily: FONT_TAG, fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted, flexShrink: 0 }}>{L(p.ucz || "", p.uen || "")}</span>
+            <div style={{flex:'1 1 135px',minWidth:0}}>{st.editMode?<><ContentText value={p[language]||''} label={L('Název pilíře','Pillar name')} onCommit={value=>st.updateEntry('socPillars',p.id,{[language]:value})}/><ContentText value={p[purpose]||''} label={L('Účel pilíře','Pillar purpose')} placeholder={L('Co nese tento pilíř…','What this pillar holds…')} onCommit={value=>st.updateEntry('socPillars',p.id,{[purpose]:value})}/></>:<><div style={{fontFamily:FONT_BODY,fontSize:13,color:t.text,overflowWrap:'anywhere'}}>{L(p.cz,p.en)}</div><div style={{fontFamily:FONT_TAG,fontSize:12,color:t.textSec,overflowWrap:'anywhere'}}>{L(p.ucz||'',p.uen||'')}</div></>}</div>
             <span style={{ flex: 1, height: 4, borderRadius: 2, background: hexA(c.fg, 0.13), overflow: "hidden" }}>
               <span style={{ display: "block", width: `${Math.round((n / max) * 100)}%`, height: "100%", background: hexA(c.fg, 0.7), transition: "width .4s ease" }} />
             </span>
             <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: n ? t.text : t.textMuted, width: 18, textAlign: "right" }}>{n}</span>
+            {st.editMode&&<button type="button" className="tm-content-edit-action" aria-label={L('Odebrat pilíř: ','Remove pillar: ')+L(p.cz,p.en)} onClick={()=>st.removeEntry('socPillars',p.id)}><FamilyIcon id="close" size={16}/></button>}
           </div>
         );
       })}
-      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-        <input value={novy} onChange={(e) => setNovy(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && novy.trim()) { st.addEntry("socPillars", { id: uid(), cz: novy.trim(), en: novy.trim(), ucz: "", uen: "", color: "stone" }); setNovy(""); } }}
-          placeholder={L("Nový pilíř…", "New pillar…")} style={{ flex: 1, background: "transparent", border: `1px solid transparent`, borderRadius: 8, outline: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13, padding: "6px 10px" }} />
-      </div>
+      {st.editMode&&<div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <input value={novy} aria-label={L('Nový pilíř','New pillar')} onChange={e=>setNovy(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.nativeEvent.isComposing)addPillar();}} placeholder={L('Nový pilíř…','New pillar…')} className="tm-content-edit-text"/>
+        <button type="button" className="tm-content-edit-action" onClick={addPillar} disabled={!novy.trim()} aria-label={L('Přidat pilíř','Add pillar')}><FamilyIcon id="add" size={18}/></button>
+      </div>}
       <Toggle summary={L("Moje témata · mapa, ze které pilíře rostou", "My topics · the map pillars grow from")} color="green">
-        {(st.coll.socTopics||contentTopics).map((tm, ix) => (
+        {topics.map((tm, ix) => (
           <div key={ix} style={{ marginBottom: 12 }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 400, fontSize: 15, color: t.heading, margin: "6px 0 4px" }}>{L(tm.cz, tm.en)}</div>
+            <div style={{display:'flex',alignItems:'center',gap:8}}><div style={{fontFamily:FONT_DISPLAY,fontWeight:400,fontSize:19,color:t.heading,margin:'6px 0 4px',flex:1,minWidth:0}}>{st.editMode?<ContentText value={tm[language]||''} label={L('Název skupiny témat','Topic group name')} onCommit={value=>updateTopic(ix,topic=>({...topic,[language]:value}))}/>:L(tm.cz,tm.en)}</div>{st.editMode&&<button type="button" className="tm-content-edit-action" aria-label={L('Odebrat skupinu: ','Remove group: ')+L(tm.cz,tm.en)} onClick={()=>writeTopics(list=>list.filter((_,i)=>i!==ix))}><FamilyIcon id="close" size={16}/></button>}</div>
             {tm.body.map(([cz, en], k) => (
               <div key={k} style={{ display: "flex", gap: 8, padding: "2px 0" }}>
                 <span style={{ color: t.sage, flexShrink: 0 }}>·</span>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6, color: t.textSec }}>{L(cz, en)}</span>
+                <span style={{fontFamily:FONT_BODY,fontSize:13,lineHeight:1.6,color:t.textSec,flex:1,minWidth:0}}>{st.editMode?<ContentText value={L(cz,en)} label={L('Text tématu','Topic text')} multiline onCommit={value=>updateTopic(ix,topic=>({...topic,body:topic.body.map((pair,index)=>index===k?pair.map((text,i)=>i===(language==='cz'?0:1)?value:text):pair)}))}/>:L(cz,en)}</span>
+                {st.editMode&&<button type="button" className="tm-content-edit-action" aria-label={L('Odebrat téma','Remove topic')} onClick={()=>updateTopic(ix,topic=>({...topic,body:topic.body.filter((_,index)=>index!==k)}))}><FamilyIcon id="close" size={14}/></button>}
               </div>
             ))}
+            {st.editMode&&<button type="button" className="tm-content-edit-action" onClick={()=>updateTopic(ix,topic=>({...topic,body:[...topic.body,['','']]}))}><FamilyIcon id="add" size={14}/>{L('Přidat téma','Add topic')}</button>}
           </div>
         ))}
+        {st.editMode&&<button type="button" className="tm-content-edit-action" onClick={()=>writeTopics(list=>[...list,{cz:'Nová skupina',en:'New group',body:[['','']]}])}><FamilyIcon id="add" size={16}/>{L('Přidat skupinu témat','Add topic group')}</button>}
       </Toggle>
     </div>
   );
@@ -176,26 +196,26 @@ function PageContentWorkshop() {
   React.useEffect(()=>{const target=st.openTarget;if(target?.kind==='socItems'){if((st.coll.socItems||[]).some(i=>i.id===target.id)){setOpenId(target.id);setPanel('work');}st.setOpenTarget(null);}else if(target?.kind==='notebook'){setPanel('notes');}},[st.openTarget]);
   const items=st.coll.socItems||[], active=items.filter(i=>!i.arch),openItem=items.find(i=>i.id===openId);
   const stages=[
-    ['napad','sprout','Nápad','Idea','Zachyť myšlenku, dokud je živá.','Catch the thought while it is fresh.','empty-denik-v2.webp'],
-    ['plan','compass','Plán','Plan','Vyber formát, komu píšeš a kdy se k tomu vrátíš.','Choose the format, your audience and when to return.','empty-zapisnik-v2.webp'],
-    ['natocit','film','Tvorba','Create','Napiš scénář. Připrav záběry. Vytvoř první verzi.','Write the script. Prepare your shots. Make a first version.','content-illustration-v1.png'],
-    ['strih','edit','Úpravy','Refine','Uprav rytmus a nech zaznít to podstatné.','Refine the rhythm and let the essential part come through.','empty-zapisnik-v2.webp'],
-    ['publikovat','arrow-out','Publikace','Publish','Zkontroluj text, kanál a den zveřejnění.','Check the copy, channel and publication date.','empty-kompas-v2.webp'],
-    ['vysledky','sprout','Ohlédnutí','Review','Zapiš, co se ukázalo a co zkusíš příště.','Record what you learned and what to try next.','empty-trenink-v2.webp'],
+    ['napad','sprout','Nápad','Idea','Zachyť myšlenku, dokud je živá.','Catch the thought while it is fresh.','content-pencil-v1.webp'],
+    ['plan','compass','Plán','Plan','Vyber formát, komu píšeš a kdy se k tomu vrátíš.','Choose the format, your audience and when to return.','content-folded-pages-v1.webp'],
+    ['natocit','film','Tvorba','Create','Napiš scénář. Připrav záběry. Vytvoř první verzi.','Write the script. Prepare your shots. Make a first version.','content-pencil-v1.webp'],
+    ['strih','edit','Úpravy','Refine','Uprav rytmus a nech zaznít to podstatné.','Refine the rhythm and let the essential part come through.','content-folded-pages-v1.webp'],
+    ['publikovat','arrow-out','Publikace','Publish','Zkontroluj text, kanál a den zveřejnění.','Check the copy, channel and publication date.','content-folded-pages-v1.webp'],
+    ['vysledky','sprout','Ohlédnutí','Review','Zapiš, co se ukázalo a co zkusíš příště.','Record what you learned and what to try next.','content-shell-v1.webp'],
   ];
   const current=stages.find(s=>s[0]===phase)||stages[0];
   const notesCount=(st.coll.notebook||[]).filter(n=>n.folder==='Sociální sítě'||String(n.folder||'').startsWith('Sociální sítě/')).length;
   const button={minHeight:44,border:0,background:'transparent',color:t.accentInk||t.accent,fontFamily:FONT_BODY,fontSize:13,cursor:'pointer',padding:'8px 0'};
   return <div className="tm-content-workshop" style={{'--content-accent':t.accentInk||t.accent,'--content-ink':t.text,'--content-muted':t.textSec,'--content-line':t.borderSoft}}>
     <style>{CONTENT_WORKSHOP_CSS}</style>
-    <PageTitle icon={<FamilyIcon id="voice" size={38}/>} pageKey="socsite" kicker={L('Od nápadu k publikování.','From idea to publishing.')}>{L('Tvorba obsahu','Content')}</PageTitle>
+    <PageTitle icon={<FamilyIcon id="voice" size={38}/>} pageKey="socsite" titleEditable={false} kicker={L('Od nápadu k publikování.','From idea to publishing.')}>{L('Tvorba obsahu','Content creation')}</PageTitle>
     {st.loadContentLibrary&&delivery!=='ready'&&<div role="status" style={{fontFamily:FONT_BODY,fontSize:13,lineHeight:1.6,color:t.textSec,marginBottom:12}}>{delivery==='loading'?L('Načítám sdílené podklady…','Loading shared resources…'):L('Sdílené podklady teď nejsou dostupné. Vlastní tvorba zůstává připravená.','Shared resources are unavailable right now. Your own work is ready.')} {delivery==='error'&&<button type="button" onClick={loadLibrary} style={{...button,marginLeft:8}}>{L('Zkusit znovu','Try again')}</button>}</div>}
     <nav className="tm-content-tabs" aria-label={L('Tvorba obsahu','Content')}>
       {[['work','Dílna','Workshop'],['calendar','Kalendář','Calendar'],['notes','Podklady','Resources']].map(([key,cs,en])=><button key={key} type="button" aria-pressed={panel===key} onClick={()=>setPanel(key)}>{L(cs,en)}{key==='notes'?' · '+notesCount:''}</button>)}
     </nav>
     {panel==='work'&&<section key="work" className="tm-content-panel" data-guide="socsite.overview">
       <div className="tm-content-path" role="group" aria-label={L('Fáze tvorby','Creation stages')}>{stages.map(([key,icon,cs,en])=><button type="button" key={key} aria-pressed={phase===key} aria-label={L(cs,en)+' · '+active.filter(i=>i.status===key).length} onClick={()=>setPhase(key)}><FamilyIcon id={icon} size={23}/><span className="phase-name">{L(cs,en)}</span><span className="phase-count">{active.filter(i=>i.status===key).length}</span></button>)}</div>
-      <div className="tm-content-intro"><h2>{phase==='all'?L('Vše rozpracované','All work in progress'):L(current[2],current[3])}</h2><p style={{color:t.textSec}}>{phase==='all'?L('Každý příspěvek má svoje tempo. Vrať se k tomu, co je právě na řadě.','Every piece has its own pace. Return to what needs your attention now.'):L(current[4],current[5])}</p><span className="tm-content-art" aria-hidden="true" style={{'--content-art':'url("/media/icons/'+current[6]+'")'}}/></div>
+      <div className="tm-content-intro"><h2>{phase==='all'?L('Vše rozpracované','All work in progress'):L(current[2],current[3])}</h2><div style={{color:t.textSec}}><ContentCopy name={'stage-'+phase} cs={phase==='all'?'Každý příspěvek má svoje tempo. Vrať se k tomu, co je právě na řadě.':current[4]} en={phase==='all'?'Every piece has its own pace. Return to what needs your attention now.':current[5]}/></div><span className="tm-content-art" aria-hidden="true" style={{'--content-art':'url("/media/icons/'+current[6]+'")'}}/></div>
       <SocRychly onNew={setOpenId} />
       <button type="button" style={button} aria-pressed={phase==='all'} onClick={()=>setPhase(phase==='all'?'napad':'all')}>{phase==='all'?L('Zpět k nápadům','Back to ideas'):L('Ukázat všechny fáze','Show every stage')} · {active.length}</button>
       <SocDilna items={items} onOpen={setOpenId} selectedPhase={phase}/>
@@ -203,8 +223,8 @@ function PageContentWorkshop() {
       <Toggle summary={L('Laboratoř hooků','The hook lab')} color="orange"><SocHacky/></Toggle>
       {items.some(i=>i.arch)&&<Toggle summary={L('Archiv obsahu','Content archive')} color="gray">{items.filter(i=>i.arch).map(i=><SocRadek key={i.id} i={i} onOpen={setOpenId}/>)}</Toggle>}
     </section>}
-    {panel==='calendar'&&<section key="calendar" className="tm-content-panel"><div className="tm-content-intro"><h2>{L('Místo v kalendáři','A place in the calendar')}</h2><p style={{color:t.textSec}}>{L('Natáčení a publikace mají svůj vlastní den. Klepni na datum a otevři příspěvek.','Filming and publication each have their own day. Select a date to open its pieces.')}</p><span className="tm-content-art" aria-hidden="true" style={{'--content-art':'url("/media/icons/empty-zapisnik-v2.webp")'}}/></div><SocKalendar items={active} onOpen={setOpenId}/></section>}
-    {panel==='notes'&&<section key="notes" className="tm-content-panel" data-guide="socsite.library"><div className="tm-content-intro"><h2>{L('Poznámky tvorby','Creation notes')}</h2><p style={{color:t.textSec}}>{L('Příběhy, hooky, podklady a vlastní poznámky. Čti, hledej a upravuj je po svém.','Stories, hooks, resources and your own notes. Read, search and make them your own.')}</p><span className="tm-content-art" aria-hidden="true" style={{'--content-art':'url("/media/icons/empty-denik-v2.webp")'}}/></div><button type="button" onClick={exportRoom} style={{...button,display:'inline-flex',gap:8,alignItems:'center',marginBottom:12}}><FamilyIcon id="download" size={16}/>{L('Exportovat tvorbu','Export content')}</button>{exportMessage&&<p role="status" style={{fontFamily:FONT_BODY,fontSize:13,color:t.textSec,lineHeight:1.6}}>{exportMessage}</p>}<PageNotebook koren="Sociální sítě" korenNazev={L('Tvorba obsahu','Content')}/></section>}
+    {panel==='calendar'&&<section key="calendar" className="tm-content-panel"><div className="tm-content-intro"><h2>{L('Místo v kalendáři','A place in the calendar')}</h2><div style={{color:t.textSec}}><ContentCopy name="calendarIntro" cs="Natáčení a publikace mají svůj vlastní den. Klepni na datum a otevři příspěvek." en="Filming and publication each have their own day. Select a date to open its pieces."/></div><span className="tm-content-art" aria-hidden="true" style={{'--content-art':'url("/media/icons/content-folded-pages-v1.webp")'}}/></div><SocKalendar items={active} onOpen={setOpenId}/></section>}
+    {panel==='notes'&&<section key="notes" className="tm-content-panel" data-guide="socsite.library"><div className="tm-content-intro"><h2>{L('Poznámky tvorby','Creation notes')}</h2><div style={{color:t.textSec}}><ContentCopy name="notesIntro" cs="Příběhy, hooky, podklady a vlastní poznámky. Čti, hledej a upravuj je po svém." en="Stories, hooks, resources and your own notes. Read, search and make them your own."/></div><span className="tm-content-art" aria-hidden="true" style={{'--content-art':'url("/media/icons/content-pencil-v1.webp")'}}/></div><button type="button" onClick={exportRoom} style={{...button,display:'inline-flex',gap:8,alignItems:'center',marginBottom:12}}><FamilyIcon id="download" size={16}/>{L('Exportovat tvorbu','Export content')}</button>{exportMessage&&<p role="status" style={{fontFamily:FONT_BODY,fontSize:13,color:t.textSec,lineHeight:1.6}}>{exportMessage}</p>}<PageNotebook koren="Sociální sítě" korenNazev={L('Tvorba obsahu','Content')}/></section>}
     {openItem&&<SocDetail i={openItem} onClose={()=>setOpenId(null)}/>}
   </div>;
 }
@@ -411,7 +431,7 @@ function SocHacky() {
   const STAVY = { test: { cz: "otestovat", en: "to test", color: "yellow", next: "posted" }, posted: { cz: "publikováno", en: "posted", color: "green", next: "logged" }, logged: { cz: "zapsáno", en: "logged", color: "blue", next: "test" } };
   return (
     <div>
-      <p style={{ ...pProse(t), fontSize: 13 }}>{L("Hook je hypotéza. Publikuj, přečti retenci, zapiš — teprve pak víš. Šablony a vzory najdeš doslovně v Zápisníku tvorby.", "A hook is a hypothesis. Post it, read retention, log it — only then you know. The template libraries live verbatim in the creation notebook.")}</p>
+      <div style={{ ...pProse(t), fontSize: 13 }}><ContentCopy name="hooksIntro" cs="Hook je hypotéza. Publikuj, přečti retenci, zapiš — teprve pak víš. Šablony a vzory najdeš doslovně v Zápisníku tvorby." en="A hook is a hypothesis. Post it, read retention, log it — only then you know. The template libraries live verbatim in the creation notebook."/></div>
       <div style={{ display: "flex", gap: 8, margin: "4px 0 10px" }}>
         <input value={novy} onChange={(e) => setNovy(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && novy.trim()) { st.addEntry("socHooks", { id: uid(), text: novy.trim(), typ: "", status: "test", retention: "", vysledek: "", link: "" }); setNovy(""); } }}
           placeholder={L("Vlastní hook k otestování…", "Your own hook to test…")} style={{ flex: 1, background: "transparent", border: `1px solid transparent`, borderRadius: 8, outline: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13, padding: "6px 10px" }} />
@@ -421,11 +441,11 @@ function SocHacky() {
         return (
           <div key={h.id} style={{ padding: "7px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-              <span style={{ flex: 1, fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.55, color: t.text }}>{h.text}</span>
+              <span style={{ flex: 1, minWidth:0, fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.55, color: t.text }}>{st.editMode?<ContentText value={h.text} label={L('Text hooku','Hook text')} multiline onCommit={value=>st.updateEntry('socHooks',h.id,{text:value})}/>:h.text}</span>
               <SocChip color={s.color} onClick={() => st.updateEntry("socHooks", h.id, { status: s.next })} title={L("Ťukni pro posun", "Tap to advance")} small>{L(s.cz, s.en)}</SocChip>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 2 }}>
-              {h.typ && <span style={{ fontFamily: FONT_TAG, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: t.textMuted }}>{h.typ}</span>}
+              {st.editMode?<ContentText value={h.typ||''} label={L('Poznámka k typu hooku','Hook type note')} onCommit={value=>st.updateEntry('socHooks',h.id,{typ:value})}/>:h.typ&&<span style={{fontFamily:FONT_TAG,fontSize:12,letterSpacing:'0.08em',textTransform:'uppercase',color:t.textMuted}}>{h.typ}</span>}
               {h.status === "logged" && (
                 <>
                   <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{L("retence", "retention")}</span>

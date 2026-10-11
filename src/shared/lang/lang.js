@@ -25,7 +25,7 @@ export const detectLang = () => {
 };
 export const L = (cs, en) => (LANG === "cs" ? cs : en);
 // Display-only translation of internal filter tokens (values stay Czech in state/logic)
-export const LV = (x) => ({ "Vše": L("Vše", "All"), Status: L("Stav", "Status"), Area: L("Krajina", "Landscape"), Priority: L("Priorita", "Priority"), Completed: L("Hotové", "Completed"), Archiv: L("Archiv", "Archive") }[x] || x);
+export const LV = (x) => ({ "Vše": L("Vše", "All"), "Umění":L("Umění","Art"), Status: L("Stav", "Status"), Area: L("Krajina", "Landscape"), Priority: L("Priorita", "Priority"), Completed: L("Hotové", "Completed"), Archiv: L("Archiv", "Archive") }[x] || x);
 // goal vocabulary · display layer only — stored keys stay English, nothing migrates
 export const GS = (x) => ({ "Not started": L("Čeká", "Waiting"), "In progress": L("V pohybu", "In progress"), "On Hold": L("Odloženo", "On hold"), "Completed": L("Hotovo", "Completed") }[x] || x);
 export const PL = (x) => ({ High: L("Vysoká", "High"), Normal: L("Střední", "Medium"), Moderate: L("Nízká", "Low") }[x] || x);

@@ -1,0 +1,82 @@
+[
+  {
+    "file": "tm-book-serif-normal-v1.woff2",
+    "family": "Tanmay Book Serif",
+    "style": "normal",
+    "bytes": 43280,
+    "sha256": "c14543fc86da7f60ee4edda9ec5ee179cc58bacc9f3380ff8a259cbedaecfd55",
+    "source": "https://raw.githubusercontent.com/adobe-fonts/source-serif/80d3f8894c09c937bebfa9011247d2e1c79fd6f4/VAR/SourceSerif4Variable-Roman.ttf",
+    "sourceSha256": "14d360ee1b76655da9276628b229e11671bc1f5d1083636144db6677d452cf55",
+    "czechGlyphs": true
+  },
+  {
+    "file": "tm-book-serif-italic-v1.woff2",
+    "family": "Tanmay Book Serif",
+    "style": "italic",
+    "bytes": 44564,
+    "sha256": "5ac4af3ee254b0529a120649ee836dd72423fe785ccf4b40f79fa65bc20ca618",
+    "source": "https://raw.githubusercontent.com/adobe-fonts/source-serif/80d3f8894c09c937bebfa9011247d2e1c79fd6f4/VAR/SourceSerif4Variable-Italic.ttf",
+    "sourceSha256": "6a059a64838978d54e8fab71ed86b0d82e948c0e12b2664d0c15166326dcff82",
+    "czechGlyphs": true
+  },
+  {
+    "file": "tm-book-sans-normal-v1.woff2",
+    "family": "Tanmay Book Sans",
+    "style": "normal",
+    "bytes": 52104,
+    "sha256": "20fb165d432110cd4549597db0e542b82a8cf30245b88a71f634a41bdb38b356",
+    "source": "https://raw.githubusercontent.com/adobe-fonts/source-sans/87b37a2daaed80fcb8e8ccb0085c4d72ddade12e/VF/SourceSans3VF-Upright.ttf",
+    "sourceSha256": "1147db9a3f0edd4956068de77930148acce2742dd76d57f7239b2b1c687ac63f",
+    "czechGlyphs": true
+  },
+  {
+    "file": "tm-book-sans-italic-v1.woff2",
+    "family": "Tanmay Book Sans",
+    "style": "italic",
+    "bytes": 53356,
+    "sha256": "98a8e0ffd1af40fa27ac6b198239707c837169ee43209b3a94705f859ef78362",
+    "source": "https://raw.githubusercontent.com/adobe-fonts/source-sans/87b37a2daaed80fcb8e8ccb0085c4d72ddade12e/VF/SourceSans3VF-Italic.ttf",
+    "sourceSha256": "c34791f4f889af43d84e2f84ebeb02e6eed07058aca21e6729d26e6436d18965",
+    "czechGlyphs": true
+  },
+  {
+    "file": "tm-clear-sans-normal-v1.woff2",
+    "family": "Tanmay Clear Sans",
+    "style": "normal",
+    "bytes": 67228,
+    "sha256": "9b3f12cb8c2450b71c85723b3269807016ab9dae62d000d920ad2a7de46842e8",
+    "source": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-sans-variable/fonts/complete/woff2/IBM%20Plex%20Sans%20Var-Roman.woff2",
+    "sourceSha256": "e978248b6b56da9e372975322a98dd9a51135d1b375e32ed6d5ca69f3aab792d",
+    "czechGlyphs": true
+  },
+  {
+    "file": "tm-clear-sans-italic-v1.woff2",
+    "family": "Tanmay Clear Sans",
+    "style": "italic",
+    "bytes": 74172,
+    "sha256": "2dbf6af3d9db8d8e15c4df2d3c0c3ac23d309f6cf05d5ee4276ba2599aaeadfd",
+    "source": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-sans-variable/fonts/complete/woff2/IBM%20Plex%20Sans%20Var-Italic.woff2",
+    "sourceSha256": "57c2e5e2d0a16054e83315a312d2d5d0166e4a6f5b27dbed28d7d9d05b5e4292",
+    "czechGlyphs": true
+  },
+  {
+    "file": "tm-clear-serif-normal-v1.woff2",
+    "family": "Tanmay Clear Serif",
+    "style": "normal",
+    "bytes": 48364,
+    "sha256": "fafe9f6aa4a7e910336aa03891f8737e89d34c4cb3427c551193e5d02262692f",
+    "source": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-serif-variable/fonts/complete/woff2/IBM%20Plex%20Serif%20Var-Roman.woff2",
+    "sourceSha256": "2e1e46ebd6b446f091d013c773d5da24e403e74e5d7b7060c8c499180ca69893",
+    "czechGlyphs": true
+  },
+  {
+    "file": "tm-clear-serif-italic-v1.woff2",
+    "family": "Tanmay Clear Serif",
+    "style": "italic",
+    "bytes": 52020,
+    "sha256": "1d74a1047d57c3076d08c51955c7d42740a1b00f61644159b696aaa9da8eddde",
+    "source": "https://raw.githubusercontent.com/IBM/plex/763c36ef9117782905ae010056dfbe8fd2653a25/packages/plex-serif-variable/fonts/complete/woff2/IBM%20Plex%20Serif%20Var-Italic.woff2",
+    "sourceSha256": "5ee4c9187a84dd44a878849aa9ecc1325d28bc2820fb3a15525da1bfb79b1504",
+    "czechGlyphs": true
+  }
+]

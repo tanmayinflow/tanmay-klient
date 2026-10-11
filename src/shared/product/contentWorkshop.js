@@ -1,4 +1,4 @@
-
+import {validateContentClientPolicy,projectClientContentSnapshot} from './contentClientPolicy.js';
 export const CONTENT_ROOT = 'Sociální sítě';
 export const isContentNote = note => note?.folder === CONTENT_ROOT || String(note?.folder || '').startsWith(CONTENT_ROOT + '/');
 export const newContentItem = (title,id) => ({id,title,status:'napad',format:'reel',platforms:[],pillar:'',doDate:'',postDate:'',url:'',hook:'',script:'',shots:'',caption:'',note:'',kroky:{},vysl:{},pouceni:'',arch:false,createdAt:Date.now()});
@@ -45,10 +45,11 @@ export function exportContentSnapshot(coll,{version='content-'+new Date().toISOS
 
 // A single approved release snapshot. This never reads Main's live account or
 // subscribes to future edits. Each client receives independent editable copies.
-const TOP_LEVEL = new Set(['version','source','socItems','socHooks','socPillars','notebook','socTopics']);
+const TOP_LEVEL = new Set(['version','source','socItems','socHooks','socPillars','notebook','socTopics','clientPolicy']);
 export function validateContentSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== 'object' || !/^[\w.-]+$/.test(snapshot.version || '')) throw new Error('Invalid content snapshot version');
   if(snapshot.source!==undefined&&typeof snapshot.source!=='string')throw new Error('Invalid content source');
+  if(snapshot.clientPolicy!==undefined)validateContentClientPolicy(snapshot.clientPolicy);
   if (Object.keys(snapshot).some(key=>!TOP_LEVEL.has(key))) throw new Error('Content snapshot includes a collection outside the approved room');
   for (const key of ['socItems','socHooks','socPillars','notebook']) {
     if (!Array.isArray(snapshot[key])) throw new Error('Content snapshot collection must be an array');
@@ -95,6 +96,11 @@ export function contentSnapshotCopies(snapshot) {
     return row;
   });
   return result;
+}
+
+export async function projectClientContentLibrary(snapshot) {
+  validateContentSnapshot(snapshot);
+  return projectClientContentSnapshot(snapshot,contentSnapshotCopies(snapshot));
 }
 
 

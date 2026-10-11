@@ -16,7 +16,7 @@ export function EmptyRoomArt({ room, size = 150, color = "var(--tm-text-muted)" 
   if (!EMPTY_ROOM_ART.has(room)) return null;
   const landscape = room === 'kompas';
   const art = "url('/media/icons/empty-" + room + (landscape ? "-wide-v3.webp" : "-v2.webp") + "') center/contain no-repeat";
-  return <span aria-hidden="true" data-empty-art={room} style={{display:"block",width:landscape?"100%":size,maxWidth:landscape?560:"100%",aspectRatio:landscape?"2 / 1":"1",margin:"0 auto",pointerEvents:"none",backgroundColor:color,mask:art,WebkitMask:art}} />;
+  return <span aria-hidden="true" data-empty-art={room} style={{display:"block",width:landscape?"100%":size,maxWidth:landscape?560:"100%",aspectRatio:landscape?"2 / 1":"1",margin:"0 auto",pointerEvents:"none",backgroundColor:color,opacity:landscape ? 0.48 : 1,mask:art,WebkitMask:art}} />;
 }
 
 export function createStates(useT, L) {
@@ -84,7 +84,7 @@ export function createStates(useT, L) {
   // prázdnou stránku, aby nevypadala jako porucha.
   function TmArtKapka({ size = 130, color }) {
     const art = "url('/media/icons/empty-prameny-v3.webp') center/contain no-repeat";
-    return <span aria-hidden="true" data-empty-art="prameny" style={{display:"block",width:size,maxWidth:"100%",aspectRatio:"1",margin:"0 auto",pointerEvents:"none",backgroundColor:color||"currentColor",mask:art,WebkitMask:art}} />;
+    return <span aria-hidden="true" data-empty-art="prameny" style={{display:"block",width:size,maxWidth:"100%",aspectRatio:"1",margin:"0 auto",pointerEvents:"none",backgroundColor:color||"currentColor",opacity:.52,mask:art,WebkitMask:art}} />;
   }
 
   return { Prazdno, TmArtKapka };

@@ -17,6 +17,7 @@ import { landscapeCss } from "./landscapeCss.js";
 // TADY a projeví se v obou domech.
 
 import { STACK_DISPLAY_EN, STACK_DISPLAY_CS, STACK_LOGO, STACK_BODY, STACK_TAG } from "./type.js";
+import { normalizeTypography, typographyPreset, typographyCss } from "./typography.js";
 
 /** Rádiusy. Dům má tři velikosti a jednu pilulku, ne dvanáct náhodných čísel. */
 export const RADII = Object.freeze({
@@ -51,17 +52,18 @@ export const MOTION = Object.freeze({
  * @param {object} t motiv z makeTheme()
  * @param {"cs"|"en"} lang jazyk · rozhoduje o displejovém řezu
  */
-export function tokensCss(t, lang) {
+export function tokensCss(t, lang, typography = 'original') {
+  const customType = normalizeTypography(typography) !== 'original' ? typographyPreset(typography, lang) : null;
   const house = lang === "en" ? STACK_DISPLAY_EN : STACK_DISPLAY_CS;
   /* ŘEZ JE ROLE, NE KONSTANTA. Dům mlčí a dostane svůj Garamond a DM Sans;
      paleta, která si nese vlastní typografii (`type` v rejstříku), ji tady
      přebije a propíše se do každého inline stylu, protože komponenty píšou
      `var(--tm-font-body)`, ne řez. Jazyk rozhoduje jen tam, kde paleta mlčí
      — vlastní displejový řez si diakritiku řeší sám. */
-  const display = t.fontDisplay || house;
+  const display = customType?.display || t.fontDisplay || house;
   const logo = t.fontLogo || STACK_LOGO;
-  const body = t.fontBody || STACK_BODY;
-  const tag = t.fontTag || STACK_TAG;
+  const body = customType?.body || t.fontBody || STACK_BODY;
+  const tag = customType?.tag || t.fontTag || STACK_TAG;
   return `
 :root {
   /* písmo */
@@ -69,6 +71,7 @@ export function tokensCss(t, lang) {
   --tm-font-logo: ${logo};
   --tm-font-body: ${body};
   --tm-font-tag: ${tag};
+  --tm-font-reading: ${customType?.reading || body};
 
   /* rádius */
   --tm-r-tag: ${RADII.tag}px;
@@ -210,6 +213,7 @@ ${skinCss()}
 ${landscapeCss()}
 ${roomArtCss()}
 ${ownerRefinementsCss()}
+${typographyCss(typography)}
 `;
 }
 

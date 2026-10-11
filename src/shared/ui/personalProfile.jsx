@@ -7,6 +7,13 @@ export const verifyPersonalProfile=client.verify;
 export const invalidatePersonalProfile=client.invalidate;
 export const isPersonalProfileVerified=client.verified;
 export function PersonalProfileLifecycle(){
+  const {profile,accountKey}=usePersonalProfile();
+  useEffect(()=>{
+    // A declared profile choice affects artwork only, never training or access.
+    const root=document.documentElement;
+    root.dataset.profileWording=accountKey?profile.wording:'neutral';
+    return()=>{delete root.dataset.profileWording;};
+  },[accountKey,profile.wording]);
   useEffect(()=>{
     const verify=()=>{if(document.visibilityState!=='hidden')client.verify();};
     const changed=()=>{client.invalidate();client.refresh();};

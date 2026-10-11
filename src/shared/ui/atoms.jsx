@@ -63,7 +63,7 @@ export function createAtoms(deps) {
     );
   }
 
-  function PageTitle({ icon, children, kicker, pageKey, artKey, right, onKicker, guide }) {
+  function PageTitle({ icon, children, kicker, pageKey, artKey, right, onKicker, guide, titleEditable=true }) {
     const { t } = useT();
     const st = useStore();
     const meta = pageKey ? st.pageMetaOf(pageKey) : {};
@@ -83,7 +83,7 @@ export function createAtoms(deps) {
                 : <Eyebrow>{kick}</Eyebrow>))}
           <h1 style={titleStyle}>
             {iconNode}
-            {editable
+            {editable&&titleEditable
               ? <BufferedInput value={typeof title === "string" ? title : ""} onCommit={(v) => st.setPageMeta(pageKey, { title: v })} placeholder={L("Název stránky…", "Page title…")} style={{ ...h1Style, display: "block", borderBottom: `1px solid transparent` }} />
               : <span className="tm-page-title-text" style={{minWidth:0,overflowWrap:"anywhere"}}>{title}</span>}
             {right && <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 2, flexShrink: 0 }}>{right}</span>}
@@ -106,7 +106,7 @@ export function createAtoms(deps) {
     const c = tags[color] || tags.default;
     return (
       <span style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 600, padding: "3px 8px", borderRadius: "var(--tm-r-tag)", background: c.bg, color: c.fg, marginRight: 6, whiteSpace: "nowrap" }}>
-        {label}
+        {label==='Umění'?L('Umění','Art'):label}
       </span>
     );
   }
@@ -134,12 +134,12 @@ export function createAtoms(deps) {
     };
     return (
       <div ref={wrapRef} style={{ position: "relative", display: "inline-block", ...(style && style.maxWidth ? { maxWidth: style.maxWidth } : {}), width: (style && style.width) || "auto" }}>
-        <button type="button" onClick={() => setOpen((x) => !x)} style={trigStyle}>
+        <button className="tm-select-trigger" type="button" aria-expanded={open} onClick={() => setOpen((x) => !x)} style={trigStyle}>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: ghost ? t.textMuted : (cur || value) ? t.text : t.textMuted }}>{cur ? cur.label : (value || placeholder || "—")}</span>
           <span style={{ color: t.textMuted, fontSize: 12, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}><FamilyIcon id="expand" size={12} label={L("Rozbalit","Expand")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
         </button>
         {open && (
-          <div style={{ animation: "tmsettle .18s ease both", position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: "100%", maxWidth: "min(320px, calc(86 * var(--tm-vw)))", maxHeight: 280, overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-sm)", boxShadow: "0 10px 24px rgba(0,0,0,0.18)", zIndex: 60, padding: 4 }}>
+          <div className="tm-select-menu" style={{ animation: "tmsettle .18s ease both", position: "absolute", top: "calc(100% + 5px)", left: 0, minWidth: "100%", maxWidth: "min(320px, calc(86 * var(--tm-vw)))", maxHeight: 280, overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 12, boxShadow: "0 8px 18px rgba(28,28,26,0.12)", zIndex: 60, padding: 5 }}>
             {opts.map((o) => (
               <button key={o.v} type="button" onClick={() => { onChange(o.v); setOpen(false); }} className="tm-nav-item" style={{ display: "block", width: "100%", textAlign: "left", background: o.v === value ? t.card : "transparent", border: "none", cursor: "pointer", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: small ? 12.5 : 14, padding: "7px 10px", borderRadius: 6, whiteSpace: "nowrap" }}>{o.label}</button>
             ))}
