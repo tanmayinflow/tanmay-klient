@@ -81,7 +81,7 @@ import { createFigure } from "./shared/ui/figure.jsx";
 import { useVrstva, createOverlay } from "./shared/ui/overlay.jsx";
 import { tmToTop, tmEscVrstva, tmEscVolno, tmZamkniStranku, tmOdemkniStranku, tmListovaniStuj, tmListovaniJdi, tmListovaniSpi, TM_ZAMEK } from "./shared/ui/overlay.js";
 import { createStates, EmptyRoomArt } from "./shared/ui/states.jsx";
-import { prepareRetiredPracticeNotesV2 } from "./retiredNotebook.js";
+import { prepareRetiredPracticeNotesV3 } from "./retiredNotebook.js";
 import { createPracticeUI } from "./shared/ui/practice.jsx";
 import { createPracticePage } from "./shared/ui/practicePage.jsx";
 import { createAtoms } from "./shared/ui/atoms.jsx";
@@ -118,7 +118,7 @@ import { SHARED_CORE_VERSION } from "./shared/version.js";
 import { SYNC_OK, SYNC_SIT, SYNC_PRIHLASENI, syncDruh, syncHlaska, syncLzeZkusitZnovu } from "./shared/product/sync.js";
 import { bootstrapSyncDecision } from "./shared/product/bootstrapSync.js";
 import { createClientSession } from "./clientSession.js";
-import { createClientStartupNavigation, clientHabitDefinitions } from "./clientPreferences.js";
+import { createClientStartupNavigation, clientHabitDefinitions, prepareClientUnusedHabitAdoption } from "./clientPreferences.js";
 import { scopeLegacyClientPins } from "./clientPinned.js";
 import {createFinanceExperience} from "./shared/ui/financeExperience.jsx";
 import { personalNotebookRoom } from "./shared/product/personalRooms.js";
@@ -16161,19 +16161,33 @@ export default function App() {
     const owner = clientAccount.getSnapshot().owner;
     const current = () => !cancelled() && owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
     if (!current()) return;
-    const migrate = await prepareRetiredPracticeNotesV2(_collRef.current);
+    const migrate = await prepareRetiredPracticeNotesV3(_collRef.current);
     if (!current()) return;
     persistColl(c => current() ? migrate(c) : c);
   };
   const importPracticesRef = React.useRef(importPractices);
   importPracticesRef.current = importPractices;
   React.useEffect(() => {
-    if (!stateHydrated || member !== true || conflict || coll.retiredPracticeNotesV2) return;
+    if (!stateHydrated || member !== true || conflict || coll.retiredPracticeNotesV3) return;
     let cancelled = false;
     // Failed hashing does not complete the migration; a later hydration retries.
     importPracticesRef.current(() => cancelled).catch(() => {});
     return () => { cancelled = true; };
-  }, [ownerId, accountStatus, stateHydrated, member, conflict, coll.notebook, coll.retiredPracticeNotesV2]);
+  }, [ownerId, accountStatus, stateHydrated, member, conflict, coll.notebook, coll.retiredPracticeNotesV2, coll.retiredPracticeNotesV3]);
+  const adoptUnusedHabitDefaults = () => {
+    if (!stateHydrated || member !== true || conflict) return;
+    const owner = clientAccount.getSnapshot().owner;
+    const current = () => owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
+    if (!current()) return;
+    persistColl(c => current() ? prepareClientUnusedHabitAdoption(c, _editsRef.current, HABIT_DEFAULTS) : c);
+  };
+  const adoptUnusedHabitDefaultsRef = React.useRef(adoptUnusedHabitDefaults);
+  adoptUnusedHabitDefaultsRef.current = adoptUnusedHabitDefaults;
+  React.useLayoutEffect(() => {
+    // Adopt the proven unused seed before interaction. A read-only projection
+    // would revert to old slot meanings as soon as the first checkbox is saved.
+    adoptUnusedHabitDefaultsRef.current();
+  }, [ownerId, accountStatus, stateHydrated, member, conflict, coll.habitDefs, edits]);
   const removeEntries = (kind, ids) => {
     const idSet = new Set(ids);
     const list = coll[kind] || [];

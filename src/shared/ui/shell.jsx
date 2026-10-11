@@ -243,7 +243,9 @@ export function shellMobileCss(t) {
   .tm-jfilters { display: none !important; }
   .tm-jfilters.open { display: flex !important; flex-wrap: wrap; gap: 6px; width: 100%; padding-top: 6px; }
   .tm-jsnip { display: none !important; }
-  [data-card-journal] { margin: 22px 4px !important; box-shadow: 0 0 0 8px ${t.callout}, 0 0 0 9px ${t.borderSoft} !important; }
+  /* The list's paper edge belongs to the page only. A full editor is portaled
+     into its own sheet and deliberately has no second, content-sized card. */
+  .tm-page [data-card-journal] { margin: 22px 4px !important; box-shadow: 0 0 0 8px ${t.callout}, 0 0 0 9px ${t.borderSoft} !important; }
   /* filtry Pramenů a Zápisníku · schované za ▾, jako v Deníku */
   .tm-deskonly { display: none !important; }
   /* lišta hromadných akcí nesmí zmizet pod dokem */
@@ -272,7 +274,10 @@ export function shellMobileCss(t) {
      není, protože není žádné „pod ním". Nadpis stojí nahoře, text
      roluje pod ním, psací lišta dosedne na spodní hranu. */
   .tm-cs-veil { padding: 0 !important; align-items: stretch !important; }
-  .tm-cs { width: 100% !important; max-width: none !important; height: calc(100 * var(--tm-dvh)) !important; max-height: none !important; margin: 0 !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 !important; }
+  /* Fill the fixed veil itself. A separately rounded 100dvh can be shorter
+     than inset:0 at mobile text scales, exposing the dimmed page below.
+     This also follows browser-chrome changes without relying on dvh support. */
+  .tm-cs { width: 100% !important; max-width: none !important; height: 100% !important; max-height: none !important; box-sizing: border-box; margin: 0 !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 !important; }
   .tm-cs-head { top: 0 !important; margin: 0 !important; padding: calc(env(safe-area-inset-top) + 11px) 16px 9px !important; border-bottom: 1px solid ${t.borderSoft}; }
   /* list nemá dok · jen hranu displeje */
   .tm-cs-body { padding: 12px 16px var(--tm-kraj) !important; }

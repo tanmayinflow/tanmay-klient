@@ -1,7 +1,7 @@
 {
   "generatedBy": "Shared/scripts/sync-product-core.mjs",
   "canonicalSource": "Work/web-application/Shared/product-core/",
-  "sharedCoreVersion": "1.32.0",
+  "sharedCoreVersion": "1.32.1",
   "note": "Zrcadlo sdíleného jádra. Needituj tyhle soubory v aplikačním repozitáři — `npm run shared:check` to pozná a build spadne.",
   "files": {
     "public/market-chart.css": "2a694f0d7edddfbb94bc40dd37ce3bee8e826cd43632f888fc0bf0f63236dec6",
@@ -153,7 +153,7 @@
     "src/shared/ui/recordingStatus.jsx": "4c6ada092473e6000c85954523127cfac74b9d40634377c9655320a9f342eb8c",
     "src/shared/ui/roomArt.js": "5a6f54b965db430108f463044b13aec36a43281dad100e1c84e25836c5182a9c",
     "src/shared/ui/settingsControls.jsx": "a199e80e77d43ddde1af6e5168b8084628ac4a678d2b1f0a5841d0fe309b23aa",
-    "src/shared/ui/shell.jsx": "1a0027bd4efc12885f96691a4a95a6d6acad69d81717290b85e7a598a6768dcb",
+    "src/shared/ui/shell.jsx": "073956c924770efde399c0d2df269f40bf9364521e880f5379c05257ca875cc1",
     "src/shared/ui/sidebarLines.jsx": "308083d0fc57484b40693bb5b8cd38bdb207dc0324c1c76df4190abe6223be99",
     "src/shared/ui/skyArchive.jsx": "9c21154fecd198afaa9cf2f5f35913d7222c4e8c61975132d6da8d4322d35f3e",
     "src/shared/ui/skyBody.jsx": "fdab8eb9ab4e5658dcfdec77c676d87c9f117f1d8edb21992bda83298e378d47",
@@ -205,7 +205,7 @@
     "src/shared/ui/typography.js": "7b001d164b74831d46a86f4c3554d05876cf042fa271362704331fa2bbcade3c",
     "src/shared/ui/typography.jsx": "4abd3f98e2b791ddc21c57760a9d7fc12e09c16de1706c25aa5adb0f15d28112",
     "src/shared/ui/wellbeingPalette.js": "b17a69043ff09cb4a33abbab2244a36b831efe6c6c9541793f20303d2bac295b",
-    "src/shared/version.js": "0d6e7b3360f8d9106a908a7511443e10ff5b617d74ca7ecae5a96cea49f8ab9e",
+    "src/shared/version.js": "494215da714b27c64ecf024eb015557c00cab5af28e67fe9460191ab8f02caf6",
     "src/training/adapters.js": "e9534cb51d6e15b0b323d6e41b91a6ffc7828c0a3f8a9fae7588f525adf1a2dc",
     "src/training/atlasResolver.js": "3f6c2f9885607dc35e1b9e05f0dfb8b796e607abe01d12410ed5c7a5a1b3c4e6",
     "src/training/catalog.js": "993ddbe29ac84935c891be2c4f97164809f7c9d35c2df4f06b2774cbf7e11319",
