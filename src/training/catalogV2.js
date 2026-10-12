@@ -21,6 +21,7 @@
 // ======================================================================
 
 // ---- LOWER BODY · GYM ------------------------------------------------
+import { EXPANSION_EXERCISES, EXPANSION_META } from './catalogExpansion.js';
 const LOWER = [
   { id: "trapbardl", cz: "Mrtvý tah s trap tyčí", en: "Trap-Bar Deadlift", pat: "ohyb", S: 4, C: 2, J: { kyc: 2, pat: 2 }, pop: 3, eq: ["cinka"], mode: "reps", mp: ["glu", "qua", "ham"], ms: ["low", "upb", "fore"], dot: [96, 124], ez: "an_dbdeadlift", hd: "deadlift",
     foc: ["Tlač nohama do země, ruce jen drží.", "Drive through the floor. The hands only hold."],
@@ -338,12 +339,13 @@ const ACT = [
     wat: ["Nedrž se madel křečovitě. Ruce mají pracovat, nebo být volně.", "Do not grip the handles hard. The arms either work or hang free."] },
 ];
 
-export const TRAINING_V2_EXERCISES = [...LOWER, ...UPPER, ...CARRY, ...KB, ...ACT];
+export const TRAINING_V2_EXERCISES = [...LOWER, ...UPPER, ...CARRY, ...KB, ...ACT, ...EXPANSION_EXERCISES];
 
 // The audit record for each new row, in the same short-key vocabulary the
 // 485-row table uses. `src: "tanmay"` is provenance and says nothing about
 // quality; `ev` says what the claim rests on.
 export const TRAINING_V2_META = {
+  ...EXPANSION_META,
   // lower
   trapbardl: { t: "core", g: "generic", r: "strength", b: "strength", tr: 3, f: "hinge", src: "tanmay", ev: "high" },
   legext: { t: "extended", g: "goal_eq", r: "hypertrophy", b: "accessory", tr: 2, f: "knee_extension_machine", src: "tanmay", ev: "high" },

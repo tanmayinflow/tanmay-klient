@@ -11,6 +11,8 @@ export * from "./measurements.js";
 export * from "./catalog.js";
 export * from "./catalogOverlay.js";
 export * from "./catalogV2.js";
+export * from "./catalogExpansion.js";
+export * from "./expansionArt.js";
 export * from "./sessionModel.js";
 export * from "./sessionEngine.js";
 export * from "./progress.js";
