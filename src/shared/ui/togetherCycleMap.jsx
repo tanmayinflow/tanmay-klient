@@ -2,11 +2,11 @@ import React,{useMemo,useState} from 'react';
 import {CYCLE_ORDER,CYCLE_DEPTH,CYCLE_HORMONES,cycleHormoneSchematic} from '../product/togetherCycleDepth.js';
 import {TogetherArtwork} from './togetherArtwork.jsx';
 import {UterusPlate,CycleAnatomyDetail,cycleAnatomyStyles} from './togetherCycleAnatomy.jsx';
+import {CycleGeometry} from './togetherCycleGeometry.jsx';
 
 const phasePoints=[[82,69],[298,69],[298,247],[82,247]];
 const radial=(count)=>Array.from({length:count},(_,i)=>{const a=(-90+i*360/count)*Math.PI/180;return [190+Math.cos(a)*139,177+Math.sin(a)*139];});
 const bodyPoints=[[72,53],[308,53],[190,310]];
-const spiral=Array.from({length:181},(_,i)=>{const f=i/180,a=f*Math.PI*4.6-1.6,r=5+f*77;return `${i?'L':'M'}${(Math.cos(a)*r).toFixed(2)},${(Math.sin(a)*r*.74).toFixed(2)}`;}).join(' ');
 
 export function CycleGlyph({kind}){
   const paths={
@@ -64,9 +64,9 @@ export function CycleMap({shown,current,focused,layer,topic,topics,lang,onPhase,
   const isAnatomy=focused&&layer==='body'&&mainKind==='uterus';
   const showBotanical=focused&&layer!=='body'&&(topic==='overview'||topic==='archetype');
   return <><div className={`tg-cycle-atlas${focused?' is-focused':''}`} data-layer={layer} data-topic={topic}>
-    <svg className="tg-cycle-atlas-art" viewBox="0 0 380 356" role="img" aria-label={isAnatomy?L(['Obecná anatomická kresba dělohy, vejcovodů, vaječníků a hrdla.','General anatomical drawing of the uterus, fallopian tubes, ovaries and cervix.']):focused?L(['Prostorová mapa vybrané fáze. Témata otevřeš tlačítky kolem obrazu.','A spatial map of the selected phase. Open topics with the buttons around the image.']):L(['Čtyři krajiny cyklu spojené jednou spirálou. Velikost nevyjadřuje délku fází.','Four cycle landscapes joined by one spiral. Size does not represent phase duration.'])}>
+    <svg className="tg-cycle-atlas-art" viewBox="0 0 380 356" role="img" aria-label={isAnatomy?L(['Obecná anatomická kresba dělohy, vejcovodů, vaječníků a hrdla.','General anatomical drawing of the uterus, fallopian tubes, ovaries and cervix.']):focused?L(['Prostorová mapa vybrané fáze. Témata otevřeš tlačítky kolem obrazu.','A spatial map of the selected phase. Open topics with the buttons around the image.']):L(['Čtyři krajiny cyklu s dekorativním květem života a Metatronovou geometrií v pozadí. Velikost nevyjadřuje délku fází.','Four cycle landscapes with decorative Flower of Life and Metatron geometry in the background. Size does not represent phase duration.'])}>
+      <CycleGeometry focused={focused}/>
       {CYCLE_ORDER.map((id,i)=>{const [x,y]=phasePoints[i],selected=shown===id;return <g key={id} className="tg-cycle-phase-landscape" style={{transform:focused&&selected?'translate(190px,180px) scale(.91)':`translate(${x}px,${y-8}px) scale(.60)`,opacity:focused?(selected&&showBotanical?1:0):selected?1:.82}}><SeasonPlate phase={id}/></g>;})}
-      <g className="tg-cycle-center-spiral" style={{opacity:focused?0:.8,transform:focused?'translate(190px,180px) scale(.2)':'translate(190px,176px) scale(.47)'}}><path d={spiral} fill="none" stroke="currentColor" strokeWidth="1.2"/><circle r="4" fill="currentColor"/></g>
       {focused&&!showBotanical&&shown&&<g key={`${shown}-${layer}-${topic}`} className="tg-cycle-detail-arrival" style={{transformOrigin:'190px 180px','--cycle-origin-x':`${(origin[0]-190)*.4}px`,'--cycle-origin-y':`${(origin[1]-178)*.4}px`}}><g transform="translate(190 178)" className="tg-cycle-detail-plate">{isChart?<HormonePlate shown={shown} visible={visibleHormones} explained={explainedHormone} lang={lang}/>:<DetailPlate kind={mainKind} phase={shown} selected={isAnatomy&&topic==='uterus'?anatomyRegion:null}/>}</g></g>}
     </svg>
     {!focused?CYCLE_ORDER.map((id,i)=><button key={id} type="button" className={`tg-cycle-world-button phase-choice${shown===id?' is-selected':''}`} style={{left:`${phasePoints[i][0]/3.8}%`,top:`${(phasePoints[i][1]+66)/3.56}%`}} aria-pressed={shown===id} onClick={()=>onPhase(id)}><span className="tg-cycle-world-label">{L(CYCLE_DEPTH[id].short)}</span>{id===current&&<span className="tg-cycle-current-dot" aria-label={L(['Fáze vybraného dne','Selected day’s phase'])}/>}</button>):branches.map((item,i)=><button key={item.id} type="button" className={`tg-cycle-world-button topic-choice${topic===item.id?' is-selected':''}`} style={{left:`${points[i][0]/3.8}%`,top:`${points[i][1]/3.56}%`}} aria-pressed={topic===item.id} onClick={()=>onTopic(item.id)}><svg viewBox="-18 -18 36 36" aria-hidden="true"><CycleGlyph kind={item.id}/></svg><span className="tg-cycle-world-label">{L(item.label)}</span></button>)}
@@ -79,7 +79,8 @@ export function CycleMap({shown,current,focused,layer,topic,topics,lang,onPhase,
 export const cycleMapStyles=cycleAnatomyStyles+`
 .tm-together .tg-cycle-atlas{position:relative;isolation:isolate;width:100%;max-width:460px;aspect-ratio:380/356;margin:4px auto 12px;color:var(--tg-accent)}
 .tm-together .tg-cycle-atlas-art{display:block;width:100%;height:100%;overflow:visible}
-.tg-cycle-phase-landscape,.tg-cycle-center-spiral{transition:transform 650ms cubic-bezier(.16,1,.3,1),opacity 240ms ease}
+.tg-cycle-phase-landscape{transition:transform 650ms cubic-bezier(.16,1,.3,1),opacity 240ms ease}
+.tg-cycle-geometry{pointer-events:none;transition:opacity 240ms ease}
 .tg-cycle-leaf{transition:transform 600ms cubic-bezier(.16,1,.3,1),opacity 350ms ease}
 .tg-cycle-detail-arrival{animation:cycle-branch-open 480ms cubic-bezier(.16,1,.3,1) both}
 @keyframes cycle-branch-open{from{opacity:.2;transform:translate(var(--cycle-origin-x,0px),var(--cycle-origin-y,0px)) scale(.55)}to{opacity:1;transform:translate(0,0) scale(1)}}
@@ -98,5 +99,5 @@ export const cycleMapStyles=cycleAnatomyStyles+`
 .tm-together .tg-cycle-map-return{left:0;bottom:-5px;padding-left:0;text-decoration:underline;text-underline-offset:4px}
 .tm-together .tg-cycle-map-center-back{right:0;bottom:-5px;font-size:24px;min-width:44px}
 .tg-cycle-chart-words{font:11px var(--tm-font-tag)}
-@media(prefers-reduced-motion:reduce){.tg-cycle-phase-landscape,.tg-cycle-center-spiral,.tg-cycle-leaf{transition:opacity 120ms ease}.tg-cycle-detail-arrival{animation:none}}
+@media(prefers-reduced-motion:reduce){.tg-cycle-phase-landscape,.tg-cycle-geometry,.tg-cycle-leaf{transition:opacity 120ms ease}.tg-cycle-detail-arrival{animation:none}}
 `;
