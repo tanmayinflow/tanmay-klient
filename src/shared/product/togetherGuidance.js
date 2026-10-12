@@ -1,4 +1,4 @@
-import {addDays,cycleSummary,dateKey,dayNumber,validDate} from "./together.js";
+import {addDays,cycleSummary,dateKey,dayNumber,validDate,cyclePeriodRecords,cycleBleedingDuration} from "./togetherCycleData.js";
 
 // Educational suggestions, not phase-based exercise prescriptions.
 export const CYCLE_GUIDE = {
@@ -8,8 +8,9 @@ export const CYCLE_GUIDE = {
   luteal: {name:["Luteální fáze","Luteal phase"],about:["Po ovulaci následuje luteální fáze. U některých žen se před menstruací objevují potíže PMS; jejich přítomnost i intenzita jsou individuální.","The luteal phase follows ovulation. Some people experience premenstrual symptoms; their presence and intensity vary."],woman:["Udržuj pravidelný spánek, jídlo a pohyb. Při únavě nebo potížích uprav délku a náročnost tréninku. Zapisuj vlastní zkušenost, ať vidíš svůj vzorec.","Keep sleep, meals and movement regular. Adjust session length and effort when tired or symptomatic. Track your own experience to notice patterns."],partner:["Naslouchej bez vysvětlování pocitů hormony. Nabídni konkrétní pomoc a plán s menším časovým tlakem, pokud o něj stojí.","Listen without explaining feelings away as hormones. Offer practical help and a less time-pressured plan if wanted."],idea:["Společná večeře a volný večer","Dinner together and an unhurried evening"]}
 };
 export function cyclePhase(doc, summary, today) {
-  if(!summary?.day || doc.mode === "paused") return {id:null,basis:"unknown"};
-  if(summary.observedBleeding || ["light","medium","heavy"].includes(doc.days?.[today]?.flow)) return {id:"menstrual",basis:"recorded"};
+  if(doc.mode === "paused") return {id:null,basis:"unknown"};
+  if(summary?.observedBleeding || ["light","medium","heavy"].includes(doc.days?.[today]?.flow)) return {id:"menstrual",basis:"recorded"};
+  if(!summary?.day) return {id:null,basis:"unknown"};
   if(summary.reason!=="estimate" || !summary.next || summary.day>summary.median) return {id:null,basis:"unknown"};
   const approx=summary.median-14;
   return {id:summary.day<approx-2?"follicular":summary.day<=approx+2?"ovulatory":"luteal",basis:"estimated"};
@@ -21,9 +22,16 @@ export function cyclePhase(doc, summary, today) {
 export function cycleViewForDate(doc, date, referenceDate=dateKey()) {
   const unknown={id:null,basis:"unknown"};
   if(!validDate(date)||!validDate(referenceDate)) return {date,cycle:{day:null,next:null,reason:"empty",cycles:0},phase:unknown};
-  const safeDoc={...doc,periods:(doc?.periods||[]).filter(p=>p.start<=referenceDate)};
+  const safeDoc={...doc,periods:cyclePeriodRecords(doc,referenceDate)};
   const cycle=cycleSummary(safeDoc,date);
-  if(date<=referenceDate) return {date,cycle,phase:cyclePhase(safeDoc,cycle,date)};
+  if(date<=referenceDate) {
+    const phase=cyclePhase(safeDoc,cycle,date);
+    const last=safeDoc.periods.filter(period=>period.start<=date).at(-1);
+    const length=last?.expectedLength||cycleBleedingDuration(safeDoc,last?addDays(last.start,-1):referenceDate).days;
+    const continuation=phase.basis!=='recorded' && safeDoc.mode==='estimate' && cycle.reason==='estimate' &&
+      last && !last.end && date>last.start && date<=addDays(last.start,length-1);
+    return {date,cycle,phase:continuation?{id:'menstrual',basis:'estimated'}:phase};
+  }
   const current=cycleSummary(safeDoc,referenceDate);
   if(current.reason!=="estimate"||!current.next||dayNumber(date)-dayNumber(referenceDate)>90) {
     return {date,cycle:{day:null,next:null,reason:current.reason==="estimate"?"horizon":current.reason,cycles:current.cycles},phase:unknown};
@@ -32,12 +40,15 @@ export function cycleViewForDate(doc, date, referenceDate=dateKey()) {
   const projectedCycles=Math.floor(elapsed/current.median);
   if(projectedCycles>3) return {date,cycle:{day:null,next:null,reason:"horizon",cycles:current.cycles},phase:unknown};
   const day=elapsed%current.median+1;
-  const durations=safeDoc.periods.filter(p=>p.end&&p.end<=referenceDate).slice(-6).map(p=>dayNumber(p.end)-dayNumber(p.start)+1).filter(n=>n>=2&&n<=7).sort((a,b)=>a-b);
-  const duration=durations.length?durations[Math.floor(durations.length/2)]:null;
+  const duration=cycleBleedingDuration(safeDoc,referenceDate).days;
+  const last=safeDoc.periods.at(-1);
+  const currentDuration=last?.expectedLength||cycleBleedingDuration(safeDoc,addDays(last.start,-1)).days;
   const shifted={...current,day,observedBleeding:false,projected:true,next:{...current.next,from:addDays(current.next.from,projectedCycles*current.median),to:addDays(current.next.to,projectedCycles*current.median)}};
-  // Estimated bleeding length is personal recorded history, not a fixed five
-  // days. Without completed records only the expected start can be named.
-  const phase=day<=(duration||1)
+  // A saved expected length belongs to that open record. A confirmed end wins.
+  // Unrecorded future cycles use recent completed history, an explicitly saved
+  // fallback, or the clearly labelled editable five-day starting suggestion.
+  const expectedBleeding=projectedCycles>0 ? day<=duration : !last.end && day<=currentDuration;
+  const phase=expectedBleeding
     ? {id:"menstrual",basis:"estimated"}
     : cyclePhase({...safeDoc,days:{}},shifted,date);
   return {date,cycle:shifted,phase};

@@ -54,3 +54,22 @@ test('clearing own cycle or entries uses revision checks and cannot alter the ot
   assert.equal((await call('client:a','self',{revision:cleared.self.revision,doc:own.self.doc})).status,200);
   assert.equal((await call('client:a')).self.doc.days['2026-09-08'].note,'LEGACY PRIVATE');
 });
+
+test('saved expected duration agrees in granted current and selected-day phases without sharing raw periods',async()=>{
+  const {call,pair}=fixture();
+  const doc={...emptyTogether(),mode:'estimate',periods:[{start:'2026-09-26',end:null,expectedLength:7}]};
+  assert.equal((await call('client:a','self',{revision:0,doc})).status,200);
+  await pair(['phase']);
+  const current=await call('coach:tanmay');
+  assert.deepEqual(current.partner.phase,{id:'menstrual',basis:'estimated'});
+  assert.deepEqual(current.cycleView.phase,current.partner.phase);
+  const future=await call('coach:tanmay','',undefined,'2026-10-02');
+  assert.deepEqual(future.cycleView.phase,{id:'menstrual',basis:'estimated'});
+  assert.equal(future.cycleView.cycle,undefined);
+  assert.equal(JSON.stringify(future).includes('expectedLength'),false);
+  assert.equal(future.cycleView.periods,undefined);
+  const owner=await call('client:a');
+  await call('client:a','sharing',{revision:owner.link.revision,scopes:['cycle']});
+  const revoked=await call('coach:tanmay','',undefined,'2026-10-02');
+  assert.equal(revoked.partner.phase,undefined);assert.equal(revoked.cycleView.phase,undefined);
+});

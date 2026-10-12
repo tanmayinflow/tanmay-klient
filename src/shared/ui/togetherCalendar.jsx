@@ -2,10 +2,11 @@ import React, {useEffect, useId, useRef, useState} from "react";
 import {TmIcon} from "./icons.jsx";
 import {addDays, dateKey, validDate} from "../product/together.js";
 import {CYCLE_GUIDE} from "../product/togetherGuidance.js";
+import {cycleCalendarDay} from "../product/togetherCycleCalendar.js";
 
 // Calendar presentation follows Praxe. It reads only the already-authorized
 // cycle projection and shared plans; picking a day never writes a record.
-export function TogetherCalendar({periods = [], summary, phase, plans = [], lang = "cs", t, onPlanSelect, onOpenDay, showCycle = true, selectedDate, onDateChange, showDetails = true, recordDates = [], picker = false, todayDate}) {
+export function TogetherCalendar({periods = [], summary, phase, plans = [], lang = "cs", t, onPlanSelect, onOpenDay, showCycle = true, selectedDate, onDateChange, showDetails = true, recordDates = [], picker = false, todayDate, cycleDoc, renderCycleActions}) {
   const L = (cs, en) => lang === "en" ? en : cs;
   const locale = lang === "en" ? "en-GB" : "cs-CZ";
   const today = validDate(todayDate)?todayDate:dateKey();
@@ -22,6 +23,7 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
   const daysInMonth = new Date(Date.UTC(firstDate.getUTCFullYear(), firstDate.getUTCMonth() + 1, 0)).getUTCDate();
   const headingId = useId();
   const detailId = useId();
+  const detailRef = useRef(null);
   const dayButtons = useRef({});
   const focusDay = useRef(false);
   const ink = t.accentInk || t.accent;
@@ -34,6 +36,12 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
   const selectedPlans = visiblePlans.filter(p => p.date === selected).toSorted((a, b) => (a.time || "").localeCompare(b.time || ""));
   const actual = actualOn(selected);
   const estimate = !actual && estimateOn(selected);
+  const selectedModel = cycleDoc ? cycleCalendarDay(cycleDoc,selected,today) : null;
+  const selectedPhase = selectedModel?.phase || phase;
+  const guide = CYCLE_GUIDE[selectedPhase?.id];
+  const phaseColors = {menstrual:ink,follicular:`color-mix(in srgb, ${t.text} 30%, #7d9977)`,ovulatory:`color-mix(in srgb, ${t.text} 30%, #c69a55)`,luteal:`color-mix(in srgb, ${t.text} 30%, #a58dba)`};
+  const phaseSymbols = {menstrual:"●",follicular:"◐",ovulatory:"✧",luteal:"◒"};
+  const openDate = day => {setSelected(day);if(cycleDoc&&showDetails)requestAnimationFrame(()=>detailRef.current?.scrollIntoView({block:"nearest",behavior:"auto"}));};
   const shiftMonth = (date, offset) => {
     const d = new Date(`${date}T12:00:00Z`);
     const day = d.getUTCDate();
@@ -72,6 +80,9 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
       .tg-calendar .tg-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
       .tg-calendar button.tg-calendar-day{touch-action:manipulation;font-variant-numeric:tabular-nums;min-width:0;min-height:44px;padding:6px 0;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--tm-font-body);font-size:12px;line-height:1;font-weight:400;color:var(--calendar-text);background:color-mix(in srgb,var(--calendar-ink) 3.5%,transparent);border:1px solid transparent;transition:background .15s ease,border-color .15s ease}
       .tg-calendar button.tg-calendar-day[data-recorded=true]{color:var(--calendar-on);background:var(--calendar-fill)}
+      .tg-calendar button.tg-calendar-day[data-phase]:not([data-recorded=true]){background:color-mix(in srgb,var(--day-phase) 11%,transparent)}
+      .tg-calendar button.tg-calendar-day .tg-calendar-phase-mark{font-size:10px;line-height:1;color:var(--day-phase)}
+      .tg-calendar button.tg-calendar-day[data-recorded=true] .tg-calendar-phase-mark{color:var(--calendar-on)}
       .tg-calendar button.tg-calendar-day[data-estimated=true]{border-style:dashed;border-color:var(--calendar-ink)}
       .tg-calendar button.tg-calendar-day[aria-current=date]{border-color:var(--calendar-ink)}
       .tg-calendar button.tg-calendar-day[aria-pressed=true]{border:1.5px solid var(--calendar-ink);font-weight:600;background:var(--calendar-active)}
@@ -87,6 +98,12 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
       .tg-calendar .tg-calendar-marker[data-entry=true]{background:transparent;border:1px solid currentColor}
       .tg-calendar [data-recorded=true] .tg-calendar-marker{color:var(--calendar-on)}
       .tg-calendar .tg-calendar-detail{margin-top:18px;padding-top:16px;border-top:1px solid var(--calendar-line)}
+      .tg-calendar .tg-calendar-detail{scroll-margin-bottom:100px}
+      .tg-calendar .tg-cycle-quick-entry{margin:18px 0 24px;padding:16px 0;border-top:1px solid var(--calendar-line);border-bottom:1px solid var(--calendar-line)}
+      .tg-calendar .tg-cycle-duration label{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px}
+      .tg-calendar .tg-cycle-duration label>span{display:flex;align-items:center;gap:8px}
+      .tg-calendar .tg-cycle-duration input{width:68px;min-height:44px;padding:8px 10px}
+      .tg-calendar .tg-cycle-day-note{white-space:pre-wrap;overflow-wrap:anywhere}
       .tg-calendar .tg-calendar-detail-head{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-bottom:8px}
       .tg-calendar .tg-calendar-open-day{display:inline-flex;align-items:center;gap:6px;min-height:44px;max-width:100%;padding:8px 0;border:0;border-radius:0;background:transparent;color:var(--calendar-ink);font-family:var(--tm-font-tag);font-size:12px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;cursor:pointer}
       .tg-calendar .tg-calendar-plans{list-style:none;margin:12px 0 0;padding:0}
@@ -109,35 +126,42 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
       {Array.from({length: startWeekday}, (_, index) => <span key={`blank-${index}`} aria-hidden="true"/>)}
       {Array.from({length: daysInMonth}, (_, index) => {
         const day = `${month}-${String(index + 1).padStart(2, "0")}`;
-        const recorded = actualOn(day);
-        const estimated = !recorded && estimateOn(day);
+        const model = cycleDoc ? cycleCalendarDay(cycleDoc,day,today) : null;
+        const recorded = model ? model.recorded : actualOn(day);
+        const estimated = model ? model.continuation||model.expectedPeriod : !recorded && estimateOn(day);
+        const dayPhase = model?.phase?.id;
         const hasPlan = visiblePlans.some(p => p.date === day);
         const hasRecord = recordDates.includes(day);
         const focused = day === selected;
         const picked = day === (picker&&validDate(selectedDate)?selectedDate:selected);
         const current = day === today;
-        const label = [dateLabel(day), current ? L("dnes", "today") : "", recorded ? L("zapsaná menstruace", "recorded period") : estimated ? L("odhad začátku menstruace", "estimated period start") : "", hasPlan ? L("společný plán", "shared plan") : "", hasRecord ? L("můj zápis", "my entry") : ""].filter(Boolean).join(", ");
-        return <button key={day} ref={node => { if (node) dayButtons.current[day] = node; else delete dayButtons.current[day]; }} type="button" className="tg-calendar-day" data-recorded={recorded||undefined} data-estimated={estimated||undefined} aria-label={label} aria-pressed={picked} aria-current={current ? "date" : undefined} aria-controls={showDetails ? detailId : undefined} title={label} tabIndex={focused ? 0 : -1} onClick={() => setSelected(day)} onKeyDown={event => moveWithKeyboard(event, day)}>
+        const label = [dateLabel(day), current ? L("dnes", "today") : "", recorded ? L("zapsaná menstruace", "recorded period") : estimated ? L("odhad menstruace", "estimated period") : dayPhase ? `${L(...CYCLE_GUIDE[dayPhase].name)} · ${L("odhad","estimate")}` : "", hasPlan ? L("společný plán", "shared plan") : "", hasRecord ? L("můj zápis", "my entry") : ""].filter(Boolean).join(", ");
+        return <button key={day} ref={node => { if (node) dayButtons.current[day] = node; else delete dayButtons.current[day]; }} type="button" className="tg-calendar-day" data-date={day} data-phase={dayPhase||undefined} style={dayPhase?{"--day-phase":phaseColors[dayPhase]}:undefined} data-recorded={recorded||undefined} data-estimated={estimated||undefined} aria-label={label} aria-pressed={picked} aria-current={current ? "date" : undefined} aria-controls={showDetails ? detailId : undefined} title={label} tabIndex={focused ? 0 : -1} onClick={() => openDate(day)} onKeyDown={event => moveWithKeyboard(event, day)}>
           <span>{index + 1}</span>
-          <span className="tg-calendar-markers" aria-hidden="true">{hasPlan&&<i className="tg-calendar-marker"/>}{hasRecord&&<i className="tg-calendar-marker" data-entry="true"/>}</span>
+          <span className="tg-calendar-markers" aria-hidden="true">{dayPhase&&<span className="tg-calendar-phase-mark">{phaseSymbols[dayPhase]}</span>}{hasPlan&&<i className="tg-calendar-marker"/>}{hasRecord&&<i className="tg-calendar-marker" data-entry="true"/>}</span>
         </button>;
       })}
     </div>
     {(showCycle||plans.length>0||recordDates.length>0)&&<div className="tg-calendar-key" style={{color: muted}}>
       {showCycle && <span><i aria-hidden="true" style={{...markerStyle, background: t.accent}}/>{L("Zápis menstruace", "Recorded period")}</span>}
-      {showCycle && <span><i aria-hidden="true" style={{...markerStyle, border: `1px dashed ${ink}`}}/>{L("Odhad začátku", "Estimated start")}</span>}
+      {showCycle && <span><i aria-hidden="true" style={{...markerStyle, border: `1px dashed ${ink}`}}/>{cycleDoc?L("Odhad menstruace", "Estimated period"):L("Odhad začátku", "Estimated start")}</span>}
+      {cycleDoc?.mode==="estimate"&&["follicular","ovulatory","luteal"].map(id=><span key={id}><i aria-hidden="true" style={{color:phaseColors[id],fontStyle:"normal"}}>{phaseSymbols[id]}</i>{L(...CYCLE_GUIDE[id].name)}</span>)}
       {plans.length>0&&<span><i aria-hidden="true" style={{...markerStyle, width: 5, height: 5, borderRadius: "50%", background: ink}}/>{L("Společný plán", "Shared plan")}</span>}
       {recordDates.length>0&&<span><i aria-hidden="true" style={{...markerStyle, width: 5, height: 5, borderRadius: "50%", border:`1px solid ${ink}`}}/>{L("Můj zápis", "My entry")}</span>}
     </div>}
-    {showDetails&&<div id={detailId} className="tg-calendar-detail" aria-live="polite" aria-atomic="true">
+    {showDetails&&<div ref={detailRef} id={detailId} className="tg-calendar-detail">
       <div className="tg-calendar-detail-head"><h3 style={{fontFamily: "var(--tm-font-display)", fontSize: 22, lineHeight: 1.3, color: t.heading, fontWeight: 400, margin:0, textTransform: "none", letterSpacing: "normal"}}>{dateLabel(selected, {weekday: "long", day: "numeric", month: "long"})}</h3>
       {onOpenDay&&<button type="button" className="tg-calendar-open-day" onClick={()=>onOpenDay(selected)}>{L("Zápis dne","Day entry")}<TmIcon id="forward" size={13}/></button>}</div>
-      {showCycle && <p style={{margin: "0 0 12px", fontSize: 13, color: muted}}>{phase?.id&&CYCLE_GUIDE[phase.id] ? `${L(...CYCLE_GUIDE[phase.id].name)} · ${phase.basis==="recorded"?L("záznam","recorded"):L("odhad","estimated")}` : actual ? L("Zapsaná menstruace.", "Recorded period.") : estimate ? L("Odhad začátku menstruace.", "Estimated period start.") : L("Fáze pro tento den není k dispozici.", "The phase for this day is unavailable.")}</p>}
+      {showCycle && <p aria-live="polite" style={{margin: "0 0 12px", fontSize: 13, color: muted}}>{guide ? `${L(...guide.name)} · ${selectedPhase.basis==="recorded"?L("záznam","recorded"):L("odhad","estimated")}` : actual ? L("Zapsaná menstruace.", "Recorded period.") : estimate ? L("Odhad začátku menstruace.", "Estimated period start.") : L("Fáze pro tento den není k dispozici.", "The phase for this day is unavailable.")}{selectedModel?.cycle.day?` · ${L("den cyklu","cycle day")} ${selectedModel.cycle.day}`:""}</p>}
+      {renderCycleActions?.(selected,selectedModel)}
+      {guide&&cycleDoc&&<p>{L(...guide.about)}</p>}
+      {cycleDoc?.days?.[selected]?.cycleNote&&<p className="tg-cycle-day-note">{cycleDoc.days[selected].cycleNote}</p>}
+      {cycleDoc?.mode==="estimate"&&<p className="hint">{L("Barvy fází jsou orientační, ne potvrzení ovulace. Kalendář neurčuje plodné ani bezpečné dny.","Phase colours are estimates, not confirmation of ovulation. This calendar does not identify fertile or safe days.")}</p>}
       {selectedPlans.length ? <ul className="tg-calendar-plans">{selectedPlans.map(p => <li key={p.id}>
         <strong style={{fontFamily: "var(--tm-font-body)", fontSize: 14, fontWeight: 500, color: t.text}}>{p.title}</strong>
         <p style={{margin: "4px 0 0", fontSize: 12, color: muted}}>{[p.time, p.minutes ? `${p.minutes} min` : "", p.status === "done" ? L("Proběhlo", "Completed") : p.approved?.owner && p.approved?.partner ? L("Domluveno", "Agreed") : L("Zatím návrh", "Still a proposal")].filter(Boolean).join(" · ")}</p>
         {onPlanSelect && <button type="button" style={{marginTop: 8}} onClick={() => onPlanSelect(p)}>{L("Otevřít plán", "Open plan")}</button>}
-      </li>)}</ul> : <p style={{margin: 0, fontSize: 13, color: muted}}>{L("Na tento den zatím nemáte společný plán.", "You have no shared plan for this day yet.")}</p>}
+      </li>)}</ul> : !cycleDoc&&<p style={{margin: 0, fontSize: 13, color: muted}}>{L("Na tento den zatím nemáte společný plán.", "You have no shared plan for this day yet.")}</p>}
     </div>}
   </section>;
 }
