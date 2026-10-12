@@ -52,13 +52,18 @@ export const tmListovaniSpi = () => TM_LISTOVANI > 0;
    pak nutné vrátit přesně, jinak se po zavření listu skočí na začátek.
    Počítadlo je tu kvůli vrstvení: list nad listem nesmí zámek pustit dřív,
    než se zavře i ten spodní. */
-export const TM_ZAMEK = { pocet: 0, y: 0 };
+export const TM_ZAMEK = { pocet: 0, y: 0, rootAttribute: null };
 
 export function tmZamkniStranku() {
   if (typeof document === "undefined") return;
   TM_ZAMEK.pocet += 1;
   if (TM_ZAMEK.pocet > 1) return;
   TM_ZAMEK.y = window.scrollY || window.pageYOffset || 0;
+  const root = document.documentElement;
+  if (root) {
+    TM_ZAMEK.rootAttribute = root.getAttribute("data-tm-scroll-locked");
+    root.setAttribute("data-tm-scroll-locked", "true");
+  }
   const b = document.body;
   b.style.overflow = "hidden";
   b.style.position = "fixed";
@@ -70,6 +75,7 @@ export function tmZamkniStranku() {
 
 export function tmOdemkniStranku() {
   if (typeof document === "undefined") return;
+  if (TM_ZAMEK.pocet === 0) return;
   TM_ZAMEK.pocet = Math.max(0, TM_ZAMEK.pocet - 1);
   if (TM_ZAMEK.pocet > 0) return;
   const b = document.body;
@@ -79,6 +85,12 @@ export function tmOdemkniStranku() {
   b.style.left = "";
   b.style.right = "";
   b.style.width = "";
+  const root = document.documentElement;
+  if (root) {
+    if (TM_ZAMEK.rootAttribute === null) root.removeAttribute("data-tm-scroll-locked");
+    else root.setAttribute("data-tm-scroll-locked", TM_ZAMEK.rootAttribute);
+  }
+  TM_ZAMEK.rootAttribute = null;
   try { window.scrollTo(0, TM_ZAMEK.y); } catch (e) {}
 }
 

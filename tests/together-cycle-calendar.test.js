@@ -4,7 +4,7 @@ import {addDays,cleanTogether,emptyTogether,togetherProjection} from '../src/sha
 import {DatabaseSync} from 'node:sqlite';
 import {handleTogether} from '../src/shared/product/togetherApi.js';
 import {cycleViewForDate} from '../src/shared/product/togetherGuidance.js';
-import {DEFAULT_BLEEDING_DAYS,cycleBleedingDuration,cyclePeriodDraft,cycleCalendarDay} from '../src/shared/product/togetherCycleCalendar.js';
+import {DEFAULT_BLEEDING_DAYS,cycleBleedingDuration,cyclePeriodDraft,cycleCalendarDay,cyclePeriodEntryDraft,cyclePeriodEntryPatch} from '../src/shared/product/togetherCycleCalendar.js';
 
 const doc=()=>({...emptyTogether(),mode:'estimate',periods:[
   {start:'2026-07-13',end:'2026-07-17'},
@@ -12,6 +12,62 @@ const doc=()=>({...emptyTogether(),mode:'estimate',periods:[
   {start:'2026-09-07',end:'2026-09-11'},
 ]});
 const reference='2026-09-28';
+
+test('the default day-sheet flow explicitly proposes estimates and saves their duration without an actual end',()=>{
+  const source=emptyTogether();
+  const oldSave={...source,periods:[{start:reference,end:null}]};
+  assert.equal(cycleCalendarDay(oldSave,addDays(reference,1),reference).continuation,false);
+  const draft=cyclePeriodEntryDraft(source,reference,reference);
+  assert.equal(draft.showEstimates,true);assert.equal(draft.expectedLength,5);assert.equal(draft.end,'');
+  const saved=cleanTogether({...source,...cyclePeriodEntryPatch(source,draft,reference)},reference);
+  assert.equal(saved.mode,'estimate');assert.deepEqual(saved.periods,[{start:reference,end:null,expectedLength:5}]);
+  for(let n=1;n<5;n++) {
+    const day=cycleCalendarDay(saved,addDays(reference,n),reference);
+    assert.equal(day.continuation,true);assert.equal(day.recorded,false);
+  }
+  for(let n=28;n<33;n++) assert.equal(cycleCalendarDay(saved,addDays(reference,n),reference).expectedPeriod,true);
+  assert.equal(cycleCalendarDay(saved,addDays(reference,33),reference).expectedPeriod,false);
+});
+
+test('declining estimates is respected and a paused account needs an explicit opt-in',()=>{
+  for(const mode of ['observe','estimate','paused']) {
+    const source={...emptyTogether(),mode};
+    const draft=cyclePeriodEntryDraft(source,reference,reference);
+    assert.equal(draft.showEstimates,mode!=='paused');
+    const declined={...source,...cyclePeriodEntryPatch(source,{...draft,showEstimates:false},reference)};
+    assert.equal(declined.mode,mode==='paused'?'paused':'observe');
+    assert.equal(cycleCalendarDay(declined,addDays(reference,1),reference).continuation,false);
+    assert.equal(cyclePeriodEntryPatch(source,{...draft,showEstimates:true},reference).mode,'estimate');
+  }
+});
+
+test('both entry surfaces reuse completed history and saved estimates, with editable duration',()=>{
+  const source=doc();source.periods[2].end='2026-09-13';source.periods[1].end='2026-08-16';
+  const draft=cyclePeriodEntryDraft(source,reference,reference);
+  assert.equal(draft.expectedLength,7);assert.equal(draft.basis,'history');
+  const patch=cyclePeriodEntryPatch(source,{...draft,expectedLength:9},reference);
+  assert.deepEqual(patch.periods.at(-1),{start:reference,end:null,expectedLength:9});
+  const open={...emptyTogether(),periods:[{start:'2026-09-01',end:null,expectedLength:6}]};
+  assert.equal(cyclePeriodEntryDraft(open,reference,reference).expectedLength,6);
+  assert.equal(cyclePeriodEntryDraft(open,reference,reference).basis,'saved');
+});
+
+test('editing an existing record preserves its real end and identity, never saving draft-only metadata',()=>{
+  const source=doc(),before=structuredClone(source),draft=cyclePeriodEntryDraft(source,'2026-09-07',reference);
+  const patch=cyclePeriodEntryPatch(source,{...draft,start:'2026-09-06',expectedLength:9},reference);
+  assert.equal(patch.periods.length,3);assert.deepEqual(patch.periods.at(-1),{start:'2026-09-06',end:'2026-09-11',expectedLength:9});
+  assert.deepEqual(source,before);
+  const saved=cleanTogether({...source,...patch},reference);
+  assert.equal(cycleCalendarDay(saved,'2026-09-12',reference).continuation,false);
+});
+
+test('entry save rejects empty, fractional, out-of-range durations and invalid or future actual dates',()=>{
+  const source=emptyTogether(),draft=cyclePeriodEntryDraft(source,reference,reference);
+  for(const expectedLength of ['',undefined,null,0,15,2.5,NaN]) assert.throws(()=>cyclePeriodEntryPatch(source,{...draft,expectedLength},reference),/invalid expected period length/);
+  for(const change of [{start:'2026-02-30'},{start:'2026-09-29'},{end:'2026-09-29'},{end:'2026-09-27'},{start:'2026-01-01',end:reference}])
+    assert.throws(()=>cyclePeriodEntryPatch(source,{...draft,...change},reference),/invalid period dates/);
+  for(const expectedLength of [1,14]) assert.equal(cyclePeriodEntryPatch(source,{...draft,expectedLength},reference).periods[0].expectedLength,expectedLength);
+});
 
 test('draft duration has an explicit editable fallback and never treats cycle length as bleeding length',()=>{
   assert.equal(DEFAULT_BLEEDING_DAYS,5);
@@ -215,10 +271,16 @@ test('the authenticated API round-trips expected length with revisions and rejec
     return {status:response.status,...await response.json()};
   };
   try {
-    const document={...emptyTogether(),mode:'estimate',periods:[{start:reference,end:null,expectedLength:6}]};
+    const initial=await call();
+    assert.equal(initial.self.doc.mode,'observe');
+    const draft=cyclePeriodEntryDraft(initial.self.doc,reference,reference);
+    const document={...initial.self.doc,...cyclePeriodEntryPatch(initial.self.doc,{...draft,expectedLength:6},reference)};
     assert.equal((await call({revision:0,doc:document})).status,200);
     const loaded=await call();assert.equal(loaded.self.revision,1);
+    assert.equal(loaded.self.doc.mode,'estimate');
     assert.deepEqual(loaded.self.doc.periods,document.periods);
+    assert.equal(cycleCalendarDay(loaded.self.doc,addDays(reference,5),reference).continuation,true);
+    assert.equal(cycleCalendarDay(loaded.self.doc,addDays(reference,28),reference).expectedPeriod,true);
     assert.equal((await call({revision:0,doc:document})).status,409);
     assert.equal((await call({revision:1,doc:{...document,periods:[{...document.periods[0],end:'2026-09-29'}]}})).status,400);
     assert.deepEqual((await call()).self.doc.periods,document.periods);

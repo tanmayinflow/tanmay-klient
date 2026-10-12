@@ -18,6 +18,24 @@ export function cyclePeriodDraft(doc, start, referenceDate=dateKey()) {
     ...(existing?{originalStart:existing.start}:{})};
 }
 
+/** Shared editable state for both the day sheet and the inline start action. */
+export function cyclePeriodEntryDraft(doc, start, referenceDate=dateKey()) {
+  const draft=cyclePeriodDraft(doc,start,referenceDate);
+  return draft?{...draft,end:draft.end||'',showEstimates:doc?.mode!=='paused'}:null;
+}
+
+/** Saving a visible opt-in updates the estimate mode with the actual record. */
+export function cyclePeriodEntryPatch(doc, draft, referenceDate=dateKey()) {
+  if (!validDate(draft?.start) || !validDate(referenceDate) || draft.start>referenceDate ||
+    (draft.end && (!validDate(draft.end) || draft.end<draft.start || draft.end>referenceDate ||
+      dayNumber(draft.end)-dayNumber(draft.start)>60))) throw new Error('invalid period dates');
+  if (!Number.isInteger(draft.expectedLength) || draft.expectedLength<1 || draft.expectedLength>14)
+    throw new Error('invalid expected period length');
+  const record={start:draft.start,end:draft.end||null,expectedLength:draft.expectedLength};
+  return {periods:[...(doc.periods||[]).filter(period=>period.start!==(draft.originalStart||draft.start)),record],
+    mode:draft.showEstimates===true?'estimate':doc.mode==='paused'?'paused':'observe'};
+}
+
 /**
  * Owner-side calendar projection. Never call with a partner's raw document:
  * recipients continue to use the API's grant-limited cycle/phase projection.

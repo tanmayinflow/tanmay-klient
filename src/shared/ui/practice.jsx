@@ -23,6 +23,7 @@ import React, { useState } from "react";
 import { PracticeCalendarExport } from "./practiceCalendar.jsx";
 import { wellbeingPalette } from "./wellbeingPalette.js";
 import { TmIcon, tmIconId, createIconUI } from "./icons.jsx";
+import { restorePracticeHabitDefaults, keepRestoredHabitTranslations } from "../product/practice.js";
 
 export function createPracticeUI(deps) {
   const {
@@ -957,7 +958,8 @@ export function createPracticeUI(deps) {
     const act = defs.filter((x) => !x.archived);
     const [dragSlot, setDragSlot] = useState(null);
     const [overSlot, setOverSlot] = useState(null);
-    const upd = (slot, patch) => st.setHabitDefs(defs.map((d) => (d.slot === slot ? { ...d, ...patch } : d)));
+    const writeDefs = list => st.setHabitDefs(keepRestoredHabitTranslations(list));
+    const upd = (slot, patch) => writeDefs(defs.map((d) => (d.slot === slot ? { ...d, ...patch } : d)));
     const dropOn = (targetSlot) => {
       if (dragSlot == null || dragSlot === targetSlot) { setDragSlot(null); setOverSlot(null); return; }
       const order = [...act];
@@ -967,10 +969,13 @@ export function createPracticeUI(deps) {
       let to = order.findIndex((d) => d.slot === targetSlot);
       if (from < to0) to = to + 1; // tažení dopředu -> za cíl
       order.splice(to, 0, item);
-      st.setHabitDefs([...order, ...defs.filter((x) => x.archived)]);
+      writeDefs([...order, ...defs.filter((x) => x.archived)]);
       setDragSlot(null); setOverSlot(null);
     };
-    const addHabit = () => st.setHabitDefs([...defs, { slot: defs.reduce((m, d) => Math.max(m, d.slot), -1) + 1, icon: "○", name: L("Nový návyk", "New habit") }]);
+    const addHabit = () => writeDefs([...defs, { slot: defs.reduce((m, d) => Math.max(m, d.slot), -1) + 1, icon: "○", name: L("Nový návyk", "New habit") }]);
+    const restoreDefaults = () => {
+      st.persistColl(current => restorePracticeHabitDefaults(current, st.edits, flow || []));
+    };
     const archived = defs.filter((x) => x.archived);
     return (
       <div>
@@ -998,6 +1003,10 @@ export function createPracticeUI(deps) {
             </div>
           ))}
           <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px solid transparent`, cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("návyk", "habit")}</button>
+        </div>
+        <div style={{ marginTop: 16, fontFamily: "var(--tm-font-body)", fontSize: 13, lineHeight: 1.5, color: t.text }}>
+          <button type="button" onClick={restoreDefaults} style={{ ...calBtn(t, false), minHeight: 44, maxWidth: "100%", whiteSpace: "normal", textAlign: "left" }}>{L("Obnovit 9 výchozích návyků", "Restore 9 default habits")}</button>
+          <p style={{ margin: "4px 0 0", maxWidth: "45ch" }}>{L("Vlastní návyky zůstanou v archivu. Jejich historie se zachová.", "Your custom habits stay in the archive. Their history is kept.")}</p>
         </div>
         {archived.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>

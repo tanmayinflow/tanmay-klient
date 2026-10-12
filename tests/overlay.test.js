@@ -21,6 +21,7 @@ function makeEl(tag) {
     setAttribute(k, v) { this.attrs[k] = String(v); },
     getAttribute(k) { return Object.prototype.hasOwnProperty.call(this.attrs, k) ? this.attrs[k] : null; },
     hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this.attrs, k); },
+    removeAttribute(k) { delete this.attrs[k]; },
     addEventListener(t, fn) { (this._listeners[t] = this._listeners[t] || []).push(fn); },
     removeEventListener(t, fn) { const a = this._listeners[t] || []; const i = a.indexOf(fn); if (i >= 0) a.splice(i, 1); },
     dispatch(t, e) { for (const fn of (this._listeners[t] || []).slice()) fn(e); },
@@ -52,6 +53,7 @@ beforeEach(async () => {
   const body = makeEl("body");
   global.document = {
     body,
+    documentElement: makeEl("html"),
     activeElement: body,
     querySelector: () => null,
     createElement: makeEl,
@@ -162,6 +164,30 @@ test("po zavření se stránka vrátí na svou polohu", async () => {
   window.scrollY = 0;                    // fixed body · prohlížeč posun ztratí
   m.tmOdemkniStranku();
   assert.equal(window.scrollY, 1337, "skok na začátek stránky je chyba, ne detail");
+});
+
+test("root canvas stays shaded until the last nested sheet closes", async () => {
+  const m = await load(), root = document.documentElement;
+  assert.equal(root.getAttribute("data-tm-scroll-locked"), null);
+  m.tmZamkniStranku(); m.tmZamkniStranku();
+  assert.equal(root.getAttribute("data-tm-scroll-locked"), "true");
+  m.tmOdemkniStranku();
+  assert.equal(root.getAttribute("data-tm-scroll-locked"), "true");
+  m.tmOdemkniStranku();
+  assert.equal(root.getAttribute("data-tm-scroll-locked"), null);
+});
+
+test("root lock restores the previous attribute exactly and extra unlock is inert", async () => {
+  const m = await load(), root = document.documentElement;
+  root.setAttribute("data-tm-scroll-locked", "false");
+  m.tmZamkniStranku(); m.tmZamkniStranku(); m.tmOdemkniStranku(); m.tmOdemkniStranku();
+  assert.equal(root.getAttribute("data-tm-scroll-locked"), "false");
+  root.setAttribute("data-tm-scroll-locked", "external-value");
+  m.tmOdemkniStranku();
+  assert.equal(root.getAttribute("data-tm-scroll-locked"), "external-value");
+  document.body.style.position = "relative";
+  m.tmOdemkniStranku();
+  assert.equal(document.body.style.position, "relative");
 });
 
 test("odemknutí navíc zámek nerozhodí", async () => {

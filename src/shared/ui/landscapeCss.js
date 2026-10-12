@@ -20,7 +20,11 @@ export function landscapeCss() {
 ${materials}
 ${s} ::selection { background: var(--tm-selection) !important; color: var(--tm-selection-text) !important; }
 
-${s} body, ${s} .tm-ground { background-image: var(--land-field) !important; background-size: 768px auto !important; }
+/* The root canvas outlives the fixed body during mobile viewport/keyboard
+   changes. Give any exposed area the same material and the same sheet shade;
+   the normal portal veil remains responsible for dimming the actual page. */
+${s}, ${s} body, ${s} .tm-ground { background-image: var(--land-field) !important; background-size: 768px auto !important; }
+${s}[data-tm-scroll-locked="true"] { background-image: linear-gradient(var(--tm-overlay), var(--tm-overlay)), var(--land-field) !important; overscroll-behavior: none; }
 /* The terrain field now belongs only to Practice. Its fixed box clips the rotated art. */
 ${s} .tm-ground { overflow: hidden; }
 ${s}:has(.tm-page[data-room="praxe"] [data-practice-phase="rano"]) .tm-ground::after { content: ''; position: absolute; inset: auto -5% 0; height: clamp(110px, 25vh, 240px); background: var(--tm-link); mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; opacity: .12; transform: rotate(9deg); pointer-events: none; }

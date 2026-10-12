@@ -77,6 +77,65 @@ export const AREAS = [
 export const HABIT_DEFS=[["🌊","Ztišení a příprava","Settle and prepare"],["🌾","Práce na značce","Brand work"],["🎸","Tvorba","Create"],["💪","Trénink","Training"],["💾","Čas bez obrazovek","Time away from screens"],["📚","Soustředěné studium","Focused study"],["📿","Jóga a mobilita","Yoga and mobility"],["🔥","Meditace","Meditation"],["🥑","Jíst s pozorností","Eat with attention"]];
 export const HABIT_DEFAULTS = HABIT_DEFS.map(([icon, cz, en], i) => ({ slot: i, icon, cz, en }));
 
+// A restored default has its own semantic identity. Its storage slot may be
+// beyond 0..8 because old habit history must never acquire a new meaning.
+const HABIT_DEFAULT_ICONS = ["water", "sprout", "guitar", "training", "phone-rest", "book", "lotus", "fire", "food"];
+const habitRecord = value => value && typeof value === "object" && !Array.isArray(value);
+const validHabitSlot = value => Number.isSafeInteger(value) && value >= 0 && value < 100000;
+function matchesHabitDefault(row, index) {
+  const template = HABIT_DEFAULTS[index];
+  return template && habitRecord(row) && (row.practiceDefault ?? row.slot) === index &&
+    row.cz === template.cz && row.en === template.en && row.icon === template.icon &&
+    (!row.name || row.name === template.cz || row.name === template.en) &&
+    (!row.iconId || row.iconId === HABIT_DEFAULT_ICONS[index]);
+}
+
+// The inline editor receives localized display names. Do not turn the untouched
+// restored defaults into fixed Czech/English custom names when editing a peer.
+export function keepRestoredHabitTranslations(definitions) {
+  return definitions.map(row => {
+    const template = Number.isInteger(row?.practiceDefault) ? HABIT_DEFAULTS[row.practiceDefault] : null;
+    if (!template || row.cz !== template.cz || row.en !== template.en ||
+      (row.name !== template.cz && row.name !== template.en)) return row;
+    const next = { ...row };
+    delete next.name;
+    return next;
+  });
+}
+
+// Explicit user action only. Never call this as an automatic account migration.
+// Reuse matching defaults, archive other definitions, and allocate beyond every
+// recorded slot (including orphaned/deleted definitions and Main's old flow).
+// Day records remain byte-for-byte intact. Repeating the action is a no-op.
+export function restorePracticeHabitDefaults(collection, days = {}, historicalDays = []) {
+  if (!habitRecord(collection)) return collection;
+  const rows = Array.isArray(collection.habitDefs) ? collection.habitDefs : HABIT_DEFAULTS;
+  if (rows.some(row => !habitRecord(row) || !validHabitSlot(row.slot)) || new Set(rows.map(row => row.slot)).size !== rows.length) return collection;
+  let lastSlot = Math.max(EMPTY_H.length - 1, ...rows.map(row => row.slot));
+  for (const day of [...Object.values(days || {}), ...historicalDays]) {
+    const h = day?.h;
+    if (Array.isArray(h)) lastSlot = Math.max(lastSlot, h.length - 1);
+    else if (habitRecord(h)) for (const key of Object.keys(h)) {
+      if (/^(0|[1-9]\d*)$/.test(key)) lastSlot = Math.max(lastSlot, Number(key));
+    }
+  }
+  if (!validHabitSlot(lastSlot + HABIT_DEFAULTS.length)) return collection;
+  const selected = new Set();
+  const active = HABIT_DEFAULTS.map((template, index) => {
+    const matches = rows.filter(row => !selected.has(row) && matchesHabitDefault(row, index));
+    const existing = matches.find(row => !row.archived) || matches[0];
+    if (existing) {
+      selected.add(existing);
+      return existing.archived ? { ...existing, archived: false } : existing;
+    }
+    return { ...template, slot: ++lastSlot, practiceDefault: index, iconId: HABIT_DEFAULT_ICONS[index] };
+  });
+  const archived = rows.filter(row => !selected.has(row)).map(row => row.archived ? row : { ...row, archived: true });
+  const next = [...active, ...archived];
+  if (next.length === rows.length && next.every((row, index) => row === rows[index])) return collection;
+  return { ...collection, habitDefs: next };
+}
+
 export function fmtCZ(iso) { const [y, m, d] = iso.split("-").map(Number); return d + ". " + m + ". " + y; }
 export const tmNorm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 

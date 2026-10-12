@@ -109,17 +109,20 @@ export function applyDocumentTheme(preset, prefersDark, doc) {
   const d = doc || (typeof document === "undefined" ? null : document);
   if (!d) return;
   const attrs = documentThemeAttrs(preset, !!prefersDark);
-  const field = pwaThemeColor(preset, !!prefersDark);
+  const field = appearanceField(preset, !!prefersDark);
   try {
     if (d.documentElement) {
       d.documentElement.setAttribute("data-appearance", attrs["data-appearance"]);
       d.documentElement.setAttribute("data-color-mode", attrs["data-color-mode"]);
       d.documentElement.setAttribute("data-frame-grammar", attrs["data-frame-grammar"]);
       d.documentElement.style.setProperty("color-scheme", attrs["data-color-mode"]);
+      // The root canvas can be exposed while a mobile viewport changes size
+      // and the body is fixed by a sheet. It must not fall back to white.
+      d.documentElement.style.backgroundColor = field;
     }
     if (d.body) d.body.style.background = field;
     const m = d.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute("content", field);
+    if (m) m.setAttribute("content", pwaThemeColor(preset, !!prefersDark));
   } catch (e) { /* vzhled nikdy neshodí render */ }
 }
 
