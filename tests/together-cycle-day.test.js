@@ -63,11 +63,24 @@ test('historical estimation ignores later cycle starts and invalid dates are ine
   assert.equal(cyclePhaseForDate(source,'invalid',today).id,null);
 });
 
-test('expected bleeding duration comes from completed personal records',()=>{
+test('expected bleeding duration uses the editable default until completed personal records are available',()=>{
   const source={...emptyTogether(),mode:'estimate',periods:[{start:'2026-09-07',end:null}]};
   assert.equal(cyclePhaseForDate(source,'2026-10-05',today).id,'menstrual');
-  assert.equal(cyclePhaseForDate(source,'2026-10-06',today).id,'follicular');
+  assert.equal(cyclePhaseForDate(source,'2026-10-09',today).id,'menstrual');
+  assert.equal(cyclePhaseForDate(source,'2026-10-10',today).id,'follicular');
   source.periods[0].end='2026-09-09';
   assert.equal(cyclePhaseForDate(source,'2026-10-07',today).id,'menstrual');
   assert.equal(cyclePhaseForDate(source,'2026-10-08',today).id,'follicular');
+});
+
+test('a saved expected length controls an open current period without becoming confirmed bleeding',()=>{
+  const source={...emptyTogether(),mode:'estimate',periods:[{start:'2026-09-26',end:null,expectedLength:7}]};
+  for(const [date,reference] of [['2026-09-28','2026-09-28'],['2026-10-02','2026-09-28']]) {
+    const view=cycleViewForDate(source,date,reference);
+    assert.deepEqual(view.phase,{id:'menstrual',basis:'estimated'});
+    assert.equal(view.cycle.observedBleeding,false);
+  }
+  assert.equal(cyclePhaseForDate(source,'2026-10-03',today).id,'follicular');
+  source.periods[0].end='2026-09-27';
+  assert.deepEqual(cyclePhaseForDate(source,'2026-09-28',today),{id:'follicular',basis:'estimated'});
 });
