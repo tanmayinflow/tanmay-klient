@@ -13511,7 +13511,7 @@ function TvClientHistory({ onRun }) {
 function PageTrenink() {
   const { t } = useT();
   const st = useStore();
-  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, []);
+  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, [st.coll?.exerciseAudit20261013]);
   const [tab, setTab] = useState("dnes");
   const [daysResetKey, setDaysResetKey] = useState(0);
   const [planStatus,setPlanStatus] = useState({state:""});

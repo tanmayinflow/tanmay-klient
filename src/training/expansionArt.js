@@ -857,15 +857,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "db687287aa4b87bee26cd45359959f0532df66c84e4d5d01d3b07f76ab4b0e9b",
-      "thumb": "/expansion-atlas/ex26_standing_legcurl-original-256.webp",
-      "detail": "/expansion-atlas/ex26_standing_legcurl-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_standing_legcurl-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_standing_legcurl-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_standing_legcurl-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_standing_legcurl-fill-960.webp"
+      "sourceSha256": "0d7cd301e1e53353230ba8cf8e94d21dce4ae98a8d86232c0ef26727dad7d741",
+      "thumb": "/expansion-atlas/ex26_standing_legcurl-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_standing_legcurl-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_standing_legcurl-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_standing_legcurl-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_standing_legcurl-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_standing_legcurl-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "db687287aa4b87bee26cd45359959f0532df66c84e4d5d01d3b07f76ab4b0e9b"
+    "sourceSha256": "0d7cd301e1e53353230ba8cf8e94d21dce4ae98a8d86232c0ef26727dad7d741"
   },
   "ex26_calf_legpress": {
     "appId": "ex26_calf_legpress",
@@ -891,15 +891,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "1db4380a9c9f62c77e15999abc1dd3b5a9155142c42fa347bad28fdf2a828516",
-      "thumb": "/expansion-atlas/ex26_single_db_calf-original-256.webp",
-      "detail": "/expansion-atlas/ex26_single_db_calf-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_single_db_calf-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_single_db_calf-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_single_db_calf-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_single_db_calf-fill-960.webp"
+      "sourceSha256": "c204df50cee7817e4d1bab00ff3668bb3f00e1035a6081cd3835e4b05e491311",
+      "thumb": "/expansion-atlas/ex26_single_db_calf-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_single_db_calf-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_single_db_calf-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_single_db_calf-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_single_db_calf-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_single_db_calf-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "1db4380a9c9f62c77e15999abc1dd3b5a9155142c42fa347bad28fdf2a828516"
+    "sourceSha256": "c204df50cee7817e4d1bab00ff3668bb3f00e1035a6081cd3835e4b05e491311"
   },
   "ex26_firehydrant": {
     "appId": "ex26_firehydrant",
@@ -1078,15 +1078,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "2a57a6af9f9186b477e76189ab65a890189dbee59f64c657ba19147cbcd5dfed",
-      "thumb": "/expansion-atlas/ex26_spider_plank-original-256.webp",
-      "detail": "/expansion-atlas/ex26_spider_plank-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_spider_plank-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_spider_plank-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_spider_plank-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_spider_plank-fill-960.webp"
+      "sourceSha256": "da5a20d69bdb7b9d4571b4c58d0a660c85a068b705771f41b4d6929f5fa241d3",
+      "thumb": "/expansion-atlas/ex26_spider_plank-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_spider_plank-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_spider_plank-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_spider_plank-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_spider_plank-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_spider_plank-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "2a57a6af9f9186b477e76189ab65a890189dbee59f64c657ba19147cbcd5dfed"
+    "sourceSha256": "da5a20d69bdb7b9d4571b4c58d0a660c85a068b705771f41b4d6929f5fa241d3"
   },
   "ex26_knees_sideplank": {
     "appId": "ex26_knees_sideplank",
@@ -1180,15 +1180,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "b046265238cdb6707e1788b819e8e4c6f44265908328b4a17abed27b1fb96c3a",
-      "thumb": "/expansion-atlas/ex26_copenhagen_short-original-256.webp",
-      "detail": "/expansion-atlas/ex26_copenhagen_short-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_copenhagen_short-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_copenhagen_short-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_copenhagen_short-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_copenhagen_short-fill-960.webp"
+      "sourceSha256": "31f9657e82496cb2f2aed39766c42ef0d92de7a074a85086cee85b7200c06920",
+      "thumb": "/expansion-atlas/ex26_copenhagen_short-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_copenhagen_short-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_copenhagen_short-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_copenhagen_short-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_copenhagen_short-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_copenhagen_short-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "b046265238cdb6707e1788b819e8e4c6f44265908328b4a17abed27b1fb96c3a"
+    "sourceSha256": "31f9657e82496cb2f2aed39766c42ef0d92de7a074a85086cee85b7200c06920"
   },
   "ex26_around_world": {
     "appId": "ex26_around_world",
@@ -1282,15 +1282,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "5dbce3fdbf7631bd3245daf97f2fc24f9dbb46218512da53c4952bbc7830593b",
-      "thumb": "/expansion-atlas/ex26_sternum_pullup-original-256.webp",
-      "detail": "/expansion-atlas/ex26_sternum_pullup-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_sternum_pullup-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_sternum_pullup-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_sternum_pullup-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_sternum_pullup-fill-960.webp"
+      "sourceSha256": "a2998c65c3bc1a1a83f0baa7d78b0b615f6a88564379356fa9428b099b71cb22",
+      "thumb": "/expansion-atlas/ex26_sternum_pullup-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_sternum_pullup-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_sternum_pullup-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_sternum_pullup-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_sternum_pullup-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_sternum_pullup-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "5dbce3fdbf7631bd3245daf97f2fc24f9dbb46218512da53c4952bbc7830593b"
+    "sourceSha256": "a2998c65c3bc1a1a83f0baa7d78b0b615f6a88564379356fa9428b099b71cb22"
   },
   "ex26_kipping_pullup": {
     "appId": "ex26_kipping_pullup",
@@ -1418,15 +1418,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "87d2f7de7ff8f724f39466958bc9b409edb90ba62005c52e2acff5b004e1e812",
-      "thumb": "/expansion-atlas/ex26_burpee_bar-original-256.webp",
-      "detail": "/expansion-atlas/ex26_burpee_bar-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_burpee_bar-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_burpee_bar-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_burpee_bar-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_burpee_bar-fill-960.webp"
+      "sourceSha256": "22e5fb343efe5e1bb34ab5ebc4819eb5ac11bca0131d64993230a3fcd512be66",
+      "thumb": "/expansion-atlas/ex26_burpee_bar-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_burpee_bar-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_burpee_bar-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_burpee_bar-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_burpee_bar-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_burpee_bar-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "87d2f7de7ff8f724f39466958bc9b409edb90ba62005c52e2acff5b004e1e812"
+    "sourceSha256": "22e5fb343efe5e1bb34ab5ebc4819eb5ac11bca0131d64993230a3fcd512be66"
   },
   "ex26_kb_one_swing": {
     "appId": "ex26_kb_one_swing",
@@ -2421,15 +2421,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "d61625929e68ea19b38f917404f6410e50893f22f185fd907c2ce2839b0d6f4e",
-      "thumb": "/expansion-atlas/ex26_kneel_reversefly-original-256.webp",
-      "detail": "/expansion-atlas/ex26_kneel_reversefly-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_kneel_reversefly-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_kneel_reversefly-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_kneel_reversefly-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_kneel_reversefly-fill-960.webp"
+      "sourceSha256": "553daf72860b7f0eca8b5560d166f1458eb0edcc3dd963d0ef32f59d32599895",
+      "thumb": "/expansion-atlas/ex26_kneel_reversefly-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_kneel_reversefly-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_kneel_reversefly-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_kneel_reversefly-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_kneel_reversefly-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_kneel_reversefly-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "d61625929e68ea19b38f917404f6410e50893f22f185fd907c2ce2839b0d6f4e"
+    "sourceSha256": "553daf72860b7f0eca8b5560d166f1458eb0edcc3dd963d0ef32f59d32599895"
   },
   "ex26_sumo_rotation": {
     "appId": "ex26_sumo_rotation",
@@ -3203,15 +3203,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "fc56a99457898bfa58e8a805c8cb8797547c6524f085a11dc26e04f3657f65c6",
-      "thumb": "/expansion-atlas/ex26_diagonal_plank-original-256.webp",
-      "detail": "/expansion-atlas/ex26_diagonal_plank-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_diagonal_plank-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_diagonal_plank-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_diagonal_plank-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_diagonal_plank-fill-960.webp"
+      "sourceSha256": "fb07a9b573df623d61489ce04e952b7bc965d39cac32fa6b0452870257923ce4",
+      "thumb": "/expansion-atlas/ex26_diagonal_plank-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_diagonal_plank-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_diagonal_plank-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_diagonal_plank-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_diagonal_plank-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_diagonal_plank-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "fc56a99457898bfa58e8a805c8cb8797547c6524f085a11dc26e04f3657f65c6"
+    "sourceSha256": "fb07a9b573df623d61489ce04e952b7bc965d39cac32fa6b0452870257923ce4"
   },
   "ex26_stagger_pushup": {
     "appId": "ex26_stagger_pushup",
@@ -3322,15 +3322,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "754c656445dac4768d2fdc1d14bde69ca3f624e57cbb1e6917644f7284071b3a",
-      "thumb": "/expansion-atlas/ex26_sideplank_row-original-256.webp",
-      "detail": "/expansion-atlas/ex26_sideplank_row-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_sideplank_row-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_sideplank_row-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_sideplank_row-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_sideplank_row-fill-960.webp"
+      "sourceSha256": "dbe42f17229af13864d7a1469a3a71df73b2551cabb43d0c8a75306e105a5ac9",
+      "thumb": "/expansion-atlas/ex26_sideplank_row-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_sideplank_row-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_sideplank_row-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_sideplank_row-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_sideplank_row-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_sideplank_row-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "754c656445dac4768d2fdc1d14bde69ca3f624e57cbb1e6917644f7284071b3a"
+    "sourceSha256": "dbe42f17229af13864d7a1469a3a71df73b2551cabb43d0c8a75306e105a5ac9"
   },
   "ex26_squat_row": {
     "appId": "ex26_squat_row",
@@ -3390,15 +3390,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "b80d169251e88b18e614fb311120d00981efc5cc0771a77e92b1ad18d7871dd5",
-      "thumb": "/expansion-atlas/ex26_transverse_lunge-original-256.webp",
-      "detail": "/expansion-atlas/ex26_transverse_lunge-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_transverse_lunge-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_transverse_lunge-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_transverse_lunge-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_transverse_lunge-fill-960.webp"
+      "sourceSha256": "29e30290176600fcbf032e768704f8af371b9f430a6e54a41d4f6b121b5afa5e",
+      "thumb": "/expansion-atlas/ex26_transverse_lunge-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_transverse_lunge-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_transverse_lunge-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_transverse_lunge-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_transverse_lunge-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_transverse_lunge-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "b80d169251e88b18e614fb311120d00981efc5cc0771a77e92b1ad18d7871dd5"
+    "sourceSha256": "29e30290176600fcbf032e768704f8af371b9f430a6e54a41d4f6b121b5afa5e"
   },
   "ex26_kb_eight": {
     "appId": "ex26_kb_eight",
@@ -3543,15 +3543,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "e327a00505a68ebc5c2f50f17cbe75b087107ef09da132dc943f543a6d6d28db",
-      "thumb": "/expansion-atlas/ex26_rope_lunge-original-256.webp",
-      "detail": "/expansion-atlas/ex26_rope_lunge-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_rope_lunge-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_rope_lunge-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_rope_lunge-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_rope_lunge-fill-960.webp"
+      "sourceSha256": "b82d802fe78c940d2cfa7d448ac5f7e835f1056f141b61977aaa939ae54362a1",
+      "thumb": "/expansion-atlas/ex26_rope_lunge-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_rope_lunge-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_rope_lunge-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_rope_lunge-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_rope_lunge-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_rope_lunge-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "e327a00505a68ebc5c2f50f17cbe75b087107ef09da132dc943f543a6d6d28db"
+    "sourceSha256": "b82d802fe78c940d2cfa7d448ac5f7e835f1056f141b61977aaa939ae54362a1"
   },
   "ex26_rope_lateral": {
     "appId": "ex26_rope_lateral",
@@ -3560,15 +3560,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "5343fdd8d866e73fa3657a6e519573fba64bd5bde8574631972c971bf0546051",
-      "thumb": "/expansion-atlas/ex26_rope_lateral-original-256.webp",
-      "detail": "/expansion-atlas/ex26_rope_lateral-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_rope_lateral-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_rope_lateral-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_rope_lateral-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_rope_lateral-fill-960.webp"
+      "sourceSha256": "159ed7d0bc85602b736e3d5d0786c94bc5f709b4cc2534838a524bc2088b2fb6",
+      "thumb": "/expansion-atlas/ex26_rope_lateral-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_rope_lateral-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_rope_lateral-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_rope_lateral-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_rope_lateral-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_rope_lateral-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "5343fdd8d866e73fa3657a6e519573fba64bd5bde8574631972c971bf0546051"
+    "sourceSha256": "159ed7d0bc85602b736e3d5d0786c94bc5f709b4cc2534838a524bc2088b2fb6"
   },
   "ex26_rope_rotation": {
     "appId": "ex26_rope_rotation",
@@ -4393,15 +4393,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "8fd3f68eb4487fcafaa4c66c319991df68f947769e65e9f117f22a08f8044e22",
-      "thumb": "/expansion-atlas/ex26_py_hurdle_single_lateral-original-256.webp",
-      "detail": "/expansion-atlas/ex26_py_hurdle_single_lateral-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_py_hurdle_single_lateral-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_py_hurdle_single_lateral-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_py_hurdle_single_lateral-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_py_hurdle_single_lateral-fill-960.webp"
+      "sourceSha256": "d6c34af5cee88dd19468fc862e961e5c47d51ddd8257fbf5874431e8a63ab0fe",
+      "thumb": "/expansion-atlas/ex26_py_hurdle_single_lateral-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_py_hurdle_single_lateral-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_py_hurdle_single_lateral-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_py_hurdle_single_lateral-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_py_hurdle_single_lateral-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_py_hurdle_single_lateral-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "8fd3f68eb4487fcafaa4c66c319991df68f947769e65e9f117f22a08f8044e22"
+    "sourceSha256": "d6c34af5cee88dd19468fc862e961e5c47d51ddd8257fbf5874431e8a63ab0fe"
   },
   "ex26_py_hurdle_corner": {
     "appId": "ex26_py_hurdle_corner",
@@ -4529,15 +4529,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "222529e6dc559504f98690d57034ce107f14c03477baaf0eff908c8196a80161",
-      "thumb": "/expansion-atlas/ex26_py_drop_sprint-original-256.webp",
-      "detail": "/expansion-atlas/ex26_py_drop_sprint-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_py_drop_sprint-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_py_drop_sprint-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_py_drop_sprint-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_py_drop_sprint-fill-960.webp"
+      "sourceSha256": "4caadc646b227823263f68fa0083b31a97b8a5407353630e351de6fa3d24ed62",
+      "thumb": "/expansion-atlas/ex26_py_drop_sprint-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_py_drop_sprint-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_py_drop_sprint-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_py_drop_sprint-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_py_drop_sprint-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_py_drop_sprint-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "222529e6dc559504f98690d57034ce107f14c03477baaf0eff908c8196a80161"
+    "sourceSha256": "4caadc646b227823263f68fa0083b31a97b8a5407353630e351de6fa3d24ed62"
   },
   "ex26_py_box_lateral": {
     "appId": "ex26_py_box_lateral",
@@ -4631,15 +4631,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "06806f15d1b02003a45f24532f2a573f3af548755c6b4e64830c0032f326e63a",
-      "thumb": "/expansion-atlas/ex26_py_box_bound-original-256.webp",
-      "detail": "/expansion-atlas/ex26_py_box_bound-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_py_box_bound-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_py_box_bound-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_py_box_bound-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_py_box_bound-fill-960.webp"
+      "sourceSha256": "8ec4d16c51471940cd31c30eada7a339177756c856ad8d20cf72de1f4b368105",
+      "thumb": "/expansion-atlas/ex26_py_box_bound-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_py_box_bound-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_py_box_bound-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_py_box_bound-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_py_box_bound-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_py_box_bound-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "06806f15d1b02003a45f24532f2a573f3af548755c6b4e64830c0032f326e63a"
+    "sourceSha256": "8ec4d16c51471940cd31c30eada7a339177756c856ad8d20cf72de1f4b368105"
   },
   "ex26_py_stairs_double": {
     "appId": "ex26_py_stairs_double",
@@ -5056,15 +5056,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "da8ea13c3a9594eba36e587ad78e2d1b29a05e53ee3ce2f5a1dd3242899b47eb",
-      "thumb": "/expansion-atlas/ex26_mob_hip_er_liftoff-original-256.webp",
-      "detail": "/expansion-atlas/ex26_mob_hip_er_liftoff-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_mob_hip_er_liftoff-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_mob_hip_er_liftoff-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_mob_hip_er_liftoff-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_mob_hip_er_liftoff-fill-960.webp"
+      "sourceSha256": "bcfecb057020dde879b93b5f5a8200ba05cb017ddfd3b6c24a2250587b4092f3",
+      "thumb": "/expansion-atlas/ex26_mob_hip_er_liftoff-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_mob_hip_er_liftoff-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_mob_hip_er_liftoff-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_mob_hip_er_liftoff-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_mob_hip_er_liftoff-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_mob_hip_er_liftoff-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "da8ea13c3a9594eba36e587ad78e2d1b29a05e53ee3ce2f5a1dd3242899b47eb"
+    "sourceSha256": "bcfecb057020dde879b93b5f5a8200ba05cb017ddfd3b6c24a2250587b4092f3"
   },
   "ex26_mob_shinbox_rise": {
     "appId": "ex26_mob_shinbox_rise",
@@ -5702,15 +5702,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "9b3ca1e84a98d78bdae463dd3e504f32bdd720e408b92b8dfe9ee9cb5e202371",
-      "thumb": "/expansion-atlas/ex26_dns_side_reach-original-256.webp",
-      "detail": "/expansion-atlas/ex26_dns_side_reach-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_dns_side_reach-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_dns_side_reach-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_dns_side_reach-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_dns_side_reach-fill-960.webp"
+      "sourceSha256": "5093d82604241b520152235be7ebae234c3bf34e073d6522c3c971e2ce073edc",
+      "thumb": "/expansion-atlas/ex26_dns_side_reach-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_dns_side_reach-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_dns_side_reach-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_dns_side_reach-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_dns_side_reach-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_dns_side_reach-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "9b3ca1e84a98d78bdae463dd3e504f32bdd720e408b92b8dfe9ee9cb5e202371"
+    "sourceSha256": "5093d82604241b520152235be7ebae234c3bf34e073d6522c3c971e2ce073edc"
   },
   "ex26_dns_side_band": {
     "appId": "ex26_dns_side_band",
@@ -5719,15 +5719,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "2e36a7ef1e51b21680fdd76bcffe58e68cad42aca4965c2f79b010864bf74910",
-      "thumb": "/expansion-atlas/ex26_dns_side_band-original-256.webp",
-      "detail": "/expansion-atlas/ex26_dns_side_band-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_dns_side_band-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_dns_side_band-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_dns_side_band-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_dns_side_band-fill-960.webp"
+      "sourceSha256": "8ec73242679920fd8a960a7584755f852ca354a65dab3bc6bcdee1b7f0528cd1",
+      "thumb": "/expansion-atlas/ex26_dns_side_band-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_dns_side_band-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_dns_side_band-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_dns_side_band-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_dns_side_band-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_dns_side_band-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "2e36a7ef1e51b21680fdd76bcffe58e68cad42aca4965c2f79b010864bf74910"
+    "sourceSha256": "8ec73242679920fd8a960a7584755f852ca354a65dab3bc6bcdee1b7f0528cd1"
   },
   "ex26_dns_side_roll": {
     "appId": "ex26_dns_side_roll",
@@ -5804,15 +5804,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "f66516ce98df94ba44bf5ae286481aefc5188c6be91e29da2edef011679494ac",
-      "thumb": "/expansion-atlas/ex26_dns_oblique_row-original-256.webp",
-      "detail": "/expansion-atlas/ex26_dns_oblique_row-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_dns_oblique_row-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_dns_oblique_row-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_dns_oblique_row-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_dns_oblique_row-fill-960.webp"
+      "sourceSha256": "60233a792b6b7a5cf13f7a8c298c44666a1797d67527a80afae81dcd0e6e6c0d",
+      "thumb": "/expansion-atlas/ex26_dns_oblique_row-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_dns_oblique_row-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_dns_oblique_row-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_dns_oblique_row-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_dns_oblique_row-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_dns_oblique_row-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "f66516ce98df94ba44bf5ae286481aefc5188c6be91e29da2edef011679494ac"
+    "sourceSha256": "60233a792b6b7a5cf13f7a8c298c44666a1797d67527a80afae81dcd0e6e6c0d"
   },
   "ex26_dns_quad_forward": {
     "appId": "ex26_dns_quad_forward",
@@ -5872,15 +5872,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "11949d0b91577ccb83ab0066de863c73b8510f0ea956f5127e18a46520e7a9d2",
-      "thumb": "/expansion-atlas/ex26_dns_threepoint-original-256.webp",
-      "detail": "/expansion-atlas/ex26_dns_threepoint-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_dns_threepoint-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_dns_threepoint-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_dns_threepoint-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_dns_threepoint-fill-960.webp"
+      "sourceSha256": "a22f8a205420cff0d0a4eb10f348807de44ba94df9c417c531f6c6c279e4103f",
+      "thumb": "/expansion-atlas/ex26_dns_threepoint-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_dns_threepoint-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_dns_threepoint-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_dns_threepoint-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_dns_threepoint-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_dns_threepoint-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "11949d0b91577ccb83ab0066de863c73b8510f0ea956f5127e18a46520e7a9d2"
+    "sourceSha256": "a22f8a205420cff0d0a4eb10f348807de44ba94df9c417c531f6c6c279e4103f"
   },
   "ex26_dns_highkneel": {
     "appId": "ex26_dns_highkneel",
@@ -6144,15 +6144,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "febb6dde0d4eeee229cafb37e6078893a241d9d3a5aa647fbe0d0075a85a7aae",
-      "thumb": "/expansion-atlas/ex26_hss_birddog_elbow-original-256.webp",
-      "detail": "/expansion-atlas/ex26_hss_birddog_elbow-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_hss_birddog_elbow-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_hss_birddog_elbow-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_hss_birddog_elbow-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_hss_birddog_elbow-fill-960.webp"
+      "sourceSha256": "0728ca13b4ae3ea2fdb7f0b13ce4b631dedce7291e16d771ab949d81c3ba0192",
+      "thumb": "/expansion-atlas/ex26_hss_birddog_elbow-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_hss_birddog_elbow-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_hss_birddog_elbow-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_hss_birddog_elbow-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_hss_birddog_elbow-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_hss_birddog_elbow-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "febb6dde0d4eeee229cafb37e6078893a241d9d3a5aa647fbe0d0075a85a7aae"
+    "sourceSha256": "0728ca13b4ae3ea2fdb7f0b13ce4b631dedce7291e16d771ab949d81c3ba0192"
   },
   "ex26_hss_bear_tap": {
     "appId": "ex26_hss_bear_tap",
@@ -6280,15 +6280,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "9905795cdbd6193348ba69d3cce913031a4e99913d23c51632ff09f3dd7bcecb",
-      "thumb": "/expansion-atlas/ex26_hss_suitcase_balance-original-256.webp",
-      "detail": "/expansion-atlas/ex26_hss_suitcase_balance-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_hss_suitcase_balance-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_hss_suitcase_balance-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_hss_suitcase_balance-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_hss_suitcase_balance-fill-960.webp"
+      "sourceSha256": "7da2107eaeb69cd946bad0826c04f9c6fa21d107b6dc417e896624254e0fe80e",
+      "thumb": "/expansion-atlas/ex26_hss_suitcase_balance-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_hss_suitcase_balance-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_hss_suitcase_balance-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_hss_suitcase_balance-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_hss_suitcase_balance-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_hss_suitcase_balance-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "9905795cdbd6193348ba69d3cce913031a4e99913d23c51632ff09f3dd7bcecb"
+    "sourceSha256": "7da2107eaeb69cd946bad0826c04f9c6fa21d107b6dc417e896624254e0fe80e"
   },
   "ex26_pinwheel_curl": {
     "appId": "ex26_pinwheel_curl",
@@ -6365,15 +6365,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "234c8c4845c6446be195a1cc4d9b17fd9e06fb9cfb8a10282c1133f7d44bdd5a",
-      "thumb": "/expansion-atlas/ex26_meadows_row-original-256.webp",
-      "detail": "/expansion-atlas/ex26_meadows_row-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_meadows_row-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_meadows_row-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_meadows_row-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_meadows_row-fill-960.webp"
+      "sourceSha256": "b4484bfefcce1d336dab77e406f63117ecea27cb67a94d8fb54a695b3d2e5ac6",
+      "thumb": "/expansion-atlas/ex26_meadows_row-audit20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_meadows_row-audit20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_meadows_row-audit20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_meadows_row-audit20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_meadows_row-audit20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_meadows_row-audit20261013-fill-960.webp"
     },
-    "sourceSha256": "234c8c4845c6446be195a1cc4d9b17fd9e06fb9cfb8a10282c1133f7d44bdd5a"
+    "sourceSha256": "b4484bfefcce1d336dab77e406f63117ecea27cb67a94d8fb54a695b3d2e5ac6"
   },
   "ex26_db_forward_lunge": {
     "appId": "ex26_db_forward_lunge",

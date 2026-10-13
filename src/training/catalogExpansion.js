@@ -1,4 +1,5 @@
 // Library expansion 2026-10-11. Independent coaching copy; references establish technique, not universal endorsement.
+import { applyExerciseCorrections } from './catalogCorrections.js';
 export const EXPANSION_EXERCISES = [
   {
     "id": "ex26_mb_chestpass",
@@ -753,7 +754,7 @@ export const EXPANSION_EXERCISES = [
     "S": 3,
     "C": 2,
     "family": "hinge_rdl",
-    "ez": "ex26_bb_rdl",
+    "ez": null,
     "pos": [
       "Stůj u osy s chodidly pod boky. Vyzkoušej polohu vzhledem k vedení, odhákni osu u stehen a kolena mírně povol.",
       "Stand at the bar with feet under the hips. Test position relative to the rails, unrack at thigh height and soften the knees."
@@ -1256,7 +1257,7 @@ export const EXPANSION_EXERCISES = [
     "S": 1,
     "C": 1,
     "family": "pull_vertical",
-    "hd": "latpull",
+    "hd": null,
     "load": "none",
     "measurementType": "REPS_ONLY",
     "pos": [
@@ -2041,7 +2042,7 @@ export const EXPANSION_EXERCISES = [
     "S": 1,
     "C": 1,
     "family": "elbow_flexion",
-    "ez": "an_hammer",
+    "ez": null,
     "pos": [
       "Připevni lano ke spodní kladce. Postav se čelem, drž konce dlaněmi proti sobě a lokty u boků.",
       "Attach a rope to a low pulley. Face it, hold the ends with palms facing and elbows near the sides."
@@ -2100,7 +2101,7 @@ export const EXPANSION_EXERCISES = [
     "S": 1,
     "C": 1,
     "family": "elbow_flexion",
-    "hd": "an_hammer",
+    "hd": null,
     "load": "none",
     "measurementType": "REPS_ONLY",
     "pos": [
@@ -2219,8 +2220,8 @@ export const EXPANSION_EXERCISES = [
     "family": "elbow_extension",
     "ez": "pushdown",
     "pos": [
-      "Ve stabilním stoji zvedni lehkou jednoručku nad rameno. Druhou rukou můžeš jemně podepřít nadloktí.",
-      "Stand securely and lift a light dumbbell above the shoulder. The other hand may gently support the upper arm."
+      "Sedni si na pevnou lavici s chodidly na zemi, případně stůj stabilně. Zvedni lehkou jednoručku nad rameno; druhou rukou můžeš jemně podepřít nadloktí.",
+      "Sit on a stable bench with feet grounded, or stand securely. Lift a light dumbbell above the shoulder; the other hand may gently support the upper arm."
     ],
     "exe": [
       "Pokrč loket a spusť činku za hlavu, pak loket narovnej. Žebra zůstávají nad pánví a nadloktí v pohodlném úhlu.",
@@ -2892,7 +2893,7 @@ export const EXPANSION_EXERCISES = [
     "C": 2,
     "sideMode": "perSide",
     "family": "step_up",
-    "ez": "stepup",
+    "ez": null,
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "pos": [
@@ -2953,7 +2954,7 @@ export const EXPANSION_EXERCISES = [
     "C": 2,
     "sideMode": "perSide",
     "family": "squat_unilateral",
-    "ez": "stepup",
+    "ez": null,
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "pos": [
@@ -3073,7 +3074,7 @@ export const EXPANSION_EXERCISES = [
     "C": 1,
     "sideMode": "perSide",
     "family": "knee_flexion_machine",
-    "ez": "lyinglegcurl",
+    "ez": null,
     "pos": [
       "Nastav váleček nad patu a osu kolena do osy stroje. Opři trup a chyť madla; druhá noha stojí pevně.",
       "Set the roller above the heel and align the knee with the machine pivot. Support the torso and grip the handles, other foot grounded."
@@ -3367,7 +3368,7 @@ export const EXPANSION_EXERCISES = [
     "C": 2,
     "family": "knee_flexion_bw",
     "ez": "eccham",
-    "hd": "nordic",
+    "hd": null,
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "pos": [
@@ -3485,7 +3486,7 @@ export const EXPANSION_EXERCISES = [
     "S": 2,
     "C": 2,
     "family": "core_flexion",
-    "ez": "crunch",
+    "ez": "ex26_pelvic_tilt",
     "load": "none",
     "pos": [
       "V lehu na zádech zvedni stehna nad kyčle, kolena pokrčená. Ruce polož na zem vedle těla.",
@@ -3966,7 +3967,7 @@ export const EXPANSION_EXERCISES = [
     "S": 1,
     "C": 2,
     "family": "core_antiextension",
-    "ez": "birddog",
+    "ez": null,
     "hd": "bearcrawl",
     "load": "none",
     "measurementType": "DURATION",
@@ -4628,7 +4629,7 @@ export const EXPANSION_EXERCISES = [
     "S": 3,
     "C": 4,
     "family": "kipping_pull",
-    "ez": "pullup",
+    "ez": null,
     "tier": "specialist",
     "load": "none",
     "pos": [
@@ -4755,7 +4756,7 @@ export const EXPANSION_EXERCISES = [
     "S": 3,
     "C": 4,
     "family": "squat_overhead",
-    "ez": "frontsquat",
+    "ez": null,
     "tier": "specialist",
     "pos": [
       "S trenérem nastav bezpečný nástup a odložení. Drž lehkou technickou osu širokým úchopem nad hlavou, paže aktivně natažené.",
@@ -4960,8 +4961,8 @@ export const EXPANSION_EXERCISES = [
       "Prepare a light technique bar and a clear lifting platform. Set up for a clean with hands outside the legs."
     ],
     "exe": [
-      "Přemísti osu na přední ramena a postav se. Znovu se zpevni, proveď krátký svislý podřep a výraz. Přesuň se pod osu do výpadu, stabilizuj a srovnej nohy.",
-      "Clean the bar to the front shoulders and stand. Rebrace, dip vertically and drive. Move under into a split, stabilize and recover the feet."
+      "Přemísti osu na přední ramena a postav se. Znovu se zpevni, proveď krátký svislý podřep a výraz. Zachyť osu na natažených pažích ve výpadu s přední holení přibližně svisle, zadním kolenem mírně pokrčeným a zadní patou zvednutou. Stabilizuj, posuň přední nohu část cesty zpět a pak srovnej zadní nohu.",
+      "Clean the bar to the front shoulders and stand. Rebrace, dip vertically and drive. Receive on straight arms in a split with the front shin roughly vertical, rear knee slightly bent and rear heel raised. Stabilize, recover the front foot partway back, then bring in the rear foot."
     ],
     "wat": [
       "Obě části se nejprve uč odděleně s trenérem. Zvládni úchop, přední držení, práci nohou a bezpečné puštění činky před přidáváním váhy.",
@@ -5522,7 +5523,7 @@ export const EXPANSION_EXERCISES = [
     "C": 3,
     "sideMode": "perSide",
     "family": "get_up",
-    "ez": "deadbug",
+    "ez": null,
     "hd": "tgu",
     "pos": [
       "Lehni si s jednou paží svisle vzhůru a stejnou nohou pokrčenou, chodidlo na zemi. Druhá paže a noha leží šikmo od těla.",
@@ -5650,7 +5651,7 @@ export const EXPANSION_EXERCISES = [
     "C": 3,
     "sideMode": "perSide",
     "family": "loaded_carry",
-    "ez": "suitcase",
+    "ez": null,
     "measurementType": "WEIGHT_DURATION",
     "pos": [
       "Bezpečně vytlač lehkou činku nad jedno rameno. Paže je natažená, zápěstí nad loktem a žebra nad pánví.",
@@ -5839,7 +5840,7 @@ export const EXPANSION_EXERCISES = [
     "S": 2,
     "C": 2,
     "family": "loaded_carry",
-    "ez": "frontrackcarry",
+    "ez": null,
     "measurementType": "WEIGHT_DURATION",
     "pos": [
       "Zvedni přiměřeně lehký tréninkový vak bezpečně z vyvýšené opory a obejmi ho před trupem. Nezakrývej si výhled.",
@@ -6467,8 +6468,8 @@ export const EXPANSION_EXERCISES = [
       "Place palms on a solid wall and step back into a whole-body lean. Align supporting leg, hip and torso."
     ],
     "exe": [
-      "Zvedni jedno koleno dopředu a pak chodidlo vrať pod kyčel. Střídej nohy pomalu, aniž bys měnil úhel těla.",
-      "Lift one knee forward, then return the foot under the hip. Alternate slowly without changing body angle."
+      "Zvedni jedno koleno dopředu a pak chodidlo vrať na původní místo opory za svislicí kyčle. Střídej nohy pomalu a zachovej stejný náklon celého těla.",
+      "Lift one knee forward, then return the foot to its original support point behind the vertical line of the hip. Alternate slowly while preserving the same whole-body lean."
     ],
     "wat": [
       "Neohýbej se jen v pase a neprohýbej bedra. Podlaha musí bezpečně držet opěrné chodidlo.",
@@ -6492,8 +6493,8 @@ export const EXPANSION_EXERCISES = [
     "variantKey": "ex26_wall_march",
     "hd": null,
     "foc": [
-      "Zvedni jedno koleno dopředu a pak chodidlo vrať pod kyčel.",
-      "Lift one knee forward, then return the foot under the hip."
+      "Zvedni jedno koleno dopředu a pak chodidlo vrať na původní místo opory za svislicí kyčle.",
+      "Lift one knee forward, then return the foot to its original support point behind the vertical line of the hip."
     ],
     "source": {
       "author": "National Strength and Conditioning Association",
@@ -6832,8 +6833,8 @@ export const EXPANSION_EXERCISES = [
     "family": "hip_adduction",
     "hd": "ex26_cable_adduction",
     "pos": [
-      "Lehni na bok a podepři hlavu. Spodní nataženou nohu posuň mírně před horní, pánev drž kolmo k podložce.",
-      "Lie on your side with head supported. Place the straight lower leg slightly in front of the upper leg, keeping hips stacked."
+      "Lehni na bok a podepři hlavu. Spodní nohu natáhni, horní koleno pokrč a horní chodidlo polož na zem před spodní koleno. Pánev drž bez přetáčení.",
+      "Lie on your side with the head supported. Straighten the lower leg, bend the upper knee and place its foot on the floor in front of the lower knee. Keep the pelvis from rolling."
     ],
     "exe": [
       "Zvedni spodní nohu několik centimetrů, krátce zastav a pomalu ji polož.",
@@ -6951,7 +6952,7 @@ export const EXPANSION_EXERCISES = [
       "lavice"
     ],
     "family": "elbow_flexion",
-    "ez": "dbcurl",
+    "ez": null,
     "pos": [
       "Sedni na lavici s téměř svislou opěrkou, chodidla polož na zem. Jednoručky drž podhmatem vedle těla.",
       "Sit against an almost upright backrest with feet grounded. Hold dumbbells at your sides with palms forward."
@@ -7013,7 +7014,7 @@ export const EXPANSION_EXERCISES = [
     ],
     "sideMode": "perSide",
     "family": "spinal_control",
-    "ez": "birddog",
+    "ez": null,
     "pos": [
       "Lehni na břicho, paže natáhni před sebe a čelo nech těsně nad podložkou nebo na tenkém ručníku.",
       "Lie prone with arms overhead and forehead just above the mat or resting on a thin towel."
@@ -7438,16 +7439,16 @@ export const EXPANSION_EXERCISES = [
     "family": "core_flexion",
     "ez": "crunch",
     "pos": [
-      "Opři střed zad o míč, chodidla dej stabilně na zem a ruce překřiž na hrudníku.",
-      "Support the mid-back on the ball, plant feet firmly and cross hands over the chest."
+      "Opři bedra a střed zad o míč, chodidla polož stabilně na zem a ruce překřiž na hrudníku. Pánev drž klidně před míčem.",
+      "Support the lower and mid-back on the ball, plant the feet firmly and cross the hands over the chest. Keep the pelvis steady in front of the ball."
     ],
     "exe": [
       "Přibliž žebra k pánvi krátkým zakulacením trupu. Pomalu se vrať do opory.",
       "Bring the ribs toward the pelvis with a short trunk curl. Lower slowly onto the ball."
     ],
     "wat": [
-      "Pánev zůstává na míči. Nezakláněj hlavu a nepřecházej do prudkého sedu.",
-      "Keep the pelvis supported. Do not throw the head back or sit up abruptly."
+      "Udrž chodidla i míč stabilní a pánev bez houpání. Nezakláněj hlavu a nepřecházej do prudkého sedu.",
+      "Keep the feet and ball stable without rocking the pelvis. Do not throw the head back or sit up abruptly."
     ],
     "pro": [
       "Lehčí: širší postavení chodidel a kratší zdvih. Těžší: ruce lehce u spánků nebo pomalejší spouštění.",
@@ -7495,7 +7496,7 @@ export const EXPANSION_EXERCISES = [
       "zed"
     ],
     "family": "squat_bilateral",
-    "ez": "wallsit",
+    "ez": null,
     "pos": [
       "Vlož míč mezi bedra a pevnou zeď. Chodidla postav mírně před tělo a na šířku pánve.",
       "Place a ball between the lower back and a fixed wall. Set feet slightly forward and hip-width apart."
@@ -7619,7 +7620,7 @@ export const EXPANSION_EXERCISES = [
     "family": "core_antiextension",
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
-    "ez": "abwheel",
+    "ez": null,
     "pos": [
       "Klekni na měkkou podložku a uchop osu s dvěma stejně velkými kotouči zajištěnými objímkami.",
       "Kneel on padding and grip a bar with two equal-sized plates secured by collars."
@@ -7801,7 +7802,7 @@ export const EXPANSION_EXERCISES = [
       "zaves"
     ],
     "family": "knee_flexion_bw",
-    "ez": "ex26_hamstring_slider",
+    "ez": null,
     "pos": [
       "Lehni na záda a zajisti obě paty ve stejně vysokých smyčkách. Dlaně opři vedle těla.",
       "Lie supine with both heels secured in evenly adjusted cradles and palms grounded."
@@ -8171,7 +8172,7 @@ export const EXPANSION_EXERCISES = [
     ],
     "sideMode": "perSide",
     "family": "push_horizontal",
-    "ez": "ringpush",
+    "ez": "inclpush",
     "pos": [
       "Rukojeť nastav pro jednoruční použití podle výrobce. Stůj zády ke kotvení, opačnou nohu dej vpřed a drž ruku před hrudníkem.",
       "Configure a single handle according to the manufacturer. Face away from the anchor, opposite foot forward, hand in front of the chest."
@@ -8293,7 +8294,7 @@ export const EXPANSION_EXERCISES = [
     ],
     "sideMode": "perSide",
     "family": "core_rotation",
-    "ez": "pallof",
+    "ez": null,
     "pos": [
       "Stůj bokem ke kladce ve výši hrudníku a drž rukojeť oběma rukama před tělem. Chodidla rozkroč.",
       "Stand side-on to a chest-height cable and hold the handle with both hands in front, feet apart."
@@ -8717,7 +8718,7 @@ export const EXPANSION_EXERCISES = [
       "kladka"
     ],
     "family": "face_pull",
-    "ez": "revfly",
+    "ez": null,
     "pos": [
       "Klekni čelem ke dvěma kladkám ve výši ramen. Rukojeti drž před sebou, lokty nech mírně povolené.",
       "Kneel facing two shoulder-height pulleys, handles in front with elbows softly extended."
@@ -9020,7 +9021,7 @@ export const EXPANSION_EXERCISES = [
     ],
     "sideMode": "perSide",
     "family": "hip_rotation_control",
-    "ez": "hipcars",
+    "ez": null,
     "pos": [
       "Stůj vzpřímeně vedle opory. Zvedni jedno pokrčené koleno před sebe.",
       "Stand tall beside support and lift one bent knee in front."
@@ -9034,8 +9035,8 @@ export const EXPANSION_EXERCISES = [
       "Do not substitute pelvic rotation. Choose knee height according to balance."
     ],
     "pro": [
-      "Lehčí: opora rukou a nižší koleno. Těžší: bez opory a pomalá změna směru.",
-      "Easier: use hand support and lift lower. Harder: remove support and reverse direction slowly."
+      "Lehčí: opora rukou, nižší koleno a kratší oblouk. Těžší: bez opory a pomalá změna směru; celý kontrolovaný kruh kyčlí nacvič samostatně.",
+      "Easier: use hand support, lift the knee lower and shorten the arc. Harder: remove support and reverse slowly; learn a full controlled hip circle separately."
     ],
     "J": {
       "kyc": 2
@@ -9049,7 +9050,7 @@ export const EXPANSION_EXERCISES = [
     "goalRole": "coordination_skill",
     "genRule": "explicit",
     "variantKey": "ex26_gate_opener",
-    "hd": null,
+    "hd": "hipcars",
     "foc": [
       "Veď koleno v malém oblouku dovnitř a potom do strany.",
       "Move the knee through a small inward then outward arc."
@@ -9335,8 +9336,8 @@ export const EXPANSION_EXERCISES = [
       "Bring a knee outside the same-side elbow while advancing the opposite hand. Alternate in small forward steps."
     ],
     "wat": [
-      "Nespouštěj hrudník mezi ramena a nezkracuj krok za cenu bolesti kyčle.",
-      "Do not collapse between the shoulders or force a painful hip position."
+      "Nespouštěj hrudník mezi ramena a netlač kyčel do bolestivé polohy. Krok podle potřeby zkrať.",
+      "Do not collapse between the shoulders or force a painful hip position. Shorten the step as needed."
     ],
     "pro": [
       "Lehčí: přitahování kolen na místě nebo dlaně na vyšší opoře. Těžší: delší úsek se stejným rytmem.",
@@ -9447,7 +9448,7 @@ export const EXPANSION_EXERCISES = [
     ],
     "family": "jump_horizontal",
     "load": "none",
-    "ez": "ex26_drop_landing",
+    "ez": null,
     "pos": [
       "Připrav několik nízkých měkkých kuželů s dostatkem místa pro dopad.",
       "Set several low yielding cones with ample landing space."
@@ -9773,8 +9774,8 @@ export const EXPANSION_EXERCISES = [
       "Do not force stride length to fit the ladder. Use spacing suited to your size and rhythm."
     ],
     "pro": [
-      "Lehčí: chůze s přesnými došlapy. Těžší: rychlejší rytmus nebo dva došlapy do pole.",
-      "Easier: walk with accurate placement. Harder: faster rhythm or two contacts per square."
+      "Lehčí: chůze s přesnými došlapy. Těžší: postupně rychlejší rytmus při stejném jednom došlapu do pole. Dva došlapy do pole jsou jiná rytmická varianta.",
+      "Easier: walk with accurate placement. Harder: gradually increase rhythm with the same one contact per square. Two contacts per square are a different rhythm variation."
     ],
     "J": {
       "kyc": 1,
@@ -9898,8 +9899,8 @@ export const EXPANSION_EXERCISES = [
       "Do not increase hurdle height at the cost of leaning back or swinging the leg sideways."
     ],
     "pro": [
-      "Lehčí: překračování krokem. Těžší: rychlejší rytmus nebo dva došlapy mezi překážkami.",
-      "Easier: walk over. Harder: increase rhythm or use two contacts between hurdles."
+      "Lehčí: překračování krokem. Těžší: postupně rychlejší rytmus při stejné nízké výšce a jistých došlapech. Dva došlapy mezi překážkami jsou jiná rytmická varianta.",
+      "Easier: walk over the hurdles. Harder: gradually increase rhythm at the same low height with accurate contacts. Two contacts between hurdles are a different rhythm variation."
     ],
     "J": {
       "kyc": 1,
@@ -10500,8 +10501,8 @@ export const EXPANSION_EXERCISES = [
     ],
     "family": "push_horizontal",
     "pos": [
-      "Sedni na stabilní opřenou lavici zády ke kladkám nastaveným přibližně k ramenům.",
-      "Sit on a stable backed bench facing away from pulleys near shoulder height."
+      "Sedni na stabilní lavici s opěrkou zády ke kladkám nastaveným nad výši ramen. Madla drž u dolní části hrudníku a chodidla opři o zem.",
+      "Sit on a stable backed bench facing away from pulleys set above shoulder height. Hold the handles beside the lower chest with feet grounded."
     ],
     "exe": [
       "Z dolní části hrudníku tlač madla šikmo vpřed a dolů před stehna. Vracej po stejné dráze.",
@@ -10562,8 +10563,8 @@ export const EXPANSION_EXERCISES = [
     ],
     "family": "push_incline",
     "pos": [
-      "Na stabilní lavici s opěrkou drž madla u horní části hrudníku; kladky jsou za tebou.",
-      "On a stable backed bench, hold handles beside the upper chest with pulleys behind you."
+      "Na stabilní lavici s opěrkou drž madla u horní části hrudníku. Kladky jsou za tebou níže než ruce, chodidla na zemi.",
+      "Sit on a stable backed bench holding handles beside the upper chest. Set the pulleys behind you below hand level and keep the feet grounded."
     ],
     "exe": [
       "Vytlač madla vpřed a vzhůru přibližně k výšce čela. Kontrolovaně se vrať k hrudníku.",
@@ -11359,7 +11360,7 @@ export const EXPANSION_EXERCISES = [
     ],
     "family": "squat_to_press",
     "tier": "specialist",
-    "ez": "ex26_db_thruster",
+    "ez": null,
     "pos": [
       "Drž osu na předních ramenou v pohodlném předním postoji.",
       "Hold the bar on front shoulders in a comfortable front-rack stance."
@@ -12110,8 +12111,8 @@ export const EXPANSION_EXERCISES = [
     "sideMode": "perSide",
     "tier": "specialist",
     "pos": [
-      "Stůj čelem k vysoké kladce, madlo v pravé ruce. Levá noha zůstává hlavní oporou.",
-      "Face a high pulley with the handle in the right hand and left leg as the main support."
+      "Stůj čelem ke kladce nastavené přibližně do výšky hrudníku, madlo v pravé ruce. Levá noha zůstává hlavní oporou. Po sérii vystřídej ruku i nohu.",
+      "Face a pulley set approximately at chest height with the handle in the right hand and left leg as the main support. Change both arm and leg after the set."
     ],
     "exe": [
       "Pravou nohou vykroč vzad do výpadu a prodluž pravou paži. Při návratu přitáhni madlo a pravé koleno zvedni před sebe.",
@@ -12421,7 +12422,7 @@ export const EXPANSION_EXERCISES = [
     ],
     "family": "press_vertical",
     "tier": "specialist",
-    "ez": "ex26_kb_double_press",
+    "ez": null,
     "pos": [
       "Drž dva kettlebells v předním držení s lokty blízko žeber.",
       "Hold two kettlebells in rack with elbows near the ribs."
@@ -13936,7 +13937,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "ex26_py_hop_lateral_out",
+    "ez": "ex26_single_pogo",
     "pos": [
       "Stůj na pravé noze pro pohyb doleva; volnou nohu drž mimo dráhu dopadu.",
       "Stand on the right foot to move left; keep the free leg clear of the landing path."
@@ -14684,7 +14685,7 @@ export const EXPANSION_EXERCISES = [
   },
   {
     "id": "ex26_py_five_bound",
-    "cz": "Pětikrokový odrazový přechod",
+    "cz": "Pětiskok: poskok, krok, poskok, krok, skok",
     "en": "Five-Step Bound",
     "collection": "plyometrics-space",
     "tags": [
@@ -14705,7 +14706,7 @@ export const EXPANSION_EXERCISES = [
       "ham",
       "abs"
     ],
-    "S": 3,
+    "S": 4,
     "C": 4,
     "family": "jump_horizontal",
     "load": "none",
@@ -14716,8 +14717,8 @@ export const EXPANSION_EXERCISES = [
       "Prepare a straight lane and a safe two-foot landing area."
     ],
     "exe": [
-      "Spoj krátkou sekvenci poskoků a přeskoků: stejná noha, opačná, znovu stejná, opačná a závěrečný dopad snožmo. Začni pomalu s trenérem.",
-      "Link a short sequence of hops and steps: same foot, opposite foot, same foot again, opposite foot, then a two-foot finish. Learn it slowly with a coach."
+      "Začni odrazem z pravé nohy. Následují dopady pravá, levá, levá, pravá a nakonec obě nohy. Poté nacvič zrcadlové pořadí z levé. Začni malými odrazy a uč se rytmus s trenérem.",
+      "Start by taking off from the right foot. Land right, left, left, right, then on both feet. Practise the mirrored sequence starting on the left. Begin with small jumps and learn the rhythm with a coach."
     ],
     "wat": [
       "Nezaměňuj nácvik pořadí za maximální test vzdálenosti.",
@@ -14742,8 +14743,8 @@ export const EXPANSION_EXERCISES = [
     "variantKey": "ex26_py_five_bound",
     "hd": null,
     "foc": [
-      "Spoj krátkou sekvenci poskoků a přeskoků: stejná noha, opačná, znovu stejná, opačná a závěrečný dopad snožmo.",
-      "Link a short sequence of hops and steps: same foot, opposite foot, same foot again, opposite foot, then a two-foot finish."
+      "Začni odrazem z pravé nohy.",
+      "Start by taking off from the right foot."
     ],
     "source": {
       "author": "World Athletics",
@@ -15003,8 +15004,8 @@ export const EXPANSION_EXERCISES = [
       "After landing on the opposite foot, direct the next takeoff upward. Land on that foot and stabilize."
     ],
     "wat": [
-      "Nebrzdí natažené koleno před tělem; dopad přijmi pružně pod pánví.",
-      "Avoid braking on a straight knee ahead of the body; receive the landing elastically beneath the pelvis."
+      "Nebrzdi dopad propnutým kolenem daleko před tělem. Přijmi jej pružně s pokrčením kyčle a kolena.",
+      "Avoid braking on a straight knee far ahead of the body. Absorb through a controlled bend of the hip and knee."
     ],
     "pro": [
       "Lehčí: přeskok vpřed se zastavením. Těžší: plynulejší přechod z vodorovného do svislého odrazu.",
@@ -15205,7 +15206,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "ex26_py_pogo_lateral",
+    "ez": "ex26_snapdown",
     "pos": [
       "Stůj vedle ploché značky s chodidly na šířku boků.",
       "Stand beside a flat marker with feet hip-width apart."
@@ -15219,8 +15220,8 @@ export const EXPANSION_EXERCISES = [
       "Land with both feet together and knees tracking the toes."
     ],
     "pro": [
-      "Lehčí: krátký přenos s malým odrazem. Těžší: větší boční vzdálenost bez dodatečného kroku.",
-      "Easier: a short transfer with a small hop. Harder: more lateral distance without an extra step."
+      "Lehčí: nácvik dopadové polohy bez letu, potom velmi krátký boční skok s výdrží. Těžší: mírně větší boční vzdálenost při stejném jistém zastavení bez dalšího kroku.",
+      "Easier: rehearse the landing stance without flight, then use a very short lateral jump and hold. Harder: slightly more lateral distance while retaining the same secure stop without another step."
     ],
     "J": {
       "kot": 2,
@@ -15638,8 +15639,8 @@ export const EXPANSION_EXERCISES = [
       "Keep feet together and avoid turning the trunk toward the travel direction."
     ],
     "pro": [
-      "Lehčí: stejný dril vpřed. Těžší: plynulý přechod vpřed–vzad až po úplném zastavení a novém rozjezdu.",
-      "Easier: the forward version. Harder: alternate forward and backward sets after a complete stop and restart."
+      "Lehčí: stejný dril vpřed. Těžší: střídavě krátká série vpřed a vzad; mezi směry vždy úplně zastav a znovu se připrav.",
+      "Easier: the forward version. Harder: alternate short forward and backward sets, always stopping fully and resetting between directions."
     ],
     "J": {
       "kot": 2,
@@ -15978,7 +15979,7 @@ export const EXPANSION_EXERCISES = [
     "measurementType": "BODYWEIGHT_REPS",
     "tier": "specialist",
     "sideMode": "perSide",
-    "ez": "ex26_py_square_single",
+    "ez": "ex26_single_broad_stick",
     "pos": [
       "Vyznač malý trojúhelník a postav se na jednu nohu v jeho rohu.",
       "Mark a small triangle and balance on one foot at a corner."
@@ -15992,8 +15993,8 @@ export const EXPANSION_EXERCISES = [
       "Changing the landing angle must not collapse the knee inward."
     ],
     "pro": [
-      "Lehčí: jednotlivé poskoky a výdrž. Těžší: plynulý trojúhelník v opačném směru.",
-      "Easier: isolated hops and holds. Harder: a continuous circuit in the opposite direction."
+      "Lehčí: jednotlivé malé skoky jednonož s výdrží, nejprve jen vpřed. Těžší: spoj tři malé kontakty bez pauzy, ale se stejnou kontrolou. Oba směry a obě nohy procvičuj jako rovnocenné varianty.",
+      "Easier: individual small single-leg hops and holds, initially only forward. Harder: link three small contacts without pauses while preserving control. Practise both directions and both legs as equivalent variations."
     ],
     "J": {
       "kol": 2,
@@ -16561,8 +16562,8 @@ export const EXPANSION_EXERCISES = [
       "Jump over on both feet, transition from landing into running steps and accelerate briefly."
     ],
     "wat": [
-      "Nebrzdí první krok daleko před pánví. Na konci zpomal postupně.",
-      "Avoid a braking first step far ahead of the pelvis. Slow down gradually at the end."
+      "Nebrzdi prvním krokem daleko před pánví. Zrychluj krátkými kroky a na konci zpomal postupně.",
+      "Avoid braking with the first step far ahead of the pelvis. Accelerate with short steps and slow down gradually at the end."
     ],
     "pro": [
       "Lehčí: po dopadu zastav a vyběhni. Těžší: plynulejší první kroky bez zvýšení překážky.",
@@ -16623,7 +16624,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "tier": "specialist",
-    "ez": "ex26_py_broad_rebound",
+    "ez": "ex26_drop_landing",
     "pos": [
       "Stůj na velmi nízké pevné bedně, před ní nech volnou dopadovou dráhu.",
       "Stand on a very low stable box with a clear landing lane ahead."
@@ -16696,7 +16697,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "tier": "specialist",
-    "ez": "ex26_py_hurdle_bounds",
+    "ez": "ex26_drop_landing",
     "pos": [
       "Připrav velmi nízkou pevnou bednu a krátkou odrazovou dráhu.",
       "Prepare a very low stable box and a short bounding lane."
@@ -16710,8 +16711,8 @@ export const EXPANSION_EXERCISES = [
       "Do not combine the drop and bounds until both are controlled separately."
     ],
     "pro": [
-      "Lehčí: seskok, výdrž a až potom odrazy. Těžší: plynulé propojení bez zvýšení bedny.",
-      "Easier: drop, hold, then bound. Harder: continuous linkage without raising the box."
+      "Lehčí: seskok se zastavením a odděleně malé střídavé odrazy ze země. Těžší: plynulé propojení až po zvládnutí obou částí, bez zvýšení bedny.",
+      "Easier: a drop-and-hold, with small alternating floor bounds practised separately. Harder: link them only after controlling both parts, without raising the box."
     ],
     "J": {
       "kol": 2,
@@ -16769,7 +16770,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "tier": "specialist",
-    "ez": "ex26_py_hurdle_sprint",
+    "ez": "ex26_drop_landing",
     "pos": [
       "Z nízké pevné bedny musí vést volná dráha s dostatkem místa pro doběh.",
       "A low stable box must face a clear lane with enough runoff space."
@@ -16927,8 +16928,8 @@ export const EXPANSION_EXERCISES = [
       "Do not continue twisting over loaded feet after landing."
     ],
     "pro": [
-      "Lehčí: otočka na zemi nebo přímý výskok na bednu. Těžší: přesnější plynulý odraz při stejné výšce.",
-      "Easier: a floor turn or straight box jump. Harder: a more precise continuous takeoff at the same height."
+      "Lehčí: otočka na zemi nebo přímý výskok na nízkou bednu. Těžší: po opakovaně jistých dopadech mírně zvětši vzdálenost od bedny při stejné nízké výšce. Každý pokus zastav a dolů sestup.",
+      "Easier: a floor turn or straight jump onto a low box. Harder: after consistently secure landings, slightly increase takeoff distance at the same low height. Stop each attempt and step down."
     ],
     "J": {
       "kol": 2,
@@ -16998,8 +16999,8 @@ export const EXPANSION_EXERCISES = [
       "Do not use an exaggerated knee tuck to compensate for excessive box height. Keep it low."
     ],
     "pro": [
-      "Lehčí: dopad na obě nohy. Těžší: čistší jednostranný dopad bez dodatečného poskočení.",
-      "Easier: land on both feet. Harder: a cleaner single-leg landing without an extra hop."
+      "Lehčí: krátký skok na stejné noze na zemi s výdrží, případně odraz jednou a dopad oběma na nízkou bednu. Těžší: až při jistém dopadu mírně zvětši vzdálenost od stejné nízké bedny. Výšku současně nezvyšuj.",
+      "Easier: a short same-leg floor hop and hold, or one-foot takeoff to a two-foot landing on a low box. Harder: only after secure landings, slightly increase distance to the same low box. Do not raise height at the same time."
     ],
     "J": {
       "kol": 2,
@@ -17416,7 +17417,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "ex26_py_hop_step_jump",
+    "ez": "broadjump",
     "pos": [
       "Vymez krátký rozběh a bezpečnou měkkou dopadovou plochu, ideálně doskočiště.",
       "Mark a short approach and a safe soft landing area, preferably a sand pit."
@@ -17430,8 +17431,8 @@ export const EXPANSION_EXERCISES = [
       "Avoid braking on a straight takeoff leg; keep the approach modest."
     ],
     "pro": [
-      "Lehčí: jeden krok a malý skok. Těžší: pravidelnější krátký rozběh pod vedením trenéra.",
-      "Easier: one step and a small jump. Harder: a more consistent short approach with coaching."
+      "Lehčí: krátký skok z místa s odrazem i dopadem oběma, potom jeden krok a malý odraz jednou nohou do dopadu oběma. Těžší: pravidelnější krátký rozběh pod vedením trenéra, při stejné jistotě dopadu.",
+      "Easier: a short standing two-foot jump and landing, then one step into a small one-foot takeoff with a two-foot landing. Harder: a more consistent short approach under coaching while preserving landing control."
     ],
     "J": {
       "kol": 2,
@@ -17493,8 +17494,8 @@ export const EXPANSION_EXERCISES = [
       "Prepare a short straight approach and a clear landing area."
     ],
     "exe": [
-      "Po dvou až třech krocích přejdi do krátkého předskoku, rychle postav obě nohy a odraz se vzhůru s mírným posunem vpřed.",
-      "After two or three steps, use a short gather, plant both feet and jump upward with slight forward travel."
+      "Po dvou až třech krocích přejdi do krátkého předskoku, postav obě nohy a odraz se vzhůru s mírným posunem vpřed. Dopadni na obě nohy, ztlum pohyb v kyčlích a kolenou a zastav. Před dalším pokusem se znovu připrav.",
+      "After two or three steps, use a short gather, plant both feet and jump upward with slight forward travel. Land on both feet, absorb through hips and knees, and stop. Reset before the next attempt."
     ],
     "wat": [
       "Náběh musíš umět bezpečně přesměrovat; nezačínej sprintem.",
@@ -17519,7 +17520,7 @@ export const EXPANSION_EXERCISES = [
     "variantKey": "ex26_py_approach_double",
     "hd": null,
     "foc": [
-      "Po dvou až třech krocích přejdi do krátkého předskoku, rychle postav obě nohy a odraz se vzhůru s mírným posunem vpřed.",
+      "Po dvou až třech krocích přejdi do krátkého předskoku, postav obě nohy a odraz se vzhůru s mírným posunem vpřed.",
       "After two or three steps, use a short gather, plant both feet and jump upward with slight forward travel."
     ],
     "source": {
@@ -17558,7 +17559,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "pushup",
+    "ez": "kneepush",
     "pos": [
       "Opři kolena o podložku a dlaně pod ramena, trup drž dlouhý.",
       "Support knees on a mat and hands under shoulders, keeping the trunk long."
@@ -17572,8 +17573,8 @@ export const EXPANSION_EXERCISES = [
       "Absorb through elbows and shoulders; avoid locked-arm landings or a sagging back."
     ],
     "pro": [
-      "Lehčí: boční přesun rukou krokem. Těžší: drobný plynulý odraz při delší páce od kolen.",
-      "Easier: step the hands sideways. Harder: a small smooth rebound with a longer knee-to-hand lever."
+      "Lehčí: běžný klik na kolenou bez letu, potom přesun rukou do strany krokem. Těžší: dva malé navázané odrazy do strany se stejnou oporou kolen a kontrolovaným dopadem.",
+      "Easier: a regular knee push-up without flight, then step the hands sideways. Harder: link two small sideways rebounds with the same knee support and controlled landings."
     ],
     "J": {
       "ram": 2,
@@ -17699,14 +17700,14 @@ export const EXPANSION_EXERCISES = [
     "measurementType": "BODYWEIGHT_REPS",
     "tier": "specialist",
     "sideMode": "perSide",
-    "ez": "ex26_py_lateral_bound_hop",
+    "ez": "skater",
     "pos": [
-      "Stůj bokem na velmi nízké pevné bedně; trenér ověří prostor i jednostrannou stabilitu.",
-      "Stand sideways on a very low stable box; a coach checks space and single-leg control."
+      "S trenérem připrav velmi nízkou pevnou bednu a dvě dopadové značky před ní. Stůj u předního rohu bedny tak, aby první nízký seskok vedl šikmo vpřed a do strany a další přeskok zpět do strany už proběhl zcela před bednou.",
+      "With a coach, prepare a very low stable box and two landing marks in front of it. Start near the front corner so the first low drop travels diagonally forward and sideways, leaving the return lateral bound entirely in front of the box."
     ],
     "exe": [
-      "Sestup do strany na vzdálenější nohu a z kontrolovaného kontaktu se odraz opačně do prostoru, mimo bednu, na druhou nohu.",
-      "Step sideways onto the outer foot, then rebound in the opposite direction onto the other foot in clear space away from the box."
+      "Sestup šikmo vpřed a do strany na vnější nohu bez výskoku vzhůru. Z kontrolovaného kontaktu se odraz na druhou nohu opačným bočním směrem mezi připravenými značkami před bednou. Konečný dopad zastav.",
+      "Step diagonally forward and sideways onto the outer foot without jumping upward. From a controlled contact, bound onto the other foot in the opposite lateral direction between the prepared marks in front of the box. Hold the final landing."
     ],
     "wat": [
       "Dráhu veď šikmo před bednou, aby opačný odraz nemířil do její hrany.",
@@ -17728,8 +17729,8 @@ export const EXPANSION_EXERCISES = [
     "variantKey": "ex26_py_drop_lateral_bound",
     "hd": null,
     "foc": [
-      "Sestup do strany na vzdálenější nohu a z kontrolovaného kontaktu se odraz opačně do prostoru, mimo bednu, na druhou nohu.",
-      "Step sideways onto the outer foot, then rebound in the opposite direction onto the other foot in clear space away from the box."
+      "Sestup šikmo vpřed a do strany na vnější nohu bez výskoku vzhůru.",
+      "Step diagonally forward and sideways onto the outer foot without jumping upward."
     ],
     "source": {
       "author": "Strength & Conditioning Education",
@@ -17776,8 +17777,8 @@ export const EXPANSION_EXERCISES = [
       "Do not actively fling the arm or enlarge the circle into pain."
     ],
     "pro": [
-      "Lehčí: nepatrný pohyb. Těžší: o něco plynulejší kruh bez přidané zátěže.",
-      "Easier: use tiny movements. Harder: make a slightly smoother circle without adding weight."
+      "Lehčí: nepatrný pohyb s oporou. Dále: postupně zvětši pohodlný oblouk při stále uvolněné paži, bez přidané zátěže.",
+      "Easier: use tiny movements with support. Progress by gradually increasing the comfortable arc while the arm stays relaxed, without adding weight."
     ],
     "J": {
       "ram": 1
@@ -17840,8 +17841,8 @@ export const EXPANSION_EXERCISES = [
       "Avoid shrugging or moving into sharp pressure at the front of the shoulder."
     ],
     "pro": [
-      "Lehčí: kratší posun. Těžší: menší pomoc trupu a aktivnější návrat paží.",
-      "Easier: shorten the slide. Harder: rely less on trunk movement and return the arms more actively."
+      "Lehčí: kratší posun a větší opora paží o stůl. Těžší: větší pohodlný rozsah bez prohnutí zad; později aktivní vzpažení bez opory.",
+      "Easier: use a shorter slide with more arm support from the table. Harder: increase comfortable range without arching the back; later progress to active arm elevation without support."
     ],
     "J": {
       "ram": 1
@@ -18168,8 +18169,8 @@ export const EXPANSION_EXERCISES = [
       "Do not lift the chest or force a lumbar arch."
     ],
     "pro": [
-      "Lehčí: širší úchop nebo jedna paže bez tyče. Těžší: užší pohodlný úchop a krátká výdrž.",
-      "Easier: widen the grip or use one arm without a dowel. Harder: use a narrower comfortable grip and a brief hold."
+      "Lehčí: širší pohodlný úchop nebo nejprve posun tyče po podložce bez zvedání. Těžší: užší pohodlný úchop a krátká výdrž.",
+      "Easier: use a wider comfortable grip or first slide the dowel along the mat without lifting. Harder: use a narrower comfortable grip and a brief hold."
     ],
     "J": {
       "ram": 1
@@ -18369,8 +18370,8 @@ export const EXPANSION_EXERCISES = [
       "Lift through the shoulders rather than arching the back. Maximum height is unnecessary."
     ],
     "pro": [
-      "Lehčí: jen posun po zdi. Těžší: delší krátká výdrž mimo zeď při klidných bedrech.",
-      "Easier: slide only. Harder: hold slightly longer away from the wall while keeping the lower back steady."
+      "Lehčí: jen posun po zdi. Těžší: výdrž mimo zeď prodluž o několik sekund při klidných bedrech a plynulém dechu.",
+      "Easier: slide only. Harder: extend the hold away from the wall by a few seconds while keeping the lower back steady and breathing freely."
     ],
     "J": {
       "ram": 1
@@ -18490,8 +18491,8 @@ export const EXPANSION_EXERCISES = [
     "sideMode": "perSide",
     "ez": "openbook",
     "pos": [
-      "Lehni na bok, horní koleno polož pokrčené před tělo na podložku. Spodní paži natáhni před sebe a podepři hlavu.",
-      "Lie on your side with the bent top knee supported in front. Extend the lower arm forward and support the head."
+      "Lehni na bok, horní koleno polož pokrčené před tělo na podložku. Hlavu pohodlně podepři spodní paží nebo polštářkem.",
+      "Lie on your side with the bent top knee supported in front. Support the head comfortably with the lower arm or a small pillow."
     ],
     "exe": [
       "Horní rukou opiš široký pomalý kruh nad hlavou a za tělem. Hrudník se smí otáčet, koleno zůstává podepřené.",
@@ -18618,7 +18619,7 @@ export const EXPANSION_EXERCISES = [
     "family": "spinal_control",
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
-    "ez": "ex26_mob_seated_rotation",
+    "ez": null,
     "pos": [
       "Sedni na stabilní židli s opěradlem pod lopatkami. Dlaně polož za hlavu nebo překřiž na hrudníku.",
       "Sit on a stable chair with the backrest below the shoulder blades. Place hands behind the head or across the chest."
@@ -19347,7 +19348,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "alternating",
-    "ez": "hip9090",
+    "ez": null,
     "pos": [
       "Sedni na nízkou pevnou stoličku do pohodlného podřepu. Chodidla dej širší než boky.",
       "Sit on a low firm stool in a comfortable squat position with feet wider than hips."
@@ -20143,8 +20144,8 @@ export const EXPANSION_EXERCISES = [
       "Keeping the heel in place, draw small circles with the forefoot above the floor, then reverse direction."
     ],
     "wat": [
-      "Nezatěžuj nohu plnou vahou a nekroutí se přitom koleno.",
-      "Avoid loading the moving leg fully or twisting the knee."
+      "Nezatěžuj pohybující se nohu plnou vahou a neotáčej kolenem místo kotníku.",
+      "Avoid loading the moving leg fully or turning the knee instead of moving at the ankle."
     ],
     "pro": [
       "Lehčí: cvič vsedě. Těžší: plynulejší kruh s menší oporou ruky.",
@@ -20341,8 +20342,8 @@ export const EXPANSION_EXERCISES = [
       "There is no need to sit onto the heels. Do not continue through sharp big-toe pressure."
     ],
     "pro": [
-      "Lehčí: téměř všechnu váhu drž v rukou. Těžší: trochu větší posun při stále podepřeném trupu.",
-      "Easier: keep most weight through the hands. Harder: shift slightly farther while retaining upper-body support."
+      "Lehčí: ponech pánev nad koleny a jen mírně přenes váhu vzad s oporou dlaní. Těžší: trochu větší posun při stále podepřeném trupu.",
+      "Easier: keep the hips above the knees and make only a small backward shift with palm support. Harder: shift slightly farther while retaining upper-body support."
     ],
     "J": {
       "kot": 1
@@ -21039,7 +21040,7 @@ export const EXPANSION_EXERCISES = [
     "family": "core_antiextension",
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
-    "ez": "vi_hss3m",
+    "ez": null,
     "pos": [
       "Lehni na záda, kyčle a kolena pokrč přibližně do pravého úhlu. Mezi dlaněmi drž lehkou gumu, lokty opři vedle trupu.",
       "Lie supine with hips and knees near right angles. Hold a light band between hands, elbows supported beside the trunk."
@@ -21109,7 +21110,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "alternating",
-    "ez": "vi_hss3m",
+    "ez": null,
     "pos": [
       "Lehni na břicho, lokty polož šířeji pod ramena, předloktí opři a pánev ponech na podložce.",
       "Lie prone with elbows set wide beneath the shoulders, forearms supported and pelvis resting on the mat."
@@ -21177,7 +21178,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "ex26_dns_prone_turn",
+    "ez": null,
     "pos": [
       "Z nízké opory o obě předloktí na břiše rozlož váhu mezi lokty a pánev.",
       "From low prone forearm support, distribute weight between elbows and pelvis."
@@ -21245,7 +21246,7 @@ export const EXPANSION_EXERCISES = [
     "family": "core_antiextension",
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
-    "ez": "ex26_dns_prone_turn",
+    "ez": null,
     "pos": [
       "Vleže na břiše se opři o předloktí. Lehkou smyčku gumy umísti kolem zápěstí.",
       "Lie prone supported on forearms, with a light resistance loop around the wrists."
@@ -21314,7 +21315,7 @@ export const EXPANSION_EXERCISES = [
     "family": "core_antiextension",
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
-    "ez": "ex26_dns_prone_turn",
+    "ez": null,
     "pos": [
       "Klekni si, sedni částečně k patám a předloktí polož před sebe. Kolena roztáhni jen pohodlně.",
       "Kneel, sit partly toward the heels and place forearms in front, knees comfortably apart."
@@ -21384,7 +21385,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "vi_hss3m",
+    "ez": null,
     "pos": [
       "Lehni na bok, pokrč spodní nohu a spodní paži polož před hrudník s pokrčeným loktem. Hlavu podle potřeby podlož.",
       "Lie on your side, bend the lower leg and place the lower arm forward with elbow bent. Support the head if needed."
@@ -21522,7 +21523,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "ex26_dns_side_reach",
+    "ez": null,
     "pos": [
       "Lehni na bok s pokrčenou spodní nohou a spodním předloktím před tělem.",
       "Lie on your side with the lower leg bent and lower forearm in front."
@@ -21866,7 +21867,7 @@ export const EXPANSION_EXERCISES = [
     "family": "crawl",
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
-    "ez": "vi_hss3m",
+    "ez": null,
     "pos": [
       "Dlaně polož pod ramena, kolena pod kyčle. Nárty i holeně nech na podložce.",
       "Place palms under shoulders and knees under hips, with shins and tops of feet on the mat."
@@ -21936,7 +21937,7 @@ export const EXPANSION_EXERCISES = [
     "family": "breathing",
     "load": "none",
     "measurementType": "DURATION",
-    "ez": "ex26_dns_quad_forward",
+    "ez": null,
     "pos": [
       "V opoře na dlaních a kolenou volně obtoč měkkou gumu kolem pasu. Guma se jen dotýká trupu.",
       "On hands and knees, loosely wrap a soft band around the waist so it merely contacts the trunk."
@@ -22141,7 +22142,7 @@ export const EXPANSION_EXERCISES = [
     "family": "breathing",
     "load": "none",
     "measurementType": "DURATION",
-    "ez": "vi_hss3m",
+    "ez": null,
     "pos": [
       "Klekni si na měkkou podložku, kolena pod boky. Narovnej kyčle, dlaně přilož na dolní žebra.",
       "Kneel on padding with knees under hips. Extend the hips and place hands on the lower ribs."
@@ -22278,10 +22279,10 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "ex26_dns_highkneel",
+    "ez": null,
     "pos": [
-      "Z polokleku dej přední chodidlo celé na zem. Obě nohy jsou od sebe na šířku boků.",
-      "From half kneeling, plant the front foot fully. Keep the two legs hip-width apart."
+      "Začni v polokleku s předním chodidlem celou plochou na zemi a zadním kolenem pod kyčlí. Podle potřeby se lehce přidrž pevné opory vedle sebe.",
+      "Begin in half kneeling with the front foot flat and the rear knee beneath the hip. If needed, lightly hold a stable support beside you."
     ],
     "exe": [
       "Přenes váhu nad přední chodidlo a plynule vstaň. Zadní nohu přisuň a stejnou cestou se vrať.",
@@ -22348,7 +22349,7 @@ export const EXPANSION_EXERCISES = [
     "load": "ext",
     "measurementType": "WEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "ex26_dns_bear_transition",
+    "ez": "ex26_bear_hold",
     "pos": [
       "Z nízkého medvěda rozšiř chodidla pro stabilní oporu. Jedna dlaň je na zemi, druhá drží lehkou jednoručku.",
       "From a low bear position, widen the feet for stability. One palm is on the floor and the other holds a light dumbbell."
@@ -22416,7 +22417,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "alternating",
-    "ez": "ex26_pelvic_tilt",
+    "ez": null,
     "pos": [
       "Lehni na záda, chodidla dej na zem a dlaně na přední část pánve.",
       "Lie supine with feet planted and hands on the front of the pelvis."
@@ -22484,7 +22485,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "DURATION",
     "sideMode": "perSide",
-    "ez": "vi_hss3m",
+    "ez": null,
     "pos": [
       "Lehni na záda, jednu nohu zvedni pokrčenou nad kyčel a opačnou dlaň polož na stehno těsně nad kolenem. Druhé chodidlo zůstává na zemi.",
       "Lie supine, lift one bent leg over the hip and place the opposite palm on the thigh just above its knee. Keep the other foot grounded."
@@ -22552,7 +22553,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "alternating",
-    "ez": "deadbug",
+    "ez": null,
     "pos": [
       "Lehni hlavou blízko zdi. Dlaně opři o zeď za hlavou, nohy zvedni do pravých úhlů.",
       "Lie with the head near a wall. Press palms against the wall behind the head and raise the legs into right angles."
@@ -22688,7 +22689,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "alternating",
-    "ez": "deadbug",
+    "ez": null,
     "pos": [
       "Vleže na zádech drž oběma rukama gumu bezpečně ukotvenou nízko za hlavou. Paže směřují ke stropu a nohy jsou pokrčené nad kyčlemi.",
       "Lie supine holding a band securely anchored low behind the head. Arms point upward and bent legs are above the hips."
@@ -22756,7 +22757,7 @@ export const EXPANSION_EXERCISES = [
     "load": "ext",
     "measurementType": "WEIGHT_REPS",
     "sideMode": "alternating",
-    "ez": "deadbug",
+    "ez": null,
     "pos": [
       "Lehni na záda a lehkou jednoručku drž oběma rukama bezpečně nad hrudníkem. Nohy zvedni pokrčené.",
       "Lie supine and securely hold a light dumbbell with both hands above the chest. Lift the bent legs."
@@ -22824,7 +22825,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "alternating",
-    "ez": "vi_hss3m",
+    "ez": null,
     "pos": [
       "Sedni na pevnou lavičku, obě chodidla na zemi a trup vzpřímený. Dlaně polož na boky.",
       "Sit upright on a firm bench with both feet grounded and hands on the waist."
@@ -22892,7 +22893,7 @@ export const EXPANSION_EXERCISES = [
     "load": "none",
     "measurementType": "BODYWEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "pallof",
+    "ez": null,
     "pos": [
       "Klekni bokem k bezpečně ukotvené gumě ve výšce hrudníku. Kolena nech na šířku boků, ruce před hrudníkem.",
       "Kneel sideways to a secure chest-height band anchor. Keep knees hip-width apart and hands at the chest."
@@ -23313,8 +23314,8 @@ export const EXPANSION_EXERCISES = [
       "Avoid lumbar sagging or lifting the pelvis high. The range is deliberately small."
     ],
     "pro": [
-      "Lehčí: přenosy s koleny na zemi. Těžší: kratší opora chodidel blíže k sobě.",
-      "Easier: shift with knees grounded. Harder: bring the feet slightly closer together."
+      "Lehčí: přenosy s koleny na zemi. Těžší: chodidla o něco blíže k sobě při stejně malém rozsahu pohybu.",
+      "Easier: shift with knees grounded. Harder: bring the feet slightly closer together while retaining the same small range."
     ],
     "J": {
       "zap": 2,
@@ -23574,7 +23575,7 @@ export const EXPANSION_EXERCISES = [
     "load": "ext",
     "measurementType": "WEIGHT_DURATION",
     "sideMode": "perSide",
-    "ez": "ex26_dns_highkneel",
+    "ez": null,
     "pos": [
       "Z polokleku zvedni oběma rukama velmi lehký kettlebell do jedné ruky dnem vzhůru. Loket drž pod zápěstím a před hrudníkem.",
       "From half kneeling, use both hands to place a very light kettlebell upside down in one hand. Keep the elbow beneath the wrist in front of the chest."
@@ -23642,7 +23643,7 @@ export const EXPANSION_EXERCISES = [
     "load": "ext",
     "measurementType": "WEIGHT_REPS",
     "sideMode": "perSide",
-    "ez": "frontrackcarry",
+    "ez": null,
     "pos": [
       "Stůj vzpřímeně a kettlebell drž u jednoho ramene v pohodlné rackové poloze.",
       "Stand tall holding a kettlebell at one shoulder in a comfortable front-rack position."
@@ -23710,7 +23711,7 @@ export const EXPANSION_EXERCISES = [
     "load": "ext",
     "measurementType": "WEIGHT_DURATION",
     "sideMode": "perSide",
-    "ez": "suitcase",
+    "ez": null,
     "pos": [
       "Drž lehkou činku podél pravého boku. Přenes váhu na levou nohu a pravé chodidlo odlehči.",
       "Hold a light dumbbell beside the right hip. Shift weight onto the left leg and unload the right foot."
@@ -23891,7 +23892,7 @@ export const EXPANSION_EXERCISES = [
     "S": 2,
     "C": 2,
     "family": "push_horizontal",
-    "ez": "an_svend",
+    "ez": null,
     "pos": [
       "Stůj s chodidly pod boky a drž lehký kotouč pevně za protilehlé okraje před hrudníkem.",
       "Stand with feet under hips and securely grip opposite edges of a light plate in front of the chest."
@@ -24126,7 +24127,7 @@ export const EXPANSION_EXERCISES = [
   }
 ];
 
-export const EXPANSION_META = {
+export const EXPANSION_META ={
   "ex26_mb_chestpass": {
     "t": "extended",
     "s": "active",
@@ -26740,7 +26741,7 @@ export const EXPANSION_META = {
     "g": "explicit",
     "r": "power",
     "b": "strength",
-    "tr": 2,
+    "tr": 3,
     "f": "jump_horizontal",
     "src": "tanmay",
     "ev": "medium"
@@ -28267,9 +28268,10 @@ export const EXPANSION_META = {
 
 /** Add only missing cards once. Preserve user rows, programmes and logs by reference. */
 export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES) {
-  if (!collection || collection.exerciseExpansion20261011) return collection;
+  if (!collection) return collection;
+  if (collection.exerciseExpansion20261011) return applyExerciseCorrections(collection);
   const previous = collection.tEx || [];
   const have = new Set(previous.map(x => x.id));
   const additions = seedRows.filter(x => x.id.startsWith('ex26_') && !have.has(x.id));
-  return { ...collection, exerciseExpansion20261011: true, tEx: additions.length ? [...previous, ...additions] : previous };
+  return applyExerciseCorrections({ ...collection, exerciseExpansion20261011: true, tEx: additions.length ? [...previous, ...additions] : previous });
 }
