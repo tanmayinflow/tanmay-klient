@@ -118,6 +118,7 @@ import { SHARED_CORE_VERSION } from "./shared/version.js";
 import { SYNC_OK, SYNC_SIT, SYNC_PRIHLASENI, syncDruh, syncHlaska, syncLzeZkusitZnovu } from "./shared/product/sync.js";
 import { bootstrapSyncDecision } from "./shared/product/bootstrapSync.js";
 import { createClientSession } from "./clientSession.js";
+import { clientDataAccess, clientSyncStatus, buildClientBackup, readPracticeRecovery, changeClientPractice } from "./clientData.js";
 import { createClientStartupNavigation, clientHabitDefinitions, prepareClientUnusedHabitAdoption } from "./clientPreferences.js";
 import { scopeLegacyClientPins } from "./clientPinned.js";
 import {createFinanceExperience} from "./shared/ui/financeExperience.jsx";
@@ -13623,9 +13624,17 @@ function PageTrenink() {
             {sorted.slice(0, exShown).map((ex) => <TExCard key={ex.id} ex={ex} onOpen={() => setOpenEx(ex.id)} />)}
           </div>
           {sorted.length > exShown ? (
-            <button onClick={() => setExShown(exShown + EX_PAGE)} style={{ ...tvQuiet(t), marginTop: 14 }}>
-              {L("Načíst další", "Load more")}
-            </button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 16 }}>
+              <button onClick={() => setExShown((n) => n + EX_PAGE)} style={{ ...tvQuiet(t), minHeight: 44 }}>
+                {L("Načíst další", "Load more")} · {Math.min(EX_PAGE, sorted.length - exShown)}
+              </button>
+              <button onClick={() => setExShown(sorted.length)} style={{ ...tvQuiet(t), minHeight: 44, borderColor: "transparent" }}>
+                {L("Načíst vše", "Load all")} · {sorted.length - exShown}
+              </button>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginLeft: "auto" }}>
+                {exShown} {L("z", "of")} {sorted.length}
+              </span>
+            </div>
           ) : null}
         </>
       )}
@@ -15447,7 +15456,7 @@ export default function App() {
     const cur = _serializeDoc(c, e);
     let baseVersion = _ver.current;
     if (!(opts && opts.force)) {
-      if (cur === _lastSynced.current) return true; // nic nového
+      if (!opts?.retry && cur === _lastSynced.current) return true; // nic nového
       const m = await _readVer();
       if (!m) return false;
       if (m && m.ver > baseVersion) {
@@ -16811,6 +16820,67 @@ export default function App() {
     if (page!=="__navigation" && !isEnabled(owner)) setPage("praxe");
   }, [enabledModules, page]);
 
+  const [manualSyncBusy, setManualSyncBusy] = useState(false);
+  const manualSyncLock = React.useRef(false);
+  const [dataMessage, setDataMessage] = useState("");
+  const settingsDataState = React.useRef(null);
+  const dataPending = syncPending || _serializeDoc(coll, edits) !== _lastSynced.current;
+  const dataAccess = clientDataAccess({ owner: ownerId, storedOwner: ownerLoad(), current: clientAccount.isCurrent(ownerId), hydrated: stateHydrated,
+    member, conflict, pending: dataPending, error: syncErr || saveErr, status: accountStatus });
+  settingsDataState.current = { ...dataAccess, owner: ownerId, conflict };
+  const syncStatus = clientSyncStatus({ status: accountStatus, hydrated: stateHydrated, conflict, pending: dataPending, error: syncErr, busy: manualSyncBusy });
+  const syncStatusText = {
+    changed: L("Účet se změnil. Načti aplikaci znovu.", "The account changed. Reload the app."),
+    conflict: L("Jiné zařízení má další změny. Nejdřív vyber, kterou verzi zachovat.", "Another device has changes. First choose which version to keep."),
+    "sign-in": L("Přihlas se znovu. Místní změny zůstávají v zařízení.", "Sign in again. Local changes remain on this device."),
+    offline: L("Jsi offline. Změny čekají v tomto zařízení.", "You are offline. Changes are waiting on this device."),
+    error: syncErr ? syncHlaska(syncErr.druh, L, syncErr) : "",
+    sending: L("Ověřuji a odesílám změny…", "Checking and sending changes…"),
+    loading: L("Načítám data účtu…", "Loading account data…"),
+    pending: L("Změny čekají na odeslání.", "Changes are waiting to send."),
+    saved: L("Změny jsou uložené i na serveru.", "Changes are saved on the server too."),
+  }[syncStatus];
+  const manualSync = async () => {
+    if (manualSyncLock.current || settingsDataState.current?.conflict || !clientAccount.isCurrent(ownerId)) return;
+    manualSyncLock.current = true; setManualSyncBusy(true);
+    try {
+      if (!_syncReady.current) { if (_syncOnceRef.current) await _syncOnceRef.current(); }
+      else await _pushRef.current({ retry: true });
+    } finally { manualSyncLock.current = false; setManualSyncBusy(false); }
+  };
+  const downloadClientBackup = () => {
+    if (!settingsDataState.current?.canExport || !clientAccount.isCurrent(ownerId) || ownerLoad() !== ownerId) return;
+    try {
+      const files = buildClientBackup(_collRef.current, _editsRef.current, { date: todayISO(), lang, safeName: tmSafeName, bodyOut: tmBodyOut, recovery: readPracticeRecovery(window.localStorage, ownerId) });
+      if (!tmDlBlob(tmZip(files), "tanmay-klient-zaloha-" + todayISO() + ".zip")) throw new Error("download");
+      setDataMessage(L("Záloha je připravená ke stažení.", "Your backup is ready to download."));
+    } catch { setDataMessage(L("Zálohu se nepodařilo připravit. Tvoje data se nezměnila.", "The backup could not be prepared. Your data has not changed.")); }
+  };
+  let practiceRecovery = [];
+  if (dataAccess.canExport) { try { practiceRecovery = readPracticeRecovery(window.localStorage, ownerId); } catch { /* a malformed archive is never overwritten */ } }
+  const hasPracticeRecovery = practiceRecovery.some(item => !item.restoredAt);
+  const applyPracticeReset = (restore = false) => {
+    if (!settingsDataState.current?.canReset || settingsDataState.current.owner !== ownerId) return;
+    try {
+      const next = changeClientPractice({ storage: window.localStorage, owner: ownerId, isCurrent: clientAccount.isCurrent,
+        coll: _collRef.current, edits: _editsRef.current, date: todayISO(), restore });
+      _collRef.current = next.coll; _editsRef.current = next.edits;
+      _dirty.current = true; setSyncPending(true);
+      setColl(next.coll); setEdits(next.edits);
+      setDataMessage(restore ? L("Historie praxe je obnovená. Novější zápisy zůstaly zachované.", "Practice history is restored. Newer entries have been kept.")
+        : L("Praxe začíná od dneška. Původní historii můžeš obnovit níže.", "Practice starts from today. You can restore the previous history below."));
+    } catch {
+      setDataMessage(L("Změnu se nepodařilo bezpečně uložit. Nejdřív ověř synchronizaci a volné místo v zařízení.", "The change could not be saved safely. Check synchronization and free space on this device first."));
+    }
+  };
+  const confirmPracticeReset = (restore = false) => {
+    if (!settingsDataState.current?.canReset) return;
+    ask(restore
+      ? L("Obnovit historii před posledním vynulováním? Dny zapsané od té doby mají přednost. Deník, poznámky, trénink ani cyklus se nezmění.", "Restore the history from before the last reset? Days recorded since then take precedence. Journal, notes, training and cycle data will not change.")
+      : L("Vynulovat praxi? Evidence návyků, rozvrh a ohlédnutí začnou od dneška. Původní historie se nejdřív odloží v tomto zařízení pro obnovu. Deník, poznámky, trénink ani cyklus se nezmění.", "Reset practice? Habit records, schedules and reviews will start from today. Previous history will first be saved on this device for recovery. Journal, notes, training and cycle data will not change."),
+      () => applyPracticeReset(restore), { yes: restore ? L("Obnovit historii", "Restore history") : L("Vynulovat praxi", "Reset practice") });
+  };
+
   const contentAvailable = isEnabled("socsite") && !roomPlacement(navConfig,"socsite",navDefaults).hidden;
   const loadContentLibrary = async () => {
     const owner=clientAccount.getSnapshot().owner;
@@ -17394,6 +17464,40 @@ export default function App() {
               <PersonalSettingsSections t={t} lang={lang} section="profile" togetherEnabled={isEnabled("spolu")}/>
             </SetSection>
             <CalSettings settingsId="calendar" open={settingsSection==="calendar"} onOpen={setSettingsSection} togetherEnabled={isEnabled("spolu")}/>
+            <SetSection title={L("Synchronizace", "Sync")} id="sync" open={settingsSection==="sync"} onOpen={setSettingsSection}>
+              <p role="status" aria-live="polite" style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, margin: "2px 8px 12px", lineHeight: 1.6 }}>{syncStatusText}</p>
+              {docBytes > 0 && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: docBytes > docLimit * 0.85 ? t.danger : t.textSec, margin: "0 8px 12px", lineHeight: 1.5 }}>
+                {L("Dokument ", "Document ")}{(docBytes / 1000000).toFixed(2)} / {(docLimit / 1000000).toFixed(2)} MB
+                {docBytes > docLimit * 0.85 ? L(". Blíží se limit úložiště.", ". The storage limit is close.") : ""}
+              </p>}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 8px 8px" }}>
+                {(accountStatus==="sign-in" || accountStatus==="changed" || syncErr?.druh===SYNC_PRIHLASENI)
+                  ? <button onClick={()=>window.location.reload()} style={{ ...tmButton(t), minHeight: 44 }}>{L("Načíst znovu a přihlásit", "Reload and sign in")}</button>
+                  : <button disabled={manualSyncBusy || !!conflict || !ownerId || member!==true || (!!syncErr && !syncLzeZkusitZnovu(syncErr.druh))}
+                    onClick={manualSync} style={{ ...tmButton(t), minHeight: 44, opacity: manualSyncBusy || conflict ? 0.55 : 1 }}>
+                    {manualSyncBusy ? L("Odesílám…", "Sending…") : L("Odeslat teď", "Send now")}
+                  </button>}
+                {conflict && <button onClick={()=>setSetsOpen(false)} style={{ ...tmButton(t), minHeight: 44 }}>{L("Vybrat verzi", "Choose a version")}</button>}
+                <button disabled={!dataAccess.canExport} onClick={downloadClientBackup} style={{ ...tmButton(t), minHeight: 44, opacity: dataAccess.canExport ? 1 : 0.55 }}>{L("Stáhnout zálohu", "Download backup")}</button>
+              </div>
+            </SetSection>
+            <SetSection title={L("Data", "Data")} id="data" open={settingsSection==="data"} onOpen={setSettingsSection}>
+              <button className="tm-nav-item" disabled={!dataAccess.canExport} onClick={downloadClientBackup}
+                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", padding: "12px 8px", minHeight: 48, background: "transparent", border: "none", borderRadius: 10, color: t.text, cursor: dataAccess.canExport ? "pointer" : "default", opacity: dataAccess.canExport ? 1 : 0.55, fontFamily: FONT_BODY, fontSize: 13 }}>
+                <FamilyIcon id="download" size={18}/>
+                <span style={{ flex: 1, minWidth: 0 }}>{L("Stáhnout zálohu", "Download backup")}<span style={{ display: "block", color: t.textSec, fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>{L("ZIP s čitelnými texty a daty tohoto dokumentu, včetně neodeslaných změn.", "A ZIP with readable text and this document’s data, including unsent changes.")}</span></span>
+              </button>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textSec, margin: "0 8px 16px", lineHeight: 1.55 }}>{L("Přílohy, samostatná data Spolu, profil účtu a rezervace v záloze nejsou.", "Attachments, separate Together data, account profile and bookings are not included.")}</p>
+              <button className="tm-nav-item" disabled={!dataAccess.canReset || manualSyncBusy} onClick={()=>confirmPracticeReset()}
+                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", padding: "12px 8px", minHeight: 48, background: "transparent", border: "none", borderRadius: 10, color: t.text, cursor: dataAccess.canReset ? "pointer" : "default", opacity: dataAccess.canReset ? 1 : 0.55, fontFamily: FONT_BODY, fontSize: 13 }}>
+                <FamilyIcon id="undo" size={18}/><span>{L("Vynulovat praxi", "Reset practice")}</span>
+              </button>
+              {hasPracticeRecovery && <button disabled={!dataAccess.canReset || manualSyncBusy} onClick={()=>confirmPracticeReset(true)} style={{ ...tmButton(t), minHeight: 44, margin: "4px 8px 8px", opacity: dataAccess.canReset ? 1 : 0.55 }}>{L("Obnovit historii praxe", "Restore practice history")}</button>}
+              <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textSec, margin: "4px 8px 12px", lineHeight: 1.55 }}>{!dataAccess.canReset
+                ? L("Vynulování a obnova jsou dostupné po úspěšné synchronizaci tohoto účtu.", "Reset and recovery are available after this account has synchronized successfully.")
+                : L("Historie před vynulováním zůstane pro obnovu jen v tomto zařízení. Je také součástí stažené zálohy.", "History saved before a reset stays on this device for recovery. It is also included in the downloaded backup.")}</p>
+            </SetSection>
+            {dataMessage && (settingsSection==="data" || settingsSection==="sync") && <p role="status" style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, margin: "8px", lineHeight: 1.55 }}>{dataMessage}</p>}
             {/* VERZE A SOUKROMÍ · co v telefonu opravdu běží a kam se data
                 ukládají. Bez tohohle se ladí naslepo a slib o soukromí visí
                 jen na textu průvodce. */}
@@ -17411,24 +17515,6 @@ export default function App() {
                 <span>{L("Průvodce", "Guide")}</span>
                 <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: t.textMuted }}>v{TM_GUIDE_VERZE}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, padding: "3px 0" }}>
-                <span>{L("Synchronizace", "Sync")}</span>
-                <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: syncErr ? t.danger : t.textMuted }}>
-                  {syncErr ? L("selhala", "failed") : syncPending ? L("čeká na odeslání", "waiting to send") : L("v pořádku", "up to date")}
-                </span>
-              </div>
-              {syncErr && (
-                <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textSec, lineHeight: 1.55, padding: "2px 0 4px" }}>{syncHlaska(syncErr.druh, L, syncErr)}</div>
-              )}
-              {syncErr && syncErr.druh === SYNC_PRIHLASENI && (
-                <button onClick={() => { try { window.location.reload(); } catch (e) {} }} style={{ background: t.accent, color: t.onAccent || t.bg, border: "none", borderRadius: 8, padding: "8px 14px", minHeight: 38, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, margin: "2px 0 6px" }}>{L("Načíst znovu a přihlásit", "Reload and sign in")}</button>
-              )}
-              {docBytes > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, padding: "3px 0" }}>
-                  <span>{L("Velikost dokumentu", "Document size")}</span>
-                  <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: docBytes > docLimit * 0.85 ? t.danger : t.textMuted }}>{(Math.round(docBytes / 10000) / 100).toFixed(2)}{" / "}{(docLimit / 1000000).toFixed(2)} MB</span>
-                </div>
-              )}
               <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginTop: 10 }}>
                 {L("Tvoje data leží ve tvém vlastním prostoru. Kryštof vidí jen to, co si zapneš ve Sdílení — Deník, Zápisník ani Ohlédnutí mezi to nepatří a nikdy patřit nebudou.",
                    "Your data lives in your own space. Kryštof sees only what you switch on in Sharing — Journal, Notebook and the evening review are not part of it and never will be.")}

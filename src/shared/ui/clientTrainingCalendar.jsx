@@ -62,7 +62,7 @@ export function ClientTrainingCalendar({t,lang,plans,templates,schedule,sessions
         <div style={{flex:1,minWidth:0,fontFamily:FONT_BODY,color:t.heading}}>{L(row.record?.cz||row.template?.cz,row.record?.en||row.template?.en)||L("Trénink","Workout")}<span style={{display:"block",fontSize:12,color:t.textMuted,marginTop:4}}>{row.record?.state==="done"?L("Odtrénováno","Completed"):row.record?L("Rozcvičeno, můžeš pokračovat","In progress, ready to resume"):row.template?L(`${row.template.blocks?.length||0} cviků`,`${row.template.blocks?.length||0} exercises`):L("Zadání není dostupné. Obnov plán.","Prescription unavailable. Refresh your plan.")}</span></div>
         <button disabled={!row.record&&!row.template} style={{...quiet,opacity:!row.record&&!row.template ? .45:1}} onClick={()=>row.record?onRun(row.record.id):onStart(row)}>{row.record?.state==="done"?L("Otevřít","Open"):row.record?L("Pokračovat","Resume"):L("Začít","Begin")}</button>
       </div>):<div style={{textAlign:"center",padding:"12px 0"}}><EmptyRoomArt room="trenink" size={136} color={t.sand}/><p style={{fontFamily:FONT_BODY,color:t.textSec,fontSize:14,lineHeight:1.6}}>{L("Na tento den nemáš naplánovaný trénink. Dny jednotlivých lekcí si vybereš v Mém plánu.","No training is scheduled for this day. Choose dates for your sessions in My plan.")}</p></div>}
-      <button onClick={onPlan} style={{...quiet,padding:0}}>{L("Můj plán","My plan")} <TmIcon id="forward" size={12}/></button>
+      <button onClick={onPlan} style={{...quiet,padding:0,display:"inline-flex",alignItems:"center",gap:6}}>{L("Můj plán","My plan")}<TmIcon id="forward" size={12}/></button>
     </div>
   </section>;
 }

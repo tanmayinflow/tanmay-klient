@@ -10,7 +10,7 @@ export function TogetherCycleQuickEntry({doc, date, today, model, lang, busy, on
   const showEstimates=draftShowEstimates??draft?.showEstimates??false;
   const existing=model.recordedPeriod||(model.continuation?doc.periods.filter(p=>p.start<=date).at(-1):null);
   const format=value=>new Date(`${value}T12:00:00`).toLocaleDateString(lang==="en"?"en-GB":"cs-CZ",{day:"numeric",month:"long"});
-  if(date>today)return <p className="hint">{L("Budoucí dny jsou jen orientační. Skutečný začátek zapíšeš, až menstruace přijde.","Future days are estimates only. Record the actual start when your period arrives.")}</p>;
+  if(date>today)return null;
   if(existing)return <div className="tg-cycle-quick-entry"><p>{L("Začátek menstruace","Period started")}: {format(existing.start)}{existing.end?` · ${L("konec","ended")} ${format(existing.end)}`:""}</p><button type="button" disabled={busy} onClick={()=>onEdit(existing)}>{L("Upravit menstruaci","Edit period")}</button>{doc.mode!=="estimate"&&<p className="hint">{L("Odhady v kalendáři máš vypnuté.","Calendar estimates are turned off.")} <button type="button" className="tg-text-button" disabled={busy} onClick={onSettings}>{L("Nastavení cyklu","Cycle settings")}</button></p>}</div>;
   return <div className="tg-cycle-quick-entry">
     <div className="tg-cycle-duration"><label>{L("Odhad délky menstruace","Estimated period duration")}<span><input type="number" aria-label={L("Odhad délky menstruace","Estimated period duration")} min="1" max="14" step="1" inputMode="numeric" value={length} onChange={e=>onLengthChange(e.target.value===""?"":Number(e.target.value))} disabled={busy}/>{L("dní","days")}</span></label></div>

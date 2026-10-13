@@ -1,10 +1,10 @@
 import React,{useId,useRef,useState} from 'react';
 
 const choices=[
-  {id:'daily',name:['Otázka dne','Today’s question'],title:['Otázka pro dnešek','One question for today'],x:21,y:11.3},
-  {id:'questions',name:['Otázky naživo','Face to face'],title:['Otázky naživo','Questions face to face'],x:79,y:11.3},
-  {id:'moments',name:['Chvíle podle vás','A moment for you'],title:['Chvíle podle vás','A moment for you'],x:21,y:60.6},
-  {id:'weekly',name:['Týdenní ohlédnutí','Our weekly reflection'],title:['Týdenní ohlédnutí','Our weekly reflection'],x:79,y:60.6}
+  {id:'daily',name:['Otázka dne','Today’s question'],title:['Otázka pro dnešek','One question for today']},
+  {id:'questions',name:['Otázky naživo','Face to face'],title:['Otázky naživo','Questions face to face']},
+  {id:'moments',name:['Chvíle podle vás','A moment for you'],title:['Chvíle podle vás','A moment for you']},
+  {id:'weekly',name:['Týdenní ohlédnutí','Our weekly reflection'],title:['Týdenní ohlédnutí','Our weekly reflection']}
 ];
 
 function ConversationMark({kind}){
@@ -28,34 +28,33 @@ export function TogetherConversationMap({lang='cs',slots,children,initialPanel='
   const selected=available.some(choice=>choice.id===(panel??localPanel))?(panel??localPanel):available[0]?.id;
   const select=next=>{setLocalPanel(next);onPanelChange?.(next);};
   const move=(event,current)=>{
-    const index=available.findIndex(choice=>choice.id===current);
+    const index=choices.findIndex(choice=>choice.id===current);
     let next;
-    if(['ArrowRight','ArrowDown'].includes(event.key))next=available[(index+1)%available.length];
-    if(['ArrowLeft','ArrowUp'].includes(event.key))next=available[(index+available.length-1)%available.length];
+    if(['ArrowRight','ArrowLeft'].includes(event.key))next=choices[index%2===0?index+1:index-1];
+    if(['ArrowDown','ArrowUp'].includes(event.key))next=choices[(index+2)%choices.length];
     if(event.key==='Home')next=available[0];
     if(event.key==='End')next=available.at(-1);
-    if(next){event.preventDefault();select(next.id);buttons.current[next.id]?.focus();}
+    if(next){event.preventDefault();if(available.some(choice=>choice.id===next.id)){select(next.id);buttons.current[next.id]?.focus();}}
   };
   if(!available.length)return null;
   return <section className="tg-conversation-map" aria-label={L(['Náš prostor pro rozhovor','Our space for conversation'])}>
     <style>{conversationMapStyles}</style>
     <div className="tg-conversation-scene">
-      <svg className="tg-conversation-drawing" viewBox="0 0 360 292" aria-hidden="true" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-        <defs><mask id={artMask} x="104" y="74" width="152" height="198" maskUnits="userSpaceOnUse" style={{maskType:'alpha'}}><image href="/media/spolu/conversation-engraving.png" x="104" y="74" width="152" height="198" preserveAspectRatio="xMidYMid meet"/></mask></defs>
+      <svg className="tg-conversation-drawing" viewBox="0 0 240 280" aria-hidden="true" data-conversation-art={selected}>
+        <defs>{choices.map(choice=><mask key={choice.id} id={`${artMask}-${choice.id}`} x="0" y="0" width="240" height="280" maskUnits="userSpaceOnUse" style={{maskType:'alpha'}}><image href={`/media/spolu/conversation-${choice.id}-v1.webp`} x="0" y="0" width="240" height="280" preserveAspectRatio="xMidYMid meet"/></mask>)}</defs>
         <g className="tg-conversation-meeting" key={`meeting-${selected}`}>
-          <rect x="104" y="74" width="152" height="198" fill="currentColor" stroke="none" mask={`url(#${artMask})`}/>
+          <rect width="240" height="280" fill="currentColor" mask={`url(#${artMask}-${selected})`}/>
         </g>
       </svg>
-      <div className="tg-conversation-nodes" role="tablist" aria-label={L(['Vyberte, na co máte prostor','Choose what you have room for'])}>
-        {choices.map(choice=><button key={choice.id} type="button" role="tab" id={`${id}-${choice.id}-tab`} aria-controls={`${id}-${choice.id}-panel`} aria-selected={selected===choice.id} disabled={!available.some(item=>item.id===choice.id)} tabIndex={selected===choice.id?0:-1} ref={element=>{buttons.current[choice.id]=element;}} className="tg-conversation-node" style={{left:`${choice.x}%`,top:`${choice.y}%`}} onClick={()=>select(choice.id)} onKeyDown={event=>move(event,choice.id)}>
+      <div className="tg-conversation-nodes" role="group" aria-label={L(['Vyberte, na co máte prostor','Choose what you have room for'])}>
+        {choices.map(choice=><button key={choice.id} type="button" aria-label={L(choice.name)} title={L(choice.name)} aria-controls={`${id}-${choice.id}-panel`} aria-pressed={selected===choice.id} disabled={!available.some(item=>item.id===choice.id)} ref={element=>{buttons.current[choice.id]=element;}} className="tg-conversation-node" onClick={()=>select(choice.id)} onKeyDown={event=>move(event,choice.id)}>
           <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.15" strokeLinecap="round" strokeLinejoin="round"><ConversationMark kind={choice.id}/></svg>
-          <span>{L(choice.name)}</span>
         </button>)}
       </div>
     </div>
     <div className="tg-conversation-workspaces">
-      {choices.map(choice=><div key={choice.id} id={`${id}-${choice.id}-panel`} role="tabpanel" aria-labelledby={`${id}-${choice.id}-tab`} tabIndex={0} hidden={selected!==choice.id} className="tg-conversation-panel">
-        <div className="tg-conversation-panel-heading"><h3>{L(choice.title)}</h3><svg viewBox="0 0 40 20" aria-hidden="true"><path d="M1 10C8 2 13 2 20 10S32 18 39 10M1 10C8 18 13 18 20 10S32 2 39 10" fill="none" stroke="currentColor" strokeWidth=".8"/></svg></div>
+      {choices.map(choice=><div key={choice.id} id={`${id}-${choice.id}-panel`} role="region" aria-labelledby={`${id}-${choice.id}-heading`} tabIndex={0} hidden={selected!==choice.id} className="tg-conversation-panel">
+        <div className="tg-conversation-panel-heading"><h3 id={`${id}-${choice.id}-heading`}>{L(choice.title)}</h3><svg viewBox="0 0 40 20" aria-hidden="true"><path d="M1 10C8 2 13 2 20 10S32 18 39 10M1 10C8 18 13 18 20 10S32 2 39 10" fill="none" stroke="currentColor" strokeWidth=".8"/></svg></div>
         {content[choice.id]}
       </div>)}
     </div>
@@ -65,19 +64,15 @@ export function TogetherConversationMap({lang='cs',slots,children,initialPanel='
 
 const conversationMapStyles=`
 .tm-together .tg-conversation-map{margin:2px 0 8px;min-width:0}
-.tm-together .tg-conversation-scene{position:relative;width:100%;max-width:440px;aspect-ratio:360/292;margin:0 auto;color:var(--tg-accent)}
-.tm-together .tg-conversation-drawing{position:absolute;inset:0;display:block;width:100%;height:100%;overflow:visible;pointer-events:none;stroke-width:.85}
-.tg-conversation-terrain{opacity:.25;stroke-dasharray:1 4}.tg-conversation-threads{opacity:.1}
-.tg-conversation-meeting{opacity:.88;transform-origin:180px 222px;animation:tg-conversation-unfold 620ms cubic-bezier(.16,1,.3,1)}
-.tg-conversation-route{opacity:.42;stroke-width:.8;stroke-dasharray:1;stroke-dashoffset:0;animation:tg-conversation-connect 440ms cubic-bezier(.16,1,.3,1)}
-.tg-conversation-seeds{opacity:.6;stroke-width:.65}.tg-conversation-seeds circle{fill:currentColor;stroke:none}
-.tm-together .tg-conversation-nodes{position:absolute;inset:0}
-.tm-together button.tg-conversation-node{position:absolute;translate:-50% 0;width:41%;min-width:0;min-height:78px;padding:0 2px 6px;border:0;border-radius:2px;display:flex;align-items:center;flex-direction:column;gap:3px;background:none;color:var(--tg-text);font-family:var(--tm-font-display);font-size:18px;line-height:1.13;transition:color 150ms ease}
-.tm-together .tg-conversation-node>svg{display:block;width:44px;height:44px;padding:1px;box-sizing:border-box;color:var(--tg-accent);background:transparent;border-radius:50%;overflow:visible;transition:transform 220ms cubic-bezier(.16,1,.3,1)}
-.tm-together .tg-conversation-node>span{display:block;max-width:100%;text-wrap:balance}
-.tm-together .tg-conversation-node[aria-selected=true]{color:var(--tg-accent)}
-.tm-together .tg-conversation-node[aria-selected=true]>span{font-style:italic;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:5px}
-.tm-together .tg-conversation-node[aria-selected=true]>svg{transform:scale(1.08)}
+.tm-together .tg-conversation-scene{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(108px,1fr);align-items:center;column-gap:clamp(12px,4vw,24px);width:100%;max-width:440px;margin:12px auto 4px;color:var(--tg-accent)}
+.tm-together .tg-conversation-drawing{display:block;width:100%;height:auto;aspect-ratio:240/280;overflow:visible;pointer-events:none}
+.tg-conversation-meeting{opacity:.88;transform-origin:120px 230px;animation:tg-conversation-unfold 620ms cubic-bezier(.16,1,.3,1)}
+.tm-together .tg-conversation-nodes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px;align-items:center;justify-items:center}
+.tm-together button.tg-conversation-node{width:100%;max-width:64px;min-width:44px;min-height:48px;aspect-ratio:1;padding:4px;border:1px solid transparent;border-radius:50%;display:flex;align-items:center;justify-content:center;background:none;color:var(--tg-accent);transition:background 150ms ease,border-color 150ms ease}
+.tm-together .tg-conversation-node>svg{display:block;width:40px;height:40px;max-width:100%;box-sizing:border-box;background:transparent;overflow:visible;transition:transform 220ms cubic-bezier(.16,1,.3,1)}
+.tm-together .tg-conversation-node[aria-pressed=true]{background:color-mix(in srgb,var(--tg-accent) 8%,transparent);border-color:var(--tg-accent)}
+.tm-together .tg-conversation-node[aria-pressed=true]>svg{transform:scale(1.08)}
+.tm-together .tg-conversation-node:disabled{opacity:.4;cursor:default}
 .tm-together .tg-conversation-node:hover:not(:disabled)>svg{transform:scale(1.08)}
 .tm-together .tg-conversation-node:focus-visible{outline:2px solid var(--tg-accent);outline-offset:5px}
 .tm-together .tg-conversation-panel{border:0;padding:24px 0 0;scroll-margin-top:28px;animation:tg-conversation-arrive 260ms ease-out}
@@ -87,9 +82,8 @@ const conversationMapStyles=`
 .tm-together .tg-conversation-panel-heading h3{font-family:var(--tm-font-display);font-size:27px;line-height:1.15;letter-spacing:normal;text-transform:none;margin:0;color:var(--tg-heading)}
 .tm-together .tg-conversation-panel-heading>svg{width:34px;height:18px;flex-shrink:0;margin-left:auto;color:var(--tg-accent)}
 .tm-together .tg-conversation-panel .tg-embedded-content{padding:0;margin:0;border:0}
-@keyframes tg-conversation-connect{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 @keyframes tg-conversation-unfold{from{transform:rotate(-2deg) scale(.975);opacity:.55}to{transform:none;opacity:.88}}
 @keyframes tg-conversation-arrive{from{opacity:.65}to{opacity:1}}
-@media(prefers-reduced-motion:reduce){.tg-conversation-route,.tg-conversation-meeting,.tm-together .tg-conversation-panel{animation:none}.tm-together .tg-conversation-node>svg{transition:none;transform:none!important}}
-@media(max-width:360px){.tm-together .tg-conversation-node{font-size:17px}.tm-together .tg-conversation-panel-heading h3{font-size:25px}}
+@media(prefers-reduced-motion:reduce){.tg-conversation-meeting,.tm-together .tg-conversation-panel{animation:none}.tm-together .tg-conversation-node,.tm-together .tg-conversation-node>svg{transition:none;transform:none!important}}
+@media(max-width:360px){.tm-together .tg-conversation-panel-heading h3{font-size:25px}}
 `;

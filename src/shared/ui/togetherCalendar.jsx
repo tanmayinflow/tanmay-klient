@@ -154,9 +154,7 @@ export function TogetherCalendar({periods = [], summary, phase, plans = [], lang
       {onOpenDay&&<button type="button" className="tg-calendar-open-day" onClick={()=>onOpenDay(selected)}>{L("Zápis dne","Day entry")}<TmIcon id="forward" size={13}/></button>}</div>
       {showCycle && <p aria-live="polite" style={{margin: "0 0 12px", fontSize: 13, color: muted}}>{guide ? `${L(...guide.name)} · ${selectedPhase.basis==="recorded"?L("záznam","recorded"):L("odhad","estimated")}` : actual ? L("Zapsaná menstruace.", "Recorded period.") : estimate ? L("Odhad začátku menstruace.", "Estimated period start.") : L("Fáze pro tento den není k dispozici.", "The phase for this day is unavailable.")}{selectedModel?.cycle.day?` · ${L("den cyklu","cycle day")} ${selectedModel.cycle.day}`:""}</p>}
       {renderCycleActions?.(selected,selectedModel)}
-      {guide&&cycleDoc&&<p>{L(...guide.about)}</p>}
       {cycleDoc?.days?.[selected]?.cycleNote&&<p className="tg-cycle-day-note">{cycleDoc.days[selected].cycleNote}</p>}
-      {cycleDoc?.mode==="estimate"&&<p className="hint">{L("Barvy fází jsou orientační, ne potvrzení ovulace. Kalendář neurčuje plodné ani bezpečné dny.","Phase colours are estimates, not confirmation of ovulation. This calendar does not identify fertile or safe days.")}</p>}
       {selectedPlans.length ? <ul className="tg-calendar-plans">{selectedPlans.map(p => <li key={p.id}>
         <strong style={{fontFamily: "var(--tm-font-body)", fontSize: 14, fontWeight: 500, color: t.text}}>{p.title}</strong>
         <p style={{margin: "4px 0 0", fontSize: 12, color: muted}}>{[p.time, p.minutes ? `${p.minutes} min` : "", p.status === "done" ? L("Proběhlo", "Completed") : p.approved?.owner && p.approved?.partner ? L("Domluveno", "Agreed") : L("Zatím návrh", "Still a proposal")].filter(Boolean).join(" · ")}</p>

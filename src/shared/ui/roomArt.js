@@ -12,7 +12,7 @@ export const ROOM_ART = Object.freeze({
   terminy: 'empty-trenink-v2.webp',
 });
 
-export const TRAINING_YOGA_ART = 'training-yoga-strap-v1.webp';
+export const TRAINING_YOGA_ART = 'training-yoga-strap-v2.webp';
 
 export function roomArtCss() {
   const s = 'html:not([data-appearance^="landscape-"])';
@@ -27,6 +27,9 @@ ${s} .tm-page-title[data-art-room="zapisnik"]::before { width: 92px; height: 130
 ${s} .tm-page-title[data-art-room="trenink"]::before { right: 0; width: 190px; height: 120px; }
 @media (max-width: 410px) { ${s} .tm-page-title:is(${rooms})::before { width: 100px; height: 86px; } }
 @media (max-width: 370px) { ${s} .tm-page-title:is(${rooms})::before { width: 82px; height: 76px; right: 44px; } }
+html[data-frame-grammar][data-profile-wording="female"] .tm-page-title[data-art-room="trenink"] { min-height: 144px; }
+html[data-frame-grammar][data-profile-wording="female"] .tm-page-title[data-art-room="trenink"]::before { inset: -6px 0 auto auto; width: 136px; height: 136px; }
+@media (max-width: 370px) { html[data-frame-grammar][data-profile-wording="female"] .tm-page-title[data-art-room="trenink"]::before { width: 116px; height: 116px; } }
 html[data-frame-grammar] .tm-page-title[data-art-room="hospodareni"] { min-height: 0; }
 html[data-frame-grammar] .tm-page-title[data-art-room="hospodareni"]::before { content: none; }
 @media print { ${s} .tm-page-title:is(${rooms})::before { content: none; } }
