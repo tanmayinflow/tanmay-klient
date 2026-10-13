@@ -4,6 +4,7 @@ import {SKY_HELP} from "../product/skyHelp.js";
 import {SKY_ACTIVE_HELP_IDS,SKY_HELP_RELATED,SKY_HELP_EN_TITLES} from "../product/skyHelpNavigation.js";
 import {emptySkyJournal,parseSkyJournal,saveSkyJournal,skyStorageKey} from "../product/skyJournal.js";
 import {isPersonalProfileVerified} from "./personalProfile.jsx";
+import {tmZamkniStranku,tmOdemkniStranku} from "./overlay.js";
 
 export const skyTheme=t=>({"--astro-ink":t.accentInk||t.accent,"--astro-text":t.text,"--astro-muted":t.textSec||t.textMuted||t.text,"--astro-line":t.borderSoft,"--astro-bg":t.card||t.bg,"--astro-on":t.onAccent||t.bg,color:t.text});
 export function useSkyJournal(accountKey){
@@ -24,7 +25,18 @@ export function useSkyJournal(accountKey){
 }
 export function SkyDialog({title,onClose,children,t,lang="cs",suspended=false}){
   const ref=useRef(null),titleId=useId(),close=useRef(onClose);close.current=onClose;
-  useEffect(()=>{if(suspended)return;const node=ref.current,prior=document.activeElement,overflow=document.body.style.overflow;document.body.style.overflow="hidden";node.showModal();return()=>{node.close();document.body.style.overflow=overflow;if(prior?.isConnected)prior.focus({preventScroll:true});};},[suspended]);
+  useEffect(()=>{
+    if(suspended)return;
+    const node=ref.current,prior=document.activeElement;
+    // Native dialogs need the same mobile canvas and counted scroll lock as
+    // sheets. Closing this detail must not unlock another open layer.
+    tmZamkniStranku();
+    try{node.showModal();}catch(error){tmOdemkniStranku();throw error;}
+    return()=>{
+      try{node.close();}finally{tmOdemkniStranku();}
+      if(prior?.isConnected)prior.focus({preventScroll:true});
+    };
+  },[suspended]);
   return createPortal(<dialog ref={ref} className="tg-astrology sky-dialog" style={skyTheme(t)} aria-labelledby={titleId} onCancel={e=>{e.preventDefault();close.current();}} onClick={e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)close.current();}}}>
     <header><h2 id={titleId}>{title}</h2><button type="button" className="sky-close" onClick={onClose} aria-label={lang==="en"?"Close detail":"Zavřít detail"}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div className="sky-dialog-content">{children}</div>
   </dialog>,document.body);

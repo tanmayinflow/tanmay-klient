@@ -1,6 +1,7 @@
 import { roomArtCss } from "./roomArt.js";
 import { ownerRefinementsCss } from "./ownerRefinements.js";
 import { landscapeCss } from "./landscapeCss.js";
+import { overlayCanvasColor } from "./color.js";
 // GENERATED · SHARED PRODUCT CORE — do not edit inside an application repository.
 // Canonical source: Work/web-application/Shared/product-core/ui/tokens.js
 // Change it there, then run `npm run shared:sync` in the outer workspace.
@@ -119,6 +120,7 @@ export function tokensCss(t, lang, typography = 'original') {
   --tm-callout: ${t.callout};
   --tm-sheet: ${t.sheet};
   --tm-overlay: ${t.overlay};
+  --tm-overlay-canvas: ${overlayCanvasColor(t.bg, t.overlay)};
   --tm-shadow: ${t.shadow};
   --tm-shadow-lift: ${t.shadowLift};
   --tm-shadow-sheet: ${t.shadowSheet};

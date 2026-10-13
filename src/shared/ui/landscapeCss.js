@@ -24,7 +24,14 @@ ${s} ::selection { background: var(--tm-selection) !important; color: var(--tm-s
    changes. Give any exposed area the same material and the same sheet shade;
    the normal portal veil remains responsible for dimming the actual page. */
 ${s}, ${s} body, ${s} .tm-ground { background-image: var(--land-field) !important; background-size: 768px auto !important; }
-${s}[data-tm-scroll-locked="true"] { background-image: linear-gradient(var(--tm-overlay), var(--tm-overlay)), var(--land-field) !important; overscroll-behavior: none; }
+/* WebKit's bottom safe-area fallback may sample only background-color from
+   either html OR body. A root gradient alone leaves an undimmed pale strip.
+   The counted lock also keeps nested cards shaded until the last one closes. */
+${s}[data-tm-scroll-locked="true"], ${s}[data-tm-scroll-locked="true"] body {
+  background-color: var(--tm-overlay-canvas, var(--tm-bg)) !important;
+  background-image: linear-gradient(var(--tm-overlay), var(--tm-overlay)), var(--land-field) !important;
+  overscroll-behavior: none;
+}
 /* The terrain field now belongs only to Practice. Its fixed box clips the rotated art. */
 ${s} .tm-ground { overflow: hidden; }
 ${s}:has(.tm-page[data-room="praxe"] [data-practice-phase="rano"]) .tm-ground::after { content: ''; position: absolute; inset: auto -5% 0; height: clamp(110px, 25vh, 240px); background: var(--tm-link); mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/copper-line.png') center/100% 100% no-repeat; opacity: .12; transform: rotate(9deg); pointer-events: none; }

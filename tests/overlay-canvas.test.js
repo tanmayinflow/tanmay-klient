@@ -2,6 +2,18 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {APPEARANCE_PRESET_IDS,pwaThemeColor,resolveTheme} from '../src/shared/ui/themeRegistry.js';
 import {applyDocumentTheme} from '../src/shared/ui/appearance.js';
+import {overlayCanvasColor} from '../src/shared/ui/color.js';
+
+test('safe-area fallback composites the translucent scrim into an opaque canvas',()=>{
+  assert.equal(overlayCanvasColor('#FFFFFF','rgba(0,0,0,0.4)'),'#999999');
+  assert.equal(overlayCanvasColor('#E5D8C4','rgba(28,28,26,0.40)'),'#958D80');
+  assert.equal(overlayCanvasColor('#123456','rgba(0,0,0,0)'),'#123456');
+  assert.equal(overlayCanvasColor('#123456','rgb(28, 28, 26)'),'#1C1C1A');
+  for(const id of APPEARANCE_PRESET_IDS){
+    const theme=resolveTheme(id,false),canvas=overlayCanvasColor(theme.background,theme.overlay);
+    assert.match(canvas,/^#[0-9A-F]{6}$/);
+  }
+});
 
 function fakeDocument() {
   const attrs={},meta={};

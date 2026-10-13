@@ -16,3 +16,12 @@ export function mixHex(a, b, ratio) {
   const c = (i) => Math.round(x[i] * (1 - k) + y[i] * k).toString(16).padStart(2, "0").toUpperCase();
   return "#" + c(0) + c(1) + c(2);
 }
+
+// Safari can paint its safe-area canvas from background-color alone, without
+// the background-image scrim. Resolve our theme's rgba veil to an opaque color.
+export function overlayCanvasColor(background, overlay) {
+  const rgba = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/.exec(overlay || "");
+  if (!rgba || !/^#[\da-f]{6}$/i.test(background || "")) return background;
+  const foreground = "#" + rgba.slice(1, 4).map(v => Math.round(Math.max(0, Math.min(255, Number(v)))).toString(16).padStart(2, "0")).join("");
+  return mixHex(background, foreground, rgba[4] === undefined ? 1 : Number(rgba[4]));
+}
