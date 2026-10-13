@@ -857,15 +857,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "0d7cd301e1e53353230ba8cf8e94d21dce4ae98a8d86232c0ef26727dad7d741",
-      "thumb": "/expansion-atlas/ex26_standing_legcurl-audit20261013-original-256.webp",
-      "detail": "/expansion-atlas/ex26_standing_legcurl-audit20261013-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_standing_legcurl-audit20261013-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_standing_legcurl-audit20261013-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_standing_legcurl-audit20261013-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_standing_legcurl-audit20261013-fill-960.webp"
+      "sourceSha256": "015cf8d229f49edfc300bc244c8d31ab4cdeb8468e7335329468d56a00eec745",
+      "thumb": "/expansion-atlas/ex26_standing_legcurl-feedback20261013-original-256.webp",
+      "detail": "/expansion-atlas/ex26_standing_legcurl-feedback20261013-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_standing_legcurl-feedback20261013-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_standing_legcurl-feedback20261013-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_standing_legcurl-feedback20261013-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_standing_legcurl-feedback20261013-fill-960.webp"
     },
-    "sourceSha256": "0d7cd301e1e53353230ba8cf8e94d21dce4ae98a8d86232c0ef26727dad7d741"
+    "sourceSha256": "015cf8d229f49edfc300bc244c8d31ab4cdeb8468e7335329468d56a00eec745"
   },
   "ex26_calf_legpress": {
     "appId": "ex26_calf_legpress",
@@ -1282,15 +1282,15 @@ export const EXPANSION_ART = {
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "a2998c65c3bc1a1a83f0baa7d78b0b615f6a88564379356fa9428b099b71cb22",
-      "thumb": "/expansion-atlas/ex26_sternum_pullup-audit20261013-original-256.webp",
-      "detail": "/expansion-atlas/ex26_sternum_pullup-audit20261013-original-960.webp",
-      "inkThumb": "/expansion-atlas/ex26_sternum_pullup-audit20261013-ink-256.webp",
-      "inkDetail": "/expansion-atlas/ex26_sternum_pullup-audit20261013-ink-960.webp",
-      "fillThumb": "/expansion-atlas/ex26_sternum_pullup-audit20261013-fill-256.webp",
-      "fillDetail": "/expansion-atlas/ex26_sternum_pullup-audit20261013-fill-960.webp"
+      "sourceSha256": "5dbce3fdbf7631bd3245daf97f2fc24f9dbb46218512da53c4952bbc7830593b",
+      "thumb": "/expansion-atlas/ex26_sternum_pullup-original-256.webp",
+      "detail": "/expansion-atlas/ex26_sternum_pullup-original-960.webp",
+      "inkThumb": "/expansion-atlas/ex26_sternum_pullup-ink-256.webp",
+      "inkDetail": "/expansion-atlas/ex26_sternum_pullup-ink-960.webp",
+      "fillThumb": "/expansion-atlas/ex26_sternum_pullup-fill-256.webp",
+      "fillDetail": "/expansion-atlas/ex26_sternum_pullup-fill-960.webp"
     },
-    "sourceSha256": "a2998c65c3bc1a1a83f0baa7d78b0b615f6a88564379356fa9428b099b71cb22"
+    "sourceSha256": "5dbce3fdbf7631bd3245daf97f2fc24f9dbb46218512da53c4952bbc7830593b"
   },
   "ex26_kipping_pullup": {
     "appId": "ex26_kipping_pullup",
