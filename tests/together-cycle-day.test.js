@@ -17,7 +17,37 @@ test('selected cycle day reads historical records instead of the current phase',
   assert.deepEqual(cyclePhaseForDate(source,'2026-09-15',today),{id:'follicular',basis:'estimated'});
   assert.deepEqual(cyclePhaseForDate(source,'2026-09-20',today),{id:'ovulatory',basis:'estimated'});
   assert.deepEqual(cyclePhaseForDate(source,today,today),{id:'luteal',basis:'estimated'});
-  assert.equal(cyclePhaseForDate(source,'2026-07-01',today).id,null);
+  assert.deepEqual(cyclePhaseForDate(source,'2026-07-01',today),{id:'luteal',basis:'estimated'});
+  assert.equal(cyclePhaseForDate(source,'2026-06-14',today).id,null);
+});
+
+test('an actual start last week supports one preceding estimated cycle with all four phases',()=>{
+  const source={...emptyTogether(),mode:'estimate',periods:[{start:'2026-10-07',end:'2026-10-11'}]};
+  const before=structuredClone(source);
+  for(const [date,id,day] of [['2026-09-09','menstrual',1],['2026-09-16','follicular',8],
+    ['2026-09-23','ovulatory',15],['2026-10-02','luteal',24]]) {
+    const view=cycleViewForDate(source,date,'2026-10-14');
+    assert.deepEqual(view.phase,{id,basis:'estimated'});
+    assert.equal(view.cycle.day,day);assert.equal(view.cycle.lastStart,'2026-09-09');
+    assert.equal(view.cycle.retrospective,true);assert.equal(view.cycle.projected,true);
+    assert.equal(view.cycle.observedBleeding,false);
+  }
+  assert.equal(cyclePhaseForDate(source,'2026-09-08','2026-10-14').id,null);
+  assert.deepEqual(cyclePhaseForDate(source,'2026-10-07','2026-10-14'),{id:'menstrual',basis:'recorded'});
+  assert.equal(cycleViewForDate(source,'2026-10-07','2026-10-14').cycle.retrospective,undefined);
+  assert.deepEqual(source,before);
+});
+
+test('retrospective phases respect explicit flow, disabled estimates and the existing eligibility limits',()=>{
+  const source={...emptyTogether(),mode:'estimate',periods:[{start:'2026-10-07',end:null}],days:{'2026-09-20':{flow:'heavy'}}};
+  assert.deepEqual(cyclePhaseForDate(source,'2026-09-20','2026-10-14'),{id:'menstrual',basis:'recorded'});
+  for(const mode of ['observe','paused']) {
+    assert.equal(cyclePhaseForDate({...source,mode},'2026-09-23','2026-10-14').id,null);
+  }
+  assert.equal(cyclePhaseForDate({...source,usualLength:40},'2026-09-23','2026-10-14').id,null);
+  assert.equal(cyclePhaseForDate(source,'2026-09-23','2026-11-20').id,null);
+  const variable=doc();variable.periods[0]={start:'2026-06-15',end:'2026-06-20'};
+  assert.equal(cyclePhaseForDate(variable,'2026-06-01',today).id,null);
 });
 
 test('future calendar uses projected cycle days without adding records or confirming bleeding',()=>{

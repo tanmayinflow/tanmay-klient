@@ -3,7 +3,16 @@ import {cyclePhase,cycleViewForDate} from "./togetherGuidance.js";
 import {dateKey,validDate,dayNumber,cycleSummary} from './togetherCycleData.js';
 export {dateKey,validDate,dayNumber,addDays,cycleSummary} from './togetherCycleData.js';
 export const TOGETHER_SCOPES = ["cycle", "wellbeing", "support", "phase", "cycle-note", "pain", "flow"];
-export const emptyTogether = () => ({ periods: [], mode: "observe", usualLength: 28, days: {} });
+export const emptyTogether = () => ({ periods: [], mode: "estimate", modeChosen: false, usualLength: 28, days: {} });
+// Older accounts inherited records-only before estimates were the default.
+// Adapt reads without rewriting history or advancing the saved revision.
+// A saved checkbox from the period editor, an explicit choice, and pauses stay intact.
+export function readTogether(value) {
+  if (!value) return emptyTogether();
+  const hasPeriodChoice = Array.isArray(value.periods) && value.periods.some(p => Number.isInteger(p?.expectedLength) && p.expectedLength >= 1 && p.expectedLength <= 14);
+  if (value.mode === "observe" && value.modeChosen === undefined && !hasPeriodChoice) return {...value, mode: "estimate", modeChosen: false};
+  return value;
+}
 const text = (v,n) => typeof v === "string" ? v.trim().slice(0,n) : "";
 export function cleanTogether(value, today = dateKey()) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("invalid document");
@@ -16,6 +25,7 @@ export function cleanTogether(value, today = dateKey()) {
   for(let i=1;i<periods.length;i++) if(periods[i].start <= (periods[i-1].end||periods[i-1].start)) throw new Error("overlapping periods");
   if (!Number.isInteger(value.usualLength) || value.usualLength < 15 || value.usualLength > 90) throw new Error("invalid cycle length");
   if (!["observe","estimate","paused"].includes(value.mode)) throw new Error("invalid mode");
+  if (Object.hasOwn(value,"modeChosen") && typeof value.modeChosen !== "boolean") throw new Error("invalid mode choice");
   const days = {};
   if (!value.days || typeof value.days !== "object" || Array.isArray(value.days)) throw new Error("invalid days");
   if (Object.keys(value.days||{}).length>800) throw new Error("too many days");
@@ -25,7 +35,7 @@ export function cleanTogether(value, today = dateKey()) {
     if (energy!==null && (!Number.isInteger(energy)||energy<1||energy>5)) throw new Error("invalid energy");
     days[date]={energy,mood:text(d.mood,80),support:text(d.support,300),note:text(d.note,1500),cycleNote:text(d.cycleNote,1500),pain:["none","mild","moderate","strong"].includes(d.pain)?d.pain:"none",flow:["none","spotting","light","medium","heavy"].includes(d.flow)?d.flow:"none"};
   }
-  return {periods,mode:value.mode,usualLength:value.usualLength,days};
+  return {periods,mode:value.mode,...(Object.hasOwn(value,"modeChosen")?{modeChosen:value.modeChosen}:{}),usualLength:value.usualLength,days};
 }
 // Allowlist projections. Legacy private notes and raw history never escape.
 // Additional cycle details require independent grants, never inherited from old scopes.

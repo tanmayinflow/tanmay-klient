@@ -15,12 +15,12 @@ const reference='2026-09-28';
 
 test('the default day-sheet flow explicitly proposes estimates and saves their duration without an actual end',()=>{
   const source=emptyTogether();
-  const oldSave={...source,periods:[{start:reference,end:null}]};
+  const oldSave={...source,mode:'observe',modeChosen:true,periods:[{start:reference,end:null}]};
   assert.equal(cycleCalendarDay(oldSave,addDays(reference,1),reference).continuation,false);
   const draft=cyclePeriodEntryDraft(source,reference,reference);
   assert.equal(draft.showEstimates,true);assert.equal(draft.expectedLength,5);assert.equal(draft.end,'');
   const saved=cleanTogether({...source,...cyclePeriodEntryPatch(source,draft,reference)},reference);
-  assert.equal(saved.mode,'estimate');assert.deepEqual(saved.periods,[{start:reference,end:null,expectedLength:5}]);
+  assert.equal(saved.mode,'estimate');assert.equal(saved.modeChosen,true);assert.deepEqual(saved.periods,[{start:reference,end:null,expectedLength:5}]);
   for(let n=1;n<5;n++) {
     const day=cycleCalendarDay(saved,addDays(reference,n),reference);
     assert.equal(day.continuation,true);assert.equal(day.recorded,false);
@@ -36,8 +36,20 @@ test('declining estimates is respected and a paused account needs an explicit op
     assert.equal(draft.showEstimates,mode!=='paused');
     const declined={...source,...cyclePeriodEntryPatch(source,{...draft,showEstimates:false},reference)};
     assert.equal(declined.mode,mode==='paused'?'paused':'observe');
+    assert.equal(declined.modeChosen,true);
     assert.equal(cycleCalendarDay(declined,addDays(reference,1),reference).continuation,false);
     assert.equal(cyclePeriodEntryPatch(source,{...draft,showEstimates:true},reference).mode,'estimate');
+  }
+});
+
+test('editing deliberately disabled estimates does not silently preselect them again',()=>{
+  for(const source of [
+    {...emptyTogether(),mode:'observe',modeChosen:true,periods:[{start:reference,end:null}]},
+    {mode:'observe',usualLength:28,periods:[{start:reference,end:null,expectedLength:6}],days:{}}
+  ]) {
+    const draft=cyclePeriodEntryDraft(source,reference,reference);
+    assert.equal(draft.showEstimates,false);
+    assert.equal(cyclePeriodEntryPatch(source,draft,reference).mode,'observe');
   }
 });
 
@@ -160,6 +172,22 @@ test('every future phase remains a daily estimate based on the existing bounded 
   }
 });
 
+test('the previous unrecorded period is dashed across its estimated length and never saved as actual history',()=>{
+  const source={...emptyTogether(),mode:'estimate',periods:[{start:'2026-10-07',end:null,expectedLength:6}],days:{}};
+  const before=structuredClone(source);
+  for(const date of ['2026-09-09','2026-09-10','2026-09-11','2026-09-12','2026-09-13','2026-09-14']) {
+    const day=cycleCalendarDay(source,date,'2026-10-14');
+    assert.equal(day.expectedPeriod,true);assert.equal(day.continuation,false);
+    assert.equal(day.recorded,false);assert.equal(day.recordedPeriod,null);
+    assert.deepEqual(day.phase,{id:'menstrual',basis:'estimated'});
+  }
+  assert.equal(cycleCalendarDay(source,'2026-09-08','2026-10-14').phase.id,null);
+  assert.equal(cycleCalendarDay(source,'2026-09-15','2026-10-14').expectedPeriod,false);
+  assert.equal(cycleCalendarDay(source,'2026-09-15','2026-10-14').phase.id,'follicular');
+  assert.equal(cycleCalendarDay(source,'2026-10-07','2026-10-14').recorded,true);
+  assert.deepEqual(source,before);
+});
+
 test('observe and paused modes retain actual records and suppress every estimated calendar mark',()=>{
   for(const mode of ['observe','paused']) {
     const source={...doc(),mode};source.periods[2].end=null;
@@ -272,7 +300,7 @@ test('the authenticated API round-trips expected length with revisions and rejec
   };
   try {
     const initial=await call();
-    assert.equal(initial.self.doc.mode,'observe');
+    assert.equal(initial.self.doc.mode,'estimate');
     const draft=cyclePeriodEntryDraft(initial.self.doc,reference,reference);
     const document={...initial.self.doc,...cyclePeriodEntryPatch(initial.self.doc,{...draft,expectedLength:6},reference)};
     assert.equal((await call({revision:0,doc:document})).status,200);

@@ -5,6 +5,8 @@ import {UterusPlate,CycleAnatomyDetail,cycleAnatomyStyles} from './togetherCycle
 import {CycleGeometry} from './togetherCycleGeometry.jsx';
 
 const phasePoints=[[82,69],[298,69],[298,247],[82,247]];
+// Each overview button covers its 120-unit botanical plate and the caption
+// centred 134 units below its top. The clear middle lane keeps navigation separate.
 const radial=(count)=>Array.from({length:count},(_,i)=>{const a=(-90+i*360/count)*Math.PI/180;return [190+Math.cos(a)*139,177+Math.sin(a)*139];});
 const bodyPoints=[[72,53],[308,53],[190,310]];
 
@@ -69,7 +71,7 @@ export function CycleMap({shown,current,focused,layer,topic,topics,lang,onPhase,
       {CYCLE_ORDER.map((id,i)=>{const [x,y]=phasePoints[i],selected=shown===id;return <g key={id} className="tg-cycle-phase-landscape" style={{transform:focused&&selected?'translate(190px,180px) scale(.91)':`translate(${x}px,${y-8}px) scale(.60)`,opacity:focused?(selected&&showBotanical?1:0):selected?1:.82}}><SeasonPlate phase={id}/></g>;})}
       {focused&&!showBotanical&&shown&&<g key={`${shown}-${layer}-${topic}`} className="tg-cycle-detail-arrival" style={{transformOrigin:'190px 180px','--cycle-origin-x':`${(origin[0]-190)*.4}px`,'--cycle-origin-y':`${(origin[1]-178)*.4}px`}}><g transform="translate(190 178)" className="tg-cycle-detail-plate">{isChart?<HormonePlate shown={shown} visible={visibleHormones} explained={explainedHormone} lang={lang}/>:<DetailPlate kind={mainKind} phase={shown} selected={isAnatomy&&topic==='uterus'?anatomyRegion:null}/>}</g></g>}
     </svg>
-    {!focused?CYCLE_ORDER.map((id,i)=><button key={id} type="button" className={`tg-cycle-world-button phase-choice${shown===id?' is-selected':''}`} style={{left:`${phasePoints[i][0]/3.8}%`,top:`${(phasePoints[i][1]+66)/3.56}%`}} aria-pressed={shown===id} onClick={()=>onPhase(id)}><span className="tg-cycle-world-label">{L(CYCLE_DEPTH[id].short)}</span>{id===current&&<span className="tg-cycle-current-dot" aria-label={L(['Fáze vybraného dne','Selected day’s phase'])}/>}</button>):branches.map((item,i)=><button key={item.id} type="button" className={`tg-cycle-world-button topic-choice${topic===item.id?' is-selected':''}`} style={{left:`${points[i][0]/3.8}%`,top:`${points[i][1]/3.56}%`}} aria-pressed={topic===item.id} onClick={()=>onTopic(item.id)}><svg viewBox="-18 -18 36 36" aria-hidden="true"><CycleGlyph kind={item.id}/></svg><span className="tg-cycle-world-label">{L(item.label)}</span></button>)}
+    {!focused?CYCLE_ORDER.map((id,i)=><button key={id} type="button" className={`tg-cycle-world-button phase-choice${shown===id?' is-selected':''}`} style={{left:`${phasePoints[i][0]/3.8}%`,top:`${(phasePoints[i][1]-68)/3.56}%`}} aria-pressed={shown===id} onClick={()=>onPhase(id)}><span className="tg-cycle-phase-caption"><span className="tg-cycle-world-label">{L(CYCLE_DEPTH[id].short)}</span>{id===current&&<span className="tg-cycle-current-dot" aria-label={L(['Fáze vybraného dne','Selected day’s phase'])}/>}</span></button>):branches.map((item,i)=><button key={item.id} type="button" className={`tg-cycle-world-button topic-choice${topic===item.id?' is-selected':''}`} style={{left:`${points[i][0]/3.8}%`,top:`${points[i][1]/3.56}%`}} aria-pressed={topic===item.id} onClick={()=>onTopic(item.id)}><svg viewBox="-18 -18 36 36" aria-hidden="true"><CycleGlyph kind={item.id}/></svg><span className="tg-cycle-world-label">{L(item.label)}</span></button>)}
     {focused&&topic!=='overview'&&<button type="button" className="tg-cycle-map-center-back" onClick={()=>onTopic('overview')} aria-label={L(['Zpět k souvislostem fáze','Back to the phase overview'])}>‹</button>}
     {!focused&&shown&&<button type="button" className="tg-cycle-map-enter" onClick={onFocus}>{L(['Otevřít fázi','Open phase'])}<span aria-hidden="true"> →</span></button>}
     {focused&&<button type="button" className="tg-cycle-map-return" onClick={onBack}>{L(['Celý cyklus','Whole cycle'])}</button>}
@@ -85,9 +87,10 @@ export const cycleMapStyles=cycleAnatomyStyles+`
 .tg-cycle-detail-arrival{animation:cycle-branch-open 480ms cubic-bezier(.16,1,.3,1) both}
 @keyframes cycle-branch-open{from{opacity:.2;transform:translate(var(--cycle-origin-x,0px),var(--cycle-origin-y,0px)) scale(.55)}to{opacity:1;transform:translate(0,0) scale(1)}}
 .tm-together .tg-cycle-world-button{position:absolute;translate:-50% -50%;border:0;border-radius:0;background:none;padding:6px 2px;min-height:48px;width:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--tg-text);font:13px/1.25 var(--tm-font-body);cursor:pointer}
-.tm-together .tg-cycle-world-button.phase-choice{width:126px;min-height:60px;font:18px/1.1 var(--tm-font-display);padding:12px 6px}
+.tm-together .tg-cycle-world-button.phase-choice{translate:-50% 0;width:36.842%;height:46.629%;min-height:0;font:18px/1.1 var(--tm-font-display);padding:0}
+.tm-together .tg-cycle-phase-caption{position:absolute;top:80.723%;translate:0 -50%;width:126px;max-width:100%;box-sizing:border-box;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .tm-together .tg-cycle-world-button .tg-cycle-world-label{background:transparent;padding:1px 3px}
-.tm-together .tg-cycle-world-button.phase-choice .tg-cycle-world-label{max-width:117px}
+.tm-together .tg-cycle-world-button.phase-choice .tg-cycle-world-label{max-width:117px;padding:1px 0;overflow-wrap:normal;word-break:normal}
 .tm-together .tg-cycle-world-button>svg{width:32px;height:32px;background:transparent;border:1px solid var(--tg-soft);border-radius:50%;padding:5px;box-sizing:content-box;transition:border-color 120ms ease}
 .tm-together .tg-cycle-world-button.is-selected{color:var(--tg-accent)}
 .tm-together .tg-cycle-world-button.is-selected>svg{border-color:var(--tg-accent);outline:1px solid var(--tg-accent);outline-offset:3px}
@@ -95,7 +98,7 @@ export const cycleMapStyles=cycleAnatomyStyles+`
 .tm-together .tg-cycle-world-button:focus-visible{outline:2px solid var(--tg-accent);outline-offset:3px;border-radius:6px}
 .tg-cycle-current-dot{height:4px;width:4px;background:currentColor;border-radius:50%;margin-top:5px}
 .tm-together .tg-cycle-map-enter,.tm-together .tg-cycle-map-return,.tm-together .tg-cycle-map-center-back{position:absolute;border:0;background:transparent;border-radius:0;font:12px/1.2 var(--tm-font-tag);letter-spacing:.04em;padding:9px;min-height:36px;color:var(--tg-accent)}
-.tm-together .tg-cycle-map-enter{left:50%;top:57%;translate:-50% 0;white-space:nowrap}
+.tm-together .tg-cycle-map-enter{left:50%;top:50%;translate:-50% -50%;width:16%;min-width:44px;min-height:44px;padding:6px 2px;white-space:normal}
 .tm-together .tg-cycle-map-return{left:0;bottom:-5px;padding-left:0;text-decoration:underline;text-underline-offset:4px}
 .tm-together .tg-cycle-map-center-back{right:0;bottom:-5px;font-size:24px;min-width:44px}
 .tg-cycle-chart-words{font:11px var(--tm-font-tag)}

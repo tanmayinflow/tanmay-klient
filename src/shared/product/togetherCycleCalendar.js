@@ -21,7 +21,9 @@ export function cyclePeriodDraft(doc, start, referenceDate=dateKey()) {
 /** Shared editable state for both the day sheet and the inline start action. */
 export function cyclePeriodEntryDraft(doc, start, referenceDate=dateKey()) {
   const draft=cyclePeriodDraft(doc,start,referenceDate);
-  return draft?{...draft,end:draft.end||'',showEstimates:doc?.mode!=='paused'}:null;
+  const chosenObserve=doc?.mode==='observe' && (doc.modeChosen===true ||
+    cyclePeriodRecords(doc,referenceDate).some(period=>Number.isInteger(period.expectedLength)));
+  return draft?{...draft,end:draft.end||'',showEstimates:doc?.mode!=='paused' && !chosenObserve}:null;
 }
 
 /** Saving a visible opt-in updates the estimate mode with the actual record. */
@@ -33,7 +35,7 @@ export function cyclePeriodEntryPatch(doc, draft, referenceDate=dateKey()) {
     throw new Error('invalid expected period length');
   const record={start:draft.start,end:draft.end||null,expectedLength:draft.expectedLength};
   return {periods:[...(doc.periods||[]).filter(period=>period.start!==(draft.originalStart||draft.start)),record],
-    mode:draft.showEstimates===true?'estimate':doc.mode==='paused'?'paused':'observe'};
+    mode:draft.showEstimates===true?'estimate':doc.mode==='paused'?'paused':'observe',modeChosen:true};
 }
 
 /**
@@ -62,10 +64,10 @@ export function cycleCalendarDay(doc, date, referenceDate=dateKey()) {
       end:addDays(current.lastStart,current.median+duration.days-1),duration:duration.days,
       basis:duration.basis,samples:duration.samples,startWindow:{from:current.next.from,to:current.next.to}}
     : null;
-  // Reuse the existing bounded, optional cycle projection. Never roll today or
-  // a past late cycle into a fictional new recorded menstruation.
-  const projectedCycle=nextPeriod && date>referenceDate && view.cycle.projected &&
-    dayNumber(date)-dayNumber(current.lastStart)>=current.median;
+  // The bounded previous cycle is also dashed, never an actual record or the
+  // continuation of the first start. Late recorded cycles still never wrap.
+  const projectedCycle=view.cycle.retrospective || (nextPeriod && date>referenceDate && view.cycle.projected &&
+    dayNumber(date)-dayNumber(current.lastStart)>=current.median);
   const estimatedBleeding=view.phase.id==='menstrual' && view.phase.basis==='estimated';
   const expectedPeriod=!!(projectedCycle && estimatedBleeding && !recorded);
   const continuation=canEstimate && estimatedBleeding && !recorded && !expectedPeriod;

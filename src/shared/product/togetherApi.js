@@ -1,4 +1,4 @@
-import { cleanTogether, emptyTogether, togetherProjection, TOGETHER_SCOPES, validDate, dateKey, dayNumber } from "./together.js";
+import { cleanTogether, emptyTogether, readTogether, togetherProjection, TOGETHER_SCOPES, validDate, dateKey, dayNumber } from "./together.js";
 import {cleanPartnerPages,PARTNER_ROOMS} from "./togetherPages.js";
 import {cycleViewForDate} from "./togetherGuidance.js";
 import {readPersonalProfile,personalProfileAccountKey} from './personalProfile.js';
@@ -32,7 +32,7 @@ async function pagesFor(db,link){
 }
 async function person(db,actor) {
   const row=await db.prepare("SELECT * FROM together_people WHERE actor = ?").bind(actor).first();
-  return {doc:decode(row?.doc,null)||emptyTogether(),revision:row?.revision||0};
+  return {doc:readTogether(decode(row?.doc,null)),revision:row?.revision||0};
 }
 function publicLink(link,actor) {
   return link?{id:link.id,status:link.status,owner:link.owner===actor,scopes:decode(link.scopes,[]),myScopes:decode(link.owner===actor?link.scopes:link.partner_scopes,[]),receivedScopes:decode(link.owner===actor?link.partner_scopes:link.scopes,[]),revision:link.revision,expires:link.expires}:null;
@@ -118,7 +118,10 @@ export async function handleTogether(request,db,actor,{owner=false,now=Date.now(
   if(action==="/self"&&method==="PUT") {
     let doc;
     try {doc=cleanTogether(body.doc,localToday);}catch(e){return fail(e.message);}
-    if(!canTrack){const prior=await person(db,actor);if(JSON.stringify(doc.periods)!==JSON.stringify(prior.doc.periods)||doc.mode!==prior.doc.mode||doc.usualLength!==prior.doc.usualLength)return fail("cycle-owner-only",403);}
+    if(!canTrack){const prior=await person(db,actor);if(JSON.stringify(doc.periods)!==JSON.stringify(prior.doc.periods)||doc.mode!==prior.doc.mode||doc.usualLength!==prior.doc.usualLength||doc.modeChosen!==prior.doc.modeChosen)return fail("cycle-owner-only",403);}
+    // An explicit write from an older client still counts as a saved choice.
+    // The read adapter only upgrades documents left untouched since the old default.
+    if(canTrack && (doc.modeChosen === undefined || doc.mode !== 'estimate')) doc.modeChosen=true;
     if(!Number.isInteger(body.revision)||body.revision<0)return fail("revision");
     await db.prepare("INSERT OR IGNORE INTO together_people (actor,doc,revision) VALUES (?, ?, 0)").bind(actor,JSON.stringify(emptyTogether())).run();
     const saved=await db.prepare("UPDATE together_people SET doc = ?, revision = revision + 1 WHERE actor = ? AND revision = ?").bind(JSON.stringify(doc),actor,body.revision).run();

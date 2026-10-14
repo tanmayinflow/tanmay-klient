@@ -9,7 +9,7 @@ export function TogetherMaintenance({doc,canTrack,lang,busy,onApply}) {
   const fingerprint=value=>JSON.stringify(cleanTogether(value));
   const apply=async()=>{
     const before=structuredClone(doc);
-    const next={...doc,...(cycle?{periods:[],mode:'observe'}:{}),...(days?{days:{}}:{})};
+    const next={...doc,...(cycle?{periods:[],mode:'observe',modeChosen:true}:{}),...(days?{days:{}}:{})};
     if(await onApply(next)){setBackup({before,after:fingerprint(next)});setConfirm(false);setCycle(false);setDays(false);}
   };
   return <TogetherFold title={L('Moje údaje a nový začátek','My records and a fresh start')}>

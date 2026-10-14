@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { handleTogether } from '../src/shared/product/togetherApi.js';
-import { cleanTogether,emptyTogether,cycleSummary,addDays,validDate,togetherProjection } from '../src/shared/product/together.js';
+import { cleanTogether,emptyTogether,readTogether,cycleSummary,addDays,validDate,togetherProjection } from '../src/shared/product/together.js';
 import { navigationRooms,updatePlacement,MAIN_ROOMS,CLIENT_ROOMS } from '../src/shared/product/navigation.js';
 import worker from '../worker/index.js';
 import {cyclePhase} from '../src/shared/product/togetherGuidance.js';
@@ -83,6 +83,62 @@ function fixture(){
   const pair=async(scopes=[])=>{const invite=await call('client:a','invite',{});assert.equal(invite.status,200);assert.equal((await call('coach:tanmay','claim',{code:invite.code})).status,200);const d=await call('client:a');assert.equal((await call('client:a','sharing',{scopes,revision:d.link.revision})).status,200);return invite;};
   return {sql,db,call,pair};
 }
+
+test('cycle estimates default on, while explicit choices and pauses survive legacy reads',()=>{
+  assert.equal(emptyTogether().mode,'estimate');
+  const old={mode:'observe',usualLength:28,periods:[{start:'2026-09-17',end:null}],days:{}};
+  const before=JSON.stringify(old);
+  assert.equal(readTogether(old).mode,'estimate');
+  assert.equal(readTogether(old).modeChosen,false);
+  assert.equal(JSON.stringify(old),before);
+  for(const doc of [{...old,mode:'paused'},{...old,modeChosen:true},{...old,modeChosen:false},{...old,periods:[{start:'2026-09-17',end:null,expectedLength:5}]}]){
+    assert.equal(readTogether(doc),doc);
+    assert.equal(readTogether(doc).mode,doc.mode);
+  }
+  for(const modeChosen of [null,0,1,'true',{},[]])assert.throws(()=>cleanTogether({...emptyTogether(),modeChosen}),'choice must be boolean');
+});
+
+test('an untouched pre-update record gets estimates without rewriting its history or revision',async()=>{
+  const {call,sql}=fixture();await call('client:a');
+  const old={mode:'observe',usualLength:28,periods:[{start:'2026-09-17',end:null}],days:{'2026-09-17':{flow:'medium',note:'PRIVATE_OLD_NOTE'}}};
+  const raw=JSON.stringify(old);
+  sql.prepare('INSERT INTO together_people (actor,doc,revision) VALUES (?,?,?)').run('client:a',raw,7);
+  const current=await call('client:a');
+  assert.equal(current.self.doc.mode,'estimate');assert.equal(current.self.revision,7);
+  assert.equal(current.cycleView.phase.id,'follicular');assert.equal(current.cycleView.phase.basis,'estimated');
+  assert.deepEqual(current.self.doc.periods,old.periods);assert.deepEqual(current.self.doc.days,old.days);
+  const stored=sql.prepare('SELECT doc,revision FROM together_people WHERE actor=?').get('client:a');
+  assert.equal(stored.doc,raw);assert.equal(stored.revision,7);
+  assert.equal((await call('client:b')).self.doc.periods.length,0);
+  assert.equal(JSON.stringify(await call('client:b')).includes('PRIVATE_OLD_NOTE'),false);
+  const optedOut={...current.self.doc,mode:'observe',modeChosen:true};
+  assert.equal((await call('client:a','self',{doc:optedOut,revision:7})).status,200);
+  assert.equal((await call('client:a')).self.doc.mode,'observe');
+  assert.equal((await call('client:a')).cycleView.phase.id,null);
+  assert.equal((await call('client:a','self',{doc:current.self.doc,revision:7})).status,409);
+  assert.equal((await call('client:a')).self.doc.mode,'observe');
+});
+
+test('legacy clients can still explicitly save records-only and partners only receive granted estimates',async()=>{
+  const {call,sql,pair}=fixture();await call('client:a');
+  const old={mode:'observe',usualLength:28,periods:[{start:'2026-09-17',end:'2026-09-21'}],days:{}};
+  sql.prepare('INSERT INTO together_people (actor,doc,revision) VALUES (?,?,?)').run('client:a',JSON.stringify(old),4);
+  await pair(['phase']);
+  const partner=await call('coach:tanmay');
+  assert.equal(partner.partner.phase.id,'follicular');assert.equal(partner.partner.phase.basis,'estimated');
+  assert.equal(partner.partner.cycle,undefined);assert.equal(partner.partner.modeChosen,undefined);
+  assert.equal(partner.partner.periods,undefined);
+  assert.equal((await call('client:a','self',{doc:old,revision:4})).status,200);
+  assert.equal((await call('client:a')).self.doc.mode,'observe');
+  assert.equal((await call('client:a')).self.doc.modeChosen,true);
+  assert.equal((await call('coach:tanmay')).partner.phase.id,null);
+  // A cached older frontend may retain the new default marker while changing only mode.
+  assert.equal((await call('client:a','self',{doc:{...old,modeChosen:false},revision:5})).status,200);
+  assert.equal((await call('client:a')).self.doc.modeChosen,true);
+  assert.equal((await call('client:a')).self.doc.mode,'observe');
+  const coach=await call('coach:tanmay');
+  assert.equal((await call('coach:tanmay','self',{doc:{...coach.self.doc,modeChosen:true},revision:coach.self.revision})).status,403);
+});
 test('phases distinguish recorded bleeding, optional estimates and unknown states',()=>{
   const doc={...emptyTogether(),mode:'estimate',periods:[{start:'2026-09-01',end:'2026-09-05'}]};
   const phase=date=>cyclePhase(doc,cycleSummary(doc,date),date);
@@ -125,7 +181,7 @@ test('page access is explicitly granted, read only, scoped to a pair and revocab
 });
 test('actual dates, leap days and cycle variability have explicit limits',()=>{
   assert.equal(validDate('2026-02-29'),false);assert.equal(addDays('2024-02-28',1),'2024-02-29');assert.equal(addDays('2026-03-28',2),'2026-03-30');
-  const d=emptyTogether();d.periods=[{start:'2026-08-01',end:'2026-08-05'},{start:'2026-08-29',end:'2026-09-02'}];
+  const d={...emptyTogether(),mode:'observe'};d.periods=[{start:'2026-08-01',end:'2026-08-05'},{start:'2026-08-29',end:'2026-09-02'}];
   assert.equal(cycleSummary(d,'2026-09-24').next,null);d.mode='estimate';
   assert.deepEqual(cycleSummary(d,'2026-09-24').next,{from:'2026-09-22',to:'2026-09-30',basedOn:'history'});
   assert.equal(cycleSummary(d,'2026-10-02').reason,'outdated');d.periods.push({start:'2026-10-09'});assert.equal(cycleSummary(d,'2026-10-10').reason,'variable');

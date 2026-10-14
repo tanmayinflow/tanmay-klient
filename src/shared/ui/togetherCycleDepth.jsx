@@ -1,4 +1,4 @@
-import React,{useId,useState} from 'react';
+import React,{useId,useRef,useState} from 'react';
 import {CYCLE_ORDER,CYCLE_DEPTH,CYCLE_HORMONES,CYCLE_MAP_LAYERS,cyclePersonalText,cycleMapSelection,resolveCycleExploration} from '../product/togetherCycleDepth.js';
 import {CycleChoices} from './togetherCycleChoices.jsx';
 import {cycleChoices} from '../product/togetherCycleChoices.js';
@@ -6,7 +6,7 @@ import {CycleMap,cycleMapStyles} from './togetherCycleMap.jsx';
 import {TmIcon} from './icons.jsx';
 
 export function CycleDepth({phase,lang='cs',onPlan,embedded=false,role='client',date='',wording='neutral'}){
-  const L=v=>lang==='en'?v[1]:cyclePersonalText(v[0],wording),partner=role==='coach',panelId=useId();
+  const L=v=>lang==='en'?v[1]:cyclePersonalText(v[0],wording),partner=role==='coach',panelId=useId(),headingRef=useRef(null);
   const [exploration,setExploration]=useState(null),[layer,setLayer]=useState('care'),[scene,setScene]=useState(null);
   const [visibleHormones,setVisibleHormones]=useState(['e2','p4']),[explainedHormone,setExplainedHormone]=useState('e2');
   const {current,shown,exploring}=resolveCycleExploration(phase,date,exploration);
@@ -15,7 +15,7 @@ export function CycleDepth({phase,lang='cs',onPlan,embedded=false,role='client',
   const {topics,topic}=cycleMapSelection(shown,layer,scene?.key===contextKey?scene.topic:'overview',role);
   const guide=shown?CYCLE_DEPTH[shown]:null;
   const updateScene=(changes)=>setScene({key:contextKey,focused,topic:topic?.id||'overview',...changes});
-  const choose=id=>{setExploration({id,current,date});setScene({key:`${date}:${current}:${id}`,focused:true,topic:'overview'});};
+  const choose=(id,focusHeading=false)=>{setExploration({id,current,date});setScene({key:`${date}:${current}:${id}`,focused:true,topic:'overview'});if(focusHeading)headingRef.current?.focus({preventScroll:true});};
   const shift=delta=>choose(CYCLE_ORDER[(CYCLE_ORDER.indexOf(shown)+delta+4)%4]);
   const changeLayer=id=>{setLayer(id);updateScene({focused:Boolean(shown),topic:'overview'});};
   const toggleHormone=id=>{setVisibleHormones(values=>values.includes(id)?values.filter(v=>v!==id):[...values,id]);setExplainedHormone(id);};
@@ -26,11 +26,11 @@ export function CycleDepth({phase,lang='cs',onPlan,embedded=false,role='client',
     <p className="tg-cycle-opening">{partner?L(['Porozumět sdílenému cyklu. A přitom nepřestat naslouchat.','Understand the shared cycle. And keep listening to each other.']):L(['Porozumět tělu a nechat prostor vlastní zkušenosti.','Understand your body and leave room for your own experience.'])}</p>
     <div className="tg-cycle-atlas-heading">
       {focused&&<button type="button" className="tg-arrow-control" onClick={()=>shift(-1)} aria-label={L(['Předchozí fáze','Previous phase'])}><TmIcon id="back" size={17}/></button>}
-      <h3>{focused&&guide?L(guide.short):L(['Mapa cyklu','Cycle map'])}</h3>
+      <h3 ref={headingRef} tabIndex={-1}>{focused&&guide?L(guide.short):L(['Mapa cyklu','Cycle map'])}</h3>
       {focused&&<button type="button" className="tg-arrow-control" onClick={()=>shift(1)} aria-label={L(['Další fáze','Next phase'])}><TmIcon id="forward" size={17}/></button>}
     </div>
     <div className="tg-cycle-layers" role="group" aria-label={L(['Vrstva mapy','Map layer'])}>{Object.entries(CYCLE_MAP_LAYERS).map(([id,name])=><button key={id} type="button" aria-pressed={layer===id} aria-controls={panelId} onClick={()=>changeLayer(id)}>{L(name)}</button>)}</div>
-    <CycleMap shown={shown} current={current} focused={focused} layer={layer} topic={topic?.id||'overview'} topics={topics} lang={lang} onPhase={choose} onTopic={id=>updateScene({topic:id})} onFocus={()=>updateScene({focused:true,topic:'overview'})} onBack={()=>updateScene({focused:false,topic:'overview'})} visibleHormones={visibleHormones} explainedHormone={explainedHormone}/>
+    <CycleMap shown={shown} current={current} focused={focused} layer={layer} topic={topic?.id||'overview'} topics={topics} lang={lang} onPhase={id=>choose(id,true)} onTopic={id=>updateScene({topic:id})} onFocus={()=>updateScene({focused:true,topic:'overview'})} onBack={()=>updateScene({focused:false,topic:'overview'})} visibleHormones={visibleHormones} explainedHormone={explainedHormone}/>
     {(exploring||(!current&&shown))&&<div className="tg-cycle-context"><button type="button" onClick={()=>{setExploration(null);setScene(null);}}>{L(['Zpět k vybranému dni','Back to the selected day'])}</button></div>}
     {focused&&layer==='body'&&topic?.id==='hormones'&&<div className="tg-cycle-hormone-controls">
       <p className="tg-cycle-caption">{L(['Schematicky, bez měření. Každá křivka má vlastní relativní výšku; koncentrace hormonů mezi sebou neporovnává.','Schematic, without measurements. Each curve has its own relative height; it does not compare hormone concentrations.'])}</p>
@@ -81,6 +81,6 @@ const cycleDepthStyles=`
 .tm-together .tg-cycle-depth .tg-cycle-question{font-family:var(--tm-font-display);font-size:25px;line-height:1.3;color:var(--tg-heading);margin:24px 0}
 .tm-together .tg-cycle-depth .tg-cycle-method{margin-top:24px}.tm-together .tg-cycle-method>summary{font-family:var(--tm-font-tag);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--tg-accent)}
 .tm-together .tg-cycle-sources{padding-left:18px}.tm-together .tg-cycle-sources li{font-size:12px}
-.tm-together .tg-cycle-depth button:focus-visible{outline:2px solid var(--tg-accent);outline-offset:3px}
-@media(max-width:360px){.tm-together .tg-cycle-atlas-heading h3{font-size:24px}.tm-together .tg-cycle-map-tools{gap:8px}.tm-together .tg-cycle-world-button.phase-choice{font-size:16px;width:112px}}
+.tm-together .tg-cycle-depth button:focus-visible,.tm-together .tg-cycle-atlas-heading h3:focus-visible{outline:2px solid var(--tg-accent);outline-offset:3px}
+@media(max-width:360px){.tm-together .tg-cycle-atlas-heading h3{font-size:24px}.tm-together .tg-cycle-map-tools{gap:8px}.tm-together .tg-cycle-world-button.phase-choice{font-size:16px}.tm-together .tg-cycle-phase-caption{width:112px}}
 `;

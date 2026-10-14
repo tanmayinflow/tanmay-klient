@@ -17,22 +17,35 @@ export function cyclePhase(doc, summary, today) {
 }
 // The selected-day view is calculated on the owner's document, never from a
 // recipient reconstructing raw dates. The API must still allowlist each grant.
-// Only explicitly future dates may roll into an unrecorded cycle. Today and
-// historical days keep their recorded cycle day, even when a period is late.
+// Future dates may roll into an unrecorded cycle. One cycle immediately before
+// the first actual start can be shown retrospectively, always as an estimate.
+// Days from the first actual start onward never wrap a late recorded cycle.
 export function cycleViewForDate(doc, date, referenceDate=dateKey()) {
   const unknown={id:null,basis:"unknown"};
   if(!validDate(date)||!validDate(referenceDate)) return {date,cycle:{day:null,next:null,reason:"empty",cycles:0},phase:unknown};
   const safeDoc={...doc,periods:cyclePeriodRecords(doc,referenceDate)};
   const cycle=cycleSummary(safeDoc,date);
+  const current=cycleSummary(safeDoc,referenceDate);
   if(date<=referenceDate) {
     const phase=cyclePhase(safeDoc,cycle,date);
+    const first=safeDoc.periods[0];
+    if(first && date<first.start && phase.basis!=='recorded' && current.reason==='estimate' && current.next) {
+      const previousStart=addDays(first.start,-current.median);
+      if(date>=previousStart) {
+        const day=dayNumber(date)-dayNumber(previousStart)+1;
+        const offset=dayNumber(first.start)-dayNumber(current.lastStart)-current.median;
+        const previous={...current,day,lastStart:previousStart,observedBleeding:false,projected:true,retrospective:true,
+          next:{...current.next,from:addDays(current.next.from,offset),to:addDays(current.next.to,offset)}};
+        const duration=cycleBleedingDuration(safeDoc,referenceDate).days;
+        return {date,cycle:previous,phase:day<=duration?{id:'menstrual',basis:'estimated'}:cyclePhase(safeDoc,previous,date)};
+      }
+    }
     const last=safeDoc.periods.filter(period=>period.start<=date).at(-1);
     const length=last?.expectedLength||cycleBleedingDuration(safeDoc,last?addDays(last.start,-1):referenceDate).days;
     const continuation=phase.basis!=='recorded' && safeDoc.mode==='estimate' && cycle.reason==='estimate' &&
       last && !last.end && date>last.start && date<=addDays(last.start,length-1);
     return {date,cycle,phase:continuation?{id:'menstrual',basis:'estimated'}:phase};
   }
-  const current=cycleSummary(safeDoc,referenceDate);
   if(current.reason!=="estimate"||!current.next||dayNumber(date)-dayNumber(referenceDate)>90) {
     return {date,cycle:{day:null,next:null,reason:current.reason==="estimate"?"horizon":current.reason,cycles:current.cycles},phase:unknown};
   }
