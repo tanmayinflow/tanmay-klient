@@ -2,6 +2,24 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MUSCLE_GROUPS, resolveMuscleMap, muscleMapEdit } from "../src/training/muscleMap.js";
 import { MUSCLE_REGIONS } from "../src/shared/ui/muscleRegions.js";
+import { FEMALE_MUSCLE_REGIONS, FEMALE_MUSCLE_REGION_META } from "../src/shared/ui/femaleMuscleRegions.js";
+
+test("female atlas covers every muscle group with independently registered, bounded front/back regions", () => {
+  assert.deepEqual(Object.keys(FEMALE_MUSCLE_REGIONS).sort(), MUSCLE_GROUPS.map(x => x.k).sort());
+  for (const [key, regions] of Object.entries(FEMALE_MUSCLE_REGIONS)) {
+    assert.ok(regions.length > 0, key);
+    assert.notDeepEqual(regions, MUSCLE_REGIONS[key], `${key} must use the female registration`);
+    assert.deepEqual(new Set(regions.map(x => x.side)), new Set(MUSCLE_REGIONS[key].map(x => x.side)), `${key} must retain all depicted views`);
+    for (const region of regions) {
+      assert.match(region.d, /^M.*Z$/);
+      const values = region.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+      assert.equal(values.length % 2, 0);
+      values.forEach((value, index) => assert.ok(value >= 0 && value <= (index % 2 ? FEMALE_MUSCLE_REGION_META.height : FEMALE_MUSCLE_REGION_META.width), key));
+    }
+  }
+  assert.ok(FEMALE_MUSCLE_REGIONS.che.every(x => x.side === "front"));
+  assert.ok(FEMALE_MUSCLE_REGION_META.throughClothing.includes("che"));
+});
 
 test("every labelled muscle has closed front or back regions within the actual illustration canvas", () => {
   assert.deepEqual(Object.keys(MUSCLE_REGIONS).sort(), MUSCLE_GROUPS.map(x => x.k).sort());

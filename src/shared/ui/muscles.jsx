@@ -1,23 +1,38 @@
 import React, { useId, useState } from "react";
 import { MUSCLE_GROUPS, resolveMuscleMap } from "../../training/muscleMap.js";
 import { MUSCLE_REGIONS } from "./muscleRegions.js";
+import { FEMALE_MUSCLE_REGIONS, FEMALE_MUSCLE_REGION_META } from "./femaleMuscleRegions.js";
+import { usePersonalProfile } from "./personalProfile.jsx";
 
-// One reviewed character pair. Original figures and component are archived.
+// Registered front/back pairs. Original figures and component are preserved.
 // Separate alpha layers keep the body and linework aligned in every theme.
 export const TM_SVALY_SRC = {
   original: "/svaly/unified-muscles-original-80e09146b69d.webp",
   ink: "/svaly/unified-muscles-ink-17b54c79d29b.webp",
   fill: "/svaly/unified-muscles-fill-b1993cd8158e.webp",
 };
+export const TM_SVALY_FEMALE_SRC = {
+  original: "/svaly/female-muscles-original-230f65557653.webp",
+  ink: "/svaly/female-muscles-ink-acc7b3c27be0.webp",
+  fill: "/svaly/female-muscles-fill-485dba73f238.webp",
+};
 const groups = Object.fromEntries(MUSCLE_GROUPS.map(group => [group.k, group]));
 
 export function createMuscleFig({ useT, L }) {
   function TmSvalyFigura({ ex, mp = [], ms = [], size = 150, fluid = false, illustration }) {
     const { t } = useT();
+    const { profile, accountKey } = usePersonalProfile();
+    // This follows the account's declared profile, including live changes and
+    // invalidation on sign-out. The figure never changes exercise assignments.
+    const female = !!accountKey && profile.wording === "female";
+    const variant = female ? "female" : "unified";
+    const sources = female ? TM_SVALY_FEMALE_SRC : TM_SVALY_SRC;
+    const regions = female ? FEMALE_MUSCLE_REGIONS : MUSCLE_REGIONS;
     const uid = useId();
     const [selected, setSelected] = useState(null);
     const [layers, setLayers] = useState({});
-    const [failed, setFailed] = useState(false);
+    const [failedVariant, setFailedVariant] = useState(null);
+    const failed = failedVariant === variant;
     const map = resolveMuscleMap(ex || { mp, ms });
     const all = [...map.primary, ...map.secondary];
     const active = all.includes(selected) ? selected : null;
@@ -29,19 +44,19 @@ export function createMuscleFig({ useT, L }) {
     const label = group => L(group.cz, group.en);
     const targeted = map.mode === "mobility";
     const activeGroup = active && groups[active];
-    const ready = layers.ink && layers.fill;
+    const ready = layers.variant === variant && layers.ink && layers.fill;
     const figure = <div style={{ minWidth: 0 }}>
-      {failed ? <div role="status" style={{ padding: "20px 8px", color: t.textMuted, fontSize: 12 }}>{L("Obrázek svalové mapy se nepodařilo načíst. Zapojené svaly jsou uvedené níže.", "The muscle map image could not be loaded. The involved muscles are listed below.")}</div> : <svg viewBox="0 80 1024 1280" aria-hidden="true" focusable="false" data-muscle-figure="unified"
+      {failed ? <div role="status" style={{ padding: "20px 8px", color: t.textMuted, fontSize: 12 }}>{L("Obrázek svalové mapy se nepodařilo načíst. Zapojené svaly jsou uvedené níže.", "The muscle map image could not be loaded. The involved muscles are listed below.")}</div> : <svg key={variant} viewBox={female ? FEMALE_MUSCLE_REGION_META.viewBox : "0 80 1024 1280"} aria-hidden="true" focusable="false" data-muscle-figure={variant}
         style={{ display: "block", width: "100%", height: "auto", overflow: "hidden" }}>
         <defs>
           {["fill", "ink"].map(layer => <mask key={layer} id={uid + layer} maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1536" style={{ maskType: "alpha" }}>
-            <image href={TM_SVALY_SRC[layer]} width="1024" height="1536" onLoad={() => setLayers(prev => ({ ...prev, [layer]: true }))} />
+            <image href={sources[layer]} width="1024" height="1536" onLoad={() => setLayers(prev => ({ ...(prev.variant === variant ? prev : {}), variant, [layer]: true }))} />
           </mask>)}
         </defs>
-        <image href={TM_SVALY_SRC.original} width="1024" height="1536" opacity={ready ? 0 : 1} onError={() => setFailed(true)} />
+        <image href={sources.original} width="1024" height="1536" opacity={ready ? 0 : 1} onError={() => setFailedVariant(variant)} />
         {ready && <g><rect width="1024" height="1536" fill={skin} mask={"url(#" + uid + "fill)"} /><rect width="1024" height="1536" fill={ink} mask={"url(#" + uid + "ink)"} /></g>}
         {[...map.secondary, ...map.primary].map(key => <g key={key} data-muscle={key} data-role={map.primary.includes(key) ? "primary" : "secondary"} opacity={active && active !== key ? 0.2 : 1}>
-          {(MUSCLE_REGIONS[key] || []).map((region, index) => <g key={index}>
+          {(regions[key] || []).map((region, index) => <g key={index}>
             <path d={region.d} fill={skin} opacity="0.85" />
             <path d={region.d} fill={areaInk} fillOpacity={map.primary.includes(key) ? 0.65 : 0.23} stroke={areaInk} strokeWidth={active === key ? 4 : 2.5} strokeLinejoin="round" strokeDasharray={map.primary.includes(key) ? undefined : "7 5"} />
           </g>)}

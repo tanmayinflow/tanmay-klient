@@ -12,7 +12,7 @@ export const ROOM_ART = Object.freeze({
   terminy: 'empty-trenink-v2.webp',
 });
 
-export const TRAINING_YOGA_ART = 'training-yoga-strap-v2.webp';
+export const TRAINING_YOGA_ART = 'training-yoga-strap-v3.webp';
 
 export function roomArtCss() {
   const s = 'html:not([data-appearance^="landscape-"])';
