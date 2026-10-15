@@ -11,6 +11,7 @@ export const ICON_ASSET_HASHES = {
   "training-icon-v2.png": "b54ab148d0a0d0f45987bdae83f02b6614ecd27e8949c8287b4ccf60ccbed6c6",
   "training-icon-small-v2.png": "eb41e5c72319204aeaac030948d674b49ead41340a6468255a70b8027e54033f",
   "training-reference-equipment.webp": "ce64a091e869eec8a630a96cd7b8c27f9479158b40d5bdce6a47a27bf9785529",
+  "training-yoga-strap-v3.webp": "895c1d41458ac1730651fbfc4df1b4b8875e3e1ef83d2805163d7e23d65c22fc",
   "journal-icon-v1.png": "0af5b40f3bcb92bea3c67584992facb4b6279f0a981e202281505b3ce6047074",
   "journal-icon-small-v1.png": "4d0e562c28da91df807b967e2498e1095e30f64ea3afa19a18e4f07f51435fb2",
   "journal-illustration-v3.png": "c9abda5a7c7e07ab3df9cb2f52dea8965b03786337a7a4b00d2e38fb1bf46448",
