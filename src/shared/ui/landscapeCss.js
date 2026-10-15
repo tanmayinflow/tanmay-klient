@@ -20,16 +20,12 @@ export function landscapeCss() {
 ${materials}
 ${s} ::selection { background: var(--tm-selection) !important; color: var(--tm-selection-text) !important; }
 
-/* The root canvas outlives the fixed body during mobile viewport/keyboard
-   changes. Give any exposed area the same material and the same sheet shade;
-   the normal portal veil remains responsible for dimming the actual page. */
+/* The document always continues the page's paper. A scroll lock is not a
+   visual layer: tinting html/body here left a gray strip when mobile browser
+   chrome exposed the canvas below a full-page editor. Only the real veil
+   dims the page behind a floating window. */
 ${s}, ${s} body, ${s} .tm-ground { background-image: var(--land-field) !important; background-size: 768px auto !important; }
-/* WebKit's bottom safe-area fallback may sample only background-color from
-   either html OR body. A root gradient alone leaves an undimmed pale strip.
-   The counted lock also keeps nested cards shaded until the last one closes. */
 ${s}[data-tm-scroll-locked="true"], ${s}[data-tm-scroll-locked="true"] body {
-  background-color: var(--tm-overlay-canvas, var(--tm-bg)) !important;
-  background-image: linear-gradient(var(--tm-overlay), var(--tm-overlay)), var(--land-field) !important;
   overscroll-behavior: none;
 }
 /* The terrain field now belongs only to Practice. Its fixed box clips the rotated art. */

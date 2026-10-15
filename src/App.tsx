@@ -1921,19 +1921,19 @@ function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat }
           <TmIcNastaveni size={16} />
         </button>
       </div>
-      {/* NÁHLED · roluje jen on. Klepnutí do textu vrací zpátky k psaní. */}
+      {/* Čtení sahá k malému zápatí a bezpečné hraně, bez rezervy na skrytý dok.
+          Klepnutí do textu vrací zpátky k psaní. */}
       <div ref={teloRef} onClick={(e) => { e.stopPropagation(); if (onPsat) onPsat(); }} className={"tm-scroll tm-nahled-telo" + (stranky ? " tm-stranky" : "")}
-        style={{ position: "absolute", left: 0, right: 0, top: "calc(64px + env(safe-area-inset-top))", bottom: "27%", overflowY: stranky ? "hidden" : "auto", overflowX: "hidden", overscrollBehavior: "contain", padding: "0 18px", cursor: "pointer" }}>
+        style={{ position: "absolute", left: 0, right: 0, top: "calc(64px + env(safe-area-inset-top))", bottom: "calc(64px + env(safe-area-inset-bottom))", overflowY: stranky ? "hidden" : "auto", overflowX: "hidden", overscrollBehavior: "contain", padding: "0 18px", cursor: "pointer" }}>
         {stranky
           ? <div className="tm-strcol"><div className="tm-rich" dangerouslySetInnerHTML={{ __html: html }} /></div>
           : <div className="tm-rich" style={{ maxWidth: 640, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: html }} />}
       </div>
-      {/* Číslo stojí POD čtenou plochou, ne v ní · v textu by leželo na
-          posledním řádku stránky. */}
-      {stranky && <CisloStranky strana={str.strana} pocet={str.pocet} t={t} style={{ bottom: "calc(27% - 26px)", right: 18 }} />}
-      {/* holá plocha pod náhledem · šeptem řekne, co udělá klepnutí */}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(16px + env(safe-area-inset-bottom))", textAlign: "center", fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: hexA(t.textMuted, 0.75), pointerEvents: "none" }}>
-        {L("Klepnutím se vrátíš k psaní", "Tap to go back to writing")}
+      {/* Nápověda i počet stránek mají společné malé zápatí. Text může
+          zalomit a číslo zůstává vedle něj, nikdy přes poslední řádek čtení. */}
+      <div style={{ position: "absolute", left: 18, right: 18, bottom: "calc(16px + env(safe-area-inset-bottom))", display: "flex", alignItems: "center", gap: 12, fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, lineHeight: 1.5, color: hexA(t.textMuted, 0.75), pointerEvents: "none" }}>
+        <span style={{ flex: 1, minWidth: 0, textAlign: "center" }}>{L("Klepnutím se vrátíš k psaní", "Tap to go back to writing")}</span>
+        {stranky && <CisloStranky strana={str.strana} pocet={str.pocet} t={t} style={{ position: "static", flexShrink: 0, fontStyle: "normal", whiteSpace: "nowrap" }} />}
       </div>
       {nastaveni && <NastaveniPoznamky entry={entry} kind={kind} tags={tags} onClose={() => setNastaveni(false)} onPryc={() => { setNastaveni(false); onZavri(); }} />}
     </div>,

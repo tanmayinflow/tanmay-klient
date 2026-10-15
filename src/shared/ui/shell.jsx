@@ -273,6 +273,10 @@ export function shellMobileCss(t) {
      ztmavený závoj — ten „šedý pruh". Teď má výšku celého displeje: nic pod ním
      není, protože není žádné „pod ním". Nadpis stojí nahoře, text
      roluje pod ním, psací lišta dosedne na spodní hranu. */
+  /* The paper and its veil cover the dynamic viewport, including the area
+     normally occupied by the dock. Border-box keeps safe-area padding inside
+     that coverage; inset:0 remains the fallback in older browsers. */
+  :is(.tm-ground,.tm-cs-veil,.tm-drawer,.tm-nahled,.tm-zen,.tm-dim) { min-height: 100dvh; box-sizing: border-box; }
   .tm-cs-veil { padding: 0 !important; align-items: stretch !important; }
   /* Fill the fixed veil itself. A separately rounded 100dvh can be shorter
      than inset:0 at mobile text scales, exposing the dimmed page below.

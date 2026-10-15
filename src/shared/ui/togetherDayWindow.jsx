@@ -9,8 +9,10 @@ export function TogetherDayWindow({Sheet,t,lang,day,panel,onPanel,onClose,canTra
   return <Sheet title={L("Zápis dne","Day entry")} onClose={onClose}>
     <div className="tm-together tg-day-window" style={togetherTheme(t)}>
       <style>{`
-        .tm-cs-veil:has(.tg-day-window){align-items:center!important;padding:max(24px,calc(5 * var(--tm-dvh))) 8px!important;backdrop-filter:blur(2px)}
-        .tm-cs:has(.tg-day-window){width:min(620px,100%)!important;height:auto!important;max-height:calc(90 * var(--tm-dvh))!important;border-radius:22px!important;overflow:auto!important;box-shadow:0 20px 65px rgba(15,12,9,.32)!important}
+        @media(min-width:821px){
+          .tm-cs-veil:has(.tg-day-window){align-items:center!important;padding:max(24px,calc(5 * var(--tm-dvh))) 8px!important;backdrop-filter:blur(2px)}
+          .tm-cs:has(.tg-day-window){width:min(620px,100%)!important;height:auto!important;max-height:calc(90 * var(--tm-dvh))!important;border-radius:22px!important;overflow:auto!important;box-shadow:0 20px 65px rgba(15,12,9,.32)!important}
+        }
         .tg-day-window .tg-day-date{font-family:var(--tm-font-display);font-size:27px;line-height:1.2;text-transform:none;letter-spacing:normal;font-weight:400;color:var(--tg-heading);margin:10px 0 20px}
         .tg-day-window .fields{align-items:end}
         .tg-day-window .tg-day-tabs{display:flex;gap:8px;border-bottom:1px solid var(--tg-soft);margin-bottom:20px}
