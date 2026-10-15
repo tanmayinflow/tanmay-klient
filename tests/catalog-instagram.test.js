@@ -11,7 +11,7 @@ test('an already migrated library receives 16 practical cards once, preserving p
   const edited = { ...INSTAGRAM_EXERCISES[0], cz: 'Moje varianta', ez: 'my_exercise' };
   const custom = { id: 'my_exercise', cz: 'Vlastní cvik' };
   const original = {
-    exerciseExpansion20261011: true, exerciseAudit20261013: true, kettlebellExpansion20261015: true,
+    exerciseExpansion20261011: true, exerciseAudit20261013: true, kettlebellExpansion20261015: true, instagramContinuation20261015: true,
     tEx: [edited, custom], tPl: [{ id: 'plan' }], tWo: [{ id: 'workout' }], tLog: [{ exId: edited.id, seconds: 12 }],
   };
   const snapshot = structuredClone(original);
