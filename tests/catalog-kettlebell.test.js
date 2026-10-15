@@ -5,13 +5,14 @@ import {seedExerciseExpansion} from '../src/training/catalogExpansion.js';
 import {extensionFor} from '../src/training/catalogV2.js';
 import {resolveExercise} from '../src/training/catalog.js';
 import {KETTLEBELL_ART} from '../src/training/kettlebellArt.js';
+import {INSTAGRAM_EXERCISES} from '../src/training/catalogInstagram.js';
 import {existsSync} from 'node:fs';
 
 test('already migrated libraries receive kettlebells without restoring old deletions or overwriting edits',()=>{
  const edited={...KETTLEBELL_EXERCISES[0],cz:'Moje upravená karta'},custom={id:'user_kb'};
  const original={exerciseExpansion20261011:true,exerciseAudit20261013:true,tEx:[edited,custom],tPl:[{id:'plan'}],tWo:[{id:'workout'}],tLog:[{exId:edited.id,reps:8}]};
  const result=seedExerciseExpansion(original);
- assert.equal(result.tEx.length,31);
+ assert.equal(result.tEx.length,31+INSTAGRAM_EXERCISES.length);
  assert.equal(result.tEx[0],edited);assert.equal(result.tEx[1],custom);
  assert.ok(result.tEx.every(x=>!x.id.startsWith('ex26_')),'Do not restore deleted older expansion');
  for(const key of ['tPl','tWo','tLog'])assert.equal(result[key],original[key]);

@@ -1,6 +1,8 @@
 // Library expansion 2026-10-11. Independent coaching copy; references establish technique, not universal endorsement.
 import { applyExerciseCorrections } from './catalogCorrections.js';
 import { KETTLEBELL_EXERCISES, seedKettlebellExpansion } from './catalogKettlebell.js';
+import { INSTAGRAM_EXERCISES, seedInstagramExpansion } from './catalogInstagram.js';
+import { applyPracticalCorrections } from './catalogPracticalCorrections.js';
 export const EXPANSION_EXERCISES = [
   {
     "id": "ex26_mb_chestpass",
@@ -28269,7 +28271,10 @@ export const EXPANSION_META ={
 
 /** Add only missing cards once. Preserve user rows, programmes and logs by reference. */
 export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES) {
-  return seedKettlebellExpansion(seedOriginalExpansion(collection, seedRows), seedRows === EXPANSION_EXERCISES ? KETTLEBELL_EXERCISES : seedRows);
+  const withOriginal = seedOriginalExpansion(collection, seedRows);
+  const withKettlebells = seedKettlebellExpansion(withOriginal, seedRows === EXPANSION_EXERCISES ? KETTLEBELL_EXERCISES : seedRows);
+  const withInstagram = seedInstagramExpansion(withKettlebells, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_EXERCISES : seedRows);
+  return applyPracticalCorrections(withInstagram);
 }
 
 function seedOriginalExpansion(collection, seedRows) {

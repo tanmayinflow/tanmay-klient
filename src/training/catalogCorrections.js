@@ -49,7 +49,12 @@ function correctedValue(field, current, before, after) {
  * migration tests; production defaults to the audited before/after snapshot.
  */
 export function applyExerciseCorrections(collection, corrections = EXPANSION_CORRECTIONS) {
-  if (!collection || typeof collection !== 'object' || collection[AUDIT_FLAG]) return collection;
+  return applyCatalogCorrections(collection, corrections, AUDIT_FLAG);
+}
+
+/** Shared guarded editor; each release supplies its own one-time marker. */
+export function applyCatalogCorrections(collection, corrections, auditFlag) {
+  if (!collection || typeof collection !== 'object' || collection[auditFlag]) return collection;
   const previous = collection.tEx;
   let nextRows = previous;
   if (Array.isArray(previous)) {
@@ -77,6 +82,6 @@ export function applyExerciseCorrections(collection, corrections = EXPANSION_COR
     });
   }
   return nextRows === previous
-    ? { ...collection, [AUDIT_FLAG]: true }
-    : { ...collection, [AUDIT_FLAG]: true, tEx: nextRows };
+    ? { ...collection, [auditFlag]: true }
+    : { ...collection, [auditFlag]: true, tEx: nextRows };
 }
