@@ -8,6 +8,7 @@
 // ----------------------------------------------------------------------
 // Bez DOMu se tenhle soubor neptá na nic, takže se dá spustit v testu.
 // Komponenty, které z něj žijí, jsou v ui/overlay.jsx.
+import { tmStartLockedViewport } from "./overlayViewport.js";
 
 /* Escape patří vždycky jen nejvýš položené vrstvě. Dokud si každý překryv
    držel vlastní posluchač, jedno klepnutí zavřelo všechny naráz: hledání
@@ -53,12 +54,14 @@ export const tmListovaniSpi = () => TM_LISTOVANI > 0;
    Počítadlo je tu kvůli vrstvení: list nad listem nesmí zámek pustit dřív,
    než se zavře i ten spodní. */
 export const TM_ZAMEK = { pocet: 0, y: 0, rootAttribute: null };
+let stopLockedViewport = null;
 
 export function tmZamkniStranku() {
   if (typeof document === "undefined") return;
   TM_ZAMEK.pocet += 1;
   if (TM_ZAMEK.pocet > 1) return;
   TM_ZAMEK.y = window.scrollY || window.pageYOffset || 0;
+  stopLockedViewport = tmStartLockedViewport(window, document);
   const root = document.documentElement;
   if (root) {
     TM_ZAMEK.rootAttribute = root.getAttribute("data-tm-scroll-locked");
@@ -85,6 +88,8 @@ export function tmOdemkniStranku() {
   b.style.left = "";
   b.style.right = "";
   b.style.width = "";
+  if (stopLockedViewport) stopLockedViewport();
+  stopLockedViewport = null;
   const root = document.documentElement;
   if (root) {
     if (TM_ZAMEK.rootAttribute === null) root.removeAttribute("data-tm-scroll-locked");

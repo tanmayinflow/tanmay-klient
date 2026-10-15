@@ -71,6 +71,23 @@ export const SHELL_ROOT_CSS = `
   --tm-kraj: calc(var(--tm-safe-b) + 12px);
 }
 
+/* One measured visible rectangle for all full-screen layers, also when a
+   phone is sideways or the keyboard changes the layout viewport. Desktop
+   drawers retain their right-hand width and centered sheets their card. */
+:root[data-tm-scroll-locked="true"] :is(.tm-cs-veil,.tm-nahled,.tm-zen,.tm-dim) {
+  top: var(--tm-overlay-top, 0px) !important; left: var(--tm-overlay-left, 0px) !important;
+  right: auto !important; bottom: auto !important;
+  width: var(--tm-overlay-width, 100%) !important;
+  height: var(--tm-overlay-height, 100dvh) !important;
+  min-height: 0 !important; max-height: none !important; box-sizing: border-box;
+}
+:root[data-tm-scroll-locked="true"] .tm-drawer {
+  top: var(--tm-overlay-top, 0px) !important; bottom: auto !important;
+  height: var(--tm-overlay-height, 100dvh) !important;
+  min-height: 0 !important; max-height: none !important; box-sizing: border-box;
+}
+.tm-ground { min-height: max(100dvh, var(--tm-canvas-height, 0px)); box-sizing: border-box; }
+
 /* Native controls retain their semantics, labels and keyboard behavior. Only
    their paint is shared; a checked control never adds an opaque paper tile.
    These properties deliberately outrank older local and inline form styles. */
@@ -273,10 +290,11 @@ export function shellMobileCss(t) {
      ztmavený závoj — ten „šedý pruh". Teď má výšku celého displeje: nic pod ním
      není, protože není žádné „pod ním". Nadpis stojí nahoře, text
      roluje pod ním, psací lišta dosedne na spodní hranu. */
-  /* The paper and its veil cover the dynamic viewport, including the area
-     normally occupied by the dock. Border-box keeps safe-area padding inside
-     that coverage; inset:0 remains the fallback in older browsers. */
-  :is(.tm-ground,.tm-cs-veil,.tm-drawer,.tm-nahled,.tm-zen,.tm-dim) { min-height: 100dvh; box-sizing: border-box; }
+  :root[data-tm-scroll-locked="true"] .tm-drawer {
+    left: var(--tm-overlay-left, 0px) !important;
+    right: auto !important; bottom: auto !important;
+    width: var(--tm-overlay-width, 100%) !important;
+  }
   .tm-cs-veil { padding: 0 !important; align-items: stretch !important; }
   /* Fill the fixed veil itself. A separately rounded 100dvh can be shorter
      than inset:0 at mobile text scales, exposing the dimmed page below.
