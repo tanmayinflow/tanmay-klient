@@ -1,5 +1,7 @@
 // Reviewed original character illustrations. Existing atlas identities remain unchanged.
+import { KETTLEBELL_ART } from './kettlebellArt.js';
 export const EXPANSION_ART = {
+  ...KETTLEBELL_ART,
   "ex26_mb_chestpass": {
     "appId": "ex26_mb_chestpass",
     "atlasId": "ex26_mb_chestpass",

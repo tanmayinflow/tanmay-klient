@@ -7,13 +7,14 @@ import {CREATOR_ART} from '../src/library/creator-art.js';
 import {MOBILITY_ART} from '../src/library/mobility-art.js';
 import {EXPANSION_ART} from '../src/training/expansionArt.js';
 import {EXPANSION_EXERCISES} from '../src/training/catalogExpansion.js';
+import {KETTLEBELL_EXERCISES} from '../src/training/catalogKettlebell.js';
 test('client carries every static library illustration used by assigned workouts',()=>{
  const all={...MOVEMENT_ATLAS,...MOBILITY_ART,...CREATOR_ART,...SUPPLEMENT_ART,...EXPANSION_ART};
  assert.equal(EXPANSION_EXERCISES.length,376);
- assert.equal(Object.keys(all).length,660+EXPANSION_EXERCISES.length);
+ assert.equal(Object.keys(all).length,660+EXPANSION_EXERCISES.length+KETTLEBELL_EXERCISES.length);
  for(const [id,item] of Object.entries(all))for(const kind of ['thumb','detail'])assert.ok(existsSync(new URL('../public'+item.primary[kind],import.meta.url)),id+' '+kind);
 });
 test('every new client exercise has all six local illustration derivatives',()=>{
- assert.deepEqual(new Set(Object.keys(EXPANSION_ART)),new Set(EXPANSION_EXERCISES.map(x=>x.id)));
+ assert.deepEqual(new Set(Object.keys(EXPANSION_ART)),new Set([...EXPANSION_EXERCISES,...KETTLEBELL_EXERCISES].map(x=>x.id)));
  for(const [id,item] of Object.entries(EXPANSION_ART))for(const kind of ['thumb','detail','inkThumb','inkDetail','fillThumb','fillDetail'])assert.ok(existsSync(new URL('../public'+item.primary[kind],import.meta.url)),id+' '+kind);
 });

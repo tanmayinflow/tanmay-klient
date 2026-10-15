@@ -1,5 +1,6 @@
 // Library expansion 2026-10-11. Independent coaching copy; references establish technique, not universal endorsement.
 import { applyExerciseCorrections } from './catalogCorrections.js';
+import { KETTLEBELL_EXERCISES, seedKettlebellExpansion } from './catalogKettlebell.js';
 export const EXPANSION_EXERCISES = [
   {
     "id": "ex26_mb_chestpass",
@@ -28268,6 +28269,10 @@ export const EXPANSION_META ={
 
 /** Add only missing cards once. Preserve user rows, programmes and logs by reference. */
 export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES) {
+  return seedKettlebellExpansion(seedOriginalExpansion(collection, seedRows), seedRows === EXPANSION_EXERCISES ? KETTLEBELL_EXERCISES : seedRows);
+}
+
+function seedOriginalExpansion(collection, seedRows) {
   if (!collection) return collection;
   if (collection.exerciseExpansion20261011) return applyExerciseCorrections(collection);
   const previous = collection.tEx || [];
