@@ -9731,7 +9731,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
   onOverRef.current = (overId) => stRef.current.reorderEntry("tEx", ex.id, overId);
   useHoldReorder(rootRef, ex.id, "data-tex", onOverRef, offRef);
   return (
-    <div ref={rootRef} data-tex={ex.id}
+    <div ref={rootRef} data-tex={ex.id} className="tm-exercise-card"
       draggable={!!drag && !selecting}
       onDragStart={drag ? (e) => { e.dataTransfer.setData("text/plain", "tex:" + ex.id); e.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragOver={drag ? (e) => { e.preventDefault(); setOver(true); } : undefined}
@@ -9745,9 +9745,9 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
       <div style={{ width: "100%", flexShrink: 0 }}>
         <TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />
       </div>
-      <div style={{ minWidth: 0, width: "100%", padding: "11px 15px 13px", boxSizing: "border-box" }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18.5, color: t.heading, lineHeight: 1.25, marginBottom: 4 }}>{tExName(ex)}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <div className="tm-exercise-card-copy" style={{ minWidth: 0, width: "100%", padding: "11px 15px 13px", boxSizing: "border-box" }}>
+        <div className="tm-exercise-card-title" style={{ fontFamily: FONT_DISPLAY, fontSize: 18.5, color: t.heading, lineHeight: 1.25, marginBottom: 4 }}>{tExName(ex)}</div>
+        <div className="tm-exercise-card-meta" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>{L(pat.cz, pat.en)}</span>
           <TDemandDots v={tLvlOf(ex)} />
           <TExShelf ex={ex} />
@@ -13626,7 +13626,7 @@ function PageTrenink() {
             <input data-guide="trenink.library" aria-label={L("Hledat cvik","Search exercises")} value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ ...inpStyle, width: 160 }} />
             <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginLeft: "auto" }}>{sorted.length} {L("cviků", "exercises")}</span>
           </div>
-          <div className="tm-reveal" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(235px, 1fr))", gap: 12 }}>
+          <div className="tm-reveal tm-exercise-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(235px, 1fr))", gap: 12 }}>
             {sorted.slice(0, exShown).map((ex) => <TExCard key={ex.id} ex={ex} onOpen={() => setOpenEx(ex.id)} />)}
           </div>
           {sorted.length > exShown ? (

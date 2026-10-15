@@ -170,32 +170,27 @@ export function shellMobileCss(t) {
   /* z-index must carry !important — the aside has an inline zIndex:1 that
      otherwise wins, leaving the menu painted UNDER <main> and the dim layer
      (visible through them, unclickable). Anchored to the viewport explicitly. */
-  /* Panel visí na středu obrazovky, ne u horní hrany. Ukotvený
-     nahoře se svým rohem lezl do stavové lišty a do výřezu pro
-     kameru — a i s odsazením bezpečné zóny to na kraji tísnilo.
-     Vystředěný má nad sebou i pod sebou stejný vzduch. Dok pod
-     ním nehraje roli: při otevřeném panelu leží pod závojem
-     (dim 55 > dok 50), takže panel smí být delší a rezervovat
-     místo jen stavové liště s výřezem — plus 12 px dechu.
-     Bere se větší z obou bezpečných zón, aby střed zůstal středem. */
-  .tm-sidebar { --tm-sb-vzduch: max(calc(env(safe-area-inset-top) + 12px), calc(env(safe-area-inset-bottom) + 12px), 24px);
+  /* Center the menu in the usable space ABOVE the dock. Its organic edge
+     reaches 48 px above the buttons; retain a further 16 px of page between
+     the two surfaces, even when a short screen makes the menu scroll. */
+  .tm-sidebar { --tm-sb-top: max(calc(env(safe-area-inset-top, 0px) + 12px), 24px);
+    --tm-sb-bottom: calc(var(--tm-dok-dno) + var(--tm-dok-v) + 48px + 16px);
+    --tm-sb-height: max(0px, calc(100 * var(--tm-dvh) - var(--tm-sb-top) - var(--tm-sb-bottom)));
     /* Odsazení i výška musí být důrazné · panel má obojí v přímém
        stylu (sticky pro široké plátno) a přímý styl by pravidlo
        přebil. Přesně proto se panel držel u horní hrany, i když
        pravidlo říkalo něco jiného. */
-    position: fixed !important; top: 50% !important; left: 12px; bottom: auto !important; height: auto !important; margin: 0 !important;
-    max-height: calc(calc(100 * var(--tm-dvh)) - 2 * var(--tm-sb-vzduch));
+    position: fixed !important; top: calc(var(--tm-sb-top) + var(--tm-sb-height) / 2) !important;
+    left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px)); bottom: auto !important; height: auto !important; margin: 0 !important;
+    max-height: var(--tm-sb-height); box-sizing: border-box;
     z-index: 60 !important; transform: translate(-110%, -50%);
     transition: transform .25s ease, box-shadow .25s ease;
-    width: min(300px, calc(84 * var(--tm-vw))) !important;
+    width: min(284px, calc(80 * var(--tm-vw))) !important;
     border: 1px solid ${t.borderSoft} !important; border-radius: 24px;
     padding-top: 18px !important; padding-bottom: 12px !important; }
   .tm-sidebar.collapsed { margin-left: 0; }
-  /* PŘESNĚ NA MÍRU OBSAHU. Panel nemá co rolovat — je to rozcestník,
-     ne stránka. Aby se všechno vešlo i s klávesnicí položek, zhustí
-     se řádky, schová se motto (na telefonu je dole dok, věta by se
-     opakovala při každém otevření) a poslední řádkou je Koš.
-     overflow zůstává auto jen jako pojistka pro ležato. */
+  /* Grow only as far as the contents need. On short screens the navigation
+     scrolls inside this limit, preserving both the notch and the dock gap. */
   .tm-sidebar { height: auto !important; overflow-y: auto; overscroll-behavior: contain; }
   .tm-sidebar .tm-sbmotto { display: none; }
   /* RYTMUS · logo→hledání→DEN dýchají stejným krokem (16 px),

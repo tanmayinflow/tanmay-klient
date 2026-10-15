@@ -41,5 +41,15 @@ html[data-appearance] .tm-page-title[data-art-room="prameny"]::before { top: 18p
 .tm-spell-controls span { font: 400 12px/1.3 var(--tm-font-tag); letter-spacing: .12em; }
 @media (max-width: 370px) { .tm-spell-composition { grid-template-columns: 56px minmax(0, 1fr); gap: 10px; } .tm-spell-reading p { font-size: calc(17px * var(--tm-read, 1)); } }
 
+/* Compact phone library: four complete cards in two rows while browsing. */
+.tm-exercise-grid, .tm-exercise-card { min-width: 0; }
+@media (max-width: 820px) {
+  .tm-exercise-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+  .tm-exercise-grid .tm-exercise-card-copy { padding: 9px 10px 11px !important; }
+  .tm-exercise-grid .tm-exercise-card-title { font-size: 17px !important; overflow-wrap: anywhere; }
+  .tm-exercise-grid .tm-exercise-card-meta { gap: 4px 6px !important; }
+  .tm-exercise-grid .tm-exercise-card-meta > span { max-width: 100%; box-sizing: border-box; white-space: normal !important; overflow-wrap: anywhere; }
+}
+
 `;
 }
