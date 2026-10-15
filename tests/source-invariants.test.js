@@ -60,8 +60,9 @@ test("synchronizace nezačne dřív, než padne identita", () => {
 });
 
 test("selhání zápisu do úložiště se ohlásí", () => {
-  assert.match(app, /function saveColl\(c\)[^\n]*tmSaveFailed\("coll"\)/);
-  assert.match(app, /function saveEdits\(e\)[^\n]*tmSaveFailed\("edits"\)/);
+  assert.match(app, /function saveColl\(c\)[^\n]*TM_LOCAL_WRITER\.write\(LS_COLL, c, "coll"\)/);
+  assert.match(app, /function saveEdits\(e\)[^\n]*TM_LOCAL_WRITER\.write\(LS_KEY, e, "edits"\)/);
+  assert.match(app, /createLocalDocumentWriter\(\{[^\n]*onChange: tmSaveState/);
 });
 
 test("přepínač sdílení tréninku ukládá pod klíčem, pod kterým se čte", () => {

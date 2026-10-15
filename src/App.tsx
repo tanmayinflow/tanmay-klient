@@ -1,4 +1,6 @@
 import {createContentWorkshopUI} from './shared/ui/contentWorkshop.jsx';
+import { createLocalDocumentWriter, localSaveMessage, localSaveDiagnostic } from './shared/product/localPersistence.js';
+import { LocalStorageStatus } from './shared/ui/localStorageStatus.jsx';
 
 import {mergeContentSnapshot,fetchContentLibrary} from './shared/product/contentWorkshop.js';
 import {prepareContentClientMigration,CLIENT_CONTENT_TOPICS} from './shared/product/contentClientPolicy.js';
@@ -187,15 +189,17 @@ const LS_KEY = "tanmay_edits_v1";
 // Tiché selhání je jediná chyba, kterou si software nesmí dovolit: text zůstane
 // na obrazovce (drží ho React), ale po zavření záložky je pryč. Prohlížeč zápis
 // odmítne hlavně při vyčerpané kvótě — od téhle vlny to aplikace řekne nahlas.
-let TM_ON_SAVE_FAIL = null;
-const tmSaveFailed = (where) => { try { TM_ON_SAVE_FAIL && TM_ON_SAVE_FAIL(where); } catch (e) {} };
+let TM_ON_SAVE_FAIL = null, TM_SAVE_STATE = null;
+const tmSaveState = failure => { TM_SAVE_STATE = failure; try { TM_ON_SAVE_FAIL?.(failure); } catch {} };
+const tmSaveFailed = (where, error) => tmSaveState({ where, name: error?.name || "Error", kind: "unknown" });
+const TM_LOCAL_WRITER = createLocalDocumentWriter({ getStorage: () => window.localStorage, onChange: tmSaveState });
 function loadEdits() { try { const r = window.localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : {}; } catch (e) { return {}; } }
-function saveEdits(e) { try { window.localStorage.setItem(LS_KEY, JSON.stringify(e)); return true; } catch (err) { tmSaveFailed("edits"); return false; } }
+function saveEdits(e) { return TM_LOCAL_WRITER.write(LS_KEY, e, "edits"); }
 const LS_COLL = "tanmay_coll_v1";
 
 
 function loadColl() { try { const r = window.localStorage.getItem(LS_COLL); return r ? JSON.parse(r) : { goals: {}, journal: [], notebook: [] }; } catch (e) { return { goals: {}, journal: [], notebook: [] }; } }
-function saveColl(c) { try { window.localStorage.setItem(LS_COLL, JSON.stringify(c)); return true; } catch (err) { tmSaveFailed("coll"); return false; } }
+function saveColl(c) { return TM_LOCAL_WRITER.write(LS_COLL, c, "coll"); }
 const COLL_EMPTY = () => ({ goals: {}, journal: [], notebook: [] });
 
 // ————————————————————————————————————————————————————————————
@@ -211,6 +215,7 @@ const LS_OWNER = "tm_owner_v1";
 function ownerLoad() { try { return window.localStorage.getItem(LS_OWNER) || ""; } catch (e) { return ""; } }
 function ownerSave(tag) { try { window.localStorage.setItem(LS_OWNER, tag); } catch (e) {} }
 async function ownerQuarantine(prevTag) {
+  if (TM_LOCAL_WRITER.currentFailure()) throw new Error("UnsavedLocalChanges");
   const suffix = "__owner_" + (prevTag || "neznamy") + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
   // Motiv je taky volba předchozího člověka. Bez tohohle by klient B otevřel
   // aplikaci v barvě, kterou si nikdy nevybral — a v barvě, která o klientovi
@@ -237,6 +242,7 @@ async function ownerQuarantine(prevTag) {
   // Local audio/files stay in their existing IndexedDB namespace. The next
   // account gets another namespace; no offline attachment is deleted.
   for (const k of keys) window.localStorage.removeItem(k);
+  TM_LOCAL_WRITER.clearPending();
 }
 
 const clientAccount = createClientSession();
@@ -15156,8 +15162,8 @@ export default function App() {
   const [editMode, setEditMode] = useState(false);
   const [confirmBox, setConfirmBox] = useState(null); // { msg, onYes } — onYes=null means info-only
   // hlasité selhání zápisu · jeden příznak pro celou relaci
-  const [saveErr, setSaveErr] = useState(false);
-  React.useEffect(() => { TM_ON_SAVE_FAIL = () => setSaveErr(true); return () => { TM_ON_SAVE_FAIL = null; }; }, []);
+  const [saveErr, setSaveErr] = useState(TM_SAVE_STATE);
+  React.useEffect(() => { TM_ON_SAVE_FAIL = setSaveErr; setSaveErr(TM_SAVE_STATE); return () => { TM_ON_SAVE_FAIL = null; }; }, []);
   // ask(msg, onYes) · Zrušit + Potvrdit
   // ask(msg, onYes, { yes, alt: { label, onClick } }) · Zrušit + [alt] + [yes] — the third
   // button is what lets a delete dialog offer "just this one" next to "delete all".
@@ -17209,8 +17215,9 @@ export default function App() {
         {member === false && <InviteGate />}
         {saveErr && (
           <div role="status" aria-live="polite" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 400, background: t.accent, color: t.onAccent || t.bg, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
-            <span style={{ flex: 1, minWidth: 200 }}>{L("Uložení selhalo — místní úložiště je plné. Co vidíš na obrazovce, zatím není uložené.", "Saving failed — local storage is full. What you see is not saved yet.")}</span>
-            <button onClick={() => setSaveErr(false)} style={{ background: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
+            <span style={{ flex: 1, minWidth: 200 }}>{localSaveMessage(saveErr, L)}<details style={{ fontSize: 11 }}><summary>{L("Podrobnosti chyby", "Error details")}</summary>{localSaveDiagnostic(saveErr, L)}</details></span>
+            <button disabled={!dataAccess.canExport} onClick={downloadClientBackup} style={{ background: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}>{L("Stáhnout zálohu", "Download backup")}</button>
+            <button onClick={() => { if (clientAccount.isCurrent(ownerId)) { saveColl(_collRef.current); saveEdits(_editsRef.current); } }} style={{ background: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Zkusit uložit znovu", "Try saving again")}</button>
           </div>
         )}
         {/* NEDOŠLO NA SERVER · proužek říká PROČ a nabízí jen to, co může zabrat.
@@ -17488,6 +17495,7 @@ export default function App() {
                 <span style={{ flex: 1, minWidth: 0 }}>{L("Stáhnout zálohu", "Download backup")}<span style={{ display: "block", color: t.textSec, fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>{L("ZIP s čitelnými texty a daty tohoto dokumentu, včetně neodeslaných změn.", "A ZIP with readable text and this document’s data, including unsent changes.")}</span></span>
               </button>
               <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textSec, margin: "0 8px 16px", lineHeight: 1.55 }}>{L("Přílohy, samostatná data Spolu, profil účtu a rezervace v záloze nejsou.", "Attachments, separate Together data, account profile and bookings are not included.")}</p>
+              {dataAccess.canExport && <LocalStorageStatus t={t} L={L} getDocument={() => ({ coll: _collRef.current, edits: _editsRef.current })} writer={TM_LOCAL_WRITER} />}
               <button className="tm-nav-item" disabled={!dataAccess.canReset || manualSyncBusy} onClick={()=>confirmPracticeReset()}
                 style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", padding: "12px 8px", minHeight: 48, background: "transparent", border: "none", borderRadius: 10, color: t.text, cursor: dataAccess.canReset ? "pointer" : "default", opacity: dataAccess.canReset ? 1 : 0.55, fontFamily: FONT_BODY, fontSize: 13 }}>
                 <FamilyIcon id="undo" size={18}/><span>{L("Vynulovat praxi", "Reset practice")}</span>
