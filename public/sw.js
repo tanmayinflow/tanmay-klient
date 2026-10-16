@@ -54,6 +54,10 @@ self.addEventListener("fetch", (event) => {
 
   if (url.origin !== location.origin) return;
 
+  // Motion is on demand. Let native HTTP byte ranges work; never pin videos
+  // in the generic unbounded asset cache, including cached full responses.
+  if (url.pathname.startsWith("/exercise-motion/") || req.headers.has("Range")) return;
+
   // App navigations: network-first, fall back to cached shell offline.
   if (req.mode === "navigate") {
     event.respondWith(networkFirstDoc(req));

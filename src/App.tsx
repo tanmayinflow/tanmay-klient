@@ -1,3 +1,4 @@
+import { ExerciseMotion } from './shared/ui/ExerciseMotion.jsx';
 import {createContentWorkshopUI} from './shared/ui/contentWorkshop.jsx';
 import { createLocalDocumentWriter, localSaveMessage, localSaveDiagnostic } from './shared/product/localPersistence.js';
 import { LocalStorageStatus } from './shared/ui/localStorageStatus.jsx';
@@ -9817,6 +9818,7 @@ function TExDetail({ exId, onClose, onOpen }) {
         </>
       )}
       <TMuscleMap ex={ex} mp={ex.mp} ms={ex.ms} fluid illustration={<TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />} />
+      <ExerciseMotion key={ex.id} exercise={ex} theme={t} L={L} />
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "6px 0 16px" }}>
         <Bindu size={7} style={{ marginTop: 6, flexShrink: 0 }} />
         <span style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: t.textMuted }}><span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage, marginRight: 8 }}>{L("bod pozornosti", "focus point")}</span><span style={{ fontStyle: "italic", color: t.sand, fontSize: 14.5 }}>{TL(ex.foc)}</span></span>
