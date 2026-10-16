@@ -1,3 +1,4 @@
+import { exerciseMotionAsset } from '../src/shared/product/exerciseMotionAsset.js';
 import { STATE_LIMIT, ensureStateStorage, encodeState, readStateMeta, readStateDocument, writeStateDocument, stateFailure } from "../src/shared/product/stateStorage.js";
 import { handleContentLibrary } from "./contentLibrary.js";
 import { marketFrameResponse } from "../src/shared/product/marketFramePolicy.js";
@@ -494,6 +495,8 @@ export default {
     }
 
     if (url.pathname === "/market-chart.html") return marketFrameResponse(withSecurityHeaders(await env.ASSETS.fetch(request)));
+    const motion = await exerciseMotionAsset(request, env.ASSETS);
+    if (motion) return withSecurityHeaders(motion);
     return withSecurityHeaders(await env.ASSETS.fetch(request));
   },
 };
