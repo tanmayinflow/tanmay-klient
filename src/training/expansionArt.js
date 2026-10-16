@@ -3,11 +3,13 @@ import { KETTLEBELL_ART } from './kettlebellArt.js';
 import { INSTAGRAM_ART } from './instagramArt.js';
 import { INSTAGRAM_CONTINUATION_ART } from './instagramContinuationArt.js';
 import { INSTAGRAM_CLIENT_NEXT_ART } from './instagramClientNextArt.js';
+import { INSTAGRAM_DEEP_REVIEW_ART } from './instagramDeepReviewArt.js';
 export const EXPANSION_ART = {
   ...KETTLEBELL_ART,
   ...INSTAGRAM_ART,
   ...INSTAGRAM_CONTINUATION_ART,
   ...INSTAGRAM_CLIENT_NEXT_ART,
+  ...INSTAGRAM_DEEP_REVIEW_ART,
   "ex26_mb_chestpass": {
     "appId": "ex26_mb_chestpass",
     "atlasId": "ex26_mb_chestpass",

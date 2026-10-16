@@ -4,6 +4,7 @@ import { KETTLEBELL_EXERCISES, seedKettlebellExpansion } from './catalogKettlebe
 import { INSTAGRAM_EXERCISES, seedInstagramExpansion } from './catalogInstagram.js';
 import { INSTAGRAM_CONTINUATION_EXERCISES, seedInstagramContinuation } from './catalogInstagramContinuation.js';
 import { INSTAGRAM_CLIENT_NEXT_EXERCISES, seedInstagramClientNext } from './catalogInstagramClientNext.js';
+import { INSTAGRAM_DEEP_REVIEW_EXERCISES, seedInstagramDeepReview } from './catalogInstagramDeepReview.js';
 import { applyPracticalCorrections } from './catalogPracticalCorrections.js';
 export const EXPANSION_EXERCISES = [
   {
@@ -28278,7 +28279,8 @@ export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES
   const withInstagram = seedInstagramExpansion(withKettlebells, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_EXERCISES : seedRows);
   const withContinuation = seedInstagramContinuation(withInstagram, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_CONTINUATION_EXERCISES : seedRows);
   const withClientNext = seedInstagramClientNext(withContinuation, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_CLIENT_NEXT_EXERCISES : seedRows);
-  return applyPracticalCorrections(withClientNext);
+  const withDeepReview = seedInstagramDeepReview(withClientNext, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_DEEP_REVIEW_EXERCISES : seedRows);
+  return applyPracticalCorrections(withDeepReview);
 }
 
 function seedOriginalExpansion(collection, seedRows) {
