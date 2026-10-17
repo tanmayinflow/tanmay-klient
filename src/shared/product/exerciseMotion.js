@@ -230,6 +230,13 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 70754,
     "sha256": "b3dd07b9bafcbcd589ca769cfaa99c1a220937e6deefd422f5188f922c7fdf65",
     "poster": "/exercise-motion/goodmorning-poster-e5b45415ce1ece9d.webp"
+  },
+  "ig29_standing_straight_leg_raise": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig29_standing_straight_leg_raise-5ee5cc6c9cb575eb.mp4",
+    "bytes": 75198,
+    "sha256": "5ee5cc6c9cb575ebefeaf6c5bfe1d8c20690fa55a9ddfa8ced85be1c7d3a1c08",
+    "poster": "/exercise-motion/ig29_standing_straight_leg_raise-poster-bb56879fe6457cfa.webp"
   }
 });
 
