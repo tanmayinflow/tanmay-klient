@@ -174,6 +174,13 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 82250,
     "sha256": "92ecfbbf77349a81098f6558da69c5d3de66b8cab6c86cb05a012831d0dde01b",
     "poster": "/exercise-motion/crunch-poster-96d32ba24e359035.webp"
+  },
+  "superman": {
+    "oneSide": false,
+    "src": "/exercise-motion/superman-09a8f6f6fa3cb0a5.mp4",
+    "bytes": 62089,
+    "sha256": "09a8f6f6fa3cb0a5b716a465e4181de0fc8d8419a0120fd33d21a1b46cff6b78",
+    "poster": "/exercise-motion/superman-poster-8b7743ed73c5a057.webp"
   }
 });
 
