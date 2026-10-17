@@ -181,6 +181,27 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 62089,
     "sha256": "09a8f6f6fa3cb0a5b716a465e4181de0fc8d8419a0120fd33d21a1b46cff6b78",
     "poster": "/exercise-motion/superman-poster-8b7743ed73c5a057.webp"
+  },
+  "an_seatedshrug": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_seatedshrug-c345f5cced84d01a.mp4",
+    "bytes": 86554,
+    "sha256": "c345f5cced84d01abced3b2996ffe04ae7108721ad5d4ee4c3ef9af5a433f1c1",
+    "poster": "/exercise-motion/an_seatedshrug-poster-fa82a7d0338542a3.webp"
+  },
+  "an_bbcurl": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_bbcurl-03376e706813bedc.mp4",
+    "bytes": 70683,
+    "sha256": "03376e706813bedc61cbe282b12eddedb4f414ad8eee0d40ccffae56a7eecc4c",
+    "poster": "/exercise-motion/an_bbcurl-poster-730a88fb940da7f3.webp"
+  },
+  "an_revcurl": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_revcurl-fb9704f41a9ce155.mp4",
+    "bytes": 65823,
+    "sha256": "fb9704f41a9ce15577292ff65cc56c90a68701d7397809c531319ce2eba7ac52",
+    "poster": "/exercise-motion/an_revcurl-poster-9ca6c27c0bd39cc8.webp"
   }
 });
 
