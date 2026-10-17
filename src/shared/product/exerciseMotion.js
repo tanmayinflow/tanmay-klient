@@ -146,6 +146,20 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 88164,
     "sha256": "da7ee4ee93bb38e20edee8989241b26a5b7c4becc1943f067bcf224e62663923",
     "poster": "/exercise-motion/sumo-poster-ec8abf5d601fd025.webp"
+  },
+  "an_dbpullover": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_dbpullover-024a549e538e3366.mp4",
+    "bytes": 64071,
+    "sha256": "024a549e538e336649fedf60de41c6d3e760646d63b72780bcf5009f204a53b6",
+    "poster": "/exercise-motion/an_dbpullover-poster-6f98325af219f634.webp"
+  },
+  "clamshell": {
+    "oneSide": true,
+    "src": "/exercise-motion/clamshell-37855a9b92c1756a.mp4",
+    "bytes": 48772,
+    "sha256": "37855a9b92c1756ac5f68dda4fcb5e041c676d30d97a46bc7dad56bd6ec606c5",
+    "poster": "/exercise-motion/clamshell-poster-77dd92ad102393a5.webp"
   }
 });
 
