@@ -32,7 +32,7 @@
     "src/shared/product/contentWorkshopData.js": "773dd0970240d25d317cbbaf064e180d43436b1ed580a2d54c5b4037c59fdeeb",
     "src/shared/product/dailyRotation.js": "76830a222e55f74c95816a66a987f33549e3746ddf17191c7f30317af0dead4e",
     "src/shared/product/documentSyncQueue.js": "0e5196a64c052d5cbdaf5bffbd521481c89ea7faa88345a1ad5cf42f900c6ec4",
-    "src/shared/product/exerciseMotion.js": "f5e0c62c1c303c1903ec33ff455000db9e22fddd16d5af183316edfa3ba68d66",
+    "src/shared/product/exerciseMotion.js": "affe7910bbd631f5562dfb6ec6a4e2bb0cbe0da7373d13bede3b5fb83913e037",
     "src/shared/product/exerciseMotionAsset.js": "21c64345f9c123c6468c1bfb80faff4c78b1296e24448d4ec25f60b4ce5c6035",
     "src/shared/product/financeAdvanced.js": "0531d2f60faab861373133aaa9534022ec3b776f84e9f9df6243a68400fc756c",
     "src/shared/product/financeFlow.js": "b2e1b1beb79309061fc8d45ebdf4f884eb18346135dfa66d3131055af37ff444",
