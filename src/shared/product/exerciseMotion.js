@@ -209,6 +209,13 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 79409,
     "sha256": "fe442baa1dc1a5dbb03af56ce3675e19b255f500ab11af438ddb4aa549a77201",
     "poster": "/exercise-motion/ex26_side_adduction-poster-c196f20a8a47688c.webp"
+  },
+  "tibraise": {
+    "oneSide": false,
+    "src": "/exercise-motion/tibraise-5110dbb66d6d7803.mp4",
+    "bytes": 49707,
+    "sha256": "5110dbb66d6d7803765e9f0639982ba91313c62b62903af7313d5e1d95ec1db4",
+    "poster": "/exercise-motion/tibraise-poster-bf684c35ec2b12b4.webp"
   }
 });
 
