@@ -216,6 +216,13 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 49707,
     "sha256": "5110dbb66d6d7803765e9f0639982ba91313c62b62903af7313d5e1d95ec1db4",
     "poster": "/exercise-motion/tibraise-poster-bf684c35ec2b12b4.webp"
+  },
+  "revfly": {
+    "oneSide": false,
+    "src": "/exercise-motion/revfly-0b88dd31e6440646.mp4",
+    "bytes": 94555,
+    "sha256": "0b88dd31e64406465b746afaaf245770281a8c3a42abe7d6f2823e3a420d80ca",
+    "poster": "/exercise-motion/revfly-poster-7d6def67f2c7306d.webp"
   }
 });
 
