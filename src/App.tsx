@@ -13245,6 +13245,7 @@ function TvClientExerciseDetail({ exId, onClose }) {
   ].filter(([key]) => TL(rec?.[key]));
   return <CenterSheet title={tvName(rec) || L("Cvik", "Exercise")} onClose={onClose} vrstva={280}>
     {row && <div style={{color:t.text,display:"flex",justifyContent:"center",margin:"10px 0 20px"}}><TvClientGuideArt ex={row} size={200}/></div>}
+    <ExerciseMotion key={exId} exercise={row || { id: exId }} theme={t} L={L} />
     {sections.map(([key,label])=><section key={key} style={{marginBottom:20}}>
       <h3 style={{fontFamily:FONT_TAG,fontSize:12,letterSpacing:".12em",textTransform:"uppercase",fontWeight:500,color:t.accentInk||t.accent,margin:"0 0 7px"}}>{label}</h3>
       <div style={{fontFamily:FONT_BODY,fontSize:15,lineHeight:1.7,color:t.textSec,whiteSpace:"pre-wrap"}}><TrainingSourceText text={TL(rec[key])} color={t.accentInk||t.accent}/></div>
