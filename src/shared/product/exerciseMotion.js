@@ -160,6 +160,20 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 48772,
     "sha256": "37855a9b92c1756ac5f68dda4fcb5e041c676d30d97a46bc7dad56bd6ec606c5",
     "poster": "/exercise-motion/clamshell-poster-77dd92ad102393a5.webp"
+  },
+  "sideleg": {
+    "oneSide": true,
+    "src": "/exercise-motion/sideleg-103eaba582d2647b.mp4",
+    "bytes": 62124,
+    "sha256": "103eaba582d2647b174fd8443c9f8127b99a5458d22da9a802cecc059b5d2120",
+    "poster": "/exercise-motion/sideleg-poster-7c4afe31f387203e.webp"
+  },
+  "crunch": {
+    "oneSide": false,
+    "src": "/exercise-motion/crunch-92ecfbbf77349a81.mp4",
+    "bytes": 82250,
+    "sha256": "92ecfbbf77349a81098f6558da69c5d3de66b8cab6c86cb05a012831d0dde01b",
+    "poster": "/exercise-motion/crunch-poster-96d32ba24e359035.webp"
   }
 });
 
