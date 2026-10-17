@@ -125,6 +125,27 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 105063,
     "sha256": "6c14137bfcc2eb681f816f6c80e82ba2f8a39dd9e44c706efa518a3ef2f1d26b",
     "poster": "/exercise-motion/seatedlegcurl-poster-828910cf33376c84.webp"
+  },
+  "goblet": {
+    "oneSide": false,
+    "src": "/exercise-motion/goblet-2a534244053f6d57.mp4",
+    "bytes": 72941,
+    "sha256": "2a534244053f6d573ffe7da0bd1043c128085123f4357ffa6b0b635a69a934b4",
+    "poster": "/exercise-motion/goblet-poster-1bd97adc0823d1da.webp"
+  },
+  "inclpush": {
+    "oneSide": false,
+    "src": "/exercise-motion/inclpush-56568a57ac7773cb.mp4",
+    "bytes": 80011,
+    "sha256": "56568a57ac7773cb7c20da75a46fdf77a0d807d34395c0d09c502844c42b6542",
+    "poster": "/exercise-motion/inclpush-poster-3c5d2ea96c5ff1b6.webp"
+  },
+  "sumo": {
+    "oneSide": false,
+    "src": "/exercise-motion/sumo-da7ee4ee93bb38e2.mp4",
+    "bytes": 88164,
+    "sha256": "da7ee4ee93bb38e20edee8989241b26a5b7c4becc1943f067bcf224e62663923",
+    "poster": "/exercise-motion/sumo-poster-ec8abf5d601fd025.webp"
   }
 });
 
