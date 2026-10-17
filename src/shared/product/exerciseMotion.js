@@ -55,6 +55,41 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 79840,
     "sha256": "345f832a826d5b6fbfd5781713c2da05d4edfa8cae68e9ae0103e9930b772ec1",
     "poster": "/exercise-motion/jg_bitilasana_marjari-poster-1f47c06982780f1d.webp"
+  },
+  "lateralraise": {
+    "oneSide": false,
+    "src": "/exercise-motion/lateralraise-ee20d764b9fda0eb.mp4",
+    "bytes": 107728,
+    "sha256": "ee20d764b9fda0eb673fd14f4a1d866ff20417bc78d990477868bc7fb0aec933",
+    "poster": "/exercise-motion/lateralraise-poster-31fec0f12c95350c.webp"
+  },
+  "an_frontraise": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_frontraise-0099b48af21965fb.mp4",
+    "bytes": 109012,
+    "sha256": "0099b48af21965fb583681266e03240f824b02ea1025db4744c1b36143af1640",
+    "poster": "/exercise-motion/an_frontraise-poster-328462f1ed8d1dc7.webp"
+  },
+  "dbrdl": {
+    "oneSide": false,
+    "src": "/exercise-motion/dbrdl-307f21abf67da4a7.mp4",
+    "bytes": 92616,
+    "sha256": "307f21abf67da4a7dd9d9042a8138dacfa1ebf7a5e5147a3a7d1fe8006c40aaf",
+    "poster": "/exercise-motion/dbrdl-poster-7102a89628e9af9c.webp"
+  },
+  "legext": {
+    "oneSide": false,
+    "src": "/exercise-motion/legext-c1ef823741eda877.mp4",
+    "bytes": 166833,
+    "sha256": "c1ef823741eda8772ec5a5143d8b7ae0668ef28edcc7ae0ec2c865d96a46373a",
+    "poster": "/exercise-motion/legext-poster-f7533de51de24b6a.webp"
+  },
+  "an_hammer": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_hammer-906e886245f2c9e3.mp4",
+    "bytes": 54828,
+    "sha256": "906e886245f2c9e3610e6044049e00605b5dc95fd7e6ca4643ddc754a2a7a799",
+    "poster": "/exercise-motion/an_hammer-poster-cd3c0dc06d4b53fb.webp"
   }
 });
 
