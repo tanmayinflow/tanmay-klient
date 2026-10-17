@@ -90,6 +90,41 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 54828,
     "sha256": "906e886245f2c9e3610e6044049e00605b5dc95fd7e6ca4643ddc754a2a7a799",
     "poster": "/exercise-motion/an_hammer-poster-cd3c0dc06d4b53fb.webp"
+  },
+  "hipthrust": {
+    "oneSide": false,
+    "src": "/exercise-motion/hipthrust-ea98dccca4491281.mp4",
+    "bytes": 122135,
+    "sha256": "ea98dccca44912815e4893e8fb204a7d6fd3b6037a7f2b183edd11eef9300031",
+    "poster": "/exercise-motion/hipthrust-poster-fe6e88fc04d8cc96.webp"
+  },
+  "dbrow": {
+    "oneSide": true,
+    "src": "/exercise-motion/dbrow-9c71b0d9311cec63.mp4",
+    "bytes": 99248,
+    "sha256": "9c71b0d9311cec632aa49fbc695e6f3c39ad91f37b2bf36d2f5652d84458f085",
+    "poster": "/exercise-motion/dbrow-poster-ea3070b3a40a349e.webp"
+  },
+  "dbpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/dbpress-2b176e4c3166e57e.mp4",
+    "bytes": 74688,
+    "sha256": "2b176e4c3166e57ed3e3d361ff4c2d6c1284501ee174e3ba592f307a4f239478",
+    "poster": "/exercise-motion/dbpress-poster-16f1c0b4b2be7653.webp"
+  },
+  "dbfloor": {
+    "oneSide": false,
+    "src": "/exercise-motion/dbfloor-a4fb082ceb7efca6.mp4",
+    "bytes": 89452,
+    "sha256": "a4fb082ceb7efca6fa1e5e3c4b2fca59b08af602bf2b6b116e767b4705c42791",
+    "poster": "/exercise-motion/dbfloor-poster-f89f24ec74c6dac8.webp"
+  },
+  "seatedlegcurl": {
+    "oneSide": false,
+    "src": "/exercise-motion/seatedlegcurl-6c14137bfcc2eb68.mp4",
+    "bytes": 105063,
+    "sha256": "6c14137bfcc2eb681f816f6c80e82ba2f8a39dd9e44c706efa518a3ef2f1d26b",
+    "poster": "/exercise-motion/seatedlegcurl-poster-828910cf33376c84.webp"
   }
 });
 
