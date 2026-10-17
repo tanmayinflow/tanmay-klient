@@ -202,6 +202,13 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 65823,
     "sha256": "fb9704f41a9ce15577292ff65cc56c90a68701d7397809c531319ce2eba7ac52",
     "poster": "/exercise-motion/an_revcurl-poster-9ca6c27c0bd39cc8.webp"
+  },
+  "ex26_side_adduction": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_side_adduction-fe442baa1dc1a5db.mp4",
+    "bytes": 79409,
+    "sha256": "fe442baa1dc1a5dbb03af56ce3675e19b255f500ab11af438ddb4aa549a77201",
+    "poster": "/exercise-motion/ex26_side_adduction-poster-c196f20a8a47688c.webp"
   }
 });
 
