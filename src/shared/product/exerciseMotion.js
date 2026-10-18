@@ -237,6 +237,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 75198,
     "sha256": "5ee5cc6c9cb575ebefeaf6c5bfe1d8c20690fa55a9ddfa8ced85be1c7d3a1c08",
     "poster": "/exercise-motion/ig29_standing_straight_leg_raise-poster-bb56879fe6457cfa.webp"
+  },
+  "ex26_preacher_curl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_preacher_curl-a0974c313948e587.mp4",
+    "bytes": 101347,
+    "sha256": "a0974c313948e5873ec2fe33ec676fc9925ab47c72f0d613d5112222a57aaa23",
+    "poster": "/exercise-motion/ex26_preacher_curl-poster-bfaafd0175669b68.webp"
+  },
+  "ex26_concentration_curl": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_concentration_curl-450abd033dbf3b63.mp4",
+    "bytes": 96443,
+    "sha256": "450abd033dbf3b631f306a42829a963bbe413de61e533103b3a2a830c695ad65",
+    "poster": "/exercise-motion/ex26_concentration_curl-poster-90a790baff73acc5.webp"
+  },
+  "ex26_plate_front": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_plate_front-644c9df551e0cf54.mp4",
+    "bytes": 68480,
+    "sha256": "644c9df551e0cf548abda1bd7e06a51f161bc6ec01df04ea6705d865db8f6f8b",
+    "poster": "/exercise-motion/ex26_plate_front-poster-e4ca2941b63cf5df.webp"
+  },
+  "an_dbshrug": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_dbshrug-662bd135ff7c5434.mp4",
+    "bytes": 60272,
+    "sha256": "662bd135ff7c5434a30c0b05b4bd09ede1db1256316062cd757c04fc671cc398",
+    "poster": "/exercise-motion/an_dbshrug-poster-9b6429458f6fc439.webp"
+  },
+  "ex26_bb_shrug": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_bb_shrug-cdbe7e4109789e0f.mp4",
+    "bytes": 66553,
+    "sha256": "cdbe7e4109789e0f4880707cbfc8521fe453c8a777854ae11ce66f31aaf3213e",
+    "poster": "/exercise-motion/ex26_bb_shrug-poster-276d849ff9a4e3af.webp"
+  },
+  "pullapart": {
+    "oneSide": false,
+    "src": "/exercise-motion/pullapart-e3e23d51a3e4455f.mp4",
+    "bytes": 53794,
+    "sha256": "e3e23d51a3e4455f074cb4cea33d94fc9e119f24cfa7e1d9c700f743f7621ce8",
+    "poster": "/exercise-motion/pullapart-poster-2df95f083584277d.webp"
+  },
+  "ex26_band_standingcurl": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_band_standingcurl-77009eeb26a95af8.mp4",
+    "bytes": 53900,
+    "sha256": "77009eeb26a95af84a5466217607733155abc4e3797700b833991252310fef4b",
+    "poster": "/exercise-motion/ex26_band_standingcurl-poster-dc72ad1dfbc067b7.webp"
+  },
+  "ex26_band_hammer_curl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_band_hammer_curl-3907e695ec439447.mp4",
+    "bytes": 63821,
+    "sha256": "3907e695ec439447e66255ad0920178360dc5cf0212e50609247223c037a45bb",
+    "poster": "/exercise-motion/ex26_band_hammer_curl-poster-45c5f4c911db1cdb.webp"
   }
 });
 
