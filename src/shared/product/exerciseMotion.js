@@ -349,6 +349,69 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 81917,
     "sha256": "7d48b114e86bc9d8cc41e85b02317a26ed797a8e57c510f3bfde06fc25390698",
     "poster": "/exercise-motion/ex26_spider_curl-poster-e8a070ce211fa511.webp"
+  },
+  "ex26_pinwheel_curl": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_pinwheel_curl-571bc3449ca37256.mp4",
+    "bytes": 52509,
+    "sha256": "571bc3449ca372566874557d217be2175535fac63c09664bd3d23ba6974ced0a",
+    "poster": "/exercise-motion/ex26_pinwheel_curl-poster-d176466969e3a75b.webp"
+  },
+  "ex26_hss_seated_march": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_hss_seated_march-9ec1c9408b6c455f.mp4",
+    "bytes": 49648,
+    "sha256": "9ec1c9408b6c455f3040585416d386fe2f465cb2506ef889f49c69621316df60",
+    "poster": "/exercise-motion/ex26_hss_seated_march-poster-b97548e3536eb365.webp"
+  },
+  "mbd_hamstring_extensions": {
+    "oneSide": true,
+    "src": "/exercise-motion/mbd_hamstring_extensions-505ba8625bc73ca8.mp4",
+    "bytes": 61046,
+    "sha256": "505ba8625bc73ca8c819b637ec5116e42c30ddae148566158f11bdc0d344f392",
+    "poster": "/exercise-motion/mbd_hamstring_extensions-poster-af775971cf322406.webp"
+  },
+  "an_floorpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_floorpress-83523e9add398d06.mp4",
+    "bytes": 62387,
+    "sha256": "83523e9add398d06a74f5d129b00d878ad56fdacf01018170efdce27c702c913",
+    "poster": "/exercise-motion/an_floorpress-poster-e988c1b91b4ebb3e.webp"
+  },
+  "ex26_bb_rdl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_bb_rdl-a57b3d23002a0c1d.mp4",
+    "bytes": 56499,
+    "sha256": "a57b3d23002a0c1d289689def629dd0a67b9c64676b1f54240ed056fee356e9e",
+    "poster": "/exercise-motion/ex26_bb_rdl-poster-db828f2b1c6cb62a.webp"
+  },
+  "ex26_plate_press": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_plate_press-2c989b4a91a07803.mp4",
+    "bytes": 31847,
+    "sha256": "2c989b4a91a078035001ab7d1c5e385400bb5c17994feabfd0e8c9812c8e4381",
+    "poster": "/exercise-motion/ex26_plate_press-poster-07a07de7eeb88586.webp"
+  },
+  "ex26_supine_armraise": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_supine_armraise-0eeb5999cc35cf8d.mp4",
+    "bytes": 37167,
+    "sha256": "0eeb5999cc35cf8ddfadcada1d2eb46b847752a3fd2b1f94505ed59c7e6bec68",
+    "poster": "/exercise-motion/ex26_supine_armraise-poster-936db6628e75a141.webp"
+  },
+  "ex26_kickstand_rdl": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_kickstand_rdl-c6f7a759c36a69b9.mp4",
+    "bytes": 56596,
+    "sha256": "c6f7a759c36a69b912aad8251a0b5f82a8e91b81d68f14598050db5bbadf56fd",
+    "poster": "/exercise-motion/ex26_kickstand_rdl-poster-0f0f95997bdf8364.webp"
+  },
+  "ex26_suitcase_deadlift": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_suitcase_deadlift-342bf7df6b026702.mp4",
+    "bytes": 42191,
+    "sha256": "342bf7df6b02670250d8ddb6963d5d6ca559a14aaf5ded9525d3e97980068666",
+    "poster": "/exercise-motion/ex26_suitcase_deadlift-poster-70ada3087f054935.webp"
   }
 });
 
