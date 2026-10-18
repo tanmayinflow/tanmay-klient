@@ -293,6 +293,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 63821,
     "sha256": "3907e695ec439447e66255ad0920178360dc5cf0212e50609247223c037a45bb",
     "poster": "/exercise-motion/ex26_band_hammer_curl-poster-45c5f4c911db1cdb.webp"
+  },
+  "ohp": {
+    "oneSide": false,
+    "src": "/exercise-motion/ohp-af39e150e2771f7d.mp4",
+    "bytes": 64093,
+    "sha256": "af39e150e2771f7d667d38e7f7e06c1283ce8f90333cd8ad21d02942952163af",
+    "poster": "/exercise-motion/ohp-poster-527eccebbfdf9d33.webp"
+  },
+  "bbrow": {
+    "oneSide": false,
+    "src": "/exercise-motion/bbrow-630480a2bda4787f.mp4",
+    "bytes": 94088,
+    "sha256": "630480a2bda4787fb9e087872f58be89fd2782637bef5abf9dfda566ca7695c6",
+    "poster": "/exercise-motion/bbrow-poster-3b5df390f30e242b.webp"
+  },
+  "ex26_triceps_kickback": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_triceps_kickback-76477ebbc4658459.mp4",
+    "bytes": 65830,
+    "sha256": "76477ebbc4658459b5d02e7dcf32605ad775247ef02b8cc57e5088ac41c4d718",
+    "poster": "/exercise-motion/ex26_triceps_kickback-poster-6641d754151cb140.webp"
+  },
+  "ex26_reverse_crunch": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_reverse_crunch-e1101b8b644a444f.mp4",
+    "bytes": 48165,
+    "sha256": "e1101b8b644a444fe58cd5c94fd2d53aa358e107686246ed7138579d911a483b",
+    "poster": "/exercise-motion/ex26_reverse_crunch-poster-56e0f3299d0f6278.webp"
+  },
+  "an_inclcurl": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_inclcurl-48567407d70e089f.mp4",
+    "bytes": 75332,
+    "sha256": "48567407d70e089fff8cecfdc39b053f97d24152a983e37b87894ec39704ac60",
+    "poster": "/exercise-motion/an_inclcurl-poster-f749edbac92620da.webp"
+  },
+  "ex26_seated_curl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_seated_curl-1b6b0b4658cd9946.mp4",
+    "bytes": 59272,
+    "sha256": "1b6b0b4658cd9946f161078cc657a5501df449a47b3d03837637564cd954dccc",
+    "poster": "/exercise-motion/ex26_seated_curl-poster-0c42e8cc61527245.webp"
+  },
+  "ex26_plate_curl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_plate_curl-58665710ebdb8e8c.mp4",
+    "bytes": 50461,
+    "sha256": "58665710ebdb8e8c374cd9964b47989a17ba0948f7f86182afa6729b131011b1",
+    "poster": "/exercise-motion/ex26_plate_curl-poster-b4353a3c9f46be0c.webp"
+  },
+  "ex26_spider_curl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_spider_curl-7d48b114e86bc9d8.mp4",
+    "bytes": 81917,
+    "sha256": "7d48b114e86bc9d8cc41e85b02317a26ed797a8e57c510f3bfde06fc25390698",
+    "poster": "/exercise-motion/ex26_spider_curl-poster-e8a070ce211fa511.webp"
   }
 });
 
