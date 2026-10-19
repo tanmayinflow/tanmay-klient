@@ -412,6 +412,69 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 42191,
     "sha256": "342bf7df6b02670250d8ddb6963d5d6ca559a14aaf5ded9525d3e97980068666",
     "poster": "/exercise-motion/ex26_suitcase_deadlift-poster-70ada3087f054935.webp"
+  },
+  "ex26_kb_double_squat": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_kb_double_squat-869e9a5c2756efd6.mp4",
+    "bytes": 53681,
+    "sha256": "869e9a5c2756efd62e9ca5cbba43df23dcce351675f6bcc749a3da1ecfbe545b",
+    "poster": "/exercise-motion/ex26_kb_double_squat-poster-3a4a2964586100ec.webp"
+  },
+  "ex26_zercher_squat": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_zercher_squat-0dec6e53849305c8.mp4",
+    "bytes": 55979,
+    "sha256": "0dec6e53849305c8dfcb7ee337a29877873167803635a89990286ee3c0c4874b",
+    "poster": "/exercise-motion/ex26_zercher_squat-poster-ab3fd45468e8f253.webp"
+  },
+  "ex26_overhead_squat": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_overhead_squat-cf44913e3c92c608.mp4",
+    "bytes": 58611,
+    "sha256": "cf44913e3c92c6083f79ce5a26e439aa3f673129b244eae1d702aa7e9b63134e",
+    "poster": "/exercise-motion/ex26_overhead_squat-poster-94c5a87cf26beaad.webp"
+  },
+  "ex26_kb_double_press": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_kb_double_press-0ad6897d43cc423e.mp4",
+    "bytes": 40602,
+    "sha256": "0ad6897d43cc423effb6f10e25034234637fbbf715a44ead8f16bc9bb1e4567c",
+    "poster": "/exercise-motion/ex26_kb_double_press-poster-93409c7f86a2c3f4.webp"
+  },
+  "an_dbfrontsquat": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_dbfrontsquat-3f2fdccdf9359b75.mp4",
+    "bytes": 43428,
+    "sha256": "3f2fdccdf9359b754abc62cf3690a40294b25518cf2f62d20e2e0a415e263c37",
+    "poster": "/exercise-motion/an_dbfrontsquat-poster-139fc5c79382b5a2.webp"
+  },
+  "ex26_bottomup_press": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_bottomup_press-a97df17c65496f99.mp4",
+    "bytes": 37424,
+    "sha256": "a97df17c65496f99120b5bae7b2287b81a4da2d440141c24d4ee4ebbd0400ea2",
+    "poster": "/exercise-motion/ex26_bottomup_press-poster-cb3402a171f2eb0d.webp"
+  },
+  "an_dbdeadlift": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_dbdeadlift-381e409a95f14b53.mp4",
+    "bytes": 34097,
+    "sha256": "381e409a95f14b530d52caec03244911c315ee94197d972806707e44a885c862",
+    "poster": "/exercise-motion/an_dbdeadlift-poster-c9b8a2d3610ab11f.webp"
+  },
+  "hinge": {
+    "oneSide": false,
+    "src": "/exercise-motion/hinge-d1f9121873a0979d.mp4",
+    "bytes": 42667,
+    "sha256": "d1f9121873a0979d204b91aa008be1ffd0028a2e7edc59532a5718572cedcb65",
+    "poster": "/exercise-motion/hinge-poster-69bb14e6cf271ded.webp"
+  },
+  "an_seateddbpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_seateddbpress-ce57e52e37d82962.mp4",
+    "bytes": 54355,
+    "sha256": "ce57e52e37d82962096ee385f367244bc01e754606fb6503dcb2c41b2f58b3b5",
+    "poster": "/exercise-motion/an_seateddbpress-poster-6268952d719088c8.webp"
   }
 });
 
