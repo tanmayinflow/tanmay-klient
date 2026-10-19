@@ -475,6 +475,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 54355,
     "sha256": "ce57e52e37d82962096ee385f367244bc01e754606fb6503dcb2c41b2f58b3b5",
     "poster": "/exercise-motion/an_seateddbpress-poster-6268952d719088c8.webp"
+  },
+  "an_dbbench": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_dbbench-8e37b831b0b5729d.mp4",
+    "bytes": 44094,
+    "sha256": "8e37b831b0b5729d2b3de68a2e05c0621cdf72fdb202c75e42009ecffd9a2d75",
+    "poster": "/exercise-motion/an_dbbench-poster-5a73765fcacceebb.webp"
+  },
+  "an_incldbpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_incldbpress-1f8ee7568472136f.mp4",
+    "bytes": 50492,
+    "sha256": "1f8ee7568472136ffbaf304463de6256f4a9e54b5dcdf44146344d1fbecb39f8",
+    "poster": "/exercise-motion/an_incldbpress-poster-c476d8cad4e934de.webp"
+  },
+  "an_inclbench": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_inclbench-389bf12e3f6129f6.mp4",
+    "bytes": 44115,
+    "sha256": "389bf12e3f6129f69d3ab5db1f4422b9770fa2a05c2d5905356cbd1a2fe05541",
+    "poster": "/exercise-motion/an_inclbench-poster-c10a1b51de8cb165.webp"
+  },
+  "an_benchdbrow": {
+    "oneSide": true,
+    "src": "/exercise-motion/an_benchdbrow-055e8169ff4c2114.mp4",
+    "bytes": 49348,
+    "sha256": "055e8169ff4c2114dc424fb9f8b015ca3073af00390f40c447e89253a1a0c887",
+    "poster": "/exercise-motion/an_benchdbrow-poster-52da7e4010310792.webp"
+  },
+  "revhyper": {
+    "oneSide": false,
+    "src": "/exercise-motion/revhyper-097676f954aa5e33.mp4",
+    "bytes": 28579,
+    "sha256": "097676f954aa5e339361f8bb083a4276dc8a40489828345c990e7316d0de8cb9",
+    "poster": "/exercise-motion/revhyper-poster-8eb7e5c570cf3105.webp"
+  },
+  "sidebend": {
+    "oneSide": true,
+    "src": "/exercise-motion/sidebend-02898a9340ef3cb2.mp4",
+    "bytes": 35496,
+    "sha256": "02898a9340ef3cb23552fa564dcad20d5e843722d25061e8c760f2b8f618cce1",
+    "poster": "/exercise-motion/sidebend-poster-708f9d8c2c73d4cf.webp"
+  },
+  "ex26_toe_crunch": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_toe_crunch-44f384ed997dd67f.mp4",
+    "bytes": 48342,
+    "sha256": "44f384ed997dd67f60859a9fe79e6b04afa4e35cca355c66bc67c88fd96620be",
+    "poster": "/exercise-motion/ex26_toe_crunch-poster-5661fb2288a9ed75.webp"
+  },
+  "wallext": {
+    "oneSide": false,
+    "src": "/exercise-motion/wallext-ef4aa12481a1b8ec.mp4",
+    "bytes": 37677,
+    "sha256": "ef4aa12481a1b8ec3c6bc125d846ded0df919d4c31d4d42061e32969c26942ea",
+    "poster": "/exercise-motion/wallext-poster-12fe886608e65a35.webp"
   }
 });
 
