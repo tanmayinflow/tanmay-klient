@@ -587,6 +587,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 74569,
     "sha256": "4ef947666e5f31201e5b1fa666d16de4032051d100be0fb8d7eaf2cbda020c87",
     "poster": "/exercise-motion/an_pausesquat-poster-f033e51d8748a79a.webp"
+  },
+  "ex26_upright_row": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_upright_row-789da94bf5eadbe8.mp4",
+    "bytes": 47147,
+    "sha256": "789da94bf5eadbe8e3826be77064c48c9c81a314c1ec3ee1ac17171daec2adfc",
+    "poster": "/exercise-motion/ex26_upright_row-poster-9eccb3e27a84318c.webp"
+  },
+  "ex26_diagonal_raise": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_diagonal_raise-93fed909748ce007.mp4",
+    "bytes": 36879,
+    "sha256": "93fed909748ce0074c0a7832b1c5d5be1eba4c9532bd505b27b448a5e05dab53",
+    "poster": "/exercise-motion/ex26_diagonal_raise-poster-c57e857656c50351.webp"
+  },
+  "kbpress": {
+    "oneSide": true,
+    "src": "/exercise-motion/kbpress-86a33c0e7f16b52a.mp4",
+    "bytes": 28817,
+    "sha256": "86a33c0e7f16b52a8b5fd17bec14ab01729ef0ec0e5ab70ddeac61de7609e449",
+    "poster": "/exercise-motion/kbpress-poster-4c2f487880cbd7fb.webp"
+  },
+  "ex26_db_decline_press": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_db_decline_press-95f6fd87f5f50485.mp4",
+    "bytes": 46379,
+    "sha256": "95f6fd87f5f504855f1eb6b10b1343035115609689eb74a16946109179702188",
+    "poster": "/exercise-motion/ex26_db_decline_press-poster-3b31bd14f7ebcadd.webp"
+  },
+  "kb26_double_floor_press": {
+    "oneSide": false,
+    "src": "/exercise-motion/kb26_double_floor_press-2ce23df58de4ca87.mp4",
+    "bytes": 48197,
+    "sha256": "2ce23df58de4ca8766cc2bdb15aeb2f4a5be0d591599cb77250ee4832d57d28f",
+    "poster": "/exercise-motion/kb26_double_floor_press-poster-a9091284b42ccbfc.webp"
+  },
+  "kb26_halfkneel_press": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_halfkneel_press-0d95fa822f1638fe.mp4",
+    "bytes": 42894,
+    "sha256": "0d95fa822f1638fe799f9ccdad238a06a5e4a53f2aaf6d3f0578646671e3dbce",
+    "poster": "/exercise-motion/kb26_halfkneel_press-poster-98fe3e19ffbd1e75.webp"
+  },
+  "kb26_seated_press": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_seated_press-6f07158b032caaab.mp4",
+    "bytes": 49377,
+    "sha256": "6f07158b032caaab8ac78b6cbedff94a1bc4cc623e22ddd86551ed27b198464d",
+    "poster": "/exercise-motion/kb26_seated_press-poster-af5b3f997e0cb88f.webp"
+  },
+  "kb26_floor_press": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_floor_press-c489ec7e1b811325.mp4",
+    "bytes": 43260,
+    "sha256": "c489ec7e1b811325c7eee56996af41d6102496850aacdef1a6fac2be6185a04a",
+    "poster": "/exercise-motion/kb26_floor_press-poster-ec5469096ac1e5e4.webp"
   }
 });
 
