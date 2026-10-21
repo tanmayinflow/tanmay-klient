@@ -706,6 +706,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 39373,
     "sha256": "49089c1e68e159d20bc270141f466ec0c58ce48e2b4e998162c4b4317a8cad68",
     "poster": "/exercise-motion/kb26_rack_squat-poster-ba73e0e0011c7b23.webp"
+  },
+  "ig26_band_hip_abduction": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig26_band_hip_abduction-e70595076d478ffc.mp4",
+    "bytes": 43154,
+    "sha256": "e70595076d478ffccb76430df10a3d9200f8fdad84bfb421d752d683fbaa96e3",
+    "poster": "/exercise-motion/ig26_band_hip_abduction-poster-3c9595ab5c5ab66a.webp"
+  },
+  "ex26_band_dorsiflex": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_band_dorsiflex-dca199edab71d582.mp4",
+    "bytes": 39628,
+    "sha256": "dca199edab71d5827b82f8c45c5b89823e4e65a0df417233c3463c87d134fa72",
+    "poster": "/exercise-motion/ex26_band_dorsiflex-poster-28736fdd26b244c7.webp"
+  },
+  "ex26_wrist_pronation": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_wrist_pronation-01c20e2a33661706.mp4",
+    "bytes": 49262,
+    "sha256": "01c20e2a3366170694253eb5fe99ac1fcd046a082d1f04703df601b79d610290",
+    "poster": "/exercise-motion/ex26_wrist_pronation-poster-c3d4d1acd15b6c84.webp"
+  },
+  "ig26_band_tke": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig26_band_tke-23dbdb1e10fdb186.mp4",
+    "bytes": 45076,
+    "sha256": "23dbdb1e10fdb1861cdc73b3a4e633399cc05be1e5466489462756379e006e8e",
+    "poster": "/exercise-motion/ig26_band_tke-poster-5c184b877f677c95.webp"
+  },
+  "ex26_band_deadlift": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_band_deadlift-392f9499128b7db3.mp4",
+    "bytes": 49031,
+    "sha256": "392f9499128b7db37839413c125325445d9c3130d539970794d25cc6968c0c6f",
+    "poster": "/exercise-motion/ex26_band_deadlift-poster-666cb6ddd7817d73.webp"
+  },
+  "ig28_dumbbell_side_bend": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig28_dumbbell_side_bend-63fc44a80a4060b5.mp4",
+    "bytes": 45652,
+    "sha256": "63fc44a80a4060b59d1a91b65cae69bd2ae14fbfeae607e542e4ef5dd4d168cb",
+    "poster": "/exercise-motion/ig28_dumbbell_side_bend-poster-59e95a8345beaaa0.webp"
+  },
+  "ex26_mob_finger_extension": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_finger_extension-8934c22a0fec45fd.mp4",
+    "bytes": 26549,
+    "sha256": "8934c22a0fec45fd76fbc0c2e99759241394b6850495b939b53e5f9c889dcbb1",
+    "poster": "/exercise-motion/ex26_mob_finger_extension-poster-e3763297289f2ebd.webp"
+  },
+  "ex26_band_pulldown": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_band_pulldown-62fefc5bb21b148d.mp4",
+    "bytes": 46848,
+    "sha256": "62fefc5bb21b148dcd59c4ba8f6b0fd6349b46b73b07adee91e663a093db1705",
+    "poster": "/exercise-motion/ex26_band_pulldown-poster-d639705ffee4074d.webp"
   }
 });
 
