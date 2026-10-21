@@ -531,6 +531,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 37677,
     "sha256": "ef4aa12481a1b8ec3c6bc125d846ded0df919d4c31d4d42061e32969c26942ea",
     "poster": "/exercise-motion/wallext-poster-12fe886608e65a35.webp"
+  },
+  "ex26_db_flat_fly": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_db_flat_fly-7062e913a5650d19.mp4",
+    "bytes": 59047,
+    "sha256": "7062e913a5650d19de90381ffef029940df2303925c102011045c06eb901676a",
+    "poster": "/exercise-motion/ex26_db_flat_fly-poster-7c3ef1f485a04b79.webp"
+  },
+  "an_inclfly": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_inclfly-d924b2ec7354d2b1.mp4",
+    "bytes": 57627,
+    "sha256": "d924b2ec7354d2b1183b1e9296bea1c2cfb12f8e2624f62cb89e384f3ff3da5a",
+    "poster": "/exercise-motion/an_inclfly-poster-90fb5715d1721127.webp"
+  },
+  "an_sumodeadlift": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_sumodeadlift-97dd4c41bae7a3e4.mp4",
+    "bytes": 52445,
+    "sha256": "97dd4c41bae7a3e44002b99afb38b6604a38d5b49946809dccfde744e067cd30",
+    "poster": "/exercise-motion/an_sumodeadlift-poster-8eba3439a60b4b98.webp"
+  },
+  "an_narrowdbpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_narrowdbpress-ac0f7fed880000dc.mp4",
+    "bytes": 42193,
+    "sha256": "ac0f7fed880000dcd8d5073f0827dcb3c2cb0c9f922b49890c7564ccc5796212",
+    "poster": "/exercise-motion/an_narrowdbpress-poster-037601dadd0adf75.webp"
+  },
+  "an_oadbbench": {
+    "oneSide": true,
+    "src": "/exercise-motion/an_oadbbench-ac58d8988d2565dc.mp4",
+    "bytes": 50577,
+    "sha256": "ac58d8988d2565dc86f45bb29e72e93510dc1728a09853fa7f57e8ab750d6460",
+    "poster": "/exercise-motion/an_oadbbench-poster-00327fa62cf226d9.webp"
+  },
+  "an_boxdeadlift": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_boxdeadlift-bb37abcf606f2e57.mp4",
+    "bytes": 57029,
+    "sha256": "bb37abcf606f2e578952e876bfe4d05bc67779269a6a87152c7e086ec015ef10",
+    "poster": "/exercise-motion/an_boxdeadlift-poster-dd9d759c7614d346.webp"
+  },
+  "an_cgbench": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_cgbench-fa392e18d1bc4263.mp4",
+    "bytes": 50660,
+    "sha256": "fa392e18d1bc4263a5f037e23c90d5a2c7d183c4dd015d5f9c3a135bc6740844",
+    "poster": "/exercise-motion/an_cgbench-poster-60fe5220c9277f1a.webp"
+  },
+  "an_pausesquat": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_pausesquat-4ef947666e5f3120.mp4",
+    "bytes": 74569,
+    "sha256": "4ef947666e5f31201e5b1fa666d16de4032051d100be0fb8d7eaf2cbda020c87",
+    "poster": "/exercise-motion/an_pausesquat-poster-f033e51d8748a79a.webp"
   }
 });
 
