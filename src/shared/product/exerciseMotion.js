@@ -643,6 +643,69 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 43260,
     "sha256": "c489ec7e1b811325c7eee56996af41d6102496850aacdef1a6fac2be6185a04a",
     "poster": "/exercise-motion/kb26_floor_press-poster-ec5469096ac1e5e4.webp"
+  },
+  "ex26_onearm_triceps": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_onearm_triceps-a2080e76a345313b.mp4",
+    "bytes": 38967,
+    "sha256": "a2080e76a345313b5f81aef47ec0b0a723345beaab6d45a687b6d6d41e695cf2",
+    "poster": "/exercise-motion/ex26_onearm_triceps-poster-6fcf24714c9133b7.webp"
+  },
+  "kneeraise": {
+    "oneSide": false,
+    "src": "/exercise-motion/kneeraise-d8590e78ee56128e.mp4",
+    "bytes": 44922,
+    "sha256": "d8590e78ee56128ededf12ced73defd1924c2632c6170ec37a037bb71f61eae2",
+    "poster": "/exercise-motion/kneeraise-poster-b1567d508b1f4470.webp"
+  },
+  "slbridge": {
+    "oneSide": true,
+    "src": "/exercise-motion/slbridge-c464023b4b34d192.mp4",
+    "bytes": 30697,
+    "sha256": "c464023b4b34d192914efdb90169060ceaf6f05da1434e0dab3440db9dd569b8",
+    "poster": "/exercise-motion/slbridge-poster-68e2479cad26d985.webp"
+  },
+  "bbsquat": {
+    "oneSide": false,
+    "src": "/exercise-motion/bbsquat-61634bd17f81104f.mp4",
+    "bytes": 51838,
+    "sha256": "61634bd17f81104f8ddb419e8307a71b70573f046abd9ac1d05c41ff64f95d4a",
+    "poster": "/exercise-motion/bbsquat-poster-bfb1cf9bf69e3ac0.webp"
+  },
+  "kb26_deadlift": {
+    "oneSide": false,
+    "src": "/exercise-motion/kb26_deadlift-7498ee56e9160518.mp4",
+    "bytes": 42070,
+    "sha256": "7498ee56e9160518fa39e139e1230bccdb5c6eba587e0ebcb5f1a50febf19b8f",
+    "poster": "/exercise-motion/kb26_deadlift-poster-9f470d9875554ade.webp"
+  },
+  "ig28_neck_side_lift": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig28_neck_side_lift-64fbe2876f60fa6f.mp4",
+    "bytes": 28663,
+    "sha256": "64fbe2876f60fa6f71fcfded608fe7e8a03361685d6338913edc995b12a664b1",
+    "poster": "/exercise-motion/ig28_neck_side_lift-poster-4849a050337e75ac.webp"
+  },
+  "cossack": {
+    "oneSide": true,
+    "src": "/exercise-motion/cossack-abe9e559bab3c1c0.mp4",
+    "bytes": 52777,
+    "sha256": "abe9e559bab3c1c088ae138431de9d408c13e3f33766f5c6db7aefe46a22a75f",
+    "poster": "/exercise-motion/cossack-poster-dc379fe6af02ffbb.webp"
+  },
+  "kb26_single_deadlift": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_single_deadlift-6e9a04ed71ecddd2.mp4",
+    "bytes": 40385,
+    "sha256": "6e9a04ed71ecddd27a783551f18a953240263e808041b938e25dcbd752b3daf0",
+    "poster": "/exercise-motion/kb26_single_deadlift-poster-fdc9738143b08987.webp"
+  },
+  "kb26_rack_squat": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_rack_squat-49089c1e68e159d2.mp4",
+    "bytes": 39373,
+    "sha256": "49089c1e68e159d20bc270141f466ec0c58ce48e2b4e998162c4b4317a8cad68",
+    "poster": "/exercise-motion/kb26_rack_squat-poster-ba73e0e0011c7b23.webp"
   }
 });
 
