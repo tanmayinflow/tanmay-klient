@@ -762,6 +762,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 46848,
     "sha256": "62fefc5bb21b148dcd59c4ba8f6b0fd6349b46b73b07adee91e663a093db1705",
     "poster": "/exercise-motion/ex26_band_pulldown-poster-d639705ffee4074d.webp"
+  },
+  "ex26_mob_finger_spread": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_finger_spread-0582e41ee111442a.mp4",
+    "bytes": 44755,
+    "sha256": "0582e41ee111442aaa40c64c7d2f2303bb99e16127d0d194de123e04f78fbffa",
+    "poster": "/exercise-motion/ex26_mob_finger_spread-poster-0c2213e12db206bd.webp"
+  },
+  "ex26_mob_table_slide": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_table_slide-eb8e5947fd63e5ca.mp4",
+    "bytes": 42249,
+    "sha256": "eb8e5947fd63e5caf6e44e2e890552f83d2aaad50ad6e07585e90505c7dba036",
+    "poster": "/exercise-motion/ex26_mob_table_slide-poster-f67b264ca9663a3c.webp"
+  },
+  "ex26_mob_behindback_lift": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_behindback_lift-e4b23fb47b3184be.mp4",
+    "bytes": 39848,
+    "sha256": "e4b23fb47b3184be8adcb2610fdbabb1027934cce8e59029320e29917800f0fa",
+    "poster": "/exercise-motion/ex26_mob_behindback_lift-poster-765e89303bbceb90.webp"
+  },
+  "ex26_mob_thumb_opposition": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_thumb_opposition-f5045597161a356e.mp4",
+    "bytes": 50636,
+    "sha256": "f5045597161a356eba4612f4e3497b989d0ff7a6a1ed8bcea5650c66cb1c3526",
+    "poster": "/exercise-motion/ex26_mob_thumb_opposition-poster-dc5d717c96520a0e.webp"
+  },
+  "ex26_mob_pike_compression": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_pike_compression-bd0f435d5e3bf5db.mp4",
+    "bytes": 40810,
+    "sha256": "bd0f435d5e3bf5db19c8c9cad54535862ecae6325cc6aec043ef45743748d111",
+    "poster": "/exercise-motion/ex26_mob_pike_compression-poster-93fc2e3644e4d9a9.webp"
+  },
+  "ex26_mob_supine_chin_nod": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_supine_chin_nod-453a63fe9b225837.mp4",
+    "bytes": 30002,
+    "sha256": "453a63fe9b225837aba2430b79eb825b27d689835c0f8ab7d50a0bb78aeca58f",
+    "poster": "/exercise-motion/ex26_mob_supine_chin_nod-poster-f728b2ab353c87ca.webp"
+  },
+  "ex26_mob_supine_assisted_raise": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_supine_assisted_raise-fcd63601be33a385.mp4",
+    "bytes": 35080,
+    "sha256": "fcd63601be33a385adb596783d7bd1f7adb8a55ab4717d19fb33e746e012bbf1",
+    "poster": "/exercise-motion/ex26_mob_supine_assisted_raise-poster-3fbedc9325ca47d5.webp"
+  },
+  "ex26_mob_straddle_compression": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_straddle_compression-cecd4700e841e70b.mp4",
+    "bytes": 35332,
+    "sha256": "cecd4700e841e70b3ec25a3607a79325dbd24b0dbe97497e588cebad7d707446",
+    "poster": "/exercise-motion/ex26_mob_straddle_compression-poster-730a475b48ed617f.webp"
   }
 });
 
