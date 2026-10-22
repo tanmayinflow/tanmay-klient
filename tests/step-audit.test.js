@@ -50,9 +50,9 @@ test('stair machine and actual stairs are distinct equipment requirements',()=>{
  assert.equal(matchesAvailableEquipment(stairs,['schody','fixed_support']),true);
  assert.equal(matchesAvailableEquipment(stairs,['stair_machine']),false);
 });
-test('six step tasks are ordered without reclassifying stair jumps or overriding name/custom sorts',()=>{
+test('reviewed step tasks are ordered without reclassifying stair jumps or overriding name/custom sorts',()=>{
  const index=buildExerciseIndex(rows,{metaOf:r=>lib.meta[r.id]});
- const expected=['stepup','ex26_stepdown','ex26_lateral_stepup','st26_stair_walk','kb26_rack_stepup','act_stairs'];
+ const expected=['stepup','ex26_stepdown','ex26_lateral_stepup','st26_stair_walk','st26_db_supported','st26_db_pair','kb26_rack_stepup','st26_barbell','act_stairs'];
  assert.deepEqual(selectExerciseLibrary(index,{movements:['step']}).rows.map(r=>r.id),expected);
  assert.ok(exerciseTaxonomy(row('st26_stair_walk')).movements.includes('locomotion'));
  for(const id of ['ex26_py_stairs_double','ex26_py_stairs_single'])assert.ok(!exerciseTaxonomy(row(id)).movements.includes('step'));
@@ -82,7 +82,7 @@ test('renamed rows are still discoverable by historical names',()=>{
 test('new illustrations exist for both reviewed identities and do not override custom variants',()=>{
  for(const id of ['act_stairs','st26_stair_walk']){
   const r=row(id),art=stepArtworkFor(r);assert.ok(art,id);
-  for(const key of ['detail','thumb','inkDetail','fillDetail','inkThumb','fillThumb'])assert.ok(existsSync(new URL('../public'+art.primary[key],import.meta.url)),id+key);
+  for(const key of art.transparentBody?['detail','thumb']:['detail','thumb','inkDetail','fillDetail','inkThumb','fillThumb'])assert.ok(existsSync(new URL('../public'+art.primary[key],import.meta.url)),id+key);
   assert.equal(stepArtworkFor({...r,eq:['other']}),null);
  }
  for(const r of STEP_EXERCISES)for(const field of ['pos','exe','wat','pro','foc'])assert.equal(r[field].length,2);

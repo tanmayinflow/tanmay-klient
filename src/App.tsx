@@ -9867,8 +9867,8 @@ function TExDetail({ exId, onClose, onOpen }) {
       <TChain ex={ex} all={all} onOpen={onOpen} />
       <TExShelfPanel ex={ex} all={all} onOpen={onOpen} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-        {(ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
-        <Tag label={ex.mode === "sec" ? L("výdrž · sekundy", "hold · seconds") : L("opakování", "reps")} color="gray" />
+        {TV.stepEquipmentLabels(ex, LANG)?.map((label) => <Tag key={label} label={label} color="green" />) ?? (ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
+        <Tag label={ex.mode === "sec" ? L("čas · sekundy", "time · seconds") : L("opakování", "reps")} color="gray" />
         {load !== "none" && <Tag label={load === "ext" ? L("váha je cvik", "the weight is the lift") : L("lze přidat váhu", "takes added weight")} color="brown" />}
         <Tag label={L(T_POP(ex.pop || 2).cz, T_POP(ex.pop || 2).en)} color={(ex.pop || 2) === 3 ? "orange" : "brown"} />
       </div>

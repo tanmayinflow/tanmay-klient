@@ -31,3 +31,4 @@ export * from "./separateWarmups.js";
 
 export { lungeArtworkFor } from "./lungeArtwork.js";
 export { stepArtworkFor } from "./stepArtwork.js";
+export { stepEquipmentLabels } from "./catalogStepVariants.js";

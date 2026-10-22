@@ -74,7 +74,7 @@ export const MEASUREMENT = {
   },
   DURATION: {
     k: "DURATION",
-    cz: "Výdrž", en: "Hold",
+    cz: "Čas", en: "Duration",
     fields: ["durationSec"], lead: "durationSec", better: "up",
     planned: ["targetDurationSec", "targetRir"],
     e1rm: false, volume: "time",

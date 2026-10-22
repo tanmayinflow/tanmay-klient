@@ -78,7 +78,7 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
         }
     }
     if (sort !== 'name' && filters.movements.length === 1 && filters.movements[0] === 'step') {
-      const foundations = ['stepup','ex26_stepdown','ex26_lateral_stepup','st26_stair_walk','kb26_rack_stepup','act_stairs'];
+      const foundations = ['stepup','ex26_stepdown','ex26_lateral_stepup','st26_stair_walk','st26_db_supported','st26_db_pair','kb26_rack_stepup','st26_barbell','act_stairs'];
       const rank = id => foundations.includes(id) ? foundations.indexOf(id) : foundations.length;
       const difference = rank(a.row.id) - rank(b.row.id);
       if (difference) return difference;

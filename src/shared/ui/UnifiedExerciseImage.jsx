@@ -17,7 +17,8 @@ export function UnifiedExerciseImage({ entry, alt = '', size = 120, fluid = fals
   const src = detail ? art.detail : art.thumb;
   const loaded = loadedSrc === src;
   const failed = failedSrc === src;
-  const supportsMask = typeof CSS !== 'undefined' && (CSS.supports('mask-image','url("")') || CSS.supports('-webkit-mask-image','url("")'));
+  // Hollow contour originals must not regain an opaque body through the fill mask.
+  const supportsMask = !entry.transparentBody && typeof CSS !== 'undefined' && (CSS.supports('mask-image','url("")') || CSS.supports('-webkit-mask-image','url("")'));
   const inkSrc = detail ? art.inkDetail : art.inkThumb;
   const fillSrc = detail ? art.fillDetail : art.fillThumb;
   const masked = loaded && supportsMask && layers.ink === inkSrc && layers.fill === fillSrc;
@@ -25,7 +26,7 @@ export function UnifiedExerciseImage({ entry, alt = '', size = 120, fluid = fals
   return <span style={{ position:'relative', display:'block', width:fluid?'100%':size, maxWidth:'100%', aspectRatio:'1 / 1' }}>
     {(!loaded || failed) && children}
     <img src={src} alt={alt} width={960} height={960} loading="lazy" decoding="async" onLoad={()=>setLoadedSrc(src)} onError={()=>setFailedSrc(src)}
-      style={{ position:'absolute', inset:0, display:failed?'none':'block', opacity:masked?0:1, width:'100%', height:'100%', objectFit:'contain' }}/>
+      style={{ position:'absolute', inset:0, display:failed?'none':'block', opacity:masked?0:1, width:'100%', height:'100%', objectFit:'contain', filter:entry.transparentBody && dark?'invert(1)':undefined }}/>
     {loaded && supportsMask && <>
       <img src={inkSrc} alt="" aria-hidden="true" style={{display:'none'}} onLoad={()=>setLayers(prev=>({...prev,ink:inkSrc}))}/>
       <img src={fillSrc} alt="" aria-hidden="true" style={{display:'none'}} onLoad={()=>setLayers(prev=>({...prev,fill:fillSrc}))}/>

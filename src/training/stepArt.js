@@ -1,37 +1,73 @@
-// Original reviewed static poses; no borrowed animation identity.
+// Hollow contour originals; no opaque body mask. Original assets retained.
 export const STEP_ART = {
-  "st26_stair_walk": {
-    "appId": "st26_stair_walk",
-    "atlasId": "st26_stair_walk",
-    "unified": true,
-    "sourceSha256": "c1e0b40bd9beba397409aff4cd9a86a3bd4a2e80fbbfca00ca5b0bff535eee3c",
-    "primary": {
-      "width": 960,
-      "height": 960,
-      "sourceSha256": "c1e0b40bd9beba397409aff4cd9a86a3bd4a2e80fbbfca00ca5b0bff535eee3c",
-      "detail": "/step-atlas/st26_stair_walk-original-960.webp",
-      "inkDetail": "/step-atlas/st26_stair_walk-ink-960.webp",
-      "fillDetail": "/step-atlas/st26_stair_walk-fill-960.webp",
-      "thumb": "/step-atlas/st26_stair_walk-original-256.webp",
-      "inkThumb": "/step-atlas/st26_stair_walk-ink-256.webp",
-      "fillThumb": "/step-atlas/st26_stair_walk-fill-256.webp"
-    }
-  },
   "act_stairs": {
     "appId": "act_stairs",
     "atlasId": "act_stairs",
     "unified": true,
-    "sourceSha256": "78a80207ddcfbfcbd859d11ca3739b49deb979fffcc21586bcc992caf85a8b98",
+    "transparentBody": true,
+    "sourceSha256": "bb91f7342213a8e5551c6fa9263d00216a94054c2e1992bc90fa9b2221d36bfd",
     "primary": {
       "width": 960,
       "height": 960,
-      "sourceSha256": "78a80207ddcfbfcbd859d11ca3739b49deb979fffcc21586bcc992caf85a8b98",
-      "detail": "/step-atlas/act_stairs-original-960.webp",
-      "inkDetail": "/step-atlas/act_stairs-ink-960.webp",
-      "fillDetail": "/step-atlas/act_stairs-fill-960.webp",
-      "thumb": "/step-atlas/act_stairs-original-256.webp",
-      "inkThumb": "/step-atlas/act_stairs-ink-256.webp",
-      "fillThumb": "/step-atlas/act_stairs-fill-256.webp"
+      "sourceSha256": "bb91f7342213a8e5551c6fa9263d00216a94054c2e1992bc90fa9b2221d36bfd",
+      "detail": "/step-refined-atlas/act_stairs-bb91f7342213-960.webp",
+      "thumb": "/step-refined-atlas/act_stairs-bb91f7342213-256.webp"
+    }
+  },
+  "st26_stair_walk": {
+    "appId": "st26_stair_walk",
+    "atlasId": "st26_stair_walk",
+    "unified": true,
+    "transparentBody": true,
+    "sourceSha256": "f6cce6790f295789ff0ea3eaa33cd3e88f2d1898fb35780e4bc8d3968cf83a95",
+    "primary": {
+      "width": 960,
+      "height": 960,
+      "sourceSha256": "f6cce6790f295789ff0ea3eaa33cd3e88f2d1898fb35780e4bc8d3968cf83a95",
+      "detail": "/step-refined-atlas/st26_stair_walk-f6cce6790f29-960.webp",
+      "thumb": "/step-refined-atlas/st26_stair_walk-f6cce6790f29-256.webp"
+    }
+  },
+  "st26_db_pair": {
+    "appId": "st26_db_pair",
+    "atlasId": "st26_db_pair",
+    "unified": true,
+    "transparentBody": true,
+    "sourceSha256": "98c741aba0af2881af5aa8754e61657093e08d3d4526208329e6bf50c1765be6",
+    "primary": {
+      "width": 960,
+      "height": 960,
+      "sourceSha256": "98c741aba0af2881af5aa8754e61657093e08d3d4526208329e6bf50c1765be6",
+      "detail": "/step-refined-atlas/st26_db_pair-98c741aba0af-960.webp",
+      "thumb": "/step-refined-atlas/st26_db_pair-98c741aba0af-256.webp"
+    }
+  },
+  "st26_db_supported": {
+    "appId": "st26_db_supported",
+    "atlasId": "st26_db_supported",
+    "unified": true,
+    "transparentBody": true,
+    "sourceSha256": "379fa32ba54efbb23f2280b8be8251a063e757c32424b32016097f0b6ab44c6c",
+    "primary": {
+      "width": 960,
+      "height": 960,
+      "sourceSha256": "379fa32ba54efbb23f2280b8be8251a063e757c32424b32016097f0b6ab44c6c",
+      "detail": "/step-refined-atlas/st26_db_supported-379fa32ba54e-960.webp",
+      "thumb": "/step-refined-atlas/st26_db_supported-379fa32ba54e-256.webp"
+    }
+  },
+  "st26_barbell": {
+    "appId": "st26_barbell",
+    "atlasId": "st26_barbell",
+    "unified": true,
+    "transparentBody": true,
+    "sourceSha256": "7a47a6b7000bd15117c6ace2eedb4dde58b9d2afb36ab94237904d9bd3a8b3ed",
+    "primary": {
+      "width": 960,
+      "height": 960,
+      "sourceSha256": "7a47a6b7000bd15117c6ace2eedb4dde58b9d2afb36ab94237904d9bd3a8b3ed",
+      "detail": "/step-refined-atlas/st26_barbell-7a47a6b7000b-960.webp",
+      "thumb": "/step-refined-atlas/st26_barbell-7a47a6b7000b-256.webp"
     }
   }
 };
