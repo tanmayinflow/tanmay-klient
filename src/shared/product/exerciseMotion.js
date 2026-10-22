@@ -1105,6 +1105,69 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 43889,
     "sha256": "db80d9ffd21fd0816f3a774f146a2bac73bac7067b972a200931efb37f4e536b",
     "poster": "/exercise-motion/scapush-poster-8ce1629ccf2c9d8b.webp"
+  },
+  "frog": {
+    "oneSide": false,
+    "src": "/exercise-motion/frog-89fbc7a5059da1f1.mp4",
+    "bytes": 59565,
+    "sha256": "89fbc7a5059da1f1030862be47df33704d9b784511d4a27cd6692639722eefae",
+    "poster": "/exercise-motion/frog-poster-6de3f728080cb030.webp"
+  },
+  "butterfly": {
+    "oneSide": false,
+    "src": "/exercise-motion/butterfly-dcad3c09da10280d.mp4",
+    "bytes": 50685,
+    "sha256": "dcad3c09da10280d45ceeb75bba7e2d3a40eb93c817a2ddd6e4a78bd538f8feb",
+    "poster": "/exercise-motion/butterfly-poster-4295da5b9558fbd7.webp"
+  },
+  "jacks": {
+    "oneSide": false,
+    "src": "/exercise-motion/jacks-700fee41a8362549.mp4",
+    "bytes": 70280,
+    "sha256": "700fee41a83625491f73b707341abc80cf5f1945e2f4d67a94c79500740b3a55",
+    "poster": "/exercise-motion/jacks-poster-3fa24bf68ca94ffa.webp"
+  },
+  "pancake": {
+    "oneSide": false,
+    "src": "/exercise-motion/pancake-6cb818d98f49ed11.mp4",
+    "bytes": 49952,
+    "sha256": "6cb818d98f49ed115e087e3310c57883023a29c2f2472ed130b7fba0b168f119",
+    "poster": "/exercise-motion/pancake-poster-20a91b8c5c0f8187.webp"
+  },
+  "kb26_supported_row": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_supported_row-4b81ff74e4b2d119.mp4",
+    "bytes": 56310,
+    "sha256": "4b81ff74e4b2d119739c630aaddd217a1481aa4538705f0ba255abdb08005ab7",
+    "poster": "/exercise-motion/kb26_supported_row-poster-61c53c463f1b86ca.webp"
+  },
+  "ig27_quadruped_straight_abduction": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig27_quadruped_straight_abduction-237423c160764425.mp4",
+    "bytes": 40602,
+    "sha256": "237423c160764425f939a10136e2116b7416b677ce085ac0d6a0bd704ccea191",
+    "poster": "/exercise-motion/ig27_quadruped_straight_abduction-poster-c1239f243ff6352c.webp"
+  },
+  "ig27_prone_pulldown": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig27_prone_pulldown-1d47d4e97ce40c4e.mp4",
+    "bytes": 36601,
+    "sha256": "1d47d4e97ce40c4e82bd2c1df191093ab8e754d69ce203f48be5b4163fb3ddcc",
+    "poster": "/exercise-motion/ig27_prone_pulldown-poster-de2300da5f95b231.webp"
+  },
+  "childpose": {
+    "oneSide": false,
+    "src": "/exercise-motion/childpose-32e65909a5762bf0.mp4",
+    "bytes": 48495,
+    "sha256": "32e65909a5762bf03f4ff1d5fdabf3eae76735b2f6c2848d19268700c77d9323",
+    "poster": "/exercise-motion/childpose-poster-c1d048c7512756e0.webp"
+  },
+  "flutter": {
+    "oneSide": false,
+    "src": "/exercise-motion/flutter-cf55c43b55a6ffd3.mp4",
+    "bytes": 37670,
+    "sha256": "cf55c43b55a6ffd3e9121bee7c9670e267dabaa6523f59980ae19591155f8e68",
+    "poster": "/exercise-motion/flutter-poster-f0cd09dcb84096ed.webp"
   }
 });
 
