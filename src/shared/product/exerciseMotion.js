@@ -818,6 +818,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 35332,
     "sha256": "cecd4700e841e70b3ec25a3607a79325dbd24b0dbe97497e588cebad7d707446",
     "poster": "/exercise-motion/ex26_mob_straddle_compression-poster-730a475b48ed617f.webp"
+  },
+  "ex26_mob_pendulum": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_pendulum-f54c2761c088736b.mp4",
+    "bytes": 45631,
+    "sha256": "f54c2761c088736b03e6346fc894453cf3550750a0282f8b8da0151cdd058d97",
+    "poster": "/exercise-motion/ex26_mob_pendulum-poster-a47a67122ac9af54.webp"
+  },
+  "ex26_mob_knee_hug_release": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_knee_hug_release-99424d3f50701685.mp4",
+    "bytes": 40410,
+    "sha256": "99424d3f507016854e5cecc00de55dc8280dee278d7b1a81f351010fe44113d9",
+    "poster": "/exercise-motion/ex26_mob_knee_hug_release-poster-51052da2be41a88b.webp"
+  },
+  "ex26_mob_toe_spreadout": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_toe_spreadout-127e677e09d028de.mp4",
+    "bytes": 51096,
+    "sha256": "127e677e09d028deee59bd97ad7fc518fe9796dedfd87a308330245a24edba6e",
+    "poster": "/exercise-motion/ex26_mob_toe_spreadout-poster-f0040bb5d731545b.webp"
+  },
+  "ex26_mob_quadruped_head_rotation": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_quadruped_head_rotation-277a3d2e34344e3a.mp4",
+    "bytes": 30820,
+    "sha256": "277a3d2e34344e3ab6e67773d3a98f2e6d0cdd8288ad4c98b84d97e2e588f465",
+    "poster": "/exercise-motion/ex26_mob_quadruped_head_rotation-poster-2ac0af5fb865bbcd.webp"
+  },
+  "ex26_mob_shortfoot": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_shortfoot-ef2590657c32e34e.mp4",
+    "bytes": 28179,
+    "sha256": "ef2590657c32e34e3d8a73a3e5aba3adf9b7e6ecce6d40c05c094079990433b5",
+    "poster": "/exercise-motion/ex26_mob_shortfoot-poster-04cdf8f2369d7288.webp"
+  },
+  "ex26_mob_seated_hip_rotation": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_seated_hip_rotation-6fadeaee8f06f076.mp4",
+    "bytes": 33299,
+    "sha256": "6fadeaee8f06f076f0da9e507b6471b516f7fb336b15bdb62ac74671ea37ed13",
+    "poster": "/exercise-motion/ex26_mob_seated_hip_rotation-poster-a5cd429094ce3a32.webp"
+  },
+  "ex26_mob_toe_yoga": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_toe_yoga-e2278ecd5083a43c.mp4",
+    "bytes": 36126,
+    "sha256": "e2278ecd5083a43c082ab87d5de7eae3c8acb2676cc3e49d2ff78b8156dce74a",
+    "poster": "/exercise-motion/ex26_mob_toe_yoga-poster-5ce9892fd19c59f4.webp"
+  },
+  "ex26_mob_thumb_abduction": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_thumb_abduction-99c408cfa8a46279.mp4",
+    "bytes": 29296,
+    "sha256": "99c408cfa8a46279e14d2d99d5e0946ce3e80cd361d68f2a36e004e8d350dcb3",
+    "poster": "/exercise-motion/ex26_mob_thumb_abduction-poster-60068bf827e87b90.webp"
   }
 });
 
