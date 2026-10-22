@@ -930,6 +930,69 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 48576,
     "sha256": "3f50901249e1c8db58442df8ca5eb0ee0dba03270269bfd1a1a493b41179079f",
     "poster": "/exercise-motion/ex26_mob_side_windmill-poster-78048912f6b2a0e8.webp"
+  },
+  "ex26_snow_angel": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_snow_angel-e4b2c791ba904336.mp4",
+    "bytes": 52877,
+    "sha256": "e4b2c791ba90433645c7dcc4a81a9f89e93d489f4568d6dbbe453f9a7d94747e",
+    "poster": "/exercise-motion/ex26_snow_angel-poster-825109aedb7f4888.webp"
+  },
+  "ex26_halfkneel_lift": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_halfkneel_lift-93fe47b441ecd77b.mp4",
+    "bytes": 52957,
+    "sha256": "93fe47b441ecd77bd88d937038fcda560c9a1768705f8a928472dd39b42e6963",
+    "poster": "/exercise-motion/ex26_halfkneel_lift-poster-bc98197d8b9ae81d.webp"
+  },
+  "ex26_standing_lift": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_standing_lift-0b98cd87fff75761.mp4",
+    "bytes": 50682,
+    "sha256": "0b98cd87fff75761a1e36337dd320006792a73f9bc39bf928602e676c91f50ea",
+    "poster": "/exercise-motion/ex26_standing_lift-poster-92334319f5eaeeac.webp"
+  },
+  "ex26_db_thruster": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_db_thruster-acd5424ef952e12b.mp4",
+    "bytes": 50255,
+    "sha256": "acd5424ef952e12bc63c3ac82e4f1e9c72a6c9eac6f53cbbf4bf37d7e9a3049b",
+    "poster": "/exercise-motion/ex26_db_thruster-poster-834044fbed48e3c4.webp"
+  },
+  "ex26_snapdown": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_snapdown-c9b8ad3cd3fe4156.mp4",
+    "bytes": 58715,
+    "sha256": "c9b8ad3cd3fe41568e8ef5014a8cb89d15586750c177ca6c90feebf6da3a7c33",
+    "poster": "/exercise-motion/ex26_snapdown-poster-e0e87c479dc0dc1d.webp"
+  },
+  "ex26_gate_opener": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_gate_opener-e6547b851fa99f17.mp4",
+    "bytes": 58454,
+    "sha256": "e6547b851fa99f1748849295c5b67036d9d3e5d8e0352157a48b85117e1d84e6",
+    "poster": "/exercise-motion/ex26_gate_opener-poster-c1dc3e03c36482d3.webp"
+  },
+  "ex26_dns_prone_turn": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_dns_prone_turn-1025c54977f83de2.mp4",
+    "bytes": 41240,
+    "sha256": "1025c54977f83de289bb2bd66880d9daf2e877e250cf8ba4d4673b38652a6793",
+    "poster": "/exercise-motion/ex26_dns_prone_turn-poster-9a42e345a634af4f.webp"
+  },
+  "ex26_hss_quad_handhover": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hss_quad_handhover-759e747b410fa06a.mp4",
+    "bytes": 56654,
+    "sha256": "759e747b410fa06a9db6c5522308f87c0b6948c6cb2e2a5e25b8e9fda1ab14cc",
+    "poster": "/exercise-motion/ex26_hss_quad_handhover-poster-41832aa85fa6e54c.webp"
+  },
+  "ex26_hss_sideplank_leg": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_hss_sideplank_leg-825790d725edb568.mp4",
+    "bytes": 34782,
+    "sha256": "825790d725edb568221ed9d698e40cc6416831f56443f90067fb0c09eb2e9039",
+    "poster": "/exercise-motion/ex26_hss_sideplank_leg-poster-02deb47442f340a1.webp"
   }
 });
 
