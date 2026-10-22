@@ -16,6 +16,10 @@ export const EXERCISE_EQUIPMENT = vocabulary([
   ['sandbag','Zátěžový vak','Sandbag','free_weights'],
   ['guma','Odporová guma','Resistance band','resistance'], ['kladka','Kladka','Cable pulley','resistance'],
   ['stroj','Stroj','Machine','resistance'], ['stair_machine','Schodový trenažér','Stair machine','resistance'], ['zed','Zeď','Wall','supports'],
+  ['smith_machine','Smithův stroj','Smith machine','resistance'], ['back_extension_bench','Extenční lavice','Back-extension bench','supports'],
+  ['cable_rope','Lanový adaptér kladky','Cable rope attachment','accessories'],
+  ['lifting_blocks','Bloky pod činku','Lifting blocks','supports'], ['lifting_platform','Platforma pro tah z deficitu','Deficit lifting platform','supports'],
+  ['sliders','Kluzáky','Sliders','accessories'], ['towel','Ručník','Towel','accessories'], ['sliding_surface','Vhodný kluzný povrch','Suitable sliding surface','body'],
   ['chair','Pevná židle','Stable chair','supports'], ['lavice','Lavice nebo bedna','Bench or box','supports'], ['step_platform','Cvičební stupínek','Exercise step','supports'], ['bradla','Bradla','Parallel bars','supports'],
   ['fixed_support','Pevná opora rukou','Fixed hand support','supports'], ['squat_rack','Stojan s bezpečnostními dorazy','Rack with safety stops','supports'],
   ['fixed_anchor','Pevná kotva gumy','Fixed band anchor','supports'], ['heel_wedge','Pevný klín pod paty','Firm heel wedge','accessories'], ['knee_pad','Podložka pod koleno','Knee pad','accessories'],
@@ -172,5 +176,5 @@ export function matchesAvailableEquipment(profile, availableIds = []) {
 
 // Owning a pair also covers one implement; owning one never implies a pair.
 function equipmentCapabilities(ids) {
-  return unique(array(ids).flatMap(id=>id==='kettlebell_pair'?[id,'kettlebell']:id==='dumbbell_pair'?[id,'dumbbell']:id==='stair_machine'?[id,'stroj']:[id]));
+  return unique(array(ids).flatMap(id=>id==='kettlebell_pair'?[id,'kettlebell']:id==='dumbbell_pair'?[id,'dumbbell']:['stair_machine','smith_machine'].includes(id)?[id,'stroj']:[id]));
 }

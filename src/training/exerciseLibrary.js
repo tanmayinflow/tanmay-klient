@@ -1,5 +1,6 @@
 import { exerciseTaxonomy } from './exerciseTaxonomy.js';
 import { exerciseEquipment, matchesAvailableEquipment } from './exerciseEquipment.js';
+import { HINGE_FOUNDATIONS } from './catalogHingeAuditData.js';
 
 const array = value => Array.isArray(value) ? value : [];
 export const normalizeExerciseSearch = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[_–—-]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -64,6 +65,11 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
     if (sort !== 'name') {
       const priority = a.tax.priority - b.tax.priority;
       if (priority) return priority;
+      if (filters.movements.length === 1 && filters.movements[0] === 'hinge') {
+        const rank = id => HINGE_FOUNDATIONS.includes(id) ? HINGE_FOUNDATIONS.indexOf(id) : HINGE_FOUNDATIONS.length;
+        const difference = rank(a.row.id) - rank(b.row.id);
+        if (difference) return difference;
+      }
       if (filters.movements.length === 1 && filters.movements[0] === 'squat') {
         const foundations = ['sq26_sit_to_stand','sq26_supported','drep','goblet','kb26_goblet_box','legpress'];
         const rank = id => foundations.includes(id) ? foundations.indexOf(id) : foundations.length;

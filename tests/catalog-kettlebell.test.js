@@ -10,7 +10,8 @@ import {existsSync} from 'node:fs';
 
 test('already migrated libraries receive kettlebells without restoring old deletions or overwriting edits',()=>{
  const edited={...KETTLEBELL_EXERCISES[0],cz:'Moje upravená karta'},custom={id:'user_kb'};
- const original={loadedSteps20261022:true, stepContentAudit20261022:true,squatContentAudit20261022:true,exerciseExpansion20261011:true,exerciseAudit20261013:true,instagramContinuation20261015:true,instagramClientNext20261016:true,instagramDeepReview20261016:true,tEx:[edited,custom],tPl:[{id:'plan'}],tWo:[{id:'workout'}],tLog:[{exId:edited.id,reps:8}]};
+ // This test isolates kettlebell seeding; later content audits have their own migration tests.
+ const original={hingeContentAudit20261022:true,loadedSteps20261022:true, stepContentAudit20261022:true,squatContentAudit20261022:true,exerciseExpansion20261011:true,exerciseAudit20261013:true,instagramContinuation20261015:true,instagramClientNext20261016:true,instagramDeepReview20261016:true,tEx:[edited,custom],tPl:[{id:'plan'}],tWo:[{id:'workout'}],tLog:[{exId:edited.id,reps:8}]};
  const result=seedExerciseExpansion(original);
  assert.equal(result.tEx.length,31+INSTAGRAM_EXERCISES.length);
  assert.equal(result.tEx[0],edited);assert.equal(result.tEx[1],custom);
