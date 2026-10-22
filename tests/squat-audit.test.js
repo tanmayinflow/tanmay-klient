@@ -15,7 +15,7 @@ const actual=id=>{const row=rows.find(row=>row.id===id);assert.ok(row,id);return
 
 test('squat audit adds both useful entry cards, without duplicate identities or broken new links',()=>{
   assert.equal(rows.length,new Set(rows.map(row=>row.id)).size);
-  for(const seed of SQUAT_EXERCISES){const row=actual(seed.id);assert.equal(row.measurementType,'BODYWEIGHT_REPS');assert.equal(row.sideMode,'none');assert.deepEqual(exerciseTaxonomy(row).movements,['squat']);for(const language of [0,1])for(const field of ['pos','exe','wat','pro','foc'])assert.ok(row[field][language]);}
+  for(const seed of SQUAT_EXERCISES){const row=actual(seed.id);assert.equal(row.pop,3);assert.equal(row.measurementType,'BODYWEIGHT_REPS');assert.equal(row.sideMode,'none');assert.deepEqual(exerciseTaxonomy(row).movements,['squat']);for(const language of [0,1])for(const field of ['pos','exe','wat','pro','foc'])assert.ok(row[field][language]);}
   for(const row of rows) if(row.id in SQUAT_CORRECTIONS)for(const field of ['ez','hd'])assert.ok(!row[field]||rows.some(r=>r.id===row[field]),`${row.id}:${field}`);
 });
 test('migration is immutable, once-only, retains deletion and never changes plans or histories',()=>{
@@ -77,3 +77,10 @@ test('new illustrations have exact IDs and every original and mask export exists
  assert.ok(matchesAvailableEquipment(profile,['chair']));assert.ok(matchesAvailableEquipment(profile,['lavice']));
  assert.equal(matchesAvailableEquipment({requirements:[['lavice']]},['chair']),false);
  });
+
+test('existing foundation seeds get the core badge once while customized wording is preserved',()=>{
+ const seed=structuredClone(SQUAT_EXERCISES[0]);seed.pop=1;
+ const old={squatContentAudit20261022:true,tEx:[seed],tLog:[{exId:seed.id,reps:3}]};
+ const fixed=applySquatAudit(old);assert.equal(fixed.tEx[0].pop,3);assert.equal(fixed.tLog,old.tLog);assert.equal(seed.pop,1);assert.equal(applySquatAudit(fixed),fixed);
+ const custom={...old,tEx:[{...seed,cz:'Moje vlastní karta'}]};assert.equal(applySquatAudit(custom).tEx[0].pop,1);
+});

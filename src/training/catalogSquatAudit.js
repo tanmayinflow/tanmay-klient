@@ -4,7 +4,7 @@ import { SQUAT_CORRECTIONS, SQUAT_TAXONOMY, SQUAT_GUARDS } from './catalogSquatA
 const flag = 'squatContentAudit20261022';
 const copy = value => JSON.parse(JSON.stringify(value));
 const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
-const foundation = { pat:'drep', mp:['qua','glu'], ms:['abs'], S:1, C:1, J:{kol:1,kyc:1}, pop:1,
+const foundation = { pat:'drep', mp:['qua','glu'], ms:['abs'], S:1, C:1, J:{kol:1,kyc:1}, pop:3,
   mode:'reps', load:'none', measurementType:'BODYWEIGHT_REPS', sideMode:'none', tier:'core',
   sessionRole:'strength', goalRole:'strength', genRule:'generic', family:'squat_bilateral', defaultRestSec:60,
   ez:null, hd:null, source:{author:'NHS',document:'Strength exercises',url:'https://www.nhs.uk/live-well/exercise/strength-exercises/',scope:'Sit-to-stand and supported mini-squat tasks. Original bilingual coaching with adjustable seat height, range and assistance; not a clinical prescription.'} };
@@ -33,7 +33,8 @@ export const SQUAT_META=Object.fromEntries(SQUAT_EXERCISES.map(row=>[row.id,{t:'
 
 /** One bounded migration. No account notes, programme references or logs change. */
 export function applySquatAudit(collection) {
-  if (!collection || collection[flag]) return collection;
+  if (!collection) return collection;
+  if (collection[flag]) return applyFoundationLabels(collection);
   const previous=Array.isArray(collection.tEx)?collection.tEx:[];
   const have=new Set(previous.map(row=>row?.id));
   const additions=SQUAT_EXERCISES.filter(row=>!have.has(row.id)).map(copy);
@@ -53,5 +54,15 @@ export function applySquatAudit(collection) {
     if(equal(taxonomy,row.taxonomy))return row;
     changed=true;return {...row,taxonomy};
   });
-  return changed?{...corrected,tEx:rows}:corrected;
+  return applyFoundationLabels(changed?{...corrected,tEx:rows}:corrected);
+}
+
+// Repair the legacy detail badge for the first published foundation seeds.
+// Apply once and only to their unchanged authored identity and instructions.
+function applyFoundationLabels(collection) {
+  const corrections=Object.fromEntries(SQUAT_EXERCISES.filter(seed=>{
+    const row=collection.tEx?.find(row=>row?.id===seed.id);
+    return row&&['cz','en','pos','exe','eq'].every(key=>equal(row[key],seed[key]));
+  }).map(seed=>[seed.id,{pop:{before:1,after:3}}]));
+  return applyCatalogCorrections(collection,corrections,'squatFoundationLabel20261022');
 }
