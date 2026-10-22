@@ -9,13 +9,16 @@ export const EXERCISE_EQUIPMENT_GROUPS = vocabulary([
 export const EXERCISE_EQUIPMENT = vocabulary([
   ['telo','Vlastní tělo','Body weight','body'], ['prostor','Volný prostor','Clear space','body'],
   ['kettlebell','Kettlebell','Kettlebell','free_weights'], ['dumbbell','Jednoručky','Dumbbells','free_weights'],
+  ['kettlebell_pair','Pár kettlebellů','Pair of kettlebells','free_weights'], ['dumbbell_pair','Pár jednoruček','Pair of dumbbells','free_weights'],
   ['cinka','Velká činka','Barbell','free_weights'], ['ez_bar','EZ osa','EZ bar','free_weights'],
   ['trap_bar','Trap osa','Trap bar','free_weights'], ['plate','Kotouč','Weight plate','free_weights'],
   ['weight_vest','Zátěžová vesta','Weight vest','free_weights'],
   ['sandbag','Zátěžový vak','Sandbag','free_weights'],
   ['guma','Odporová guma','Resistance band','resistance'], ['kladka','Kladka','Cable pulley','resistance'],
   ['stroj','Stroj','Machine','resistance'], ['zed','Zeď','Wall','supports'],
-  ['lavice','Lavice nebo bedna','Bench or box','supports'], ['bradla','Bradla','Parallel bars','supports'],
+  ['chair','Pevná židle','Stable chair','supports'], ['lavice','Lavice nebo bedna','Bench or box','supports'], ['bradla','Bradla','Parallel bars','supports'],
+  ['fixed_support','Pevná opora rukou','Fixed hand support','supports'], ['squat_rack','Stojan s bezpečnostními dorazy','Rack with safety stops','supports'],
+  ['fixed_anchor','Pevná kotva gumy','Fixed band anchor','supports'], ['heel_wedge','Pevný klín pod paty','Firm heel wedge','accessories'], ['knee_pad','Podložka pod koleno','Knee pad','accessories'],
   ['hrazda','Hrazda','Pull-up bar','supports'], ['kruhy','Kruhy','Rings','supports'],
   ['zaves','Závěsný systém','Suspension trainer','supports'], ['schody','Schody','Stairs','supports'],
   ['tyc','Tyč','Pole or stick','accessories'], ['valec','Válec','Roller','accessories'],
@@ -155,12 +158,17 @@ export function exerciseEquipment(input, inputMeta = {}) {
     }) : [['unknown_equipment']];
   }
   requirements = requirements.filter((group,index,all) => all.findIndex(other => [...other].sort().join('|') === [...group].sort().join('|')) === index);
-  const items = unique(requirements.flat());
+  const items = equipmentCapabilities(requirements.flat());
   return { items, requirements, unresolved:items.filter(unresolvedId), evidence, legacy };
 }
 
 export function matchesAvailableEquipment(profile, availableIds = []) {
-  const available = new Set(array(availableIds));
+  const available = new Set(equipmentCapabilities(availableIds));
   if (!profile || !Array.isArray(profile.requirements)) return false;
   return profile.requirements.every(group => array(group).some(id => !unresolvedId(id) && (id === 'telo' || available.has(id))));
+}
+
+// Owning a pair also covers one implement; owning one never implies a pair.
+function equipmentCapabilities(ids) {
+  return unique(array(ids).flatMap(id=>id==='kettlebell_pair'?[id,'kettlebell']:id==='dumbbell_pair'?[id,'dumbbell']:[id]));
 }

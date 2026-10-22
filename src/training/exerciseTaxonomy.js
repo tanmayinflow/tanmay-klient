@@ -55,6 +55,7 @@ export const EXERCISE_POSITIONS = vocabulary([
 export const EXERCISE_SUPPORTS = vocabulary([
   ['wall','Opora o zeď','Wall support'], ['chair_bench','Židle, lavice nebo schod','Chair, bench or step support'],
   ['hand_support','Opora rukou','Hand support'], ['assisted','S dopomocí','Assisted'], ['unsupported','Bez přídavné opory','No additional support'],
+  ['machine','Opora a vedení stroje','Machine support or guidance'],
 ]);
 
 const arr = value => Array.isArray(value) ? value : [];

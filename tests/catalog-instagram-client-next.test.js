@@ -12,7 +12,7 @@ const expectedIds=[
  'ig28_reverse_plank_slide','ig28_bulgarian_ring_row','ig28_dumbbell_side_bend',
  'ig28_neck_side_lift','ig28_neck_supine_lift','ig28_neck_prone_lift',
 ];
-const previousMigrations={exerciseExpansion20261011:true,exerciseAudit20261013:true,kettlebellExpansion20261015:true,instagramExpansion20261015:true,practicalExerciseAudit20261015:true,instagramContinuation20261015:true,instagramDeepReview20261016:true};
+const previousMigrations={squatContentAudit20261022:true,exerciseExpansion20261011:true,exerciseAudit20261013:true,kettlebellExpansion20261015:true,instagramExpansion20261015:true,practicalExerciseAudit20261015:true,instagramContinuation20261015:true,instagramDeepReview20261016:true};
 
 test('the client-practical release contains exactly the ten reviewed tasks, without grip-only or trick additions',()=>{
  assert.equal(rows.length,10);

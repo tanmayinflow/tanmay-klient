@@ -5564,6 +5564,8 @@ const T_POPS = [
 ];
 const T_POP = (v) => T_POPS.find((x) => x.v === v) || T_POPS[1];
 const T_EQUIP = [
+  { k: "chair", cz: "pevná židle", en: "stable chair" },
+  { k: "fixed_support", cz: "pevná opora rukou", en: "fixed hand support" },
   { k: "tyc", cz: "cvičební tyč", en: "exercise dowel" },
   { k: "valec", cz: "pěnový válec", en: "foam roller" },
   { k: "prekazka", cz: "nízké překážky", en: "low hurdles" },

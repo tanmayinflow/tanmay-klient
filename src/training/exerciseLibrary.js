@@ -64,6 +64,12 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
     if (sort !== 'name') {
       const priority = a.tax.priority - b.tax.priority;
       if (priority) return priority;
+      if (filters.movements.length === 1 && filters.movements[0] === 'squat') {
+        const foundations = ['sq26_sit_to_stand','sq26_supported','drep','goblet','kb26_goblet_box','legpress'];
+        const rank = id => foundations.includes(id) ? foundations.indexOf(id) : foundations.length;
+        const difference = rank(a.row.id) - rank(b.row.id);
+        if (difference) return difference;
+      }
     }
     return a.name.localeCompare(b.name, options.locale || 'cs', { sensitivity: 'base', numeric: true }) || a.order - b.order;
   });

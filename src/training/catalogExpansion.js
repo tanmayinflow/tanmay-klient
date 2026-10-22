@@ -5,6 +5,7 @@ import { INSTAGRAM_EXERCISES, seedInstagramExpansion } from './catalogInstagram.
 import { INSTAGRAM_CONTINUATION_EXERCISES, seedInstagramContinuation } from './catalogInstagramContinuation.js';
 import { INSTAGRAM_CLIENT_NEXT_EXERCISES, seedInstagramClientNext } from './catalogInstagramClientNext.js';
 import { INSTAGRAM_DEEP_REVIEW_EXERCISES, seedInstagramDeepReview } from './catalogInstagramDeepReview.js';
+import { applySquatAudit } from './catalogSquatAudit.js';
 import { applyPracticalCorrections } from './catalogPracticalCorrections.js';
 export const EXPANSION_EXERCISES = [
   {
@@ -28280,7 +28281,7 @@ export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES
   const withContinuation = seedInstagramContinuation(withInstagram, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_CONTINUATION_EXERCISES : seedRows);
   const withClientNext = seedInstagramClientNext(withContinuation, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_CLIENT_NEXT_EXERCISES : seedRows);
   const withDeepReview = seedInstagramDeepReview(withClientNext, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_DEEP_REVIEW_EXERCISES : seedRows);
-  return applyPracticalCorrections(withDeepReview);
+  return applySquatAudit(applyPracticalCorrections(withDeepReview));
 }
 
 function seedOriginalExpansion(collection, seedRows) {

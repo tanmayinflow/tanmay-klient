@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { EXPANSION_EXERCISES, EXPANSION_META, seedExerciseExpansion } from '../src/training/catalogExpansion.js';
 import { extensionFor } from '../src/training/catalogV2.js';
 import { resolveExercise } from '../src/training/catalog.js';
+import { SQUAT_EXERCISES } from '../src/training/catalogSquatAudit.js';
 import { KETTLEBELL_EXERCISES } from '../src/training/catalogKettlebell.js';
 import { INSTAGRAM_EXERCISES } from '../src/training/catalogInstagram.js';
 import { INSTAGRAM_CONTINUATION_EXERCISES } from '../src/training/catalogInstagramContinuation.js';
@@ -14,7 +15,7 @@ test('existing library receives expansion once without changing user cards, plan
   const custom = { id: 'user_custom', cz: 'Můj cvik' };
   const original = { tEx: [edited, custom], tWo: [{ id: 'workout' }], tPl: [{ id: 'plan' }], tLog: [{ exId: edited.id, reps: 7 }] };
   const migrated = seedExerciseExpansion(original);
-  assert.equal(migrated.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length + 1);
+  assert.equal(migrated.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length + SQUAT_EXERCISES.length + 1);
   assert.equal(migrated.tEx[0], edited);
   assert.equal(migrated.tEx[1], custom);
   for (const key of ['tWo', 'tPl', 'tLog']) assert.equal(migrated[key], original[key]);
@@ -30,7 +31,7 @@ test('client expansion uses only progression links available in its own catalogu
   const clientRows = extensionFor(available);
   const ids = new Set([...available, ...clientRows.map(x => x.id)]);
   const migrated = seedExerciseExpansion({ tEx: [] }, clientRows);
-  assert.equal(migrated.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length);
+  assert.equal(migrated.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length + SQUAT_EXERCISES.length);
   for (const row of migrated.tEx) for (const key of ['ez', 'hd']) assert.ok(!row[key] || ids.has(row[key]), row.id + ':' + key);
 });
 

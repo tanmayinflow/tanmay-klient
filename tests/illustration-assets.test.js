@@ -1,3 +1,4 @@
+import { SQUAT_EXERCISES } from '../src/training/catalogSquatAudit.js';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
@@ -15,10 +16,10 @@ import { INSTAGRAM_DEEP_REVIEW_EXERCISES } from '../src/training/catalogInstagra
 test('client carries every static library illustration used by assigned workouts',()=>{
  const all={...MOVEMENT_ATLAS,...MOBILITY_ART,...CREATOR_ART,...SUPPLEMENT_ART,...EXPANSION_ART};
  assert.equal(EXPANSION_EXERCISES.length,376);
- assert.equal(Object.keys(all).length,660+EXPANSION_EXERCISES.length+KETTLEBELL_EXERCISES.length+INSTAGRAM_EXERCISES.length+INSTAGRAM_CONTINUATION_EXERCISES.length+INSTAGRAM_CLIENT_NEXT_EXERCISES.length+INSTAGRAM_DEEP_REVIEW_EXERCISES.length);
+ assert.equal(Object.keys(all).length,660+EXPANSION_EXERCISES.length+KETTLEBELL_EXERCISES.length+INSTAGRAM_EXERCISES.length+INSTAGRAM_CONTINUATION_EXERCISES.length+INSTAGRAM_CLIENT_NEXT_EXERCISES.length+INSTAGRAM_DEEP_REVIEW_EXERCISES.length+SQUAT_EXERCISES.length);
  for(const [id,item] of Object.entries(all))for(const kind of ['thumb','detail'])assert.ok(existsSync(new URL('../public'+item.primary[kind],import.meta.url)),id+' '+kind);
 });
 test('every new client exercise has all six local illustration derivatives',()=>{
- assert.deepEqual(new Set(Object.keys(EXPANSION_ART)),new Set([...EXPANSION_EXERCISES,...KETTLEBELL_EXERCISES,...INSTAGRAM_EXERCISES,...INSTAGRAM_CONTINUATION_EXERCISES,...INSTAGRAM_CLIENT_NEXT_EXERCISES,...INSTAGRAM_DEEP_REVIEW_EXERCISES].map(x=>x.id)));
+ assert.deepEqual(new Set(Object.keys(EXPANSION_ART)),new Set([...EXPANSION_EXERCISES,...KETTLEBELL_EXERCISES,...INSTAGRAM_EXERCISES,...INSTAGRAM_CONTINUATION_EXERCISES,...INSTAGRAM_CLIENT_NEXT_EXERCISES,...INSTAGRAM_DEEP_REVIEW_EXERCISES,...SQUAT_EXERCISES].map(x=>x.id)));
  for(const [id,item] of Object.entries(EXPANSION_ART))for(const kind of ['thumb','detail','inkThumb','inkDetail','fillThumb','fillDetail'])assert.ok(existsSync(new URL('../public'+item.primary[kind],import.meta.url)),id+' '+kind);
 });
