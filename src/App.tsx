@@ -1,4 +1,7 @@
 import { ExerciseMotion } from './shared/ui/ExerciseMotion.jsx';
+import { ExerciseLibraryFilters, ExerciseTaxonomySummary, ExerciseTaxonomyEditor } from './shared/ui/exerciseLibrary.jsx';
+import { createExerciseFilters, buildExerciseIndex, selectExerciseLibrary } from './training/exerciseLibrary.js';
+import { exerciseTaxonomy } from './training/exerciseTaxonomy.js';
 import {createContentWorkshopUI} from './shared/ui/contentWorkshop.jsx';
 import { createLocalDocumentWriter, localSaveMessage, localSaveDiagnostic } from './shared/product/localPersistence.js';
 import { LocalStorageStatus } from './shared/ui/localStorageStatus.jsx';
@@ -9547,46 +9550,35 @@ function TExPick({ onPick, onClose, onNew }) {
   const { t } = useT();
   const st = useStore();
   const exs = st.coll.tEx || [];
-  const [q, setQ] = useState("");
-  const [fPats, setFPats] = useState([]);
-  const [fLvls, setFLvls] = useState([]);
-  const [fMus, setFMus] = useState([]);
-  const [fEq, setFEq] = useState([]);
+  const [exerciseFilters, setExerciseFilters] = useState(createExerciseFilters);
+  const [exerciseSort, setExerciseSort] = useState("recommended");
+  const exerciseIndex = React.useMemo(() => buildExerciseIndex(exs, {
+    metaOf: tMetaOf, nameOf: tExName, searchTextOf: tExSearchText, levelOf: tLvlOf,
+    statusOf: tStatusOf, tierOf: tTierOf, musclesOf: resolveMuscleMap,
+  }), [exs, LANG]);
+  const { rows: list, hiddenCount } = selectExerciseLibrary(exerciseIndex, exerciseFilters, {
+    sort: exerciseSort, recentIds: TV.recentOf(st.coll),
+  });
   const inRef = React.useRef(null);
-  React.useEffect(() => { if (inRef.current) inRef.current.focus(); }, []);
-  const patOrder = Object.fromEntries(T_PATTERNS.map((p, i) => [p.k, i]));
-  const list = exs
-    .filter((x) =>
-      tExOnDefaultShelf(x) &&
-      (!fPats.length || fPats.includes(x.pat)) &&
-      (!fLvls.length || fLvls.includes(tLvlOf(x))) &&
-      (!fMus.length || fMus.some((m) => resolveMuscleMap(x).primary.includes(m) || resolveMuscleMap(x).secondary.includes(m))) &&
-      (!fEq.length || fEq.some((e) => (x.eq || []).includes(e))) &&
-      (!q || tExSearchText(x).toLowerCase().includes(q.toLowerCase())))
-    .sort((a, b) => ((b.pop || 2) - (a.pop || 2)) || (patOrder[a.pat] - patOrder[b.pat]) || (tLvlOf(a) - tLvlOf(b)));
-  const any = fPats.length || fLvls.length || fMus.length || fEq.length || q;
+  React.useEffect(() => { inRef.current?.querySelector("input")?.focus(); }, []);
   return (
     <TPickShell title={L("Vyber cvik", "Pick an exercise")} onClose={onClose}>
-      <input ref={inRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat cvik…", "Search exercises…")} style={{ ...tPickInp(t), width: "100%", marginBottom: 10 }} />
-      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
-        <TChip label={L("Vše", "All")} active={!fPats.length} onClick={() => setFPats([])} />
-        {T_PATTERNS.map((p) => <TChip key={p.k} label={L(p.cz, p.en)} active={fPats.includes(p.k)} onClick={() => setFPats(fPats.includes(p.k) ? fPats.filter((x) => x !== p.k) : [...fPats, p.k])} />)}
-      </div>
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-        <TMultiSel label={L("Náročnost", "Demand")} values={fLvls} onChange={setFLvls} options={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
-        <TMultiSel label={L("Svaly", "Muscles")} values={fMus} onChange={setFMus} options={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))} />
-        <TMultiSel label={L("Vybavení", "Equipment")} values={fEq} onChange={setFEq} options={T_EQUIP.map((e) => ({ v: e.k, label: L(e.cz, e.en) }))} />
-        {any ? <button onClick={() => { setFPats([]); setFLvls([]); setFMus([]); setFEq([]); setQ(""); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 11.5, textDecoration: "underline", padding: 0 }}>{L("vyčistit", "clear")}</button> : null}
-        <span style={{ marginLeft: "auto", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{list.length} {L("cviků", "exercises")}</span>
+      <div ref={inRef} style={{ maxHeight: "45vh", overflowY: "auto", flexShrink: 0 }}>
+        <ExerciseLibraryFilters t={t} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
+          sort={exerciseSort} onSort={setExerciseSort} count={list.length} hiddenCount={hiddenCount}
+          MultiSelect={TMultiSel} allowCustomOrder={false}
+          equipmentOptions={T_EQUIP.map((e) => ({ v: e.k, label: L(e.cz, e.en) }))}
+          muscleOptions={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))}
+          levelOptions={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
       </div>
       <div className="tm-scroll" style={{ overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 10, flex: 1, minHeight: 120 }}>
         {list.map((ex, i) => (
-          <button key={ex.id} onClick={() => onPick(ex.id)} className="tm-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderBottom: i < list.length - 1 ? `1px solid ${t.borderSoft}` : "none", cursor: "pointer", padding: "9px 12px" }}>
+          <button key={ex.id} onClick={() => { st.persistColl(c => TV.noteRecent(c, ex.id)); onPick(ex.id); }} className="tm-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderBottom: i < list.length - 1 ? `1px solid ${t.borderSoft}` : "none", cursor: "pointer", padding: "9px 12px" }}>
             <span style={{ color: t.sand, flexShrink: 0 }}><TExArt ex={ex} size={48} stroke="currentColor" showDot={false} /></span>
             <span style={{ minWidth: 0, flex: 1 }}>
               <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tExName(ex)}</span>
               <span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 2 }}>
-                <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, color: t.sage }}>{L((T_PAT[ex.pat] || {}).cz, (T_PAT[ex.pat] || {}).en)}</span>
+                <ExerciseTaxonomySummary t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
                 <TDemandDots v={tLvlOf(ex)} />
                 <span style={{ fontFamily: FONT_BODY, fontSize: 10.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(ex.eq || []).map((k) => L((T_EQ[k] || {}).cz, (T_EQ[k] || {}).en)).filter(Boolean).join(" · ")}</span>
               </span>
@@ -9595,8 +9587,9 @@ function TExPick({ onPick, onClose, onNew }) {
         ))}
         {list.length === 0 && (
           <div style={{ padding: "18px 14px", fontFamily: FONT_BODY, fontSize: 13.5, fontStyle: "italic", color: t.textMuted }}>
-            {L("Nic takového v knihovně není.", "The library holds nothing like that.")}
-            {onNew && q ? <button onClick={() => onNew(q)} style={{ marginLeft: 8, background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Založit", "Create")} „{q}"</button> : null}
+            {L("Žádný cvik neodpovídá hledání a filtrům.", "No exercises match your search and filters.")}
+            <button onClick={() => setExerciseFilters(createExerciseFilters())} style={{ ...tvQuiet(t), display: "block", marginTop: 8 }}>{L("Vyčistit hledání a filtry", "Clear search and filters")}</button>
+            {onNew && exerciseFilters.q ? <button onClick={() => onNew(exerciseFilters.q)} style={{ marginLeft: 8, background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Založit", "Create")} „{exerciseFilters.q}"</button> : null}
           </div>
         )}
       </div>
@@ -9705,10 +9698,12 @@ function TExShelfPanel({ ex, all, onOpen }) {
 // A word, in the same quiet type as everything else. Never a colour on its own.
 function TExShelf({ ex, size = 10.5 }) {
   const { t } = useT();
-  const tier = tTierOf(ex);
-  const lab = TEX_TIER_LABEL[tier];
-  if (!lab) return null;
-  const loud = tier === "archived" || tier === "catalog";
+  const alias = !!tAliasOf(ex) || tStatusOf(ex) === "alias";
+  const archived = tIsArchived(ex) || tStatusOf(ex) === "blocked";
+  const priority = exerciseTaxonomy(ex, tMetaOf(ex)).priority;
+  const lab = alias ? ["Alias", "Alias"] : archived ? ["Archiv", "Archive"]
+    : [["Základní cvik", "Foundational exercise"], ["Další varianta", "Further variation"], ["Specializovaný cvik", "Specialist exercise"]][priority];
+  const loud = archived || alias;
   return (
     <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: size,
                    color: loud ? t.accent : t.textMuted, border: `1px solid ${loud ? t.accent : t.borderSoft}`,
@@ -9724,7 +9719,6 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
   const st = useStore();
 
   const [over, setOver] = useState(false);
-  const pat = T_PAT[ex.pat] || T_PATTERNS[0];
   const rootRef = React.useRef(null);
   const stRef = React.useRef(st); stRef.current = st;
   const offRef = React.useRef(true); offRef.current = !drag || !!selecting;
@@ -9749,7 +9743,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
       <div className="tm-exercise-card-copy" style={{ minWidth: 0, width: "100%", padding: "11px 15px 13px", boxSizing: "border-box" }}>
         <div className="tm-exercise-card-title" style={{ fontFamily: FONT_DISPLAY, fontSize: 18.5, color: t.heading, lineHeight: 1.25, marginBottom: 4 }}>{tExName(ex)}</div>
         <div className="tm-exercise-card-meta" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10.5, color: t.sage }}>{L(pat.cz, pat.en)}</span>
+          <ExerciseTaxonomySummary t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
           <TDemandDots v={tLvlOf(ex)} />
           <TExShelf ex={ex} />
         </div>
@@ -9787,7 +9781,6 @@ function TExDetail({ exId, onClose, onOpen }) {
   }, [exId]);
   if (!ex) return null;
   const edit = st.editMode || localEdit;
-  const pat = T_PAT[ex.pat] || T_PATTERNS[0];
   const patch = (p) => st.updateEntry("tEx", ex.id, p);
   // Vlastní historie tohoto cviku, ze skutečných sérií — ne z odděleného seznamu
   // rekordů, který se s tréninkem mohl rozejít.
@@ -9804,7 +9797,8 @@ function TExDetail({ exId, onClose, onOpen }) {
     <Drawer open onClose={onClose}>
       <TEditToggle on={localEdit} onToggle={() => setLocalEdit((x) => !x)} title={L("Upravit cvik", "Edit exercise")} />
       <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>
-        {L(pat.cz, pat.en)} · {L(T_DEMAND(tLvlOf(ex)).cz, T_DEMAND(tLvlOf(ex)).en)}
+        <ExerciseTaxonomySummary t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
+        <span>{L(T_DEMAND(tLvlOf(ex)).cz, T_DEMAND(tLvlOf(ex)).en)}</span>
       </div>
       {edit ? (
         <div style={{ marginBottom: 6 }}>
@@ -9830,8 +9824,9 @@ function TExDetail({ exId, onClose, onOpen }) {
           <TPairEdit label={L("Provedení", "Execution")} val={ex.exe} onPatch={(v) => patch({ exe: v })} />
           <TPairEdit label={L("Na co dát pozor", "Watch for")} val={ex.wat} onPatch={(v) => patch({ wat: v })} />
           <TPairEdit label={L("Progrese", "Progression")} val={ex.pro} onPatch={(v) => patch({ pro: v })} />
+          <ExerciseTaxonomyEditor t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)}
+            onChange={(taxonomy) => patch({ taxonomy })} MultiSelect={TMultiSel} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "4px 0 12px" }}>
-            <Select small value={ex.pat} onChange={(v) => patch({ pat: v })} options={T_PATTERNS.map((p) => ({ v: p.k, label: L(p.cz, p.en) }))} />
             <Select small value={String(tSOf(ex))} onChange={(v) => patch({ S: Number(v) })} options={T_DEMANDS.map((x) => ({ v: String(x.v), label: L("Síla · " + x.cz, "Strength · " + x.en) }))} />
             <Select small value={String(tCOf(ex))} onChange={(v) => patch({ C: Number(v) })} options={[1, 2, 3, 4, 5].map((v) => ({ v: String(v), label: L("Koordinace " + v, "Coordination " + v) }))} />
             <Select small value={ex.mode} onChange={(v) => patch({ mode: v })} options={[{ v: "reps", label: L("opakování", "reps") }, { v: "sec", label: L("sekundy", "seconds") }]} />
@@ -13537,22 +13532,18 @@ function PageTrenink() {
   const sessions = st.tvSessions();
 
   // ---- knihovna · filtry ----
-  const [fPats, setFPats] = useState([]);
-  const [fMus, setFMus] = useState([]);
-  const [fEq, setFEq] = useState([]);
-  const [q, setQ] = useState("");
-  const [fShelf, setFShelf] = useState([]);
-  const filtered = exs.filter((x) =>
-    tExOnShelf(x, fShelf) &&
-    (!fPats.length || fPats.includes(x.pat)) &&
-    (!fMus.length || fMus.some((m) => resolveMuscleMap(x).primary.includes(m) || resolveMuscleMap(x).secondary.includes(m))) &&
-    (!fEq.length || fEq.some((e) => (x.eq || []).includes(e))) &&
-    (!q || tExSearchText(x).toLowerCase().includes(q.toLowerCase())));
-  const patOrder = Object.fromEntries(T_PATTERNS.map((p, i) => [p.k, i]));
-  const sorted = [...filtered].sort((a, b) => (patOrder[a.pat] - patOrder[b.pat]) || (tLvlOf(a) - tLvlOf(b)));
+  const [exerciseFilters, setExerciseFilters] = useState(createExerciseFilters);
+  const [exerciseSort, setExerciseSort] = useState("recommended");
+  const exerciseIndex = React.useMemo(() => buildExerciseIndex(exs, {
+    metaOf: tMetaOf, nameOf: tExName, searchTextOf: tExSearchText, levelOf: tLvlOf,
+    statusOf: tStatusOf, tierOf: tTierOf, musclesOf: resolveMuscleMap,
+  }), [exs, LANG]);
+  const { rows: sorted, hiddenCount } = selectExerciseLibrary(exerciseIndex, exerciseFilters, {
+    sort: exerciseSort, recentIds: TV.recentOf(st.coll),
+  });
   const EX_PAGE = 24;
   const [exShown, setExShown] = useState(EX_PAGE);
-  React.useEffect(() => { setExShown(EX_PAGE); }, [fPats, fMus, fEq, q, fShelf]);
+  React.useEffect(() => { setExShown(EX_PAGE); }, [exerciseFilters, exerciseSort]);
 
   // ---- dnes ----
   const today = todayISO();
@@ -13584,8 +13575,6 @@ function PageTrenink() {
     { k: "zaznam", cz: "Můj pokrok", en: "My progress" },
     { k: "casovac", cz: "Časovač", en: "Timer" },
   ];
-  const inpStyle = { background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 14, padding: "8px 12px", outline: "none" };
-
   return (
     <>
       <PageTitle pageKey="trenink" icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcTrenink size={40} /></span>} kicker={L("Plán, provedení, záznam.", "Plan, execution, record.")}>
@@ -13619,16 +13608,18 @@ function PageTrenink() {
 
       {tab === "knihovna" && (
         <>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-            <TChip label={L("Vše", "All")} active={!fPats.length} onClick={() => setFPats([])} />
-            {T_PATTERNS.map((p) => <TChip key={p.k} label={L(p.cz, p.en)} active={fPats.includes(p.k)} onClick={() => setFPats(fPats.includes(p.k) ? fPats.filter((x) => x !== p.k) : [...fPats, p.k])} />)}
+          <div data-guide="trenink.library">
+            <ExerciseLibraryFilters t={t} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
+              sort={exerciseSort} onSort={setExerciseSort} count={sorted.length} hiddenCount={hiddenCount}
+              MultiSelect={TMultiSel} allowCustomOrder={false}
+              equipmentOptions={T_EQUIP.map((e) => ({ v: e.k, label: L(e.cz, e.en) }))}
+              muscleOptions={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))}
+              levelOptions={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-            <TMultiSel label={L("Svaly", "Muscles")} values={fMus} onChange={setFMus} options={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))} />
-            <TMultiSel label={L("Vybavení", "Equipment")} values={fEq} onChange={setFEq} options={T_EQUIP.map((e) => ({ v: e.k, label: L(e.cz, e.en) }))} />
-            <input data-guide="trenink.library" aria-label={L("Hledat cvik","Search exercises")} value={q} onChange={(e) => setQ(e.target.value)} placeholder={L("Hledat…", "Search…")} style={{ ...inpStyle, width: 160 }} />
-            <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginLeft: "auto" }}>{sorted.length} {L("cviků", "exercises")}</span>
-          </div>
+          {!sorted.length && <div role="status" style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, padding: "20px 0" }}>
+            {L("Žádný cvik neodpovídá hledání a filtrům.", "No exercises match your search and filters.")}
+            <button onClick={() => setExerciseFilters(createExerciseFilters())} style={{ ...tvQuiet(t), display: "block", marginTop: 8 }}>{L("Vyčistit hledání a filtry", "Clear search and filters")}</button>
+          </div>}
           <div className="tm-reveal tm-exercise-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(235px, 1fr))", gap: 12 }}>
             {sorted.slice(0, exShown).map((ex) => <TExCard key={ex.id} ex={ex} onOpen={() => setOpenEx(ex.id)} />)}
           </div>
