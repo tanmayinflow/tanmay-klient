@@ -1049,6 +1049,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 36093,
     "sha256": "7fd72d09d0aa4b1ec5a317a050e62b8074a4b8e82a4eb7bc5c437d5d7cf96cb5",
     "poster": "/exercise-motion/gm_w_vertical-poster-bc24e1371015b9f5.webp"
+  },
+  "gm_w_half_cossack": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_half_cossack-45f8c8eb8df05cbb.mp4",
+    "bytes": 47171,
+    "sha256": "45f8c8eb8df05cbbb2f740c9d67f08bb15241fdb62339bd292bce4154287ef28",
+    "poster": "/exercise-motion/gm_w_half_cossack-poster-eed0004077896b31.webp"
+  },
+  "gm_w_twist": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_twist-52be9214123c9751.mp4",
+    "bytes": 39182,
+    "sha256": "52be9214123c97512b4111a89f9446e878fa4bb88ca4ceb36a6726574ad48c98",
+    "poster": "/exercise-motion/gm_w_twist-poster-402d3536dd872f5a.webp"
+  },
+  "compression": {
+    "oneSide": false,
+    "src": "/exercise-motion/compression-e37983d6c2368319.mp4",
+    "bytes": 54149,
+    "sha256": "e37983d6c23683193434e1583627f30fcc36ad15591876bbf7422b98ec336831",
+    "poster": "/exercise-motion/compression-poster-773c517b87247aeb.webp"
+  },
+  "revnordic": {
+    "oneSide": false,
+    "src": "/exercise-motion/revnordic-72c94e770877831c.mp4",
+    "bytes": 50271,
+    "sha256": "72c94e770877831c018bf1fa05902747c48e70e2bd64dff9d62bea7c41a5287d",
+    "poster": "/exercise-motion/revnordic-poster-8b1a4d0d0483b3b9.webp"
+  },
+  "situp": {
+    "oneSide": false,
+    "src": "/exercise-motion/situp-656785b95b68cd0f.mp4",
+    "bytes": 37043,
+    "sha256": "656785b95b68cd0f4b1c43ffd642cdbe3ca743f124b35d7cc45b635154e310f7",
+    "poster": "/exercise-motion/situp-poster-3ab101e644c8bf09.webp"
+  },
+  "russtwist": {
+    "oneSide": false,
+    "src": "/exercise-motion/russtwist-1e5d4defba43a297.mp4",
+    "bytes": 41629,
+    "sha256": "1e5d4defba43a297984e69d79011aed14be2a0cfe52ecfc6bdd13371142d730a",
+    "poster": "/exercise-motion/russtwist-poster-75a2136a2007b739.webp"
+  },
+  "jefferson": {
+    "oneSide": false,
+    "src": "/exercise-motion/jefferson-60ed7a0a2734344f.mp4",
+    "bytes": 49251,
+    "sha256": "60ed7a0a2734344fde7625890666188c7ea54a549caf388075a9df9ef9c8ac90",
+    "poster": "/exercise-motion/jefferson-poster-c20cf7dd14324492.webp"
+  },
+  "scapush": {
+    "oneSide": false,
+    "src": "/exercise-motion/scapush-db80d9ffd21fd081.mp4",
+    "bytes": 43889,
+    "sha256": "db80d9ffd21fd0816f3a774f146a2bac73bac7067b972a200931efb37f4e536b",
+    "poster": "/exercise-motion/scapush-poster-8ce1629ccf2c9d8b.webp"
   }
 });
 
