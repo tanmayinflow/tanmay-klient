@@ -15,6 +15,12 @@ import { INSTAGRAM_EXERCISES } from '../src/training/catalogInstagram.js';
 import { INSTAGRAM_CONTINUATION_EXERCISES } from '../src/training/catalogInstagramContinuation.js';
 import { INSTAGRAM_CLIENT_NEXT_EXERCISES } from '../src/training/catalogInstagramClientNext.js';
 import { INSTAGRAM_DEEP_REVIEW_EXERCISES } from '../src/training/catalogInstagramDeepReview.js';
+import { proposal as BRIDGE_AUDIT } from '../src/training/catalogBridgeAuditData.js';
+import { proposal as HORIZONTAL_PRESS_AUDIT } from '../src/training/catalogHorizontalPressAuditData.js';
+import { proposal as HORIZONTAL_PULL_AUDIT } from '../src/training/catalogHorizontalPullAuditData.js';
+
+const OCT22_CONTENT_AUDITS = [BRIDGE_AUDIT, HORIZONTAL_PRESS_AUDIT, HORIZONTAL_PULL_AUDIT];
+const OCT22_FOUNDATION_COUNT = OCT22_CONTENT_AUDITS.reduce((count, audit) => count + audit.additions.length, 0);
 
 const corrections = {
   ex26_sample: {
@@ -133,7 +139,7 @@ test('the deployed expansion seed runs the audit on existing libraries without r
   assert.ok(entry, 'The release includes at least one real correction.');
   const [id, patches] = entry;
   const originalCard = { id, ...Object.fromEntries(Object.entries(patches).map(([field, change]) => [field, structuredClone(change.before)])) };
-  const original = { loadedSteps20261022:true, stepContentAudit20261022: true, squatContentAudit20261022: true, exerciseExpansion20261011: true, kettlebellExpansion20261015: true, instagramExpansion20261015: true, instagramContinuation20261015: true, instagramClientNext20261016: true, instagramDeepReview20261016: true, tEx: [originalCard], tLog: [{ exId: id }] };
+  const original = {bridgeFoundations20261022:true,horizontalPressFoundations20261022:true,horizontalPullFoundations20261022:true, loadedSteps20261022:true, stepContentAudit20261022: true, squatContentAudit20261022: true, exerciseExpansion20261011: true, kettlebellExpansion20261015: true, instagramExpansion20261015: true, instagramContinuation20261015: true, instagramClientNext20261016: true, instagramDeepReview20261016: true, tEx: [originalCard], tLog: [{ exId: id }] };
   const result = seedExerciseExpansion(original);
   assert.equal(result.tEx.length, 1);
   for (const [field, change] of Object.entries(patches)) {
@@ -142,7 +148,7 @@ test('the deployed expansion seed runs the audit on existing libraries without r
   }
   assert.equal(result.tLog, original.tLog);
   assert.equal(result.exerciseAudit20261013, true);
-  const deleted = seedExerciseExpansion({ loadedSteps20261022:true, stepContentAudit20261022: true, squatContentAudit20261022: true, exerciseExpansion20261011: true, kettlebellExpansion20261015: true, instagramExpansion20261015: true, instagramContinuation20261015: true, instagramClientNext20261016: true, instagramDeepReview20261016: true, tEx: [] });
+  const deleted = seedExerciseExpansion({bridgeFoundations20261022:true,horizontalPressFoundations20261022:true,horizontalPullFoundations20261022:true, loadedSteps20261022:true, stepContentAudit20261022: true, squatContentAudit20261022: true, exerciseExpansion20261011: true, kettlebellExpansion20261015: true, instagramExpansion20261015: true, instagramContinuation20261015: true, instagramClientNext20261016: true, instagramDeepReview20261016: true, tEx: [] });
   assert.deepEqual(deleted.tEx, []);
   assert.equal(seedExerciseExpansion(deleted), deleted);
 });
@@ -151,7 +157,24 @@ test('a fresh expansion is already correct and future seed calls keep its data a
   const fresh = seedExerciseExpansion({ tEx: [] });
   assert.equal(fresh.exerciseExpansion20261011, true);
   assert.equal(fresh.exerciseAudit20261013, true);
-  assert.equal(fresh.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length + SQUAT_EXERCISES.length + STEP_EXERCISES.length + STEP_VARIANTS.length);
-  for (const [index, card] of EXPANSION_EXERCISES.entries()) if (!(card.id in SQUAT_TAXONOMY) && !(card.id in LUNGE_TAXONOMY) && !(card.id in STEP_TAXONOMY) && !(card.id in HINGE_TAXONOMY)) assert.equal(fresh.tEx[index], card);
+  assert.equal(fresh.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length + SQUAT_EXERCISES.length + STEP_EXERCISES.length + STEP_VARIANTS.length + OCT22_FOUNDATION_COUNT);
+  for (const [index, card] of EXPANSION_EXERCISES.entries()) {
+    if (card.id in SQUAT_TAXONOMY || card.id in LUNGE_TAXONOMY || card.id in STEP_TAXONOMY || card.id in HINGE_TAXONOMY) continue;
+    const audit = OCT22_CONTENT_AUDITS.find(review => Object.hasOwn(review.taxonomy, card.id));
+    if (!audit) {
+      assert.equal(fresh.tEx[index], card, card.id);
+      continue;
+    }
+    // Audited rows may change only to the explicit reviewed fields and taxonomy.
+    const expected = {
+      ...card,
+      ...Object.fromEntries(Object.entries(audit.corrections[card.id] || {}).map(([field, change]) => [field, structuredClone(change.after)])),
+      taxonomy: structuredClone(audit.taxonomy[card.id]),
+    };
+    if (expected.cz !== card.cz || expected.en !== card.en) {
+      expected.taxonomy.aliases = [...new Set([...(expected.taxonomy.aliases || []), card.cz, card.en].filter(Boolean))];
+    }
+    assert.deepEqual(fresh.tEx[index], expected, card.id);
+  }
   assert.equal(seedExerciseExpansion(fresh), fresh);
 });

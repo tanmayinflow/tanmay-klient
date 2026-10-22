@@ -1,3 +1,7 @@
+import {applyAuditEquipmentFixes} from './catalogAuditEquipmentFix.js';
+import {applyBridgeAudit,seedBridgeFoundations} from './catalogBridgeAudit.js';
+import {applyHorizontalPressAudit,seedHorizontalPressFoundations} from './catalogHorizontalPressAudit.js';
+import {applyHorizontalPullAudit,seedHorizontalPullFoundations} from './catalogHorizontalPullAudit.js';
 // Library expansion 2026-10-11. Independent coaching copy; references establish technique, not universal endorsement.
 import { applyExerciseCorrections } from './catalogCorrections.js';
 import { KETTLEBELL_EXERCISES, seedKettlebellExpansion } from './catalogKettlebell.js';
@@ -28285,7 +28289,8 @@ export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES
   const withContinuation = seedInstagramContinuation(withInstagram, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_CONTINUATION_EXERCISES : seedRows);
   const withClientNext = seedInstagramClientNext(withContinuation, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_CLIENT_NEXT_EXERCISES : seedRows);
   const withDeepReview = seedInstagramDeepReview(withClientNext, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_DEEP_REVIEW_EXERCISES : seedRows);
-  return applyHingeAudit(seedStepVariants(applyStepAudit(applyLungeAudit(applySquatAudit(applyPracticalCorrections(withDeepReview)), options))));
+  const audited = applyHingeAudit(seedStepVariants(applyStepAudit(applyLungeAudit(applySquatAudit(applyPracticalCorrections(withDeepReview)), options))));
+  return applyAuditEquipmentFixes(seedHorizontalPullFoundations(applyHorizontalPullAudit(seedHorizontalPressFoundations(applyHorizontalPressAudit(seedBridgeFoundations(applyBridgeAudit(audited)))))));
 }
 
 function seedOriginalExpansion(collection, seedRows) {

@@ -49,6 +49,8 @@ export const EXERCISE_FOCUS = vocabulary([
 export const EXERCISE_POSITIONS = vocabulary([
   ['standing','Ve stoji','Standing'], ['seated','Vsedě','Seated'], ['supine','Vleže na zádech','Supine'],
   ['prone','Vleže na břiše','Prone'], ['side_lying','Vleže na boku','Side lying'], ['kneeling','Vkleče','Kneeling'],
+  ["high_plank","Vzpor na dlaních","High plank"],
+  ["forearm_plank","Podpor na předloktích","Forearm plank"],
   ['quadruped','Na čtyřech','On all fours'], ['hanging','Ve visu','Hanging'], ['inverted','Hlavou dolů','Inverted'],
   ['other','Další poloha','Other position'],
 ]);

@@ -31,6 +31,24 @@ export const EXERCISE_EQUIPMENT = vocabulary([
   ['fitball','Velký míč','Exercise ball','accessories'], ['medicinbal','Medicinbal','Medicine ball','accessories'],
   ['svihadlo','Švihadlo','Skipping rope','accessories'], ['lano','Lano','Rope','accessories'],
   ['prekazka','Překážka','Hurdle','accessories'], ['ab_wheel','Posilovací kolečko','Ab wheel','accessories'],
+  ["flat_bench","Rovná tréninková lavice","Flat workout bench","supports"],
+  ["incline_bench","Šikmá lavice","Incline bench","supports"],
+  ["decline_bench_leg_support","Negativní lavice se zajištěním nohou","Decline bench with leg support","supports"],
+  ["backed_bench","Pevné sedadlo s opěradlem","Stable seat with back support","supports"],
+  ["floor_press_rack","Stojan s dorazy pro tlak z podlahy","Rack with floor-press safeties","supports"],
+  ["chest_press_machine","Stroj na tlak před hrudník","Chest press machine","resistance"],
+  ["adjustable_cable","Výškově nastavitelná kladka","Height-adjustable cable pulley","resistance"],
+  ["adjustable_cable_pair","Dvě nastavitelné kladky","Two adjustable cable pulleys","resistance"],
+  ["cable_handle","Jednoruční madlo kladky","Single cable handle","accessories"],
+  ["cable_handle_pair","Pár jednoručních madel kladky","Pair of cable handles","accessories"],
+  ["lifting_chain_pair","Pár zátěžových řetězů s uchycením","Pair of lifting chains with attachments","free_weights"],
+  ["low_parallettes","Pár nízkých madel","Pair of low parallettes","supports"],
+  ["landmine_pivot","Landmine kloub pro osu","Landmine barbell pivot","supports"],
+  ["landmine_row_handle","Obouruční držadlo pro landmine přítah","Two-hand landmine row handle","accessories"],
+  ["cable_row_handle","Obouruční přítahové madlo kladky","Two-hand cable row handle","accessories"],
+  ["seated_cable_row_station","Stanoviště spodní kladky vsedě","Seated low cable row station","resistance"],
+  ["chest_supported_row_machine","Přítahový stroj s oporou hrudníku","Chest-supported row machine","resistance"],
+  ["rowing_ergometer","Veslařský trenažér","Rowing ergometer","resistance"],
   ['zavazi','Zátěž bez určeného typu','Unspecified load','unspecified'],
   ['unknown_equipment','Vybavení neurčeno','Equipment unspecified','unspecified'],
 ]);
@@ -164,7 +182,9 @@ export function exerciseEquipment(input, inputMeta = {}) {
     }) : [['unknown_equipment']];
   }
   requirements = requirements.filter((group,index,all) => all.findIndex(other => [...other].sort().join('|') === [...group].sort().join('|')) === index);
-  const items = equipmentCapabilities(requirements.flat());
+  // Navigation may group machines; ownership must never imply a different machine.
+  const machineTypes=['stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
+  const items = unique(equipmentCapabilities(requirements.flat()).flatMap(id=>machineTypes.includes(id)?[id,'stroj']:[id]));
   return { items, requirements, unresolved:items.filter(unresolvedId), evidence, legacy };
 }
 
@@ -175,6 +195,8 @@ export function matchesAvailableEquipment(profile, availableIds = []) {
 }
 
 // Owning a pair also covers one implement; owning one never implies a pair.
+const reviewedCapabilities = {"adjustable_cable":["kladka"],"adjustable_cable_pair":["adjustable_cable","kladka"],"cable_handle_pair":["cable_handle"],"landmine_pivot":[],"landmine_row_handle":[],"cable_row_handle":[]};
 function equipmentCapabilities(ids) {
-  return unique(array(ids).flatMap(id=>id==='kettlebell_pair'?[id,'kettlebell']:id==='dumbbell_pair'?[id,'dumbbell']:['stair_machine','smith_machine'].includes(id)?[id,'stroj']:[id]));
+  ids = array(ids).flatMap(id=>[id,...(reviewedCapabilities[id]||[])]);
+  return unique(array(ids).flatMap(id=>id==='kettlebell_pair'?[id,'kettlebell']:id==='dumbbell_pair'?[id,'dumbbell']:[id]));
 }

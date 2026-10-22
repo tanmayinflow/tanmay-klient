@@ -11,13 +11,19 @@ import { INSTAGRAM_EXERCISES } from '../src/training/catalogInstagram.js';
 import { INSTAGRAM_CONTINUATION_EXERCISES } from '../src/training/catalogInstagramContinuation.js';
 import { INSTAGRAM_CLIENT_NEXT_EXERCISES } from '../src/training/catalogInstagramClientNext.js';
 import { INSTAGRAM_DEEP_REVIEW_EXERCISES } from '../src/training/catalogInstagramDeepReview.js';
+import { proposal as BRIDGE_AUDIT } from '../src/training/catalogBridgeAuditData.js';
+import { proposal as HORIZONTAL_PRESS_AUDIT } from '../src/training/catalogHorizontalPressAuditData.js';
+import { proposal as HORIZONTAL_PULL_AUDIT } from '../src/training/catalogHorizontalPullAuditData.js';
+
+const OCT22_CONTENT_AUDITS = [BRIDGE_AUDIT, HORIZONTAL_PRESS_AUDIT, HORIZONTAL_PULL_AUDIT];
+const OCT22_FOUNDATION_COUNT = OCT22_CONTENT_AUDITS.reduce((count, audit) => count + audit.additions.length, 0);
 
 test('existing library receives expansion once without changing user cards, plans or logs', () => {
   const edited = { ...EXPANSION_EXERCISES[0], cz: 'Moje vlastní pojmenování' };
   const custom = { id: 'user_custom', cz: 'Můj cvik' };
   const original = { tEx: [edited, custom], tWo: [{ id: 'workout' }], tPl: [{ id: 'plan' }], tLog: [{ exId: edited.id, reps: 7 }] };
   const migrated = seedExerciseExpansion(original);
-  assert.equal(migrated.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length + SQUAT_EXERCISES.length + STEP_EXERCISES.length + STEP_VARIANTS.length + 1);
+  assert.equal(migrated.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length + SQUAT_EXERCISES.length + STEP_EXERCISES.length + STEP_VARIANTS.length + OCT22_FOUNDATION_COUNT + 1);
   assert.equal(migrated.tEx[0], edited);
   assert.equal(migrated.tEx[1], custom);
   for (const key of ['tWo', 'tPl', 'tLog']) assert.equal(migrated[key], original[key]);
@@ -33,7 +39,7 @@ test('client expansion uses only progression links available in its own catalogu
   const clientRows = extensionFor(available);
   const ids = new Set([...available, ...clientRows.map(x => x.id)]);
   const migrated = seedExerciseExpansion({ tEx: [] }, clientRows);
-  assert.equal(migrated.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length + SQUAT_EXERCISES.length + STEP_EXERCISES.length + STEP_VARIANTS.length);
+  assert.equal(migrated.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length + SQUAT_EXERCISES.length + STEP_EXERCISES.length + STEP_VARIANTS.length + OCT22_FOUNDATION_COUNT);
   for (const row of migrated.tEx) for (const key of ['ez', 'hd']) assert.ok(!row[key] || ids.has(row[key]), row.id + ':' + key);
 });
 
