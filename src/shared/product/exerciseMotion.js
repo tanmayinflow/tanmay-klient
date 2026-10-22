@@ -874,6 +874,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 29296,
     "sha256": "99c408cfa8a46279e14d2d99d5e0946ce3e80cd361d68f2a36e004e8d350dcb3",
     "poster": "/exercise-motion/ex26_mob_thumb_abduction-poster-60068bf827e87b90.webp"
+  },
+  "ex26_mob_heel_circles": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_heel_circles-c0d4c86043354536.mp4",
+    "bytes": 89776,
+    "sha256": "c0d4c86043354536942ddab48afa6f97235f4bfcbeee4a18dd879a835ca175da",
+    "poster": "/exercise-motion/ex26_mob_heel_circles-poster-735229df92147960.webp"
+  },
+  "ex26_smith_rdl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_smith_rdl-b092a41afb97c793.mp4",
+    "bytes": 59599,
+    "sha256": "b092a41afb97c793da388d7ffe44ca8a15796d7a6e2a6ea6f6aad2cb76332e65",
+    "poster": "/exercise-motion/ex26_smith_rdl-poster-7e0d9c0fb623f6fc.webp"
+  },
+  "ex26_firehydrant": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_firehydrant-7457817f59cea9a9.mp4",
+    "bytes": 45662,
+    "sha256": "7457817f59cea9a939bda3840354b3d5cdaf6971fbb906bce3b8a6eafb242d79",
+    "poster": "/exercise-motion/ex26_firehydrant-poster-afaa9564234f1c56.webp"
+  },
+  "ex26_mob_roller_angels": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_roller_angels-3d34f45975539572.mp4",
+    "bytes": 41685,
+    "sha256": "3d34f45975539572c5693dfe119029f9f77c2ed6f4259b1de483b48c721c7235",
+    "poster": "/exercise-motion/ex26_mob_roller_angels-poster-b574a6ecbba1889c.webp"
+  },
+  "ex26_plank_shoulder_tap": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_plank_shoulder_tap-e9547969c670bd5e.mp4",
+    "bytes": 49734,
+    "sha256": "e9547969c670bd5ed92b82ce9e58a457e5958bfdc882a8783145573dfd7838c4",
+    "poster": "/exercise-motion/ex26_plank_shoulder_tap-poster-7dff7f289d858c2a.webp"
+  },
+  "ex26_zottman_curl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_zottman_curl-e5816453b7107bdc.mp4",
+    "bytes": 57722,
+    "sha256": "e5816453b7107bdc9180f775477d55593f97cc3621811d91638366bde644a303",
+    "poster": "/exercise-motion/ex26_zottman_curl-poster-edae3e74fcc62706.webp"
+  },
+  "ex26_towel_curl": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_towel_curl-1dbf1d6d7ee44c4a.mp4",
+    "bytes": 59359,
+    "sha256": "1dbf1d6d7ee44c4a18978935748a98ed78952d7e61a15e949cd90c8cfdcd7ee2",
+    "poster": "/exercise-motion/ex26_towel_curl-poster-5004c156c73fb6af.webp"
+  },
+  "ex26_mob_side_windmill": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_side_windmill-3f50901249e1c8db.mp4",
+    "bytes": 48576,
+    "sha256": "3f50901249e1c8db58442df8ca5eb0ee0dba03270269bfd1a1a493b41179079f",
+    "poster": "/exercise-motion/ex26_mob_side_windmill-poster-78048912f6b2a0e8.webp"
   }
 });
 
