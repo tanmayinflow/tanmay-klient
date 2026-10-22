@@ -3,7 +3,7 @@
 import { familyOf, searchAliasesOf, legacyNamesOf } from './catalog.js';
 import { resolveMuscleMap } from './muscleMap.js';
 
-const vocabulary = rows => Object.freeze(rows.map(([id, cz, en]) => Object.freeze({ id, cz, en })));
+const vocabulary = rows => Object.freeze(rows.map(([id, cz, en, group]) => Object.freeze({ id, cz, en, ...(group ? { group } : {}) })));
 export const EXERCISE_REGIONS = vocabulary([
   ['neck','Krk','Neck'], ['shoulders','Ramena a lopatky','Shoulders and shoulder blades'],
   ['chest','Hrudník','Chest'], ['back','Záda','Back'], ['trunk','Břicho a trup','Abdomen and trunk'],
@@ -12,18 +12,33 @@ export const EXERCISE_REGIONS = vocabulary([
   ['knees','Kolena','Knees'], ['lower_legs','Bérce a kotníky','Lower legs and ankles'],
   ['feet','Chodidla','Feet'], ['whole_body','Celé tělo','Whole body'], ['unknown','Zatím nezařazeno','Not yet classified'],
 ]);
+// Editorial navigation order for everyday coaching, not an efficacy ranking.
+export const EXERCISE_MOVEMENT_GROUPS = vocabulary([
+  ['legs','Nohy a přesuny','Legs and locomotion'], ['push_pull','Tlaky a tahy','Pushes and pulls'],
+  ['control','Rovnováha a trup','Balance and trunk'], ['targeted','Cílené pohyby a polohy','Targeted movements and positions'],
+  ['dynamic','Odrazy, dopady a hody','Jumps, landings and throws'], ['unclassified','K doplnění','To be classified'],
+]);
 export const EXERCISE_MOVEMENTS = vocabulary([
-  ['squat','Dřepy','Squats'], ['lunge','Výpady a dělený postoj','Lunges and split stance'],
-  ['step','Výstupy a sestupy','Step-ups and step-downs'], ['hinge','Předklon v kyčlích','Hip hinge'],
-  ['hip_extension','Mosty a zvedání pánve','Bridges and hip thrusts'],
-  ['push_horizontal','Tlaky před sebe','Horizontal pushes'], ['push_vertical','Tlaky nad hlavu a vzpory','Vertical pushes and dips'],
-  ['pull_horizontal','Přítahy k tělu','Horizontal pulls'], ['pull_vertical','Shyby a stahování','Vertical pulls'],
-  ['trunk_movement','Pohyb trupu','Trunk movement'], ['trunk_stability','Stabilita trupu','Trunk stability'],
-  ['carry','Nošení zátěže','Loaded carries'], ['locomotion','Chůze, běh a další přesuny','Locomotion'],
-  ['jump','Skoky a odrazy','Jumps and hops'], ['landing','Dopady a brzdění','Landings and deceleration'],
-  ['throw','Hody','Throws'], ['joint','Pohyby jednotlivých kloubů','Individual joint movements'],
-  ['balance','Rovnovážné úkoly','Balance tasks'], ['position','Polohy a výdrže','Positions and holds'],
-  ['breath','Dech','Breathing'], ['other','Další / zatím nezařazeno','Other / not yet classified'],
+  ['squat','Dřepy a vstávání','Squats and sit-to-stand','legs'],
+  ['hinge','Předklon v kyčlích','Hip hinge','legs'],
+  ['lunge','Výpady a dělený postoj','Lunges and split stance','legs'],
+  ['step','Výstupy a sestupy','Step-ups and step-downs','legs'],
+  ['locomotion','Chůze, běh a přesuny','Walking, running and locomotion','legs'],
+  ['carry','Nošení zátěže','Loaded carries','legs'],
+  ['push_horizontal','Tlaky před sebe a kliky','Horizontal presses and push-ups','push_pull'],
+  ['pull_horizontal','Přítahy k tělu','Rows and horizontal pulls','push_pull'],
+  ['push_vertical','Tlaky nad hlavu a dipy','Overhead presses and dips','push_pull'],
+  ['pull_vertical','Shyby a stahování','Pull-ups and pulldowns','push_pull'],
+  ['balance','Rovnovážné úkoly','Balance tasks','control'],
+  ['trunk_stability','Stabilizace trupu','Trunk stabilization','control'],
+  ['trunk_movement','Pohyby a rotace trupu','Trunk movements and rotation','control'],
+  ['hip_extension','Mosty a zvedání pánve','Bridges and hip thrusts','targeted'],
+  ['joint','Cílené pohyby kloubů','Targeted joint movements','targeted'],
+  ['position','Polohy a výdrže','Positions and holds','targeted'],
+  ['breath','Dechová cvičení','Breathing exercises','targeted'],
+  ['landing','Dopady a brzdění','Landings and deceleration','dynamic'],
+  ['jump','Skoky a odrazy','Jumps and hops','dynamic'], ['throw','Hody','Throws','dynamic'],
+  ['other','Další / zatím nezařazeno','Other / not yet classified','unclassified'],
 ]);
 export const EXERCISE_FOCUS = vocabulary([
   ['strength','Síla','Strength'], ['mobility','Rozsah pohybu','Range of motion'], ['balance','Rovnováha','Balance'],

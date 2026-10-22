@@ -9567,7 +9567,6 @@ function TExPick({ onPick, onClose, onNew }) {
         <ExerciseLibraryFilters t={t} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
           sort={exerciseSort} onSort={setExerciseSort} count={list.length} hiddenCount={hiddenCount}
           MultiSelect={TMultiSel} allowCustomOrder={false}
-          equipmentOptions={T_EQUIP.map((e) => ({ v: e.k, label: L(e.cz, e.en) }))}
           muscleOptions={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))}
           levelOptions={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
       </div>
@@ -13612,7 +13611,6 @@ function PageTrenink() {
             <ExerciseLibraryFilters t={t} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
               sort={exerciseSort} onSort={setExerciseSort} count={sorted.length} hiddenCount={hiddenCount}
               MultiSelect={TMultiSel} allowCustomOrder={false}
-              equipmentOptions={T_EQUIP.map((e) => ({ v: e.k, label: L(e.cz, e.en) }))}
               muscleOptions={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))}
               levelOptions={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
           </div>

@@ -26,13 +26,29 @@ test('secondary region and muscle matches are explicitly opted in', () => {
 
 test('available equipment is a complete requirement check, including empty selection and unknown keys', () => {
   const index = buildExerciseIndex([
-    row('body',{}, {eq:['telo']}), row('none',{}, {eq:[]}),
+    row('body',{}, {eq:['telo']}), row('none',{equipmentRequirements:[]}, {eq:[]}), row('missing',{}, {eq:[]}),
     row('band-bench',{}, {eq:['guma','lavice']}), row('unknown',{}, {eq:['new_tool']}), row('space',{}, {eq:['prostor']}),
   ]);
   assert.deepEqual(ids(selectExerciseLibrary(index,{equipmentMode:'available',equipment:[]})),['body','none']);
   assert.deepEqual(ids(selectExerciseLibrary(index,{equipmentMode:'available',equipment:['guma']})),['body','none']);
   assert.deepEqual(ids(selectExerciseLibrary(index,{equipmentMode:'available',equipment:['guma','lavice']})),['band-bench','body','none']);
   assert.deepEqual(ids(selectExerciseLibrary(index,{equipmentMode:'uses',equipment:['guma']})),['band-bench']);
+});
+
+test('equipment browsing refines types while available matching respects alternatives and unresolved loads', () => {
+  const index = buildExerciseIndex([
+    row('kb',{}, {en:'Kettlebell swing',eq:['zavazi']}),
+    row('db-bench',{}, {en:'Dumbbell press',eq:['zavazi','lavice']}),
+    row('goblet',{}, {pos:['Hold a dumbbell or kettlebell.'],eq:['zavazi']}),
+    row('generic',{}, {en:'Weighted exercise',eq:['zavazi']}),
+  ]);
+  assert.deepEqual(ids(selectExerciseLibrary(index,{equipment:['kettlebell']})).sort(),['goblet','kb']);
+  assert.deepEqual(ids(selectExerciseLibrary(index,{equipment:['dumbbell']})).sort(),['db-bench','goblet']);
+  assert.deepEqual(ids(selectExerciseLibrary(index,{equipmentMode:'available',equipment:['dumbbell']})),['goblet']);
+  assert.deepEqual(ids(selectExerciseLibrary(index,{equipmentMode:'available',equipment:['dumbbell','lavice']})).sort(),['db-bench','goblet']);
+  assert.deepEqual(ids(selectExerciseLibrary(index,{equipmentMode:'available',equipment:['zavazi']})),[]);
+  assert.deepEqual(ids(selectExerciseLibrary(index,{equipment:['zavazi']})),['generic']);
+  assert.deepEqual(index[0].row.eq,['zavazi']);
 });
 
 test('accent-insensitive aliases are searchable and an exact alias outranks partial names', () => {
