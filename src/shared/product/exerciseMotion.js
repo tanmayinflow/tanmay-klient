@@ -993,6 +993,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 34782,
     "sha256": "825790d725edb568221ed9d698e40cc6416831f56443f90067fb0c09eb2e9039",
     "poster": "/exercise-motion/ex26_hss_sideplank_leg-poster-02deb47442f340a1.webp"
+  },
+  "ex26_dns_quad_legslide": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_dns_quad_legslide-507722b0f0ca1be3.mp4",
+    "bytes": 40073,
+    "sha256": "507722b0f0ca1be39b90e5dd8adb7d4a010ec268d9cd1f7060ba506e0d5c6247",
+    "poster": "/exercise-motion/ex26_dns_quad_legslide-poster-3b1b54e22ae12a42.webp"
+  },
+  "ex26_ball_crunch": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_crunch-19090ac79b790783.mp4",
+    "bytes": 49634,
+    "sha256": "19090ac79b79078379107f8e9050e8137d8d3f105d2388d3564775b820bb3d26",
+    "poster": "/exercise-motion/ex26_ball_crunch-poster-954d6ef2001e45a8.webp"
+  },
+  "ex26_cable_abduction": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_cable_abduction-5c95d1aed799878e.mp4",
+    "bytes": 54355,
+    "sha256": "5c95d1aed799878ec69de1259f2ba8043b1605ec66f828e90312b2ad5227e332",
+    "poster": "/exercise-motion/ex26_cable_abduction-poster-1a862741cd07d68f.webp"
+  },
+  "ex26_ball_singlecurl": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_ball_singlecurl-79203190b72a4dde.mp4",
+    "bytes": 42977,
+    "sha256": "79203190b72a4dde230a86dc97eb6ed0e756035bc6f15b61f18f2e421769957c",
+    "poster": "/exercise-motion/ex26_ball_singlecurl-poster-236e7756a4b734b3.webp"
+  },
+  "ex26_ball_reverseext": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_reverseext-bea06944a4b435d3.mp4",
+    "bytes": 41682,
+    "sha256": "bea06944a4b435d35af597bae71f90dab0d3f2e535a6e9c3f674ffb1cce1be08",
+    "poster": "/exercise-motion/ex26_ball_reverseext-poster-3f0100edbfbac148.webp"
+  },
+  "ex26_pogo": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_pogo-5cb2c360a6320711.mp4",
+    "bytes": 75858,
+    "sha256": "5cb2c360a6320711fc49465fe7a8f31b35894281c708f9962d49d622a0dd48cf",
+    "poster": "/exercise-motion/ex26_pogo-poster-665bacd4c3d288a9.webp"
+  },
+  "ex26_single_pogo": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_single_pogo-b9b725fad2cde4f9.mp4",
+    "bytes": 50885,
+    "sha256": "b9b725fad2cde4f9165fc568e40144fa7ac49377dc67ef0f117e5da2f58f1ef7",
+    "poster": "/exercise-motion/ex26_single_pogo-poster-fd9afc50a9090623.webp"
+  },
+  "gm_w_vertical": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_vertical-7fd72d09d0aa4b1e.mp4",
+    "bytes": 36093,
+    "sha256": "7fd72d09d0aa4b1ec5a317a050e62b8074a4b8e82a4eb7bc5c437d5d7cf96cb5",
+    "poster": "/exercise-motion/gm_w_vertical-poster-bc24e1371015b9f5.webp"
   }
 });
 
