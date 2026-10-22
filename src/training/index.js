@@ -30,3 +30,4 @@ export * from "./delivery.js";
 export * from "./separateWarmups.js";
 
 export { lungeArtworkFor } from "./lungeArtwork.js";
+export { stepArtworkFor } from "./stepArtwork.js";

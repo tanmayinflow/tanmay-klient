@@ -77,6 +77,12 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
           if (difference) return difference;
         }
     }
+    if (sort !== 'name' && filters.movements.length === 1 && filters.movements[0] === 'step') {
+      const foundations = ['stepup','ex26_stepdown','ex26_lateral_stepup','st26_stair_walk','kb26_rack_stepup','act_stairs'];
+      const rank = id => foundations.includes(id) ? foundations.indexOf(id) : foundations.length;
+      const difference = rank(a.row.id) - rank(b.row.id);
+      if (difference) return difference;
+    }
     return a.name.localeCompare(b.name, options.locale || 'cs', { sensitivity: 'base', numeric: true }) || a.order - b.order;
   });
   return { rows: visible.map(entry => entry.row), hiddenCount };

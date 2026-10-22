@@ -15,8 +15,8 @@ export const EXERCISE_EQUIPMENT = vocabulary([
   ['weight_vest','Zátěžová vesta','Weight vest','free_weights'],
   ['sandbag','Zátěžový vak','Sandbag','free_weights'],
   ['guma','Odporová guma','Resistance band','resistance'], ['kladka','Kladka','Cable pulley','resistance'],
-  ['stroj','Stroj','Machine','resistance'], ['zed','Zeď','Wall','supports'],
-  ['chair','Pevná židle','Stable chair','supports'], ['lavice','Lavice nebo bedna','Bench or box','supports'], ['bradla','Bradla','Parallel bars','supports'],
+  ['stroj','Stroj','Machine','resistance'], ['stair_machine','Schodový trenažér','Stair machine','resistance'], ['zed','Zeď','Wall','supports'],
+  ['chair','Pevná židle','Stable chair','supports'], ['lavice','Lavice nebo bedna','Bench or box','supports'], ['step_platform','Cvičební stupínek','Exercise step','supports'], ['bradla','Bradla','Parallel bars','supports'],
   ['fixed_support','Pevná opora rukou','Fixed hand support','supports'], ['squat_rack','Stojan s bezpečnostními dorazy','Rack with safety stops','supports'],
   ['fixed_anchor','Pevná kotva gumy','Fixed band anchor','supports'], ['heel_wedge','Pevný klín pod paty','Firm heel wedge','accessories'], ['knee_pad','Podložka pod koleno','Knee pad','accessories'],
   ['hrazda','Hrazda','Pull-up bar','supports'], ['kruhy','Kruhy','Rings','supports'],
@@ -172,5 +172,5 @@ export function matchesAvailableEquipment(profile, availableIds = []) {
 
 // Owning a pair also covers one implement; owning one never implies a pair.
 function equipmentCapabilities(ids) {
-  return unique(array(ids).flatMap(id=>id==='kettlebell_pair'?[id,'kettlebell']:id==='dumbbell_pair'?[id,'dumbbell']:[id]));
+  return unique(array(ids).flatMap(id=>id==='kettlebell_pair'?[id,'kettlebell']:id==='dumbbell_pair'?[id,'dumbbell']:id==='stair_machine'?[id,'stroj']:[id]));
 }
