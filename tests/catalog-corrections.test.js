@@ -1,3 +1,4 @@
+import { LUNGE_TAXONOMY } from '../src/training/catalogLungeAuditData.js';
 import { SQUAT_TAXONOMY } from '../src/training/catalogSquatAuditData.js';
 import { SQUAT_EXERCISES } from '../src/training/catalogSquatAudit.js';
 import test from 'node:test';
@@ -147,6 +148,6 @@ test('a fresh expansion is already correct and future seed calls keep its data a
   assert.equal(fresh.exerciseExpansion20261011, true);
   assert.equal(fresh.exerciseAudit20261013, true);
   assert.equal(fresh.tEx.length, EXPANSION_EXERCISES.length + KETTLEBELL_EXERCISES.length + INSTAGRAM_EXERCISES.length + INSTAGRAM_CONTINUATION_EXERCISES.length + INSTAGRAM_CLIENT_NEXT_EXERCISES.length + INSTAGRAM_DEEP_REVIEW_EXERCISES.length + SQUAT_EXERCISES.length);
-  for (const [index, card] of EXPANSION_EXERCISES.entries()) if (!(card.id in SQUAT_TAXONOMY)) assert.equal(fresh.tEx[index], card);
+  for (const [index, card] of EXPANSION_EXERCISES.entries()) if (!(card.id in SQUAT_TAXONOMY) && !(card.id in LUNGE_TAXONOMY)) assert.equal(fresh.tEx[index], card);
   assert.equal(seedExerciseExpansion(fresh), fresh);
 });

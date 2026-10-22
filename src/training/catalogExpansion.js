@@ -6,6 +6,7 @@ import { INSTAGRAM_CONTINUATION_EXERCISES, seedInstagramContinuation } from './c
 import { INSTAGRAM_CLIENT_NEXT_EXERCISES, seedInstagramClientNext } from './catalogInstagramClientNext.js';
 import { INSTAGRAM_DEEP_REVIEW_EXERCISES, seedInstagramDeepReview } from './catalogInstagramDeepReview.js';
 import { applySquatAudit } from './catalogSquatAudit.js';
+import { applyLungeAudit } from './catalogLungeAudit.js';
 import { applyPracticalCorrections } from './catalogPracticalCorrections.js';
 export const EXPANSION_EXERCISES = [
   {
@@ -28274,14 +28275,14 @@ export const EXPANSION_META ={
 };
 
 /** Add only missing cards once. Preserve user rows, programmes and logs by reference. */
-export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES) {
+export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES, options = {}) {
   const withOriginal = seedOriginalExpansion(collection, seedRows);
   const withKettlebells = seedKettlebellExpansion(withOriginal, seedRows === EXPANSION_EXERCISES ? KETTLEBELL_EXERCISES : seedRows);
   const withInstagram = seedInstagramExpansion(withKettlebells, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_EXERCISES : seedRows);
   const withContinuation = seedInstagramContinuation(withInstagram, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_CONTINUATION_EXERCISES : seedRows);
   const withClientNext = seedInstagramClientNext(withContinuation, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_CLIENT_NEXT_EXERCISES : seedRows);
   const withDeepReview = seedInstagramDeepReview(withClientNext, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_DEEP_REVIEW_EXERCISES : seedRows);
-  return applySquatAudit(applyPracticalCorrections(withDeepReview));
+  return applyLungeAudit(applySquatAudit(applyPracticalCorrections(withDeepReview)), options);
 }
 
 function seedOriginalExpansion(collection, seedRows) {

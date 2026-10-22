@@ -70,6 +70,12 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
         const difference = rank(a.row.id) - rank(b.row.id);
         if (difference) return difference;
       }
+        if (filters.movements.length === 1 && filters.movements[0] === 'lunge') {
+          const foundations = ['an_splitsquat','an_revlunge','lunge','latlunge','kb26_goblet_split','ig27_split_squat_hold','bulgsplit'];
+          const rank = id => foundations.includes(id) ? foundations.indexOf(id) : foundations.length;
+          const difference = rank(a.row.id) - rank(b.row.id);
+          if (difference) return difference;
+        }
     }
     return a.name.localeCompare(b.name, options.locale || 'cs', { sensitivity: 'base', numeric: true }) || a.order - b.order;
   });

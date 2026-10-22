@@ -21,6 +21,8 @@ export const EXERCISE_EQUIPMENT = vocabulary([
   ['fixed_anchor','Pevná kotva gumy','Fixed band anchor','supports'], ['heel_wedge','Pevný klín pod paty','Firm heel wedge','accessories'], ['knee_pad','Podložka pod koleno','Knee pad','accessories'],
   ['hrazda','Hrazda','Pull-up bar','supports'], ['kruhy','Kruhy','Rings','supports'],
   ['zaves','Závěsný systém','Suspension trainer','supports'], ['schody','Schody','Stairs','supports'],
+  ['rebound_wall','Stěna určená pro odhody','Wall suitable for throws','supports'],
+  ['partner','Připravený partner','Ready partner','supports'], ['rope_anchor','Kotva bojového lana','Battle-rope anchor','supports'],
   ['tyc','Tyč','Pole or stick','accessories'], ['valec','Válec','Roller','accessories'],
   ['fitball','Velký míč','Exercise ball','accessories'], ['medicinbal','Medicinbal','Medicine ball','accessories'],
   ['svihadlo','Švihadlo','Skipping rope','accessories'], ['lano','Lano','Rope','accessories'],
