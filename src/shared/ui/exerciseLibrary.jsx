@@ -133,17 +133,17 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
   </section>;
 }
 
-export function ExerciseTaxonomySummary({ t, exercise, meta, compact = false }) {
-  const taxonomy = exerciseTaxonomy(exercise, meta || {});
+export function ExerciseTaxonomySummary({ t, exercise, meta, compact = false, taxonomyOf = exerciseTaxonomy }) {
+  const taxonomy = taxonomyOf(exercise, meta || {});
   const text = (definitions, ids) => ids.map(id => definitions.find(item => item.id === id)).filter(Boolean).map(item => L(item.cz, item.en)).join(' · ');
   return <span data-exercise-taxonomy="" style={{ display: 'block', fontFamily: compact ? FONT_TAG : FONT_BODY, fontSize: compact ? 12 : 13, lineHeight: 1.5, color: t.textMuted, overflowWrap: 'anywhere' }}>
     {text(EXERCISE_MOVEMENTS, taxonomy.movements)}{!compact && <><br />{text(EXERCISE_REGIONS, taxonomy.regions)}</>}
   </span>;
 }
 
-export function ExerciseTaxonomyEditor({ t, exercise, meta, onChange }) {
+export function ExerciseTaxonomyEditor({ t, exercise, meta, onChange, taxonomyOf = exerciseTaxonomy }) {
   const [expanded, setExpanded] = useState(null);
-  const taxonomy = exerciseTaxonomy(exercise, meta || {});
+  const taxonomy = taxonomyOf(exercise, meta || {});
   const allFields = fields();
   const field = allFields.find(item => item.key === expanded);
   const patch = next => onChange({ ...(exercise.taxonomy || {}), ...next });

@@ -7,6 +7,10 @@ export const EXERCISE_EQUIPMENT_GROUPS = vocabulary([
   ['accessories','Další pomůcky','Other equipment'], ['unspecified','K upřesnění','Needs clarification'],
 ]);
 export const EXERCISE_EQUIPMENT = vocabulary([
+["abdominal_crunch_machine","Stroj na zkracovačky vsedě","Seated abdominal crunch machine","resistance"],
+["yoga_block","Jógová kostka","Yoga block","supports"],
+["support_cushion","Pevný opěrný polštář","Firm support cushion","supports"],
+["thoracic_extension_chair","Židle s vhodným opěradlem pod lopatky","Chair with suitable backrest below shoulder blades","supports"],
 ["round_plate_pair","Dva stejně velké kulaté kotouče","Two equal-sized round plates","free_weights"],
 ["barbell_collars","Pár objímek na osu","Pair of barbell collars","accessories"],
 ["suspension_anchor","Nosné kotvení závěsného systému","Load-bearing suspension anchor","supports"],
@@ -67,7 +71,7 @@ export const EXERCISE_EQUIPMENT = vocabulary([
   ["lat_pulldown_station","Stanoviště horní kladky se sedem a stehenní opěrou","Lat pulldown station with seat and thigh pad","resistance"],
   ["lat_pulldown_bar","Dlouhá hrazdička horní kladky","Lat pulldown bar","accessories"],
   ["lever_lat_pulldown_machine","Pákový stroj na stahování shora","Lever lat pulldown machine","resistance"],
-  ["high_cable","Horní kladka pro cvičení ve stoji","High cable pulley for standing exercises","resistance"],
+  ["high_cable","Horní kladka s volným prostorem","High pulley with clear space","resistance"],
   ["cable_bar","Obouruční tyč kladky","Two-hand cable bar","accessories"],
   ["towel_pair","Dva pevné ručníky pro úchop","Two sturdy grip towels","accessories"],
   ["low_pullup_bar","Nízká hrazda pro oporu chodidel","Low bar for foot support","supports"],
@@ -207,7 +211,7 @@ export function exerciseEquipment(input, inputMeta = {}) {
   requirements = requirements.filter((group,index,all) => all.findIndex(other => [...other].sort().join('|') === [...group].sort().join('|')) === index);
   // Navigation may group machines; ownership must never imply a different machine.
   const machineTypes=['stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
-  const reviewedNavigationGroups={"captains_chair":["stroj"],"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
+  const reviewedNavigationGroups={"abdominal_crunch_machine":["stroj"],"thoracic_extension_chair":["chair"],"captains_chair":["stroj"],"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
   const items = unique(equipmentCapabilities(requirements.flat()).flatMap(id=>[id,...(machineTypes.includes(id)?['stroj']:[]),...(reviewedNavigationGroups[id]||[])]));
   return { items, requirements, unresolved:items.filter(unresolvedId), evidence, legacy };
 }
@@ -222,6 +226,7 @@ export function matchesAvailableEquipment(profile, availableIds = []) {
 const reviewedCapabilities = {"adjustable_cable":["kladka"],"adjustable_cable_pair":["adjustable_cable","kladka"],"cable_handle_pair":["cable_handle"],"landmine_pivot":[],"landmine_row_handle":[],"cable_row_handle":[]};
 const verticalAuditCapabilities={"long_parallel_bars":["bradla"],"pullup_band":["guma"],"lat_pulldown_bar":["cable_bar"],"towel_pair":["towel"]};
 function equipmentCapabilities(ids) {
+  ids=array(ids).flatMap(id=>[id,...({"thoracic_extension_chair":["chair"]}[id]||[])]);
   ids=array(ids).flatMap(id=>[id,...({"round_plate_pair":["plate"],"sliding_towel_pair":["towel"],"short_loop_band":["guma"]}[id]||[])]);
   ids=array(ids).flatMap(id=>[id,...(verticalAuditCapabilities[id]||[])]);
   ids = array(ids).flatMap(id=>[id,...(reviewedCapabilities[id]||[])]);

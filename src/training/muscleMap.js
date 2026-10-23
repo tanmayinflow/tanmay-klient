@@ -1,3 +1,4 @@
+import {movementMuscleDisplay} from './catalogMovementAuditView.js';
 import {trunkMuscleDisplay} from './catalogTrunkAuditView.js';
 // Display-only anatomy resolver. Never writes to the person's exercise record,
 // changes training prescriptions or guesses muscle groups from an exercise name.
@@ -314,7 +315,7 @@ function verticalPullDisplayEligible(row,id) {
     && [guard.before,guard.after].some(setup=>Object.entries(setup).every(([key,value])=>displaySame(row[key],value)));
 }
 
-export function resolveMuscleMap(ex, meta = {}) {
+export function resolveMuscleMap(ex, meta = {}, movementContext) {
   const row = ex && typeof ex === "object" ? ex : {};
   let primary = arr(row.mp);
   let secondary = arr(row.ms);
@@ -358,6 +359,8 @@ export function resolveMuscleMap(ex, meta = {}) {
   }
   const trunkDisplay=trunkMuscleDisplay(row,meta);
   if(trunkDisplay?.primary){primary=trunkDisplay.primary;secondary=trunkDisplay.secondary;corrected=true;}
+  const movementDisplay=movementMuscleDisplay(row,meta,movementContext);
+  if(movementDisplay?.primary){primary=movementDisplay.primary;secondary=movementDisplay.secondary;corrected=true;}
   const unknown = [...new Set([...primary, ...secondary].filter(k => typeof k === "string" && !KNOWN.has(k)))];
   primary = [...new Set(primary.filter(k => KNOWN.has(k)))];
   secondary = [...new Set(secondary.filter(k => KNOWN.has(k) && !primary.includes(k)))];
@@ -388,14 +391,15 @@ export function resolveMuscleMap(ex, meta = {}) {
 // editing one raw field could invalidate a legacy signature and make the other
 // visible field jump back to its old value. Unknown keys in the untouched field
 // survive because this editor cannot display or deliberately remove them.
-export function muscleMapEdit(ex, field, values, meta = {}) {
+export function muscleMapEdit(ex, field, values, meta = {}, movementContext) {
   if (field !== "primary" && field !== "secondary") throw new TypeError("Unknown muscle-map field");
   const row = ex && typeof ex === "object" ? ex : {};
-  const map = resolveMuscleMap(row, meta);
+  const map = resolveMuscleMap(row, meta, movementContext);
+  const acceptedMovementDisplay=movementMuscleDisplay(row,meta,movementContext)?{movementMuscleDisplayOptOut:true}:{};
   const uniqueStrings = items => [...new Set(items.filter(k => typeof k === "string"))];
   const selected = uniqueStrings(arr(values));
   const unknownIn = value => arr(value).filter(k => typeof k === "string" && !KNOWN.has(k));
   return field === "primary"
-    ? { mp: selected, ms: uniqueStrings([...map.secondary, ...unknownIn(row.ms)]) }
-    : { mp: uniqueStrings([...map.primary, ...unknownIn(row.mp)]), ms: selected };
+    ? { ...acceptedMovementDisplay, mp: selected, ms: uniqueStrings([...map.secondary, ...unknownIn(row.ms)]) }
+    : { ...acceptedMovementDisplay, mp: uniqueStrings([...map.primary, ...unknownIn(row.mp)]), ms: selected };
 }

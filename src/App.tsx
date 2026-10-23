@@ -1,8 +1,10 @@
+import {MOVEMENT_AUDIT_CONTEXT} from './data/movementAuditContext.js';
 import {TRUNK_AUDIT_CONTEXT} from './data/trunkAuditContext.js';
 import { ExerciseMotion } from './shared/ui/ExerciseMotion.jsx';
 import { ExerciseLibraryFilters, ExerciseTaxonomySummary, ExerciseTaxonomyEditor } from './shared/ui/exerciseLibrary.jsx';
 import { createExerciseFilters, buildExerciseIndex, selectExerciseLibrary } from './training/exerciseLibrary.js';
-import { exerciseTaxonomy } from './training/exerciseTaxonomy.js';
+import { exerciseTaxonomy as baseExerciseTaxonomy } from './training/exerciseTaxonomy.js';
+function exerciseTaxonomy(ex,meta){return baseExerciseTaxonomy(ex,meta,{musclesOf:resolveMuscleMap});}
 import {createContentWorkshopUI} from './shared/ui/contentWorkshop.jsx';
 import { createLocalDocumentWriter, localSaveMessage, localSaveDiagnostic } from './shared/product/localPersistence.js';
 import { LocalStorageStatus } from './shared/ui/localStorageStatus.jsx';
@@ -32,7 +34,9 @@ import { createVoiceRecorder } from "./shared/product/voiceRecorder.js";
 import { RecordingStatus } from "./shared/ui/recordingStatus.jsx";
 import { UnverifiedExerciseImage } from "./shared/ui/UnifiedExerciseImage.jsx";
 import { reviewLibraryCollection, isUnverifiedIllustration } from "./training/libraryReview.js";
-import { resolveMuscleMap, muscleMapEdit } from "./training/muscleMap.js";
+import { resolveMuscleMap as resolveBaseMuscleMap, muscleMapEdit as editBaseMuscleMap } from "./training/muscleMap.js";
+function resolveMuscleMap(ex,meta){return resolveBaseMuscleMap(ex,meta,MOVEMENT_AUDIT_CONTEXT);}
+function muscleMapEdit(ex,field,values,meta){return editBaseMuscleMap(ex,field,values,meta,MOVEMENT_AUDIT_CONTEXT);}
 import { UNIFIED_ART } from './library/unified-art.js';
 import { MOVEMENT_ATLAS } from './generated/movementAtlasManifest';
 import { SUPPLEMENT_ART } from './library/supplement-art.js';
@@ -178,7 +182,7 @@ let FONT_DISPLAY = LANG === "cs" ? FONT_DISPLAY_CS : FONT_DISPLAY_EN;
 const ThemeCtx = createContext(null);
 const useT = () => useContext(ThemeCtx);
 const TM_ICON_UI = createIconUI({ useT, L });
-const TM_SVALY = createMuscleFig({ useT, L });
+const TM_SVALY = createMuscleFig({ useT, L, resolveMap:resolveMuscleMap });
 
 // ---- PROCEDURÁLNÍ POSTAVA · sdílené jádro -------------------------------
 // Klientská aplikace na tuhle kresbu sahala (`TM_POZY`, `<TmPostava/>`), ale
@@ -6850,7 +6854,7 @@ const T_FIGS = {
 function TExArt({ ex, size = 120, stroke, dotColor, showDot = true, fluid = false }) {
   const { t } = useT();
   if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted} />;
-  const atlas = ex && (TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  const atlas = ex && (TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   const fig = ex && T_FIGS[ex.id];
   if (!fig) return <TPatArt pat={(ex && ex.pat) || "drep"} size={size} stroke={stroke || t.text} dot={showDot && ex ? ex.dot : null} dotColor={dotColor || t.accent} />;
@@ -9557,7 +9561,7 @@ function TExPick({ onPick, onClose, onNew }) {
   const [exerciseSort, setExerciseSort] = useState("recommended");
   const exerciseIndex = React.useMemo(() => buildExerciseIndex(exs, {
     metaOf: tMetaOf, nameOf: tExName, searchTextOf: tExSearchText, levelOf: tLvlOf,
-    statusOf: tStatusOf, tierOf: tTierOf, musclesOf: resolveMuscleMap,
+    statusOf: tStatusOf, tierOf: tTierOf, musclesOf: resolveMuscleMap, taxonomyOf:exerciseTaxonomy,
   }), [exs, LANG]);
   const { rows: list, hiddenCount } = selectExerciseLibrary(exerciseIndex, exerciseFilters, {
     sort: exerciseSort, recentIds: TV.recentOf(st.coll), locale: LANG,
@@ -9580,7 +9584,7 @@ function TExPick({ onPick, onClose, onNew }) {
             <span style={{ minWidth: 0, flex: 1 }}>
               <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tExName(ex)}</span>
               <span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 2 }}>
-                <ExerciseTaxonomySummary t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
+                <ExerciseTaxonomySummary taxonomyOf={exerciseTaxonomy} t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
                 <TDemandDots v={tLvlOf(ex)} />
                 <span style={{ fontFamily: FONT_BODY, fontSize: 10.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(ex.eq || []).map((k) => L((T_EQ[k] || {}).cz, (T_EQ[k] || {}).en)).filter(Boolean).join(" · ")}</span>
               </span>
@@ -9745,7 +9749,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
       <div className="tm-exercise-card-copy" style={{ minWidth: 0, width: "100%", padding: "11px 15px 13px", boxSizing: "border-box" }}>
         <div className="tm-exercise-card-title" style={{ fontFamily: FONT_DISPLAY, fontSize: 18.5, color: t.heading, lineHeight: 1.25, marginBottom: 4 }}>{tExName(ex)}</div>
         <div className="tm-exercise-card-meta" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <ExerciseTaxonomySummary t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
+          <ExerciseTaxonomySummary taxonomyOf={exerciseTaxonomy} t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
           <TDemandDots v={tLvlOf(ex)} />
           <TExShelf ex={ex} />
         </div>
@@ -9790,7 +9794,7 @@ function TExDetail({ exId, onClose, onOpen }) {
     const rec = tvOf(ex);
     if (!rec) return { kinds: [], recs: {}, mt: "REPS_ONLY" };
     const hist = TV.historyOf(st.tvSessions ? st.tvSessions() : [], ex.id, {});
-    const recs = TV.recordsFor(rec.measurementType, hist, { allowEstimatedMax: rec.measurementType === "WEIGHT_REPS" ? TV.auditedAllowsEstimatedMax(ex) : undefined });
+    const recs = TV.recordsFor(rec.measurementType, hist, { allowEstimatedMax: rec.measurementType === "WEIGHT_REPS" ? TV.libraryAuditedAllowsEstimatedMax(ex) : undefined });
     return { kinds: TV.recordKindsFor(rec.measurementType).filter((k) => recs[k]), recs, mt: rec.measurementType };
   })();
   const load = tLoadOf(ex);
@@ -9799,7 +9803,7 @@ function TExDetail({ exId, onClose, onOpen }) {
     <Drawer open onClose={onClose}>
       <TEditToggle on={localEdit} onToggle={() => setLocalEdit((x) => !x)} title={L("Upravit cvik", "Edit exercise")} />
       <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>
-        <ExerciseTaxonomySummary t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
+        <ExerciseTaxonomySummary taxonomyOf={exerciseTaxonomy} t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
         <span>{L(T_DEMAND(tLvlOf(ex)).cz, T_DEMAND(tLvlOf(ex)).en)}</span>
       </div>
       {edit ? (
@@ -9826,7 +9830,7 @@ function TExDetail({ exId, onClose, onOpen }) {
           <TPairEdit label={L("Provedení", "Execution")} val={ex.exe} onPatch={(v) => patch({ exe: v })} />
           <TPairEdit label={L("Na co dát pozor", "Watch for")} val={ex.wat} onPatch={(v) => patch({ wat: v })} />
           <TPairEdit label={L("Progrese", "Progression")} val={ex.pro} onPatch={(v) => patch({ pro: v })} />
-          <ExerciseTaxonomyEditor t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)}
+          <ExerciseTaxonomyEditor taxonomyOf={exerciseTaxonomy} t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)}
             onChange={(taxonomy) => patch({ taxonomy })} MultiSelect={TMultiSel} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "4px 0 12px" }}>
             <Select small value={String(tSOf(ex))} onChange={(v) => patch({ S: Number(v) })} options={T_DEMANDS.map((x) => ({ v: String(x.v), label: L("Síla · " + x.cz, "Strength · " + x.en) }))} />
@@ -9868,7 +9872,7 @@ function TExDetail({ exId, onClose, onOpen }) {
       <TChain ex={ex} all={all} onOpen={onOpen} />
       <TExShelfPanel ex={ex} all={all} onOpen={onOpen} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-        {(TV.trunkEquipmentLabels(ex, LANG) ?? TV.carryEquipmentLabels(ex, LANG) ?? TV.verticalAuditEquipmentLabels(ex, LANG) ?? TV.auditBatchEquipmentLabels(ex, LANG) ?? TV.hingeEquipmentLabels(ex, LANG) ?? TV.stepEquipmentLabels(ex, LANG))?.map((label) => <Tag key={label} label={label} color="green" wrap />) ?? (ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
+        {(TV.movementEquipmentLabels(ex, LANG) ?? TV.trunkEquipmentLabels(ex, LANG) ?? TV.carryEquipmentLabels(ex, LANG) ?? TV.verticalAuditEquipmentLabels(ex, LANG) ?? TV.auditBatchEquipmentLabels(ex, LANG) ?? TV.hingeEquipmentLabels(ex, LANG) ?? TV.stepEquipmentLabels(ex, LANG))?.map((label) => <Tag key={label} label={label} color="green" wrap />) ?? (ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
         <Tag label={ex.mode === "sec" ? L("čas · sekundy", "time · seconds") : L("opakování", "reps")} color="gray" />
         {load !== "none" && <Tag label={load === "ext" ? L("váha je cvik", "the weight is the lift") : L("lze přidat váhu", "takes added weight")} color="brown" />}
         <Tag label={L(T_POP(ex.pop || 2).cz, T_POP(ex.pop || 2).en)} color={(ex.pop || 2) === 3 ? "orange" : "brown"} />
@@ -13111,7 +13115,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   const { t } = useT();
   const st = useStore();
   const rec = tvClientRec(st, block.exId);
-  const atlas = TV.trunkArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.verticalAuditArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.auditBatchArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.stepArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.lungeArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.EXPANSION_ART[block.exId] || UNIFIED_ART[block.exId] || SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
+  const atlas = TV.movementArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.verticalAuditArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.auditBatchArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.stepArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.lungeArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.EXPANSION_ART[block.exId] || UNIFIED_ART[block.exId] || SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
   const m = TV.measurementOf(block.measurementType);
   const [extraLoad, setExtraLoad] = useState((block.sets || []).some(s => s.actual?.addedWeight > 0));
   const fields = m.fields.concat(m.secondary && extraLoad ? [m.secondary] : []);
@@ -13221,7 +13225,7 @@ function TvClientRest({ sec, onDone, onSkip }) {
 function TvClientGuideArt({ ex, size = 120, fluid = false, ...rest }) {
   const { t } = useT();
   if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted}/>;
-  const atlas = ex && (TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  const atlas = ex && (TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   if (ex?.art) return <TmPostava poza={ex.art} size={size} stroke={rest.stroke || t.text}/>;
   return ex && T_FIGS[ex.id] ? <TExArt ex={ex} size={size} fluid={fluid} {...rest}/> : null;
@@ -13458,7 +13462,7 @@ function TvClientHistory({ onRun }) {
   const rec = exId ? tvClientRec(st, exId) : null;
   const hist = exId && rec ? TV.historyOf(sessions, exId, {}) : [];
   const recordSource = exId ? (st.tvExerciseOf(exId) || (st.coll.tEx || []).find(row => row.id === exId)) : null;
-  const records = rec ? TV.recordsFor(rec.measurementType, hist, { allowEstimatedMax: rec.measurementType === "WEIGHT_REPS" ? TV.auditedAllowsEstimatedMax(recordSource) : undefined }) : {};
+  const records = rec ? TV.recordsFor(rec.measurementType, hist, { allowEstimatedMax: rec.measurementType === "WEIGHT_REPS" ? TV.libraryAuditedAllowsEstimatedMax(recordSource) : undefined }) : {};
   const sum = TV.summary(sessions, { from: shiftISO(todayISO(), -27), to: todayISO() });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -13519,7 +13523,7 @@ function TvClientHistory({ onRun }) {
 function PageTrenink() {
   const { t } = useT();
   const st = useStore();
-  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, [st.coll?.exerciseAudit20261013, st.coll?.bridgeContentAudit20261022, st.coll?.bridgeFoundations20261022, st.coll?.horizontalPressAudit20261022, st.coll?.horizontalPressFoundations20261022, st.coll?.horizontalPullAudit20261022, st.coll?.horizontalPullFoundations20261022, st.coll?.verticalPushAudit20261023, st.coll?.verticalPushClientFoundations20261023, st.coll?.verticalPullAudit20261023, st.coll?.verticalPullCommonFoundations20261023, st.coll?.verticalPullClientFoundations20261023, st.coll?.carryAudit20261023, st.coll?.trunkAudit20261023]);
+  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, [st.coll?.exerciseAudit20261013, st.coll?.bridgeContentAudit20261022, st.coll?.bridgeFoundations20261022, st.coll?.horizontalPressAudit20261022, st.coll?.horizontalPressFoundations20261022, st.coll?.horizontalPullAudit20261022, st.coll?.horizontalPullFoundations20261022, st.coll?.verticalPushAudit20261023, st.coll?.verticalPushClientFoundations20261023, st.coll?.verticalPullAudit20261023, st.coll?.verticalPullCommonFoundations20261023, st.coll?.verticalPullClientFoundations20261023, st.coll?.carryAudit20261023, st.coll?.trunkAudit20261023, st.coll?.movementAudit20261023]);
   const [tab, setTab] = useState("dnes");
   const [daysResetKey, setDaysResetKey] = useState(0);
   const [planStatus,setPlanStatus] = useState({state:""});
@@ -13539,7 +13543,7 @@ function PageTrenink() {
   const [exerciseSort, setExerciseSort] = useState("recommended");
   const exerciseIndex = React.useMemo(() => buildExerciseIndex(exs, {
     metaOf: tMetaOf, nameOf: tExName, searchTextOf: tExSearchText, levelOf: tLvlOf,
-    statusOf: tStatusOf, tierOf: tTierOf, musclesOf: resolveMuscleMap,
+    statusOf: tStatusOf, tierOf: tTierOf, musclesOf: resolveMuscleMap, taxonomyOf:exerciseTaxonomy,
   }), [exs, LANG]);
   const { rows: sorted, hiddenCount } = selectExerciseLibrary(exerciseIndex, exerciseFilters, {
     sort: exerciseSort, recentIds: TV.recentOf(st.coll), locale: LANG,
@@ -16350,7 +16354,7 @@ export default function App() {
     return TV.patchTraining(c, { sched: { ...cur, [planId]: forPlan } });
   });
   const seedTrainingColl = () => persistColl((c) => {
-    if (!c.tSeeded) return tvApply(TV.seedExerciseExpansion({ ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] }, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT, auditMetadata:TEX_META }));
+    if (!c.tSeeded) return tvApply(TV.seedExerciseExpansion({ ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] }, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT, auditMetadata:TEX_META }));
     let next = c;
     const seedById = Object.fromEntries(TEX_ALL.map((x) => [x.id, x]));
     if (!next.tSeedV2) {
@@ -16651,7 +16655,7 @@ export default function App() {
       const fixed = tExAuditFix(next.tEx || []);
       next = { ...next, exAudit: EX_AUDIT_VER, exAuditN: fixed.touched, tEx: fixed.rows };
     }
-    return tvApply(TV.seedExerciseExpansion(next, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT, auditMetadata:TEX_META }));
+    return tvApply(TV.seedExerciseExpansion(next, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT, auditMetadata:TEX_META }));
   });
   // ---- the timer · settings, presets, history ----
   // The English voice choice is independent of the interface language.
