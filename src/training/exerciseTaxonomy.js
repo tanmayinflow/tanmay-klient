@@ -47,6 +47,9 @@ export const EXERCISE_FOCUS = vocabulary([
   ['other','Zatím neurčeno','Not yet specified'],
 ]);
 export const EXERCISE_POSITIONS = vocabulary([
+["side_support","Boční opora","Side support"],
+["reverse_support","Zadní opora","Reverse support"],
+["vertical_support","Svislá opora na pažích","Upright arm support"],
   ['standing','Ve stoji','Standing'], ['seated','Vsedě','Seated'], ['supine','Vleže na zádech','Supine'],
   ['prone','Vleže na břiše','Prone'], ['side_lying','Vleže na boku','Side lying'], ['kneeling','Vkleče','Kneeling'],
   ["high_plank","Vzpor na dlaních","High plank"],
@@ -55,6 +58,7 @@ export const EXERCISE_POSITIONS = vocabulary([
   ['other','Další poloha','Other position'],
 ]);
 export const EXERCISE_SUPPORTS = vocabulary([
+["forearm_support","Opora o předloktí","Forearm support"],
   ['wall','Opora o zeď','Wall support'], ['chair_bench','Židle, lavice nebo schod','Chair, bench or step support'],
   ['hand_support','Opora rukou','Hand support'], ['assisted','S dopomocí','Assisted'], ['unsupported','Bez přídavné opory','No additional support'],
   ['machine','Opora a vedení stroje','Machine support or guidance'],

@@ -39,3 +39,5 @@ export {auditBatchArtworkFor,auditBatchEquipmentLabels} from "./catalogAuditBatc
 export {verticalAuditArtworkFor,verticalAuditEquipmentLabels} from "./catalogVerticalAudit.js";
 
 export {carryEquipmentLabels,carryArtworkFor} from "./catalogCarryAuditView.js";
+
+export {trunkEquipmentLabels,trunkArtworkFor,auditedAllowsEstimatedMax} from "./catalogTrunkAuditView.js";

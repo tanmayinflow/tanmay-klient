@@ -7,6 +7,13 @@ export const EXERCISE_EQUIPMENT_GROUPS = vocabulary([
   ['accessories','Další pomůcky','Other equipment'], ['unspecified','K upřesnění','Needs clarification'],
 ]);
 export const EXERCISE_EQUIPMENT = vocabulary([
+["round_plate_pair","Dva stejně velké kulaté kotouče","Two equal-sized round plates","free_weights"],
+["barbell_collars","Pár objímek na osu","Pair of barbell collars","accessories"],
+["suspension_anchor","Nosné kotvení závěsného systému","Load-bearing suspension anchor","supports"],
+["sliding_towel_pair","Dva malé ručníky pro klouzání","Two small sliding towels","accessories"],
+["short_loop_band","Krátká odporová smyčka","Short resistance loop","resistance"],
+["captains_chair","Věž s oporami předloktí a zad","Captain’s chair with forearm and back support","supports"],
+["hand_support_blocks_pair","Dvě pevné kostky pro oporu rukou","Pair of solid hand-support blocks","supports"],
   ["climbing_rope_station","Šplhací lano s vhodným zavěšením","Climbing rope with suitable anchoring","supports"],
   ["protective_landing_mat","Ochranná žíněnka pro doskokovou plochu","Protective landing mat","accessories"],
   ['telo','Vlastní tělo','Body weight','body'], ['prostor','Volný prostor','Clear space','body'],
@@ -200,7 +207,7 @@ export function exerciseEquipment(input, inputMeta = {}) {
   requirements = requirements.filter((group,index,all) => all.findIndex(other => [...other].sort().join('|') === [...group].sort().join('|')) === index);
   // Navigation may group machines; ownership must never imply a different machine.
   const machineTypes=['stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
-  const reviewedNavigationGroups={"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
+  const reviewedNavigationGroups={"captains_chair":["stroj"],"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
   const items = unique(equipmentCapabilities(requirements.flat()).flatMap(id=>[id,...(machineTypes.includes(id)?['stroj']:[]),...(reviewedNavigationGroups[id]||[])]));
   return { items, requirements, unresolved:items.filter(unresolvedId), evidence, legacy };
 }
@@ -215,6 +222,7 @@ export function matchesAvailableEquipment(profile, availableIds = []) {
 const reviewedCapabilities = {"adjustable_cable":["kladka"],"adjustable_cable_pair":["adjustable_cable","kladka"],"cable_handle_pair":["cable_handle"],"landmine_pivot":[],"landmine_row_handle":[],"cable_row_handle":[]};
 const verticalAuditCapabilities={"long_parallel_bars":["bradla"],"pullup_band":["guma"],"lat_pulldown_bar":["cable_bar"],"towel_pair":["towel"]};
 function equipmentCapabilities(ids) {
+  ids=array(ids).flatMap(id=>[id,...({"round_plate_pair":["plate"],"sliding_towel_pair":["towel"],"short_loop_band":["guma"]}[id]||[])]);
   ids=array(ids).flatMap(id=>[id,...(verticalAuditCapabilities[id]||[])]);
   ids = array(ids).flatMap(id=>[id,...(reviewedCapabilities[id]||[])]);
   return unique(array(ids).flatMap(id=>id==='kettlebell_pair'?[id,'kettlebell']:id==='dumbbell_pair'?[id,'dumbbell']:[id]));

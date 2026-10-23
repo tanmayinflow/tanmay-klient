@@ -101,11 +101,11 @@ export function createAtoms(deps) {
   }
 
 
-  function Tag({ label, color = "default" }) {
+  function Tag({ label, color = "default", wrap = false }) {
     const { tags } = useT();
     const c = tags[color] || tags.default;
     return (
-      <span style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 600, padding: "3px 8px", borderRadius: "var(--tm-r-tag)", background: c.bg, color: c.fg, marginRight: 6, whiteSpace: "nowrap" }}>
+      <span style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 600, padding: "3px 8px", borderRadius: "var(--tm-r-tag)", background: c.bg, color: c.fg, marginRight: 6, whiteSpace: wrap ? "normal" : "nowrap", ...(wrap ? { maxWidth: "calc(100% - 6px)", minWidth: 0, overflowWrap: "anywhere", boxSizing: "border-box" } : {}) }}>
         {label==='Umění'?L('Umění','Art'):label}
       </span>
     );

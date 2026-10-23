@@ -33,9 +33,9 @@ export function UnifiedExerciseImage({ entry, alt = '', size = 120, fluid = fals
       <img src={inkSrc} alt="" aria-hidden="true" style={{display:'none'}} onLoad={()=>setLayers(prev=>({...prev,ink:inkSrc,failedInk:null}))} onError={()=>setLayers(prev=>({...prev,ink:null,failedInk:inkSrc}))}/>
       {!contourOnly && <img src={fillSrc} alt="" aria-hidden="true" style={{display:'none'}} onLoad={()=>setLayers(prev=>({...prev,fill:fillSrc}))}/>}
     </>}
-    {masked && (contourOnly || !failed) && <span aria-hidden="true" style={{ position:'absolute', inset:0 }}>
+    {masked && (contourOnly || !failed) && <span aria-hidden="true" style={{ position:'absolute', inset:0, filter:entry.darkOutline && dark?'drop-shadow(0.5px 0 0 #d9cfbb) drop-shadow(-0.5px 0 0 #d9cfbb) drop-shadow(0 0.5px 0 #d9cfbb) drop-shadow(0 -0.5px 0 #d9cfbb)':undefined }}>
       {!contourOnly && <span style={{ ...mask(fillSrc), background:dark?'#d9cfbb':background || '#e4dac8' }}/>}
-      <span style={{ ...mask(inkSrc), background:contourOnly && dark?'#d9cfbb':'#292622' }}/>
+      <span style={{ ...mask(inkSrc), background:contourOnly && dark && !entry.darkOutline?'#d9cfbb':'#292622' }}/>
     </span>}
   </span>;
 }

@@ -1,3 +1,4 @@
+import {trunkMuscleDisplay} from './catalogTrunkAuditView.js';
 // Display-only anatomy resolver. Never writes to the person's exercise record,
 // changes training prescriptions or guesses muscle groups from an exercise name.
 // Corrections require an exact match with an inspected legacy seed signature.
@@ -355,6 +356,8 @@ export function resolveMuscleMap(ex, meta = {}) {
     primary=[];secondary=[];mode='unspecified';corrected=true;
     note={"cz":"Programová položka zahrnuje různé cviky pro práci lopatek. Zapojení svalů určuje až konkrétní zvolený cvik.","en":"This programme entry includes different scapular-control exercises. The specific selected exercise determines the muscles involved."};
   }
+  const trunkDisplay=trunkMuscleDisplay(row,meta);
+  if(trunkDisplay?.primary){primary=trunkDisplay.primary;secondary=trunkDisplay.secondary;corrected=true;}
   const unknown = [...new Set([...primary, ...secondary].filter(k => typeof k === "string" && !KNOWN.has(k)))];
   primary = [...new Set(primary.filter(k => KNOWN.has(k)))];
   secondary = [...new Set(secondary.filter(k => KNOWN.has(k) && !primary.includes(k)))];
@@ -362,6 +365,7 @@ export function resolveMuscleMap(ex, meta = {}) {
   if (Object.hasOwn(ROLE_MODES, row.sessionRole) && (primary.length || secondary.length)) {
     mode = ROLE_MODES[row.sessionRole];
   }
+  if(trunkDisplay?.mode){mode=trunkDisplay.mode;corrected=true;}
   if (!mode) {
     if (!primary.length && !secondary.length) {
       mode = !unknown.length && (row.pat === "dech" || REST_IDS.has(row.id)) ? "none" : "unspecified";
