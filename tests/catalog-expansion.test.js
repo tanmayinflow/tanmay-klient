@@ -1,3 +1,4 @@
+import {proposal as CARRY_AUDIT} from '../src/training/catalogCarryAuditData.js';
 import {proposal as VERTICAL_PUSH_AUDIT} from '../src/training/catalogVerticalPushAuditData.js';
 import {proposal as VERTICAL_PULL_AUDIT} from '../src/training/catalogVerticalPullAuditData.js';
 import { STEP_VARIANTS } from '../src/training/catalogStepVariants.js';
@@ -17,7 +18,7 @@ import { proposal as BRIDGE_AUDIT } from '../src/training/catalogBridgeAuditData
 import { proposal as HORIZONTAL_PRESS_AUDIT } from '../src/training/catalogHorizontalPressAuditData.js';
 import { proposal as HORIZONTAL_PULL_AUDIT } from '../src/training/catalogHorizontalPullAuditData.js';
 
-const OCT22_CONTENT_AUDITS = [BRIDGE_AUDIT, HORIZONTAL_PRESS_AUDIT, HORIZONTAL_PULL_AUDIT, VERTICAL_PUSH_AUDIT, VERTICAL_PULL_AUDIT];
+const OCT22_CONTENT_AUDITS = [BRIDGE_AUDIT, HORIZONTAL_PRESS_AUDIT, HORIZONTAL_PULL_AUDIT, VERTICAL_PUSH_AUDIT, VERTICAL_PULL_AUDIT, CARRY_AUDIT];
 const OCT22_FOUNDATION_COUNT = OCT22_CONTENT_AUDITS.reduce((count, audit) => count + (audit.additionRoles?.main?.length ?? audit.additions.length), 0);
 
 test('existing library receives expansion once without changing user cards, plans or logs', () => {

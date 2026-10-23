@@ -16,6 +16,8 @@
 import { measurementOf, compareSets, e1rm, e1rmIsEstimateOnly, setVolume, fmtActual, fmtDuration, fmtWeight, fmtDistance, fmtPace } from "./measurements.js";
 import { blocksOf, setsOf, isWorkingSet } from "./sessionModel.js";
 
+export { carryAllowsEstimatedMax } from "./carryProgressPolicy.js";
+
 const n = (v) => (v == null || v === "" ? null : Number(v));
 
 // One flat, sortable history of every completed working set for one
@@ -105,10 +107,11 @@ export const RECORD_LABEL = {
 
 // ---- computing the records -------------------------------------------
 // `bodyweightKg` is optional and only used where it is honest to use it.
+// Only an explicit allowEstimatedMax:false omits the derived e1rm record.
 export function recordsFor(measurementType, history, opts) {
   const o = opts || {};
   const m = measurementOf(measurementType);
-  const kinds = recordKindsFor(measurementType);
+  const kinds = recordKindsFor(measurementType).filter(kind => kind !== "e1rm" || o.allowEstimatedMax !== false);
   const out = {};
   const put = (k, value, entry, extra) => {
     if (value == null || !isFinite(value)) return;

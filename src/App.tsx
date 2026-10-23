@@ -6849,7 +6849,7 @@ const T_FIGS = {
 function TExArt({ ex, size = 120, stroke, dotColor, showDot = true, fluid = false }) {
   const { t } = useT();
   if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted} />;
-  const atlas = ex && (TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  const atlas = ex && (TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   const fig = ex && T_FIGS[ex.id];
   if (!fig) return <TPatArt pat={(ex && ex.pat) || "drep"} size={size} stroke={stroke || t.text} dot={showDot && ex ? ex.dot : null} dotColor={dotColor || t.accent} />;
@@ -9789,7 +9789,7 @@ function TExDetail({ exId, onClose, onOpen }) {
     const rec = tvOf(ex);
     if (!rec) return { kinds: [], recs: {}, mt: "REPS_ONLY" };
     const hist = TV.historyOf(st.tvSessions ? st.tvSessions() : [], ex.id, {});
-    const recs = TV.recordsFor(rec.measurementType, hist, {});
+    const recs = TV.recordsFor(rec.measurementType, hist, { allowEstimatedMax: rec.measurementType === "WEIGHT_REPS" ? TV.carryAllowsEstimatedMax(ex) : undefined });
     return { kinds: TV.recordKindsFor(rec.measurementType).filter((k) => recs[k]), recs, mt: rec.measurementType };
   })();
   const load = tLoadOf(ex);
@@ -9867,7 +9867,7 @@ function TExDetail({ exId, onClose, onOpen }) {
       <TChain ex={ex} all={all} onOpen={onOpen} />
       <TExShelfPanel ex={ex} all={all} onOpen={onOpen} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-        {(TV.verticalAuditEquipmentLabels(ex, LANG) ?? TV.auditBatchEquipmentLabels(ex, LANG) ?? TV.hingeEquipmentLabels(ex, LANG) ?? TV.stepEquipmentLabels(ex, LANG))?.map((label) => <Tag key={label} label={label} color="green" />) ?? (ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
+        {(TV.carryEquipmentLabels(ex, LANG) ?? TV.verticalAuditEquipmentLabels(ex, LANG) ?? TV.auditBatchEquipmentLabels(ex, LANG) ?? TV.hingeEquipmentLabels(ex, LANG) ?? TV.stepEquipmentLabels(ex, LANG))?.map((label) => <Tag key={label} label={label} color="green" />) ?? (ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
         <Tag label={ex.mode === "sec" ? L("čas · sekundy", "time · seconds") : L("opakování", "reps")} color="gray" />
         {load !== "none" && <Tag label={load === "ext" ? L("váha je cvik", "the weight is the lift") : L("lze přidat váhu", "takes added weight")} color="brown" />}
         <Tag label={L(T_POP(ex.pop || 2).cz, T_POP(ex.pop || 2).en)} color={(ex.pop || 2) === 3 ? "orange" : "brown"} />
@@ -13110,7 +13110,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   const { t } = useT();
   const st = useStore();
   const rec = tvClientRec(st, block.exId);
-  const atlas = TV.verticalAuditArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.auditBatchArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.stepArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.lungeArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.EXPANSION_ART[block.exId] || UNIFIED_ART[block.exId] || SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
+  const atlas = TV.carryArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.verticalAuditArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.auditBatchArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.stepArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.lungeArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.EXPANSION_ART[block.exId] || UNIFIED_ART[block.exId] || SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
   const m = TV.measurementOf(block.measurementType);
   const [extraLoad, setExtraLoad] = useState((block.sets || []).some(s => s.actual?.addedWeight > 0));
   const fields = m.fields.concat(m.secondary && extraLoad ? [m.secondary] : []);
@@ -13220,7 +13220,7 @@ function TvClientRest({ sec, onDone, onSkip }) {
 function TvClientGuideArt({ ex, size = 120, fluid = false, ...rest }) {
   const { t } = useT();
   if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted}/>;
-  const atlas = ex && (TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  const atlas = ex && (TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   if (ex?.art) return <TmPostava poza={ex.art} size={size} stroke={rest.stroke || t.text}/>;
   return ex && T_FIGS[ex.id] ? <TExArt ex={ex} size={size} fluid={fluid} {...rest}/> : null;
@@ -13456,7 +13456,8 @@ function TvClientHistory({ onRun }) {
   }, [sessions]);
   const rec = exId ? tvClientRec(st, exId) : null;
   const hist = exId && rec ? TV.historyOf(sessions, exId, {}) : [];
-  const records = rec ? TV.recordsFor(rec.measurementType, hist, {}) : {};
+  const recordSource = exId ? (st.tvExerciseOf(exId) || (st.coll.tEx || []).find(row => row.id === exId)) : null;
+  const records = rec ? TV.recordsFor(rec.measurementType, hist, { allowEstimatedMax: rec.measurementType === "WEIGHT_REPS" ? TV.carryAllowsEstimatedMax(recordSource) : undefined }) : {};
   const sum = TV.summary(sessions, { from: shiftISO(todayISO(), -27), to: todayISO() });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -13517,7 +13518,7 @@ function TvClientHistory({ onRun }) {
 function PageTrenink() {
   const { t } = useT();
   const st = useStore();
-  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, [st.coll?.exerciseAudit20261013, st.coll?.bridgeContentAudit20261022, st.coll?.bridgeFoundations20261022, st.coll?.horizontalPressAudit20261022, st.coll?.horizontalPressFoundations20261022, st.coll?.horizontalPullAudit20261022, st.coll?.horizontalPullFoundations20261022, st.coll?.verticalPushAudit20261023, st.coll?.verticalPushClientFoundations20261023, st.coll?.verticalPullAudit20261023, st.coll?.verticalPullCommonFoundations20261023, st.coll?.verticalPullClientFoundations20261023]);
+  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, [st.coll?.exerciseAudit20261013, st.coll?.bridgeContentAudit20261022, st.coll?.bridgeFoundations20261022, st.coll?.horizontalPressAudit20261022, st.coll?.horizontalPressFoundations20261022, st.coll?.horizontalPullAudit20261022, st.coll?.horizontalPullFoundations20261022, st.coll?.verticalPushAudit20261023, st.coll?.verticalPushClientFoundations20261023, st.coll?.verticalPullAudit20261023, st.coll?.verticalPullCommonFoundations20261023, st.coll?.verticalPullClientFoundations20261023, st.coll?.carryAudit20261023]);
   const [tab, setTab] = useState("dnes");
   const [daysResetKey, setDaysResetKey] = useState(0);
   const [planStatus,setPlanStatus] = useState({state:""});

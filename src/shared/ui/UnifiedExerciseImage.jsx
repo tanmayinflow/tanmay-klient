@@ -7,7 +7,7 @@ export function UnverifiedExerciseImage({ message, size = 120, fluid = false, co
 }
 
 // Reviewed character plates: dark ink and an independent body silhouette.
-// Originals remain a usable fallback while masks load or when masking is unavailable.
+// Standard plates retain their original fallback. Hollow contours use a textual fallback.
 export function UnifiedExerciseImage({ entry, alt = '', size = 120, fluid = false, dark = false, background, children }) {
   const [loadedSrc, setLoadedSrc] = useState(null);
   const [failedSrc, setFailedSrc] = useState(null);
@@ -21,19 +21,21 @@ export function UnifiedExerciseImage({ entry, alt = '', size = 120, fluid = fals
   const supportsMask = !entry.transparentBody && typeof CSS !== 'undefined' && (CSS.supports('mask-image','url("")') || CSS.supports('-webkit-mask-image','url("")'));
   const inkSrc = detail ? art.inkDetail : art.inkThumb;
   const fillSrc = detail ? art.fillDetail : art.fillThumb;
-  const masked = loaded && supportsMask && layers.ink === inkSrc && layers.fill === fillSrc;
+  const contourOnly = !!entry.contourOnly;
+  const masked = (contourOnly || loaded) && supportsMask && layers.ink === inkSrc && (contourOnly || layers.fill === fillSrc);
   const mask = (url) => ({ position:'absolute', inset:0, maskImage:`url("${url}")`, WebkitMaskImage:`url("${url}")`, maskSize:'contain', WebkitMaskSize:'contain', maskRepeat:'no-repeat', WebkitMaskRepeat:'no-repeat', maskPosition:'center', WebkitMaskPosition:'center' });
-  return <span style={{ position:'relative', display:'block', width:fluid?'100%':size, maxWidth:'100%', aspectRatio:'1 / 1' }}>
-    {(!loaded || failed) && children}
-    <img src={src} alt={alt} width={960} height={960} loading="lazy" decoding="async" onLoad={()=>setLoadedSrc(src)} onError={()=>setFailedSrc(src)}
-      style={{ position:'absolute', inset:0, display:failed?'none':'block', opacity:masked?0:1, width:'100%', height:'100%', objectFit:'contain', filter:entry.transparentBody && dark?'invert(1)':undefined }}/>
-    {loaded && supportsMask && <>
-      <img src={inkSrc} alt="" aria-hidden="true" style={{display:'none'}} onLoad={()=>setLayers(prev=>({...prev,ink:inkSrc}))}/>
-      <img src={fillSrc} alt="" aria-hidden="true" style={{display:'none'}} onLoad={()=>setLayers(prev=>({...prev,fill:fillSrc}))}/>
+  return <span role={contourOnly?'img':undefined} aria-label={contourOnly?alt:undefined} style={{ position:'relative', display:'block', width:fluid?'100%':size, maxWidth:'100%', aspectRatio:'1 / 1' }}>
+    {!contourOnly && (!loaded || failed) && children}
+    <img src={src} alt={contourOnly?'':alt} aria-hidden={contourOnly||undefined} width={960} height={960} loading="lazy" decoding="async" onLoad={()=>setLoadedSrc(src)} onError={()=>setFailedSrc(src)}
+      style={{ position:'absolute', inset:0, display:failed?'none':'block', opacity:masked || contourOnly?0:1, width:'100%', height:'100%', objectFit:'contain', filter:entry.transparentBody && dark?'invert(1)':undefined }}/>
+    {contourOnly && (!masked || layers.failedInk === inkSrc) && <UnverifiedExerciseImage message={alt} size={size} fluid={fluid} color={dark?'#d9cfbb':'#292622'}/>}
+    {(contourOnly || loaded) && supportsMask && <>
+      <img src={inkSrc} alt="" aria-hidden="true" style={{display:'none'}} onLoad={()=>setLayers(prev=>({...prev,ink:inkSrc,failedInk:null}))} onError={()=>setLayers(prev=>({...prev,ink:null,failedInk:inkSrc}))}/>
+      {!contourOnly && <img src={fillSrc} alt="" aria-hidden="true" style={{display:'none'}} onLoad={()=>setLayers(prev=>({...prev,fill:fillSrc}))}/>}
     </>}
-    {masked && !failed && <span aria-hidden="true" style={{ position:'absolute', inset:0 }}>
-      <span style={{ ...mask(fillSrc), background:dark?'#d9cfbb':background || '#e4dac8' }}/>
-      <span style={{ ...mask(inkSrc), background:'#292622' }}/>
+    {masked && (contourOnly || !failed) && <span aria-hidden="true" style={{ position:'absolute', inset:0 }}>
+      {!contourOnly && <span style={{ ...mask(fillSrc), background:dark?'#d9cfbb':background || '#e4dac8' }}/>}
+      <span style={{ ...mask(inkSrc), background:contourOnly && dark?'#d9cfbb':'#292622' }}/>
     </span>}
   </span>;
 }

@@ -15,6 +15,7 @@
 // function that answers "what is this exercise, for the product".
 // ======================================================================
 
+import {reviewedRopeClimbPolicy} from "./catalogCarryPolicy.js";
 import { MEASUREMENT, measurementOf } from "./measurements.js";
 import { TIER_TO_ROLE, GENERIC_ROLES, ATLAS_STATUS } from "./types.js";
 import { OVERLAY, UNILATERAL, ALTERNATING, ORIGINAL_MASTER_COUNT } from "./catalogOverlay.js";
@@ -192,17 +193,20 @@ export function genRuleOf(row, meta) {
   return pick(g, ["generic", "goal_eq", "cond", "explicit", "canon_target", "never", "breath_optin", "source_plan", "yoga_planner"], "never");
 }
 export function generatorEligibleOf(row, meta) {
+  const reviewed=reviewedRopeClimbPolicy(row,meta);if(reviewed)return reviewed.generatorEligible;
   if (statusOf(row, meta) !== "active") return false;
   const role = productRoleOf(row, meta);
   if (!GENERIC_ROLES.includes(role)) return false;
   return GEN_GENERIC.includes(genRuleOf(row, meta));
 }
 export function requiresCoachOf(row, meta) {
+  const reviewed=reviewedRopeClimbPolicy(row,meta);if(reviewed)return reviewed.requiresCoach;
   return typeof row?.requiresCoach === "boolean" ? row.requiresCoach : !!(meta && meta.co);
 }
 // Gym kit a person may simply not have in the room they are standing in.
 const CHECK_EQ = ["stroj", "kladka", "cinka"];
-export function requiresEquipmentCheckOf(row) {
+export function requiresEquipmentCheckOf(row, meta) {
+  const reviewed=reviewedRopeClimbPolicy(row,meta);if(reviewed)return reviewed.requiresEquipmentCheck;
   return arr(row && row.eq).some((k) => CHECK_EQ.includes(k));
 }
 // What a client may be shown in their own library. A client never browses
@@ -291,7 +295,7 @@ export function resolveExercise(row, meta, originalIds) {
     generatorEligible: generatorEligibleOf(row, m),
     clientVisible: clientVisibleOf(row, m),
     requiresCoach: requiresCoachOf(row, m),
-    requiresEquipmentCheck: requiresEquipmentCheckOf(row),
+    requiresEquipmentCheck: requiresEquipmentCheckOf(row, m),
     aliasOf: (row.aliasOf || m.al) || null,
     atlas: atlasFactsOf(row, m, originalIds),
     focus: row.foc || null,
@@ -301,6 +305,7 @@ export function resolveExercise(row, meta, originalIds) {
     progression: row.pro || null,
     easierId: row.ez || null,
     harderId: row.hd || null,
+    ...(reviewedRopeClimbPolicy(row,m) || {}),
   };
 }
 

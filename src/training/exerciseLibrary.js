@@ -1,3 +1,4 @@
+import {CARRY_FOUNDATIONS} from './catalogCarryAuditView.js';
 import {AUDIT_BATCH_FOUNDATIONS} from './catalogAuditBatch.js';
 import { exerciseTaxonomy } from './exerciseTaxonomy.js';
 import { exerciseEquipment, matchesAvailableEquipment } from './exerciseEquipment.js';
@@ -75,6 +76,10 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
         const foundations=["latpull","vpul26_foot_assisted_chin","faq_foot_chin","assistpullup","bandpull","pullup","chinup","vpul26_neutral_pullup","ex26_band_pulldown","ex26_onearm_pulldown","ex26_machine_pulldown","negpull","faq_chin_negative"];
         const rank=id=>foundations.includes(id)?foundations.indexOf(id):foundations.length;
         const difference=rank(a.row.id)-rank(b.row.id);if(difference)return difference;
+      }
+      if(filters.movements.length===1&&filters.movements[0]==='carry'){
+        const rank=id=>CARRY_FOUNDATIONS.includes(id)?CARRY_FOUNDATIONS.indexOf(id):CARRY_FOUNDATIONS.length;
+        const delta=rank(a.row.id)-rank(b.row.id);if(delta)return delta;
       }
       if (filters.movements.length === 1 && AUDIT_BATCH_FOUNDATIONS[filters.movements[0]]) {
         const foundations=AUDIT_BATCH_FOUNDATIONS[filters.movements[0]];

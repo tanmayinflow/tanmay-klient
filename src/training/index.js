@@ -37,3 +37,5 @@ export { hingeEquipmentLabels } from "./catalogHingeAudit.js";
 export {auditBatchArtworkFor,auditBatchEquipmentLabels} from "./catalogAuditBatch.js";
 
 export {verticalAuditArtworkFor,verticalAuditEquipmentLabels} from "./catalogVerticalAudit.js";
+
+export {carryEquipmentLabels,carryArtworkFor} from "./catalogCarryAuditView.js";

@@ -7,6 +7,8 @@ export const EXERCISE_EQUIPMENT_GROUPS = vocabulary([
   ['accessories','Další pomůcky','Other equipment'], ['unspecified','K upřesnění','Needs clarification'],
 ]);
 export const EXERCISE_EQUIPMENT = vocabulary([
+  ["climbing_rope_station","Šplhací lano s vhodným zavěšením","Climbing rope with suitable anchoring","supports"],
+  ["protective_landing_mat","Ochranná žíněnka pro doskokovou plochu","Protective landing mat","accessories"],
   ['telo','Vlastní tělo','Body weight','body'], ['prostor','Volný prostor','Clear space','body'],
   ['kettlebell','Kettlebell','Kettlebell','free_weights'], ['dumbbell','Jednoručky','Dumbbells','free_weights'],
   ['kettlebell_pair','Pár kettlebellů','Pair of kettlebells','free_weights'], ['dumbbell_pair','Pár jednoruček','Pair of dumbbells','free_weights'],
