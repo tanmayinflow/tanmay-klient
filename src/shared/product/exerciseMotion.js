@@ -1287,6 +1287,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 47028,
     "sha256": "6aae29952ea1d42ab3fe0e707e837eba56532a4c4c9f6bf544b49d1feb03658b",
     "poster": "/exercise-motion/kr_mob_060-poster-6c65c0e4b8688596.webp"
+  },
+  "kr_mob_061": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_061-6101f723509bcd5b.mp4",
+    "bytes": 40047,
+    "sha256": "6101f723509bcd5b3a3f5fcec09e3c4b98d9972cf7478729c4208291a5fbfe19",
+    "poster": "/exercise-motion/kr_mob_061-poster-c07650cd404a589f.webp"
+  },
+  "kr_mob_079": {
+    "oneSide": true,
+    "src": "/exercise-motion/kr_mob_079-3b96a883dbebf660.mp4",
+    "bytes": 51847,
+    "sha256": "3b96a883dbebf660fe1e827833f23c541fa94764af7dd40a750a1e2bccadf9ad",
+    "poster": "/exercise-motion/kr_mob_079-poster-a7cb646cc3c9d13c.webp"
+  },
+  "kr_mob_088": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_088-f8a659adcfacfc9b.mp4",
+    "bytes": 53729,
+    "sha256": "f8a659adcfacfc9be0eaaaddd6471d8547149fce196ce53bbb1aaf39a080cab3",
+    "poster": "/exercise-motion/kr_mob_088-poster-4f70ac2d6f04c43c.webp"
+  },
+  "kr_mob_098": {
+    "oneSide": true,
+    "src": "/exercise-motion/kr_mob_098-2771c97ab744dbce.mp4",
+    "bytes": 45826,
+    "sha256": "2771c97ab744dbce9acd48b01ab4211ed08712b4cfcc41cbccf399a5d81634c0",
+    "poster": "/exercise-motion/kr_mob_098-poster-5c13a053ea2709f0.webp"
+  },
+  "kr_mob_056": {
+    "oneSide": true,
+    "src": "/exercise-motion/kr_mob_056-2f2b1306694de167.mp4",
+    "bytes": 51332,
+    "sha256": "2f2b1306694de1675843c19600a49e826b9b7ece53db9b410ba69e5db76fd2f6",
+    "poster": "/exercise-motion/kr_mob_056-poster-70f0b6ae1d06972a.webp"
+  },
+  "jg_pascimottanasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_pascimottanasana-220ef1792e6e1d33.mp4",
+    "bytes": 54912,
+    "sha256": "220ef1792e6e1d336838fe1047016738bd604fb53e2476b6021f85a0e08b94b4",
+    "poster": "/exercise-motion/jg_pascimottanasana-poster-3ad7bd72f2e339b1.webp"
+  },
+  "jg_janu_sirsasana": {
+    "oneSide": true,
+    "src": "/exercise-motion/jg_janu_sirsasana-806f79dcdb12abc6.mp4",
+    "bytes": 52921,
+    "sha256": "806f79dcdb12abc6ac1d64906454a9e38737842db1704e53a6ce6fa650e32304",
+    "poster": "/exercise-motion/jg_janu_sirsasana-poster-0082bbf02cfcc285.webp"
+  },
+  "kr_mob_067": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_067-a9ff832ac46b259d.mp4",
+    "bytes": 52820,
+    "sha256": "a9ff832ac46b259df950a086f0137bd3fd120bc6ff0356f4caba9f40f1c085bd",
+    "poster": "/exercise-motion/kr_mob_067-poster-e4e385e10854c06f.webp"
   }
 });
 
