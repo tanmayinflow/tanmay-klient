@@ -19,10 +19,14 @@ const needs=(...ids)=>({requirements:ids.map(id=>[id])});
 const smithBefore=clone(applySquatAudit({tEx:library.all}).tEx.find(item=>item.id==='ex26_smith_squat'));
 
 test('Low parallettes do not satisfy exercises requiring full parallel bars',()=>{
-  for(const id of ['dips','russiandip']){
+  for(const id of ['dips']){
     assert.equal(available(id,['low_parallettes']),false,id);
     assert.equal(available(id,['bradla']),true,id);
   }
+  assert.equal(available('russiandip',['low_parallettes']),false);
+  assert.equal(available('russiandip',['bradla']),false);
+  assert.equal(available('russiandip',['long_parallel_bars']),true);
+  assert.equal(available('dips',['long_parallel_bars']),true);
   assert.equal(available('planchepush',['low_parallettes']),true);
   assert.equal(available('planchepush',['bradla']),false);
 });

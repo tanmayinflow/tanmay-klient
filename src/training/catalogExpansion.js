@@ -1,3 +1,5 @@
+import {applyVerticalPushAudit,seedVerticalPushFoundations} from './catalogVerticalPushAudit.js';
+import {applyVerticalPullAudit,seedVerticalPullFoundations} from './catalogVerticalPullAudit.js';
 import {applyAuditEquipmentFixes} from './catalogAuditEquipmentFix.js';
 import {applyBridgeAudit,seedBridgeFoundations} from './catalogBridgeAudit.js';
 import {applyHorizontalPressAudit,seedHorizontalPressFoundations} from './catalogHorizontalPressAudit.js';
@@ -28290,7 +28292,8 @@ export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES
   const withClientNext = seedInstagramClientNext(withContinuation, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_CLIENT_NEXT_EXERCISES : seedRows);
   const withDeepReview = seedInstagramDeepReview(withClientNext, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_DEEP_REVIEW_EXERCISES : seedRows);
   const audited = applyHingeAudit(seedStepVariants(applyStepAudit(applyLungeAudit(applySquatAudit(applyPracticalCorrections(withDeepReview)), options))));
-  return applyAuditEquipmentFixes(seedHorizontalPullFoundations(applyHorizontalPullAudit(seedHorizontalPressFoundations(applyHorizontalPressAudit(seedBridgeFoundations(applyBridgeAudit(audited)))))));
+  const horizontal = applyAuditEquipmentFixes(seedHorizontalPullFoundations(applyHorizontalPullAudit(seedHorizontalPressFoundations(applyHorizontalPressAudit(seedBridgeFoundations(applyBridgeAudit(audited)))))));
+  return seedVerticalPullFoundations(applyVerticalPullAudit(seedVerticalPushFoundations(applyVerticalPushAudit(horizontal),options)),options);
 }
 
 function seedOriginalExpansion(collection, seedRows) {

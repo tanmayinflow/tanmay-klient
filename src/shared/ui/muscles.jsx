@@ -19,7 +19,7 @@ export const TM_SVALY_FEMALE_SRC = {
 const groups = Object.fromEntries(MUSCLE_GROUPS.map(group => [group.k, group]));
 
 export function createMuscleFig({ useT, L }) {
-  function TmSvalyFigura({ ex, mp = [], ms = [], size = 150, fluid = false, illustration }) {
+  function TmSvalyFigura({ ex, meta, mp = [], ms = [], size = 150, fluid = false, illustration }) {
     const { t } = useT();
     const { profile, accountKey } = usePersonalProfile();
     // This follows the account's declared profile, including live changes and
@@ -33,7 +33,7 @@ export function createMuscleFig({ useT, L }) {
     const [layers, setLayers] = useState({});
     const [failedVariant, setFailedVariant] = useState(null);
     const failed = failedVariant === variant;
-    const map = resolveMuscleMap(ex || { mp, ms });
+    const map = resolveMuscleMap(ex || { mp, ms }, meta);
     const all = [...map.primary, ...map.secondary];
     const active = all.includes(selected) ? selected : null;
     const skin = t.mode === "dark" ? "#d9cfbb" : t.bg;

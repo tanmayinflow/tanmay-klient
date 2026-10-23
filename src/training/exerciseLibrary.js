@@ -14,7 +14,7 @@ export function createExerciseFilters() {
 export function buildExerciseIndex(rows, options = {}) {
   return array(rows).filter(Boolean).map((row, order) => {
     const meta = options.metaOf?.(row) || {};
-    const muscles = options.musclesOf?.(row) || { primary: array(row.mp), secondary: array(row.ms) };
+    const muscles = options.musclesOf?.(row, meta) || { primary: array(row.mp), secondary: array(row.ms) };
     const tax = exerciseTaxonomy({ ...row, mp: muscles.primary, ms: muscles.secondary }, meta);
     const equipment = exerciseEquipment(row, meta);
     const name = options.nameOf?.(row) || row.cz || row.en || row.id || '';
@@ -66,6 +66,16 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
     if (sort !== 'name') {
       const priority = a.tax.priority - b.tax.priority;
       if (priority) return priority;
+      if (filters.movements.length === 1 && filters.movements[0] === 'push_vertical') {
+        const foundations=["dbpress","vp26_seated_db_press","an_seateddbpress","machineshoulderpress","ohp","kbpress","pike","vp26_foot_assisted_dip","faq_foot_dip","banddip","dips"];
+        const rank=id=>foundations.includes(id)?foundations.indexOf(id):foundations.length;
+        const difference=rank(a.row.id)-rank(b.row.id);if(difference)return difference;
+      }
+      if (filters.movements.length === 1 && filters.movements[0] === 'pull_vertical') {
+        const foundations=["latpull","vpul26_foot_assisted_chin","faq_foot_chin","assistpullup","bandpull","pullup","chinup","vpul26_neutral_pullup","ex26_band_pulldown","ex26_onearm_pulldown","ex26_machine_pulldown","negpull","faq_chin_negative"];
+        const rank=id=>foundations.includes(id)?foundations.indexOf(id):foundations.length;
+        const difference=rank(a.row.id)-rank(b.row.id);if(difference)return difference;
+      }
       if (filters.movements.length === 1 && AUDIT_BATCH_FOUNDATIONS[filters.movements[0]]) {
         const foundations=AUDIT_BATCH_FOUNDATIONS[filters.movements[0]];
         const rank=id=>foundations.includes(id)?foundations.indexOf(id):foundations.length;

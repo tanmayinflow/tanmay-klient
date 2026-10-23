@@ -9,7 +9,7 @@ import {resolveExercise} from '../src/training/catalog.js';
 
 test('continuation adds only the next batch to a previously migrated profile and preserves edits, logs and deletions',()=>{
  const edited={...rows[0],cz:'Můj upravený název',ez:'my_card'};
- const original={bridgeFoundations20261022:true,horizontalPressFoundations20261022:true,horizontalPullFoundations20261022:true,loadedSteps20261022:true, stepContentAudit20261022:true,squatContentAudit20261022:true,exerciseExpansion20261011:true,exerciseAudit20261013:true,kettlebellExpansion20261015:true,instagramExpansion20261015:true,practicalExerciseAudit20261015:true,instagramClientNext20261016:true,instagramDeepReview20261016:true,tEx:[edited,{id:'my_card'}],tPl:[{id:'plan'}],tWo:[{id:'workout'}],tLog:[{exId:edited.id,reps:3}]};
+ const original={verticalPullCommonFoundations20261023:true,bridgeFoundations20261022:true,horizontalPressFoundations20261022:true,horizontalPullFoundations20261022:true,loadedSteps20261022:true, stepContentAudit20261022:true,squatContentAudit20261022:true,exerciseExpansion20261011:true,exerciseAudit20261013:true,kettlebellExpansion20261015:true,instagramExpansion20261015:true,practicalExerciseAudit20261015:true,instagramClientNext20261016:true,instagramDeepReview20261016:true,tEx:[edited,{id:'my_card'}],tPl:[{id:'plan'}],tWo:[{id:'workout'}],tLog:[{exId:edited.id,reps:3}]};
  const before=structuredClone(original),result=seedExerciseExpansion(original);
  assert.equal(result.tEx.length,rows.length+1);
  assert.equal(result.tEx[0],edited);

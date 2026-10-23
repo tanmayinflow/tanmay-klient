@@ -15,7 +15,7 @@ const expectedIds=[
   "ig29_prone_w_to_forearm_plank",
   "ig29_cross_squat_getup"
 ];
-const previousMigrations={bridgeFoundations20261022:true,horizontalPressFoundations20261022:true,horizontalPullFoundations20261022:true,loadedSteps20261022:true, stepContentAudit20261022:true,squatContentAudit20261022:true,exerciseExpansion20261011:true,exerciseAudit20261013:true,kettlebellExpansion20261015:true,instagramExpansion20261015:true,practicalExerciseAudit20261015:true,instagramContinuation20261015:true,instagramClientNext20261016:true};
+const previousMigrations={verticalPullCommonFoundations20261023:true,bridgeFoundations20261022:true,horizontalPressFoundations20261022:true,horizontalPullFoundations20261022:true,loadedSteps20261022:true, stepContentAudit20261022:true,squatContentAudit20261022:true,exerciseExpansion20261011:true,exerciseAudit20261013:true,kettlebellExpansion20261015:true,instagramExpansion20261015:true,practicalExerciseAudit20261015:true,instagramContinuation20261015:true,instagramClientNext20261016:true};
 
 test('deep-review release contains precisely the approved cards, metadata and illustrations',()=>{
  assert.equal(rows.length,expectedIds.length);

@@ -35,3 +35,5 @@ export { stepEquipmentLabels } from "./catalogStepVariants.js";
 export { hingeEquipmentLabels } from "./catalogHingeAudit.js";
 
 export {auditBatchArtworkFor,auditBatchEquipmentLabels} from "./catalogAuditBatch.js";
+
+export {verticalAuditArtworkFor,verticalAuditEquipmentLabels} from "./catalogVerticalAudit.js";

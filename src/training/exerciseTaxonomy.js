@@ -205,7 +205,7 @@ export function exerciseTaxonomy(input, inputMeta = {}) {
   const role = row.goalRole || meta.goalRole || meta.r || '';
   const tier = row.tier || meta.tier || meta.t || '';
   const family = familyOf(row, { ...meta, f: meta.family || meta.f });
-  const anatomy = resolveMuscleMap(row);
+  const anatomy = resolveMuscleMap(row, meta);
   const regions = unique(anatomy.primary.map(k => regionByMuscle[k]));
   const secondaryRegions = unique(anatomy.secondary.map(k => regionByMuscle[k])).filter(k => !regions.includes(k));
   // Joint-area navigation supplements the muscle map only when the family

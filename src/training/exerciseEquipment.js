@@ -49,6 +49,20 @@ export const EXERCISE_EQUIPMENT = vocabulary([
   ["seated_cable_row_station","Stanoviště spodní kladky vsedě","Seated low cable row station","resistance"],
   ["chest_supported_row_machine","Přítahový stroj s oporou hrudníku","Chest-supported row machine","resistance"],
   ["rowing_ergometer","Veslařský trenažér","Rowing ergometer","resistance"],
+  ["shoulder_press_machine","Stroj na tlaky nad hlavu","Shoulder press machine","resistance"],
+  ["dip_belt","Opasek pro zavěšení zátěže","Dip belt","accessories"],
+  ["long_parallel_bars","Dlouhá bradla pro oporu předloktí","Long parallel bars for forearm support","supports"],
+  ["box_support","Pevná bedna pro oporu chodidel","Stable box for foot support","supports"],
+  ["pullup_band","Dlouhá smyčka pro dopomoc shybů","Long loop band for pull-up assistance","resistance"],
+  ["assisted_pullup_machine","Stroj s dopomocí pro shyby","Assisted pull-up machine","resistance"],
+  ["lat_pulldown_station","Stanoviště horní kladky se sedem a stehenní opěrou","Lat pulldown station with seat and thigh pad","resistance"],
+  ["lat_pulldown_bar","Dlouhá hrazdička horní kladky","Lat pulldown bar","accessories"],
+  ["lever_lat_pulldown_machine","Pákový stroj na stahování shora","Lever lat pulldown machine","resistance"],
+  ["high_cable","Horní kladka pro cvičení ve stoji","High cable pulley for standing exercises","resistance"],
+  ["cable_bar","Obouruční tyč kladky","Two-hand cable bar","accessories"],
+  ["towel_pair","Dva pevné ručníky pro úchop","Two sturdy grip towels","accessories"],
+  ["low_pullup_bar","Nízká hrazda pro oporu chodidel","Low bar for foot support","supports"],
+  ["parallel_pullup_handles","Pevná paralelní madla pro shyby","Fixed parallel pull-up handles","supports"],
   ['zavazi','Zátěž bez určeného typu','Unspecified load','unspecified'],
   ['unknown_equipment','Vybavení neurčeno','Equipment unspecified','unspecified'],
 ]);
@@ -184,7 +198,8 @@ export function exerciseEquipment(input, inputMeta = {}) {
   requirements = requirements.filter((group,index,all) => all.findIndex(other => [...other].sort().join('|') === [...group].sort().join('|')) === index);
   // Navigation may group machines; ownership must never imply a different machine.
   const machineTypes=['stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
-  const items = unique(equipmentCapabilities(requirements.flat()).flatMap(id=>machineTypes.includes(id)?[id,'stroj']:[id]));
+  const reviewedNavigationGroups={"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
+  const items = unique(equipmentCapabilities(requirements.flat()).flatMap(id=>[id,...(machineTypes.includes(id)?['stroj']:[]),...(reviewedNavigationGroups[id]||[])]));
   return { items, requirements, unresolved:items.filter(unresolvedId), evidence, legacy };
 }
 
@@ -196,7 +211,9 @@ export function matchesAvailableEquipment(profile, availableIds = []) {
 
 // Owning a pair also covers one implement; owning one never implies a pair.
 const reviewedCapabilities = {"adjustable_cable":["kladka"],"adjustable_cable_pair":["adjustable_cable","kladka"],"cable_handle_pair":["cable_handle"],"landmine_pivot":[],"landmine_row_handle":[],"cable_row_handle":[]};
+const verticalAuditCapabilities={"long_parallel_bars":["bradla"],"pullup_band":["guma"],"lat_pulldown_bar":["cable_bar"],"towel_pair":["towel"]};
 function equipmentCapabilities(ids) {
+  ids=array(ids).flatMap(id=>[id,...(verticalAuditCapabilities[id]||[])]);
   ids = array(ids).flatMap(id=>[id,...(reviewedCapabilities[id]||[])]);
   return unique(array(ids).flatMap(id=>id==='kettlebell_pair'?[id,'kettlebell']:id==='dumbbell_pair'?[id,'dumbbell']:[id]));
 }

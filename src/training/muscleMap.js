@@ -217,7 +217,103 @@ const ROLE_MODES = {
   conditioning: "strength", mobility: "mobility", prep: "mobility", breath: "none",
 };
 
-export function resolveMuscleMap(ex) {
+// Two reviewed display-only changes. Exact raw signatures and entire unchanged
+// original/reviewed setup protect personally redefined exercises. No raw writes.
+const VERTICAL_PULL_DISPLAY={
+  "lsitpullup": {
+    "before": {
+      "cz": "L-sit pull-up",
+      "en": "L-Sit Pull-Up",
+      "pos": [
+        "Vis nadhmatem, nohy zvednuté do L.",
+        "Overhand hang, legs raised into the L."
+      ],
+      "exe": [
+        "Shyb s nohama stále v L. Pomalu dolů, L nepouštěj.",
+        "Pull up with the legs locked in the L. Lower slowly, never dropping the L."
+      ],
+      "eq": [
+        "hrazda"
+      ]
+    },
+    "after": {
+      "cz": "Shyb s nohama v L",
+      "en": "L-Sit Pull-Up",
+      "pos": [
+        "Uchop pevnou hrazdu nadhmatem přibližně na šířku ramen. Ve visu zvedni natažené nohy před tělo přibližně vodorovně; ponech pro ně volný prostor.",
+        "Grip a fixed bar overhand at about shoulder-width. While hanging, raise straight legs in front of the body to roughly horizontal; leave enough clear space for them."
+      ],
+      "exe": [
+        "Přitáhni bradu nad hrazdu bez švihu nohou. Tvar L udržuj i při kontrolovaném návratu do natažených loktů.",
+        "Pull the chin above the bar without swinging the legs. Maintain the L shape during the controlled return to straight elbows."
+      ],
+      "eq": [
+        "hrazda"
+      ]
+    },
+    "mp": [
+      "upb",
+      "abs"
+    ],
+    "ms": {
+      "present": true,
+      "value": [
+        "bic",
+        "fore",
+        "qua"
+      ]
+    }
+  },
+  "vi_scap": {
+    "before": {
+      "cz": "Stabilizátory lopatky",
+      "en": "Scapular stabilizers",
+      "pos": [
+        "Leh na břiše nebo sed s oporou, paže volně před tělem, ramena bez elevace.",
+        "Prone, or seated with support, arms loose in front, shoulders not shrugged."
+      ],
+      "exe": [
+        "Simulace stahování kladky vleže na břiše nebo vsedě; se zátěží u pokročilejších.",
+        "Cable pull-down simulation prone or seated; loaded for more advanced clients."
+      ],
+      "eq": [
+        "guma",
+        "kladka"
+      ]
+    },
+    "after": {
+      "cz": "Stabilizátory lopatky",
+      "en": "Scapular stabilizers",
+      "pos": [
+        "Poloha a opora závisejí na zvoleném cviku; tato programová položka zahrnuje varianty vleže na břiše i vsedě.",
+        "Position and support depend on the chosen exercise; this programme entry includes prone and seated variations."
+      ],
+      "exe": [
+        "Proveď konkrétní variantu uvedenou v plánu. Pohyb lopatek sladíš s pohybem paží podle jejího návodu; bezodporová simulace a stahování s odporem nejsou stejný úkol.",
+        "Perform the specific variation named in the plan. Coordinate the shoulder blades with the arms as instructed for that variation; an unloaded simulation and a resisted pulldown are different tasks."
+      ],
+      "eq": [
+        "guma",
+        "kladka"
+      ]
+    },
+    "mp": [
+      "sho"
+    ],
+    "ms": {
+      "present": false
+    }
+  }
+};
+const displaySame=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+function verticalPullDisplayEligible(row,id) {
+  const guard=VERTICAL_PULL_DISPLAY[id];
+  return row.id===id && displaySame(row.mp,guard.mp)
+    && Object.hasOwn(row,'ms')===guard.ms.present && displaySame(row.ms,guard.ms.value)
+    && [guard.before,guard.after].some(setup=>Object.entries(setup).every(([key,value])=>displaySame(row[key],value)));
+}
+
+export function resolveMuscleMap(ex, meta = {}) {
   const row = ex && typeof ex === "object" ? ex : {};
   let primary = arr(row.mp);
   let secondary = arr(row.ms);
@@ -252,6 +348,13 @@ export function resolveMuscleMap(ex) {
     note = ANKLE_NOTE;
     corrected = true;
   }
+  if (verticalPullDisplayEligible(row,'lsitpullup')) {
+    secondary=[...secondary,'hipflex'];corrected=true;
+  }
+  if (verticalPullDisplayEligible(row,'vi_scap') && (row.tier || meta?.t) === 'program_only') {
+    primary=[];secondary=[];mode='unspecified';corrected=true;
+    note={"cz":"Programová položka zahrnuje různé cviky pro práci lopatek. Zapojení svalů určuje až konkrétní zvolený cvik.","en":"This programme entry includes different scapular-control exercises. The specific selected exercise determines the muscles involved."};
+  }
   const unknown = [...new Set([...primary, ...secondary].filter(k => typeof k === "string" && !KNOWN.has(k)))];
   primary = [...new Set(primary.filter(k => KNOWN.has(k)))];
   secondary = [...new Set(secondary.filter(k => KNOWN.has(k) && !primary.includes(k)))];
@@ -281,10 +384,10 @@ export function resolveMuscleMap(ex) {
 // editing one raw field could invalidate a legacy signature and make the other
 // visible field jump back to its old value. Unknown keys in the untouched field
 // survive because this editor cannot display or deliberately remove them.
-export function muscleMapEdit(ex, field, values) {
+export function muscleMapEdit(ex, field, values, meta = {}) {
   if (field !== "primary" && field !== "secondary") throw new TypeError("Unknown muscle-map field");
   const row = ex && typeof ex === "object" ? ex : {};
-  const map = resolveMuscleMap(row);
+  const map = resolveMuscleMap(row, meta);
   const uniqueStrings = items => [...new Set(items.filter(k => typeof k === "string"))];
   const selected = uniqueStrings(arr(values));
   const unknownIn = value => arr(value).filter(k => typeof k === "string" && !KNOWN.has(k));

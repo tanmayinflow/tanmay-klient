@@ -1,3 +1,5 @@
+import {proposal as VERTICAL_PUSH_AUDIT} from '../src/training/catalogVerticalPushAuditData.js';
+import {proposal as VERTICAL_PULL_AUDIT} from '../src/training/catalogVerticalPullAuditData.js';
 import { STEP_VARIANTS } from '../src/training/catalogStepVariants.js';
 import { STEP_EXERCISES } from '../src/training/catalogStepAudit.js';
 import { STEP_TAXONOMY } from '../src/training/catalogStepAuditData.js';
@@ -19,8 +21,8 @@ import { proposal as BRIDGE_AUDIT } from '../src/training/catalogBridgeAuditData
 import { proposal as HORIZONTAL_PRESS_AUDIT } from '../src/training/catalogHorizontalPressAuditData.js';
 import { proposal as HORIZONTAL_PULL_AUDIT } from '../src/training/catalogHorizontalPullAuditData.js';
 
-const OCT22_CONTENT_AUDITS = [BRIDGE_AUDIT, HORIZONTAL_PRESS_AUDIT, HORIZONTAL_PULL_AUDIT];
-const OCT22_FOUNDATION_COUNT = OCT22_CONTENT_AUDITS.reduce((count, audit) => count + audit.additions.length, 0);
+const OCT22_CONTENT_AUDITS = [BRIDGE_AUDIT, HORIZONTAL_PRESS_AUDIT, HORIZONTAL_PULL_AUDIT, VERTICAL_PUSH_AUDIT, VERTICAL_PULL_AUDIT];
+const OCT22_FOUNDATION_COUNT = OCT22_CONTENT_AUDITS.reduce((count, audit) => count + (audit.additionRoles?.main?.length ?? audit.additions.length), 0);
 
 const corrections = {
   ex26_sample: {
@@ -139,7 +141,7 @@ test('the deployed expansion seed runs the audit on existing libraries without r
   assert.ok(entry, 'The release includes at least one real correction.');
   const [id, patches] = entry;
   const originalCard = { id, ...Object.fromEntries(Object.entries(patches).map(([field, change]) => [field, structuredClone(change.before)])) };
-  const original = {bridgeFoundations20261022:true,horizontalPressFoundations20261022:true,horizontalPullFoundations20261022:true, loadedSteps20261022:true, stepContentAudit20261022: true, squatContentAudit20261022: true, exerciseExpansion20261011: true, kettlebellExpansion20261015: true, instagramExpansion20261015: true, instagramContinuation20261015: true, instagramClientNext20261016: true, instagramDeepReview20261016: true, tEx: [originalCard], tLog: [{ exId: id }] };
+  const original = {verticalPullCommonFoundations20261023:true,bridgeFoundations20261022:true,horizontalPressFoundations20261022:true,horizontalPullFoundations20261022:true, loadedSteps20261022:true, stepContentAudit20261022: true, squatContentAudit20261022: true, exerciseExpansion20261011: true, kettlebellExpansion20261015: true, instagramExpansion20261015: true, instagramContinuation20261015: true, instagramClientNext20261016: true, instagramDeepReview20261016: true, tEx: [originalCard], tLog: [{ exId: id }] };
   const result = seedExerciseExpansion(original);
   assert.equal(result.tEx.length, 1);
   for (const [field, change] of Object.entries(patches)) {
@@ -148,7 +150,7 @@ test('the deployed expansion seed runs the audit on existing libraries without r
   }
   assert.equal(result.tLog, original.tLog);
   assert.equal(result.exerciseAudit20261013, true);
-  const deleted = seedExerciseExpansion({bridgeFoundations20261022:true,horizontalPressFoundations20261022:true,horizontalPullFoundations20261022:true, loadedSteps20261022:true, stepContentAudit20261022: true, squatContentAudit20261022: true, exerciseExpansion20261011: true, kettlebellExpansion20261015: true, instagramExpansion20261015: true, instagramContinuation20261015: true, instagramClientNext20261016: true, instagramDeepReview20261016: true, tEx: [] });
+  const deleted = seedExerciseExpansion({verticalPullCommonFoundations20261023:true,bridgeFoundations20261022:true,horizontalPressFoundations20261022:true,horizontalPullFoundations20261022:true, loadedSteps20261022:true, stepContentAudit20261022: true, squatContentAudit20261022: true, exerciseExpansion20261011: true, kettlebellExpansion20261015: true, instagramExpansion20261015: true, instagramContinuation20261015: true, instagramClientNext20261016: true, instagramDeepReview20261016: true, tEx: [] });
   assert.deepEqual(deleted.tEx, []);
   assert.equal(seedExerciseExpansion(deleted), deleted);
 });
@@ -169,7 +171,7 @@ test('a fresh expansion is already correct and future seed calls keep its data a
     const expected = {
       ...card,
       ...Object.fromEntries(Object.entries(audit.corrections[card.id] || {}).map(([field, change]) => [field, structuredClone(change.after)])),
-      taxonomy: structuredClone(audit.taxonomy[card.id]),
+      taxonomy: { ...structuredClone(audit.originalTaxonomy?.[card.id] || {}), ...structuredClone(audit.taxonomy[card.id]) },
     };
     if (expected.cz !== card.cz || expected.en !== card.en) {
       expected.taxonomy.aliases = [...new Set([...(expected.taxonomy.aliases || []), card.cz, card.en].filter(Boolean))];
