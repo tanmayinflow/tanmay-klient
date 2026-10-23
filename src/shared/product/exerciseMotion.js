@@ -1343,6 +1343,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 52820,
     "sha256": "a9ff832ac46b259df950a086f0137bd3fd120bc6ff0356f4caba9f40f1c085bd",
     "poster": "/exercise-motion/kr_mob_067-poster-e4e385e10854c06f.webp"
+  },
+  "jg_upavistha_konasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_upavistha_konasana-18f89c458e3bc48b.mp4",
+    "bytes": 46049,
+    "sha256": "18f89c458e3bc48b63cc7eef5d0c1ffdbd8f7bfdf6efc201c37cbb517f5e5417",
+    "poster": "/exercise-motion/jg_upavistha_konasana-poster-31653324e6ef4f10.webp"
+  },
+  "jg_baddha_konasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_baddha_konasana-cee5dd49392a57b9.mp4",
+    "bytes": 56669,
+    "sha256": "cee5dd49392a57b9ee2b0ff728a5a7742d4285002dcfc00335e78341e15310bb",
+    "poster": "/exercise-motion/jg_baddha_konasana-poster-d8f4ec7c182828ab.webp"
+  },
+  "jg_ardha_uttanasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_ardha_uttanasana-ae42e1f5e36ee564.mp4",
+    "bytes": 65716,
+    "sha256": "ae42e1f5e36ee564433cbbd4eba912c8392a1f1199cdfd36c7fdcc9db6522663",
+    "poster": "/exercise-motion/jg_ardha_uttanasana-poster-1c040c2adad4f3d0.webp"
+  },
+  "jg_bhujangasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_bhujangasana-031a69f3857d7835.mp4",
+    "bytes": 39232,
+    "sha256": "031a69f3857d7835cb4dd497eb02791f42a6ef5eb5c7738c4b5f82f3934fd9f3",
+    "poster": "/exercise-motion/jg_bhujangasana-poster-215f3c4663d1e089.webp"
+  },
+  "jg_ustrasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_ustrasana-68f57fa00971048c.mp4",
+    "bytes": 45263,
+    "sha256": "68f57fa00971048c57dca575f1354f75d507feeb633a31d96dddf73c03fb1515",
+    "poster": "/exercise-motion/jg_ustrasana-poster-7192179464670fdb.webp"
+  },
+  "jg_balasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_balasana-7b351fe335a39fa6.mp4",
+    "bytes": 69971,
+    "sha256": "7b351fe335a39fa66689343521b6f78dfe52a5850ced46393fbdaf7a68e61efc",
+    "poster": "/exercise-motion/jg_balasana-poster-2ee872e7d3496740.webp"
+  },
+  "jg_salabhasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_salabhasana-aea0ab3a8f328001.mp4",
+    "bytes": 45355,
+    "sha256": "aea0ab3a8f328001c334ded6ab6bbd9eedfea727b6bda183d798d206de6e73dc",
+    "poster": "/exercise-motion/jg_salabhasana-poster-9c3f29aa08251aff.webp"
+  },
+  "kr_mob_091": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_091-6d82e9101ec478f9.mp4",
+    "bytes": 49426,
+    "sha256": "6d82e9101ec478f9608411635bb19374872a1f7437bfd859b0e0380715a9ba30",
+    "poster": "/exercise-motion/kr_mob_091-poster-3cde1b7a6cf1485a.webp"
   }
 });
 
