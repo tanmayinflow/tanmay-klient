@@ -1,3 +1,4 @@
+import {LOCOMOTION_AUDIT_CONTEXT} from './data/locomotionAuditContext.js';
 import {BALANCE_AUDIT_CONTEXT} from './data/balanceAuditContext.js';
 import {MOVEMENT_AUDIT_CONTEXT} from './data/movementAuditContext.js';
 import {TRUNK_AUDIT_CONTEXT} from './data/trunkAuditContext.js';
@@ -6855,7 +6856,7 @@ const T_FIGS = {
 function TExArt({ ex, size = 120, stroke, dotColor, showDot = true, fluid = false }) {
   const { t } = useT();
   if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted} />;
-  const atlas = ex && (TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  const atlas = ex && (TV.locomotionArtworkFor(ex,LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   const fig = ex && T_FIGS[ex.id];
   if (!fig) return <TPatArt pat={(ex && ex.pat) || "drep"} size={size} stroke={stroke || t.text} dot={showDot && ex ? ex.dot : null} dotColor={dotColor || t.accent} />;
@@ -8995,8 +8996,78 @@ const TEX_ALL_ORIGINAL = [...TEX_SEED, ...TEX_SEED_2, ...TEX_SEED_3, ...TEX_SEED
 const TEX_SEED_V2 = TV.extensionFor(TEX_ALL_ORIGINAL.map((x) => x.id));
 const TEX_ALL = [...TEX_ALL_ORIGINAL, ...TEX_SEED_V2];
 // Jedna cesta k efektivnímu záznamu cviku, stejná jako na trenérské straně.
-const tvRec = TV.makeResolver(TEX_META, new Set(TEX_ALL_ORIGINAL.map((x) => x.id)));
+const tvRec = TV.makeResolver(TEX_META, new Set(TEX_ALL_ORIGINAL.map((x) => x.id)), LOCOMOTION_AUDIT_CONTEXT);
 const tvOf = (ex) => (ex && ex.id ? tvRec(ex) : null);
+// Runtime-only locomotion capabilities. Never serialize them into the document.
+function tvLocoPolicy(row, block) {
+  const p = block ? TV.locomotionPolicyForBlock(row, tMetaOf(row), LOCOMOTION_AUDIT_CONTEXT, block) : TV.locomotionPolicyFor(row, tMetaOf(row), LOCOMOTION_AUDIT_CONTEXT);
+  const v = block?.variant;
+  return v != null && v !== "" && (!Array.isArray(v) || v.some(Boolean)) ? null : p;
+}
+function tvLocoClientPolicy(st, id, block) {
+  const d = st.tvExerciseOf?.(id);
+  const p = d ? TV.locomotionDeliveredPolicy(d) : tvLocoPolicy((st.coll.tEx || []).find(x => x.id === id), block);
+  if (!p || block && (block.exId !== p.id || block.measurementType !== p.measurementType)) return null;
+  const v = block?.variant;
+  return v != null && v !== "" && (!Array.isArray(v) || v.some(Boolean)) ? null : p;
+}
+const tpReviewedAllows = (x, equip, explicitTarget) => TV.locomotionEquipmentDecision(x, tMetaOf(x), LOCOMOTION_AUDIT_CONTEXT, equip, explicitTarget) ?? (x.eq || []).every(k => equip.includes(k));
+const tvLocoSideOf = s => s?.side === "L" ? "L" : s?.side === "R" ? "R" : "unspecified";
+const tvLocoSideText = s => TV.locomotionSideLabel(s?.side, LANG !== "cs");
+const tvLocoVariant = v => v != null && v !== "" && (!Array.isArray(v) || v.some(Boolean));
+// Preserve the source block's variant in this projection only. Never infer it from an exercise ID.
+function tvLocoHistoryOf(sessions, id, opts) {
+  const out=[];
+  for(const session of sessions||[])for(const block of session.blocks||[])if(block.exId===id){
+    const variant=Object.prototype.hasOwnProperty.call(block,"variant")?{auditVariant:block.variant}:{};
+    out.push(...TV.historyOf([{...session,blocks:[block]}],id,{...opts,preserveSide:true}).map(e=>({...e,...variant})));
+  }
+  return out.sort((a,b)=>a.at-b.at);
+}
+function tvLocoNewRecords(session, all, coll, opts) {
+  const relevant=[...(all||[]).filter(s=>s.state==="done"),session].filter(s=>(s.who||"")===(session.who||""));
+  const policyFor=(id,type)=>{const p=tvLocoPolicy((coll.tEx||[]).find(x=>x.id===id));return p?.measurementType===type?p:null;};
+  const mixed=(id,type)=>relevant.some(s=>(s.blocks||[]).some(b=>b.exId===id&&b.measurementType===type&&tvLocoVariant(b.variant)));
+  const records=TV.newRecordsIn(session,all,{...opts,forExercise:(id,type)=>{const p=policyFor(id,type);return p&&!mixed(id,type)?TV.locomotionRecordOptions(p):{};}});
+  // The old summary API has no block/variant dimension. Do not issue a new mixed-variant claim.
+  return records.filter(r=>!policyFor(r.exId,r.measurementType)||!mixed(r.exId,r.measurementType)).filter((r,i,rows)=>{
+    if(!policyFor(r.exId,r.measurementType)||typeof r.rec?.k!=="string")return true;
+    return rows.findIndex(x=>x.exId===r.exId&&x.measurementType===r.measurementType&&x.side===r.side&&x.rec?.k===r.rec.k)===i;
+  });
+}
+function TvLocoSide({ set, policy, onChange, disabled }) {
+  const {t} = useT();
+  if (policy?.sideMode !== "perSide") return null;
+  const label = ["ex26_lateral_shuffle","ex26_carioca"].includes(policy.id) ? L("Směr přesunu", "Travel direction") : ["tgu","ex26_half_getup"].includes(policy.id) ? L("Paže se zátěží", "Loaded arm") : policy.id === "ig29_cross_squat_getup" ? L("Přední kotník", "Front ankle") : L("Pohybující se noha", "Moving leg");
+  return <label style={{fontFamily:FONT_BODY,fontSize:12,color:t.textSec,display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>{label}<select aria-label={label} disabled={disabled} value={tvLocoSideOf(set)} onChange={e=>onChange(e.target.value === "unspecified" ? null : e.target.value)} style={{background:"transparent",color:t.text,fontFamily:FONT_BODY,fontSize:16,minHeight:40,border:`1px solid ${t.borderSoft}`,borderRadius:8,padding:6}}><option value="unspecified">{L("Neurčeno", "Unspecified")}</option><option value="L">{L("Levá", "Left")}</option><option value="R">{L("Pravá", "Right")}</option></select></label>;
+}
+function TvLocoLegacy({ set, policy }) {
+  const {t} = useT();const rows=TV.locomotionLegacyLoad(set,policy);
+  return rows.length ? <span style={{display:"block",fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,lineHeight:1.5}}>{rows.map((r,i)=><span key={i} style={{display:"block"}}>{r.part === "planned" ? L("Uložený předpis zátěže", "Stored load prescription") : L("Uložená přídavná váha", "Stored extra load")}: {r.value == null ? L("neurčeno", "unspecified") : typeof r.value === "number" ? `${r.value} kg` : String(r.value)}</span>)}</span> : null;
+}
+function tvLocoPlanned(type, before, patch, policy) {
+  const next=TV.normalizePlanned(type,{...before,...patch});
+  if(policy?.noAddedWeight)for(const k of ["targetWeight","addedWeight"])if(Object.prototype.hasOwnProperty.call(before||{},k))next[k]=before[k];
+  return next;
+}
+function TvLocoHistory({ policy, history, type, onOpenSession }) {
+  const {t}=useT();const [side,setSide]=useState("unspecified");
+  const perSide=policy?.sideMode === "perSide";
+  const selected=perSide?history.filter(e=>tvLocoSideOf(e)===side):history;
+  const current=selected.filter(e=>!tvLocoVariant(e.auditVariant)&&(!Object.prototype.hasOwnProperty.call(e,"measurementType")||e.measurementType===type)&&(!policy.noAddedWeight||!["addedWeight","weight"].some(k=>Object.prototype.hasOwnProperty.call(e.actual||{},k)&&e.actual[k]!==0)));
+  const records=TV.recordsFor(type,current,TV.locomotionRecordOptions(policy));
+  const series=TV.seriesFor(type,current),max=Math.max(1,...series.map(e=>e.value)),min=Math.min(0,...series.map(e=>e.value));
+  const pts=series.map((p,i)=>`${series.length>1?i/(series.length-1)*320:160},${70-(p.value-min)/(max-min||1)*62}`).join(" ");
+  return <div style={{display:"flex",flexDirection:"column",gap:10,fontFamily:FONT_BODY,color:t.textSec}}>
+    {perSide?<label style={{fontSize:13}}>{L("Zobrazit záznamy", "Show records")} <select aria-label={L("Strana v historii", "History side")} value={side} onChange={e=>setSide(e.target.value)} style={{fontFamily:FONT_BODY,fontSize:16,minHeight:40,background:"transparent",color:t.text,border:`1px solid ${t.borderSoft}`,borderRadius:8}}>{["L","R","unspecified"].map(s=><option key={s} value={s}>{TV.locomotionSideLabel(s,LANG!=="cs")}</option>)}</select></label>:null}
+    {series.length>1?<svg viewBox="0 0 320 74" width="100%" height="74" role="img" aria-label={L("Vývoj stejného provedení", "Progress for the same setup")}><polyline points={pts} fill="none" stroke={t.accent} strokeWidth="1.6"/></svg>:null}
+    {Object.values(records).map(r=><div key={r.k} style={{display:"flex",gap:8,fontSize:13,flexWrap:"wrap"}}><span>{TL(TV.RECORD_LABEL[r.k])}</span><strong style={{fontWeight:500}}>{TV.fmtRecord(type,r,LANG==="cs")}</strong><span>{r.date}</span></div>)}
+    {!current.length?<div style={{fontSize:13}}>{L("Pro toto provedení zatím není srovnatelný záznam.", "No comparable record for this setup yet.")}</div>:null}
+    {selected.length?<details><summary style={{fontSize:13,cursor:"pointer"}}>{L("Všechny uložené série", "All stored sets")} · {selected.length}</summary><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:8}}>{selected.map((e,i)=><div key={`${e.sessionId}-${i}`} style={{fontSize:13}}>{onOpenSession?<button onClick={()=>onOpenSession(e.sessionId)} style={{background:"transparent",border:0,color:t.accent,textDecoration:"underline",fontFamily:FONT_BODY,cursor:"pointer"}}>{e.date||L("bez data","undated")}</button>:<span>{e.date||L("bez data","undated")}</span>} · {TV.fmtActual(e.measurementType||type,e.actual,LANG==="cs")||L("hodnota neuvedena","value unspecified")}{perSide?` · ${tvLocoSideText(e)}`:""}{tvLocoVariant(e.auditVariant)?<span style={{display:"block"}}>{L("Uložená varianta", "Stored variation")}: {Array.isArray(e.auditVariant)?e.auditVariant.join(", "):String(e.auditVariant)}</span>:null}<TvLocoLegacy set={e} policy={policy}/></div>)}</div></details>:null}
+  </div>;
+}
+
+
 
 // CRC-32 · the Main App has this for its ZIP export; here it exists for one job:
 // telling a field the audit looked at apart from a field the person has rewritten.
@@ -9792,10 +9863,13 @@ function TExDetail({ exId, onClose, onOpen }) {
   // Vlastní historie tohoto cviku, ze skutečných sérií — ne z odděleného seznamu
   // rekordů, který se s tréninkem mohl rozejít.
   const exRecords = (() => {
-    const rec = tvOf(ex);
+    const delivered = TV.LOCOMOTION_AUDIT_ENTRIES[ex.id] ? st.tvExerciseOf?.(ex.id) : null;
+    const rec = delivered ? tvClientRec(st,ex.id) : tvOf(ex);
     if (!rec) return { kinds: [], recs: {}, mt: "REPS_ONLY" };
-    const hist = TV.historyOf(st.tvSessions ? st.tvSessions() : [], ex.id, {});
-    const recs = TV.recordsFor(rec.measurementType, hist, { allowEstimatedMax: rec.measurementType === "WEIGHT_REPS" ? TV.libraryAuditedAllowsEstimatedMax(ex) : undefined });
+    const policy=tvLocoClientPolicy(st,ex.id);
+    const hist = tvLocoHistoryOf(st.tvSessions ? st.tvSessions() : [], ex.id, {preserveSide:true});
+    if(policy?.measurementType===rec.measurementType)return {kinds:[],recs:{},mt:rec.measurementType,policy,hist};
+    const recs = TV.recordsFor(rec.measurementType, hist, { allowEstimatedMax: rec.measurementType === "WEIGHT_REPS" ? (delivered ? policy?.allowEstimatedMax : TV.libraryAuditedAllowsEstimatedMax(ex)) : undefined });
     return { kinds: TV.recordKindsFor(rec.measurementType).filter((k) => recs[k]), recs, mt: rec.measurementType };
   })();
   const load = tLoadOf(ex);
@@ -9873,12 +9947,12 @@ function TExDetail({ exId, onClose, onOpen }) {
       <TChain ex={ex} all={all} onOpen={onOpen} />
       <TExShelfPanel ex={ex} all={all} onOpen={onOpen} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-        {(TV.balanceEquipmentLabels(ex, LANG) ?? TV.movementEquipmentLabels(ex, LANG) ?? TV.trunkEquipmentLabels(ex, LANG) ?? TV.carryEquipmentLabels(ex, LANG) ?? TV.verticalAuditEquipmentLabels(ex, LANG) ?? TV.auditBatchEquipmentLabels(ex, LANG) ?? TV.hingeEquipmentLabels(ex, LANG) ?? TV.stepEquipmentLabels(ex, LANG))?.map((label) => <Tag key={label} label={label} color="green" wrap />) ?? (ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
+        {(TV.locomotionEquipmentLabels(ex, LANG) ?? TV.balanceEquipmentLabels(ex, LANG) ?? TV.movementEquipmentLabels(ex, LANG) ?? TV.trunkEquipmentLabels(ex, LANG) ?? TV.carryEquipmentLabels(ex, LANG) ?? TV.verticalAuditEquipmentLabels(ex, LANG) ?? TV.auditBatchEquipmentLabels(ex, LANG) ?? TV.hingeEquipmentLabels(ex, LANG) ?? TV.stepEquipmentLabels(ex, LANG))?.map((label) => <Tag key={label} label={label} color="green" wrap />) ?? (ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
         <Tag label={ex.mode === "sec" ? L("čas · sekundy", "time · seconds") : L("opakování", "reps")} color="gray" />
         {load !== "none" && <Tag label={load === "ext" ? L("váha je cvik", "the weight is the lift") : L("lze přidat váhu", "takes added weight")} color="brown" />}
         <Tag label={L(T_POP(ex.pop || 2).cz, T_POP(ex.pop || 2).en)} color={(ex.pop || 2) === 3 ? "orange" : "brown"} />
       </div>
-      {exRecords.kinds.length ? (
+      {exRecords.policy ? <TvLocoHistory key={ex.id} policy={exRecords.policy} history={exRecords.hist} type={exRecords.mt}/> : exRecords.kinds.length ? (
         <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 11, color: t.sage, marginBottom: 6 }}>{L("Osobní rekord", "Personal best")}</div>
           {exRecords.kinds.map((k) => (
@@ -11308,7 +11382,7 @@ function tpRank(exs, o) {
     // joint hurts; that is the whole point of it.
     if (o.injuries && tpVerdict(x, o.injuries).v === "hold") return false;
     // every piece of equipment it needs must actually be there
-    if (!(x.eq || []).every((k) => o.equip.includes(k))) return false;
+    if (!tpReviewedAllows(x, o.equip, !!o.target)) return false;
     return true;
   });
   if (!ok.length) return [];
@@ -11357,7 +11431,7 @@ function tpChainRung(target, byId, o) {
       !(tCOf(x) >= 4 && o.level < 2) &&
       !((o.exclude || []).includes(x.id)) &&
       !(o.injuries && o.injuries.length && tpVerdict(x, o.injuries).v === "hold") &&
-      (x.eq || []).every((k) => o.equip.includes(k));
+      tpReviewedAllows(x, o.equip, true);
     if (pass) return x;
     x = x.ez ? byId[x.ez] : null;
   }
@@ -13055,7 +13129,7 @@ function tvClientRec(st, exId) {
       defaultRestSec: d.defaultRestSec == null ? 90 : d.defaultRestSec,
       focus: d.focus || null, startPosition: d.startPosition || null,
       execution: d.execution || null, watchFor: d.watchFor || null, progression: d.progression || null,
-      equipment: d.eq || [], unilateral: !!d.unilateral, art: d.art || null,
+      equipment: d.eq || [], unilateral: !!d.unilateral, sideMode: d.sideMode, locomotionPolicy: TV.locomotionDeliveredPolicy(d), art: d.art || null,
     };
   }
   const row = (st.coll.tEx || []).find((x) => x.id === exId);
@@ -13116,13 +13190,14 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   const { t } = useT();
   const st = useStore();
   const rec = tvClientRec(st, block.exId);
-  const atlas = TV.balanceArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.verticalAuditArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.auditBatchArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.stepArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.lungeArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.EXPANSION_ART[block.exId] || UNIFIED_ART[block.exId] || SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
+  const policy=tvLocoClientPolicy(st,block.exId,block);
+  const atlas = TV.locomotionDeliveredArtworkFor(st.tvExerciseOf(block.exId)) || TV.locomotionArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.verticalAuditArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.auditBatchArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.stepArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.lungeArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.EXPANSION_ART[block.exId] || UNIFIED_ART[block.exId] || SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
   const m = TV.measurementOf(block.measurementType);
   const [extraLoad, setExtraLoad] = useState((block.sets || []).some(s => s.actual?.addedWeight > 0));
-  const fields = m.fields.concat(m.secondary && extraLoad ? [m.secondary] : []);
+  const fields = m.fields.concat(m.secondary && extraLoad && !policy?.noAddedWeight ? [m.secondary] : []);
   const [open, setOpen] = useState(false);
   const complete = (sid) => onSession((s) => {
-    const done = TV.completeSet(s, block.id, sid, Date.now());
+    const done = TV.locomotionCompleteSet(s, block.id, sid, Date.now(), policy);
     if (onRest) onRest(TV.restAfterSet(done, block.id, sid));
     return done;
   });
@@ -13144,7 +13219,8 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
       {prev && prev.sets && prev.sets.length ? (
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontFamily: FONT_TAG, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted }}>{L("Naposledy", "Last time")}</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.sand }}>{prev.sets.slice(0, 5).map((x) => tvFmtA(block.measurementType, x.actual)).filter(Boolean).join("  ·  ")}</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.sand }}>{prev.sets.slice(0, 5).map((x) => (policy?.sideMode === "perSide" ? tvLocoSideText(x)+" · " : "")+tvFmtA(block.measurementType, x.actual)).filter(Boolean).join("  ·  ")}</span>
+          {TV.previousVariantLabel(prev,tvCz()) ? <span style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,overflowWrap:"anywhere"}}>{TV.previousVariantLabel(prev,tvCz())}</span> : null}
         </div>
       ) : null}
 
@@ -13158,9 +13234,9 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
               {tvFmtP(block.measurementType, sset.planned) || "—"}
             </span>
             <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {fields.map((f) => (
+              <TvLocoSide set={sset} policy={policy} onChange={side=>onSession(x=>TV.locomotionSetSide(x,block.id,sset.id,side,policy))}/><TvLocoLegacy set={sset} policy={policy}/>{fields.map((f) => (
                 <TvField key={f} field={f} value={sset.actual[f] == null ? null : sset.actual[f]}
-                  onChange={(v) => onSession((x) => TV.setActual(x, block.id, sset.id, { [f]: v }))} />
+                  onChange={(v) => onSession((x) => TV.locomotionSetActual(x, block.id, sset.id, { [f]: v }, policy))} />
               ))}
             </span>
             <span style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -13180,7 +13256,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
         ))}
       </div>
       {block.rirEnabled?<p style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,margin:0}}>{L("Rezerva = kolik dalších čistých opakování ještě zvládneš. Cílovou rezervu drž podle předpisu, obvykle 2.", "Reserve = how many more clean repetitions you could do. Follow the prescribed reserve, usually 2.")}</p>:null}
-      {m.secondary?<label style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted}}><input type="checkbox" checked={extraLoad} onChange={e=>setExtraLoad(e.target.checked)}/>{L("Cvičím s přidanou zátěží", "I am adding extra load")}</label>:null}
+      {m.secondary && !policy?.noAddedWeight?<label style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted}}><input type="checkbox" checked={extraLoad} onChange={e=>setExtraLoad(e.target.checked)}/>{L("Cvičím s přidanou zátěží", "I am adding extra load")}</label>:null}
 
       {rec && (rec.execution || rec.watchFor) ? (
         <>
@@ -13226,7 +13302,7 @@ function TvClientRest({ sec, onDone, onSkip }) {
 function TvClientGuideArt({ ex, size = 120, fluid = false, ...rest }) {
   const { t } = useT();
   if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted}/>;
-  const atlas = ex && (TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  const atlas = ex && (TV.locomotionDeliveredArtworkFor(ex) || TV.locomotionArtworkFor(ex,LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   if (ex?.art) return <TmPostava poza={ex.art} size={size} stroke={rest.stroke || t.text}/>;
   return ex && T_FIGS[ex.id] ? <TExArt ex={ex} size={size} fluid={fluid} {...rest}/> : null;
@@ -13260,7 +13336,8 @@ const { TvPlanOverview: TvClientPlanOverview, TvGuide: TvClientGuidedSession } =
   hexA, tvQuiet, FamilyIcon, TrainingSourceText, TExArt: TvClientGuideArt, TvField,
   tmCompile, useTmEngine, useWakeLock, tmAudio: { unlock: () => tmAudio.unlock() }, isCzech: tvCz,
   exerciseRow: (st, id) => st.tvExerciseOf(id) || (st.coll.tEx || []).find(ex => ex.id === id),
-  exerciseRecord: tvClientRec,
+  exerciseRecord: (st, id) => tvClientRec(st, id),
+  exercisePolicy: (st,id,block) => tvLocoClientPolicy(st,id,block), TvLocoSide, TvLocoLegacy,
   blockName: (block, st) => tvName(tvClientRec(st, block.exId)) || TL(block.name),
 });
 
@@ -13461,7 +13538,8 @@ function TvClientHistory({ onRun }) {
     return [...set.entries()].map(([v, label]) => ({ v, label }));
   }, [sessions]);
   const rec = exId ? tvClientRec(st, exId) : null;
-  const hist = exId && rec ? TV.historyOf(sessions, exId, {}) : [];
+  const policy=exId?tvLocoClientPolicy(st,exId):null;
+  const hist = exId && rec ? tvLocoHistoryOf(sessions, exId, {preserveSide:true}) : [];
   const recordSource = exId ? (st.tvExerciseOf(exId) || (st.coll.tEx || []).find(row => row.id === exId)) : null;
   const records = rec ? TV.recordsFor(rec.measurementType, hist, { allowEstimatedMax: rec.measurementType === "WEIGHT_REPS" ? TV.libraryAuditedAllowsEstimatedMax(recordSource) : undefined }) : {};
   const sum = TV.summary(sessions, { from: shiftISO(todayISO(), -27), to: todayISO() });
@@ -13480,7 +13558,7 @@ function TvClientHistory({ onRun }) {
       {opts.length ? (
         <div>
           <Select value={exId} onChange={setExId} options={[{ v: "", label: L("Vyber cvik", "Choose an exercise") }, ...opts]} />
-          {rec && hist.length ? (
+          {rec && policy?.measurementType===rec.measurementType ? <TvLocoHistory key={exId} policy={policy} history={hist} type={rec.measurementType} onOpenSession={onRun}/> : rec && hist.length ? (
             <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 5 }}>
               {TV.recordKindsFor(rec.measurementType).map((k) => (records[k] ? (
                 <div key={k} style={{ display: "flex", gap: 10, alignItems: "baseline", fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec }}>
@@ -13524,7 +13602,7 @@ function TvClientHistory({ onRun }) {
 function PageTrenink() {
   const { t } = useT();
   const st = useStore();
-  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, [st.coll?.exerciseAudit20261013, st.coll?.bridgeContentAudit20261022, st.coll?.bridgeFoundations20261022, st.coll?.horizontalPressAudit20261022, st.coll?.horizontalPressFoundations20261022, st.coll?.horizontalPullAudit20261022, st.coll?.horizontalPullFoundations20261022, st.coll?.verticalPushAudit20261023, st.coll?.verticalPushClientFoundations20261023, st.coll?.verticalPullAudit20261023, st.coll?.verticalPullCommonFoundations20261023, st.coll?.verticalPullClientFoundations20261023, st.coll?.carryAudit20261023, st.coll?.trunkAudit20261023, st.coll?.movementAudit20261023, st.coll?.balanceAudit20261023]);
+  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, [st.coll?.exerciseAudit20261013, st.coll?.bridgeContentAudit20261022, st.coll?.bridgeFoundations20261022, st.coll?.horizontalPressAudit20261022, st.coll?.horizontalPressFoundations20261022, st.coll?.horizontalPullAudit20261022, st.coll?.horizontalPullFoundations20261022, st.coll?.verticalPushAudit20261023, st.coll?.verticalPushClientFoundations20261023, st.coll?.verticalPullAudit20261023, st.coll?.verticalPullCommonFoundations20261023, st.coll?.verticalPullClientFoundations20261023, st.coll?.carryAudit20261023, st.coll?.trunkAudit20261023, st.coll?.movementAudit20261023, st.coll?.balanceAudit20261023, st.coll?.locomotionAudit20261024]);
   const [tab, setTab] = useState("dnes");
   const [daysResetKey, setDaysResetKey] = useState(0);
   const [planStatus,setPlanStatus] = useState({state:""});
@@ -16355,7 +16433,7 @@ export default function App() {
     return TV.patchTraining(c, { sched: { ...cur, [planId]: forPlan } });
   });
   const seedTrainingColl = () => persistColl((c) => {
-    if (!c.tSeeded) return tvApply(TV.seedExerciseExpansion({ ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] }, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT, auditMetadata:TEX_META }));
+    if (!c.tSeeded) return tvApply(TV.seedExerciseExpansion({ ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] }, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT, auditMetadata:TEX_META }));
     let next = c;
     const seedById = Object.fromEntries(TEX_ALL.map((x) => [x.id, x]));
     if (!next.tSeedV2) {
@@ -16656,7 +16734,7 @@ export default function App() {
       const fixed = tExAuditFix(next.tEx || []);
       next = { ...next, exAudit: EX_AUDIT_VER, exAuditN: fixed.touched, tEx: fixed.rows };
     }
-    return tvApply(TV.seedExerciseExpansion(next, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT, auditMetadata:TEX_META }));
+    return tvApply(TV.seedExerciseExpansion(next, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT, auditMetadata:TEX_META }));
   });
   // ---- the timer · settings, presets, history ----
   // The English voice choice is independent of the interface language.

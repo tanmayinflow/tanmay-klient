@@ -53,6 +53,8 @@ export function evaluateBlock(block, opts) {
   if (!working.length) return null;
   if (working.length !== prescribed.length) return mk("hold", block, ["Část předepsaných sérií chybí. Z neúplného záznamu zátěž nezvyšujeme.", "Some prescribed sets are missing. An incomplete record cannot justify increasing load."], null);
 
+  if (o.manualProgression) return mk("practice", block, ["Dávku uprav podle kontroly pohybu, zvoleného provedení a podmínek. Z těchto čísel automaticky další dávku nenavrhujeme.","Adjust the dose to movement control, the chosen setup and conditions. These numbers alone do not generate the next dose."], null);
+
   // A coordination skill's numbers swing from day to day. That is what
   // practice looks like; it is not a plateau and it is not fatigue.
   if (o.skillClass === "coordination") {

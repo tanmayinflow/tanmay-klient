@@ -144,10 +144,21 @@ export function lastUseOf(sessions, exId, opts) {
       const done = setsOf(b).filter((s) => s.completed && isWorkingSet(s));
       if (!done.length) continue;
       const at = ses.endedAt || ses.startedAt || 0;
-      if (!best || at > best.at) best = { at, date: ses.date, sessionId: ses.id, measurementType: b.measurementType, sets: done };
+      if (!best || at > best.at) best = { at, date: ses.date, sessionId: ses.id, measurementType: b.measurementType, sets: done, ...(Object.prototype.hasOwnProperty.call(b, "variant") ? { variant: b.variant } : {}) };
     }
   }
   return best;
+}
+
+// A neutral provenance label, not an assertion that two setups are comparable.
+export function previousVariantLabel(previous, czech = true) {
+  if (!previous || !Object.prototype.hasOwnProperty.call(previous, "variant")) return "";
+  const value = previous.variant;
+  if (value == null || value === "" || Array.isArray(value) && !value.some(Boolean)) return "";
+  const clean = text => typeof text === "string" ? text.trim() : "";
+  const name = Array.isArray(value) ? clean(value[czech ? 0 : 1]) || value.map(clean).find(Boolean) || "" : clean(value);
+  const label = czech ? "Uložená varianta" : "Stored variation";
+  return name ? label + ": " + name : label;
 }
 
 export const lastUseInTemplate = (sessions, exId, templateId, opts) =>

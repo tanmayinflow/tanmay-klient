@@ -7,6 +7,22 @@ export const EXERCISE_EQUIPMENT_GROUPS = vocabulary([
   ['accessories','Další pomůcky','Other equipment'], ['unspecified','K upřesnění','Needs clarification'],
 ]);
 export const EXERCISE_EQUIPMENT = vocabulary([
+["bicycle","Jízdní kolo","Bicycle","accessories"],
+["cycling_route","Trasa vhodná pro jízdu na kole","Suitable cycling route","body"],
+["air_bike","Air bike s pohyblivými madly","Air bike with moving handles","resistance"],
+["swimming_venue","Prostor určený k plavání","Swimming venue","body"],
+["climbing_venue","Lezecké pracoviště nebo vhodný terén","Climbing venue or suitable terrain","body"],
+["elliptical_trainer","Eliptický trenažér","Elliptical trainer","resistance"],
+["training_sled_push","Sáně s pevnými tlačnými madly","Sled with fixed push handles","resistance"],
+["training_sled_pull","Sáně s tažným úchytem","Sled with tow attachment","resistance"],
+["sled_hand_tow_set","Tažný popruh s madly a spojkami","Tow strap with hand grips and connectors","accessories"],
+["sled_body_tow_set","Tažný pás či úvaz s popruhem a spojkami","Towing belt or harness with line and connectors","accessories"],
+["sled_lane","Volná dráha s povrchem vhodným pro sáně","Clear lane with a suitable sled surface","body"],
+["low_soft_cones","Sada nízkých měkkých kuželů","Set of low yielding cones","accessories"],
+["four_training_cones","Čtyři kužely pro vyznačení trasy","Four cones for marking a course","accessories"],
+["agility_ladder","Plochý koordinační žebřík","Flat agility ladder","accessories"],
+["low_yielding_hurdles","Sada nízkých povolujících překážek","Set of low yielding hurdles","accessories"],
+["exercise_mat","Neklouzavá cvičební podložka","Non-slip exercise mat","accessories"],
 ["bosu_balance_trainer","Balanční polokoule BOSU","BOSU balance trainer","supports"],
 ["abdominal_crunch_machine","Stroj na zkracovačky vsedě","Seated abdominal crunch machine","resistance"],
 ["yoga_block","Jógová kostka","Yoga block","supports"],
@@ -211,7 +227,7 @@ export function exerciseEquipment(input, inputMeta = {}) {
   }
   requirements = requirements.filter((group,index,all) => all.findIndex(other => [...other].sort().join('|') === [...group].sort().join('|')) === index);
   // Navigation may group machines; ownership must never imply a different machine.
-  const machineTypes=['stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
+  const machineTypes=['air_bike','elliptical_trainer','stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
   const reviewedNavigationGroups={"abdominal_crunch_machine":["stroj"],"thoracic_extension_chair":["chair"],"captains_chair":["stroj"],"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
   const items = unique(equipmentCapabilities(requirements.flat()).flatMap(id=>[id,...(machineTypes.includes(id)?['stroj']:[]),...(reviewedNavigationGroups[id]||[])]));
   return { items, requirements, unresolved:items.filter(unresolvedId), evidence, legacy };

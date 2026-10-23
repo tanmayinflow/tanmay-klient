@@ -9,6 +9,8 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { locomotionEquipmentDecision } from "../../src/training/catalogLocomotionAuditPolicy.js";
+import { LOCOMOTION_AUDIT_CONTEXT } from "../../src/data/locomotionAuditContext.js";
 // Rozšíření V2 je skutečný modul, takže se importuje, ne vyřezává ze zdroje.
 import { TRAINING_V2_META, extensionFor } from "../../src/training/catalogV2.js";
 
@@ -154,7 +156,7 @@ const ENGINE_DECLS = [
   "tExNameCz", "tExNameEn", "tExSearchText",
   "TP_GOALS", "tpMergeGoals", "TP_GOAL",
   "TP_INJURIES", "TP_INJURY", "tpVerdict", "tpEase", "TP_VOL", "TP_SPLITS", "TP_KIND_PATS",
-  "tpRank", "tpPick", "tpChainRung", "tpWhyLost", "tpMinutes", "tpGenerate",
+  "tpReviewedAllows", "tpRank", "tpPick", "tpChainRung", "tpWhyLost", "tpMinutes", "tpGenerate",
 ];
 
 // `const NAME = …;` or `function NAME(…) {…}`, matched by brackets so a nested
@@ -195,7 +197,7 @@ export function loadEngine() {
   const { src } = loadLibrary();
   const parts = ENGINE_DECLS.map((n) => sliceDecl(src, n));
   const sandbox = { console, TextEncoder, JSON, Math, Date, Object, Array, Number, String, Set, Map,
-    TV: { TRAINING_V2_META, extensionFor } };
+    LOCOMOTION_AUDIT_CONTEXT, TV: { locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
   vm.createContext(sandbox);
   // `const` at the top level of a script is lexically scoped, not a property of the
   // context — so the script hands the names out itself on the last line.

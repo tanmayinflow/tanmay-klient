@@ -7,7 +7,7 @@ export function createTrainingGuideUI(deps) {
   const { useT, useStore, L, TL, TV, FONT_BODY, FONT_TAG, FONT_DISPLAY,
     hexA, tvQuiet, FamilyIcon, TrainingSourceText, TExArt, TvField,
     tmCompile, useTmEngine, useWakeLock, tmAudio,
-    exerciseRow, exerciseRecord, blockName, isCzech } = deps;
+    exerciseRow, exerciseRecord, exercisePolicy, TvLocoSide, TvLocoLegacy, blockName, isCzech } = deps;
   const tvCz = isCzech;
   const tvFmtA = (mt, a) => TV.fmtActual(mt, a, tvCz());
   const tvFmtP = (mt, p) => TV.fmtPlanned(mt, p, tvCz());
@@ -259,11 +259,13 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
   const block = step ? step.block : null;
   const set = step ? step.set : null;
   const m = block ? TV.measurementOf(block.measurementType) : null;
-  const fields = m ? m.fields.concat(m.secondary ? [m.secondary] : []) : [];
+  const policy = block && exercisePolicy ? exercisePolicy(st,block.exId,block) : null;
+  const fields = m ? m.fields.concat(m.secondary && !policy?.noAddedWeight ? [m.secondary] : []) : [];
   const rec = block ? exerciseRecord(st, block.exId) : null;
   const row = block ? exerciseRow(st, block.exId) : null;
   const prev = block && prevFor ? prevFor(block.exId) : null;
-  const prevSet = prev && prev.sets ? prev.sets[Math.min(step.setIndex, prev.sets.length - 1)] : null;
+  const sideOf = x => x?.side === "L" ? "L" : x?.side === "R" ? "R" : "unspecified";
+  const prevSet = policy?.sideMode === "perSide" ? (prev?.sets||[]).filter(x=>sideOf(x)===sideOf(set))[(block?.sets||[]).slice(0,step.setIndex).filter(x=>sideOf(x)===sideOf(set)).length] || null : prev && prev.sets ? prev.sets[Math.min(step.setIndex, prev.sets.length - 1)] : null;
   const seconds = block ? setSeconds(block, set) : 0;
   const anyTimed = React.useMemo(() => steps.some((x) => setSeconds(x.block, x.set) > 0), [steps]);
   const setsInBlock = block ? (block.sets || []).length : 0;
@@ -273,7 +275,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
 
   const patchActual = (patch, rir) => onSession((s) => {
     let next = s;
-    if (patch) next = TV.setActual(next, block.id, set.id, patch);
+    if (patch) next = TV.locomotionSetActual(next, block.id, set.id, patch, policy);
     if (rir !== undefined) next = TV.setRir(next, block.id, set.id, rir);
     return next;
   });
@@ -285,7 +287,17 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
     const nextStep = steps[pos + 1] || null;
     // Stejný krok dvakrát: jednou hned, aby průvodce věděl, jaká pauza přijde,
     // a jednou jako aktualizace sbírky (ta může proběhnout až v dalším renderu).
-    const applyComplete = (s) => completeGuidedSet(s, block.id, set.id, { previousActual: prevSet?.actual, extra, now: Date.now() });
+    const applyComplete = (s) => {
+      const original=TV.findSet(s,block.id,set.id);
+      const skipPrevious=policy?.sideMode === "perSide" || policy?.noAddedWeight;
+      const next=completeGuidedSet(s,block.id,set.id,{previousActual:skipPrevious?{}:prevSet?.actual,extra,now:Date.now()});
+      if(!policy?.noAddedWeight||!original)return next;
+      return {...next,blocks:next.blocks.map(b=>b.id!==block.id?b:{...b,sets:b.sets.map(x=>{
+        if(x.id!==set.id)return x;const actual={...x.actual};
+        for(const k of ["weight","addedWeight"]){delete actual[k];if(Object.prototype.hasOwnProperty.call(original.actual||{},k))actual[k]=original.actual[k];}
+        return {...x,actual};
+      })})};
+    };
     const restInfo = TV.restAfterSet(applyComplete(session), block.id, set.id);
     onSession(applyComplete);
     setClock(null);
@@ -390,6 +402,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
               {prevSet ? tvFmtA(block.measurementType, prevSet.actual) : "—"}
             </div>
             {prev && prev.date ? <div style={{ fontFamily: FONT_TAG, fontSize: 10, color: t.textMuted }}>{prev.date}</div> : null}
+            {TV.previousVariantLabel(prev,tvCz()) ? <div style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,marginTop:4,overflowWrap:"anywhere"}}>{TV.previousVariantLabel(prev,tvCz())}</div> : null}
           </div>
         </div>
 
@@ -407,6 +420,8 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
         ) : null}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+          {TvLocoSide?<TvLocoSide set={set} policy={policy} onChange={side=>onSession(s=>TV.locomotionSetSide(s,block.id,set.id,side,policy))}/>:null}
+          {TvLocoLegacy?<TvLocoLegacy set={set} policy={policy}/>:null}
           {fields.map((f) => (
             <TvField key={f} field={f} value={set.actual[f] == null ? null : set.actual[f]} onChange={(v) => patchActual({ [f]: v })} />
           ))}
@@ -420,7 +435,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
           ) : null}
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>
-          {L("Prázdné pole = podle plánu, bez plánu jako minule. Přepiš jen to, co bylo jinak.", "Empty field = as planned, or as last time where there is no plan. Change only what was different.")}
+          {policy?.sideMode === "perSide" || policy?.noAddedWeight ? L("Prázdné pole = podle plánu. Minulé hodnoty se u tohoto provedení automaticky nekopírují.", "Empty field = as planned. Previous values are not copied automatically for this setup.") : L("Prázdné pole = podle plánu, bez plánu jako minule. Přepiš jen to, co bylo jinak.", "Empty field = as planned, or as last time where there is no plan. Change only what was different.")}
         </div>
       </div>
 

@@ -45,3 +45,7 @@ export {trunkEquipmentLabels,trunkArtworkFor,auditedAllowsEstimatedMax} from "./
 export {movementEquipmentLabels,movementArtworkFor,libraryAuditedAllowsEstimatedMax} from "./catalogMovementAuditView.js";
 
 export {balanceArtworkFor,balanceEquipmentLabels} from "./catalogBalanceAuditView.js";
+
+export {locomotionArtworkFor,locomotionDeliveredArtworkFor,locomotionEquipmentLabels} from "./catalogLocomotionAuditView.js";
+
+export * from "./catalogLocomotionAuditPolicy.js";

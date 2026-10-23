@@ -39,6 +39,7 @@ export function historyOf(sessions, exId, opts) {
           at: ses.endedAt || ses.startedAt || 0,
           measurementType: b.measurementType,
           type: s.type,
+          ...(o.preserveSide && Object.prototype.hasOwnProperty.call(s, "side") ? {side:s.side} : {}),
           actual: s.actual || {},
           planned: s.planned || {},
           rir: s.rir,
@@ -53,14 +54,16 @@ export function historyOf(sessions, exId, opts) {
 }
 
 // Every entry of one session, grouped per exercise. Used by the summary.
-export function sessionEntries(session) {
+export function sessionEntries(session, opts) {
+  const options=opts||{};
   const out = [];
   for (const b of blocksOf(session)) {
     const done = setsOf(b).filter((s) => s.completed && isWorkingSet(s));
     if (!done.length) continue;
+    const per=options.forExercise?options.forExercise(b.exId,b.measurementType):options;
     out.push({
       blockId: b.id, exId: b.exId, name: b.name, measurementType: b.measurementType,
-      sets: done.map((s) => ({ actual: s.actual || {}, planned: s.planned || {}, rir: s.rir, type: s.type, submax: !!(s.planned && s.planned.targetRir >= 2) })),
+      sets: done.map((s) => ({ actual: s.actual || {}, planned: s.planned || {}, rir: s.rir, type: s.type, ...(per?.preserveSide && Object.prototype.hasOwnProperty.call(s,"side")?{side:s.side}:{}), submax: !!(s.planned && s.planned.targetRir >= 2) })),
     });
   }
   return out;
@@ -111,7 +114,11 @@ export const RECORD_LABEL = {
 export function recordsFor(measurementType, history, opts) {
   const o = opts || {};
   const m = measurementOf(measurementType);
-  const kinds = recordKindsFor(measurementType).filter(kind => kind !== "e1rm" || o.allowEstimatedMax !== false);
+  // Opt-in audited projections only. Raw history stays intact and readable in the UI.
+  if (o.preserveSide || o.allowAddedWeightRecord === false) history=history.filter(e=>!Object.prototype.hasOwnProperty.call(e,"measurementType") || e.measurementType===m.k);
+  if (m.k === "BODYWEIGHT_REPS" && o.allowAddedWeightRecord === false) history=history.filter(e=>!["addedWeight","weight"].some(key=>Object.prototype.hasOwnProperty.call(e.actual||{},key) && e.actual[key]!==0));
+  if (Object.prototype.hasOwnProperty.call(o,"sideFilter")) history=history.filter(e=>(e.side==="L"?"L":e.side==="R"?"R":"unspecified")===o.sideFilter);
+  const kinds = recordKindsFor(measurementType).filter(kind => (kind !== "e1rm" || o.allowEstimatedMax !== false) && (kind !== "bestAdded" || o.allowAddedWeightRecord !== false));
   const out = {};
   const put = (k, value, entry, extra) => {
     if (value == null || !isFinite(value)) return;
@@ -239,18 +246,22 @@ export function newRecordsIn(session, allSessions, opts) {
   const out = [];
   const before = (allSessions || []).filter((s) => s.id !== session.id);
   for (const entry of sessionEntries(session)) {
-    const prior = historyOf(before, entry.exId, { who: session.who || "" });
-    const priorRecs = recordsFor(entry.measurementType, prior, o);
-    const withToday = historyOf([...before, { ...session, state: "done", endedAt: session.endedAt || Date.now() }], entry.exId, { who: session.who || "" });
-    const nowRecs = recordsFor(entry.measurementType, withToday, o);
-    for (const k of Object.keys(nowRecs)) {
-      const now = nowRecs[k], was = priorRecs[k];
-      if (now.sessionId !== session.id) continue;
-      // A first-ever entry is not a personal best, it is a first entry.
-      // Saying "record" to somebody's first push-up is flattery.
-      if (!was) { out.push({ exId: entry.exId, name: entry.name, measurementType: entry.measurementType, k, rec: now, was: null, first: true }); continue; }
-      const improved = k === "lowestAssistance" || k === "fastestPace" ? now.value < was.value : now.value > was.value;
-      if (improved) out.push({ exId: entry.exId, name: entry.name, measurementType: entry.measurementType, k, rec: now, was, first: false });
+    const per={...o,...(o.forExercise?o.forExercise(entry.exId,entry.measurementType):{})};
+    const historyOptions={who:session.who||"",preserveSide:!!per.preserveSide};
+    const prior = historyOf(before, entry.exId, historyOptions);
+    const withToday=historyOf([...before,{...session,state:"done",endedAt:session.endedAt||Date.now()}],entry.exId,historyOptions);
+    const sides=per.preserveSide?["L","R","unspecified"]:[null];
+    for(const side of sides){
+      const recordOptions={...per,...(side===null?{}:{sideFilter:side})};
+      const priorRecs=recordsFor(entry.measurementType,prior,recordOptions);
+      const nowRecs=recordsFor(entry.measurementType,withToday,recordOptions);
+      for(const k of Object.keys(nowRecs)){
+        const now=nowRecs[k],was=priorRecs[k];if(now.sessionId!==session.id)continue;
+        const row={exId:entry.exId,name:entry.name,measurementType:entry.measurementType,k,rec:now,was:was||null,first:!was,...(side===null?{}:{side})};
+        if(!was){out.push(row);continue;}
+        const improved=k==="lowestAssistance"||k==="fastestPace"?now.value<was.value:now.value>was.value;
+        if(improved)out.push(row);
+      }
     }
   }
   // One line per exercise is enough on a summary screen: the leading

@@ -1,3 +1,4 @@
+import {locomotionDeliveryStamp} from './catalogLocomotionAuditPolicy.js';
 import { separateWarmupTemplates } from './separateWarmups.js';
 import { publicMilestones } from './delivery.js';
 // ======================================================================
@@ -185,7 +186,7 @@ export function clientBundle(plans, templates, resolve, opts) {
   }
   const outExercises = [];
   for (const rec of usedExercises.values()) {
-    outExercises.push({
+    const delivered={
       id: rec.id, cz: rec.displayCz, en: rec.displayEn,
       pat: (rec.movementPatterns || [])[0] || "", eq: rec.equipment,
       measurementType: rec.measurementType, defaultRestSec: rec.defaultRestSec,
@@ -195,7 +196,9 @@ export function clientBundle(plans, templates, resolve, opts) {
       // travels when the coach says so.
       progression: o.pro ? nativeText(rec.progression) : null,
       art: (o.artFor && o.artFor(rec.id)) || null,
-    });
+    };
+    const stamp=locomotionDeliveryStamp(rec,delivered);
+    outExercises.push(stamp?{...delivered,locomotionAudit:stamp}:delivered);
   }
   return { at: o.now || Date.now(), v: 2, plans: outPlans, templates: outTemplates, exercises: outExercises };
 }
@@ -216,6 +219,7 @@ export function fulfilmentFrom(sessions, opts) {
         startedAt: s.startedAt, endedAt: s.endedAt, effort: s.effort, note: s.note, painJoints: s.painJoints || [],
         blocks: (s.blocks || []).map((b) => ({
           id: b.id, exId: b.exId, measurementType: b.measurementType,
+          ...(Object.prototype.hasOwnProperty.call(b,"variant") ? {variant:b.variant} : {}),
           techniqueFlagged: !!b.techniqueFlagged,
           sets: (b.sets || []).map((x) => ({ id: x.id, type: x.type, planned: x.planned, actual: x.actual, completed: x.completed, completedAt: x.completedAt, rir: x.rir, note: x.note, side: x.side })),
         })),

@@ -1,3 +1,4 @@
+import {resolvedLocomotionPolicy} from './catalogLocomotionAuditPolicy.js';
 // ======================================================================
 // WARM-UP CALCULATOR · optional, and not one rigid model
 // ----------------------------------------------------------------------
@@ -36,6 +37,7 @@ const RAMP_REPS = [8, 6, 5, 3, 2, 1];
 // load — a dumbbell press has no empty bar to do.
 export function warmupFor(opts) {
   const o = opts || {};
+  if (resolvedLocomotionPolicy(o.exercise)?.manualWarmup) return [];
   const policy = o.policy || "ramp";
   if (policy === "none") return [];
 

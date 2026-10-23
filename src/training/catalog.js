@@ -1,3 +1,4 @@
+import {attachLocomotionPolicy} from './catalogLocomotionAuditPolicy.js';
 // ======================================================================
 // CATALOG · one resolver, one effective exercise record
 // ----------------------------------------------------------------------
@@ -62,6 +63,8 @@ export function measurementTypeOf(row, meta) {
 // override that. The number matters most where it is longest: a heavy
 // compound recovers on the clock, a mobility drill does not.
 export function defaultRestOf(row, meta) {
+  // Preserve an explicit personal rest for the two reviewed sprint identities.
+  if (["sprint", "act_sprint"].includes(row?.id) && row.defaultRestSec != null) return Number(row.defaultRestSec) || 0;
   const o = OVERLAY[row && row.id];
   if (o && o.rest != null) return o.rest;
   if (row && row.defaultRestSec != null) return Number(row.defaultRestSec) || 0;
@@ -256,12 +259,12 @@ export function searchTextOf(row, meta) {
 // ---- the effective record --------------------------------------------
 // Everything above, resolved once. Call it, keep the result, do not
 // re-derive field by field in a render.
-export function resolveExercise(row, meta, originalIds) {
+export function resolveExercise(row, meta, originalIds, locomotionAuditContext) {
   if (!row) return null;
   const m = meta || {};
   const measurementType = measurementTypeOf(row, m);
   const role = productRoleOf(row, m);
-  return {
+  return attachLocomotionPolicy({
     id: row.id,
     displayCz: displayCzOf(row, m),
     displayEn: displayEnOf(row, m),
@@ -306,18 +309,18 @@ export function resolveExercise(row, meta, originalIds) {
     easierId: row.ez || null,
     harderId: row.hd || null,
     ...(reviewedRopeClimbPolicy(row,m) || {}),
-  };
+  },row,meta,locomotionAuditContext);
 }
 
 // A cache keyed by id, because a picker resolves five hundred rows on
 // every keystroke otherwise.
-export function makeResolver(metaTable, originalIds) {
+export function makeResolver(metaTable, originalIds, locomotionAuditContext) {
   const cache = new Map();
   return (row) => {
     if (!row || !row.id) return null;
     const hit = cache.get(row.id);
     if (hit && hit.row === row) return hit.rec;
-    const rec = resolveExercise(row, metaTable ? metaTable[row.id] : null, originalIds);
+    const rec = resolveExercise(row, metaTable ? metaTable[row.id] : null, originalIds, locomotionAuditContext);
     cache.set(row.id, { row, rec });
     return rec;
   };
