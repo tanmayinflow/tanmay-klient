@@ -1168,6 +1168,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 37670,
     "sha256": "cf55c43b55a6ffd3e9121bee7c9670e267dabaa6523f59980ae19591155f8e68",
     "poster": "/exercise-motion/flutter-poster-f0cd09dcb84096ed.webp"
+  },
+  "revplank": {
+    "oneSide": false,
+    "src": "/exercise-motion/revplank-5c26d3f586aac563.mp4",
+    "bytes": 45932,
+    "sha256": "5c26d3f586aac563475e51926e5613da1bc47bbf33427f02c2f782404b0eabb0",
+    "poster": "/exercise-motion/revplank-poster-25344dee1f923130.webp"
+  },
+  "an_armswing": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_armswing-33ea7d69c9300d7f.mp4",
+    "bytes": 46449,
+    "sha256": "33ea7d69c9300d7ff4bd27e4c3a6c06d06cd41e43b64f5be44f119848da5bada",
+    "poster": "/exercise-motion/an_armswing-poster-52f5bf06247311f7.webp"
+  },
+  "archhold": {
+    "oneSide": false,
+    "src": "/exercise-motion/archhold-c95de727aead6590.mp4",
+    "bytes": 34802,
+    "sha256": "c95de727aead6590407d4510d79671985788ab7df4eab3901a5eefee6688bdbe",
+    "poster": "/exercise-motion/archhold-poster-1c8cb3aad1827dd9.webp"
+  },
+  "hollow": {
+    "oneSide": false,
+    "src": "/exercise-motion/hollow-84388d27d9d40380.mp4",
+    "bytes": 20029,
+    "sha256": "84388d27d9d4038096577fb9a35e8fe76ff93f58dcc62be4d72e0a488457a0e9",
+    "poster": "/exercise-motion/hollow-poster-5eac3a8bafbdc7f0.webp"
+  },
+  "sideplank": {
+    "oneSide": true,
+    "src": "/exercise-motion/sideplank-1620763a1aa59b84.mp4",
+    "bytes": 45570,
+    "sha256": "1620763a1aa59b8440f21f8e8678e3a4934bc75a6b2fb78037bc17238a133df2",
+    "poster": "/exercise-motion/sideplank-poster-d4c35e5263ffccbb.webp"
+  },
+  "jg_hasta_uttanasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_hasta_uttanasana-2be4c37bb4f66c64.mp4",
+    "bytes": 38142,
+    "sha256": "2be4c37bb4f66c6428486756cf4964716ed9066d68367a16aaf033eafde82930",
+    "poster": "/exercise-motion/jg_hasta_uttanasana-poster-0990d9b00adf8ba6.webp"
+  },
+  "mbd_seated_cat": {
+    "oneSide": false,
+    "src": "/exercise-motion/mbd_seated_cat-03acb4f4f6c9c2ef.mp4",
+    "bytes": 51025,
+    "sha256": "03acb4f4f6c9c2ef9207be22aa8f7c00d6cfa17d7e269ff73a7b76618cbd8511",
+    "poster": "/exercise-motion/mbd_seated_cat-poster-111daa72479d4844.webp"
+  },
+  "kr_mob_003": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_003-15a737859b7d5b38.mp4",
+    "bytes": 48686,
+    "sha256": "15a737859b7d5b385e7770676bf890bea8e889be4b11a053e61ec6a33e178488",
+    "poster": "/exercise-motion/kr_mob_003-poster-15d6152891fbd0cd.webp"
   }
 });
 
