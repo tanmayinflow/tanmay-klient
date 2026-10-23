@@ -7,6 +7,7 @@ export const EXERCISE_EQUIPMENT_GROUPS = vocabulary([
   ['accessories','Další pomůcky','Other equipment'], ['unspecified','K upřesnění','Needs clarification'],
 ]);
 export const EXERCISE_EQUIPMENT = vocabulary([
+["bosu_balance_trainer","Balanční polokoule BOSU","BOSU balance trainer","supports"],
 ["abdominal_crunch_machine","Stroj na zkracovačky vsedě","Seated abdominal crunch machine","resistance"],
 ["yoga_block","Jógová kostka","Yoga block","supports"],
 ["support_cushion","Pevný opěrný polštář","Firm support cushion","supports"],
