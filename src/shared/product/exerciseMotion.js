@@ -1224,6 +1224,69 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 48686,
     "sha256": "15a737859b7d5b385e7770676bf890bea8e889be4b11a053e61ec6a33e178488",
     "poster": "/exercise-motion/kr_mob_003-poster-15d6152891fbd0cd.webp"
+  },
+  "kr_mob_002": {
+    "oneSide": true,
+    "src": "/exercise-motion/kr_mob_002-1e320ef34c9a8c43.mp4",
+    "bytes": 43239,
+    "sha256": "1e320ef34c9a8c4323e115c5787f495ff4f69d519d79e4b99b28ffc94c37c7b6",
+    "poster": "/exercise-motion/kr_mob_002-poster-218220188e3972f5.webp"
+  },
+  "kr_mob_004": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_004-0bd35ab14517ef20.mp4",
+    "bytes": 44847,
+    "sha256": "0bd35ab14517ef20576efbd2509068210c368c0b6a6f0365deaa183ff9cb3802",
+    "poster": "/exercise-motion/kr_mob_004-poster-3e1de54b52628ff9.webp"
+  },
+  "kr_mob_005": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_005-43b2b9df2a2d930e.mp4",
+    "bytes": 47755,
+    "sha256": "43b2b9df2a2d930edd770ccee1877432e74f3dd32bc2e1038409cf00dadc0b64",
+    "poster": "/exercise-motion/kr_mob_005-poster-5b01d6eee9280bd9.webp"
+  },
+  "kr_mob_054": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_054-d3881652575cf582.mp4",
+    "bytes": 42036,
+    "sha256": "d3881652575cf58240b8b2aaa1cc0d54aa2b019c4984f81d0ee647e274942cca",
+    "poster": "/exercise-motion/kr_mob_054-poster-c17ca4ab18bdc053.webp"
+  },
+  "kr_mob_066": {
+    "oneSide": true,
+    "src": "/exercise-motion/kr_mob_066-43b50e537aabffc3.mp4",
+    "bytes": 46539,
+    "sha256": "43b50e537aabffc373d37188739ebeb8b4132a73df368cbec71f0c5b91b32d77",
+    "poster": "/exercise-motion/kr_mob_066-poster-d1f7c1a616a701a9.webp"
+  },
+  "kr_mob_068": {
+    "oneSide": true,
+    "src": "/exercise-motion/kr_mob_068-0f356af73922e986.mp4",
+    "bytes": 44439,
+    "sha256": "0f356af73922e98626ee8e376bf1f9d856d81d1a50a662c143a11113d071069e",
+    "poster": "/exercise-motion/kr_mob_068-poster-ebc851e62d6e5fe4.webp"
+  },
+  "kr_mob_006": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_006-6a2df14e2ce5ab76.mp4",
+    "bytes": 47701,
+    "sha256": "6a2df14e2ce5ab76f58ef0cfe110e76b7bdc02c0c8d6bb651f150241e1a6f79f",
+    "poster": "/exercise-motion/kr_mob_006-poster-38f0f28ad0235f16.webp"
+  },
+  "kr_mob_055": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_055-69a19eccde242fc0.mp4",
+    "bytes": 49021,
+    "sha256": "69a19eccde242fc0a2f4fd6bbaea25f9eb55ebdf6f5fb22e17d181695d5a098e",
+    "poster": "/exercise-motion/kr_mob_055-poster-c23c7ebdd818500d.webp"
+  },
+  "kr_mob_060": {
+    "oneSide": false,
+    "src": "/exercise-motion/kr_mob_060-6aae29952ea1d42a.mp4",
+    "bytes": 47028,
+    "sha256": "6aae29952ea1d42ab3fe0e707e837eba56532a4c4c9f6bf544b49d1feb03658b",
+    "poster": "/exercise-motion/kr_mob_060-poster-6c65c0e4b8688596.webp"
   }
 });
 
