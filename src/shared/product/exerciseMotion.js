@@ -1399,6 +1399,69 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 49426,
     "sha256": "6d82e9101ec478f9608411635bb19374872a1f7437bfd859b0e0380715a9ba30",
     "poster": "/exercise-motion/kr_mob_091-poster-3cde1b7a6cf1485a.webp"
+  },
+  "jg_utkatasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_utkatasana-777443ae02711029.mp4",
+    "bytes": 42610,
+    "sha256": "777443ae027110295da1cc6e12f469f29282450a2aff0158d8e9483fdefc8e18",
+    "poster": "/exercise-motion/jg_utkatasana-poster-54ef97a4aa171ea3.webp"
+  },
+  "jg_virabhadrasana1": {
+    "oneSide": true,
+    "src": "/exercise-motion/jg_virabhadrasana1-8a1375e3f63a585c.mp4",
+    "bytes": 43904,
+    "sha256": "8a1375e3f63a585c215c494178449498d4af363e91e9f748af2093c605f29572",
+    "poster": "/exercise-motion/jg_virabhadrasana1-poster-51c3d89d9fb3a696.webp"
+  },
+  "jg_setu_bandha_sarvangasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_setu_bandha_sarvangasana-983a5d061df515cf.mp4",
+    "bytes": 35642,
+    "sha256": "983a5d061df515cfa349056d364f9c7796a666b7d0f286fa811ca867b87102ea",
+    "poster": "/exercise-motion/jg_setu_bandha_sarvangasana-poster-5bc52afaf512bb89.webp"
+  },
+  "jg_purvottanasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_purvottanasana-85fb7e396c7b1c8e.mp4",
+    "bytes": 45269,
+    "sha256": "85fb7e396c7b1c8e814d5a448fc05e193141fda21d32cdc9c8bc8502ccf83f1e",
+    "poster": "/exercise-motion/jg_purvottanasana-poster-149dc8e442837daa.webp"
+  },
+  "jg_pranamasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_pranamasana-209e6cbf83d6bec7.mp4",
+    "bytes": 42850,
+    "sha256": "209e6cbf83d6bec7272875c7b134ea85ac8c92c1d520120b474c0bf2c0ff4060",
+    "poster": "/exercise-motion/jg_pranamasana-poster-4d152940a2f0a6f6.webp"
+  },
+  "jg_vrksasana": {
+    "oneSide": true,
+    "src": "/exercise-motion/jg_vrksasana-84b69cd4c5aa8324.mp4",
+    "bytes": 40793,
+    "sha256": "84b69cd4c5aa832445f4bb977c2b1481cdeb1e27984d87036af201ec9a17a5fe",
+    "poster": "/exercise-motion/jg_vrksasana-poster-a0f27ae73bba2b61.webp"
+  },
+  "jg_paripurna_navasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_paripurna_navasana-d54c7d0779ffa4d6.mp4",
+    "bytes": 60444,
+    "sha256": "d54c7d0779ffa4d6f60a4ef123800b3bc3e387192b69a224cfc4c08a2cd469e8",
+    "poster": "/exercise-motion/jg_paripurna_navasana-poster-21b09244b429e9d0.webp"
+  },
+  "activehang": {
+    "oneSide": false,
+    "src": "/exercise-motion/activehang-7c3c6a4bb6e03664.mp4",
+    "bytes": 41450,
+    "sha256": "7c3c6a4bb6e03664b4ade2791084c3042b633bf657c48ae72e5be8c81f1f9730",
+    "poster": "/exercise-motion/activehang-poster-2cb52abbd5acb90b.webp"
+  },
+  "deadlift": {
+    "oneSide": false,
+    "src": "/exercise-motion/deadlift-2a60030d0ad0510b.mp4",
+    "bytes": 63924,
+    "sha256": "2a60030d0ad0510b6ac653a04bc7958afdb49edf9e654c9329a646c0c15f9145",
+    "poster": "/exercise-motion/deadlift-poster-8c16e323fd2c016f.webp"
   }
 });
 
