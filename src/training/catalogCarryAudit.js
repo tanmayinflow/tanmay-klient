@@ -17,7 +17,10 @@ export function applyCarryAudit(collection){
   if(!row||!proposal.guards[row.id])continue;
   const metricChanged=Object.entries(proposal.recordingGuards[row.id]).some(([k,v])=>Object.hasOwn(row,k)!==v.present||!equal(row[k],v.value));
   const setupChanged=Object.entries(proposal.originalGuards[row.id]).some(([k,v])=>!equal(row[k],v));
-  const customTaxonomy=['movements','positions','supports','equipmentRequirements'].some(k=>row.taxonomy?.[k]!==undefined&&!equal(row.taxonomy[k],proposal.originalTaxonomy[row.id]?.[k])&&!equal(row.taxonomy[k],proposal.taxonomy[row.id]?.[k]));
+  const taxonomy=row.taxonomy,oldTaxonomy=proposal.originalTaxonomy[row.id]||{},nextTaxonomy=proposal.taxonomy[row.id]||{};
+  const customTaxonomy=(Object.hasOwn(row,'taxonomy')&&(!taxonomy||typeof taxonomy!=='object'||Array.isArray(taxonomy)))
+   ||(Object.hasOwn(taxonomy||{},'aliases')&&!Array.isArray(taxonomy.aliases))
+   ||Object.keys(nextTaxonomy).filter(k=>k!=='aliases').some(k=>Object.hasOwn(taxonomy||{},k)&&!(Object.hasOwn(oldTaxonomy,k)&&equal(taxonomy[k],oldTaxonomy[k]))&&!equal(taxonomy[k],nextTaxonomy[k]));
   if(metricChanged||setupChanged||customTaxonomy){blocked.add(row.id);delete corrections[row.id];}
  }
  const corrected=applyCatalogCorrections(collection,corrections,auditFlag);let changed=false;
@@ -30,7 +33,7 @@ export function applyCarryAudit(collection){
    if(key==='aliases'){taxonomy.aliases=[...new Set([...(taxonomy.aliases||[]),...value])];continue;}
    if(taxonomy[key]===undefined||equal(taxonomy[key],proposal.originalTaxonomy[row.id]?.[key]))taxonomy[key]=clone(value);
   }
-  if(old&&(old.cz!==row.cz||old.en!==row.en))taxonomy.aliases=[...new Set([...(taxonomy.aliases||[]),old.cz,old.en].filter(Boolean))];
+  if(old&&(old.cz!==row.cz||old.en!==row.en))taxonomy.aliases=[...new Set([...(taxonomy.aliases||[]),...[old.cz,old.en].filter(Boolean)])];
   if(equal(taxonomy,row.taxonomy))return row;changed=true;return {...row,taxonomy};
  });
  return changed?{...corrected,tEx:next}:corrected;

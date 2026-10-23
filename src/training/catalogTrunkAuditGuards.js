@@ -25,7 +25,9 @@ export function trunkRowEligible(row,entry,meta){
  // Exact raw fields plus the inspected metadata inputs protect the same
  // recording meaning without introducing a catalog/seed import cycle.
  if(meta&&Object.keys(meta).length&&['r','addable'].some(k=>!sameTrunkField(meta,entry.recordingMeta,k)))return false;
- if(semanticFacets.some(k=>row.taxonomy?.[k]!==undefined&&!sameTrunkValue(row.taxonomy[k],old.taxonomy?.[k])&&!sameTrunkValue(row.taxonomy[k],entry.taxonomy[k])))return false;
+ if(Object.hasOwn(row,'taxonomy')&&(!row.taxonomy||typeof row.taxonomy!=='object'||Array.isArray(row.taxonomy)))return false;
+ if(Object.hasOwn(row.taxonomy||{},'aliases')&&!Array.isArray(row.taxonomy.aliases))return false;
+ if([...new Set([...semanticFacets,...Object.keys(entry.taxonomy)])].filter(k=>k!=='aliases').some(k=>Object.hasOwn(row.taxonomy||{},k)&&!(Object.hasOwn(old.taxonomy||{},k)&&sameTrunkValue(row.taxonomy[k],old.taxonomy[k]))&&!sameTrunkValue(row.taxonomy[k],entry.taxonomy[k])))return false;
  return true;
 }
 export function trunkMetadataEligible(row,entry,context,metadata){

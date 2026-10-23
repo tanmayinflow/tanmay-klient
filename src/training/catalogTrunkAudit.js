@@ -28,7 +28,7 @@ export function applyTrunkAudit(collection,{trunkAuditContext,auditMetadata}={})
    if(k==='aliases'){taxonomy.aliases=[...new Set([...(taxonomy.aliases||[]),...value])];continue;}
    if(taxonomy[k]===undefined||sameTrunkValue(taxonomy[k],entry.before.taxonomy?.[k]))taxonomy[k]=copy(value);
   }
-  if(row.cz!==next.cz||row.en!==next.en)taxonomy.aliases=[...new Set([...(taxonomy.aliases||[]),row.cz,row.en].filter(Boolean))];
+  if(row.cz!==next.cz||row.en!==next.en)taxonomy.aliases=[...new Set([...(taxonomy.aliases||[]),...[row.cz,row.en].filter(Boolean)])];
   if(!sameTrunkValue(taxonomy,next.taxonomy))next={...next,taxonomy};
   if(next!==row)changed=true;
   return next;

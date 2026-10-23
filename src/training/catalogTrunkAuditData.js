@@ -5816,6 +5816,9 @@ export const TRUNK_AUDIT_ENTRIES={
       {
         "present": true,
         "value": "TEX_SEED_9"
+      },
+      {
+        "present": false
       }
     ],
     "display": null,
@@ -8116,6 +8119,9 @@ export const TRUNK_AUDIT_ENTRIES={
       {
         "present": true,
         "value": "TEX_SEED_4B"
+      },
+      {
+        "present": false
       }
     ],
     "display": null,

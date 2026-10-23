@@ -50,3 +50,15 @@ test('heel-supported seated lift displays strength without changing its preparat
  assert.equal(resolveMuscleMap({...r,mp:['ham']}).mode,'mobility');
  assert.equal(resolveMuscleMap({...r,source:{...r.source,own:'preserve'}}).mode,'mobility');
 });
+
+// App stores the raw core seeds without loadLibrary's diagnostic seed label.
+test('raw App Pallof and wheel defaults suppress only the derived strength estimate',()=>{
+ for(const id of ['abwheel','pallof']){
+  const raw=row(id);delete raw.seed;const r=run(raw);
+  assert.equal(Object.hasOwn(r,'seed'),false,id);assert.equal(auditedAllowsEstimatedMax(r),false,id);
+  const history=[{at:'2026-10-23T00:00:00Z',actual:{weight:12,reps:10}}],saved=clone(history),base=recordsFor('WEIGHT_REPS',history),result=recordsFor('WEIGHT_REPS',history,{allowEstimatedMax:auditedAllowsEstimatedMax(r)});
+  assert.ok(base.e1rm,id);delete base.e1rm;assert.deepEqual(result,base,id);assert.deepEqual(history,saved,id);
+  assert.equal(auditedAllowsEstimatedMax({...r,auditNote:'Personal note'}),false,id);
+  for(const patch of [{seed:undefined},{seed:null},{seed:'custom'},{exe:['Own','Own']},{loadMode:'assist'},{mp:['ham']},{source:{own:true}}])assert.equal(auditedAllowsEstimatedMax({...r,...patch}),undefined,id);
+ }
+});
