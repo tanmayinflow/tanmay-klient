@@ -1518,6 +1518,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 43341,
     "sha256": "b2a04f90cce4ca013336f9cc26a5e954cdbb70941502a5a28e8d7ceaffae5bff",
     "poster": "/exercise-motion/slrdl-poster-275e35d60de15a17.webp"
+  },
+  "gm_scap_retract_quad": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_scap_retract_quad-e094baada813dea7.mp4",
+    "bytes": 30345,
+    "sha256": "e094baada813dea734139d15c7f234f71a333852bc6b35d3903d7a980d60e7b3",
+    "poster": "/exercise-motion/gm_scap_retract_quad-poster-7f1dabda210bce73.webp"
+  },
+  "skater": {
+    "oneSide": false,
+    "src": "/exercise-motion/skater-d536cdd15bc277e3.mp4",
+    "bytes": 35004,
+    "sha256": "d536cdd15bc277e3a9de415f95c5244ae4d668728240c2bc7c3fae416a2710e6",
+    "poster": "/exercise-motion/skater-poster-053758fc44491024.webp"
+  },
+  "arnoldpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/arnoldpress-6e569daef6d118a4.mp4",
+    "bytes": 39509,
+    "sha256": "6e569daef6d118a4035815358782215834f367591a3f23209857ffc26eef80ef",
+    "poster": "/exercise-motion/arnoldpress-poster-4d8b644f7a303efb.webp"
+  },
+  "hlr": {
+    "oneSide": false,
+    "src": "/exercise-motion/hlr-1c727ea781bb5911.mp4",
+    "bytes": 35097,
+    "sha256": "1c727ea781bb5911f2beaa1f3b72cd85b2c183cf55bf3a6dce8a98362238c0e0",
+    "poster": "/exercise-motion/hlr-poster-24a74f32b671c5cd.webp"
+  },
+  "ringpush": {
+    "oneSide": false,
+    "src": "/exercise-motion/ringpush-38ddd0c890d64d5c.mp4",
+    "bytes": 51003,
+    "sha256": "38ddd0c890d64d5c016aa151edbf35d5796fbc5ae52810d2cd89317e6e21a65f",
+    "poster": "/exercise-motion/ringpush-poster-14d437986c6646d2.webp"
+  },
+  "ig27_seated_kneetuck": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig27_seated_kneetuck-e08bcfd29781d869.mp4",
+    "bytes": 48418,
+    "sha256": "e08bcfd29781d8694a073f6d5f821f6f1a0aeddf66abcdca5a3eac286ece8404",
+    "poster": "/exercise-motion/ig27_seated_kneetuck-poster-07b1bda669338066.webp"
+  },
+  "faq_cobra_flow": {
+    "oneSide": false,
+    "src": "/exercise-motion/faq_cobra_flow-749b1760ebb6bbda.mp4",
+    "bytes": 35296,
+    "sha256": "749b1760ebb6bbdac354a01fcab4c9e04034bbf0bfd54a6b67f81630af54ec55",
+    "poster": "/exercise-motion/faq_cobra_flow-poster-26fbf227e21fa7d9.webp"
+  },
+  "ex26_kb_windmill": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_kb_windmill-f1c25fc5bfd82182.mp4",
+    "bytes": 21025,
+    "sha256": "f1c25fc5bfd8218233f6e876859535b845818f5249a0ae0360ca35ac7df24789",
+    "poster": "/exercise-motion/ex26_kb_windmill-poster-e1d7879394537935.webp"
   }
 });
 
