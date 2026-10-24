@@ -7,7 +7,8 @@ import { EXERCISE_MOTION, exerciseMotionFor, claimMotionPlayer, releaseMotionPla
 
 test('motion resolves exact reviewed ids, never a related or custom exercise', () => {
   assert.equal(exerciseMotionFor({ id: 'drep' }), EXERCISE_MOTION.drep);
-  for (const row of [null, {}, { id: 'jumpsquat', pat: 'drep' }, { id: 'custom', cz: 'Dřep' }, 'toString', '__proto__']) {
+  assert.equal(exerciseMotionFor({ id: 'jumpsquat' }), EXERCISE_MOTION.jumpsquat);
+  for (const row of [null, {}, { id: 'jumpsquat-unreviewed', pat: 'drep' }, { id: 'custom', cz: 'Dřep' }, 'toString', '__proto__']) {
     assert.equal(exerciseMotionFor(row), null);
   }
 });
