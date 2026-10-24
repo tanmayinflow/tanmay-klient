@@ -1,3 +1,6 @@
+import {createAccessoryFocus,hasElbowHandAccessoryFocus} from '../../src/training/elbowHandAccessoryFocus.js';
+import {elbowHandEquipmentDecision,elbowHandViewPolicyFor,elbowHandPolicyFor} from '../../src/training/catalogElbowHandAudit.js';
+import {ELBOW_HAND_AUDIT_CONTEXT} from '../../src/data/elbowHandAuditContext.js';
 import {shoulderEquipmentDecision} from '../../src/training/catalogShoulderAudit.js';
 import {SHOULDER_AUDIT_CONTEXT} from '../../src/data/shoulderAuditContext.js';
 import {hipEquipmentDecision} from '../../src/training/catalogHipAudit.js';
@@ -162,7 +165,7 @@ const ENGINE_DECLS = [
   "tExNameCz", "tExNameEn", "tExSearchText",
   "TP_GOALS", "tpMergeGoals", "TP_GOAL",
   "TP_INJURIES", "TP_INJURY", "tpVerdict", "tpEase", "TP_VOL", "TP_SPLITS", "TP_KIND_PATS",
-  "tpReviewedAllows", "tpRank", "tpPick", "tpChainRung", "tpWhyLost", "tpMinutes", "tpGenerate",
+  "tpReviewedAllows", "tpAccessoryFocus", "tpRank", "tpPick", "tpChainRung", "tpWhyLost", "tpMinutes", "tpGenerate",
 ];
 
 // `const NAME = …;` or `function NAME(…) {…}`, matched by brackets so a nested
@@ -202,8 +205,8 @@ export function loadEngine() {
   if (engine) return engine;
   const { src } = loadLibrary();
   const parts = ENGINE_DECLS.map((n) => sliceDecl(src, n));
-  const sandbox = { console, TextEncoder, JSON, Math, Date, Object, Array, Number, String, Set, Map,
-    SHOULDER_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { shoulderEquipmentDecision, hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
+  const sandbox = { createAccessoryFocus,hasElbowHandAccessoryFocus,console, TextEncoder, JSON, Math, Date, Object, Array, Number, String, Set, Map,
+    ELBOW_HAND_AUDIT_CONTEXT, SHOULDER_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { elbowHandEquipmentDecision, elbowHandViewPolicyFor, elbowHandPolicyFor, shoulderEquipmentDecision, hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
   vm.createContext(sandbox);
   // `const` at the top level of a script is lexically scoped, not a property of the
   // context — so the script hands the names out itself on the last line.

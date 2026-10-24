@@ -7,6 +7,10 @@ export const EXERCISE_EQUIPMENT_GROUPS = vocabulary([
   ['accessories','Další pomůcky','Other equipment'], ['unspecified','K upřesnění','Needs clarification'],
 ]);
 export const EXERCISE_EQUIPMENT = vocabulary([
+["preacher_bench","Scottova lavice s oporou nadloktí","Preacher bench with upper-arm pad","supports"],
+["grip_plate","Kotouč s bezpečnými madly pro obě ruce","Plate with secure two-hand grips","free_weights"],
+["long_resistance_band","Dlouhá odporová guma pro úchop ve stoji","Long resistance band for standing hand-held work","resistance"],
+["triceps_extension_machine","Stroj na extenzi loktů s oporou nadloktí","Triceps-extension machine with upper-arm support","resistance"],
 ["light_dowel","Lehká dlouhá tyč pro pohyb paží","Light long dowel for arm mobility","accessories"],
 ["long_light_band","Dlouhá lehká guma pro pohyb paží","Long light band for arm mobility","resistance"],
 ["stable_table","Stabilní stůl pro oporu a posun rukou","Stable table for hand support and sliding","supports"],
@@ -258,7 +262,7 @@ export function exerciseEquipment(input, inputMeta = {}) {
   requirements = requirements.filter((group,index,all) => all.findIndex(other => [...other].sort().join('|') === [...group].sort().join('|')) === index);
   // Navigation may group machines; ownership must never imply a different machine.
   const machineTypes=["lateral_raise_machine","rear_delt_machine","chest_fly_machine","kneeling_glute_press_machine","hip_abduction_machine","hip_adduction_machine","seated_calf_raise_machine","standing_calf_raise_machine","calf_compatible_leg_press","seated_leg_curl_machine","lying_leg_curl_machine","standing_leg_curl_machine","knee_extension_machine",'air_bike','elliptical_trainer','stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
-  const reviewedNavigationGroups={"light_dowel":["tyc"],"long_light_band":["guma"],"broad_upper_arm_band":["guma"],"long_foam_roller":["valec"],"long_prone_bench":["flat_bench","lavice"],"stable_table":["fixed_support"],"door_frame":["zed"],"upright_grip_support":["fixed_support"],"low_fixed_handhold":["fixed_support"],"low_cable":["kladka"],"abdominal_crunch_machine":["stroj"],"thoracic_extension_chair":["chair"],"captains_chair":["stroj"],"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
+  const reviewedNavigationGroups={"preacher_bench":["lavice"],"grip_plate":["plate"],"long_resistance_band":["guma"],"triceps_extension_machine":["stroj"],"light_dowel":["tyc"],"long_light_band":["guma"],"broad_upper_arm_band":["guma"],"long_foam_roller":["valec"],"long_prone_bench":["flat_bench","lavice"],"stable_table":["fixed_support"],"door_frame":["zed"],"upright_grip_support":["fixed_support"],"low_fixed_handhold":["fixed_support"],"low_cable":["kladka"],"abdominal_crunch_machine":["stroj"],"thoracic_extension_chair":["chair"],"captains_chair":["stroj"],"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
   const items = unique(equipmentCapabilities(requirements.flat()).flatMap(id=>[id,...(machineTypes.includes(id)?['stroj']:[]),...(reviewedNavigationGroups[id]||[])]));
   return { items, requirements, unresolved:items.filter(unresolvedId), evidence, legacy };
 }
@@ -273,6 +277,7 @@ export function matchesAvailableEquipment(profile, availableIds = []) {
 const reviewedCapabilities = {"adjustable_cable":["kladka"],"adjustable_cable_pair":["adjustable_cable","kladka"],"cable_handle_pair":["cable_handle"],"landmine_pivot":[],"landmine_row_handle":[],"cable_row_handle":[]};
 const verticalAuditCapabilities={"long_parallel_bars":["bradla"],"pullup_band":["guma"],"lat_pulldown_bar":["cable_bar"],"towel_pair":["towel"]};
 function equipmentCapabilities(ids) {
+  ids=array(ids).flatMap(id=>[id,...({"grip_plate":["plate"],"long_resistance_band":["guma"],"triceps_extension_machine":["stroj"]}[id]||[])]);
   ids=array(ids).flatMap(id=>[id,...({"long_foam_roller":["valec"],"long_prone_bench":["flat_bench"]}[id]||[])]);
   ids=array(ids).flatMap(id=>[id,...({"thoracic_extension_chair":["chair"]}[id]||[])]);
   ids=array(ids).flatMap(id=>[id,...({"round_plate_pair":["plate"],"sliding_towel_pair":["towel"],"short_loop_band":["guma"]}[id]||[])]);

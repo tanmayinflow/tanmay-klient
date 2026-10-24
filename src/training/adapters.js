@@ -1,3 +1,4 @@
+import {elbowHandDeliveryStamp,resolvedElbowHandDeliveryPolicy,elbowHandBlockCompatible} from './catalogElbowHandAudit.js';
 import {shoulderDeliveryStamp,resolvedShoulderDeliveryPolicy,shoulderBlockCompatible} from './catalogShoulderAudit.js';
 import {hipDeliveryStamp,resolvedHipDeliveryPolicy,hipBlockCompatible} from './catalogHipAudit.js';
 import {lowerLegDeliveryStamp} from './catalogLowerLegAudit.js';
@@ -153,6 +154,7 @@ export function clientBundle(plans, templates, resolve, opts) {
   const usedExercises = new Map();
   const hipIncompatibleExercises = new Set();
   const shoulderIncompatibleExercises = new Set();
+  const elbowHandIncompatibleExercises = new Set();
   const outPlans = [];
   for (const p of plans || []) {
     outPlans.push({
@@ -178,6 +180,8 @@ export function clientBundle(plans, templates, resolve, opts) {
       blocks: (t.blocks || []).map((b) => {
         const rec = resolve ? resolve(b.exId) : null;
         if (rec) usedExercises.set(b.exId, rec);
+        const elbowHandPolicy=resolvedElbowHandDeliveryPolicy(rec);
+        if(elbowHandPolicy&&!elbowHandBlockCompatible(elbowHandPolicy,b))elbowHandIncompatibleExercises.add(b.exId);
         const shoulderPolicy=resolvedShoulderDeliveryPolicy(rec);
         if(shoulderPolicy&&!shoulderBlockCompatible(shoulderPolicy,b))shoulderIncompatibleExercises.add(b.exId);
         const hipPolicy=resolvedHipDeliveryPolicy(rec);
@@ -208,9 +212,10 @@ export function clientBundle(plans, templates, resolve, opts) {
     };
     const stamp=locomotionDeliveryStamp(rec,delivered);
     const lowerStamp=lowerLegDeliveryStamp(rec,delivered);
+    const elbowHandStamp=elbowHandIncompatibleExercises.has(rec.id)?undefined:elbowHandDeliveryStamp(rec,delivered);
     const shoulderStamp=shoulderIncompatibleExercises.has(rec.id)?undefined:shoulderDeliveryStamp(rec,delivered);
     const hipStamp=hipIncompatibleExercises.has(rec.id)?undefined:hipDeliveryStamp(rec,delivered);
-    outExercises.push({...delivered,...(stamp?{locomotionAudit:stamp}:{}),...(lowerStamp?{lowerLegAudit:lowerStamp}:{}),...(hipStamp?{hipAudit:hipStamp}:{}),...(shoulderStamp?{shoulderAudit:shoulderStamp}:{})});
+    outExercises.push({...delivered,...(stamp?{locomotionAudit:stamp}:{}),...(lowerStamp?{lowerLegAudit:lowerStamp}:{}),...(hipStamp?{hipAudit:hipStamp}:{}),...(shoulderStamp?{shoulderAudit:shoulderStamp}:{}),...(elbowHandStamp?{elbowHandAudit:elbowHandStamp}:{})});
   }
   return { at: o.now || Date.now(), v: 2, plans: outPlans, templates: outTemplates, exercises: outExercises };
 }
