@@ -1630,6 +1630,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 18776,
     "sha256": "84828bed14080da11fc45da88276eddac8056100443170ef1b47a96176ab7019",
     "poster": "/exercise-motion/an_splitsquat-poster-6d351316d481f053.webp"
+  },
+  "wallpush": {
+    "oneSide": false,
+    "src": "/exercise-motion/wallpush-0eb58def8bcec33a.mp4",
+    "bytes": 17460,
+    "sha256": "0eb58def8bcec33ac5c93455de374a4df20e466f944296df45bea7a70341e82a",
+    "poster": "/exercise-motion/wallpush-poster-40800cb65fefe926.webp"
+  },
+  "calfraise": {
+    "oneSide": false,
+    "src": "/exercise-motion/calfraise-6c29242df51c627a.mp4",
+    "bytes": 15855,
+    "sha256": "6c29242df51c627aead7cc010ca07165a78ad751a109381ebb2e23e329532566",
+    "poster": "/exercise-motion/calfraise-poster-a3b74498b6e9a8b5.webp"
+  },
+  "t2b": {
+    "oneSide": false,
+    "src": "/exercise-motion/t2b-a454cb584f79ecf0.mp4",
+    "bytes": 32424,
+    "sha256": "a454cb584f79ecf039edd5b2f6d86276d9f0e061773517bd5b079f6cec81a1bf",
+    "poster": "/exercise-motion/t2b-poster-0e3fe99b9f97caf3.webp"
+  },
+  "an_hyperext": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_hyperext-5f0c661a7b90f9d6.mp4",
+    "bytes": 25418,
+    "sha256": "5f0c661a7b90f9d660da37f87f7fb7d6fe2fa094c0b7f2cc46ed281e94e8c41b",
+    "poster": "/exercise-motion/an_hyperext-poster-34b314293a3b9390.webp"
+  },
+  "extrot": {
+    "oneSide": true,
+    "src": "/exercise-motion/extrot-68e2bfe7f74a3530.mp4",
+    "bytes": 21368,
+    "sha256": "68e2bfe7f74a35308f7b4c07cd40f80c9bf2753dddd4bab9b66a89291e0fb114",
+    "poster": "/exercise-motion/extrot-poster-d1a215e2bf41dee0.webp"
+  },
+  "pikefold": {
+    "oneSide": false,
+    "src": "/exercise-motion/pikefold-2770adfd5bba1db5.mp4",
+    "bytes": 25711,
+    "sha256": "2770adfd5bba1db545dac22b80d42c40f8ba719b6ef1f334b1df16e0c61575e9",
+    "poster": "/exercise-motion/pikefold-poster-1be1e949fe766b0b.webp"
+  },
+  "abwheel": {
+    "oneSide": false,
+    "src": "/exercise-motion/abwheel-a0a89c9a1222b8c8.mp4",
+    "bytes": 26456,
+    "sha256": "a0a89c9a1222b8c8b7df37ded2c86892310d14259b72dabf247fc21c916eb801",
+    "poster": "/exercise-motion/abwheel-poster-791a90d5e73a3deb.webp"
+  },
+  "tbarrow": {
+    "oneSide": false,
+    "src": "/exercise-motion/tbarrow-36cfa82a4aa80461.mp4",
+    "bytes": 24140,
+    "sha256": "36cfa82a4aa80461f4c5ab54b365cf60fdfe2a374db5fc8752a11329dec0e9cf",
+    "poster": "/exercise-motion/tbarrow-poster-31a1dc3ff9b61533.webp"
   }
 });
 
