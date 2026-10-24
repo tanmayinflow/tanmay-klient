@@ -17,7 +17,7 @@ export function locomotionSelectionAllowed(policy,{equipment,explicitTarget=fals
 export function locomotionRecordOptions(policy){return policy?{...(policy.allowComparableRecords===false?{allowComparableRecords:false}:{}),...(policy.noAddedWeight?{allowAddedWeightRecord:false,excludeExtraLoad:true}:{}),...(policy.allowEstimatedMax===false?{allowEstimatedMax:false}:{}),...(policy.sideMode==='perSide'?{preserveSide:true}:{})}:{};}
 export function locomotionProtectedLoadKeys(policy){
  if(policy?.noAddedWeight)return ['weight','addedWeight'];
- return ['shoulder','elbowHand','positionHold'].includes(policy?.auditKind)&&policy.loadMode==='ext'&&['WEIGHT_REPS','WEIGHT_DURATION'].includes(policy.measurementType)?['addedWeight']:[];
+ return ['shoulder','elbowHand','positionHold','throw','complexTask'].includes(policy?.auditKind)&&policy.loadMode==='ext'&&['WEIGHT_REPS','WEIGHT_DURATION'].includes(policy.measurementType)?['addedWeight']:[];
 }
 export function locomotionLegacyLoad(set,policy){const keys=locomotionProtectedLoadKeys(policy);return[['actual','addedWeight'],['actual','weight'],['planned','targetWeight'],['planned','addedWeight']].filter(([p,k])=>keys.includes(k==='targetWeight'?'weight':k)&&own(set?.[p],k)).map(([p,k])=>({part:p,key:k,value:set[p][k]}));}
 const fits=(session,blockId,p)=>{const b=findBlock(session,blockId);return p&&b?.exId===p.id&&b.measurementType===p.measurementType;};

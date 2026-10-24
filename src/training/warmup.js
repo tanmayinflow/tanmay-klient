@@ -1,3 +1,6 @@
+import {resolvedComplexTaskPolicy} from './catalogComplexTaskAudit.js';
+import {resolvedThrowPolicy} from './catalogThrowAudit.js';
+import {resolvedBreathingPolicy} from './catalogBreathingAudit.js';
 import {resolvedPositionHoldPolicy} from './catalogPositionHoldAudit.js';
 import {resolvedElbowHandPolicy} from './catalogElbowHandAudit.js';
 import {resolvedShoulderPolicy} from './catalogShoulderAudit.js';
@@ -42,7 +45,8 @@ const RAMP_REPS = [8, 6, 5, 3, 2, 1];
 // load — a dumbbell press has no empty bar to do.
 export function warmupFor(opts) {
   const o = opts || {};
-  if (resolvedPositionHoldPolicy(o.exercise)?.manualWarmup || resolvedElbowHandPolicy(o.exercise)?.manualWarmup || resolvedShoulderPolicy(o.exercise)?.manualWarmup || resolvedHipPolicy(o.exercise)?.manualWarmup || resolvedLowerLegPolicy(o.exercise)?.manualWarmup || resolvedLocomotionPolicy(o.exercise)?.manualWarmup) return [];
+  if(resolvedBreathingPolicy(o.exercise)?.warmupPolicy==='none')return [];
+  if (resolvedComplexTaskPolicy(o.exercise)?.manualWarmup || resolvedThrowPolicy(o.exercise)?.manualWarmup || resolvedPositionHoldPolicy(o.exercise)?.manualWarmup || resolvedElbowHandPolicy(o.exercise)?.manualWarmup || resolvedShoulderPolicy(o.exercise)?.manualWarmup || resolvedHipPolicy(o.exercise)?.manualWarmup || resolvedLowerLegPolicy(o.exercise)?.manualWarmup || resolvedLocomotionPolicy(o.exercise)?.manualWarmup) return [];
   const policy = o.policy || "ramp";
   if (policy === "none") return [];
 

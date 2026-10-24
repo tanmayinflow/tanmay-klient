@@ -1,3 +1,6 @@
+import {applyComplexTaskAudit} from './catalogComplexTaskAudit.js';
+import {applyThrowAudit} from './catalogThrowAudit.js';
+import {applyBreathingAudit} from './catalogBreathingAudit.js';
 import {applyPositionHoldAudit} from './catalogPositionHoldAudit.js';
 import {applyElbowHandAudit} from './catalogElbowHandAudit.js';
 import {applyShoulderAudit} from './catalogShoulderAudit.js';
@@ -28305,7 +28308,7 @@ export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES
   const horizontal = applyAuditEquipmentFixes(seedHorizontalPullFoundations(applyHorizontalPullAudit(seedHorizontalPressFoundations(applyHorizontalPressAudit(seedBridgeFoundations(applyBridgeAudit(audited)))))));
   const lowerBase = applyLocomotionAudit(applyBalanceAudit(applyMovementAudit(applyTrunkAudit(applyCarryAudit(seedVerticalPullFoundations(applyVerticalPullAudit(seedVerticalPushFoundations(applyVerticalPushAudit(horizontal),options)),options)),options),options),options),options);
   const lowerAudited=applyLowerLegAudit(lowerBase,options);
-  return applyPositionHoldAudit(applyElbowHandAudit(applyShoulderAudit(applyHipAudit(options.lowerLegAuditContext ? seedLowerLegFoundation(lowerAudited) : lowerAudited,options),options),options),options);
+  return applyComplexTaskAudit(applyThrowAudit(applyBreathingAudit(applyPositionHoldAudit(applyElbowHandAudit(applyShoulderAudit(applyHipAudit(options.lowerLegAuditContext ? seedLowerLegFoundation(lowerAudited) : lowerAudited,options),options),options),options),options) ,options) ,options);
 }
 
 function seedOriginalExpansion(collection, seedRows) {

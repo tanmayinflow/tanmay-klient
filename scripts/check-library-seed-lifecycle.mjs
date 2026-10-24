@@ -51,7 +51,7 @@ if (role === 'main') {
   environment.seedCreatorExercises = (await imp('src/library/creator-exercises.js')).seedCreatorExercises;
   environment.retireLegacyYogaSync = (await imp('src/library/yogaSync.js')).retireLegacyYogaSync;
 }
-for (const [name, prefix] of Object.entries({trunk:'TRUNK', movement:'MOVEMENT', balance:'BALANCE', locomotion:'LOCOMOTION', lowerLeg:'LOWER_LEG', hip:'HIP', shoulder:'SHOULDER', elbowHand:'ELBOW_HAND'})) {
+for (const [name, prefix] of Object.entries({complexTask:'COMPLEX_TASK',throw:'THROW',breathing:'BREATHING',trunk:'TRUNK', movement:'MOVEMENT', balance:'BALANCE', locomotion:'LOCOMOTION', lowerLeg:'LOWER_LEG', hip:'HIP', shoulder:'SHOULDER', elbowHand:'ELBOW_HAND'})) {
   environment[`${prefix}_AUDIT_CONTEXT`] = (await imp(`src/data/${name}AuditContext.js`))[`${prefix}_AUDIT_CONTEXT`];
 }
 environment.priorAuditOwnsExercise = priorAuditOwnsExercise;

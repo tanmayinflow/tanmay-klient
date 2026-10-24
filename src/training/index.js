@@ -64,3 +64,12 @@ export {ELBOW_HAND_AUDIT_ENTRIES} from "./catalogElbowHandAuditData.js";
 
 export * from "./catalogPositionHoldAudit.js";
 export {POSITION_HOLD_AUDIT_ENTRIES} from "./catalogPositionHoldAuditData.js";
+
+export * from './catalogBreathingAudit.js';
+export {BREATHING_AUDIT_ENTRIES} from './catalogBreathingAuditData.js';
+
+export * from './catalogThrowAudit.js';
+export {THROW_AUDIT_ENTRIES} from './catalogThrowAuditData.js';
+
+export * from './catalogComplexTaskAudit.js';
+export {COMPLEX_TASK_AUDIT_ENTRIES} from './catalogComplexTaskAuditData.js';

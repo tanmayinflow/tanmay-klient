@@ -16,7 +16,7 @@ export const EXERCISE_REGIONS = vocabulary([
 export const EXERCISE_MOVEMENT_GROUPS = vocabulary([
   ['legs','Nohy a přesuny','Legs and locomotion'], ['push_pull','Tlaky a tahy','Pushes and pulls'],
   ['control','Rovnováha a trup','Balance and trunk'], ['targeted','Cílené pohyby a polohy','Targeted movements and positions'],
-  ['dynamic','Odrazy, dopady a hody','Jumps, landings and throws'], ['unclassified','K doplnění','To be classified'],
+  ['dynamic','Dynamické úkoly','Dynamic tasks'], ['unclassified','K doplnění','To be classified'],
 ]);
 export const EXERCISE_MOVEMENTS = vocabulary([
   ['squat','Dřepy a vstávání','Squats and sit-to-stand','legs'],
@@ -38,6 +38,8 @@ export const EXERCISE_MOVEMENTS = vocabulary([
   ['breath','Dechová cvičení','Breathing exercises','targeted'],
   ['landing','Dopady a brzdění','Landings and deceleration','dynamic'],
   ['jump','Skoky a odrazy','Jumps and hops','dynamic'], ['throw','Hody','Throws','dynamic'],
+  ["weightlifting","Vzpěračské cviky","Weightlifting movements","dynamic"],
+["rope_waves","Vlny bojovým lanem","Battle-rope waves","dynamic"],
   ['other','Další / zatím nezařazeno','Other / not yet classified','unclassified'],
 ]);
 export const EXERCISE_FOCUS = vocabulary([

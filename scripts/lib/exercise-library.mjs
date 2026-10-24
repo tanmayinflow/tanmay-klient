@@ -1,3 +1,9 @@
+import {complexTaskEquipmentDecision,complexTaskSelectionAllowed,complexTaskPolicyFor} from '../../src/training/catalogComplexTaskAudit.js';
+import {COMPLEX_TASK_AUDIT_CONTEXT} from '../../src/data/complexTaskAuditContext.js';
+import {throwEquipmentDecision,throwSelectionAllowed,throwPolicyFor} from '../../src/training/catalogThrowAudit.js';
+import {THROW_AUDIT_CONTEXT} from '../../src/data/throwAuditContext.js';
+import {breathingEquipmentDecision,breathingSelectionAllowed,breathingPolicyFor} from '../../src/training/catalogBreathingAudit.js';
+import {BREATHING_AUDIT_CONTEXT} from '../../src/data/breathingAuditContext.js';
 import {positionHoldEquipmentDecision,positionHoldViewPolicyFor,positionHoldDeliveredViewPolicy,positionHoldPolicyFor} from '../../src/training/catalogPositionHoldAudit.js';
 import {POSITION_HOLD_AUDIT_CONTEXT} from '../../src/data/positionHoldAuditContext.js';
 import {createAccessoryFocus,hasElbowHandAccessoryFocus} from '../../src/training/elbowHandAccessoryFocus.js';
@@ -208,7 +214,7 @@ export function loadEngine() {
   const { src } = loadLibrary();
   const parts = ENGINE_DECLS.map((n) => sliceDecl(src, n));
   const sandbox = { createAccessoryFocus,hasElbowHandAccessoryFocus,console, TextEncoder, JSON, Math, Date, Object, Array, Number, String, Set, Map,
-    POSITION_HOLD_AUDIT_CONTEXT, ELBOW_HAND_AUDIT_CONTEXT, SHOULDER_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { positionHoldEquipmentDecision, positionHoldViewPolicyFor, positionHoldDeliveredViewPolicy, positionHoldPolicyFor, elbowHandEquipmentDecision, elbowHandViewPolicyFor, elbowHandPolicyFor, shoulderEquipmentDecision, hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
+    COMPLEX_TASK_AUDIT_CONTEXT, THROW_AUDIT_CONTEXT, BREATHING_AUDIT_CONTEXT, POSITION_HOLD_AUDIT_CONTEXT, ELBOW_HAND_AUDIT_CONTEXT, SHOULDER_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { complexTaskEquipmentDecision, complexTaskSelectionAllowed, complexTaskPolicyFor, throwEquipmentDecision, throwSelectionAllowed, throwPolicyFor, breathingEquipmentDecision, breathingSelectionAllowed, breathingPolicyFor, positionHoldEquipmentDecision, positionHoldViewPolicyFor, positionHoldDeliveredViewPolicy, positionHoldPolicyFor, elbowHandEquipmentDecision, elbowHandViewPolicyFor, elbowHandPolicyFor, shoulderEquipmentDecision, hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
   vm.createContext(sandbox);
   // `const` at the top level of a script is lexically scoped, not a property of the
   // context — so the script hands the names out itself on the last line.

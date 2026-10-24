@@ -23,7 +23,7 @@ export function buildExerciseIndex(rows, options = {}) {
     const search = normalizeExerciseSearch([options.searchTextOf?.(row), row.id, ...names, ...array(row.aliases), ...array(row.taxonomy?.aliases)].filter(Boolean).join(' '));
     const status = options.statusOf?.(row) || row.status || meta.s || 'active';
     const tier = options.tierOf?.(row) || row.tier || meta.t || 'extended';
-    return { row, order, positionHoldOrder:options.positionHoldOrderOf?.(row,meta) ?? null, elbowHandOrder:options.elbowHandOrderOf?.(row,meta) ?? null, shoulderOrder:options.shoulderOrderOf?.(row,meta) ?? null, tax, equipment, name, names, search, muscles, level: options.levelOf?.(row) ?? Math.max(Number(row.S) || 1, (Number(row.C) || 1) - 1), archived: ['archived', 'blocked', 'alias', 'merged', 'deprecated'].includes(status) || tier === 'archived' || !!(row.aliasOf || meta.al) };
+    return { row, order, complexTaskOrders:options.complexTaskOrderOf?.(row,meta) ?? null, throwOrder:options.throwOrderOf?.(row,meta) ?? null, breathingOrder:options.breathingOrderOf?.(row,meta) ?? null, positionHoldOrder:options.positionHoldOrderOf?.(row,meta) ?? null, elbowHandOrder:options.elbowHandOrderOf?.(row,meta) ?? null, shoulderOrder:options.shoulderOrderOf?.(row,meta) ?? null, tax, equipment, name, names, search, muscles, level: options.levelOf?.(row) ?? Math.max(Number(row.S) || 1, (Number(row.C) || 1) - 1), archived: ['archived', 'blocked', 'alias', 'merged', 'deprecated'].includes(status) || tier === 'archived' || !!(row.aliasOf || meta.al) };
   });
 }
 
@@ -67,6 +67,18 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
     if (sort !== 'name') {
       const priority = a.tax.priority - b.tax.priority;
       if (priority) return priority;
+      if(filters.movements.length===1){
+        const movement=filters.movements[0],aRank=a.complexTaskOrders?.[movement],bRank=b.complexTaskOrders?.[movement];
+        if(['weightlifting','rope_waves'].includes(movement)){const difference=(Number.isInteger(aRank)?aRank:Infinity)-(Number.isInteger(bRank)?bRank:Infinity);if(difference&&!Number.isNaN(difference))return difference;}
+      }
+      if(filters.movements.length===1&&filters.movements[0]==='throw'){
+        const rank=e=>Number.isInteger(e.throwOrder)?e.throwOrder:Infinity;
+        const difference=rank(a)-rank(b);if(difference&&!Number.isNaN(difference))return difference;
+      }
+      if(filters.movements.length===1&&filters.movements[0]==='breath'){
+        const rank=e=>Number.isInteger(e.breathingOrder)?e.breathingOrder:Infinity;
+        const difference=rank(a)-rank(b);if(difference&&!Number.isNaN(difference))return difference;
+      }
       if(filters.movements.length===1&&filters.movements[0]==='position'){
         const rank=e=>Number.isInteger(e.positionHoldOrder)?e.positionHoldOrder:Infinity;
         const difference=rank(a)-rank(b);if(difference&&!Number.isNaN(difference))return difference;
@@ -124,5 +136,20 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
     }
     return a.name.localeCompare(b.name, options.locale || 'cs', { sensitivity: 'base', numeric: true }) || a.order - b.order;
   });
+  // Reorder only the two audited windmill slots after the total ordering.
+  // Pair-only comparisons inside sort can create a cycle with a custom name.
+  if (sort === 'recommended' && filters.movements.length === 1 && filters.movements[0] === 'hinge') {
+    const groups = new Map();
+    visible.forEach((entry, slot) => {
+      if (!Number.isInteger(entry.complexTaskOrders?.hinge)) return;
+      const key = entry.tax.priority + ':' + searchRank(entry, query);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(slot);
+    });
+    for (const slots of groups.values()) {
+      const ordered = slots.map(slot => visible[slot]).sort((a, b) => a.complexTaskOrders.hinge - b.complexTaskOrders.hinge || a.order - b.order);
+      slots.forEach((slot, i) => { visible[slot] = ordered[i]; });
+    }
+  }
   return { rows: visible.map(entry => entry.row), hiddenCount };
 }
