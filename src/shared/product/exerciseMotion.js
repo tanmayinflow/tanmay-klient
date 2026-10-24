@@ -1686,6 +1686,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 24140,
     "sha256": "36cfa82a4aa80461f4c5ab54b365cf60fdfe2a374db5fc8752a11329dec0e9cf",
     "poster": "/exercise-motion/tbarrow-poster-31a1dc3ff9b61533.webp"
+  },
+  "scap": {
+    "oneSide": false,
+    "src": "/exercise-motion/scap-28da8dd65519b7be.mp4",
+    "bytes": 20414,
+    "sha256": "28da8dd65519b7beebb3adb28df47b59ec85450e638c5793a231ba9242e58a10",
+    "poster": "/exercise-motion/scap-poster-83f9ff65fa49f87e.webp"
+  },
+  "donkeykick": {
+    "oneSide": true,
+    "src": "/exercise-motion/donkeykick-8c2a1ea5eea3a83f.mp4",
+    "bytes": 22731,
+    "sha256": "8c2a1ea5eea3a83fd9f2c8188a2be67685ff14d706fff564a3ea67a12513b8eb",
+    "poster": "/exercise-motion/donkeykick-poster-50d60752a57a27a2.webp"
+  },
+  "pallof": {
+    "oneSide": true,
+    "src": "/exercise-motion/pallof-91756435b54ed89c.mp4",
+    "bytes": 25766,
+    "sha256": "91756435b54ed89c29a149c96bcfd7250195049dde15898fdc650d97af952e40",
+    "poster": "/exercise-motion/pallof-poster-7dd7c51820f82184.webp"
+  },
+  "latlunge": {
+    "oneSide": false,
+    "src": "/exercise-motion/latlunge-7cb4b5fb79000792.mp4",
+    "bytes": 37497,
+    "sha256": "7cb4b5fb7900079204e969e63c20dcd6eecd2382fb345c83a30e2ddea8631f98",
+    "poster": "/exercise-motion/latlunge-poster-98eab92c574adfe0.webp"
+  },
+  "sphinx": {
+    "oneSide": false,
+    "src": "/exercise-motion/sphinx-13025a8eac2e0ba9.mp4",
+    "bytes": 18471,
+    "sha256": "13025a8eac2e0ba946933cf4bcfc5ab828b317f65e36e3cb4d45e1fe21155404",
+    "poster": "/exercise-motion/sphinx-poster-80336469a20a1439.webp"
+  },
+  "ytw": {
+    "oneSide": false,
+    "src": "/exercise-motion/ytw-69a83df5b0504355.mp4",
+    "bytes": 23387,
+    "sha256": "69a83df5b0504355a8ba1459d6edb2bbebfab45c78ab618152fc52f74d01fef4",
+    "poster": "/exercise-motion/ytw-poster-f76993ec5c04f7d3.webp"
+  },
+  "squatpry": {
+    "oneSide": false,
+    "src": "/exercise-motion/squatpry-6fed2d78438c0bae.mp4",
+    "bytes": 42191,
+    "sha256": "6fed2d78438c0baec2e34924d7fa4c289fe642cdac3f737571378b8242eaead8",
+    "poster": "/exercise-motion/squatpry-poster-31697fc830897f34.webp"
+  },
+  "diamond": {
+    "oneSide": false,
+    "src": "/exercise-motion/diamond-465bf210bf17fa3e.mp4",
+    "bytes": 23397,
+    "sha256": "465bf210bf17fa3e6a979979de20bc27b9f522654e5ec568a65c9f8185742d66",
+    "poster": "/exercise-motion/diamond-poster-1e6b4efcdf773dce.webp"
   }
 });
 
