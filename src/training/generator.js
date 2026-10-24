@@ -1,3 +1,4 @@
+import {lowerLegResolvedRefusal,resolvedLowerLegPolicy} from './catalogLowerLegAudit.js';
 import {locomotionResolvedRefusal,locomotionHasResolvedEquipment} from './catalogLocomotionAuditPolicy.js';
 // ======================================================================
 // GENERATOR RULES · what may be chosen, and what may never be
@@ -57,10 +58,11 @@ export function selectableFor(rec, ctx) {
       return { ok: false, why: "unknown-role" };
   }
 
+  const lowerRefusal=lowerLegResolvedRefusal(rec,c);if(lowerRefusal)return lowerRefusal;
   const locomotionRefusal=locomotionResolvedRefusal(rec,c);if(locomotionRefusal)return locomotionRefusal;
   const reviewedRefusal=reviewedRopeClimbRefusal(rec,c);if(reviewedRefusal)return reviewedRefusal;
   if (rec.requiresCoach && !c.coachPresent) return { ok: false, why: "requires-coach" };
-  if (!locomotionHasResolvedEquipment(rec) && c.equipment && rec.equipment.length && !rec.equipment.every((k) => c.equipment.includes(k))) return { ok: false, why: "equipment" };
+  if (!resolvedLowerLegPolicy(rec) && !locomotionHasResolvedEquipment(rec) && c.equipment && rec.equipment.length && !rec.equipment.every((k) => c.equipment.includes(k))) return { ok: false, why: "equipment" };
   if (c.sessionRole && rec.sessionRole !== c.sessionRole) return { ok: false, why: "session-role" };
   if (c.measurementTypes && !c.measurementTypes.includes(rec.measurementType)) return { ok: false, why: "measurement-type" };
   if (c.excludeIds && c.excludeIds.includes(rec.id)) return { ok: false, why: "already-chosen" };

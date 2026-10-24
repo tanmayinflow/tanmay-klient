@@ -113,6 +113,8 @@ export const RECORD_LABEL = {
 // Only an explicit allowEstimatedMax:false omits the derived e1rm record.
 export function recordsFor(measurementType, history, opts) {
   const o = opts || {};
+  if(o.allowComparableRecords===false)return {};
+  if(o.excludeExtraLoad)history=history.filter(e=>![["actual","weight"],["actual","addedWeight"],["planned","targetWeight"],["planned","addedWeight"]].some(([p,k])=>Object.prototype.hasOwnProperty.call(e[p]||{},k)&&e[p][k]!==0));
   const m = measurementOf(measurementType);
   // Opt-in audited projections only. Raw history stays intact and readable in the UI.
   if (o.preserveSide || o.allowAddedWeightRecord === false) history=history.filter(e=>!Object.prototype.hasOwnProperty.call(e,"measurementType") || e.measurementType===m.k);
@@ -274,7 +276,8 @@ export function newRecordsIn(session, allSessions, opts) {
 // One point per session: the best working set of that day, scored by the
 // leading field of the measurement type. No prediction, no trend line
 // promising anything — a line through what happened.
-export function seriesFor(measurementType, history) {
+export function seriesFor(measurementType, history, opts) {
+  if(opts?.allowComparableRecords===false)return [];
   const byDay = new Map();
   for (const e of history) {
     const key = e.date || String(e.at);

@@ -1,3 +1,4 @@
+import {applyLowerLegAudit,seedLowerLegFoundation} from './catalogLowerLegAudit.js';
 import {applyLocomotionAudit} from './catalogLocomotionAudit.js';
 import {applyBalanceAudit} from './catalogBalanceAudit.js';
 import {applyMovementAudit} from './catalogMovementAudit.js';
@@ -28298,7 +28299,9 @@ export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES
   const withDeepReview = seedInstagramDeepReview(withClientNext, seedRows === EXPANSION_EXERCISES ? INSTAGRAM_DEEP_REVIEW_EXERCISES : seedRows);
   const audited = applyHingeAudit(seedStepVariants(applyStepAudit(applyLungeAudit(applySquatAudit(applyPracticalCorrections(withDeepReview)), options))));
   const horizontal = applyAuditEquipmentFixes(seedHorizontalPullFoundations(applyHorizontalPullAudit(seedHorizontalPressFoundations(applyHorizontalPressAudit(seedBridgeFoundations(applyBridgeAudit(audited)))))));
-  return applyLocomotionAudit(applyBalanceAudit(applyMovementAudit(applyTrunkAudit(applyCarryAudit(seedVerticalPullFoundations(applyVerticalPullAudit(seedVerticalPushFoundations(applyVerticalPushAudit(horizontal),options)),options)),options),options),options),options);
+  const lowerBase = applyLocomotionAudit(applyBalanceAudit(applyMovementAudit(applyTrunkAudit(applyCarryAudit(seedVerticalPullFoundations(applyVerticalPullAudit(seedVerticalPushFoundations(applyVerticalPushAudit(horizontal),options)),options)),options),options),options),options);
+  const lowerAudited=applyLowerLegAudit(lowerBase,options);
+  return options.lowerLegAuditContext ? seedLowerLegFoundation(lowerAudited) : lowerAudited;
 }
 
 function seedOriginalExpansion(collection, seedRows) {

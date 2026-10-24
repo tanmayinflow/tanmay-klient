@@ -7,6 +7,19 @@ export const EXERCISE_EQUIPMENT_GROUPS = vocabulary([
   ['accessories','Další pomůcky','Other equipment'], ['unspecified','K upřesnění','Needs clarification'],
 ]);
 export const EXERCISE_EQUIPMENT = vocabulary([
+["soft_pickup_objects","Malé měkké předměty pro úchop prsty nohy","Small soft objects for toe pickup","accessories"],
+["small_bowl","Malá stabilní miska","Small stable bowl","accessories"],
+["seated_calf_raise_machine","Stroj na výpony vsedě s opěrou stehen","Seated calf-raise machine with thigh pads","resistance"],
+["standing_calf_raise_machine","Stroj na výpony ve stoji s ramenními opěrami","Standing calf-raise machine with shoulder pads","resistance"],
+["calf_compatible_leg_press","Leg press vhodný pro výpony s jištěním","Leg press suitable for calf raises with safeguards","resistance"],
+["seated_leg_curl_machine","Stroj na zakopávání vsedě","Seated leg-curl machine","resistance"],
+["lying_leg_curl_machine","Stroj na zakopávání vleže","Lying leg-curl machine","resistance"],
+["standing_leg_curl_machine","Stroj na zakopávání ve stoji","Standing leg-curl machine","resistance"],
+["nordic_ankle_anchor","Pevné zajištění kotníků pro Nordic","Purpose-made Nordic ankle restraint","supports"],
+["glute_ham_developer","GHD lavice pro glute-ham raise","Glute-ham developer bench","supports"],
+["ankle_cuff","Kotníková manžeta pro odporovou gumu","Ankle cuff for resistance-band attachment","accessories"],
+["knee_extension_machine","Stroj na předkopávání","Knee-extension machine","resistance"],
+["upright_support_pair","Dvě pevné svislé opory pro úchop","Two fixed upright handholds","supports"],
 ["bicycle","Jízdní kolo","Bicycle","accessories"],
 ["cycling_route","Trasa vhodná pro jízdu na kole","Suitable cycling route","body"],
 ["air_bike","Air bike s pohyblivými madly","Air bike with moving handles","resistance"],
@@ -227,7 +240,7 @@ export function exerciseEquipment(input, inputMeta = {}) {
   }
   requirements = requirements.filter((group,index,all) => all.findIndex(other => [...other].sort().join('|') === [...group].sort().join('|')) === index);
   // Navigation may group machines; ownership must never imply a different machine.
-  const machineTypes=['air_bike','elliptical_trainer','stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
+  const machineTypes=["seated_calf_raise_machine","standing_calf_raise_machine","calf_compatible_leg_press","seated_leg_curl_machine","lying_leg_curl_machine","standing_leg_curl_machine","knee_extension_machine",'air_bike','elliptical_trainer','stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
   const reviewedNavigationGroups={"abdominal_crunch_machine":["stroj"],"thoracic_extension_chair":["chair"],"captains_chair":["stroj"],"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
   const items = unique(equipmentCapabilities(requirements.flat()).flatMap(id=>[id,...(machineTypes.includes(id)?['stroj']:[]),...(reviewedNavigationGroups[id]||[])]));
   return { items, requirements, unresolved:items.filter(unresolvedId), evidence, legacy };

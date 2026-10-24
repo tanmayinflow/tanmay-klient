@@ -1,3 +1,4 @@
+import {lowerLegDeliveryStamp} from './catalogLowerLegAudit.js';
 import {locomotionDeliveryStamp} from './catalogLocomotionAuditPolicy.js';
 import { separateWarmupTemplates } from './separateWarmups.js';
 import { publicMilestones } from './delivery.js';
@@ -198,7 +199,8 @@ export function clientBundle(plans, templates, resolve, opts) {
       art: (o.artFor && o.artFor(rec.id)) || null,
     };
     const stamp=locomotionDeliveryStamp(rec,delivered);
-    outExercises.push(stamp?{...delivered,locomotionAudit:stamp}:delivered);
+    const lowerStamp=lowerLegDeliveryStamp(rec,delivered);
+    outExercises.push({...delivered,...(stamp?{locomotionAudit:stamp}:{}),...(lowerStamp?{lowerLegAudit:lowerStamp}:{})});
   }
   return { at: o.now || Date.now(), v: 2, plans: outPlans, templates: outTemplates, exercises: outExercises };
 }

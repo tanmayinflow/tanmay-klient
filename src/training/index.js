@@ -49,3 +49,6 @@ export {balanceArtworkFor,balanceEquipmentLabels} from "./catalogBalanceAuditVie
 export {locomotionArtworkFor,locomotionDeliveredArtworkFor,locomotionEquipmentLabels} from "./catalogLocomotionAuditView.js";
 
 export * from "./catalogLocomotionAuditPolicy.js";
+
+export * from "./catalogLowerLegAudit.js";
+export {LOWER_LEG_AUDIT_ENTRIES} from "./catalogLowerLegAuditData.js";
