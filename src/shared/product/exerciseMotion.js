@@ -1742,6 +1742,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 23397,
     "sha256": "465bf210bf17fa3e6a979979de20bc27b9f522654e5ec568a65c9f8185742d66",
     "poster": "/exercise-motion/diamond-poster-1e6b4efcdf773dce.webp"
+  },
+  "bodyrow": {
+    "oneSide": false,
+    "src": "/exercise-motion/bodyrow-0bd1fbb2953c9fa2.mp4",
+    "bytes": 31523,
+    "sha256": "0bd1fbb2953c9fa2a81f179664b7f6a6e522f92005bd89467fb108031e0e67d3",
+    "poster": "/exercise-motion/bodyrow-poster-5c183ce8a12a1e8c.webp"
+  },
+  "negpull": {
+    "oneSide": false,
+    "src": "/exercise-motion/negpull-c2bb78e3e72963bb.mp4",
+    "bytes": 45959,
+    "sha256": "c2bb78e3e72963bba79f50633368c02b08a54c0c699a75b1d37234831413c4b5",
+    "poster": "/exercise-motion/negpull-poster-19b817fc0ad97373.webp"
+  },
+  "toetouch": {
+    "oneSide": false,
+    "src": "/exercise-motion/toetouch-1d796a31ad54cbac.mp4",
+    "bytes": 28683,
+    "sha256": "1d796a31ad54cbac308da20342beff74fb1310b3b55775e8767a3cec97795a21",
+    "poster": "/exercise-motion/toetouch-poster-72a5963d2487b26b.webp"
+  },
+  "downdog": {
+    "oneSide": false,
+    "src": "/exercise-motion/downdog-e5208b549b7c73ee.mp4",
+    "bytes": 35538,
+    "sha256": "e5208b549b7c73eecc8908ed2b5bea4abbf45ee048f11dadf27adbd906eb7364",
+    "poster": "/exercise-motion/downdog-poster-a9a52c914d692edf.webp"
+  },
+  "openbook": {
+    "oneSide": true,
+    "src": "/exercise-motion/openbook-eb3e71221427afd2.mp4",
+    "bytes": 36604,
+    "sha256": "eb3e71221427afd23fb7063ebfd0b0b791d92d0c3bb6c3e15b55d0dfd9dd00c7",
+    "poster": "/exercise-motion/openbook-poster-1a69a027d23828d3.webp"
+  },
+  "thoracicext": {
+    "oneSide": false,
+    "src": "/exercise-motion/thoracicext-5b928de353e65d41.mp4",
+    "bytes": 37601,
+    "sha256": "5b928de353e65d413a45b187831dc18037c5847b509249e539e73dd2dfe8971d",
+    "poster": "/exercise-motion/thoracicext-poster-f32420237fb241ff.webp"
+  },
+  "bulgsplit": {
+    "oneSide": true,
+    "src": "/exercise-motion/bulgsplit-6875bd1f4ab0ea9c.mp4",
+    "bytes": 24294,
+    "sha256": "6875bd1f4ab0ea9ca67bc1f5b6717cddf1a63bd3727f777deab0b1f60f0b4be1",
+    "poster": "/exercise-motion/bulgsplit-poster-82e1b601849bc448.webp"
+  },
+  "sq26_sit_to_stand": {
+    "oneSide": false,
+    "src": "/exercise-motion/sq26_sit_to_stand-03fd33293bff0bfe.mp4",
+    "bytes": 38172,
+    "sha256": "03fd33293bff0bfe5f11d97887ae5fea95b7c48771be276b367b1bfb4e645e95",
+    "poster": "/exercise-motion/sq26_sit_to_stand-poster-a710aafe3ba80ec0.webp"
   }
 });
 
