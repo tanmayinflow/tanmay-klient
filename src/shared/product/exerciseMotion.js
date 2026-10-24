@@ -1574,6 +1574,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 21025,
     "sha256": "f1c25fc5bfd8218233f6e876859535b845818f5249a0ae0360ca35ac7df24789",
     "poster": "/exercise-motion/ex26_kb_windmill-poster-e1d7879394537935.webp"
+  },
+  "pistol": {
+    "oneSide": true,
+    "src": "/exercise-motion/pistol-aea0b642ccf0713d.mp4",
+    "bytes": 39713,
+    "sha256": "aea0b642ccf0713debfaec296a07d5895b6601567ed8c3c4e458ba9c68941952",
+    "poster": "/exercise-motion/pistol-poster-303a7b323c79ae0a.webp"
+  },
+  "legraise": {
+    "oneSide": false,
+    "src": "/exercise-motion/legraise-01e2cddc647dab14.mp4",
+    "bytes": 16922,
+    "sha256": "01e2cddc647dab145a13fc2593a5c24dedf65e0989de1c120695c67c2423849c",
+    "poster": "/exercise-motion/legraise-poster-c70f8dbdbe2fdc5f.webp"
+  },
+  "declpush": {
+    "oneSide": false,
+    "src": "/exercise-motion/declpush-878e2260c0c3d1ff.mp4",
+    "bytes": 16399,
+    "sha256": "878e2260c0c3d1ff7d5b287208eb5a55beed1fcf2f143d41004a8cf97f0d70f4",
+    "poster": "/exercise-motion/declpush-poster-c49416d32ceb32ab.webp"
+  },
+  "pike": {
+    "oneSide": false,
+    "src": "/exercise-motion/pike-a2046173b9cd1e51.mp4",
+    "bytes": 27485,
+    "sha256": "a2046173b9cd1e51930e68808f99de80ce577bc21e3b52678c8eef7c2c14556b",
+    "poster": "/exercise-motion/pike-poster-71c08215f1160342.webp"
+  },
+  "benchdips": {
+    "oneSide": false,
+    "src": "/exercise-motion/benchdips-13d0e9c8cc3a1806.mp4",
+    "bytes": 22487,
+    "sha256": "13d0e9c8cc3a1806112f3d9ff11a66f121b863742f59fbed9eacf272bfaa8a13",
+    "poster": "/exercise-motion/benchdips-poster-9ad12f6db8ed5744.webp"
+  },
+  "pullup": {
+    "oneSide": false,
+    "src": "/exercise-motion/pullup-66ec7630807dfef1.mp4",
+    "bytes": 24547,
+    "sha256": "66ec7630807dfef13f6e11711e917d263a035d63f291aceaf919379cbc017f7c",
+    "poster": "/exercise-motion/pullup-poster-550f546b9a84729b.webp"
+  },
+  "dips": {
+    "oneSide": false,
+    "src": "/exercise-motion/dips-d110af59cc8ef117.mp4",
+    "bytes": 23951,
+    "sha256": "d110af59cc8ef11702b333a4a678ed8aa83ef467a43acdf13f84f927e7292132",
+    "poster": "/exercise-motion/dips-poster-a3e39dd13cf6314d.webp"
+  },
+  "an_splitsquat": {
+    "oneSide": true,
+    "src": "/exercise-motion/an_splitsquat-84828bed14080da1.mp4",
+    "bytes": 18776,
+    "sha256": "84828bed14080da11fc45da88276eddac8056100443170ef1b47a96176ab7019",
+    "poster": "/exercise-motion/an_splitsquat-poster-6d351316d481f053.webp"
   }
 });
 
