@@ -1,3 +1,4 @@
+import {publicLandingRecording} from './landingRecordingContract.js';
 // ======================================================================
 // SESSION ENGINE · every operation a running session needs
 // ----------------------------------------------------------------------
@@ -100,7 +101,7 @@ export function completeSet(session, blockId, setId, now) {
   return withSet(session, blockId, setId, (s, b) => {
     const actual = hasActual(b.measurementType, s.actual)
       ? s.actual
-      : normalizeActual(b.measurementType, plannedToActual(b.measurementType, s.planned));
+      : normalizeActual(b.measurementType, {...plannedToActual(b.measurementType, s.planned), ...Object.fromEntries(Object.entries(s.actual || {}).filter(([, value]) => value === 0))});
     return { ...s, actual, completed: true, completedAt: now || Date.now() };
   });
 }
@@ -144,7 +145,7 @@ export function lastUseOf(sessions, exId, opts) {
       const done = setsOf(b).filter((s) => s.completed && isWorkingSet(s));
       if (!done.length) continue;
       const at = ses.endedAt || ses.startedAt || 0;
-      if (!best || at > best.at) best = { at, date: ses.date, sessionId: ses.id, measurementType: b.measurementType, sets: done, ...(Object.prototype.hasOwnProperty.call(b, "variant") ? { variant: b.variant } : {}) };
+      if (!best || at > best.at) best = { at, date: ses.date, sessionId: ses.id, exId: b.exId, measurementType: b.measurementType, sets: done, ...publicLandingRecording(b), ...(Object.prototype.hasOwnProperty.call(b, "variant") ? { variant: b.variant } : {}) };
     }
   }
   return best;

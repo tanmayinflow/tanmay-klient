@@ -125,7 +125,7 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
       {active.map(item => <button type="button" key={`${item.key}:${item.id}`} aria-label={`${L('Odebrat filtr', 'Remove filter')}: ${item.label}`} onClick={() => patch({ [item.key]: value[item.key].filter(id => id !== item.id) })} style={{ ...control(t), fontSize: 12, padding: '5px 9px', borderColor: t.borderSoft, display: 'inline-flex', alignItems: 'center', gap: 6 }}>{item.label}<TmIcon id="close" size={12} /></button>)}
     </div>}
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 8, fontSize: 13, color: t.textMuted }}>
-      <span role="status" aria-live="polite">{count} {L('cviků', 'exercises')}</span>
+      <span role="status" aria-live="polite">{count} {L(count === 1 ? 'cvik' : count >= 2 && count <= 4 ? 'cviky' : 'cviků', count === 1 ? 'exercise' : 'exercises')}</span>
       {hiddenCount > 0 && <button type="button" onClick={() => patch({ includeArchived: true })} style={{ ...control(t), fontSize: 12, borderColor: 'transparent', textDecoration: 'underline' }}>{L(`V archivu odpovídá dalších ${hiddenCount}`, `${hiddenCount} more matches in archive`)}</button>}
       {any ? <button type="button" onClick={() => { onChange(createExerciseFilters()); onClear?.(); setExpanded(null); }} style={{ ...control(t), marginLeft: 'auto', borderColor: 'transparent', textDecoration: 'underline' }}>{L('Vyčistit filtry', 'Clear filters')}</button> : null}
     </div>

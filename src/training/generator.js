@@ -1,3 +1,4 @@
+import {landingResolvedRefusal,resolvedLandingPolicy} from './catalogLandingAudit.js';
 import {complexTaskResolvedRefusal,resolvedComplexTaskPolicy} from './catalogComplexTaskAudit.js';
 import {throwResolvedRefusal,resolvedThrowPolicy} from './catalogThrowAudit.js';
 import {breathingResolvedRefusal,resolvedBreathingPolicy} from './catalogBreathingAudit.js';
@@ -65,6 +66,7 @@ export function selectableFor(rec, ctx) {
       return { ok: false, why: "unknown-role" };
   }
 
+  const landingRefusal=landingResolvedRefusal(rec,c);if(landingRefusal)return landingRefusal;
   const complexTaskRefusal=complexTaskResolvedRefusal(rec,c);if(complexTaskRefusal)return complexTaskRefusal;
   const throwRefusal=throwResolvedRefusal(rec,c);if(throwRefusal)return throwRefusal;
   const breathingRefusal=breathingResolvedRefusal(rec,c);if(breathingRefusal)return breathingRefusal;
@@ -76,7 +78,7 @@ export function selectableFor(rec, ctx) {
   const locomotionRefusal=locomotionResolvedRefusal(rec,c);if(locomotionRefusal)return locomotionRefusal;
   const reviewedRefusal=reviewedRopeClimbRefusal(rec,c);if(reviewedRefusal)return reviewedRefusal;
   if (rec.requiresCoach && !c.coachPresent) return { ok: false, why: "requires-coach" };
-  if (!resolvedComplexTaskPolicy(rec) && !resolvedThrowPolicy(rec) && !resolvedBreathingPolicy(rec) && !resolvedPositionHoldPolicy(rec) && !resolvedElbowHandPolicy(rec) && !resolvedShoulderPolicy(rec) && !resolvedHipPolicy(rec) && !resolvedLowerLegPolicy(rec) && !locomotionHasResolvedEquipment(rec) && c.equipment && rec.equipment.length && !rec.equipment.every((k) => c.equipment.includes(k))) return { ok: false, why: "equipment" };
+  if (!resolvedLandingPolicy(rec) && !resolvedComplexTaskPolicy(rec) && !resolvedThrowPolicy(rec) && !resolvedBreathingPolicy(rec) && !resolvedPositionHoldPolicy(rec) && !resolvedElbowHandPolicy(rec) && !resolvedShoulderPolicy(rec) && !resolvedHipPolicy(rec) && !resolvedLowerLegPolicy(rec) && !locomotionHasResolvedEquipment(rec) && c.equipment && rec.equipment.length && !rec.equipment.every((k) => c.equipment.includes(k))) return { ok: false, why: "equipment" };
   if (c.sessionRole && rec.sessionRole !== c.sessionRole) return { ok: false, why: "session-role" };
   if (c.measurementTypes && !c.measurementTypes.includes(rec.measurementType)) return { ok: false, why: "measurement-type" };
   if (c.excludeIds && c.excludeIds.includes(rec.id)) return { ok: false, why: "already-chosen" };

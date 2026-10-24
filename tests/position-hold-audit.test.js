@@ -3,11 +3,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {createLandingRecordingUiBridge} from '../src/shared/product/landingRecordingUiBridge.js';
 import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as TV from '../src/training/index.js';
 import {POSITION_HOLD_AUDIT_CONTEXT as context} from '../src/data/positionHoldAuditContext.js';
+import {LANDING_AUDIT_CONTEXT} from '../src/data/landingAuditContext.js';
 import {POSITION_HOLD_AUDIT_ENTRIES as publicEntries} from '../src/training/catalogPositionHoldAuditData.js';
 import {ELBOW_HAND_AUDIT_CONTEXT} from '../src/data/elbowHandAuditContext.js';
 import {SHOULDER_AUDIT_CONTEXT} from '../src/data/shoulderAuditContext.js';
@@ -117,9 +119,14 @@ test('actual series and history render stored split sides read-only without assi
  assert.ok(renderToStaticMarkup(React.createElement(Comp,{set:{side:'L'},policy:policy('onelegfl')})).includes('<select'));
  const appSource=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8'),ast=ts.createSourceFile('App.tsx',appSource,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX),node=ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='TvLocoHistory');assert.ok(node);
  const histSource=node.getText(ast),histCode=ts.transpileModule(histSource,{compilerOptions:{jsx:ts.JsxEmit.React}}).outputText;
- const History=vm.runInNewContext(histCode+';TvLocoHistory;',{...env,useState:()=>['unspecified',()=>{}],LANG:'cs',tvLocoVariant:()=>false,TvLocoLegacy:()=>null});
+ const accessNode=ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='tvLandingAccess');assert.ok(accessNode,'Actual landing accessor');
+ const getAccess=vm.runInNewContext(accessNode.getText(ast)+';tvLandingAccess;',{TV,LANDING_AUDIT_CONTEXT,tMetaOf:r=>meta[r?.id]});
+ const st={coll:after,tvExerciseOf:()=>null},tvLanding=createLandingRecordingUiBridge({getAccess});
+ const History=vm.runInNewContext(histCode+';TvLocoHistory;',{...env,useStore:()=>st,tvLanding,useState:()=>['unspecified',()=>{}],LANG:'cs',tvLocoVariant:()=>false,TvLocoLegacy:()=>null});
  const history=[{side:'L',at:1,sessionId:'synthetic',date:'2026-10-24',measurementType:'DURATION',actual:{durationSec:32}}];
  const html=renderToStaticMarkup(React.createElement(History,{policy:p,history,type:'DURATION'}));assert.ok(html.includes('Levá'));assert.ok(html.includes('32'));assert.ok(!html.includes('<select'));assert.equal(history[0].side,'L');
+ const withBlock=[{...history[0],auditBlock:{...block('frontsplit'),sets:[{id:'s',side:'L',actual:{durationSec:32}}]}}],saved=structuredClone(withBlock);
+ const withBridge=renderToStaticMarkup(React.createElement(History,{policy:p,history:withBlock,type:'DURATION'}));assert.ok(withBridge.includes('Levá'));assert.ok(withBridge.includes('32'));assert.ok(!withBridge.includes('<select'));assert.deepEqual(withBlock,saved);
 });
 
 // A floor-rest variation must not inherit the raised-shoulderstand context.

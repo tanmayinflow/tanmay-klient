@@ -7,7 +7,7 @@ export function createTrainingGuideUI(deps) {
   const { useT, useStore, L, TL, TV, FONT_BODY, FONT_TAG, FONT_DISPLAY,
     hexA, tvQuiet, FamilyIcon, TrainingSourceText, TExArt, TvField,
     tmCompile, useTmEngine, useWakeLock, tmAudio,
-    exerciseRow, exerciseRecord, exercisePolicy, TvLocoSide, TvLocoLegacy, blockName, isCzech } = deps;
+    exerciseRow, exerciseRecord, exercisePolicy, TvLocoSide, TvLocoLegacy, blockName, isCzech, landingRecording, TvLandingNotice, TvLandingSet } = deps;
   const tvCz = isCzech;
   const tvFmtA = (mt, a) => TV.fmtActual(mt, a, tvCz());
   const tvFmtP = (mt, p) => TV.fmtPlanned(mt, p, tvCz());
@@ -252,6 +252,9 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
   const [clock, setClock] = useState(null);         // { nonce, auto } · běžící odpočet série
   const [auto, setAuto] = useState(!!cfg.guideAuto);
   const nonce = React.useRef(0);
+  const [pending, setPending] = useState(null);
+  const pendingRef = React.useRef(null);
+  const acknowledged = React.useRef(null);
   const labels = TV.blockLabels(session);
   const counts = TV.countSets(session);
 
@@ -265,7 +268,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
   const row = block ? exerciseRow(st, block.exId) : null;
   const prev = block && prevFor ? prevFor(block.exId) : null;
   const sideOf = x => x?.side === "L" ? "L" : x?.side === "R" ? "R" : "unspecified";
-  const prevSet = policy?.sideMode === "perSide" ? (prev?.sets||[]).filter(x=>sideOf(x)===sideOf(set))[(block?.sets||[]).slice(0,step.setIndex).filter(x=>sideOf(x)===sideOf(set)).length] || null : prev && prev.sets ? prev.sets[Math.min(step.setIndex, prev.sets.length - 1)] : null;
+  const prevSet = landingRecording && !landingRecording.canCopy(st,block,prev) ? null : policy?.sideMode === "perSide" ? (prev?.sets||[]).filter(x=>sideOf(x)===sideOf(set))[(block?.sets||[]).slice(0,step.setIndex).filter(x=>sideOf(x)===sideOf(set)).length] || null : prev && prev.sets ? prev.sets[Math.min(step.setIndex, prev.sets.length - 1)] : null;
   const seconds = block ? setSeconds(block, set) : 0;
   const anyTimed = React.useMemo(() => steps.some((x) => setSeconds(x.block, x.set) > 0), [steps]);
   const setsInBlock = block ? (block.sets || []).length : 0;
@@ -275,47 +278,69 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
 
   const patchActual = (patch, rir) => onSession((s) => {
     let next = s;
-    if (patch) next = TV.locomotionSetActual(next, block.id, set.id, patch, policy);
+    if (patch) next = landingRecording ? landingRecording.setActual(st,next,block.id,set.id,patch,(...args)=>TV.locomotionSetActual(...args,policy)) : TV.locomotionSetActual(next,block.id,set.id,patch,policy);
     if (rir !== undefined) next = TV.setRir(next, block.id, set.id, rir);
     return next;
   });
 
-  // Hotovo: prázdná pole dostanou plán (potvrzení jedním klepnutím), série
-  // se zavře, pauza se spočítá z toho, co přijde, a průvodce jde dál.
+  // A queued React update may reject the current state. Navigation waits for
+  // the exact accepted session/set result, outside the pure state updater.
+  const cancelPending = () => { pendingRef.current=null; setPending(null); };
+  React.useEffect(() => {
+    if (!pending || pendingRef.current !== pending || acknowledged.current === pending) return;
+    const currentBlock=session.blocks?.find(b=>b.id===pending.blockId);
+    const currentSet=currentBlock?.sets?.find(s=>s.id===pending.setId);
+    if(session.id!==pending.sessionId||!currentSet||(landingRecording&&!landingRecording.canRecord(st,currentBlock,currentSet))){cancelPending();return;}
+    if(!currentSet.completed||currentSet.completedAt!==pending.at){
+      if(JSON.stringify({...currentBlock,sets:undefined,set:currentSet})!==pending.fingerprint)cancelPending();
+      return;
+    }
+    acknowledged.current=pending;
+    cancelPending();
+    setClock(null);
+    const acceptedSteps=guideSteps(session),index=acceptedSteps.findIndex(x=>x.block.id===pending.blockId&&x.set.id===pending.setId),nextStep=acceptedSteps[index+1];
+    if(index<0)return;
+    if(!nextStep){onFinish();return;}
+    setPos(index+1);
+    const restInfo=TV.restAfterSet(session,pending.blockId,pending.setId);
+    if(restInfo?.sec>0){
+      nonce.current+=1;setRest({sec:restInfo.sec,reason:restInfo.reason,nonce:nonce.current,next:{name:stepName(nextStep),detail:stepDetail(nextStep)}});
+    }else if(auto&&!nextStep.set.completed&&setSeconds(nextStep.block,nextStep.set)>0){
+      nonce.current+=1;setClock({nonce:nonce.current,auto:true});
+    }
+  }, [session,pending,st,auto,onFinish]);
   const complete = (extra) => {
+    if(pendingRef.current||!block||!set||set.completed||landingRecording&&!landingRecording.canRecord(st,block,set))return;
     tmAudio.unlock();
-    const nextStep = steps[pos + 1] || null;
-    // Stejný krok dvakrát: jednou hned, aby průvodce věděl, jaká pauza přijde,
-    // a jednou jako aktualizace sbírky (ta může proběhnout až v dalším renderu).
-    const applyComplete = (s) => {
-      const original=TV.findSet(s,block.id,set.id);
-      const protectedLoadKeys=TV.locomotionProtectedLoadKeys(policy);
-      const skipPrevious=policy?.sideMode === "perSide" || policy?.noAddedWeight;
-      const previousActual=skipPrevious?{}:Object.fromEntries(Object.entries(prevSet?.actual||{}).filter(([key])=>!protectedLoadKeys.includes(key)));
-      const next=completeGuidedSet(s,block.id,set.id,{previousActual,extra,now:Date.now()});
-      if(!protectedLoadKeys.length||!original)return next;
-      return {...next,blocks:next.blocks.map(b=>b.id!==block.id?b:{...b,sets:b.sets.map(x=>{
-        if(x.id!==set.id)return x;const actual={...x.actual};
-        for(const k of protectedLoadKeys){delete actual[k];if(Object.prototype.hasOwnProperty.call(original.actual||{},k))actual[k]=original.actual[k];}
+    const request={sessionId:session.id,blockId:block.id,setId:set.id,at:Date.now(),before:session};
+    // No interpretation of a newly changed task/actual is borrowed from the render.
+    const fingerprint=(b,s)=>JSON.stringify({...b,sets:undefined,set:s});
+    const expected=fingerprint(block,set);
+    request.fingerprint=expected;
+    const nativeComplete = (s) => {
+      const currentBlock=s.blocks?.find(b=>b.id===request.blockId),original=currentBlock?.sets?.find(x=>x.id===request.setId);
+      if(s.id!==request.sessionId||!original||original.completed||fingerprint(currentBlock,original)!==expected)return s;
+      const currentPolicy=exercisePolicy?exercisePolicy(st,currentBlock.exId,currentBlock):null;
+      const protectedKeys=[...new Set([...TV.locomotionProtectedLoadKeys(currentPolicy),...(landingRecording?.protectedActual(st,currentBlock,true)||[])])];
+      const skipPrevious=currentPolicy?.sideMode==='perSide'||currentPolicy?.noAddedWeight;
+      const previousActual=skipPrevious?{}:Object.fromEntries(Object.entries(prevSet?.actual||{}).filter(([key])=>!protectedKeys.includes(key)));
+      const next=completeGuidedSet(s,request.blockId,request.setId,{previousActual,extra,now:request.at});
+      if(!protectedKeys.length)return next;
+      return {...next,blocks:next.blocks.map(b=>b.id!==request.blockId?b:{...b,sets:b.sets.map(x=>{
+        if(x.id!==request.setId)return x;const actual={...x.actual};
+        for(const k of protectedKeys){delete actual[k];if(Object.prototype.hasOwnProperty.call(original.actual||{},k))actual[k]=original.actual[k];}
         return {...x,actual};
       })})};
     };
-    const restInfo = TV.restAfterSet(applyComplete(session), block.id, set.id);
+    const applyComplete=s=>landingRecording?landingRecording.guideApply(st,s,request.blockId,request.setId,nativeComplete):nativeComplete(s);
+    pendingRef.current=request;setPending(request);
     onSession(applyComplete);
-    setClock(null);
-    if (!nextStep) { onFinish(); return; }
-    setPos(pos + 1);
-    if (restInfo && restInfo.sec > 0) {
-      nonce.current += 1;
-      setRest({ sec: restInfo.sec, reason: restInfo.reason, nonce: nonce.current, next: { name: stepName(nextStep), detail: stepDetail(nextStep) } });
-    } else if (auto && !nextStep.set.completed && setSeconds(nextStep.block, nextStep.set) > 0) {
-      nonce.current += 1; setClock({ nonce: nonce.current, auto: true });
-    }
   };
-  const skip = () => { setClock(null); setRest(null); if (pos + 1 < steps.length) setPos(pos + 1); else onFinish(); };
-  const back = () => { setClock(null); setRest(null); setPos(Math.max(0, pos - 1)); };
+
+  const skip = () => { cancelPending(); setClock(null); setRest(null); if (pos + 1 < steps.length) setPos(pos + 1); else onFinish(); };
+  const back = () => { cancelPending(); setClock(null); setRest(null); setPos(Math.max(0, pos - 1)); };
   const jump = (blockId) => {
-    setClock(null); setRest(null);
+    cancelPending(); setClock(null); setRest(null);
     const i = steps.findIndex((x) => x.block.id === blockId && !x.set.completed);
     const j = i >= 0 ? i : steps.findIndex((x) => x.block.id === blockId);
     if (j >= 0) setPos(j);
@@ -387,12 +412,13 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
       <div style={{ border: `1px solid ${t.border}`, borderRadius: 16, background: t.card, padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
           <span style={{ fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: t.accent }}>
-            {L("Série", "Set")} {step.setIndex + 1} {L("z", "of")} {setsInBlock}{set.side === "L" ? L(" · Levá strana", " · Left side") : set.side === "R" ? L(" · Pravá strana", " · Right side") : ""}
+            {L("Série", "Set")} {step.setIndex + 1} {L("z", "of")} {setsInBlock}{landingRecording ? (()=>{const label=landingRecording.sideSummary(st,block,set,policy,tvCz()?"cs":"en");return label?" · "+label:"";})() : set.side === "L" ? L(" · Levá strana", " · Left side") : set.side === "R" ? L(" · Pravá strana", " · Right side") : ""}
           </span>
           {set.type !== "work" ? <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: set.type === "warmup" ? t.sage : t.accent }}>{TL(TV.SET_TYPE_LABEL[set.type] || ["", ""])}</span> : null}
           {set.completed ? <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: t.sage }}><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("hotová", "done")}</span> : null}
         </div>
 
+        {TvLandingNotice?<TvLandingNotice st={st} block={block} policy={policy}/>:null}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>
             <div style={{ fontFamily: FONT_TAG, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted }}>{L("Cíl", "Target")}</div>
@@ -422,10 +448,11 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
         ) : null}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
-          {TvLocoSide?<TvLocoSide set={set} policy={policy} onChange={side=>onSession(s=>TV.locomotionSetSide(s,block.id,set.id,side,policy))}/>:null}
+          {TvLocoSide&&(!landingRecording||['none','legacy'].includes(landingRecording.view(st,block,set).kind))?<TvLocoSide set={set} policy={landingRecording?landingRecording.sidePolicy(st,block,policy):policy} onChange={side=>onSession(s=>TV.locomotionSetSide(s,block.id,set.id,side,policy))}/>:null}
+          {TvLandingSet?<TvLandingSet st={st} block={block} set={set} onChange={p=>onSession(s=>landingRecording.setParameters(st,s,block.id,set.id,p))}/>:null}
           {TvLocoLegacy?<TvLocoLegacy set={set} policy={policy}/>:null}
           {fields.map((f) => (
-            <TvField key={f} field={f} value={set.actual[f] == null ? null : set.actual[f]} onChange={(v) => patchActual({ [f]: v })} />
+            <TvField key={f} field={f} label={landingRecording?.fieldLabel(st,block,f,tvCz()?"cs":"en")} disabled={!!landingRecording&&(!landingRecording.canRecord(st,block,set)||landingRecording.protectedActual(st,block).includes(f))} value={set.actual[f] == null ? null : set.actual[f]} onChange={(v) => patchActual({ [f]: v })} />
           ))}
           {block.rirEnabled ? (
             <label style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
@@ -450,7 +477,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
             {pos + 1 < steps.length ? L("Další série", "Next set") : L("Dokončit trénink", "Finish the workout")}
           </button>
         ) : (
-          <button onClick={() => complete()} className="tm-cta" aria-label={L("Série hotová", "Set done")}
+          <button disabled={!!pending||!!landingRecording&&!landingRecording.canRecord(st,block,set)} onClick={() => complete()} className="tm-cta" aria-label={L("Série hotová", "Set done")}
             style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 14, padding: "14px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 56 }}>
             {L("Hotovo", "Done")}{pos + 1 < steps.length ? " · " + L("další", "next") : ""}
           </button>

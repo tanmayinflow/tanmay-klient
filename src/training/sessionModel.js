@@ -1,3 +1,5 @@
+import {preserveLandingSideMeaning} from './landingSideMeaningIntent.js';
+import {preserveLandingSetChoice,preserveLandingRecordingBlock} from './landingRecordingContract.js';
 // ======================================================================
 // SESSION MODEL · five things that are not the same thing
 // ----------------------------------------------------------------------
@@ -35,7 +37,7 @@ const pairOf = (v) => (Array.isArray(v) ? [v[0] || "", v[1] || ""] : ["", ""]);
 export function makeSet(measurementType, o) {
   const opt = o || {};
   const type = SET_TYPES.includes(opt.type) ? opt.type : "work";
-  return {
+  const result = {
     id: opt.id || nextId("set"),
     type,
     planned: normalizePlanned(measurementType, opt.planned),
@@ -51,13 +53,14 @@ export function makeSet(measurementType, o) {
     // "L" / "R" for a per-side exercise, otherwise null.
     side: opt.side || null,
   };
+  return preserveLandingSetChoice(opt,result);
 }
 
 // ---- an exercise block inside a session ------------------------------
 export function makeBlock(o) {
   const opt = o || {};
   const measurementType = opt.measurementType || "REPS_ONLY";
-  return {
+  const result = {
     id: opt.id || nextId("blk"),
     exId: opt.exId || "",
     // Denormalised at snapshot time. A session must still read correctly
@@ -82,6 +85,7 @@ export function makeBlock(o) {
     focus: opt.focus ? pairOf(opt.focus) : null,
     note: opt.note || "",
   };
+  return preserveLandingSideMeaning(opt,preserveLandingRecordingBlock(opt,result));
 }
 
 // ---- a workout template ----------------------------------------------

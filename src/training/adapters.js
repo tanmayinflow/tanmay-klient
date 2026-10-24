@@ -1,3 +1,5 @@
+import {landingDeliveryStamp,resolvedLandingPolicy,landingBlockCompatible} from './catalogLandingAudit.js';
+import {publicLandingRecording,publicLandingExecution} from './landingRecordingContract.js';
 import {complexTaskDeliveryStamp,resolvedComplexTaskPolicy,complexTaskBlockCompatible} from './catalogComplexTaskAudit.js';
 import {throwDeliveryStamp,resolvedThrowPolicy,throwBlockCompatible} from './catalogThrowAudit.js';
 import {breathingDeliveryStamp,resolvedBreathingPolicy,breathingBlockCompatible} from './catalogBreathingAudit.js';
@@ -159,6 +161,7 @@ export function clientBundle(plans, templates, resolve, opts) {
   const hipIncompatibleExercises = new Set();
   const shoulderIncompatibleExercises = new Set();
   const elbowHandIncompatibleExercises = new Set();
+  const landingIncompatibleExercises = new Set();
   const complexTaskIncompatibleExercises = new Set();
   const throwIncompatibleExercises = new Set();
   const breathingIncompatibleExercises = new Set();
@@ -188,6 +191,8 @@ export function clientBundle(plans, templates, resolve, opts) {
       blocks: (t.blocks || []).map((b) => {
         const rec = resolve ? resolve(b.exId) : null;
         if (rec) usedExercises.set(b.exId, rec);
+        const landingPolicy=resolvedLandingPolicy(rec);
+        if(landingPolicy&&!landingBlockCompatible(landingPolicy,b))landingIncompatibleExercises.add(b.exId);
         const complexTaskPolicy=resolvedComplexTaskPolicy(rec);
         if(complexTaskPolicy&&!complexTaskBlockCompatible(complexTaskPolicy,b))complexTaskIncompatibleExercises.add(b.exId);
         const throwPolicy=resolvedThrowPolicy(rec);
@@ -203,12 +208,12 @@ export function clientBundle(plans, templates, resolve, opts) {
         const hipPolicy=resolvedHipDeliveryPolicy(rec);
         if(hipPolicy&&!hipBlockCompatible(hipPolicy,b))hipIncompatibleExercises.add(b.exId);
         return {
-          id: b.id, exId: b.exId, name: b.name, measurementType: b.measurementType,
+          id: b.id, exId: b.exId, name: b.name, measurementType: b.measurementType, ...publicLandingRecording(b),
           restSec: b.restSec, groupId: b.groupId, groupMode: b.groupMode, groupOrder: b.groupOrder,
           rirEnabled: b.rirEnabled, variant: b.variant ?? null,
           // The coach note travels. The private note never does.
           coachNote: nativeText(b.coachNote) || ["", ""],
-          sets: (b.sets || []).map((s) => ({ id: s.id, type: s.type, planned: s.planned, restSec: s.restSec, side: s.side })),
+          sets: (b.sets || []).map((s) => ({ id: s.id, type: s.type, planned: s.planned, restSec: s.restSec, side: s.side, ...publicLandingExecution(b,s) })),
         };
       }),
     });
@@ -228,6 +233,7 @@ export function clientBundle(plans, templates, resolve, opts) {
     };
     const stamp=locomotionDeliveryStamp(rec,delivered);
     const lowerStamp=lowerLegDeliveryStamp(rec,delivered);
+    const landingStamp=landingIncompatibleExercises.has(rec.id)?undefined:landingDeliveryStamp(rec,delivered);
     const complexTaskStamp=complexTaskIncompatibleExercises.has(rec.id)?undefined:complexTaskDeliveryStamp(rec,delivered);
     const throwStamp=throwIncompatibleExercises.has(rec.id)?undefined:throwDeliveryStamp(rec,delivered);
     const breathingStamp=breathingIncompatibleExercises.has(rec.id)?undefined:breathingDeliveryStamp(rec,delivered);
@@ -235,7 +241,7 @@ export function clientBundle(plans, templates, resolve, opts) {
     const elbowHandStamp=elbowHandIncompatibleExercises.has(rec.id)?undefined:elbowHandDeliveryStamp(rec,delivered);
     const shoulderStamp=shoulderIncompatibleExercises.has(rec.id)?undefined:shoulderDeliveryStamp(rec,delivered);
     const hipStamp=hipIncompatibleExercises.has(rec.id)?undefined:hipDeliveryStamp(rec,delivered);
-    outExercises.push({...delivered,...(complexTaskStamp?{complexTaskAudit:complexTaskStamp}:{}),...(throwStamp?{throwAudit:throwStamp}:{}),...(breathingStamp?{breathingAudit:breathingStamp}:{}),...(stamp?{locomotionAudit:stamp}:{}),...(lowerStamp?{lowerLegAudit:lowerStamp}:{}),...(hipStamp?{hipAudit:hipStamp}:{}),...(shoulderStamp?{shoulderAudit:shoulderStamp}:{}),...(elbowHandStamp?{elbowHandAudit:elbowHandStamp}:{}),...(positionHoldStamp?{positionHoldAudit:positionHoldStamp}:{})});
+    outExercises.push({...delivered,...(landingStamp?{landingAudit:landingStamp}:{}),...(complexTaskStamp?{complexTaskAudit:complexTaskStamp}:{}),...(throwStamp?{throwAudit:throwStamp}:{}),...(breathingStamp?{breathingAudit:breathingStamp}:{}),...(stamp?{locomotionAudit:stamp}:{}),...(lowerStamp?{lowerLegAudit:lowerStamp}:{}),...(hipStamp?{hipAudit:hipStamp}:{}),...(shoulderStamp?{shoulderAudit:shoulderStamp}:{}),...(elbowHandStamp?{elbowHandAudit:elbowHandStamp}:{}),...(positionHoldStamp?{positionHoldAudit:positionHoldStamp}:{})});
   }
   return { at: o.now || Date.now(), v: 2, plans: outPlans, templates: outTemplates, exercises: outExercises };
 }
@@ -255,10 +261,10 @@ export function fulfilmentFrom(sessions, opts) {
         id: s.id, date: s.date, planId: s.planId, planSessionId: s.planSessionId, templateId: s.templateId,
         startedAt: s.startedAt, endedAt: s.endedAt, effort: s.effort, note: s.note, painJoints: s.painJoints || [],
         blocks: (s.blocks || []).map((b) => ({
-          id: b.id, exId: b.exId, measurementType: b.measurementType,
+          id: b.id, exId: b.exId, measurementType: b.measurementType, ...publicLandingRecording(b),
           ...(Object.prototype.hasOwnProperty.call(b,"variant") ? {variant:b.variant} : {}),
           techniqueFlagged: !!b.techniqueFlagged,
-          sets: (b.sets || []).map((x) => ({ id: x.id, type: x.type, planned: x.planned, actual: x.actual, completed: x.completed, completedAt: x.completedAt, rir: x.rir, note: x.note, side: x.side })),
+          sets: (b.sets || []).map((x) => ({ id: x.id, type: x.type, planned: x.planned, actual: x.actual, completed: x.completed, completedAt: x.completedAt, rir: x.rir, note: x.note, side: x.side, ...publicLandingExecution(b,x) })),
         })),
       })),
   };

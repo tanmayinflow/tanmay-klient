@@ -477,10 +477,35 @@ export const TRAINING_V2_IDS = TRAINING_V2_EXERCISES.map((x) => x.id);
 export function extensionFor(availableIds) {
   const have = new Set(availableIds || []);
   for (const id of TRAINING_V2_IDS) have.add(id);
-  return TRAINING_V2_EXERCISES.map((x) => ({
-    ...x,
-    ez: x.ez && have.has(x.ez) ? x.ez : null,
-    hd: x.hd && have.has(x.hd) ? x.hd : null,
-  }));
+  // Correct authored defaults before omitting links unavailable to this role.
+  // Only these static seeds are read here; saved rows and explicit user nulls
+  // never enter this factory and are not repaired by ID after loading.
+  const publicDefaults = {
+    "trapbardl": {
+      "before": "an_dbdeadlift",
+      "after": "kb26_deadlift"
+    },
+    "ex26_rack_pull": {
+      "before": "an_boxdeadlift",
+      "after": "kb26_deadlift"
+    },
+    "ex26_suitcase_deadlift": {
+      "before": "an_dbdeadlift",
+      "after": "kb26_deadlift"
+    },
+    "ig26_skater_squat": {
+      "before": "an_splitsquat",
+      "after": "sq26_supported"
+    }
+  };
+  return TRAINING_V2_EXERCISES.map((x) => {
+    const reviewed = publicDefaults[x.id];
+    const easier = reviewed && x.ez === reviewed.before ? reviewed.after : x.ez;
+    return {
+      ...x,
+      ez: easier && have.has(easier) ? easier : null,
+      hd: x.hd && have.has(x.hd) ? x.hd : null,
+    };
+  });
 }
 export const ACTIVITY_IDS = ACT.map((x) => x.id);

@@ -1,3 +1,4 @@
+import {attachLandingPolicy} from './catalogLandingAudit.js';
 import {attachComplexTaskPolicy} from './catalogComplexTaskAudit.js';
 import {attachThrowPolicy} from './catalogThrowAudit.js';
 import {attachBreathingPolicy} from './catalogBreathingAudit.js';
@@ -267,12 +268,12 @@ export function searchTextOf(row, meta) {
 // ---- the effective record --------------------------------------------
 // Everything above, resolved once. Call it, keep the result, do not
 // re-derive field by field in a render.
-export function resolveExercise(row, meta, originalIds, locomotionAuditContext, lowerLegAuditContext, hipAuditContext, shoulderAuditContext, elbowHandAuditContext, positionHoldAuditContext, breathingAuditContext, throwAuditContext, complexTaskAuditContext) {
+export function resolveExercise(row, meta, originalIds, locomotionAuditContext, lowerLegAuditContext, hipAuditContext, shoulderAuditContext, elbowHandAuditContext, positionHoldAuditContext, breathingAuditContext, throwAuditContext, complexTaskAuditContext, landingAuditContext) {
   if (!row) return null;
   const m = meta || {};
   const measurementType = measurementTypeOf(row, m);
   const role = productRoleOf(row, m);
-  return attachComplexTaskPolicy(attachThrowPolicy(attachBreathingPolicy(attachPositionHoldPolicy(attachElbowHandPolicy(attachShoulderPolicy(attachHipPolicy(attachLowerLegPolicy(attachLocomotionPolicy({
+  return attachLandingPolicy(attachComplexTaskPolicy(attachThrowPolicy(attachBreathingPolicy(attachPositionHoldPolicy(attachElbowHandPolicy(attachShoulderPolicy(attachHipPolicy(attachLowerLegPolicy(attachLocomotionPolicy({
     id: row.id,
     displayCz: displayCzOf(row, m),
     displayEn: displayEnOf(row, m),
@@ -317,19 +318,19 @@ export function resolveExercise(row, meta, originalIds, locomotionAuditContext, 
     easierId: row.ez || null,
     harderId: row.hd || null,
     ...(reviewedRopeClimbPolicy(row,m) || {}),
-  },row,meta,locomotionAuditContext),row,meta,lowerLegAuditContext),row,meta,hipAuditContext),row,meta,shoulderAuditContext),row,meta,elbowHandAuditContext),row,meta,positionHoldAuditContext),row,meta,breathingAuditContext),row,meta,throwAuditContext),row,meta,complexTaskAuditContext);
+  },row,meta,locomotionAuditContext),row,meta,lowerLegAuditContext),row,meta,hipAuditContext),row,meta,shoulderAuditContext),row,meta,elbowHandAuditContext),row,meta,positionHoldAuditContext),row,meta,breathingAuditContext),row,meta,throwAuditContext),row,meta,complexTaskAuditContext),row,meta,landingAuditContext);
 }
 
 // A cache keyed by id, because a picker resolves five hundred rows on
 // every keystroke otherwise.
-export function makeResolver(metaTable, originalIds, locomotionAuditContext, lowerLegAuditContext, hipAuditContext, shoulderAuditContext, elbowHandAuditContext, positionHoldAuditContext, breathingAuditContext, throwAuditContext, complexTaskAuditContext) {
+export function makeResolver(metaTable, originalIds, locomotionAuditContext, lowerLegAuditContext, hipAuditContext, shoulderAuditContext, elbowHandAuditContext, positionHoldAuditContext, breathingAuditContext, throwAuditContext, complexTaskAuditContext, landingAuditContext) {
   const cache = new Map();
   return (row) => {
     if (!row || !row.id) return null;
     const hit = cache.get(row.id);
     const meta = metaTable ? metaTable[row.id] : null;
     if (hit && hit.row === row && hit.meta === meta) return hit.rec;
-    const rec = resolveExercise(row, meta, originalIds, locomotionAuditContext, lowerLegAuditContext, hipAuditContext, shoulderAuditContext, elbowHandAuditContext, positionHoldAuditContext, breathingAuditContext, throwAuditContext, complexTaskAuditContext);
+    const rec = resolveExercise(row, meta, originalIds, locomotionAuditContext, lowerLegAuditContext, hipAuditContext, shoulderAuditContext, elbowHandAuditContext, positionHoldAuditContext, breathingAuditContext, throwAuditContext, complexTaskAuditContext, landingAuditContext);
     cache.set(row.id, { row, meta, rec });
     return rec;
   };

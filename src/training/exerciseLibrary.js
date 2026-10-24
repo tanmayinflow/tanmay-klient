@@ -23,7 +23,7 @@ export function buildExerciseIndex(rows, options = {}) {
     const search = normalizeExerciseSearch([options.searchTextOf?.(row), row.id, ...names, ...array(row.aliases), ...array(row.taxonomy?.aliases)].filter(Boolean).join(' '));
     const status = options.statusOf?.(row) || row.status || meta.s || 'active';
     const tier = options.tierOf?.(row) || row.tier || meta.t || 'extended';
-    return { row, order, complexTaskOrders:options.complexTaskOrderOf?.(row,meta) ?? null, throwOrder:options.throwOrderOf?.(row,meta) ?? null, breathingOrder:options.breathingOrderOf?.(row,meta) ?? null, positionHoldOrder:options.positionHoldOrderOf?.(row,meta) ?? null, elbowHandOrder:options.elbowHandOrderOf?.(row,meta) ?? null, shoulderOrder:options.shoulderOrderOf?.(row,meta) ?? null, tax, equipment, name, names, search, muscles, level: options.levelOf?.(row) ?? Math.max(Number(row.S) || 1, (Number(row.C) || 1) - 1), archived: ['archived', 'blocked', 'alias', 'merged', 'deprecated'].includes(status) || tier === 'archived' || !!(row.aliasOf || meta.al) };
+    return { row, order, landingOrders:options.landingOrderOf?.(row,meta) ?? null, complexTaskOrders:options.complexTaskOrderOf?.(row,meta) ?? null, throwOrder:options.throwOrderOf?.(row,meta) ?? null, breathingOrder:options.breathingOrderOf?.(row,meta) ?? null, positionHoldOrder:options.positionHoldOrderOf?.(row,meta) ?? null, elbowHandOrder:options.elbowHandOrderOf?.(row,meta) ?? null, shoulderOrder:options.shoulderOrderOf?.(row,meta) ?? null, tax, equipment, name, names, search, muscles, level: options.levelOf?.(row) ?? Math.max(Number(row.S) || 1, (Number(row.C) || 1) - 1), archived: ['archived', 'blocked', 'alias', 'merged', 'deprecated'].includes(status) || tier === 'archived' || !!(row.aliasOf || meta.al) };
   });
 }
 
@@ -150,6 +150,12 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
       const ordered = slots.map(slot => visible[slot]).sort((a, b) => a.complexTaskOrders.hinge - b.complexTaskOrders.hinge || a.order - b.order);
       slots.forEach((slot, i) => { visible[slot] = ordered[i]; });
     }
+  }
+  // Only audited slots change; unrelated entries keep the total native order.
+  if(sort==='recommended'&&filters.movements.length===1){
+    const movement=filters.movements[0],groups=new Map();
+    visible.forEach((entry,slot)=>{const rank=entry.landingOrders?.[movement];if(!rank||!Number.isInteger(rank.rank))return;const key=JSON.stringify([rank.group,entry.tax.priority,searchRank(entry,query)]);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(slot);});
+    for(const slots of groups.values()){const ordered=slots.map(slot=>visible[slot]).sort((a,b)=>a.landingOrders[movement].rank-b.landingOrders[movement].rank||a.order-b.order);slots.forEach((slot,i)=>{visible[slot]=ordered[i];});}
   }
   return { rows: visible.map(entry => entry.row), hiddenCount };
 }

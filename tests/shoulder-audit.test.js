@@ -3,6 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {createLandingRecordingUiBridge} from '../src/shared/product/landingRecordingUiBridge.js';
+import ts from 'typescript';
 import * as TV from '../src/training/index.js';
 import {completeGuidedSet} from '../src/training/guide.js';
 import {SHOULDER_AUDIT_ENTRIES as publicEntries} from '../src/training/catalogShoulderAuditData.js';
@@ -71,14 +73,28 @@ test('external shoulder editing and completion preserve own secondary load while
 
 // Execute the actual small non-JSX consumer bodies; do not maintain a second implementation.
 function consumerBody(file,start,end){const source=readFileSync(new URL(file,import.meta.url),'utf8'),a=source.indexOf(start),b=source.indexOf(end,a+start.length);assert.ok(a>=0&&b>a,'Consumer moved: update this extraction to the actual new location');return source.slice(a,b);}
-test('the actual App planned editor and guide completion keep historical secondary fields',()=>{
+
+// Extract the current real consumer declarations, rather than carrying a copy
+// of guide completion logic. Its state updater remains the actual App code.
+async function actualGuideComplete(session,exerciseRow,metadata,previous) {
+ const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8'),guide=readFileSync(new URL('../src/shared/ui/trainingGuide.jsx',import.meta.url),'utf8');
+ const parse=(name,text)=>ts.createSourceFile(name,text,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX),appAst=parse('App.tsx',app),guideAst=parse('trainingGuide.jsx',guide);
+ const appFunction=name=>{const node=appAst.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text===name);assert.ok(node,'Actual App function '+name);return node.getText(appAst);};
+ const env={TV,tMetaOf:r=>metadata[r?.id],structuredClone};
+ for(const [name,prefix]of Object.entries({locomotion:'LOCOMOTION',lowerLeg:'LOWER_LEG',hip:'HIP',shoulder:'SHOULDER',elbowHand:'ELBOW_HAND',positionHold:'POSITION_HOLD',breathing:'BREATHING',throw:'THROW',complexTask:'COMPLEX_TASK',landing:'LANDING'}))env[prefix+'_AUDIT_CONTEXT']=(await import(new URL('../src/data/'+name+'AuditContext.js',import.meta.url)))[prefix+'_AUDIT_CONTEXT'];
+ const access=vm.runInNewContext([appFunction('tvLocoPolicy'),appFunction('tvLandingAccess'),'({policy:tvLocoPolicy,access:tvLandingAccess})'].join(';'),env),st={coll:{tEx:[exerciseRow]},tvExerciseOf:()=>null},landingRecording=createLandingRecordingUiBridge({getAccess:access.access});
+ const block=session.blocks[0],set=block.sets[0],actualPolicy=access.policy(exerciseRow,block);assert.ok(actualPolicy,'Actual App must recognize this reviewed fixture');
+ const matches=[];const walk=n=>{if(ts.isVariableDeclaration(n)&&n.name.getText(guideAst)==='complete'&&ts.isArrowFunction(n.initializer))matches.push(n.initializer);ts.forEachChild(n,walk);};walk(guideAst);assert.equal(matches.length,1,'Unique actual guide completion event');
+ const updates=[],pendingRef={current:null};const complete=vm.runInNewContext('('+matches[0].getText(guideAst)+')',{TV,session,block,set,st,landingRecording,pendingRef,setPending:()=>{},tmAudio:{unlock(){}},prevSet:previous,Date:{now:()=>1},completeGuidedSet,exercisePolicy:(_st,id,b)=>access.policy(_st.coll.tEx.find(r=>r.id===id),b),onSession:fn=>updates.push(fn)});
+ complete({});assert.equal(updates.length,1,'Actual event queues exactly one updater');assert.ok(pendingRef.current,'Actual completion request exists');return updates[0](session);
+}
+
+test('the actual App planned editor and guide completion keep historical secondary fields',async()=>{
  const planned=vm.runInNewContext(consumerBody('../src/App.tsx','function tvLocoPlanned(','function TvLocoHistory')+'\ntvLocoPlanned',{TV});
- const guideBody=consumerBody('../src/shared/ui/trainingGuide.jsx','    const applyComplete = (s) => {','    const restInfo =');
  const id='ig27_kneeling_cuban_rotation',p=policy(id);
  for(const value of[null,undefined]){const plan={targetWeight:2,targetReps:8,addedWeight:value},changed=planned('WEIGHT_REPS',plan,{targetWeight:4,addedWeight:99},p);assert.equal(changed.targetWeight,4);ownValue(changed,'addedWeight',value);
   const session={blocks:[{...block(id),sets:[{id:'set',type:'work',planned:plan,actual:{addedWeight:value},side:null}]}]};
-  const complete=vm.runInNewContext(guideBody+'\napplyComplete',{TV,policy:p,block:{id:'b'},set:{id:'set'},prevSet:{actual:{weight:7,addedWeight:99,reps:8}},extra:{},Date:{now:()=>1},completeGuidedSet});
-  const done=complete(session).blocks[0].sets[0];assert.equal(done.actual.weight,2);ownValue(done.actual,'addedWeight',value);ownValue(done.planned,'addedWeight',value);
+  const done=(await actualGuideComplete(session,row(id),meta,{actual:{weight:7,addedWeight:99,reps:8}})).blocks[0].sets[0];assert.equal(done.actual.weight,2);ownValue(done.actual,'addedWeight',value);ownValue(done.planned,'addedWeight',value);
  }
 });
 
