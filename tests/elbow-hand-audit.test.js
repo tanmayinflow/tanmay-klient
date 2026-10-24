@@ -192,6 +192,8 @@ test('Main canonical fresh templates retain old doses, own copies and hidden rou
  const {creatorTemplates}=await import('../src/library/creator-programs.js');
  const {makeShoulderFreshTemplateAdapter}=await import('../src/library/shoulderFreshTemplates.js');
  const {makeElbowHandFreshTemplateAdapter}=await import('../src/library/elbowHandFreshTemplates.js');
+ const {makePositionHoldFreshTemplateAdapter}=await import('../src/library/positionHoldFreshTemplates.js');
+ const {POSITION_HOLD_AUDIT_CONTEXT}=await import('../src/data/positionHoldAuditContext.js');
  const creators=creatorTemplates(id=>TV.resolveExercise(library.byId[id],meta[id],undefined,...previousContexts,context));
  const shoulder=makeShoulderFreshTemplateAdapter(MOBILITY_TEMPLATES,MOBILITY_SOURCE_POSITIONS),adapter=makeElbowHandFreshTemplateAdapter(MOBILITY_TEMPLATES,MOBILITY_SOURCE_POSITIONS,creators,shoulder);
  const ctx={...context,shoulderAuditContext:SHOULDER_AUDIT_CONTEXT},result=adapter(MOBILITY_TEMPLATES,creators,after.tEx,meta,ctx),previous=shoulder(MOBILITY_TEMPLATES,after.tEx,meta,SHOULDER_AUDIT_CONTEXT);
@@ -205,7 +207,7 @@ test('Main canonical fresh templates retain old doses, own copies and hidden rou
  const missing=adapter(MOBILITY_TEMPLATES,creators,after.tEx.filter(r=>r.id!=='wristcars'),meta,ctx);for(const t of missing.creator)for(const b of t.blocks)if(b.exId==='wristcars')assert.equal(b,blocks(creators).get(t.id+'/'+b.id));
  // Real App projection/merge/edit functions, with the same canonical factories.
  const canon=TV.separateWarmupTemplates([...MOBILITY_TEMPLATES,...creators]);
- const env={TV,makeShoulderFreshTemplateAdapter,makeElbowHandFreshTemplateAdapter,MOBILITY_TEMPLATES,MOBILITY_SOURCE_POSITIONS,CREATOR_TEMPLATES:creators,ELBOW_HAND_AUDIT_CONTEXT:context,SHOULDER_AUDIT_CONTEXT,TEX_META:meta,LIB_TEMPLATES:canon,WeakMap};
+ const env={TV,makePositionHoldFreshTemplateAdapter,POSITION_HOLD_AUDIT_CONTEXT,makeShoulderFreshTemplateAdapter,makeElbowHandFreshTemplateAdapter,MOBILITY_TEMPLATES,MOBILITY_SOURCE_POSITIONS,CREATOR_TEMPLATES:creators,ELBOW_HAND_AUDIT_CONTEXT:context,SHOULDER_AUDIT_CONTEXT,TEX_META:meta,LIB_TEMPLATES:canon,WeakMap};
  const project=vm.runInNewContext(body('../src/App.tsx','const tvShoulderFresh=','const LIB_PLANS_V2 =')+'\ntvElbowHandFreshLibrary',env);
  const collection={...after},projected=project(collection);assert.notEqual(projected,canon);assert.equal(project(collection),projected);
  const template=projected.find(t=>t.blocks.some(b=>b.exId==='wristcars'));assert.ok(template);

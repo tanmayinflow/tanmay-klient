@@ -47,6 +47,8 @@ export const EXERCISE_FOCUS = vocabulary([
   ['other','Zatím neurčeno','Not yet specified'],
 ]);
 export const EXERCISE_POSITIONS = vocabulary([
+["low_plank","Nízký vzpor","Low plank"],
+["horizontal_arm_support","Vodorovná opora na pažích","Horizontal arm support"],
 ["side_support","Boční opora","Side support"],
 ["reverse_support","Zadní opora","Reverse support"],
 ["vertical_support","Svislá opora na pažích","Upright arm support"],
@@ -58,6 +60,8 @@ export const EXERCISE_POSITIONS = vocabulary([
   ['other','Další poloha','Other position'],
 ]);
 export const EXERCISE_SUPPORTS = vocabulary([
+["prop_support","Opora pomůckami","Prop support"],
+["shoulder_support","Opora o ramena","Shoulder support"],
 ["head_support","Opora hlavy","Head support"],
 ["roller_support","Opora na válci","Roller support"],
 ["forearm_support","Opora o předloktí","Forearm support"],

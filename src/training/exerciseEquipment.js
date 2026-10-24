@@ -7,6 +7,10 @@ export const EXERCISE_EQUIPMENT_GROUPS = vocabulary([
   ['accessories','Další pomůcky','Other equipment'], ['unspecified','K upřesnění','Needs clarification'],
 ]);
 export const EXERCISE_EQUIPMENT = vocabulary([
+["yoga_strap","Jógový popruh","Yoga strap","accessories"],
+["yoga_bolster","Jógový bolster","Yoga bolster","supports"],
+["yoga_blanket","Jógová deka","Yoga blanket","supports"],
+["yoga_leg_support_pair","Dvě podpory pod stehna (kostky či složené deky)","Two thigh supports (blocks or folded blankets)","supports"],
 ["preacher_bench","Scottova lavice s oporou nadloktí","Preacher bench with upper-arm pad","supports"],
 ["grip_plate","Kotouč s bezpečnými madly pro obě ruce","Plate with secure two-hand grips","free_weights"],
 ["long_resistance_band","Dlouhá odporová guma pro úchop ve stoji","Long resistance band for standing hand-held work","resistance"],

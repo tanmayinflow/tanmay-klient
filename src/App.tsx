@@ -1,3 +1,5 @@
+import {priorAuditOwnsExercise} from './training/legacyExerciseSyncOwnership.js';
+import {POSITION_HOLD_AUDIT_CONTEXT} from './data/positionHoldAuditContext.js';
 import {createAccessoryFocus,hasElbowHandAccessoryFocus} from './training/elbowHandAccessoryFocus.js';
 import {ELBOW_HAND_AUDIT_CONTEXT} from './data/elbowHandAuditContext.js';
 import {SHOULDER_AUDIT_CONTEXT} from './data/shoulderAuditContext.js';
@@ -6013,7 +6015,7 @@ const TEX_PRECAUTIONS = {
   straightarm: ["Vysoké zatížení s nataženou paží. Nikdy do selhání.", "High straight-arm tissue load. Never to failure."],
   shoulderend: ["Krajní poloha ramene. Rozsah drž tam, kde zůstává bez bolesti.", "Shoulder end range. Keep the range where it stays pain-free."],
   headdown: ["Poloha hlavou dolů. Při očních potížích, glaukomu nebo závratích se poraď s odborníkem.", "A head-down position. With eye conditions, glaucoma or dizziness, ask a professional first."],
-  neckload: ["Zatížený krk. Váhu drž v předloktích a ramenou. Nezařazuj při potížích s krkem.", "A loaded neck. Keep the weight in the forearms and shoulders. Leave it out with neck trouble."],
+  neckload: ["Poloha může zatěžovat krk. Opory a návrat se liší podle cviku; dodrž jeho konkrétní pokyny. Při potížích s krkem ji nezařazuj bez odborného posouzení.", "This position can load the neck. Supports and exits differ by exercise; follow its specific instructions. With neck problems, leave it out unless professionally assessed."],
   fall: ["Riziko pádu. Připrav si volný prostor a bezpečný výstup.", "Fall risk. Clear the space and prepare a way out."],
   coach: ["Pokročilá práce. Nech si ji ukázat trenérem.", "Advanced work. Have a coach show you."],
   barbell: ["Technika s velkou činkou. Zajisti si dopomoc nebo stojany.", "Barbell technique. Arrange a spotter or safety bars."],
@@ -6424,8 +6426,8 @@ const tCanonIdOf = (ex) => (ex ? (tAliasOf(ex) || ex.id) : null);
 const tAliasGroupOf = (ex) => (ex && ex.aliasGroup) || (tMetaOf(ex) || {}).ag || null;
 // A row with no family is its own family, so an unclassified exercise never
 // crowds anything else out of a session.
-const tFamilyOf = (ex) => TV.elbowHandViewPolicyFor(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT)?.familyOverride || (ex && ex.family) || (tMetaOf(ex) || {}).f || ("id:" + (ex ? ex.id : ""));
-const tCtxOf = (ex) => (tMetaOf(ex) || {}).ctx || null;
+const tFamilyOf = (ex) => TV.positionHoldViewPolicyFor(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT)?.familyOverride || TV.elbowHandViewPolicyFor(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT)?.familyOverride || (ex && ex.family) || (tMetaOf(ex) || {}).f || ("id:" + (ex ? ex.id : ""));
+const tCtxOf = (ex) => { const view=TV.positionHoldDeliveredViewPolicy(ex)||TV.positionHoldViewPolicyFor(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT); return view&&Object.prototype.hasOwnProperty.call(view,"contextOverride")?view.contextOverride:(tMetaOf(ex)||{}).ctx||null; };
 
 // ---- what a careful person would want to know before choosing ----------------
 const tRequiresCoach = (ex) => typeof ex?.requiresCoach === "boolean" ? ex.requiresCoach : !!(tMetaOf(ex) || {}).co;
@@ -6862,7 +6864,7 @@ const T_FIGS = {
 function TExArt({ ex, size = 120, stroke, dotColor, showDot = true, fluid = false }) {
   const { t } = useT();
   if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted} />;
-  const atlas = ex && (TV.elbowHandArtworkFor(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT) || TV.shoulderArtworkFor(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT) || TV.hipArtworkFor(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT) || TV.lowerLegArtworkFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT) || TV.locomotionArtworkFor(ex,LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  const atlas = ex && (TV.positionHoldArtworkFor(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT) || TV.elbowHandArtworkFor(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT) || TV.shoulderArtworkFor(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT) || TV.hipArtworkFor(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT) || TV.lowerLegArtworkFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT) || TV.locomotionArtworkFor(ex,LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   const fig = ex && T_FIGS[ex.id];
   if (!fig) return <TPatArt pat={(ex && ex.pat) || "drep"} size={size} stroke={stroke || t.text} dot={showDot && ex ? ex.dot : null} dotColor={dotColor || t.accent} />;
@@ -9002,26 +9004,27 @@ const TEX_ALL_ORIGINAL = [...TEX_SEED, ...TEX_SEED_2, ...TEX_SEED_3, ...TEX_SEED
 const TEX_SEED_V2 = TV.extensionFor(TEX_ALL_ORIGINAL.map((x) => x.id));
 const TEX_ALL = [...TEX_ALL_ORIGINAL, ...TEX_SEED_V2];
 // Jedna cesta k efektivnímu záznamu cviku, stejná jako na trenérské straně.
-const tvRec = TV.makeResolver(TEX_META, new Set(TEX_ALL_ORIGINAL.map((x) => x.id)), LOCOMOTION_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, SHOULDER_AUDIT_CONTEXT, ELBOW_HAND_AUDIT_CONTEXT);
+const tvRec = TV.makeResolver(TEX_META, new Set(TEX_ALL_ORIGINAL.map((x) => x.id)), LOCOMOTION_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, SHOULDER_AUDIT_CONTEXT, ELBOW_HAND_AUDIT_CONTEXT, POSITION_HOLD_AUDIT_CONTEXT);
 const tvOf = (ex) => (ex && ex.id ? tvRec(ex) : null);
 // Runtime-only locomotion capabilities. Never serialize them into the document.
 function tvLocoPolicy(row, block) {
+  const positionHold = block ? TV.positionHoldPolicyForBlock(row,tMetaOf(row),POSITION_HOLD_AUDIT_CONTEXT,block) : TV.positionHoldPolicyFor(row,tMetaOf(row),POSITION_HOLD_AUDIT_CONTEXT);
   const elbowHand = block ? TV.elbowHandPolicyForBlock(row,tMetaOf(row),ELBOW_HAND_AUDIT_CONTEXT,block) : TV.elbowHandPolicyFor(row,tMetaOf(row),ELBOW_HAND_AUDIT_CONTEXT);
   const shoulder = block ? TV.shoulderPolicyForBlock(row,tMetaOf(row),SHOULDER_AUDIT_CONTEXT,block) : TV.shoulderPolicyFor(row,tMetaOf(row),SHOULDER_AUDIT_CONTEXT);
   const hip = block ? TV.hipPolicyForBlock(row,tMetaOf(row),HIP_AUDIT_CONTEXT,block) : TV.hipPolicyFor(row,tMetaOf(row),HIP_AUDIT_CONTEXT);
   const lower = block ? TV.lowerLegPolicyForBlock(row,tMetaOf(row),LOWER_LEG_AUDIT_CONTEXT,block) : TV.lowerLegPolicyFor(row,tMetaOf(row),LOWER_LEG_AUDIT_CONTEXT);
-  const p = elbowHand || shoulder || hip || lower || (block ? TV.locomotionPolicyForBlock(row, tMetaOf(row), LOCOMOTION_AUDIT_CONTEXT, block) : TV.locomotionPolicyFor(row, tMetaOf(row), LOCOMOTION_AUDIT_CONTEXT));
+  const p = positionHold || elbowHand || shoulder || hip || lower || (block ? TV.locomotionPolicyForBlock(row, tMetaOf(row), LOCOMOTION_AUDIT_CONTEXT, block) : TV.locomotionPolicyFor(row, tMetaOf(row), LOCOMOTION_AUDIT_CONTEXT));
   const v = block?.variant;
   return !TV.lowerLegEmptyVariant(v) ? null : p;
 }
 function tvLocoClientPolicy(st, id, block) {
   const d = st.tvExerciseOf?.(id);
-  const p = d ? (TV.elbowHandDeliveredPolicy(d) || TV.shoulderDeliveredPolicy(d) || TV.hipDeliveredPolicy(d) || TV.lowerLegDeliveredPolicy(d) || TV.locomotionDeliveredPolicy(d)) : tvLocoPolicy((st.coll.tEx || []).find(x => x.id === id), block);
-  if (!p || block && (block.exId !== p.id || block.measurementType !== p.measurementType || !TV.elbowHandBlockCompatible(p,block) || !TV.shoulderBlockCompatible(p,block) || !TV.hipBlockCompatible(p,block) || !TV.lowerLegBlockCompatible(p,block))) return null;
+  const p = d ? (TV.positionHoldDeliveredPolicy(d) || TV.elbowHandDeliveredPolicy(d) || TV.shoulderDeliveredPolicy(d) || TV.hipDeliveredPolicy(d) || TV.lowerLegDeliveredPolicy(d) || TV.locomotionDeliveredPolicy(d)) : tvLocoPolicy((st.coll.tEx || []).find(x => x.id === id), block);
+  if (!p || block && (block.exId !== p.id || block.measurementType !== p.measurementType || !TV.positionHoldBlockCompatible(p,block) || !TV.elbowHandBlockCompatible(p,block) || !TV.shoulderBlockCompatible(p,block) || !TV.hipBlockCompatible(p,block) || !TV.lowerLegBlockCompatible(p,block))) return null;
   const v = block?.variant;
   return !TV.lowerLegEmptyVariant(v) ? null : p;
 }
-const tpReviewedAllows = (x, equip, explicitTarget) => TV.elbowHandEquipmentDecision(x,tMetaOf(x),ELBOW_HAND_AUDIT_CONTEXT,equip,explicitTarget) ?? TV.shoulderEquipmentDecision(x,tMetaOf(x),SHOULDER_AUDIT_CONTEXT,equip,explicitTarget) ?? TV.hipEquipmentDecision(x,tMetaOf(x),HIP_AUDIT_CONTEXT,equip,explicitTarget) ?? TV.lowerLegEquipmentDecision(x,tMetaOf(x),LOWER_LEG_AUDIT_CONTEXT,equip,explicitTarget) ?? TV.locomotionEquipmentDecision(x, tMetaOf(x), LOCOMOTION_AUDIT_CONTEXT, equip, explicitTarget) ?? (x.eq || []).every(k => equip.includes(k));
+const tpReviewedAllows = (x, equip, explicitTarget) => TV.positionHoldEquipmentDecision(x,tMetaOf(x),POSITION_HOLD_AUDIT_CONTEXT,equip,explicitTarget) ?? TV.elbowHandEquipmentDecision(x,tMetaOf(x),ELBOW_HAND_AUDIT_CONTEXT,equip,explicitTarget) ?? TV.shoulderEquipmentDecision(x,tMetaOf(x),SHOULDER_AUDIT_CONTEXT,equip,explicitTarget) ?? TV.hipEquipmentDecision(x,tMetaOf(x),HIP_AUDIT_CONTEXT,equip,explicitTarget) ?? TV.lowerLegEquipmentDecision(x,tMetaOf(x),LOWER_LEG_AUDIT_CONTEXT,equip,explicitTarget) ?? TV.locomotionEquipmentDecision(x, tMetaOf(x), LOCOMOTION_AUDIT_CONTEXT, equip, explicitTarget) ?? (x.eq || []).every(k => equip.includes(k));
 const tvLocoSideOf = s => s?.side === "L" ? "L" : s?.side === "R" ? "R" : "unspecified";
 const tvLocoSideText = s => TV.locomotionSideLabel(s?.side, LANG !== "cs");
 const tvLocoVariant = v => !TV.lowerLegEmptyVariant(v);
@@ -9037,7 +9040,7 @@ function tvLocoHistoryOf(sessions, id, opts) {
 function tvLocoNewRecords(session, all, coll, opts) {
   const relevant=[...(all||[]).filter(s=>s.state==="done"),session].filter(s=>(s.who||"")===(session.who||""));
   const policyFor=(id,type)=>{const p=tvLocoPolicy((coll.tEx||[]).find(x=>x.id===id));return p?.measurementType===type?p:null;};
-  const mixed=(id,type)=>relevant.some(s=>(s.blocks||[]).some(b=>b.exId===id&&b.measurementType===type&&(tvLocoVariant(b.variant)||((((TV.elbowHandPolicyFor((coll.tEx||[]).find(x=>x.id===id),tMetaOf((coll.tEx||[]).find(x=>x.id===id)),ELBOW_HAND_AUDIT_CONTEXT)||TV.shoulderPolicyFor((coll.tEx||[]).find(x=>x.id===id),tMetaOf((coll.tEx||[]).find(x=>x.id===id)),SHOULDER_AUDIT_CONTEXT))||TV.hipPolicyFor((coll.tEx||[]).find(x=>x.id===id),tMetaOf((coll.tEx||[]).find(x=>x.id===id)),HIP_AUDIT_CONTEXT))||TV.lowerLegPolicyFor((coll.tEx||[]).find(x=>x.id===id),tMetaOf((coll.tEx||[]).find(x=>x.id===id)),LOWER_LEG_AUDIT_CONTEXT))&&!tvLocoPolicy((coll.tEx||[]).find(x=>x.id===id),b)))));
+  const mixed=(id,type)=>relevant.some(s=>(s.blocks||[]).some(b=>b.exId===id&&b.measurementType===type&&(tvLocoVariant(b.variant)||(((((TV.positionHoldPolicyFor((coll.tEx||[]).find(x=>x.id===id),tMetaOf((coll.tEx||[]).find(x=>x.id===id)),POSITION_HOLD_AUDIT_CONTEXT)||TV.elbowHandPolicyFor((coll.tEx||[]).find(x=>x.id===id),tMetaOf((coll.tEx||[]).find(x=>x.id===id)),ELBOW_HAND_AUDIT_CONTEXT))||TV.shoulderPolicyFor((coll.tEx||[]).find(x=>x.id===id),tMetaOf((coll.tEx||[]).find(x=>x.id===id)),SHOULDER_AUDIT_CONTEXT))||TV.hipPolicyFor((coll.tEx||[]).find(x=>x.id===id),tMetaOf((coll.tEx||[]).find(x=>x.id===id)),HIP_AUDIT_CONTEXT))||TV.lowerLegPolicyFor((coll.tEx||[]).find(x=>x.id===id),tMetaOf((coll.tEx||[]).find(x=>x.id===id)),LOWER_LEG_AUDIT_CONTEXT))&&!tvLocoPolicy((coll.tEx||[]).find(x=>x.id===id),b)))));
   const records=TV.newRecordsIn(session,all,{...opts,forExercise:(id,type)=>{const p=policyFor(id,type);return p&&!mixed(id,type)?TV.locomotionRecordOptions(p):{};}});
   // The old summary API has no block/variant dimension. Do not issue a new mixed-variant claim.
   return records.filter(r=>!policyFor(r.exId,r.measurementType)||!mixed(r.exId,r.measurementType)).filter((r,i,rows)=>{
@@ -9047,7 +9050,7 @@ function tvLocoNewRecords(session, all, coll, opts) {
 }
 function TvLocoSide({ set, policy, onChange, disabled }) {
   const {t} = useT();
-  if (policy?.sideMode !== "perSide") return null;
+  if (policy?.sideMode !== "perSide") return TV.positionHoldStoredSide(policy,set)?<span style={{fontFamily:FONT_BODY,fontSize:12,color:t.textSec}}>{L("Uložená strana", "Stored side")}: {tvLocoSideText(set)}</span>:null;
   const label = policy.sideMeaning ? TL(policy.sideMeaning) : ["ex26_lateral_shuffle","ex26_carioca"].includes(policy.id) ? L("Směr přesunu", "Travel direction") : ["tgu","ex26_half_getup"].includes(policy.id) ? L("Paže se zátěží", "Loaded arm") : policy.id === "ig29_cross_squat_getup" ? L("Přední kotník", "Front ankle") : L("Pohybující se noha", "Moving leg");
   return <label style={{fontFamily:FONT_BODY,fontSize:12,color:t.textSec,display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>{label}<select aria-label={label} disabled={disabled} value={tvLocoSideOf(set)} onChange={e=>onChange(e.target.value === "unspecified" ? null : e.target.value)} style={{background:"transparent",color:t.text,fontFamily:FONT_BODY,fontSize:16,minHeight:40,border:`1px solid ${t.borderSoft}`,borderRadius:8,padding:6}}><option value="unspecified">{L("Neurčeno", "Unspecified")}</option><option value="L">{L("Levá", "Left")}</option><option value="R">{L("Pravá", "Right")}</option></select></label>;
 }
@@ -9064,7 +9067,7 @@ function TvLocoHistory({ policy, history, type, onOpenSession }) {
   const {t}=useT();const [side,setSide]=useState("unspecified");
   const perSide=policy?.sideMode === "perSide";
   const selected=perSide?history.filter(e=>tvLocoSideOf(e)===side):history;
-  const current=selected.filter(e=>(!e.auditBlock||(TV.elbowHandBlockCompatible(policy,e.auditBlock)&&TV.shoulderBlockCompatible(policy,e.auditBlock)&&TV.hipBlockCompatible(policy,e.auditBlock)&&TV.lowerLegBlockCompatible(policy,e.auditBlock)))&&!tvLocoVariant(e.auditVariant)&&(!Object.prototype.hasOwnProperty.call(e,"measurementType")||e.measurementType===type)&&(!policy.noAddedWeight||!["addedWeight","weight"].some(k=>Object.prototype.hasOwnProperty.call(e.actual||{},k)&&e.actual[k]!==0)));
+  const current=selected.filter(e=>(!e.auditBlock||(TV.positionHoldBlockCompatible(policy,e.auditBlock)&&TV.elbowHandBlockCompatible(policy,e.auditBlock)&&TV.shoulderBlockCompatible(policy,e.auditBlock)&&TV.hipBlockCompatible(policy,e.auditBlock)&&TV.lowerLegBlockCompatible(policy,e.auditBlock)))&&!tvLocoVariant(e.auditVariant)&&(!Object.prototype.hasOwnProperty.call(e,"measurementType")||e.measurementType===type)&&(!policy.noAddedWeight||!["addedWeight","weight"].some(k=>Object.prototype.hasOwnProperty.call(e.actual||{},k)&&e.actual[k]!==0)));
   const records=TV.recordsFor(type,current,TV.locomotionRecordOptions(policy));
   const series=TV.seriesFor(type,current,TV.locomotionRecordOptions(policy)),max=Math.max(1,...series.map(e=>e.value)),min=Math.min(0,...series.map(e=>e.value));
   const pts=series.map((p,i)=>`${series.length>1?i/(series.length-1)*320:160},${70-(p.value-min)/(max-min||1)*62}`).join(" ");
@@ -9073,7 +9076,7 @@ function TvLocoHistory({ policy, history, type, onOpenSession }) {
     {series.length>1?<svg viewBox="0 0 320 74" width="100%" height="74" role="img" aria-label={L("Vývoj stejného provedení", "Progress for the same setup")}><polyline points={pts} fill="none" stroke={t.accent} strokeWidth="1.6"/></svg>:null}
     {Object.values(records).map(r=><div key={r.k} style={{display:"flex",gap:8,fontSize:13,flexWrap:"wrap"}}><span>{TL(TV.RECORD_LABEL[r.k])}</span><strong style={{fontWeight:500}}>{TV.fmtRecord(type,r,LANG==="cs")}</strong><span>{r.date}</span></div>)}
     {(policy.allowComparableRecords===false||!current.length)?<div style={{fontSize:13}}>{policy.allowComparableRecords===false?L("Záznamy slouží ke sledování praxe; samotné hodnoty zde neurčují nový rekord.","These records track practice; the values alone do not establish a new record."):L("Pro toto provedení zatím není srovnatelný záznam.", "No comparable record for this setup yet.")}</div>:null}
-    {selected.length?<details><summary style={{fontSize:13,cursor:"pointer"}}>{L("Všechny uložené série", "All stored sets")} · {selected.length}</summary><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:8}}>{selected.map((e,i)=><div key={`${e.sessionId}-${i}`} style={{fontSize:13}}>{onOpenSession?<button onClick={()=>onOpenSession(e.sessionId)} style={{background:"transparent",border:0,color:t.accent,textDecoration:"underline",fontFamily:FONT_BODY,cursor:"pointer"}}>{e.date||L("bez data","undated")}</button>:<span>{e.date||L("bez data","undated")}</span>} · {TV.fmtActual(e.measurementType||type,e.actual,LANG==="cs")||L("hodnota neuvedena","value unspecified")}{perSide?` · ${tvLocoSideText(e)}`:""}{tvLocoVariant(e.auditVariant)?<span style={{display:"block"}}>{L("Uložená varianta", "Stored variation")}: {Array.isArray(e.auditVariant)?e.auditVariant.join(", "):String(e.auditVariant)}</span>:null}<TvLocoLegacy set={e} policy={policy}/></div>)}</div></details>:null}
+    {selected.length?<details><summary style={{fontSize:13,cursor:"pointer"}}>{L("Všechny uložené série", "All stored sets")} · {selected.length}</summary><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:8}}>{selected.map((e,i)=><div key={`${e.sessionId}-${i}`} style={{fontSize:13}}>{onOpenSession?<button onClick={()=>onOpenSession(e.sessionId)} style={{background:"transparent",border:0,color:t.accent,textDecoration:"underline",fontFamily:FONT_BODY,cursor:"pointer"}}>{e.date||L("bez data","undated")}</button>:<span>{e.date||L("bez data","undated")}</span>} · {TV.fmtActual(e.measurementType||type,e.actual,LANG==="cs")||L("hodnota neuvedena","value unspecified")}{perSide||TV.positionHoldStoredSide(policy,e)?` · ${tvLocoSideText(e)}`:""}{tvLocoVariant(e.auditVariant)?<span style={{display:"block"}}>{L("Uložená varianta", "Stored variation")}: {Array.isArray(e.auditVariant)?e.auditVariant.join(", "):String(e.auditVariant)}</span>:null}<TvLocoLegacy set={e} policy={policy}/></div>)}</div></details>:null}
   </div>;
 }
 
@@ -9643,7 +9646,7 @@ function TExPick({ onPick, onClose, onNew }) {
   const [exerciseSort, setExerciseSort] = useState("recommended");
   const exerciseIndex = React.useMemo(() => buildExerciseIndex(exs, {
     metaOf: tMetaOf, nameOf: tExName, searchTextOf: tExSearchText, levelOf: tLvlOf,
-    statusOf: tStatusOf, tierOf: tTierOf, musclesOf: resolveMuscleMap, elbowHandOrderOf:(row,meta)=>TV.elbowHandLibraryOrderFor(row,meta,ELBOW_HAND_AUDIT_CONTEXT), shoulderOrderOf:(row,meta)=>TV.shoulderLibraryOrderFor(row,meta,SHOULDER_AUDIT_CONTEXT), taxonomyOf:exerciseTaxonomy,
+    statusOf: tStatusOf, tierOf: tTierOf, musclesOf: resolveMuscleMap, positionHoldOrderOf:(row,meta)=>TV.positionHoldLibraryOrderFor(row,meta,POSITION_HOLD_AUDIT_CONTEXT), elbowHandOrderOf:(row,meta)=>TV.elbowHandLibraryOrderFor(row,meta,ELBOW_HAND_AUDIT_CONTEXT), shoulderOrderOf:(row,meta)=>TV.shoulderLibraryOrderFor(row,meta,SHOULDER_AUDIT_CONTEXT), taxonomyOf:exerciseTaxonomy,
   }), [exs, LANG]);
   const { rows: list, hiddenCount } = selectExerciseLibrary(exerciseIndex, exerciseFilters, {
     sort: exerciseSort, recentIds: TV.recentOf(st.coll), locale: LANG,
@@ -9873,7 +9876,7 @@ function TExDetail({ exId, onClose, onOpen }) {
   // Vlastní historie tohoto cviku, ze skutečných sérií — ne z odděleného seznamu
   // rekordů, který se s tréninkem mohl rozejít.
   const exRecords = (() => {
-    const delivered = (TV.ELBOW_HAND_AUDIT_ENTRIES[ex.id] || TV.SHOULDER_AUDIT_ENTRIES[ex.id] || TV.HIP_AUDIT_ENTRIES[ex.id] || TV.LOWER_LEG_AUDIT_ENTRIES[ex.id] || TV.LOCOMOTION_AUDIT_ENTRIES[ex.id]) ? st.tvExerciseOf?.(ex.id) : null;
+    const delivered = (TV.POSITION_HOLD_AUDIT_ENTRIES[ex.id] || TV.ELBOW_HAND_AUDIT_ENTRIES[ex.id] || TV.SHOULDER_AUDIT_ENTRIES[ex.id] || TV.HIP_AUDIT_ENTRIES[ex.id] || TV.LOWER_LEG_AUDIT_ENTRIES[ex.id] || TV.LOCOMOTION_AUDIT_ENTRIES[ex.id]) ? st.tvExerciseOf?.(ex.id) : null;
     const rec = delivered ? tvClientRec(st,ex.id) : tvOf(ex);
     if (!rec) return { kinds: [], recs: {}, mt: "REPS_ONLY" };
     const policy=tvLocoClientPolicy(st,ex.id);
@@ -9903,7 +9906,7 @@ function TExDetail({ exId, onClose, onOpen }) {
         </>
       )}
       <TMuscleMap ex={ex} meta={tMetaOf(ex)} mp={ex.mp} ms={ex.ms} fluid illustration={<TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />} />
-      {(!TV.elbowHandMotionAllowed(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.shoulderMotionAllowed(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.hipMotionAllowed(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||TV.lowerLegPolicyFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT)?.allowMotion===false)?null:<ExerciseMotion key={ex.id} exercise={ex} theme={t} L={L} />}
+      {(!TV.positionHoldMotionAllowed(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.elbowHandMotionAllowed(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.shoulderMotionAllowed(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.hipMotionAllowed(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||TV.lowerLegPolicyFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT)?.allowMotion===false)?null:<ExerciseMotion key={ex.id} exercise={ex} theme={t} L={L} />}
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "6px 0 16px" }}>
         <Bindu size={7} style={{ marginTop: 6, flexShrink: 0 }} />
         <span style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: t.textMuted }}><span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage, marginRight: 8 }}>{L("bod pozornosti", "focus point")}</span><span style={{ fontStyle: "italic", color: t.sand, fontSize: 14.5 }}>{TL(ex.foc)}</span></span>
@@ -9957,7 +9960,7 @@ function TExDetail({ exId, onClose, onOpen }) {
       <TChain ex={ex} all={all} onOpen={onOpen} />
       <TExShelfPanel ex={ex} all={all} onOpen={onOpen} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-        {(TV.elbowHandEquipmentLabels(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT,LANG) ?? TV.shoulderEquipmentLabels(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT,LANG) ?? TV.hipEquipmentLabels(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT,LANG) ?? TV.lowerLegEquipmentLabels(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT,LANG) ?? TV.locomotionEquipmentLabels(ex, LANG) ?? TV.balanceEquipmentLabels(ex, LANG) ?? TV.movementEquipmentLabels(ex, LANG) ?? TV.trunkEquipmentLabels(ex, LANG) ?? TV.carryEquipmentLabels(ex, LANG) ?? TV.verticalAuditEquipmentLabels(ex, LANG) ?? TV.auditBatchEquipmentLabels(ex, LANG) ?? TV.hingeEquipmentLabels(ex, LANG) ?? TV.stepEquipmentLabels(ex, LANG))?.map((label) => <Tag key={label} label={label} color="green" wrap />) ?? (ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
+        {(TV.positionHoldEquipmentLabels(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT,LANG) ?? TV.elbowHandEquipmentLabels(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT,LANG) ?? TV.shoulderEquipmentLabels(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT,LANG) ?? TV.hipEquipmentLabels(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT,LANG) ?? TV.lowerLegEquipmentLabels(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT,LANG) ?? TV.locomotionEquipmentLabels(ex, LANG) ?? TV.balanceEquipmentLabels(ex, LANG) ?? TV.movementEquipmentLabels(ex, LANG) ?? TV.trunkEquipmentLabels(ex, LANG) ?? TV.carryEquipmentLabels(ex, LANG) ?? TV.verticalAuditEquipmentLabels(ex, LANG) ?? TV.auditBatchEquipmentLabels(ex, LANG) ?? TV.hingeEquipmentLabels(ex, LANG) ?? TV.stepEquipmentLabels(ex, LANG))?.map((label) => <Tag key={label} label={label} color="green" wrap />) ?? (ex.eq || []).map((k) => T_EQ[k] && <Tag key={k} label={L(T_EQ[k].cz, T_EQ[k].en)} color="green" />)}
         <Tag label={ex.mode === "sec" ? L("čas · sekundy", "time · seconds") : L("opakování", "reps")} color="gray" />
         {load !== "none" && <Tag label={load === "ext" ? L("váha je cvik", "the weight is the lift") : L("lze přidat váhu", "takes added weight")} color="brown" />}
         <Tag label={L(T_POP(ex.pop || 2).cz, T_POP(ex.pop || 2).en)} color={(ex.pop || 2) === 3 ? "orange" : "brown"} />
@@ -13143,7 +13146,7 @@ function tvClientRec(st, exId) {
       defaultRestSec: d.defaultRestSec == null ? 90 : d.defaultRestSec,
       focus: d.focus || null, startPosition: d.startPosition || null,
       execution: d.execution || null, watchFor: d.watchFor || null, progression: d.progression || null,
-      equipment: d.eq || [], unilateral: !!d.unilateral, sideMode: d.sideMode, locomotionPolicy: TV.elbowHandDeliveredPolicy(d) || TV.shoulderDeliveredPolicy(d) || TV.hipDeliveredPolicy(d) || TV.lowerLegDeliveredPolicy(d) || TV.locomotionDeliveredPolicy(d), art: d.art || null,
+      equipment: d.eq || [], unilateral: !!d.unilateral, sideMode: d.sideMode, locomotionPolicy: TV.positionHoldDeliveredPolicy(d) || TV.elbowHandDeliveredPolicy(d) || TV.shoulderDeliveredPolicy(d) || TV.hipDeliveredPolicy(d) || TV.lowerLegDeliveredPolicy(d) || TV.locomotionDeliveredPolicy(d), art: d.art || null,
     };
   }
   const row = (st.coll.tEx || []).find((x) => x.id === exId);
@@ -13206,7 +13209,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   const rec = tvClientRec(st, block.exId);
   const policy=tvLocoClientPolicy(st,block.exId,block);
   const localArtRow=(st.coll.tEx||[]).find(x=>x.id===block.exId);
-  const atlas = tvElbowHandDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.elbowHandArtworkFor(localArtRow,tMetaOf(localArtRow),ELBOW_HAND_AUDIT_CONTEXT)) || tvShoulderDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.shoulderArtworkFor(localArtRow,tMetaOf(localArtRow),SHOULDER_AUDIT_CONTEXT)) || tvHipDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.hipArtworkFor(localArtRow,tMetaOf(localArtRow),HIP_AUDIT_CONTEXT)) || tvLowerDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.lowerLegArtworkFor(localArtRow,tMetaOf(localArtRow),LOWER_LEG_AUDIT_CONTEXT)) || TV.locomotionDeliveredArtworkFor(st.tvExerciseOf(block.exId)) || TV.locomotionArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.verticalAuditArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.auditBatchArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.stepArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.lungeArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.EXPANSION_ART[block.exId] || UNIFIED_ART[block.exId] || SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
+  const atlas = tvPositionHoldDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.positionHoldArtworkFor(localArtRow,tMetaOf(localArtRow),POSITION_HOLD_AUDIT_CONTEXT)) || tvElbowHandDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.elbowHandArtworkFor(localArtRow,tMetaOf(localArtRow),ELBOW_HAND_AUDIT_CONTEXT)) || tvShoulderDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.shoulderArtworkFor(localArtRow,tMetaOf(localArtRow),SHOULDER_AUDIT_CONTEXT)) || tvHipDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.hipArtworkFor(localArtRow,tMetaOf(localArtRow),HIP_AUDIT_CONTEXT)) || tvLowerDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.lowerLegArtworkFor(localArtRow,tMetaOf(localArtRow),LOWER_LEG_AUDIT_CONTEXT)) || TV.locomotionDeliveredArtworkFor(st.tvExerciseOf(block.exId)) || TV.locomotionArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.verticalAuditArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.auditBatchArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.stepArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.lungeArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.EXPANSION_ART[block.exId] || UNIFIED_ART[block.exId] || SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
   const m = TV.measurementOf(block.measurementType);
   const [extraLoad, setExtraLoad] = useState((block.sets || []).some(s => s.actual?.addedWeight > 0));
   const fields = m.fields.concat(m.secondary && extraLoad && !policy?.noAddedWeight ? [m.secondary] : []);
@@ -13234,7 +13237,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
       {prev && prev.sets && prev.sets.length ? (
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontFamily: FONT_TAG, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted }}>{L("Naposledy", "Last time")}</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.sand }}>{prev.sets.slice(0, 5).map((x) => (policy?.sideMode === "perSide" ? tvLocoSideText(x)+" · " : "")+tvFmtA(block.measurementType, x.actual)).filter(Boolean).join("  ·  ")}</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.sand }}>{prev.sets.slice(0, 5).map((x) => (policy?.sideMode === "perSide" || TV.positionHoldStoredSide(policy,x) ? tvLocoSideText(x)+" · " : "")+tvFmtA(block.measurementType, x.actual)).filter(Boolean).join("  ·  ")}</span>
           {TV.previousVariantLabel(prev,tvCz()) ? <span style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,overflowWrap:"anywhere"}}>{TV.previousVariantLabel(prev,tvCz())}</span> : null}
         </div>
       ) : null}
@@ -13314,6 +13317,10 @@ function TvClientRest({ sec, onDone, onSkip }) {
   );
 }
 
+function tvPositionHoldDeliveredArt(ex, delivered = false){
+  if(!ex||!TV.POSITION_HOLD_AUDIT_ENTRIES[ex.id]||(!delivered&&!Object.prototype.hasOwnProperty.call(ex,"startPosition")))return null;
+  return TV.positionHoldDeliveredArtworkFor(ex)||{suppress:true};
+}
 function tvElbowHandDeliveredArt(ex, delivered = false){
   if(!ex||!TV.ELBOW_HAND_AUDIT_ENTRIES[ex.id]||(!delivered&&!Object.prototype.hasOwnProperty.call(ex,"startPosition")))return null;
   return TV.elbowHandDeliveredArtworkFor(ex)||{suppress:true};
@@ -13333,6 +13340,8 @@ function tvLowerDeliveredArt(ex, delivered = false){
 function TvClientGuideArt({ ex, size = 120, fluid = false, ...rest }) {
   const { t } = useT();
   const delivered = useStore().tvExerciseOf?.(ex?.id);
+  const deliveredPositionHoldArt = delivered && tvPositionHoldDeliveredArt(delivered, true);
+  if(deliveredPositionHoldArt)return <ExerciseAtlasImage background={t.bg} entry={deliveredPositionHoldArt} alt={delivered.cz || delivered.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   const deliveredElbowHandArt = delivered && tvElbowHandDeliveredArt(delivered, true);
   if(deliveredElbowHandArt)return <ExerciseAtlasImage background={t.bg} entry={deliveredElbowHandArt} alt={delivered.cz || delivered.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   const deliveredShoulderArt = delivered && tvShoulderDeliveredArt(delivered, true);
@@ -13342,7 +13351,7 @@ function TvClientGuideArt({ ex, size = 120, fluid = false, ...rest }) {
   const deliveredLowerArt = delivered && tvLowerDeliveredArt(delivered, true);
   if(deliveredLowerArt)return <ExerciseAtlasImage background={t.bg} entry={deliveredLowerArt} alt={delivered.cz || delivered.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted}/>;
-  const atlas = ex && (tvElbowHandDeliveredArt(ex) || tvShoulderDeliveredArt(ex) || tvHipDeliveredArt(ex) || tvLowerDeliveredArt(ex) || TV.locomotionDeliveredArtworkFor(ex) || TV.elbowHandArtworkFor(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT) || TV.shoulderArtworkFor(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT) || TV.hipArtworkFor(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT) || TV.lowerLegArtworkFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT) || TV.locomotionArtworkFor(ex,LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  const atlas = ex && (tvPositionHoldDeliveredArt(ex) || tvElbowHandDeliveredArt(ex) || tvShoulderDeliveredArt(ex) || tvHipDeliveredArt(ex) || tvLowerDeliveredArt(ex) || TV.locomotionDeliveredArtworkFor(ex) || TV.positionHoldArtworkFor(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT) || TV.elbowHandArtworkFor(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT) || TV.shoulderArtworkFor(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT) || TV.hipArtworkFor(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT) || TV.lowerLegArtworkFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT) || TV.locomotionArtworkFor(ex,LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   if (ex?.art) return <TmPostava poza={ex.art} size={size} stroke={rest.stroke || t.text}/>;
   return ex && T_FIGS[ex.id] ? <TExArt ex={ex} size={size} fluid={fluid} {...rest}/> : null;
@@ -13350,6 +13359,13 @@ function TvClientGuideArt({ ex, size = 120, fluid = false, ...rest }) {
 // The prescription can contain coach-created exercises absent from the local
 // library. Its instructions stay read-only and above the active session.
 // A delivery needs its own verified view; recording policy can be null for retained cards.
+function tvPositionHoldClientMotionAllowed(st, id, row) {
+  const motion=hipCurrentMotionFor(row||{id}),delivered=st.tvExerciseOf?.(id);
+  if(!delivered)return TV.positionHoldMotionAllowed(row,tMetaOf(row),POSITION_HOLD_AUDIT_CONTEXT,motion);
+  if(!TV.POSITION_HOLD_AUDIT_ENTRIES[id])return true;
+  const view=TV.positionHoldDeliveredViewPolicy(delivered);
+  return !!view&&!(view.blockedMotionSources||[]).includes(motion?.src);
+}
 function tvElbowHandClientMotionAllowed(st, id, row) {
   const motion=hipCurrentMotionFor(row||{id}),delivered=st.tvExerciseOf?.(id);
   if(!delivered)return TV.elbowHandMotionAllowed(row,tMetaOf(row),ELBOW_HAND_AUDIT_CONTEXT,motion);
@@ -13386,7 +13402,7 @@ function TvClientExerciseDetail({ exId, onClose }) {
   ].filter(([key]) => TL(rec?.[key]));
   return <CenterSheet title={tvName(rec) || L("Cvik", "Exercise")} onClose={onClose} vrstva={280}>
     {row && <div style={{color:t.text,display:"flex",justifyContent:"center",margin:"10px 0 20px"}}><TvClientGuideArt ex={row} size={200}/></div>}
-    {(!tvElbowHandClientMotionAllowed(st,exId,row)||!tvShoulderClientMotionAllowed(st,exId,row)||!tvHipClientMotionAllowed(st,exId,row)||tvLocoClientPolicy(st,exId)?.allowMotion===false||(tvLocoClientPolicy(st,exId)?.blockedMotionSources||[]).includes(hipCurrentMotionFor(row||{id:exId})?.src))?null:<ExerciseMotion key={exId} exercise={row || { id: exId }} theme={t} L={L} />}
+    {(!tvPositionHoldClientMotionAllowed(st,exId,row)||!tvElbowHandClientMotionAllowed(st,exId,row)||!tvShoulderClientMotionAllowed(st,exId,row)||!tvHipClientMotionAllowed(st,exId,row)||tvLocoClientPolicy(st,exId)?.allowMotion===false||(tvLocoClientPolicy(st,exId)?.blockedMotionSources||[]).includes(hipCurrentMotionFor(row||{id:exId})?.src))?null:<ExerciseMotion key={exId} exercise={row || { id: exId }} theme={t} L={L} />}
     {sections.map(([key,label])=><section key={key} style={{marginBottom:20}}>
       <h3 style={{fontFamily:FONT_TAG,fontSize:12,letterSpacing:".12em",textTransform:"uppercase",fontWeight:500,color:t.accentInk||t.accent,margin:"0 0 7px"}}>{label}</h3>
       <div style={{fontFamily:FONT_BODY,fontSize:15,lineHeight:1.7,color:t.textSec,whiteSpace:"pre-wrap"}}><TrainingSourceText text={TL(rec[key])} color={t.accentInk||t.accent}/></div>
@@ -13665,7 +13681,7 @@ function TvClientHistory({ onRun }) {
 function PageTrenink() {
   const { t } = useT();
   const st = useStore();
-  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, [st.coll?.exerciseAudit20261013, st.coll?.bridgeContentAudit20261022, st.coll?.bridgeFoundations20261022, st.coll?.horizontalPressAudit20261022, st.coll?.horizontalPressFoundations20261022, st.coll?.horizontalPullAudit20261022, st.coll?.horizontalPullFoundations20261022, st.coll?.verticalPushAudit20261023, st.coll?.verticalPushClientFoundations20261023, st.coll?.verticalPullAudit20261023, st.coll?.verticalPullCommonFoundations20261023, st.coll?.verticalPullClientFoundations20261023, st.coll?.carryAudit20261023, st.coll?.trunkAudit20261023, st.coll?.movementAudit20261023, st.coll?.balanceAudit20261023, st.coll?.locomotionAudit20261024,st.coll?.lowerLegAudit20261024,st.coll?.lowerLegFoundation20261024,st.coll?.hipAudit20261024,st.coll?.shoulderAudit20261024,st.coll?.elbowHandAudit20261024]);
+  React.useEffect(() => { if (st.seedTraining) st.seedTraining(); }, [st.coll?.exerciseAudit20261013, st.coll?.bridgeContentAudit20261022, st.coll?.bridgeFoundations20261022, st.coll?.horizontalPressAudit20261022, st.coll?.horizontalPressFoundations20261022, st.coll?.horizontalPullAudit20261022, st.coll?.horizontalPullFoundations20261022, st.coll?.verticalPushAudit20261023, st.coll?.verticalPushClientFoundations20261023, st.coll?.verticalPullAudit20261023, st.coll?.verticalPullCommonFoundations20261023, st.coll?.verticalPullClientFoundations20261023, st.coll?.carryAudit20261023, st.coll?.trunkAudit20261023, st.coll?.movementAudit20261023, st.coll?.balanceAudit20261023, st.coll?.locomotionAudit20261024,st.coll?.lowerLegAudit20261024,st.coll?.lowerLegFoundation20261024,st.coll?.hipAudit20261024,st.coll?.shoulderAudit20261024,st.coll?.elbowHandAudit20261024,st.coll?.positionHoldAudit20261024]);
   const [tab, setTab] = useState("dnes");
   const [daysResetKey, setDaysResetKey] = useState(0);
   const [planStatus,setPlanStatus] = useState({state:""});
@@ -13685,7 +13701,7 @@ function PageTrenink() {
   const [exerciseSort, setExerciseSort] = useState("recommended");
   const exerciseIndex = React.useMemo(() => buildExerciseIndex(exs, {
     metaOf: tMetaOf, nameOf: tExName, searchTextOf: tExSearchText, levelOf: tLvlOf,
-    statusOf: tStatusOf, tierOf: tTierOf, musclesOf: resolveMuscleMap, elbowHandOrderOf:(row,meta)=>TV.elbowHandLibraryOrderFor(row,meta,ELBOW_HAND_AUDIT_CONTEXT), shoulderOrderOf:(row,meta)=>TV.shoulderLibraryOrderFor(row,meta,SHOULDER_AUDIT_CONTEXT), taxonomyOf:exerciseTaxonomy,
+    statusOf: tStatusOf, tierOf: tTierOf, musclesOf: resolveMuscleMap, positionHoldOrderOf:(row,meta)=>TV.positionHoldLibraryOrderFor(row,meta,POSITION_HOLD_AUDIT_CONTEXT), elbowHandOrderOf:(row,meta)=>TV.elbowHandLibraryOrderFor(row,meta,ELBOW_HAND_AUDIT_CONTEXT), shoulderOrderOf:(row,meta)=>TV.shoulderLibraryOrderFor(row,meta,SHOULDER_AUDIT_CONTEXT), taxonomyOf:exerciseTaxonomy,
   }), [exs, LANG]);
   const { rows: sorted, hiddenCount } = selectExerciseLibrary(exerciseIndex, exerciseFilters, {
     sort: exerciseSort, recentIds: TV.recentOf(st.coll), locale: LANG,
@@ -16496,7 +16512,7 @@ export default function App() {
     return TV.patchTraining(c, { sched: { ...cur, [planId]: forPlan } });
   });
   const seedTrainingColl = () => persistColl((c) => {
-    if (!c.tSeeded) return tvApply(TV.seedExerciseExpansion({ ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] }, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT,lowerLegAuditContext:LOWER_LEG_AUDIT_CONTEXT,hipAuditContext:HIP_AUDIT_CONTEXT,shoulderAuditContext:SHOULDER_AUDIT_CONTEXT,elbowHandAuditContext:ELBOW_HAND_AUDIT_CONTEXT, auditMetadata:TEX_META }));
+    if (!c.tSeeded) return tvApply(TV.seedExerciseExpansion({ ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] }, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT,lowerLegAuditContext:LOWER_LEG_AUDIT_CONTEXT,hipAuditContext:HIP_AUDIT_CONTEXT,shoulderAuditContext:SHOULDER_AUDIT_CONTEXT,elbowHandAuditContext:ELBOW_HAND_AUDIT_CONTEXT,positionHoldAuditContext:POSITION_HOLD_AUDIT_CONTEXT, auditMetadata:TEX_META }));
     let next = c;
     const seedById = Object.fromEntries(TEX_ALL.map((x) => [x.id, x]));
     if (!next.tSeedV2) {
@@ -16704,8 +16720,7 @@ export default function App() {
     // ============================================ SUBMAX (ANTON) · content sync (version-gated)
     const SM_SYNC_VER = 7;
     if ((next.smSync || 0) < SM_SYNC_VER) {
-      const have = new Set((next.tEx || []).map((x) => x.id));
-      const addedEx = TEX_SEED_SM.filter((x) => !have.has(x.id));
+      const addedEx = []; // Legacy exercise sync retired: fresh TEX_ALL already includes this bundle; preserve absence.
       const relink = {
         tuckplanche: ["hd", "straddleplanche", "advtuckplanche"], straddleplanche: ["ez", "tuckplanche", "advtuckplanche"],
         planche: ["hd", null, "planchepush"], maltese: ["ez", "planche", "planchepush"],
@@ -16714,6 +16729,7 @@ export default function App() {
         wallhs: ["hd", "handstand", "ctwhs"], onearmhs: ["ez", "handstand", "fingerhs"],
       };
       const tEx = (next.tEx || []).map((x) => {
+        if (Object.prototype.hasOwnProperty.call(POSITION_HOLD_AUDIT_CONTEXT.entries || {}, x.id) || priorAuditOwnsExercise(x.id)) return x;
         const r = relink[x.id]; if (!r) return x; const list = Array.isArray(r[0]) ? r : [r]; let y = x;
         for (const [k, from, to] of list) if (y[k] === from && from !== to) y = { ...y, [k]: to };
         return y;
@@ -16734,8 +16750,7 @@ export default function App() {
     }
     const CM_SYNC_VER = 1;
     if ((next.cmSync || 0) < CM_SYNC_VER) {
-      const have = new Set((next.tEx || []).map((x) => x.id));
-      const addedEx = TEX_SEED_CM.filter((x) => !have.has(x.id));
+      const addedEx = []; // Legacy exercise sync retired: fresh TEX_ALL already includes this bundle; preserve absence.
       const relink = {
         bodyrow: ["ez", null, "inclrow"],
         wallhs: ["ez", null, "pikestand"],
@@ -16751,6 +16766,7 @@ export default function App() {
         presshs: ["ez", null, "bentarmhs"],
       };
       const tEx = (next.tEx || []).map((x) => {
+        if (Object.prototype.hasOwnProperty.call(POSITION_HOLD_AUDIT_CONTEXT.entries || {}, x.id) || priorAuditOwnsExercise(x.id)) return x;
         const r = relink[x.id]; if (!r) return x; const list = Array.isArray(r[0]) ? r : [r]; let y = x;
         for (const [k, from, to] of list) if (y[k] === from && from !== to) y = { ...y, [k]: to };
         return y;
@@ -16797,7 +16813,7 @@ export default function App() {
       const fixed = tExAuditFix(next.tEx || []);
       next = { ...next, exAudit: EX_AUDIT_VER, exAuditN: fixed.touched, tEx: fixed.rows };
     }
-    return tvApply(TV.seedExerciseExpansion(next, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT,lowerLegAuditContext:LOWER_LEG_AUDIT_CONTEXT,hipAuditContext:HIP_AUDIT_CONTEXT,shoulderAuditContext:SHOULDER_AUDIT_CONTEXT,elbowHandAuditContext:ELBOW_HAND_AUDIT_CONTEXT, auditMetadata:TEX_META }));
+    return tvApply(TV.seedExerciseExpansion(next, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT,lowerLegAuditContext:LOWER_LEG_AUDIT_CONTEXT,hipAuditContext:HIP_AUDIT_CONTEXT,shoulderAuditContext:SHOULDER_AUDIT_CONTEXT,elbowHandAuditContext:ELBOW_HAND_AUDIT_CONTEXT,positionHoldAuditContext:POSITION_HOLD_AUDIT_CONTEXT, auditMetadata:TEX_META }));
   });
   // ---- the timer · settings, presets, history ----
   // The English voice choice is independent of the interface language.

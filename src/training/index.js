@@ -61,3 +61,6 @@ export {SHOULDER_AUDIT_ENTRIES} from "./catalogShoulderAuditData.js";
 
 export * from "./catalogElbowHandAudit.js";
 export {ELBOW_HAND_AUDIT_ENTRIES} from "./catalogElbowHandAuditData.js";
+
+export * from "./catalogPositionHoldAudit.js";
+export {POSITION_HOLD_AUDIT_ENTRIES} from "./catalogPositionHoldAuditData.js";

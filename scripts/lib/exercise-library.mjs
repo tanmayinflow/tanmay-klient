@@ -1,3 +1,5 @@
+import {positionHoldEquipmentDecision,positionHoldViewPolicyFor,positionHoldDeliveredViewPolicy,positionHoldPolicyFor} from '../../src/training/catalogPositionHoldAudit.js';
+import {POSITION_HOLD_AUDIT_CONTEXT} from '../../src/data/positionHoldAuditContext.js';
 import {createAccessoryFocus,hasElbowHandAccessoryFocus} from '../../src/training/elbowHandAccessoryFocus.js';
 import {elbowHandEquipmentDecision,elbowHandViewPolicyFor,elbowHandPolicyFor} from '../../src/training/catalogElbowHandAudit.js';
 import {ELBOW_HAND_AUDIT_CONTEXT} from '../../src/data/elbowHandAuditContext.js';
@@ -206,7 +208,7 @@ export function loadEngine() {
   const { src } = loadLibrary();
   const parts = ENGINE_DECLS.map((n) => sliceDecl(src, n));
   const sandbox = { createAccessoryFocus,hasElbowHandAccessoryFocus,console, TextEncoder, JSON, Math, Date, Object, Array, Number, String, Set, Map,
-    ELBOW_HAND_AUDIT_CONTEXT, SHOULDER_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { elbowHandEquipmentDecision, elbowHandViewPolicyFor, elbowHandPolicyFor, shoulderEquipmentDecision, hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
+    POSITION_HOLD_AUDIT_CONTEXT, ELBOW_HAND_AUDIT_CONTEXT, SHOULDER_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { positionHoldEquipmentDecision, positionHoldViewPolicyFor, positionHoldDeliveredViewPolicy, positionHoldPolicyFor, elbowHandEquipmentDecision, elbowHandViewPolicyFor, elbowHandPolicyFor, shoulderEquipmentDecision, hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
   vm.createContext(sandbox);
   // `const` at the top level of a script is lexically scoped, not a property of the
   // context — so the script hands the names out itself on the last line.

@@ -23,7 +23,7 @@ export function buildExerciseIndex(rows, options = {}) {
     const search = normalizeExerciseSearch([options.searchTextOf?.(row), row.id, ...names, ...array(row.aliases), ...array(row.taxonomy?.aliases)].filter(Boolean).join(' '));
     const status = options.statusOf?.(row) || row.status || meta.s || 'active';
     const tier = options.tierOf?.(row) || row.tier || meta.t || 'extended';
-    return { row, order, elbowHandOrder:options.elbowHandOrderOf?.(row,meta) ?? null, shoulderOrder:options.shoulderOrderOf?.(row,meta) ?? null, tax, equipment, name, names, search, muscles, level: options.levelOf?.(row) ?? Math.max(Number(row.S) || 1, (Number(row.C) || 1) - 1), archived: ['archived', 'blocked', 'alias', 'merged', 'deprecated'].includes(status) || tier === 'archived' || !!(row.aliasOf || meta.al) };
+    return { row, order, positionHoldOrder:options.positionHoldOrderOf?.(row,meta) ?? null, elbowHandOrder:options.elbowHandOrderOf?.(row,meta) ?? null, shoulderOrder:options.shoulderOrderOf?.(row,meta) ?? null, tax, equipment, name, names, search, muscles, level: options.levelOf?.(row) ?? Math.max(Number(row.S) || 1, (Number(row.C) || 1) - 1), archived: ['archived', 'blocked', 'alias', 'merged', 'deprecated'].includes(status) || tier === 'archived' || !!(row.aliasOf || meta.al) };
   });
 }
 
@@ -67,6 +67,10 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
     if (sort !== 'name') {
       const priority = a.tax.priority - b.tax.priority;
       if (priority) return priority;
+      if(filters.movements.length===1&&filters.movements[0]==='position'){
+        const rank=e=>Number.isInteger(e.positionHoldOrder)?e.positionHoldOrder:Infinity;
+        const difference=rank(a)-rank(b);if(difference&&!Number.isNaN(difference))return difference;
+      }
       if(filters.regions.length===1&&['arms','forearms_hands'].includes(filters.regions[0])&&(!filters.movements.length||filters.movements.length===1&&filters.movements[0]==='joint')){
         const rank=e=>Number.isInteger(e.elbowHandOrder)?e.elbowHandOrder:Infinity;
         const difference=rank(a)-rank(b);if(difference&&!Number.isNaN(difference))return difference;
