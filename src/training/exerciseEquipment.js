@@ -7,6 +7,11 @@ export const EXERCISE_EQUIPMENT_GROUPS = vocabulary([
   ['accessories','Další pomůcky','Other equipment'], ['unspecified','K upřesnění','Needs clarification'],
 ]);
 export const EXERCISE_EQUIPMENT = vocabulary([
+["low_cable","Spodní kladka","Low cable pulley","resistance"],
+["cable_ankle_cuff","Kotníková manžeta ke kladce","Cable ankle cuff","accessories"],
+["kneeling_glute_press_machine","Stroj na zanožování vkleče","Kneeling glute press machine","resistance"],
+["hip_abduction_machine","Stroj na unožování vsedě","Seated hip abduction machine","resistance"],
+["hip_adduction_machine","Stroj na přinožování vsedě","Seated hip adduction machine","resistance"],
 ["soft_pickup_objects","Malé měkké předměty pro úchop prsty nohy","Small soft objects for toe pickup","accessories"],
 ["small_bowl","Malá stabilní miska","Small stable bowl","accessories"],
 ["seated_calf_raise_machine","Stroj na výpony vsedě s opěrou stehen","Seated calf-raise machine with thigh pads","resistance"],
@@ -240,8 +245,8 @@ export function exerciseEquipment(input, inputMeta = {}) {
   }
   requirements = requirements.filter((group,index,all) => all.findIndex(other => [...other].sort().join('|') === [...group].sort().join('|')) === index);
   // Navigation may group machines; ownership must never imply a different machine.
-  const machineTypes=["seated_calf_raise_machine","standing_calf_raise_machine","calf_compatible_leg_press","seated_leg_curl_machine","lying_leg_curl_machine","standing_leg_curl_machine","knee_extension_machine",'air_bike','elliptical_trainer','stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
-  const reviewedNavigationGroups={"abdominal_crunch_machine":["stroj"],"thoracic_extension_chair":["chair"],"captains_chair":["stroj"],"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
+  const machineTypes=["kneeling_glute_press_machine","hip_abduction_machine","hip_adduction_machine","seated_calf_raise_machine","standing_calf_raise_machine","calf_compatible_leg_press","seated_leg_curl_machine","lying_leg_curl_machine","standing_leg_curl_machine","knee_extension_machine",'air_bike','elliptical_trainer','stair_machine','smith_machine','chest_press_machine','chest_supported_row_machine','rowing_ergometer','seated_cable_row_station'];
+  const reviewedNavigationGroups={"low_cable":["kladka"],"abdominal_crunch_machine":["stroj"],"thoracic_extension_chair":["chair"],"captains_chair":["stroj"],"shoulder_press_machine":["stroj"],"assisted_pullup_machine":["stroj"],"lat_pulldown_station":["kladka","stroj"],"lever_lat_pulldown_machine":["stroj"],"high_cable":["kladka"],"low_pullup_bar":["hrazda"],"parallel_pullup_handles":["hrazda"]};
   const items = unique(equipmentCapabilities(requirements.flat()).flatMap(id=>[id,...(machineTypes.includes(id)?['stroj']:[]),...(reviewedNavigationGroups[id]||[])]));
   return { items, requirements, unresolved:items.filter(unresolvedId), evidence, legacy };
 }

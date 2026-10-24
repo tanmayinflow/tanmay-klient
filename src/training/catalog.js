@@ -1,3 +1,4 @@
+import {attachHipPolicy} from './catalogHipAudit.js';
 import {attachLowerLegPolicy} from './catalogLowerLegAudit.js';
 import {attachLocomotionPolicy} from './catalogLocomotionAuditPolicy.js';
 // ======================================================================
@@ -260,12 +261,12 @@ export function searchTextOf(row, meta) {
 // ---- the effective record --------------------------------------------
 // Everything above, resolved once. Call it, keep the result, do not
 // re-derive field by field in a render.
-export function resolveExercise(row, meta, originalIds, locomotionAuditContext, lowerLegAuditContext) {
+export function resolveExercise(row, meta, originalIds, locomotionAuditContext, lowerLegAuditContext, hipAuditContext) {
   if (!row) return null;
   const m = meta || {};
   const measurementType = measurementTypeOf(row, m);
   const role = productRoleOf(row, m);
-  return attachLowerLegPolicy(attachLocomotionPolicy({
+  return attachHipPolicy(attachLowerLegPolicy(attachLocomotionPolicy({
     id: row.id,
     displayCz: displayCzOf(row, m),
     displayEn: displayEnOf(row, m),
@@ -310,19 +311,19 @@ export function resolveExercise(row, meta, originalIds, locomotionAuditContext, 
     easierId: row.ez || null,
     harderId: row.hd || null,
     ...(reviewedRopeClimbPolicy(row,m) || {}),
-  },row,meta,locomotionAuditContext),row,meta,lowerLegAuditContext);
+  },row,meta,locomotionAuditContext),row,meta,lowerLegAuditContext),row,meta,hipAuditContext);
 }
 
 // A cache keyed by id, because a picker resolves five hundred rows on
 // every keystroke otherwise.
-export function makeResolver(metaTable, originalIds, locomotionAuditContext, lowerLegAuditContext) {
+export function makeResolver(metaTable, originalIds, locomotionAuditContext, lowerLegAuditContext, hipAuditContext) {
   const cache = new Map();
   return (row) => {
     if (!row || !row.id) return null;
     const hit = cache.get(row.id);
     const meta = metaTable ? metaTable[row.id] : null;
     if (hit && hit.row === row && hit.meta === meta) return hit.rec;
-    const rec = resolveExercise(row, meta, originalIds, locomotionAuditContext, lowerLegAuditContext);
+    const rec = resolveExercise(row, meta, originalIds, locomotionAuditContext, lowerLegAuditContext, hipAuditContext);
     cache.set(row.id, { row, meta, rec });
     return rec;
   };

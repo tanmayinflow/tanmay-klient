@@ -1,3 +1,5 @@
+import {hipEquipmentDecision} from '../../src/training/catalogHipAudit.js';
+import {HIP_AUDIT_CONTEXT} from '../../src/data/hipAuditContext.js';
 import {lowerLegEquipmentDecision} from '../../src/training/catalogLowerLegAudit.js';
 import {LOWER_LEG_AUDIT_CONTEXT} from '../../src/data/lowerLegAuditContext.js';
 // Reads the exercise library out of the single-file app source and returns it as
@@ -199,7 +201,7 @@ export function loadEngine() {
   const { src } = loadLibrary();
   const parts = ENGINE_DECLS.map((n) => sliceDecl(src, n));
   const sandbox = { console, TextEncoder, JSON, Math, Date, Object, Array, Number, String, Set, Map,
-    LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
+    HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
   vm.createContext(sandbox);
   // `const` at the top level of a script is lexically scoped, not a property of the
   // context — so the script hands the names out itself on the last line.

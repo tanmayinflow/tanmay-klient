@@ -1,3 +1,4 @@
+import {applyHipAudit} from './catalogHipAudit.js';
 import {applyLowerLegAudit,seedLowerLegFoundation} from './catalogLowerLegAudit.js';
 import {applyLocomotionAudit} from './catalogLocomotionAudit.js';
 import {applyBalanceAudit} from './catalogBalanceAudit.js';
@@ -28301,7 +28302,7 @@ export function seedExerciseExpansion(collection, seedRows = EXPANSION_EXERCISES
   const horizontal = applyAuditEquipmentFixes(seedHorizontalPullFoundations(applyHorizontalPullAudit(seedHorizontalPressFoundations(applyHorizontalPressAudit(seedBridgeFoundations(applyBridgeAudit(audited)))))));
   const lowerBase = applyLocomotionAudit(applyBalanceAudit(applyMovementAudit(applyTrunkAudit(applyCarryAudit(seedVerticalPullFoundations(applyVerticalPullAudit(seedVerticalPushFoundations(applyVerticalPushAudit(horizontal),options)),options)),options),options),options),options);
   const lowerAudited=applyLowerLegAudit(lowerBase,options);
-  return options.lowerLegAuditContext ? seedLowerLegFoundation(lowerAudited) : lowerAudited;
+  return applyHipAudit(options.lowerLegAuditContext ? seedLowerLegFoundation(lowerAudited) : lowerAudited,options);
 }
 
 function seedOriginalExpansion(collection, seedRows) {

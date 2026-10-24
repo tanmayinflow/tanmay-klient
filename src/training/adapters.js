@@ -1,3 +1,4 @@
+import {hipDeliveryStamp,resolvedHipDeliveryPolicy,hipBlockCompatible} from './catalogHipAudit.js';
 import {lowerLegDeliveryStamp} from './catalogLowerLegAudit.js';
 import {locomotionDeliveryStamp} from './catalogLocomotionAuditPolicy.js';
 import { separateWarmupTemplates } from './separateWarmups.js';
@@ -149,6 +150,7 @@ export function clientBundle(plans, templates, resolve, opts) {
   const nativeTemplates = separateWarmupTemplates(templates || []);
   const usedTemplates = new Map();
   const usedExercises = new Map();
+  const hipIncompatibleExercises = new Set();
   const outPlans = [];
   for (const p of plans || []) {
     outPlans.push({
@@ -174,10 +176,12 @@ export function clientBundle(plans, templates, resolve, opts) {
       blocks: (t.blocks || []).map((b) => {
         const rec = resolve ? resolve(b.exId) : null;
         if (rec) usedExercises.set(b.exId, rec);
+        const hipPolicy=resolvedHipDeliveryPolicy(rec);
+        if(hipPolicy&&!hipBlockCompatible(hipPolicy,b))hipIncompatibleExercises.add(b.exId);
         return {
           id: b.id, exId: b.exId, name: b.name, measurementType: b.measurementType,
           restSec: b.restSec, groupId: b.groupId, groupMode: b.groupMode, groupOrder: b.groupOrder,
-          rirEnabled: b.rirEnabled, variant: b.variant || null,
+          rirEnabled: b.rirEnabled, variant: b.variant ?? null,
           // The coach note travels. The private note never does.
           coachNote: nativeText(b.coachNote) || ["", ""],
           sets: (b.sets || []).map((s) => ({ id: s.id, type: s.type, planned: s.planned, restSec: s.restSec, side: s.side })),
@@ -200,7 +204,8 @@ export function clientBundle(plans, templates, resolve, opts) {
     };
     const stamp=locomotionDeliveryStamp(rec,delivered);
     const lowerStamp=lowerLegDeliveryStamp(rec,delivered);
-    outExercises.push({...delivered,...(stamp?{locomotionAudit:stamp}:{}),...(lowerStamp?{lowerLegAudit:lowerStamp}:{})});
+    const hipStamp=hipIncompatibleExercises.has(rec.id)?undefined:hipDeliveryStamp(rec,delivered);
+    outExercises.push({...delivered,...(stamp?{locomotionAudit:stamp}:{}),...(lowerStamp?{lowerLegAudit:lowerStamp}:{}),...(hipStamp?{hipAudit:hipStamp}:{})});
   }
   return { at: o.now || Date.now(), v: 2, plans: outPlans, templates: outTemplates, exercises: outExercises };
 }
