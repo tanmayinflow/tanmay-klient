@@ -55,3 +55,6 @@ export {LOWER_LEG_AUDIT_ENTRIES} from "./catalogLowerLegAuditData.js";
 
 export * from "./catalogHipAudit.js";
 export {HIP_AUDIT_ENTRIES} from "./catalogHipAuditData.js";
+
+export * from "./catalogShoulderAudit.js";
+export {SHOULDER_AUDIT_ENTRIES} from "./catalogShoulderAuditData.js";

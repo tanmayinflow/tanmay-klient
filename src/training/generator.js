@@ -1,3 +1,4 @@
+import {shoulderResolvedRefusal,resolvedShoulderPolicy} from './catalogShoulderAudit.js';
 import {hipResolvedRefusal,resolvedHipPolicy} from './catalogHipAudit.js';
 import {lowerLegResolvedRefusal,resolvedLowerLegPolicy} from './catalogLowerLegAudit.js';
 import {locomotionResolvedRefusal,locomotionHasResolvedEquipment} from './catalogLocomotionAuditPolicy.js';
@@ -59,12 +60,13 @@ export function selectableFor(rec, ctx) {
       return { ok: false, why: "unknown-role" };
   }
 
+  const shoulderRefusal=shoulderResolvedRefusal(rec,c);if(shoulderRefusal)return shoulderRefusal;
   const hipRefusal=hipResolvedRefusal(rec,c);if(hipRefusal)return hipRefusal;
   const lowerRefusal=lowerLegResolvedRefusal(rec,c);if(lowerRefusal)return lowerRefusal;
   const locomotionRefusal=locomotionResolvedRefusal(rec,c);if(locomotionRefusal)return locomotionRefusal;
   const reviewedRefusal=reviewedRopeClimbRefusal(rec,c);if(reviewedRefusal)return reviewedRefusal;
   if (rec.requiresCoach && !c.coachPresent) return { ok: false, why: "requires-coach" };
-  if (!resolvedHipPolicy(rec) && !resolvedLowerLegPolicy(rec) && !locomotionHasResolvedEquipment(rec) && c.equipment && rec.equipment.length && !rec.equipment.every((k) => c.equipment.includes(k))) return { ok: false, why: "equipment" };
+  if (!resolvedShoulderPolicy(rec) && !resolvedHipPolicy(rec) && !resolvedLowerLegPolicy(rec) && !locomotionHasResolvedEquipment(rec) && c.equipment && rec.equipment.length && !rec.equipment.every((k) => c.equipment.includes(k))) return { ok: false, why: "equipment" };
   if (c.sessionRole && rec.sessionRole !== c.sessionRole) return { ok: false, why: "session-role" };
   if (c.measurementTypes && !c.measurementTypes.includes(rec.measurementType)) return { ok: false, why: "measurement-type" };
   if (c.excludeIds && c.excludeIds.includes(rec.id)) return { ok: false, why: "already-chosen" };

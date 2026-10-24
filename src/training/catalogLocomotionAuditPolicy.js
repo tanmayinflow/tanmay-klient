@@ -15,18 +15,22 @@ export function locomotionSelectionAllowed(policy,{equipment,explicitTarget=fals
  const have=new Set(['telo',...equipment]);return policy.requirements.every(group=>group.some(id=>have.has(id)));
 }
 export function locomotionRecordOptions(policy){return policy?{...(policy.allowComparableRecords===false?{allowComparableRecords:false}:{}),...(policy.noAddedWeight?{allowAddedWeightRecord:false,excludeExtraLoad:true}:{}),...(policy.allowEstimatedMax===false?{allowEstimatedMax:false}:{}),...(policy.sideMode==='perSide'?{preserveSide:true}:{})}:{};}
-export function locomotionLegacyLoad(set,policy){if(!policy?.noAddedWeight)return[];return[['actual','addedWeight'],['actual','weight'],['planned','targetWeight'],['planned','addedWeight']].filter(([p,k])=>own(set?.[p],k)).map(([p,k])=>({part:p,key:k,value:set[p][k]}));}
+export function locomotionProtectedLoadKeys(policy){
+ if(policy?.noAddedWeight)return ['weight','addedWeight'];
+ return policy?.auditKind==='shoulder'&&policy.loadMode==='ext'&&['WEIGHT_REPS','WEIGHT_DURATION'].includes(policy.measurementType)?['addedWeight']:[];
+}
+export function locomotionLegacyLoad(set,policy){const keys=locomotionProtectedLoadKeys(policy);return[['actual','addedWeight'],['actual','weight'],['planned','targetWeight'],['planned','addedWeight']].filter(([p,k])=>keys.includes(k==='targetWeight'?'weight':k)&&own(set?.[p],k)).map(([p,k])=>({part:p,key:k,value:set[p][k]}));}
 const fits=(session,blockId,p)=>{const b=findBlock(session,blockId);return p&&b?.exId===p.id&&b.measurementType===p.measurementType;};
 const replaceSet=(session,blockId,setId,fn)=>({...session,blocks:session.blocks.map(b=>b.id!==blockId?b:{...b,sets:b.sets.map(s=>s.id===setId?fn(s):s)})});
-const preserveLoad=(before,after,p)=>{if(!p?.noAddedWeight)return after;const result={...after,actual:{...after.actual},planned:{...after.planned}};for(const k of ['weight','addedWeight']){delete result.actual[k];if(own(before.actual,k))result.actual[k]=before.actual[k];}for(const k of ['targetWeight','addedWeight'])if(own(before.planned,k))result.planned[k]=before.planned[k];return result;};
+const preserveLoad=(before,after,p)=>{const keys=locomotionProtectedLoadKeys(p);if(!keys.length)return after;const result={...after,actual:{...after.actual},planned:{...after.planned}};for(const k of keys){delete result.actual[k];if(own(before.actual,k))result.actual[k]=before.actual[k];const pk=k==='weight'?'targetWeight':k;delete result.planned[pk];if(own(before.planned,pk))result.planned[pk]=before.planned[pk];}return result;};
 export function locomotionSetActual(session,blockId,setId,patch,policy){
- if(!fits(session,blockId,policy)||!policy.noAddedWeight)return setActual(session,blockId,setId,patch);
- const before=findSet(session,blockId,setId),safe=Object.fromEntries(Object.entries(patch).filter(([k])=>!['weight','addedWeight'].includes(k)));return replaceSet(setActual(session,blockId,setId,safe),blockId,setId,s=>preserveLoad(before,s,policy));
+ const keys=locomotionProtectedLoadKeys(policy);if(!fits(session,blockId,policy)||!keys.length)return setActual(session,blockId,setId,patch);
+ const before=findSet(session,blockId,setId),safe=Object.fromEntries(Object.entries(patch).filter(([k])=>!keys.includes(k)));return replaceSet(setActual(session,blockId,setId,safe),blockId,setId,s=>preserveLoad(before,s,policy));
 }
-export function locomotionCompleteSet(session,blockId,setId,now,policy){const next=completeSet(session,blockId,setId,now);return fits(session,blockId,policy)&&policy.noAddedWeight?replaceSet(next,blockId,setId,s=>preserveLoad(findSet(session,blockId,setId),s,policy)):next;}
+export function locomotionCompleteSet(session,blockId,setId,now,policy){const next=completeSet(session,blockId,setId,now);return fits(session,blockId,policy)&&locomotionProtectedLoadKeys(policy).length?replaceSet(next,blockId,setId,s=>preserveLoad(findSet(session,blockId,setId),s,policy)):next;}
 export function locomotionSetSide(session,blockId,setId,side,policy){if(!fits(session,blockId,policy)||policy.sideMode!=='perSide'||!['L','R',null].includes(side))return session;return replaceSet(session,blockId,setId,s=>({...s,side}));}
 export function locomotionAddSet(session,blockId,opts,policy){const next=addSet(session,blockId,opts);if(!fits(session,blockId,policy)||policy.sideMode!=='perSide')return next;const previous=new Set(findBlock(session,blockId).sets.map(s=>s.id));return{...next,blocks:next.blocks.map(b=>b.id!==blockId?b:{...b,sets:b.sets.map(s=>previous.has(s.id)?s:{...s,side:opts?.side==='L'||opts?.side==='R'?opts.side:null})})};}
-export function locomotionCanCopyPrevious(prev,block,policy){return !policy||policy.sideMode!=='perSide'&&(!policy.noAddedWeight||![...(prev?.sets||[]),...(block?.sets||[])].some(s=>locomotionLegacyLoad(s,policy).length));}
+export function locomotionCanCopyPrevious(prev,block,policy){return !policy||policy.sideMode!=='perSide'&&![...(prev?.sets||[]),...(block?.sets||[])].some(s=>locomotionLegacyLoad(s,policy).length);}
 export function locomotionSideLabel(side,en=false){return side==='L'?(en?'Left':'Levá'):side==='R'?(en?'Right':'Pravá'):(en?'Side unspecified':'Strana neuvedena');}
 // Derived capabilities are kept in memory, never accepted from a persisted marker.
 const resolvedPolicies=new WeakMap();

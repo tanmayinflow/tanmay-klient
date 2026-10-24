@@ -1,3 +1,5 @@
+import {shoulderEquipmentDecision} from '../../src/training/catalogShoulderAudit.js';
+import {SHOULDER_AUDIT_CONTEXT} from '../../src/data/shoulderAuditContext.js';
 import {hipEquipmentDecision} from '../../src/training/catalogHipAudit.js';
 import {HIP_AUDIT_CONTEXT} from '../../src/data/hipAuditContext.js';
 import {lowerLegEquipmentDecision} from '../../src/training/catalogLowerLegAudit.js';
@@ -201,7 +203,7 @@ export function loadEngine() {
   const { src } = loadLibrary();
   const parts = ENGINE_DECLS.map((n) => sliceDecl(src, n));
   const sandbox = { console, TextEncoder, JSON, Math, Date, Object, Array, Number, String, Set, Map,
-    HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
+    SHOULDER_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { shoulderEquipmentDecision, hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
   vm.createContext(sandbox);
   // `const` at the top level of a script is lexically scoped, not a property of the
   // context — so the script hands the names out itself on the last line.

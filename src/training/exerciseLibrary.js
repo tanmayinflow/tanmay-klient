@@ -23,7 +23,7 @@ export function buildExerciseIndex(rows, options = {}) {
     const search = normalizeExerciseSearch([options.searchTextOf?.(row), row.id, ...names, ...array(row.aliases), ...array(row.taxonomy?.aliases)].filter(Boolean).join(' '));
     const status = options.statusOf?.(row) || row.status || meta.s || 'active';
     const tier = options.tierOf?.(row) || row.tier || meta.t || 'extended';
-    return { row, order, tax, equipment, name, names, search, muscles, level: options.levelOf?.(row) ?? Math.max(Number(row.S) || 1, (Number(row.C) || 1) - 1), archived: ['archived', 'blocked', 'alias', 'merged', 'deprecated'].includes(status) || tier === 'archived' || !!(row.aliasOf || meta.al) };
+    return { row, order, shoulderOrder:options.shoulderOrderOf?.(row,meta) ?? null, tax, equipment, name, names, search, muscles, level: options.levelOf?.(row) ?? Math.max(Number(row.S) || 1, (Number(row.C) || 1) - 1), archived: ['archived', 'blocked', 'alias', 'merged', 'deprecated'].includes(status) || tier === 'archived' || !!(row.aliasOf || meta.al) };
   });
 }
 
@@ -67,6 +67,10 @@ export function selectExerciseLibrary(index, value = {}, options = {}) {
     if (sort !== 'name') {
       const priority = a.tax.priority - b.tax.priority;
       if (priority) return priority;
+      if(filters.regions.length===1&&['shoulders','chest','neck'].includes(filters.regions[0])&&(!filters.movements.length||filters.movements.length===1&&filters.movements[0]==='joint')){
+        const rank=e=>Number.isInteger(e.shoulderOrder)?e.shoulderOrder:Infinity;
+        const difference=rank(a)-rank(b);if(difference&&!Number.isNaN(difference))return difference;
+      }
       if (filters.movements.length === 1 && filters.movements[0] === 'push_vertical') {
         const foundations=["dbpress","vp26_seated_db_press","an_seateddbpress","machineshoulderpress","ohp","kbpress","pike","vp26_foot_assisted_dip","faq_foot_dip","banddip","dips"];
         const rank=id=>foundations.includes(id)?foundations.indexOf(id):foundations.length;

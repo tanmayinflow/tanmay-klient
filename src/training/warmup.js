@@ -1,3 +1,4 @@
+import {resolvedShoulderPolicy} from './catalogShoulderAudit.js';
 import {resolvedHipPolicy} from './catalogHipAudit.js';
 import {resolvedLowerLegPolicy} from './catalogLowerLegAudit.js';
 import {resolvedLocomotionPolicy} from './catalogLocomotionAuditPolicy.js';
@@ -39,7 +40,7 @@ const RAMP_REPS = [8, 6, 5, 3, 2, 1];
 // load — a dumbbell press has no empty bar to do.
 export function warmupFor(opts) {
   const o = opts || {};
-  if (resolvedHipPolicy(o.exercise)?.manualWarmup || resolvedLowerLegPolicy(o.exercise)?.manualWarmup || resolvedLocomotionPolicy(o.exercise)?.manualWarmup) return [];
+  if (resolvedShoulderPolicy(o.exercise)?.manualWarmup || resolvedHipPolicy(o.exercise)?.manualWarmup || resolvedLowerLegPolicy(o.exercise)?.manualWarmup || resolvedLocomotionPolicy(o.exercise)?.manualWarmup) return [];
   const policy = o.policy || "ramp";
   if (policy === "none") return [];
 

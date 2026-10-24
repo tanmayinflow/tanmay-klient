@@ -289,12 +289,14 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
     // a jednou jako aktualizace sbírky (ta může proběhnout až v dalším renderu).
     const applyComplete = (s) => {
       const original=TV.findSet(s,block.id,set.id);
+      const protectedLoadKeys=TV.locomotionProtectedLoadKeys(policy);
       const skipPrevious=policy?.sideMode === "perSide" || policy?.noAddedWeight;
-      const next=completeGuidedSet(s,block.id,set.id,{previousActual:skipPrevious?{}:prevSet?.actual,extra,now:Date.now()});
-      if(!policy?.noAddedWeight||!original)return next;
+      const previousActual=skipPrevious?{}:Object.fromEntries(Object.entries(prevSet?.actual||{}).filter(([key])=>!protectedLoadKeys.includes(key)));
+      const next=completeGuidedSet(s,block.id,set.id,{previousActual,extra,now:Date.now()});
+      if(!protectedLoadKeys.length||!original)return next;
       return {...next,blocks:next.blocks.map(b=>b.id!==block.id?b:{...b,sets:b.sets.map(x=>{
         if(x.id!==set.id)return x;const actual={...x.actual};
-        for(const k of ["weight","addedWeight"]){delete actual[k];if(Object.prototype.hasOwnProperty.call(original.actual||{},k))actual[k]=original.actual[k];}
+        for(const k of protectedLoadKeys){delete actual[k];if(Object.prototype.hasOwnProperty.call(original.actual||{},k))actual[k]=original.actual[k];}
         return {...x,actual};
       })})};
     };

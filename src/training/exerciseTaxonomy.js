@@ -58,6 +58,8 @@ export const EXERCISE_POSITIONS = vocabulary([
   ['other','Další poloha','Other position'],
 ]);
 export const EXERCISE_SUPPORTS = vocabulary([
+["head_support","Opora hlavy","Head support"],
+["roller_support","Opora na válci","Roller support"],
 ["forearm_support","Opora o předloktí","Forearm support"],
   ['wall','Opora o zeď','Wall support'], ['chair_bench','Židle, lavice nebo schod','Chair, bench or step support'],
   ['hand_support','Opora rukou','Hand support'], ['assisted','S dopomocí','Assisted'], ['unsupported','Bez přídavné opory','No additional support'],
