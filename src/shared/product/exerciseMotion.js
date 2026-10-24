@@ -1462,6 +1462,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 63924,
     "sha256": "2a60030d0ad0510b6ac653a04bc7958afdb49edf9e654c9329a646c0c15f9145",
     "poster": "/exercise-motion/deadlift-poster-8c16e323fd2c016f.webp"
+  },
+  "chinup": {
+    "oneSide": false,
+    "src": "/exercise-motion/chinup-471cfa2f5be20ffe.mp4",
+    "bytes": 34557,
+    "sha256": "471cfa2f5be20ffec2eb2b478e8553bd8a38eeccb54bd6a3cd0d793d3d083be8",
+    "poster": "/exercise-motion/chinup-poster-ccba0c066e0c8d87.webp"
+  },
+  "mtclimb": {
+    "oneSide": false,
+    "src": "/exercise-motion/mtclimb-aa3bad500e516421.mp4",
+    "bytes": 44309,
+    "sha256": "aa3bad500e516421520614b54084f3623a4e7eece84d5ec3cf585c50cf07e90e",
+    "poster": "/exercise-motion/mtclimb-poster-f811dc9c5e928c0e.webp"
+  },
+  "trapbardl": {
+    "oneSide": false,
+    "src": "/exercise-motion/trapbardl-9394ae46640b4053.mp4",
+    "bytes": 69726,
+    "sha256": "9394ae46640b4053f6f99c23f10c44b9525d2e7ff783fb74130f2adbe75b6dcc",
+    "poster": "/exercise-motion/trapbardl-poster-3e3a88c62d69ac25.webp"
+  },
+  "jumpsquat": {
+    "oneSide": false,
+    "src": "/exercise-motion/jumpsquat-543910c5a5e2325a.mp4",
+    "bytes": 64769,
+    "sha256": "543910c5a5e2325a182e43bd416808bded84e47c912a70094837d9b83d9fcf7b",
+    "poster": "/exercise-motion/jumpsquat-poster-7ab6effc6b55b639.webp"
+  },
+  "farmer": {
+    "oneSide": false,
+    "src": "/exercise-motion/farmer-908cdb1066356e0f.mp4",
+    "bytes": 51322,
+    "sha256": "908cdb1066356e0f0fa9a601d5639197268ab61bcfd8a8b8a8b68c16bb093ab5",
+    "poster": "/exercise-motion/farmer-poster-7e7a5d729279bcae.webp"
+  },
+  "jumprope": {
+    "oneSide": false,
+    "src": "/exercise-motion/jumprope-edc21102d92d1d8c.mp4",
+    "bytes": 42891,
+    "sha256": "edc21102d92d1d8c5b1b6d9066d5665a9b9ab9fa75ef2d956c6bc8cd3d6fef12",
+    "poster": "/exercise-motion/jumprope-poster-7da53cadfedc74d5.webp"
+  },
+  "an_scissors": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_scissors-e99143e73cd2d7d1.mp4",
+    "bytes": 32467,
+    "sha256": "e99143e73cd2d7d13da99a8df8dab5f4a793b96de702b43a46260e767bfbeef6",
+    "poster": "/exercise-motion/an_scissors-poster-1f690c8a56d49c8e.webp"
+  },
+  "slrdl": {
+    "oneSide": true,
+    "src": "/exercise-motion/slrdl-b2a04f90cce4ca01.mp4",
+    "bytes": 43341,
+    "sha256": "b2a04f90cce4ca013336f9cc26a5e954cdbb70941502a5a28e8d7ceaffae5bff",
+    "poster": "/exercise-motion/slrdl-poster-275e35d60de15a17.webp"
   }
 });
 
