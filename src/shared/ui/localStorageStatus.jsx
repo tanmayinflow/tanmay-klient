@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { storageSizeSummary, decodeRecoveryArchive, localSaveDiagnostic } from "../product/localPersistence.js";
+import { storageSizeSummary, createRecoveryArchive, localSaveDiagnostic } from "../product/localPersistence.js";
 
 /** Read-only, local diagnostics. Never renders keys, record text or identifiers. */
 export function LocalStorageStatus({ t, L, getDocument, writer }) {
@@ -9,12 +9,12 @@ export function LocalStorageStatus({ t, L, getDocument, writer }) {
       const storage = window.localStorage, { coll, edits } = getDocument();
       const collText = storage.getItem("tanmay_coll_v1"), editsText = storage.getItem("tanmay_edits_v1");
       const persisted = JSON.parse(collText || "null");
-      const sizes = storageSizeSummary(storage), rawArchive = storage.getItem("tanmay_zaloha_v1");
-      let snapshots = null, archiveError = null;
-      try { snapshots = (await decodeRecoveryArchive(rawArchive)).length; } catch (error) { archiveError = error?.name || "Error"; }
+      const sizes = storageSizeSummary(storage);
+      let snapshots = null, archiveError = null, archive = null;
+      try { archive = await createRecoveryArchive({ getStorage: () => storage }).inspect(); snapshots = archive.count; } catch (error) { archiveError = error?.name || "Error"; }
       setResult({ matches: collText === JSON.stringify(coll) && editsText === JSON.stringify(edits), sizes,
         exercises: Array.isArray(persisted?.tEx) ? persisted.tEx.length : 0, snapshots, archiveError,
-        compressed: !!rawArchive && !rawArchive.trimStart().startsWith("["), lastFailure: writer.lastFailure() });
+        compressed: archive?.compressed, separateCharacters: archive?.separateCharacters || 0, lastFailure: writer.lastFailure() });
     } catch (error) { setResult({ error: error?.name || "Error" }); }
   };
   const chars = n => Number(n).toLocaleString(L("cs-CZ", "en-GB"));
@@ -28,6 +28,7 @@ export function LocalStorageStatus({ t, L, getDocument, writer }) {
         <div>{L("Uložených cviků", "Saved exercise rows")}: {result.exercises}</div>
         <div>{L("Znaky: dokument / zálohy / ostatní", "Characters: document / backups / other")}: {chars(result.sizes.documentCharacters)} / {chars(result.sizes.backupCharacters)} / {chars(result.sizes.otherCharacters)}</div>
         <div>{L("Obnovitelné snímky", "Recoverable snapshots")}: {result.archiveError || result.snapshots}{result.compressed && !result.archiveError ? L(" · bezeztrátově komprimované", " · losslessly compressed") : ""}</div>
+        {result.separateCharacters > 0 && <div>{L("Zálohy v odděleném úložišti", "Backups in separate storage")}: {chars(result.separateCharacters)} {L("znaků", "characters")}</div>}
         {result.lastFailure && <div>{L("Poslední chyba v tomto otevření", "Last error during this visit")}: {localSaveDiagnostic(result.lastFailure, L)}</div>}
       </>}
     </div>}

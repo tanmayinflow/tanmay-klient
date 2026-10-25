@@ -159,3 +159,109 @@ test("malformed snapshot document is rejected before either active key changes",
     assert.equal(storage.getItem(COLL), old.coll); assert.equal(storage.getItem(EDITS), old.edits);
   }
 });
+
+function separateStore(initial = null) {
+  let value = initial;
+  return { read: async () => value, compareAndSwap: async (expected, next) => { if (value !== expected) return false; value = next; return true; } };
+}
+
+test("already compressed five-day archive moves intact and frees quota for the newest plain document", async () => {
+  const storage = memory(), original = Array.from({ length: 5 }, (_, i) => snapshot(i)), durable = separateStore();
+  const packed = await encodeRecoveryArchive(original);
+  storage.setItem(COLL, original[0].coll); storage.setItem(BACKUPS, packed); storage.setItem("unrelated", "keep");
+  storage.limit = storageSizeSummary(storage).totalCharacters;
+  const archive = createRecoveryArchive({ getStorage: () => storage, durable });
+  const writer = createLocalDocumentWriter({ getStorage: () => storage, recoverQuota: () => archive.compact() });
+  const newest = { ...JSON.parse(original[0].coll), note: "saved after migration" };
+  assert.equal(writer.write(COLL, newest, "coll"), false);
+  await writer.settled();
+  assert.equal(writer.currentFailure(), null);
+  assert.deepEqual(JSON.parse(storage.getItem(COLL)), newest);
+  assert.equal(storage.getItem(BACKUPS), null);
+  assert.equal(storage.getItem("unrelated"), "keep");
+  const reopened = createRecoveryArchive({ getStorage: () => storage, durable });
+  assert.deepEqual(await reopened.read(), original);
+  assert.equal((await reopened.inspect()).count, 5);
+  assert.ok((await reopened.inspect()).separateCharacters > 0);
+  restoreLocalDocumentPair(storage, (await reopened.read())[0]);
+  assert.equal(storage.getItem(COLL), original[0].coll);
+});
+
+test("failed durable writes never release the original archive or falsely resolve pending documents", async () => {
+  const storage = memory(), raw = await encodeRecoveryArchive([snapshot()]); storage.setItem(BACKUPS, raw);
+  storage.limit = raw.length;
+  const archive = createRecoveryArchive({ getStorage: () => storage, durable: { read: async () => null, compareAndSwap: async () => { throw new DOMException("Quota", "QuotaExceededError"); } } });
+  const writer = createLocalDocumentWriter({ getStorage: () => storage, recoverQuota: () => archive.compact() });
+  writer.write(COLL, { newest: "keep in memory" }); await writer.settled();
+  assert.equal(writer.currentFailure().kind, "quota");
+  assert.equal(storage.getItem(BACKUPS), raw);
+  storage.limit = Infinity; assert.equal(writer.retry(), true);
+  assert.deepEqual(JSON.parse(storage.getItem(COLL)), { newest: "keep in memory" });
+});
+
+test("another tab's legacy append after committed migration is merged without collapsing equal timestamps", async () => {
+  const storage = memory(), first = snapshot(1), other = { ...snapshot(1), coll: '{"different":"same time"}' };
+  storage.setItem(BACKUPS, JSON.stringify([first]));
+  const durable = separateStore(), read = durable.read; let reads = 0;
+  durable.read = async () => { if (++reads === 2) storage.setItem(BACKUPS, JSON.stringify([first, other])); return read(); };
+  const archive = createRecoveryArchive({ getStorage: () => storage, durable });
+  await archive.compact();
+  assert.deepEqual(await archive.read(), [first, other]);
+  assert.equal(storage.getItem(BACKUPS), null);
+});
+
+test("simultaneous archive instances use compare-and-swap to preserve both new snapshots", async () => {
+  const storage = memory(), durable = separateStore();
+  const one = createRecoveryArchive({ getStorage: () => storage, durable });
+  const two = createRecoveryArchive({ getStorage: () => storage, durable });
+  await Promise.all([one.update(rows => [...rows, snapshot(1)]), two.update(rows => [...rows, snapshot(2)])]);
+  assert.deepEqual((await one.read()).map(row => row.t), [1, 2]);
+});
+
+test("retry after a late legacy write cannot duplicate the same restore undo snapshot", async () => {
+  const storage = memory(), durable = separateStore(), read = durable.read;
+  storage.setItem(BACKUPS, JSON.stringify([snapshot(1)])); let reads = 0;
+  durable.read = async () => { if (++reads === 2) storage.setItem(BACKUPS, JSON.stringify([snapshot(1), snapshot(2)])); return read(); };
+  const archive = createRecoveryArchive({ getStorage: () => storage, durable });
+  await archive.update(rows => [...rows, snapshot(3)]);
+  assert.deepEqual((await archive.read()).map(row => row.t), [1, 2, 3]);
+});
+
+test("unverified or corrupt separate archives cannot replace the legacy recovery copy", async () => {
+  const storage = memory(), raw = JSON.stringify([snapshot()]); storage.setItem(BACKUPS, raw);
+  const corrupt = createRecoveryArchive({ getStorage: () => storage, durable: separateStore("invalid") });
+  await assert.rejects(corrupt.compact()); assert.equal(storage.getItem(BACKUPS), raw);
+  const unverified = createRecoveryArchive({ getStorage: () => storage, durable: { read: async () => null, compareAndSwap: async () => true } });
+  await assert.rejects(unverified.compact(), /BackupChangedInAnotherTab/);
+  assert.equal(storage.getItem(BACKUPS), raw);
+});
+
+test("a too-large live document stays visibly pending even after all archives move successfully", async () => {
+  const storage = memory(1000), durable = separateStore(); storage.setItem(BACKUPS, '[]');
+  const archive = createRecoveryArchive({ getStorage: () => storage, durable });
+  const writer = createLocalDocumentWriter({ getStorage: () => storage, recoverQuota: () => archive.compact() });
+  writer.write(COLL, { value: "x".repeat(2000) }); await writer.settled();
+  assert.equal(writer.currentFailure().kind, "quota"); assert.equal(storage.getItem(COLL), null);
+});
+
+test("a throwing IndexedDB getter cannot prevent startup or legacy archive recovery", async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "indexedDB");
+  Object.defineProperty(globalThis, "indexedDB", { configurable: true, get() { throw new DOMException("denied", "SecurityError"); } });
+  try {
+    const storage = memory(); storage.setItem(BACKUPS, JSON.stringify([snapshot()]));
+    const archive = createRecoveryArchive({ getStorage: () => storage });
+    await archive.compact(); assert.deepEqual(await decodeRecoveryArchive(storage.getItem(BACKUPS)), [snapshot()]);
+    await assert.rejects(archive.read(), { name: "SecurityError" });
+    await assert.rejects(archive.inspect(), { name: "SecurityError" });
+  } finally { if (descriptor) Object.defineProperty(globalThis, "indexedDB", descriptor); else delete globalThis.indexedDB; }
+});
+
+test("unavailable IndexedDB permits local-only compaction but never silently returns an empty durable archive", async () => {
+  const storage = memory(), original = [snapshot()]; storage.setItem(BACKUPS, JSON.stringify(original));
+  const archive = createRecoveryArchive({ getStorage: () => storage, durable: { read: async () => { throw new DOMException("denied", "SecurityError"); } } });
+  await archive.compact();
+  assert.deepEqual(await decodeRecoveryArchive(storage.getItem(BACKUPS)), original);
+  assert.ok(storage.getItem(BACKUPS).length < JSON.stringify(original).length);
+  await assert.rejects(archive.read(), { name: "SecurityError" });
+  await assert.rejects(archive.update(rows => [...rows, snapshot(2)]), { name: "SecurityError" });
+});

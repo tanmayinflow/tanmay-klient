@@ -1,3 +1,5 @@
+import { createIndexedRecoveryStore } from "./recoveryArchiveStore.js";
+
 // Local documents stay plain JSON for account isolation and cross-tab sync.
 // Only the recovery archive uses a self-contained, lossless gzip envelope.
 const BACKUP_FORMAT = "tanmay-backups-gzip-v1";
@@ -116,17 +118,56 @@ export async function encodeRecoveryArchive(archive, { Compress = globalThis.Com
 /** All mutations are serialized, including compaction and daily snapshots.
  * Before replacement, recheck the exact old value to preserve other-tab writes.
  * setItem is atomic: failed compression/storage never removes the old archive. */
-export function createRecoveryArchive({ getStorage, key = "tanmay_zaloha_v1", codec = {} }) {
+function defaultRecoveryStore(key) {
+  try { const database = globalThis.indexedDB; return database ? createIndexedRecoveryStore({ indexedDB: database, key }) : null; }
+  catch (error) {
+    // Startup must survive a restricted getter, but an inaccessible migrated
+    // archive must never be displayed as an empty one.
+    return { read: async () => { throw error; }, compareAndSwap: async () => { throw error; } };
+  }
+}
+
+export function createRecoveryArchive({ getStorage, key = "tanmay_zaloha_v1", codec = {}, durable = defaultRecoveryStore(key) }) {
   let queue = Promise.resolve();
   const enqueue = work => { const task = queue.then(work); queue = task.catch(() => {}); return task; };
-  const update = change => enqueue(async () => {
+  const combined = async (local, saved) => {
+    const older = await decodeRecoveryArchive(saved, codec), legacy = await decodeRecoveryArchive(local, codec);
+    // An older open tab can still append a local archive after migration.
+    // Preserve distinct snapshots, even with the same date or timestamp.
+    const seen = new Set();
+    return [...older, ...legacy].filter(row => { const id = JSON.stringify(row); if (seen.has(id)) return false; seen.add(id); return true; })
+      .sort((a, b) => (a.t || 0) - (b.t || 0));
+  };
+  const update = (change, allowLocalCompaction = false) => enqueue(async () => {
     for (let tries = 0; tries < 4; tries++) {
       const storage = getStorage(), before = storage.getItem(key);
-      const old = await decodeRecoveryArchive(before, codec);
-      const next = change(old);
+      let saved = null;
+      try { if (durable) saved = await durable.read(); }
+      catch (error) {
+        // No durable mutation was attempted. The legacy copy can still be
+        // losslessly compacted in place, without pretending IDB is empty.
+        if (allowLocalCompaction) return createRecoveryArchive({ getStorage, key, codec, durable: null }).compact();
+        throw error;
+      }
+      const old = durable ? await combined(before, saved) : await decodeRecoveryArchive(before, codec);
+      let next = change(old);
       if (next == null) return false;
+      // A committed attempt may have to retry when a legacy tab writes late.
+      // Reapplying an append must not duplicate the same undo snapshot.
+      if (Array.isArray(next)) next = [...new Map(next.map(row => [JSON.stringify(row), row])).values()];
       const after = await encodeRecoveryArchive(next, codec);
       if (storage.getItem(key) !== before) continue;
+      if (durable) {
+        if (!await durable.compareAndSwap(saved, after)) continue;
+        // Reopen/read after transaction completion, and verify the exact full
+        // archive before releasing its old allocation. Failure keeps the copy.
+        const verified = await durable.read();
+        if (verified !== after) continue;
+        if (JSON.stringify(await decodeRecoveryArchive(verified, codec)) !== JSON.stringify(next)) throw new Error("BackupVerificationFailed");
+        if (storage.getItem(key) !== before) continue;
+        if (before != null) storage.removeItem(key);
+        return before != null || saved !== after;
+      }
       if (after === before) return false;
       storage.setItem(key, after);
       return true;
@@ -134,9 +175,14 @@ export function createRecoveryArchive({ getStorage, key = "tanmay_zaloha_v1", co
     throw new Error("BackupChangedInAnotherTab");
   });
   return {
-    read: () => decodeRecoveryArchive(getStorage().getItem(key), codec),
+    read: async () => durable ? combined(getStorage().getItem(key), await durable.read()) : decodeRecoveryArchive(getStorage().getItem(key), codec),
+    inspect: async () => {
+      const local = getStorage().getItem(key), saved = durable ? await durable.read() : null;
+      const rows = durable ? await combined(local, saved) : await decodeRecoveryArchive(local, codec);
+      return { count: rows.length, separateCharacters: saved?.length || 0, compressed: [local, saved].some(raw => raw && !raw.trimStart().startsWith("[")) };
+    },
     update,
-    compact: () => update(old => old.length ? old : null),
+    compact: () => update(old => old.length ? old : null, true),
     settled: () => queue,
   };
 }
