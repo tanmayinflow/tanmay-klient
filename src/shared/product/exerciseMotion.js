@@ -2022,6 +2022,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 26377,
     "sha256": "57e622a2d32c040c5c3167609a23e942f5dba3272a2331867918520fd2f993b5",
     "poster": "/exercise-motion/flrow-poster-4d91eed8e4f47ca7.webp"
+  },
+  "flpullup": {
+    "oneSide": false,
+    "src": "/exercise-motion/flpullup-f0aec4fc5c1eec7f.mp4",
+    "bytes": 27385,
+    "sha256": "f0aec4fc5c1eec7f2f8b0b026ae37f3b607983fcdb34d40a6b1cadec02f65a67",
+    "poster": "/exercise-motion/flpullup-poster-3279c9edb2e1dbca.webp"
+  },
+  "archrow": {
+    "oneSide": true,
+    "src": "/exercise-motion/archrow-0d8894bf27c88a3b.mp4",
+    "bytes": 34791,
+    "sha256": "0d8894bf27c88a3b59ed9a660c8efd05a69e694e855802464987fafb9ee4cf5a",
+    "poster": "/exercise-motion/archrow-poster-9145156794df26a5.webp"
+  },
+  "scorpion": {
+    "oneSide": true,
+    "src": "/exercise-motion/scorpion-89082de702ad5701.mp4",
+    "bytes": 35231,
+    "sha256": "89082de702ad5701fdac342aa04029c6a896521f6e4a5ffb0d59abc6fe35c369",
+    "poster": "/exercise-motion/scorpion-poster-5eddc7a6a47493f6.webp"
+  },
+  "tbridge": {
+    "oneSide": true,
+    "src": "/exercise-motion/tbridge-7283b4f240eb23bd.mp4",
+    "bytes": 24580,
+    "sha256": "7283b4f240eb23bdf0ddaf1907adbee68733674698c7c0f6eafc9da92ba36aa5",
+    "poster": "/exercise-motion/tbridge-poster-c8de929b7e27fb2b.webp"
+  },
+  "scapdip": {
+    "oneSide": false,
+    "src": "/exercise-motion/scapdip-45e252c9eaf05010.mp4",
+    "bytes": 20195,
+    "sha256": "45e252c9eaf050109eab0b0381caf32fd1c42e4bd320a83820239ef1da501d4a",
+    "poster": "/exercise-motion/scapdip-poster-ec60cdab9caf4a08.webp"
+  },
+  "an_svend": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_svend-245a3308d543620f.mp4",
+    "bytes": 17982,
+    "sha256": "245a3308d543620fd8334b4ac7667cf6b4b3eee68dae01b3db8f09f5adb42ab2",
+    "poster": "/exercise-motion/an_svend-poster-5fee22ade4d2ffb5.webp"
+  },
+  "ex26_single_reach": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_single_reach-f5408d47cdd5782b.mp4",
+    "bytes": 24302,
+    "sha256": "f5408d47cdd5782b44ebc33148916d5c1f1a459ddb33f8554ed0cc5aea564b5b",
+    "poster": "/exercise-motion/ex26_single_reach-poster-1e5e63e2971d092c.webp"
+  },
+  "ex26_smith_bench": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_smith_bench-e18504c0d56e3396.mp4",
+    "bytes": 51425,
+    "sha256": "e18504c0d56e3396986068bfd6bc53f50f9b09e704457f719725a540f866bf7c",
+    "poster": "/exercise-motion/ex26_smith_bench-poster-07d66d470c6fe3ab.webp"
   }
 });
 
