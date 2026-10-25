@@ -36,9 +36,6 @@ const INVENTORY = {
     "#D7D0C6": [1, "EXPORT · linka patičky"],
     "#EBE3D8": [1, "EXPORT · zvýraznění v tisku"],
     "#F4F0EB": [2, "vložené HTML tlačítko v generovaném náhledu · Linen"],
-    // ilustrace · siluetu nekreslí motiv
-    "#3A423A": [2, "ILUSTRACE · silueta postavy v noci"],
-    "#D7D2C8": [2, "ILUSTRACE · silueta postavy ve dne"],
   },
   "tanmay-klient": {
     // tisková a exportní šablona · kanonický Linen dokument, ne motiv (§18)
@@ -55,8 +52,6 @@ const INVENTORY = {
     "#D7D0C6": [1, "EXPORT · linka patičky"],
     "#EBE3D8": [1, "EXPORT · zvýraznění v tisku"],
     "#F4F0EB": [2, "vložené HTML tlačítko v generovaném náhledu · Linen"],
-    "#3B3B37": [2, "ILUSTRACE · silueta postavy v noci"],
-    "#D9D0BE": [2, "ILUSTRACE · silueta postavy ve dne"],
     "#A0522D": [1, "ILUSTRACE · cihla v nákresu"],
     "#C1744B": [1, "ILUSTRACE · cihla v nákresu, noc"],
   },
@@ -89,17 +84,11 @@ test("značkové body se jmenují, ne píší", () => {
 });
 
 test("Movement Atlas keeps source artwork and adapts compositing to the theme", () => {
-  const start = app.indexOf("function TmAtlasArt");
-  if (start < 0) {
-    // Klientská aplikace pláty Atlasu nevykresluje vůbec — kreslí procedurální
-    // postavu ze sdíleného jádra. Není co tónovat a nesmí to přibýt.
-    assert.equal(app.includes("/movement-atlas/"), false, "klientský balík nesmí sáhnout po plátech Atlasu");
-    return;
-  }
-  const atlas = app.slice(start, app.indexOf("function TExArt", start));
-  assert.ok(atlas.length > 200, "TmAtlasArt se nenašel celý");
-  assert.match(atlas, /mixBlendMode: t.mode === "dark" \? "screen" : "multiply"/);
-  assert.match(atlas, /onLoad=/, "fallback stops showing through loaded line art");
-  assert.match(atlas, /const src = velky \? v.detail : v.thumb/, "original resolution selection survives");
-  assert.match(atlas, /objectFit: "contain"/, "poměr stran plátu se nemění");
+  const atlas = readFileSync(join(root, "src/shared/ui/ExerciseAtlasImage.jsx"), "utf8");
+  assert.match(app, /<ExerciseAtlasImage\b/, "both applications render approved atlas plates");
+  assert.doesNotMatch(app, /TmPostava|createFigure|T_FIGS|TPatArt/);
+  assert.match(atlas, /mixBlendMode:dark\?'screen':'multiply'/);
+  assert.match(atlas, /visibility:visible\?'visible':'hidden'/, "loading and failed art stay blank");
+  assert.match(atlas, /const src = fluid \|\| size >= detailThreshold \? art.detail : art.thumb/);
+  assert.match(atlas, /objectFit:'contain'/, "source aspect ratio survives");
 });

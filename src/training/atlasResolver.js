@@ -9,15 +9,12 @@
 //
 // The Movement Atlas is read here and never written. The generated
 // manifest is an input. A new exercise that has no plate gets `null` and
-// the procedural figure covers it — never a similar exercise's picture,
-// because a plausible wrong illustration is worse than an honest generic
-// one.
+// its reserved area stays empty — never a similar exercise's picture.
 // ======================================================================
 
 import { ATLAS_STATUS } from "./types.js";
 
-export function makeAtlasResolver(manifest, opts) {
-  const o = opts || {};
+export function makeAtlasResolver(manifest) {
   const entries = (manifest && manifest.entries) || manifest || {};
   const originalIds = new Set(Object.keys(entries));
 
@@ -36,7 +33,7 @@ export function makeAtlasResolver(manifest, opts) {
     // has nothing to decide.
     renderKindFor: (exId) => {
       if (originalIds.has(exId)) return "atlas";
-      return o.proceduralFor && o.proceduralFor(exId) ? "procedural" : "pattern";
+      return "empty";
     },
     originalIds,
   };
