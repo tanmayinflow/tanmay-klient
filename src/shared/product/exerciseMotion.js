@@ -2078,6 +2078,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 51425,
     "sha256": "e18504c0d56e3396986068bfd6bc53f50f9b09e704457f719725a540f866bf7c",
     "poster": "/exercise-motion/ex26_smith_bench-poster-07d66d470c6fe3ab.webp"
+  },
+  "ex26_pendlay_row": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_pendlay_row-c2e4cc726ed77be1.mp4",
+    "bytes": 42223,
+    "sha256": "c2e4cc726ed77be1d31f4e53b3cdd0ebd344354ddc951b46214a13a0aa2f5c92",
+    "poster": "/exercise-motion/ex26_pendlay_row-poster-242076475239cc5d.webp"
+  },
+  "ex26_stiff_deadlift": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_stiff_deadlift-032a33566bf16ac8.mp4",
+    "bytes": 60944,
+    "sha256": "032a33566bf16ac8baf05550b31ff068cc5af153d7b0a0d83d90a05d92998264",
+    "poster": "/exercise-motion/ex26_stiff_deadlift-poster-d75e1e1293f47f37.webp"
+  },
+  "ex26_weighted_dip": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_weighted_dip-89578146cb8482e6.mp4",
+    "bytes": 33019,
+    "sha256": "89578146cb8482e6e1029f1c39fad2e5d4bb6e0384d7c4f53a9e7cbc038d606c",
+    "poster": "/exercise-motion/ex26_weighted_dip-poster-f762e376a68a2dea.webp"
+  },
+  "ex26_cable_hammer_curl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_cable_hammer_curl-c7a442434a81cffb.mp4",
+    "bytes": 41461,
+    "sha256": "c7a442434a81cffb8de0f0880d3d4aafa01abb96b720981151c9806ab1e62a7b",
+    "poster": "/exercise-motion/ex26_cable_hammer_curl-poster-c404b03e92eaabd8.webp"
+  },
+  "ex26_seated_bb_press": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_seated_bb_press-a5dda01c9ce4e971.mp4",
+    "bytes": 54743,
+    "sha256": "a5dda01c9ce4e97140cee67a67e2ec78c41846a285b254b3bb7cf8dfaa2e1d0a",
+    "poster": "/exercise-motion/ex26_seated_bb_press-poster-72746254f8d8239d.webp"
+  },
+  "ex26_rack_pull": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_rack_pull-b69c4944a3d464e1.mp4",
+    "bytes": 49934,
+    "sha256": "b69c4944a3d464e198b2a92dc696d3a46004484d60d52703754de7d9ae373ce9",
+    "poster": "/exercise-motion/ex26_rack_pull-poster-d3801908bc0f93a5.webp"
+  },
+  "ex26_onearm_pulldown": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_onearm_pulldown-7f6044a6960b1301.mp4",
+    "bytes": 35561,
+    "sha256": "7f6044a6960b1301196a2f2e8200a61b3e53595a4e7add9a0fb558a100a286ec",
+    "poster": "/exercise-motion/ex26_onearm_pulldown-poster-38873463d10fd160.webp"
+  },
+  "ex26_cable_facepull": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_cable_facepull-cbd54dac5962b7de.mp4",
+    "bytes": 33543,
+    "sha256": "cbd54dac5962b7de14f4357b79f4c9692253cfe838eee6bedc4a6fa8680b46cc",
+    "poster": "/exercise-motion/ex26_cable_facepull-poster-5d54afe2ca1952de.webp"
   }
 });
 
