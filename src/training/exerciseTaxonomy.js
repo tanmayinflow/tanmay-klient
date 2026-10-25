@@ -76,11 +76,12 @@ export const EXERCISE_SUPPORTS = vocabulary([
 const arr = value => Array.isArray(value) ? value : [];
 const unique = values => [...new Set(values.filter(value => typeof value === 'string' && value))];
 const clean = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-const regionByMuscle = {
+export const EXERCISE_REGION_BY_MUSCLE = Object.freeze({
   neck:'neck', sho:'shoulders', rcuff:'shoulders', serr:'shoulders', che:'chest',
   upb:'back', lat:'back', tra:'back', low:'back', abs:'trunk', obl:'trunk', bic:'arms', tri:'arms',
   fore:'forearms_hands', glu:'hips', hipflex:'hips', qua:'thighs', ham:'thighs', add:'thighs', cal:'lower_legs', tib:'lower_legs',
-};
+});
+const regionByMuscle = EXERCISE_REGION_BY_MUSCLE;
 
 // These are inspected identities whose legacy families are too broad or wrong.
 const movementById = {};

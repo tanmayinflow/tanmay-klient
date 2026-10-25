@@ -5,6 +5,7 @@ import { TmIcon } from './icons.jsx';
 import { createExerciseFilters } from '../../training/exerciseLibrary.js';
 import { exerciseTaxonomy, EXERCISE_REGIONS, EXERCISE_MOVEMENTS, EXERCISE_MOVEMENT_GROUPS, EXERCISE_FOCUS, EXERCISE_POSITIONS, EXERCISE_SUPPORTS } from '../../training/exerciseTaxonomy.js';
 import { EXERCISE_EQUIPMENT, EXERCISE_EQUIPMENT_GROUPS } from '../../training/exerciseEquipment.js';
+import { highlightedBodyMuscles, selectBodyRegions, selectBodyMuscles, toggleBodyMuscle } from '../../training/exerciseBodySelection.js';
 
 const labels = definitions => definitions.map(item => ({ v: item.id, label: L(item.cz, item.en), group: item.group }));
 const fields = () => [
@@ -18,7 +19,7 @@ const control = t => ({ fontFamily: FONT_BODY, fontWeight: 400, fontSize: 14, li
 
 // Inline choices inherit the paper, typography and drawer scrolling. No native
 // OS menu or floating layer; a roving radio group supports keyboard selection.
-function LibraryChoice({ t, label, value, options, onChange, style }) {
+function LibraryChoice({ t, label, value, options, onChange, style, icon }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef(null), trigger = useRef(null), group = useRef(null);
   const id = useId();
@@ -31,14 +32,14 @@ function LibraryChoice({ t, label, value, options, onChange, style }) {
     return () => document.removeEventListener('pointerdown', outside);
   }, [open]);
   const close = () => { setOpen(false); trigger.current?.focus(); };
-  return <div ref={wrap} data-library-choice="" style={{ minWidth: 0, ...style }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={event => {
+  return <div ref={wrap} data-library-choice="" style={{ minWidth: 0, ...(icon ? { display: 'contents' } : {}), ...style }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={event => {
     if (event.key === 'Escape' && open) { event.preventDefault(); event.stopPropagation(); close(); }
   }}>
     <button type="button" ref={trigger} aria-label={label} aria-describedby={`${id}-value`} aria-expanded={open} aria-controls={`${id}-options`} onClick={() => setOpen(!open)} onKeyDown={event => { if (['ArrowDown','ArrowUp'].includes(event.key)) { event.preventDefault(); setOpen(true); } }}
-      style={{ ...control(t), width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, textAlign: 'left', borderColor: open ? t.accent : t.border }}>
-      <span id={`${id}-value`}>{selected.label}</span><TmIcon id="expand" size={12} style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : undefined }} />
+      title={icon ? `${label}: ${selected.label}` : undefined} style={{ ...control(t), width: icon ? 44 : '100%', display: 'flex', alignItems: 'center', justifyContent: icon ? 'center' : 'space-between', gap: 12, textAlign: 'left', borderColor: open ? t.accent : icon ? 'transparent' : t.border, padding: icon ? 0 : '8px 12px', flexShrink: 0 }}>
+      <span id={`${id}-value`} style={icon ? { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)' } : undefined}>{selected.label}</span><TmIcon id={icon || 'expand'} size={icon ? 20 : 12} style={{ flexShrink: 0, transform: !icon && open ? 'rotate(180deg)' : undefined }} />
     </button>
-    {open && <div id={`${id}-options`} ref={group} role="radiogroup" aria-label={label} style={{ marginTop: 6, padding: '5px 0', borderTop: `1px solid ${t.borderSoft}`, borderBottom: `1px solid ${t.borderSoft}` }} onKeyDown={event => {
+    {open && <div id={`${id}-options`} ref={group} role="radiogroup" aria-label={label} style={{ marginTop: 6, padding: '5px 0', borderTop: `1px solid ${t.borderSoft}`, borderBottom: `1px solid ${t.borderSoft}`, ...(icon ? { order: 3, flexBasis: '100%', minWidth: 0 } : {}) }} onKeyDown={event => {
       if (!['ArrowDown','ArrowUp','ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
       event.preventDefault();
       const buttons = [...group.current.querySelectorAll('[role="radio"]')];
@@ -73,9 +74,13 @@ function FacetPanel({ t, field, values, onChange }) {
   </div>;
 }
 
-export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFilterCount = 0, sort = 'recommended', onSort, count, hiddenCount = 0, muscleOptions = [], levelOptions = [], allowCustomOrder = false, autoFocus = false }) {
+export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFilterCount = 0, sort = 'recommended', onSort, count, hiddenCount = 0, muscleOptions = [], levelOptions = [], allowCustomOrder = false, autoFocus = false, view = 'grid', onViewChange, renderBodyMap }) {
   const [expanded, setExpanded] = useState(null);
   const [more, setMore] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(autoFocus || !!filters?.q);
+  const searchRef = useRef(null), searchTrigger = useRef(null);
+  const searchId = useId();
+  useEffect(() => { if (searchOpen) searchRef.current?.focus({ preventScroll: true }); }, [searchOpen]);
   const value = { ...createExerciseFilters(), ...filters };
   const allFields = [...fields(), { key: 'equipment', label: L('Vybavení', 'Equipment'), options: labels(EXERCISE_EQUIPMENT), groups: labels(EXERCISE_EQUIPMENT_GROUPS) }, { key: 'levels', label: L('Nároky provedení', 'Execution demands'), options: levelOptions }, { key: 'muscles', label: L('Konkrétní svaly', 'Specific muscles'), options: muscleOptions }];
   const patch = next => onChange({ ...value, ...next });
@@ -84,21 +89,27 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
   const any = active.length || extraFilterCount || value.q || value.includeSecondary || value.includeArchived || value.equipmentMode !== 'uses';
   const facetButton = key => {
     const item = allFields.find(choice => choice.key === key);
-    const n = value[key]?.length || 0;
+    const n = (value[key]?.length || 0) + (key === 'regions' ? value.muscles.length : 0);
     return <button type="button" key={key} aria-expanded={expanded === key} onClick={() => setExpanded(expanded === key ? null : key)} style={{ ...control(t), borderColor: n ? t.accent : t.border, color: n ? t.heading : t.text }}>
       {item.label}{n ? ` · ${n}` : ''}<TmIcon id="expand" size={12} style={{ marginLeft: 8, display: 'inline-block', verticalAlign: 'middle', transform: expanded === key ? 'rotate(180deg)' : undefined }} />
     </button>;
   };
   return <section data-exercise-library-filters="" aria-label={L('Hledání v knihovně cviků', 'Find exercises')} style={{ fontFamily: FONT_BODY, marginBottom: 18, minWidth: 0 }}>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-      <input type="search" data-guide="trenink.library" aria-label={L('Hledat cvik', 'Search exercises')} placeholder={L('Hledat cvik nebo jiný název…', 'Search exercises or alternate names…')} value={value.q} autoFocus={autoFocus} onChange={event => patch({ q: event.target.value })}
-        style={{ ...control(t), cursor: 'text', fontSize: 16, flex: '1 1 220px', width: '100%', minWidth: 0 }} />
-      {onSort && <LibraryChoice t={t} label={L('Řazení cviků', 'Exercise order')} value={sort} onChange={onSort} style={{ flex: '0 1 270px' }} options={[
+    <div data-library-toolbar="" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+      <button type="button" ref={searchTrigger} data-guide="trenink.library" aria-label={L('Hledat cvik', 'Search exercises')} title={L('Hledat cvik', 'Search exercises')} aria-expanded={searchOpen} aria-controls={searchId} onClick={() => setSearchOpen(!searchOpen)} style={{ ...control(t), width: 44, padding: 0, display: 'grid', placeItems: 'center', borderColor: searchOpen || value.q ? t.accent : 'transparent' }}><TmIcon id="search" size={20} /></button>
+      {onSort && <LibraryChoice t={t} icon="sort" label={L('Řazení cviků', 'Exercise order')} value={sort} onChange={onSort} options={[
         { v: 'recommended', label: L('Základní cviky nejdřív', 'Foundational exercises first') },
         { v: 'name', label: L('Podle názvu', 'By name') },
         { v: 'recent', label: L('Nedávno vybírané', 'Recently selected') },
         ...(allowCustomOrder ? [{ v: 'custom', label: L('Vlastní pořadí', 'Your own order') }] : []),
       ]} />}
+      {onViewChange && <div role="group" aria-label={L('Zobrazení cviků', 'Exercise view')} style={{ display: 'flex', marginLeft: 'auto', gap: 2 }}>
+        {[['grid', 'view-cards', L('Karty cviků', 'Exercise cards')], ['list', 'view-rows', L('Cviky v řádcích', 'Exercise list')]].map(([mode, icon, label]) => <button key={mode} type="button" aria-label={label} title={label} aria-pressed={view === mode} onClick={() => onViewChange(mode)} style={{ ...control(t), width: 44, padding: 0, borderColor: 'transparent', color: view === mode ? t.heading : t.textMuted, background: view === mode ? t.activeNav : 'transparent', display: 'grid', placeItems: 'center' }}><TmIcon id={icon} size={20} /></button>)}
+      </div>}
+      {searchOpen && <div id={searchId} style={{ display: 'flex', flexBasis: '100%', minWidth: 0, order: 2, gap: 4, marginTop: 4 }}>
+        <input ref={searchRef} type="search" aria-label={L('Hledat cvik nebo jiný název', 'Search exercises or alternate names')} placeholder={L('Hledat cvik…', 'Search exercises…')} value={value.q} onChange={event => patch({ q: event.target.value })} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setSearchOpen(false); searchTrigger.current?.focus(); } }} style={{ ...control(t), cursor: 'text', fontSize: 16, flex: 1, width: '100%', minWidth: 0, boxSizing: 'border-box' }} />
+        <button type="button" aria-label={L('Zavřít a vyčistit hledání', 'Close and clear search')} onClick={() => { patch({ q: '' }); setSearchOpen(false); searchTrigger.current?.focus(); }} style={{ ...control(t), width: 44, padding: 0, borderColor: 'transparent', display: 'grid', placeItems: 'center' }}><TmIcon id="close" size={18} /></button>
+      </div>}
     </div>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center' }}>
       {['regions', 'movements', 'equipment'].map(facetButton)}
@@ -106,7 +117,12 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
     </div>
     {more && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>{['focus', 'positions', 'supports', 'levels', 'muscles'].map(facetButton)}</div>}
     {field && <div style={{ marginTop: 10 }}>
-      <FacetPanel t={t} field={field} values={value[field.key] || []} onChange={next => patch({ [field.key]: next })} />
+      {expanded === 'regions' && renderBodyMap && <div data-body-filter="" style={{ paddingTop: 12, borderTop: `1px solid ${t.borderSoft}` }}>
+        <div style={{ width: 'min(100%, 300px)', margin: '0 auto 12px' }}>{renderBodyMap({ fluid: true, selectedMuscles: value.muscles, highlightedMuscles: highlightedBodyMuscles(value), selectedRegions: value.regions, onToggleMuscle: key => onChange(toggleBodyMuscle(value, key)), onToggleRegion: key => onChange(selectBodyRegions(value, value.regions.includes(key) ? value.regions.filter(item => item !== key) : [...value.regions.filter(item => item !== 'whole_body'), key])) })}</div>
+        <p style={{ color: t.textMuted, fontSize: 13, lineHeight: 1.5 }}>{L('Vyber oblast podle názvu nebo klepnutím na postavu. Klepnutím na sval výběr zpřesníš; obrysy kolen a chodidel označují celé oblasti.', 'Choose a body area by name or on the figure. Tap a muscle to narrow the selection; knee and foot outlines mark whole areas.')}</p>
+      </div>}
+      <FacetPanel t={t} field={field} values={value[field.key] || []} onChange={next => onChange(field.key === 'regions' ? selectBodyRegions(value, next) : field.key === 'muscles' ? selectBodyMuscles(value, next) : { ...value, [field.key]: next })} />
+      {expanded === 'regions' && <details style={{ marginTop: 8 }}><summary style={{ cursor: 'pointer', minHeight: 44, display: 'flex', alignItems: 'center', fontSize: 13 }}>{L('Svaly podle názvu', 'Muscles by name')}</summary><FacetPanel t={t} field={allFields.find(item => item.key === 'muscles')} values={value.muscles} onChange={next => onChange(selectBodyMuscles(value, next))} /></details>}
       {expanded === 'equipment' && <div style={{ padding: '10px 0', color: t.textSec, fontSize: 13, lineHeight: 1.6 }}>
         <LibraryChoice t={t} label={L('Jak filtrovat vybavení', 'Equipment matching')} value={value.equipmentMode} onChange={equipmentMode => patch({ equipmentMode })} options={[
           { v: 'uses', label: L('Cviky s vybranou pomůckou', 'Uses any selected equipment') },
@@ -131,6 +147,16 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
     </div>
     {count === 0 && <div style={{ padding: '14px 0', color: t.textSec, fontSize: 14, lineHeight: 1.6 }}>{L('Této kombinaci neodpovídá žádný cvik. Odeber některý filtr nebo zkus jiný název.', 'No exercise matches this combination. Remove a filter or try another name.')}</div>}
   </section>;
+}
+
+export function ExerciseLibraryRowContent({ t, title, focus, illustration }) {
+  return <>
+    <span data-exercise-round-image="" aria-hidden="true" style={{ display: 'grid', placeItems: 'center', flex: '0 0 64px', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: `1px solid ${t.border}`, background: 'transparent', padding: 6, boxSizing: 'border-box' }}>{illustration}</span>
+    <span style={{ display: 'block', minWidth: 0, flex: 1 }}>
+      <span title={title} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.5, color: t.heading }}>{title}</span>
+      <span title={typeof focus === 'string' ? focus : undefined} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.5, color: t.textMuted }}>{focus || L('Zaměření zatím neurčeno', 'Focus not yet specified')}</span>
+    </span>
+  </>;
 }
 
 export function ExerciseTaxonomySummary({ t, exercise, meta, compact = false, taxonomyOf = exerciseTaxonomy }) {

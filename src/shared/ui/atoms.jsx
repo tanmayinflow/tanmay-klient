@@ -118,7 +118,7 @@ export function createAtoms(deps) {
     React.useEffect(() => {
       if (!open) return;
       const onDoc = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
-      const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+      const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setOpen(false); } };
       document.addEventListener("mousedown", onDoc);
       document.addEventListener("keydown", onKey);
       return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };

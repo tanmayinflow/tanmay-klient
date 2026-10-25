@@ -1,3 +1,4 @@
+import { attachHoldSelection } from "./holdSelection.js";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
 import { TmIcon } from "./icons.jsx";
 // ----------------------------------------------------------------------
@@ -179,161 +180,20 @@ export function createListUI(deps) {
   function useHoldSelect({ rootRef, attr, tabAttr, stateRef, actionsRef, mouseAny }) {
     const [dragging, setDragging] = useState(null);
     React.useEffect(() => {
-      const root = rootRef.current; if (!root) return;
-      let s = null, ghost = null, paint = null, eat = 0, eatKlik = 0;
-      const at = (x, y, sel) => { const h = document.elementFromPoint(x, y); return (h && h.closest) ? h.closest(sel) : null; };
-      const clearTabs = () => { Array.prototype.forEach.call(document.querySelectorAll(".tm-drop"), (e) => e.classList.remove("tm-drop")); };
-      let edgeT = null, edgeDir = 0, winBound = 0;
-      // myš opouští seznam · pohyb i puštění musí slyšet celé okno
-      const winOn = () => { if (winBound) return; winBound = 1; window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onEnd); };
-      const winOff = () => { if (!winBound) return; winBound = 0; window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onEnd); };
-      const stopEdge = () => { if (edgeT) { clearInterval(edgeT); edgeT = null; } edgeDir = 0; };
-      const edgeScroll = (x, y) => {
-        const strip = root.ownerDocument.querySelector(".tm-typerow");
-        if (!strip) return stopEdge();
-        const r = strip.getBoundingClientRect();
-        let dir = 0;
-        if (y >= r.top - 30 && y <= r.bottom + 30) {
-          if (x > r.right - 52) dir = 1;
-          else if (x < r.left + 52) dir = -1;
-        }
-        if (dir === edgeDir) return;
-        stopEdge();
-        edgeDir = dir;
-        if (dir) edgeT = setInterval(() => { strip.scrollLeft += dir * 9; }, 16);
-      };
-      const stop = () => { if (ghost) { ghost.remove(); ghost = null; } clearTabs(); stopEdge(); setDragging(null); };
-
-      const onStart = (e) => {
-        const mouse = !e.touches;
-        if (mouse && (e.button !== 0 || e.ctrlKey || e.metaKey)) return;
-        const p = e.touches ? e.touches[0] : e; if (!p) return;
-        const row = e.target && e.target.closest && e.target.closest("[" + attr + "]");
-        if (!row) return;
-        // hvězdička, sponka a spol. si drží svůj stisk · gesto patří jen položce.
-        // (V Kartách a Galerii je položka sama tlačítkem — tam se to netýká.)
-        const ctl = e.target.closest("button, a, input, textarea, select");
-        if (ctl && ctl !== row && ctl.getAttribute("data-pickmain") == null && row.contains(ctl)) return;
-        const id = row.getAttribute(attr);
-        const cur = stateRef.current || {};
-        const selNow = cur.sel || [];
-        if (cur.selecting) {
-          // od kolečka se maluje úsek · tah po nevybrané kartě roluje
-          if (e.target.closest && e.target.closest(".tm-selmark")) {
-            paint = { add: !selNow.includes(id), last: id };
-            actionsRef.current.paint(id, paint.add);
-            if (mouse) { winOn(); document.body.classList.add("tm-nosel"); }
-            return;
+      const root = rootRef.current;
+      if (!root) return;
+      let owned = null;
+      return attachHoldSelection({ root, attr, tabAttr, stateRef, actionsRef, mouseAny, makeGhost, isHaptics, onDragging: setDragging,
+        onGesture(active) {
+          if (active) { owned = {}; gesture = owned; onGesture(1); }
+          else {
+            const finished = owned; owned = null;
+            // Leave the host's touchend handler blocked through this event turn.
+            setTimeout(() => { if (gesture === finished) { gesture = 0; onGesture(0); } }, 0);
           }
-          // dlouhý stisk na VYBRANÉ kartě vezme celou hromadu · to je jediný
-          // způsob, jak přesunout víc poznámek najednou tažením
-          if (!selNow.includes(id)) return;
-        }
-        s = { id, x: p.clientX, y: p.clientY, armed: false, moving: false, timer: null, overTab: null, mouse };
-        if (mouse) { winOn(); }
-        s.timer = setTimeout(() => arm(), 400);
-      };
-      // Zvednutí hromady · dotyk k němu dozraje stiskem, myš pohybem.
-      const arm = () => {
-        if (!s || s.armed) return;
-        s.armed = true;
-        gesture = 1; onGesture(1);
-        const st0 = stateRef.current || {};
-        s.ids = (st0.selecting && (st0.sel || []).includes(s.id)) ? [...(st0.sel || [])] : [s.id];
-        try { if (!s.mouse && isHaptics()) navigator.vibrate && navigator.vibrate(14); } catch (err) {}
-        ghost = makeGhost(actionsRef.current.label(s.id), s.ids.length, s.x, s.y);
-        if (s.mouse) document.body.classList.add("tm-nosel");
-        setDragging(s.id);
-      };
-      // myš smí zvednout položku hned · vybranou hromadu, ruční pořadí, správce složek
-      const mouseMayDrag = (id) => {
-        const c = stateRef.current || {};
-        if (mouseAny) return true;
-        if (c.selecting) return (c.sel || []).includes(id);
-        return !!c.sortManual;
-      };
-      const onMove = (e) => {
-        const p = e.touches ? e.touches[0] : e; if (!p) return;
-        if (paint) {
-          e.preventDefault();
-          const row = at(p.clientX, p.clientY, "[" + attr + "]");
-          const id = row && row.getAttribute(attr);
-          if (id && id !== paint.last) { paint.last = id; actionsRef.current.paint(id, paint.add); }
-          return;
-        }
-        if (!s) return;
-        const dx = Math.abs(p.clientX - s.x), dy = Math.abs(p.clientY - s.y);
-        // vodorovný pohyb dřív, než stisk dozraje → švih, ne tažení
-        if (!s.armed) {
-          if (dx > 12 || dy > 12) {
-            clearTimeout(s.timer);
-            // myš nečeká na dlouhý stisk · tažení pozná z pohybu samotného
-            if (s.mouse && mouseMayDrag(s.id)) { arm(); s.moving = true; }
-            else { if (s.mouse) winOff(); s = null; return; }
-          } else return;
-        }
-        if (e.cancelable) e.preventDefault();
-        if (!s.moving && (dx > 8 || dy > 8)) s.moving = true;
-        if (!s.moving) return;
-        if (ghost) { ghost.style.left = p.clientX + "px"; ghost.style.top = p.clientY + "px"; }
-        clearTabs();
-        // Pás dlaždic se sám odroluje, když s prstem dojedeš k jeho okraji.
-        // Musí to jet plynule, ne po krocích na každý pohyb — prst u kraje se
-        // často nehýbe a čeká, až mu pod něj přijede ta správná dlaždice.
-        if (tabAttr) edgeScroll(p.clientX, p.clientY);
-        const tb = tabAttr ? at(p.clientX, p.clientY, "[" + tabAttr + "]") : null;
-        if (tb && tb.getAttribute(tabAttr) !== "Vše") { tb.classList.add("tm-drop"); s.overTab = tb.getAttribute(tabAttr); return; }
-        s.overTab = null;
-        // pořadí jde měnit jen ve vlastním pořadí · jinak by ho řazení hned přepsalo
-        if (!(stateRef.current || {}).sortManual) return;
-        const row = at(p.clientX, p.clientY, "[" + attr + "]");
-        const over = row && row.getAttribute(attr);
-        if (over && over !== s.id && (s.ids || []).length < 2) actionsRef.current.reorder(s.id, over);
-      };
-      const onEnd = () => {
-        // Malování zaškrtávátek si výběr vyřídilo samo. Klepnutí, které po
-        // stisku ještě dorazí, by ho odškrtlo zpátky — přesně tohle byla ta
-        // chyba, kvůli které výběr „reagoval, ale nedržel".
-        if (paint) { paint = null; eatKlik = Date.now() + 900; }
-        winOff();
-        document.body.classList.remove("tm-nosel");
-        if (gesture) setTimeout(() => { gesture = 0; onGesture(0); }, 0);
-        if (!s) { stop(); return; }
-        clearTimeout(s.timer);
-        const done = s; s = null;
-        stop();
-        if (!done.armed) return;
-        eat = Date.now() + 500;   // po gestu nesmí projít klepnutí, které by otevřelo poznámku
-        if (done.moving) { if (done.overTab) actionsRef.current.dropTab(done.ids || [done.id], done.overTab); }
-        else actionsRef.current.enter(done.id);
-      };
-      const onClick = (e) => {
-        // právě jedno · jinak by po zaškrtnutí půl vteřiny nešlo klepnout jinam
-        if (eatKlik) { const zive = Date.now() < eatKlik; eatKlik = 0; if (zive) { e.preventDefault(); e.stopPropagation(); return; } }
-        if (Date.now() < eat) { e.preventDefault(); e.stopPropagation(); }
-      };
-      const onDragStart = (e) => { if (s || dragging) e.preventDefault(); };  // nativní tažení textu do toho nemá co mluvit
-      root.addEventListener("touchstart", onStart, { passive: true });
-      root.addEventListener("touchmove", onMove, { passive: false });
-      root.addEventListener("touchend", onEnd);
-      root.addEventListener("touchcancel", onEnd);
-      root.addEventListener("mousedown", onStart);
-      root.addEventListener("dragstart", onDragStart);
-      root.addEventListener("click", onClick, true);
-      return () => {
-        root.removeEventListener("touchstart", onStart);
-        root.removeEventListener("touchmove", onMove);
-        root.removeEventListener("touchend", onEnd);
-        root.removeEventListener("touchcancel", onEnd);
-        root.removeEventListener("mousedown", onStart);
-        root.removeEventListener("dragstart", onDragStart);
-        root.removeEventListener("click", onClick, true);
-        winOff();
-        document.body.classList.remove("tm-nosel");
-        stopEdge();
-        if (ghost) ghost.remove();
-      };
-    }, []);
+        },
+      });
+    }, [rootRef, attr, tabAttr, stateRef, actionsRef, mouseAny]);
     return dragging;
   }
 

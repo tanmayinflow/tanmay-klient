@@ -458,7 +458,7 @@ export function createPracticeUI(deps) {
     );
   }
 
-  /* ═══ TŘI ZNAMENÍ ══════════════════════════════════════════════════════
+  /* ═══ TŘI PEČETĚ ═══════════════════════════════════════════════════════
      Tři tiché značky, ne čtvrtý tracker návyků. Nejsou to úkoly, otázky ani
      skóre. Stalo se to, nestalo se to, nebo jsem to dnes nezaznamenal.
 
@@ -477,7 +477,7 @@ export function createPracticeUI(deps) {
     const iconToggle = (on) => ({ background: "transparent", border: "none", cursor: "pointer", fontSize: 22, padding: "0 2px", opacity: on ? 1 : 0.25, transition: "opacity .12s ease" });
     return (
       <div data-pv="znameni" style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <span style={metaLabel(t)}>{L("Znamení", "Marks")}</span>
+        <span style={metaLabel(t)}>{L("Pečetě", "Seals")}</span>
         <span style={{ display: "inline-flex", alignItems: "center" }}>
           {WB_ZNAMENI.map(({ k, Ic, cz, en, pCz, pEn }) => {
             const jmeno = L(cz, en);
@@ -549,9 +549,10 @@ export function createPracticeUI(deps) {
               <DotMeter value={w.energy} color={colors.energy} />
               <DotMeter value={w.well} color={colors.well} />
               <span style={{ fontSize: 13 }}>
-                <span title="Gratitude" style={{ opacity: w.grat ? 1 : 0.2, display: "inline-flex", color: t.sand }}><TmWbMiska size={14} /></span>
-                <span title="Bodhichitta" style={{ opacity: w.bodhi ? 1 : 0.2, display: "inline-flex", color: t.sand }}><TmWbDiamant size={14} /></span>
-                <span title={L("Praxe ve světě", "Practice in the world")} style={{ opacity: w.wild ? 1 : 0.2, display: "inline-flex", color: t.sand }}><TmWbKruh size={14} /></span>
+                {WB_ZNAMENI.map(({ k, Ic, cz, en, pCz, pEn }) => <span key={k}
+                  title={L(cz, en) + " · " + L(pCz, pEn)} role="img"
+                  aria-label={L(cz, en) + ": " + (w[k] ? L("zaznamenáno", "recorded") : L("nezaznamenáno", "not recorded"))}
+                  style={{ opacity: w[k] ? 1 : 0.2, display: "inline-flex", color: t.sand }}><Ic size={14} /></span>)}
               </span>
               <span style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{w.theme}</span>
             </button>

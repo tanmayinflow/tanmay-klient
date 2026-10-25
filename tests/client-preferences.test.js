@@ -205,8 +205,8 @@ test('accepted definitions keep their new meaning after the first check, save/re
   const days={'2026-10-11':{h:[0,1,0,0,0,0,0,0,0]}};
   const reloaded=JSON.parse(JSON.stringify({coll:adopted,days}));
   const defs=clientHabitDefinitions(reloaded.coll,reloaded.days,HABIT_DEFAULTS);
-  assert.equal(defs[1].cz,'Práce na značce');
-  assert.equal(defs[1].en,'Brand work');
+  assert.equal(defs[1].cz,'Podnikání');
+  assert.equal(defs[1].en,'Business');
   assert.equal(reloaded.days['2026-10-11'].h[defs[1].slot],1);
   assert.equal(prepareClientUnusedHabitAdoption(reloaded.coll,reloaded.days,HABIT_DEFAULTS),reloaded.coll);
   assert.equal(original.habitDefs[1].name,'Pohyb');
@@ -281,7 +281,7 @@ test('the actual App adoption controller accepts once and keeps new semantics af
   fixture.editsRef.current={'2026-10-11':{h:[0,1,0,0,0,0,0,0,0]}};
   fixture.run();
   assert.equal(fixture.state.writes,1);
-  assert.equal(clientHabitDefinitions(fixture.state.coll,fixture.editsRef.current,HABIT_DEFAULTS)[1].cz,'Práce na značce');
+  assert.equal(clientHabitDefinitions(fixture.state.coll,fixture.editsRef.current,HABIT_DEFAULTS)[1].cz,'Podnikání');
   assert.equal(fixture.initial.habitDefs[1].name,'Pohyb');
   assert.match(appSource,/React\.useLayoutEffect\(\(\) => \{[^]*?adoptUnusedHabitDefaultsRef\.current\(\)/);
 });

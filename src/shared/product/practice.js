@@ -74,7 +74,7 @@ export const AREAS = [
 
 // výchozí praxe · bilingual defaults [icon, cz, en] — resolved at render via L,
 // custom renames (with .name) always win; history binds to slots, never names
-export const HABIT_DEFS=[["🌊","Ztišení a příprava","Settle and prepare"],["🌾","Práce na značce","Brand work"],["🎸","Tvorba","Create"],["💪","Trénink","Training"],["💾","Čas bez obrazovek","Time away from screens"],["📚","Soustředěné studium","Focused study"],["📿","Jóga a mobilita","Yoga and mobility"],["🔥","Meditace","Meditation"],["🥑","Jíst s pozorností","Eat with attention"]];
+export const HABIT_DEFS=[["🌊","Ztišení a příprava","Settle and prepare"],["🌾","Podnikání","Business"],["🎸","Tvorba","Create"],["💪","Trénink","Training"],["💾","Čas bez obrazovek","Time away from screens"],["📚","Soustředěné studium","Focused study"],["📿","Jóga a mobilita","Yoga and mobility"],["🔥","Meditace","Meditation"],["🥑","Jíst s pozorností","Eat with attention"]];
 export const HABIT_DEFAULTS = HABIT_DEFS.map(([icon, cz, en], i) => ({ slot: i, icon, cz, en }));
 
 // A restored default has its own semantic identity. Its storage slot may be
@@ -82,6 +82,32 @@ export const HABIT_DEFAULTS = HABIT_DEFS.map(([icon, cz, en], i) => ({ slot: i, 
 const HABIT_DEFAULT_ICONS = ["water", "sprout", "guitar", "training", "phone-rest", "book", "lotus", "fire", "food"];
 const habitRecord = value => value && typeof value === "object" && !Array.isArray(value);
 const validHabitSlot = value => Number.isSafeInteger(value) && value >= 0 && value < 100000;
+
+// Read projection of one renamed product default, shared by both homes. Match
+// its semantic identity and exact previous labels, never its list position.
+// A customized name wins; missing/deleted rows and recorded slots stay intact.
+export function resolvePracticeHabitLabels(definitions) {
+  if (!Array.isArray(definitions)) return definitions;
+  let changed = false;
+  const resolved = definitions.map(row => {
+    if (!habitRecord(row) || !validHabitSlot(row.slot) || (row.practiceDefault ?? row.slot) !== 1) return row;
+    const template = HABIT_DEFAULTS[1];
+    const oldName = row.name === "Práce na značce" || row.name === "Brand work";
+    const oldPair = row.cz === "Práce na značce" && row.en === "Brand work";
+    const namedDefault = oldName && !row.cz && !row.en && row.icon === "🌾";
+    // Editing a peer may persist its localized display name. Keep the renamed
+    // default bilingual after that round trip, just like Client's resolver.
+    const frozenCurrent = row.cz === template.cz && row.en === template.en &&
+      (row.name === template.cz || row.name === template.en);
+    if (!frozenCurrent && ((!oldPair && !namedDefault) || (row.name && !oldName))) return row;
+    const next = { ...row, cz: template.cz, en: template.en };
+    delete next.name;
+    changed = true;
+    return next;
+  });
+  return changed ? resolved : definitions;
+}
+
 function matchesHabitDefault(row, index) {
   const template = HABIT_DEFAULTS[index];
   return template && habitRecord(row) && (row.practiceDefault ?? row.slot) === index &&
@@ -109,7 +135,8 @@ export function keepRestoredHabitTranslations(definitions) {
 // Day records remain byte-for-byte intact. Repeating the action is a no-op.
 export function restorePracticeHabitDefaults(collection, days = {}, historicalDays = []) {
   if (!habitRecord(collection)) return collection;
-  const rows = Array.isArray(collection.habitDefs) ? collection.habitDefs : HABIT_DEFAULTS;
+  const originalRows = Array.isArray(collection.habitDefs) ? collection.habitDefs : HABIT_DEFAULTS;
+  const rows = resolvePracticeHabitLabels(originalRows);
   if (rows.some(row => !habitRecord(row) || !validHabitSlot(row.slot)) || new Set(rows.map(row => row.slot)).size !== rows.length) return collection;
   let lastSlot = Math.max(EMPTY_H.length - 1, ...rows.map(row => row.slot));
   for (const day of [...Object.values(days || {}), ...historicalDays]) {
@@ -132,7 +159,7 @@ export function restorePracticeHabitDefaults(collection, days = {}, historicalDa
   });
   const archived = rows.filter(row => !selected.has(row)).map(row => row.archived ? row : { ...row, archived: true });
   const next = [...active, ...archived];
-  if (next.length === rows.length && next.every((row, index) => row === rows[index])) return collection;
+  if (next.length === originalRows.length && next.every((row, index) => row === originalRows[index])) return collection;
   return { ...collection, habitDefs: next };
 }
 
@@ -372,15 +399,15 @@ export const tmWbDates = (st, detailsBy) => Array.from(new Set([
   ...Object.keys(st.edits).filter((d) => st.edits[d] && st.edits[d].wb),
 ])).sort().reverse();
 
-/** Tři znamení. Kresby si dodá aplikace — jsou to komponenty, ne data. */
+/** Tři pečetě. Kresby si dodá aplikace; uložené klíče zůstávají stejné. */
 export function makeWbZnameni(icons) {
   return [
-    { k: "grat", Ic: icons.TmWbMiska, cz: "Vděčnost", en: "Gratitude",
-      pCz: "Návrat pozornosti k vděčnosti a spojení s ní.", pEn: "I brought my attention to gratitude and connected with it." },
-    { k: "bodhi", Ic: icons.TmWbDiamant, cz: "Bódhičitta", en: "Bodhicitta",
-      pCz: "Probouzet se pro dobro všech bytostí. Dnes dát soucitu konkrétní podobu.", pEn: "Awaken for the benefit of all beings. Give compassion a concrete form today." },
-    { k: "wild", Ic: icons.TmWbKruh, cz: "Praxe ve světě", en: "Practice in the world",
-      pCz: "Můj záměr a vnitřní kontemplace se projevily ve skutečném jednání.", pEn: "My intention and inner contemplation took form in real action." },
+    { k: "grat", Ic: icons.TmWbMiska, cz: "Přijímám", en: "I accept",
+      pCz: "Dobré i těžké beru jako učitele. Kultivuji vděčnost.", pEn: "I take both the good and the difficult as teachers. I cultivate gratitude." },
+    { k: "bodhi", Ic: icons.TmWbDiamant, cz: "Probouzím", en: "I awaken",
+      pCz: "Srdce, které nikoho nevynechá. Mým záměrem je soucit.", pEn: "A heart that leaves no one out. Compassion is my intention." },
+    { k: "wild", Ic: icons.TmWbKruh, cz: "Konám", en: "I act",
+      pCz: "Ze záměru se dnes stal skutek. Mysl přešla v čin.", pEn: "Today, intention became a deed. Thought turned into action." },
   ];
 }
 

@@ -171,10 +171,11 @@ export function shellMobileCss(t) {
      otherwise wins, leaving the menu painted UNDER <main> and the dim layer
      (visible through them, unclickable). Anchored to the viewport explicitly. */
   /* Center the menu in the usable space ABOVE the dock. Its organic edge
-     reaches 48 px above the buttons; retain a further 16 px of page between
-     the two surfaces, even when a short screen makes the menu scroll. */
-  .tm-sidebar { --tm-sb-top: max(calc(env(safe-area-inset-top, 0px) + 12px), 24px);
-    --tm-sb-bottom: calc(var(--tm-dok-dno) + var(--tm-dok-v) + 48px + 16px);
+     reaches 48 px above the buttons; retain a further 8 px of page between
+     the two surfaces. Compact spacing fits the normal phone; short screens
+     and enlarged text retain scrolling rather than hiding any action. */
+  .tm-sidebar { --tm-sb-top: max(calc(env(safe-area-inset-top, 0px) + 8px), 12px);
+    --tm-sb-bottom: calc(var(--tm-dok-dno) + var(--tm-dok-v) + 48px + 8px);
     --tm-sb-height: max(0px, calc(100 * var(--tm-dvh) - var(--tm-sb-top) - var(--tm-sb-bottom)));
     /* Odsazení i výška musí být důrazné · panel má obojí v přímém
        stylu (sticky pro široké plátno) a přímý styl by pravidlo
@@ -187,18 +188,23 @@ export function shellMobileCss(t) {
     transition: transform .25s ease, box-shadow .25s ease;
     width: min(284px, calc(80 * var(--tm-vw))) !important;
     border: 1px solid ${t.borderSoft} !important; border-radius: 24px;
-    padding-top: 18px !important; padding-bottom: 12px !important; }
+    padding-top: 6px !important; padding-bottom: 8px !important; }
   .tm-sidebar.collapsed { margin-left: 0; }
   /* Grow only as far as the contents need. On short screens the navigation
      scrolls inside this limit, preserving both the notch and the dock gap. */
   .tm-sidebar { height: auto !important; overflow-y: auto; overscroll-behavior: contain; }
   .tm-sidebar .tm-sbmotto { display: none; }
-  /* RYTMUS · logo→hledání→DEN dýchají stejným krokem (16 px),
-     řádky o dva pixely volnější — panel tím trochu povyroste. */
-  .tm-sidebar .tm-logo { padding: 0 8px 16px !important; }
-  .tm-sidebar .tm-nav-item { min-height: 42px; }
+  /* Compact gaps preserve full 44px targets. Text may grow and the
+     existing height limit remains scrollable for accessible overflow. */
+  .tm-sidebar .tm-logo { min-height: 44px; padding: 0 8px !important; }
+  .tm-sidebar .tm-gear { width: 44px !important; height: 44px !important; margin-top: 0 !important; }
+  .tm-sidebar .tm-undo, .tm-sidebar .tm-redo { width: 44px !important; height: 44px !important; }
+  .tm-sidebar .tm-nav-item { min-height: 44px; margin-bottom: 0 !important; }
+  .tm-sidebar .tm-sidebar-search { margin-bottom: 4px !important; }
+  .tm-sidebar .tm-sidebar-group { margin-bottom: 2px !important; }
+  .tm-sidebar .tm-sidebar-group > div:first-child { padding-bottom: 0 !important; line-height: 1.2; }
   /* poslední karta se nadechne · čára s Košem až po klidné pauze */
-  .tm-sidebar .tm-sbdno { margin-top: 38px !important; padding-top: 14px !important; }
+  .tm-sidebar .tm-sbdno { margin-top: 4px !important; padding-top: 0 !important; }
   .tm-sidebar.open { transform: translate(0, -50%); box-shadow: ${t.mode === "dark" ? "1px 0 0 0 rgba(240,232,218,0.10), 10px 0 28px -8px rgba(8,5,3,0.55), 34px 0 76px -26px rgba(8,5,3,0.6)" : "1px 0 0 0 rgba(22,67,61,0.07), 10px 0 28px -10px rgba(16,42,38,0.10), 34px 0 76px -30px rgba(22,67,61,0.18)"}; }
   .tm-burger { display: flex !important; }
   .tm-sidetoggle { display: none !important; }

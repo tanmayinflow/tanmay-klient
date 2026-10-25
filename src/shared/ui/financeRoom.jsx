@@ -27,6 +27,17 @@ const CSS=`
 .tm-finance-entry-name{flex:1;min-width:0;overflow-wrap:anywhere}
 .tm-finance-entry-amount{max-width:45%;overflow-wrap:anywhere;text-align:right;flex-shrink:0}
 .tm-finance-view{animation:tm-finance-turn .24s cubic-bezier(.16,1,.3,1)}
+.tm-finance-editor{overflow-x:hidden;scrollbar-gutter:stable}
+.tm-finance-editor form{max-width:520px;margin:0 auto;min-width:0}
+.tm-finance-editor input,.tm-finance-editor textarea,.tm-finance-editor select{font-size:16px;max-width:100%;scroll-margin-block:12px}
+.tm-finance-editor details{margin:4px 0 20px}
+.tm-finance-editor summary{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:var(--tm-font-body);font-size:14px}
+.tm-finance-editor summary::before{content:'+';width:16px;text-align:center}
+.tm-finance-editor details[open]>summary::before{content:'−'}
+.tm-finance-editor summary::-webkit-details-marker{display:none}
+.tm-finance-editor .tm-finance-editor-actions{display:flex;gap:10px;flex-wrap:wrap}
+.tm-finance-editor .tm-finance-editor-actions button{flex:1;min-width:100px}
+@media(max-width:820px){.tm-finance-editor{animation:none!important}.tm-finance-editor .tm-cs-head{flex-shrink:0}.tm-finance-editor .tm-cs-body{min-width:0}.tm-finance-editor form{padding-bottom:8px}}
 @keyframes tm-finance-turn{from{opacity:.72;transform:translateY(5px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.tm-finance-view{animation:none}}
 @media(max-width:360px){.tm-finance-tabs{gap:0}.tm-finance-tabs button{padding:10px}.tm-finance-totals{gap:3px}.tm-finance-scene p{margin-right:76px}.tm-finance-art{width:65px;height:90px}}
@@ -45,24 +56,36 @@ export function createFinanceRoom({useT,useStore,L,PageTitle,CenterSheet,Select,
 
   function LedgerEditor({kind,entry,month,categories,onClose,onSaved}) {
     const {t}=useT(),st=useStore(),incoming=kind==="income",nameKey=incoming?"source":"item";
-    const id=useId(),[name,setName]=useState(entry?.[nameKey]||""),[amount,setAmount]=useState(entry?.amount==null?"":String(entry.amount)),[date,setDate]=useState(financeDate(entry?.date)||(todayISO().startsWith(month)?todayISO():month+"-01")),[category,setCategory]=useState(entry?.jar||entry?.category||""),[note,setNote]=useState(entry?.note||""),[error,setError]=useState("");
+    const id=useId(),[name,setName]=useState(entry?.[nameKey]||""),[amount,setAmount]=useState(entry?.amount==null?"":String(entry.amount)),[date,setDate]=useState(financeDate(entry?.date)||(todayISO().startsWith(month)?todayISO():month+"-01")),[category,setCategory]=useState(entry?.jar||entry?.category||""),[note,setNote]=useState(entry?.note||""),[error,setError]=useState(""),[detailsOpen,setDetailsOpen]=useState(!!(entry?.note||entry?.jar||entry?.category));
+    const [categoryChanged,setCategoryChanged]=useState(false);
+    const changeCategory=value=>{setCategory(value);setCategoryChanged(true);};
     const save=event=>{
       event.preventDefault();const parsed=financeAmount(amount);
       if(!name.trim()||parsed===null||!validPersonalDate(date)){setError(L("Doplň název, platné datum a nenulovou částku nejvýše na dvě desetinná místa.","Enter a name, a valid date and a nonzero amount with at most two decimal places."));return;}
-      const patch={[nameKey]:name.trim(),amount:parsed,date,note:note.trim(),...(!incoming?(categories.length?{jar:category}:{category}):{})};
+      // Preserve untouched legacy fields. An explicit choice must also clear
+      // the other historical alias, which otherwise wins the jar || category fallback.
+      const categoryPatch=incoming||(entry&&!categoryChanged)?{}:categories.length
+        ?{jar:category,...(entry&&Object.hasOwn(entry,"category")?{category:""}:{})}
+        :{category,...(entry&&Object.hasOwn(entry,"jar")?{jar:""}:{})};
+      const patch={[nameKey]:name.trim(),amount:parsed,date,note:note.trim(),...categoryPatch};
       if(entry)st.updateEntry(kind,entry.id,patch);else st.addEntry(kind,{id:uid(),...patch});
       onSaved(date.slice(0,7));onClose();
     };
-    return <CenterSheet title={entry?L("Upravit záznam","Edit entry"):incoming?L("Přidat příjem","Add income"):L("Přidat výdaj","Add expense")} onClose={onClose} naradi={<button type="submit" form={id} style={{...quiet(t),color:t.heroInk}}>{L("Uložit","Save")}</button>}>
+    // CenterSheet owns delayed, non-scrolling focus after it locks the page.
+    // Native autoFocus runs before that lock and can move the underlying page.
+    return <CenterSheet className="tm-finance-editor" title={entry?L("Upravit záznam","Edit entry"):incoming?L("Přidat příjem","Add income"):L("Přidat výdaj","Add expense")} onClose={onClose} naradi={<button type="submit" form={id} style={{...quiet(t),color:t.heroInk}}>{L("Uložit","Save")}</button>}>
       <form id={id} onSubmit={save} noValidate>
-        <label style={label(t)}>{L("Název","Name")}<input autoFocus value={name} onChange={event=>setName(event.target.value)} style={field(t)}/></label>
-        <label style={label(t)}>{L("Částka v Kč","Amount in CZK")}<input inputMode="decimal" value={amount} onChange={event=>setAmount(event.target.value)} style={field(t)}/></label>
-        <p style={{fontFamily:FONT_BODY,fontSize:12,color:t.textSec,margin:"-8px 0 20px",lineHeight:1.6}}>{L("Vrácenou platbu zapiš jako zápornou částku.","Record a refunded payment as a negative amount.")}</p>
+        <label style={label(t)}>{L("Částka v Kč","Amount in CZK")}<input name="amount" inputMode="decimal" enterKeyHint="next" autoComplete="off" value={amount} onChange={event=>setAmount(event.target.value)} style={{...field(t),fontSize:24}}/></label>
+        <label style={label(t)}>{L("Název","Name")}<input name="name" enterKeyHint="done" value={name} onChange={event=>setName(event.target.value)} style={field(t)}/></label>
         <label style={label(t)}>{L("Datum","Date")}<input type="date" value={date} onChange={event=>setDate(event.target.value)} style={field(t)}/></label>
-        {!incoming&&<label style={label(t)}>{categories.length?L("Sklenice","Jar"):L("Kategorie","Category")}{categories.length?<span role="group" aria-label={L("Sklenice","Jar")}><Select value={category} onChange={setCategory} options={[{v:"",label:L("Bez kategorie","Uncategorized")},...categories.map(option=>({v:option.value,label:option.label}))]} style={{...field(t),cursor:"pointer"}}/></span>:<input value={category} onChange={event=>setCategory(event.target.value)} placeholder={L("Například bydlení nebo jídlo","For example housing or food")} style={field(t)}/>}</label>}
+        <details open={detailsOpen} onToggle={event=>setDetailsOpen(event.currentTarget.open)}>
+        <summary>{incoming?L("Poznámka a podrobnosti","Note and details"):L("Kategorie a poznámka","Category and note")}</summary>
+        {!incoming&&<label style={label(t)}>{categories.length?L("Sklenice","Jar"):L("Kategorie","Category")}{categories.length?<span role="group" aria-label={L("Sklenice","Jar")}><Select value={category} onChange={changeCategory} options={[{v:"",label:L("Bez kategorie","Uncategorized")},...categories.map(option=>({v:option.value,label:option.label}))]} style={{...field(t),cursor:"pointer"}}/></span>:<input name="category" value={category} onChange={event=>changeCategory(event.target.value)} placeholder={L("Například bydlení nebo jídlo","For example housing or food")} style={field(t)}/>}</label>}
         <label style={label(t)}>{L("Poznámka","Note")}<textarea rows={3} value={note} onChange={event=>setNote(event.target.value)} style={{...field(t),resize:"vertical"}}/></label>
+        <p style={{fontFamily:FONT_BODY,fontSize:12,color:t.textSec,margin:"0 0 16px",lineHeight:1.6}}>{L("Vrácenou platbu zapiš jako zápornou částku.","Record a refunded payment as a negative amount.")}</p>
+        </details>
         {error&&<p role="alert" style={{color:t.accentInk||t.accent,fontFamily:FONT_BODY,fontSize:13,lineHeight:1.6}}>{error}</p>}
-        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button type="submit" style={{...button(t),background:t.accent,color:t.onAccent,borderColor:t.accent}}>{L("Uložit","Save")}</button><button type="button" onClick={onClose} style={quiet(t)}>{L("Zrušit","Cancel")}</button></div>
+        <div className="tm-finance-editor-actions"><button type="submit" style={{...button(t),background:t.accent,color:t.onAccent,borderColor:t.accent}}>{L("Uložit","Save")}</button><button type="button" onClick={onClose} style={quiet(t)}>{L("Zrušit","Cancel")}</button></div>
         {entry&&<button type="button" onClick={()=>st.ask(L("Přesunout záznam do koše?","Move this entry to trash?"),()=>{st.removeEntry(kind,entry.id);onClose();},{soft:true})} style={{...quiet(t),marginTop:20}}>{L("Do koše","Move to trash")}</button>}
       </form>
     </CenterSheet>;

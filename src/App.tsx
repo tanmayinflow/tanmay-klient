@@ -17,7 +17,7 @@ import {BALANCE_AUDIT_CONTEXT} from './data/balanceAuditContext.js';
 import {MOVEMENT_AUDIT_CONTEXT} from './data/movementAuditContext.js';
 import {TRUNK_AUDIT_CONTEXT} from './data/trunkAuditContext.js';
 import { ExerciseMotion } from './shared/ui/ExerciseMotion.jsx';
-import { ExerciseLibraryFilters, ExerciseTaxonomySummary, ExerciseTaxonomyEditor } from './shared/ui/exerciseLibrary.jsx';
+import { ExerciseLibraryFilters, ExerciseLibraryRowContent, ExerciseTaxonomySummary, ExerciseTaxonomyEditor } from './shared/ui/exerciseLibrary.jsx';
 import { createExerciseFilters, buildExerciseIndex, selectExerciseLibrary } from './training/exerciseLibrary.js';
 import { exerciseTaxonomy as baseExerciseTaxonomy } from './training/exerciseTaxonomy.js';
 function exerciseTaxonomy(ex,meta){return baseExerciseTaxonomy(ex,meta,{musclesOf:resolveMuscleMap});}
@@ -124,7 +124,7 @@ import {
 import {
   EMPTY_H, todayISO, shiftISO, fmtCZ, tmNorm,
   AREA_CZ, AREA_EN, areaClean, areaLabel, AREAS,
-  HABIT_DEFS, HABIT_DEFAULTS, DAY_STATUS_DEFS,
+  HABIT_DEFS, HABIT_DEFAULTS, DAY_STATUS_DEFS, resolvePracticeHabitLabels,
   SKY_LAT, moonPhaseOf, moonName, sunsetOf,
   PLAN_QS, PLAN_QS_HLOUBKA, PLAN_QS_STARE, TM_PROMPTS, TM_PROMPT_OKRUH, tmIsoWeek, tmPromptFor,
   TM_PRAHY, tmPrahKlic, tmPrahMa,
@@ -3173,6 +3173,8 @@ function FolderSheet({ onClose, folder, setFolder, koren, korenNazev, mode, coun
   const [rn, setRn] = useState("");
   const [moving, setMoving] = useState(null);   // cesta složky, kterou stěhuju
   const [sel, setSel] = useState([]);           // vybrané poznámky uvnitř
+  const [activeFolder, setActiveFolder] = useState(null);
+  React.useEffect(() => { setActiveFolder(null); setSel([]); }, [cwd, mode]);
   // tažení uvnitř správce · poznámku i složku lze pustit na složku nebo na
   // drobenku. Tentýž hák jako v seznamu, jen s jinými akcemi.
   const boxRef = React.useRef(null);
@@ -3202,23 +3204,29 @@ function FolderSheet({ onClose, folder, setFolder, koren, korenNazev, mode, coun
     st.moveNbFolder(moving, cwd);
     setMoving(null);
   };
-  const toggle = (id) => setSel((xs) => xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]);
+  const toggle = (id) => { setActiveFolder(null); setSel((xs) => xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]); };
   const moveSel = (dest) => { if (!sel.length) return; st.setEntriesFolder(sel, dest); setSel([]); };
 
-  fState.current = { selecting: false, sel: [], sortManual: false };
+  fState.current = { selecting: !!activeFolder || sel.length > 0, sel: activeFolder ? ["f:" + activeFolder] : sel, sortManual: false };
   fAct.current = {
     label: (id) => {
       if (id.indexOf("f:") === 0) return base(id.slice(2));
       const e = all.find((x) => x.id === id);
       return (e && e.title) || L("poznámka", "note");
     },
-    paint: () => {},
-    enter: () => {},
+    paint: (id, add) => {
+      if (id.indexOf("f:") === 0) { setActiveFolder(add ? id.slice(2) : null); setSel([]); }
+      else { setActiveFolder(null); setSel(xs => add ? (xs.includes(id) ? xs : [...xs, id]) : xs.filter(x => x !== id)); }
+    },
+    enter: (id) => {
+      if (id.indexOf("f:") === 0) { setActiveFolder(id.slice(2)); setSel([]); }
+      else { setActiveFolder(null); setSel([id]); }
+    },
     reorder: () => {},
     dropTab: (ids, dest) => {
       const target = dest === "\u0000root" ? (koren || "") : dest;
       const fid = ids.find((x) => x.indexOf("f:") === 0);
-      if (fid) { st.moveNbFolder(fid.slice(2), target); return; }
+      if (fid) { st.moveNbFolder(fid.slice(2), target); setActiveFolder(null); return; }
       const many = (sel.length && ids.some((x) => sel.includes(x))) ? sel : ids;
       st.setEntriesFolder(many, target);
       setSel([]);
@@ -3227,7 +3235,7 @@ function FolderSheet({ onClose, folder, setFolder, koren, korenNazev, mode, coun
   const fDragging = useHoldSelect({ rootRef: boxRef, attr: "data-fitem", tabAttr: "data-fdrop", stateRef: fState, actionsRef: fAct, mouseAny: true });
 
   const rowBase = { display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 46, background: "transparent", border: "none", borderRadius: 8, padding: "7px 8px", margin: "0 -8px", cursor: "pointer", textAlign: "left", color: "inherit", fontFamily: FONT_BODY };
-  const iconBtnS = { background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, width: 30, height: 34, flexShrink: 0, fontSize: 13 };
+  const iconBtnS = { background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, width: 44, height: 44, flexShrink: 0, fontSize: 13 };
 
   return (
     <CenterSheet center title={mode === "move" ? L("Přesunout do složky · ", "Move to folder · ") + count : L("Složky", "Folders")} onClose={onClose}>
@@ -3280,15 +3288,19 @@ function FolderSheet({ onClose, folder, setFolder, koren, korenNazev, mode, coun
               <button onClick={() => { st.renameNbFolder(p, rn); setRenaming(null); }} style={{ ...iconBtn(t), border: "none", color: t.sand }}><FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             </div>
           ) : (
-            <div key={p} data-fitem={"f:" + p} data-fdrop={p} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <div key={p} data-fitem={"f:" + p} data-fdrop={p} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 2, borderRadius: 8, background: activeFolder === p ? hexA(t.accent, 0.07) : "transparent" }}>
               <button data-pickmain="1" onClick={() => setCwd(p)} style={{ ...rowBase, borderBottom: "none", flex: 1, minWidth: 0 }}>
                 <span style={{ color: t.sand, display: "inline-flex", flexShrink: 0 }}><TmIcSlozka size={18} /></span>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{base(p)}</span>
                 <span style={{ fontSize: 12, color: t.textMuted, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{deep(p)}</span>
-                <span style={{ color: t.textMuted, fontSize: 13, flexShrink: 0 }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
               </button>
-              {mode !== "move" && (
-                <span style={{ display: "inline-flex", flexShrink: 0, borderBottom: `1px solid ${t.borderSoft}` }}>
+              {mode !== "move" && <button type="button" aria-pressed={activeFolder === p} aria-label={L("Vybrat složku ", "Select folder ") + base(p)}
+                onClick={() => { setActiveFolder(activeFolder === p ? null : p); setSel([]); }}
+                style={{ ...iconBtnS, width: 44, height: 44, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${activeFolder === p ? t.accent : t.border}`, background: activeFolder === p ? t.accent : "transparent", color: t.onAccent }}>{activeFolder === p && <FamilyIcon id="check" size={15} />}</span>
+              </button>}
+              {mode !== "move" && activeFolder === p && (
+                <span data-folder-actions={p} style={{ display: "flex", justifyContent: "flex-end", gap: 8, width: "100%", padding: "0 4px 6px", borderBottom: `1px solid ${t.borderSoft}` }}>
                   <ExportBtn small jmeno={base(p)} pocet={deep(p)}
                     docs={() => all.filter((e) => (e.folder || "") === p || (e.folder || "").indexOf(p + "/") === 0).map((e) => tmDocZapisu(e, "notebook"))} />
                   <button title={L("Přesunout složku", "Move folder")} onClick={() => setMoving(p)} style={iconBtnS}>⇄</button>
@@ -3770,6 +3782,10 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
   const stx = useStore();
   const spellOn = !(stx && stx.uiCfg && stx.uiCfg().spell === false);
   const ref = React.useRef(null);
+  // Async image/voice callbacks must read the current lock, not the render
+  // that started them. The same guard protects non-editable figure controls.
+  const richLockedRef = React.useRef(!!zamek);
+  richLockedRef.current = !!zamek;
   const last = React.useRef(null);
   // KLIDNÉ PSANÍ · tentýž editor, jen přestěhovaný do prázdné obrazovky.
   // Přesun do portálu znamená pro React nové připojení uzlu, takže si po
@@ -3879,6 +3895,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     });
   };
   const sync = () => {
+    if (richLockedRef.current) return;
     const el = ref.current; if (!el) return;
     cleanup(el);
     tmNormalize(el);
@@ -3914,7 +3931,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     if (!sel || !r || !el.contains(r.startContainer)) return;
     try { sel.removeAllRanges(); sel.addRange(r); } catch (e) {}
   };
-  const exec = (fn) => (e) => { e.preventDefault(); const el = ref.current; if (!el) return; el.focus(); vratKurzor(); fn(); sync(); };
+  const exec = (fn) => (e) => { e.preventDefault(); if (richLockedRef.current) return; const el = ref.current; if (!el) return; el.focus(); vratKurzor(); fn(); sync(); };
   // blok pod kurzorem · lišta se podle něj rozsvěcí
   const curBlock = () => {
     const el = ref.current; if (!el) return null;
@@ -3923,8 +3940,9 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     return tmBlockOfNode(el, s.anchorNode);
   };
   const blockOf = () => tmBlockKind(curBlock());
-  const setBlock = (k) => { const el = ref.current; if (el) tmSetBlock(el, k); };
+  const setBlock = (k) => { if (richLockedRef.current) return; const el = ref.current; if (el) tmSetBlock(el, k); };
   const insertHr = () => {
+    if (richLockedRef.current) return;
     const el = ref.current; if (!el) return;
     const blk = curBlock();
     const hr = tmMakeBlock("hr");
@@ -3958,6 +3976,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     } catch (err) { return ""; }
   };
   const vlozHlas = (txt) => {
+    if (richLockedRef.current) return;
     const el = ref.current;
     if (!el || !txt) return;
     const sel = window.getSelection();
@@ -3974,6 +3993,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     sync();
   };
   const diktuj = () => {
+    if (richLockedRef.current) return;
     if (rozRef.current) { try { rozRef.current.stop(); } catch (err) {} return; }
     const R = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!R) return;
@@ -4008,6 +4028,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
   const sazecTm = React.useRef(null);
   React.useEffect(() => () => { if (sazecTm.current) clearTimeout(sazecTm.current); }, []);
   const sazec = () => {
+    if (richLockedRef.current) return;
     const el = ref.current; if (!el) return;
     const pred = el.innerHTML;
     const md = htmlToMd(el);
@@ -4018,11 +4039,13 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     sazecTm.current = setTimeout(() => setSazecZpet(null), 9000);
   };
   const sazecVratit = () => {
+    if (richLockedRef.current) return;
     const el = ref.current;
     if (el && sazecZpet && sazecZpet !== "nic") { el.innerHTML = sazecZpet; sync(); }
     setSazecZpet(null);
   };
   const zarovnej = (k) => {
+    if (richLockedRef.current) return;
     try { document.execCommand("styleWithCSS", false, true); } catch (err) {}
     document.execCommand(k === "c" ? "justifyCenter" : k === "r" ? "justifyRight" : k === "j" ? "justifyFull" : "justifyLeft");
   };
@@ -4115,6 +4138,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     } catch (err) {}
   };
   const pickSlash = (it) => {
+    if (richLockedRef.current) return;
     const el = ref.current; if (!el) { setSl(null); return; }
     const n = (slRef.current && slRef.current.n) || 1;
     setSl(null);
@@ -4153,6 +4177,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     setLk({ items, i: 0, x, y });
   };
   const pickLink = (title) => {
+    if (richLockedRef.current) return;
     const el = ref.current; if (!el) return;
     const s = window.getSelection(); if (!s || !s.rangeCount) return;
     const r = s.getRangeAt(0), node = r.endContainer;
@@ -4176,10 +4201,11 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     el.focus();
     sync();
   };
-  const onInput = () => { let did = false; try { did = autoFormat(); } catch (err) {} if (!did) lastAuto.current = null; sync(); try { checkLink(); } catch (err) {} try { checkSlash(); } catch (err) {} if (strankyOn) requestAnimationFrame(naKurzor); };
+  const onInput = () => { if (richLockedRef.current) return; let did = false; try { did = autoFormat(); } catch (err) {} if (!did) lastAuto.current = null; sync(); try { checkLink(); } catch (err) {} try { checkSlash(); } catch (err) {} if (strankyOn) requestAnimationFrame(naKurzor); };
   // vložení textu · když v něm jsou značky, rovnou z nich udělej bloky
   const onPaste = (e) => {
     e.preventDefault();
+    if (richLockedRef.current) return;
     const raw = e.clipboardData ? e.clipboardData.getData("text/plain") : "";
     if (!raw) return;
     const txt = raw.replace(/\r\n?/g, "\n").replace(/^\*\s/gm, "- ").replace(/^(\d{1,3})\)\s/gm, "$1. ");
@@ -4201,6 +4227,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
   // jinak obrázek skončí na konci poznámky nebo se nevloží vůbec.
   const imgRange = React.useRef(null);
   const openImage = () => {
+    if (richLockedRef.current) return;
     try {
       const sel = window.getSelection();
       imgRange.current = (sel && sel.rangeCount && ref.current && ref.current.contains(sel.anchorNode)) ? sel.getRangeAt(0).cloneRange() : null;
@@ -4209,11 +4236,13 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     if (imgRef.current) { imgRef.current.value = ""; imgRef.current.click(); }
   };
   const insertImage = async (file) => {
-    if (!file) return;
+    if (!file || richLockedRef.current) return;
     try {
       const blob = await resizeImageToBlob(file, 1200);
+      if (richLockedRef.current) return;
       const gid = uid() + "g";
       await r2Put(gid, blob, file.name);
+      if (richLockedRef.current) return;
       const el = ref.current;
       if (el) {
         el.focus();
@@ -4230,6 +4259,17 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
   };
   const figAction = (e) => {
     const tgt0 = e.target && (e.target.nodeType === 1 ? e.target : e.target.parentElement);
+    if (richLockedRef.current) {
+      // A locked note still opens its external preview; all figure mutations
+      // and checklist toggles stay disabled even though they are buttons.
+      const control = tgt0 && tgt0.closest && tgt0.closest("[data-act]");
+      if (control && control.getAttribute("data-act") === "open") {
+        e.preventDefault(); e.stopPropagation();
+        const url = control.closest("figure")?.getAttribute("data-gd");
+        if (url && /^https:\/\//i.test(url)) window.open(url, "_blank", "noopener,noreferrer");
+      }
+      return;
+    }
     const chk = tgt0 && tgt0.closest && tgt0.closest(".tm-chk");
     if (chk) {
       e.preventDefault(); e.stopPropagation();
@@ -4267,7 +4307,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
           Na širokém plátně zůstává lišta nad textem, protože tam nikam
           neuteče a klávesnice nic nezakrývá. */}
       {siroko && recordingStatus}
-      {(focused || zen || recordingStatus) && (siroko
+      {!zamek && (focused || zen || recordingStatus) && (siroko
         ? <MdToolbar exec={exec} onImage={openImage} onZen={zenAllowed ? () => setZen((z) => !z) : null} zen={zen} blockOf={blockOf} setBlock={setBlock} insertHr={insertHr} sazec={sazec} zarovnej={zarovnej} undo={stx && stx.undo} redo={stx && stx.redo} canUndo={!!(stx && stx.canUndo)} canRedo={!!(stx && stx.canRedo)} />
         : <PsaciLista recordingStatus={recordingStatus} exec={exec} onImage={openImage} naPrilohu={naPrilohu} onZmensit={onZmensit} onZen={zenAllowed ? () => setZen((z) => !z) : null} zen={zen} focused={focused} blockOf={blockOf} setBlock={setBlock} insertHr={insertHr} sazec={sazec} undo={stx && stx.undo} redo={stx && stx.redo} canUndo={!!(stx && stx.canUndo)} canRedo={!!(stx && stx.canRedo)} />)}
       {posloucham && (
@@ -4277,7 +4317,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
           <button onClick={diktuj} style={{ background: "transparent", border: `1px solid ${t.accent}`, borderRadius: 999, color: t.accentInk || t.accent, cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, padding: "4px 12px", flexShrink: 0 }}>{L("Dost", "Stop")}</button>
         </div>
       )}
-      {sazecZpet && (
+      {!zamek && sazecZpet && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 8, padding: "7px 12px", margin: "6px 0" }}>
           <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, flex: 1, lineHeight: 1.5 }}>{sazecZpet === "nic" ? L("Sazeč prošel text — už je vysázený.", "The typesetter read the text — it is already set.") : L("Sazeč rozsadil text podle významu.", "The typesetter laid the text out by meaning.")}</span>
           {sazecZpet !== "nic" && <button onClick={sazecVratit} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.textSec, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, padding: "4px 12px", flexShrink: 0 }}>{L("Vrátit", "Undo")}</button>}
@@ -4301,6 +4341,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
         onBlur={() => { setFocused(false); setTimeout(() => { setLk(null); setSl(null); }, 120); }}
         onPaste={onPaste}
         onKeyDown={(e) => {
+          if (richLockedRef.current) return;
           const el = ref.current; if (!el) return;
           // zkratky pro bloky · stejná řada jako v jiných editorech
           if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
@@ -4398,7 +4439,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
           {zen && <><span style={{ width: 1, height: 9, background: t.borderSoft }} /><span>{stats.c} {L("znaků", "chars")}</span></>}
         </div>
       )}
-      {sl && createPortal(
+      {!zamek && sl && createPortal(
         <div className="tm-pop" style={{ position: "fixed", left: sl.x, top: sl.y, zIndex: 500, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 5, boxShadow: t.shadowPop, minWidth: 226, maxWidth: 280, maxHeight: 292, overflowY: "auto" }}>
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.textMuted, padding: "3px 9px 5px" }}>{L("Vložit…", "Insert…")}</div>
           {sl.items.map((x, i) => (
@@ -4411,7 +4452,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
         </div>,
         document.body
       )}
-      {lk && createPortal(
+      {!zamek && lk && createPortal(
         <div className="tm-pop" style={{ position: "fixed", left: lk.x, top: lk.y, zIndex: 500, background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 5, boxShadow: t.shadowPop, minWidth: 210, maxWidth: 260 }}>
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.textMuted, padding: "3px 9px 5px" }}>{L("Odkaz na…", "Link to…")}</div>
           {lk.items.map((x, i) => (
@@ -4512,8 +4553,8 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
       className={effOpen || selecting ? undefined : kind === "journal" ? "tm-grow" : "tm-lift"}
       {...{ ["data-card-" + kind]: entry.id }}
       data-pick={entry.id}
-      draggable={!selecting && !noDrag && !full}
-      onDragStart={!selecting ? (e) => { e.dataTransfer.setData("text/plain", "card-" + kind + ":" + entry.id); e.dataTransfer.effectAllowed = "move"; } : undefined}
+      draggable={!selecting && !noDrag && !full && !holdManaged && !effOpen}
+      onDragStart={!selecting && !noDrag && !full && !holdManaged && !effOpen ? (e) => { e.dataTransfer.setData("text/plain", "card-" + kind + ":" + entry.id); e.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); const d = (e.dataTransfer.getData("text/plain") || "").split(":"); if (d[0] === "card-" + kind && d[1] && d[1] !== entry.id) st.reorderEntry(kind, d[1], entry.id); }}
@@ -4699,12 +4740,8 @@ function PageNotebook({ koren, korenNazev }) {
   const [full, setFull] = useState(null);
   // zmenšený náhled otevřené poznámky · zavírá se spolu s ní
   const [nahled, setNahled] = useState(false);
-  /* TŘI PATRA, NE DVĚ. Ze seznamu se poznámka otevře do ČTENÍ; odtud vede
-     klepnutí o patro dál do PSANÍ; ze psaní se vrací do seznamu. Dřív
-     klepnutí ve čtení skočilo rovnou zpátky na začátek seznamu, takže
-     člověk musel poznámku hledat znovu. Na širokém okně čtení není —
-     tam stojí seznam a text vedle sebe. */
-  const otevri = (id) => { setFull(id); if (!wide) setNahled(true); };
+  // Poznámka se otevře rovnou k psaní; čtení je samostatná volba.
+  const otevri = (id) => { setFull(id); setNahled(false); };
   const [nast, setNast] = useState(false);
   React.useEffect(() => { if (!full) { setNahled(false); setNast(false); } }, [full]);
   const [q, setQ] = useState("");
@@ -4919,7 +4956,7 @@ function PageNotebook({ koren, korenNazev }) {
       {fullEntry && !wide && !nahled && nast && (
         <NastaveniPoznamky entry={fullEntry} kind="notebook" tags={tags} onClose={() => setNast(false)} onPryc={() => { setNast(false); setFull(null); }} />
       )}
-      {fullEntry && !wide && nahled && (
+      {fullEntry && nahled && (
         <NahledPoznamky entry={fullEntry} kind="notebook" tags={tags} onZavri={() => setNahled(false)} onPsat={() => setNahled(false)} />
       )}
       {!koren && <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcZapisnik size={38} /></span>} pageKey="zapisnik" kicker={L("Poznámky, nápady a souvislosti.", "Notes, ideas and connections.")}
@@ -5055,7 +5092,7 @@ function PageNotebook({ koren, korenNazev }) {
         {wide && (
           <div className="tm-scroll" style={{ maxHeight: "min(720px, calc(70 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: fullEntry ? "4px 6px 10px" : 0, background: t.bg }}>
             {fullEntry
-              ? <NotebookCard key={fullEntry.id} entry={fullEntry} tags={tags} full />
+              ? <NotebookCard key={fullEntry.id} entry={fullEntry} tags={tags} full onZmensit={() => setNahled(true)} />
               : (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", minHeight: 260, padding: "30px 20px", textAlign: "center" }}>
                   <span style={{ color: t.sand, opacity: 0.35, display: "inline-flex" }}><TmIcZapisnik size={44} /></span>
@@ -5125,7 +5162,7 @@ function PageJournal() {
   // přišlo se sem z hledání · otevři přesně ten zápis a cíl zahoď
   React.useEffect(() => {
     const tgt = st.openTarget;
-    if (tgt && tgt.kind === "journal") { setFull(tgt.id); st.setOpenTarget(null); }
+    if (tgt && tgt.kind === "journal") { otevri(tgt.id); st.setOpenTarget(null); }
   }, [st.openTarget]);
 
   // ---- Dnes · jedna psací plocha — deník začíná dneškem, ne archivem ----
@@ -5168,7 +5205,8 @@ function PageJournal() {
   const wk = today.slice(0, 4) + "T" + tmIsoWeek(today);
   const promptOn = jmeta.promptOff !== true;
   const promptHidden = jmeta.promptSkip === wk;
-  const prompt = tmPromptFor(today, jmeta.promptShift && jmeta.promptShift.w === wk ? jmeta.promptShift.n : 0);
+  const [promptPicker, setPromptPicker] = useState(false);
+  const prompt = (jmeta.promptPick?.w === wk && TM_PROMPTS.find(item => item.cz === jmeta.promptPick.key)) || tmPromptFor(today, jmeta.promptShift && jmeta.promptShift.w === wk ? jmeta.promptShift.n : 0);
   const promptOkruh = TM_PROMPT_OKRUH[prompt.k] || TM_PROMPT_OKRUH.telo;
   // návrat bez viny · po týdnu ticha jen fakt a ruka, žádné počítání zameškaného
   const lastBefore = all.filter((e) => e.date && e.date < today).map((e) => e.date).sort().pop();
@@ -5183,8 +5221,8 @@ function PageJournal() {
 
   const fullEntry = full ? all.find((e) => e.id === full) : null;
   const [jNahled, setJNahled] = useState(false);
-  // seznam → čtení → psaní · stejná tři patra jako v Zápisníku
-  const otevri = (id) => { setFull(id); setJNahled(true); };
+  // Zápis se otevře rovnou k psaní; čtení si člověk zapne sám.
+  const otevri = (id) => { setFull(id); setJNahled(false); };
   const [jNast, setJNast] = useState(false);
   React.useEffect(() => { if (!full) { setJNahled(false); setJNast(false); } }, [full]);
   React.useEffect(() => { if (!full) return; tmListovaniStuj(); return () => tmListovaniJdi(); }, [full]);
@@ -5261,6 +5299,21 @@ function PageJournal() {
 
   return (
     <>
+      {promptPicker && (
+        <CenterSheet title={L("Podněty k psaní", "Writing prompts")} onClose={() => setPromptPicker(false)}>
+          <div data-weekly-prompt="choices" style={{ display: "grid", gap: 2 }}>
+            {TM_PROMPTS.map(option => {
+              const area = TM_PROMPT_OKRUH[option.k] || TM_PROMPT_OKRUH.telo;
+              return <button type="button" key={option.cz} aria-pressed={option === prompt}
+                onClick={() => { st.setPageMeta("denik", { promptPick: { w: wk, key: option.cz }, promptSkip: "" }); setPromptPicker(false); }}
+                style={{ display: "block", width: "100%", textAlign: "left", background: option === prompt ? hexA(t.accent, 0.08) : "transparent", border: "none", borderBottom: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "14px 12px", minHeight: 44, cursor: "pointer", color: t.text }}>
+                <span style={{ display: "block", fontFamily: FONT_TAG, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.1em", color: t.sage, marginBottom: 5 }}>{L(area.cz, area.en)}</span>
+                <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.6 }}>{L(option.cz, option.en)}</span>
+              </button>;
+            })}
+          </div>
+        </CenterSheet>
+      )}
       {fullEntry && !jNahled && (
         <CenterSheet center title={L("Deník", "Journal") + (fullEntry.date ? " · " + fmtCZ(fullEntry.date) : "")} onClose={() => setFull(null)}
           naradi={<button onClick={() => setJNast(true)} title={L("Nastavení zápisku", "Entry settings")} style={{ flexShrink: 0, background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30 }}><TmIcNastaveni size={16} /></button>}>
@@ -5295,12 +5348,14 @@ function PageJournal() {
               podoba série. Nad plochou zůstal podnět týdne a nic jiného. */}
           {!todayEntry && promptOn && !promptHidden && (
             <div style={{ borderLeft: `2px solid ${hexA(t.sage, 0.55)}`, padding: "1px 0 2px 12px", margin: "2px 0 12px" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 3 }}>
-                <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, lineHeight: 1.5, color: t.sage, paddingTop: 4 }}>{L("Podnět týdne", "This week's prompt")} · {L(promptOkruh.cz, promptOkruh.en)}</span>
-                <button onClick={() => st.setPageMeta("denik", { promptShift: { w: wk, n: ((jmeta.promptShift && jmeta.promptShift.w === wk ? jmeta.promptShift.n : 0) + 1) } })} title={L("Jiný podnět", "A different prompt")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12, padding: "3px 4px", minHeight: 28 }}>{L("Jiný", "Another")}</button>
-                <button onClick={() => st.setPageMeta("denik", { promptSkip: wk })} title={L("Skrýt na tento týden", "Hide for this week")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1, padding: "3px 2px", minHeight: 28, width: 24 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                <button type="button" data-weekly-prompt="open" aria-haspopup="dialog" onClick={() => setPromptPicker(true)}
+                  style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", padding: "4px 0", textAlign: "left", cursor: "pointer" }}>
+                  <span style={{ display: "block", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, lineHeight: 1.5, color: t.sage, marginBottom: 3 }}>{L("Podnět týdne", "This week's prompt")} · {L(promptOkruh.cz, promptOkruh.en)}</span>
+                  <span style={{ display: "block", fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 17, lineHeight: 1.45, color: t.inkSand || t.sand }}>{L(prompt.cz, prompt.en)}</span>
+                </button>
+                <button type="button" onClick={() => st.setPageMeta("denik", { promptSkip: wk })} title={L("Skrýt na tento týden", "Hide for this week")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, padding: 0, minHeight: 40, width: 36, flexShrink: 0 }}><FamilyIcon id="close" size={16} /></button>
               </div>
-              <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 17, lineHeight: 1.45, color: t.inkSand || t.sand }}>{L(prompt.cz, prompt.en)}</div>
             </div>
           )}
           {/* Prázdná plocha zůstane prázdná. Dřív sem po skrytí podnětu naskočila
@@ -9251,7 +9306,7 @@ function TExPick({ onPick, onClose, onNew }) {
   return (
     <TPickShell title={L("Vyber cvik", "Pick an exercise")} onClose={onClose}>
       <div ref={inRef} style={{ maxHeight: "45vh", overflowY: "auto", flexShrink: 0 }}>
-        <ExerciseLibraryFilters t={t} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
+        <ExerciseLibraryFilters t={t} renderBodyMap={props => <TMuscleMap {...props} />} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
           sort={exerciseSort} onSort={setExerciseSort} count={list.length} hiddenCount={hiddenCount}
           MultiSelect={TMultiSel} allowCustomOrder={false}
           muscleOptions={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))}
@@ -9400,7 +9455,7 @@ function TExShelf({ ex, size = 10.5 }) {
 }
 
 // ---- exercise card · the library grid ----
-function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag }) {
+function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag, view = "grid" }) {
   const { t } = useT();
   const st = useStore();
 
@@ -9412,14 +9467,15 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
   onOverRef.current = (overId) => stRef.current.reorderEntry("tEx", ex.id, overId);
   useHoldReorder(rootRef, ex.id, "data-tex", onOverRef, offRef);
   return (
-    <div ref={rootRef} data-tex={ex.id} className="tm-exercise-card"
+    <div ref={rootRef} data-tex={ex.id} className={view === "list" ? "tm-exercise-row" : "tm-exercise-card"}
       draggable={!!drag && !selecting}
       onDragStart={drag ? (e) => { e.dataTransfer.setData("text/plain", "tex:" + ex.id); e.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragOver={drag ? (e) => { e.preventDefault(); setOver(true); } : undefined}
       onDragLeave={() => setOver(false)}
       onDrop={drag ? (e) => { e.preventDefault(); setOver(false); const p = (e.dataTransfer.getData("text/plain") || "").split(":"); if (p[0] === "tex" && p[1] !== ex.id) st.reorderEntry("tEx", p[1], ex.id); } : undefined}
       style={{ position: "relative", display: "flex", borderRadius: 10, outline: over ? `2px solid ${t.accent}` : "none" }}>
-    <button onClick={selecting ? onToggleSel : onOpen} style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: 0, overflow: "hidden", transition: "all .18s ease", boxShadow: t.shadow, display: "flex", flexDirection: "column", alignItems: "stretch" }}>
+    <button onClick={selecting ? onToggleSel : onOpen} style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: 0, overflow: "hidden", transition: "all .18s ease", boxShadow: t.shadow, display: "flex", flexDirection: view === "list" ? "row" : "column", alignItems: view === "list" ? "center" : "stretch", ...(view === "list" ? { padding: "10px 12px", paddingRight: selecting || onDelete ? 44 : 12, gap: 14, boxShadow: "none", background: selecting && selected ? t.activeNav : "transparent" } : {}) }}>
+      {view === "list" ? <ExerciseLibraryRowContent t={t} title={tExName(ex)} focus={resolveMuscleMap(ex, tMetaOf(ex)).primary.map(k => L((T_MUS[k] || {}).cz, (T_MUS[k] || {}).en)).filter(Boolean).join(" · ") || <ExerciseTaxonomySummary taxonomyOf={exerciseTaxonomy} t={t} exercise={ex} meta={tMetaOf(ex)} compact />} illustration={<TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />} /> : <>
       {/* DESKA PŘES CELOU KARTU · ilustrace sahá k okrajům rámečku cviku,
           na telefonu i na počítači. Lněné pole plátu je čtvercové a vyplní
           šířku beze zbytku; před načtením zůstává plocha prázdná. */}
@@ -9444,6 +9500,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag 
           {resolveMuscleMap(ex, tMetaOf(ex)).primary.map((k) => L((T_MUS[k]||{}).cz, (T_MUS[k]||{}).en)).filter(Boolean).join(" · ")}
         </div>
       </div>
+      </>}
     </button>
     {selecting
       ? <span style={{ position: "absolute", top: 10, right: 10, zIndex: 2 }}><Check done={!!selected} /></span>
@@ -13346,6 +13403,8 @@ function PageTrenink() {
   const sessions = st.tvSessions();
 
   // ---- knihovna · filtry ----
+  const exerciseView = st.pageMetaOf("trenink").exerciseView === "list" ? "list" : "grid";
+  const setExerciseView = view => st.setPageMeta("trenink", { exerciseView: view });
   const [exerciseFilters, setExerciseFilters] = useState(createExerciseFilters);
   const [exerciseSort, setExerciseSort] = useState("recommended");
   const exerciseIndex = React.useMemo(() => buildExerciseIndex(exs, {
@@ -13423,8 +13482,8 @@ function PageTrenink() {
       {tab === "knihovna" && (
         <>
           <div data-guide="trenink.library">
-            <ExerciseLibraryFilters t={t} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
-              sort={exerciseSort} onSort={setExerciseSort} count={sorted.length} hiddenCount={hiddenCount}
+            <ExerciseLibraryFilters t={t} renderBodyMap={props => <TMuscleMap {...props} />} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
+              view={exerciseView} onViewChange={setExerciseView} sort={exerciseSort} onSort={setExerciseSort} count={sorted.length} hiddenCount={hiddenCount}
               MultiSelect={TMultiSel} allowCustomOrder={false}
               muscleOptions={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))}
               levelOptions={T_DEMANDS.map((x) => ({ v: x.v, label: L(x.cz, x.en) }))} />
@@ -13433,8 +13492,8 @@ function PageTrenink() {
             {L("Žádný cvik neodpovídá hledání a filtrům.", "No exercises match your search and filters.")}
             <button onClick={() => setExerciseFilters(createExerciseFilters())} style={{ ...tvQuiet(t), display: "block", marginTop: 8 }}>{L("Vyčistit hledání a filtry", "Clear search and filters")}</button>
           </div>}
-          <div className="tm-reveal tm-exercise-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(235px, 1fr))", gap: 12 }}>
-            {sorted.slice(0, exShown).map((ex) => <TExCard key={ex.id} ex={ex} onOpen={() => setOpenEx(ex.id)} />)}
+          <div className={exerciseView === "list" ? "tm-reveal tm-exercise-list" : "tm-reveal tm-exercise-grid"} style={{ display: "grid", minWidth: 0, gridTemplateColumns: exerciseView === "list" ? "minmax(0, 1fr)" : "repeat(auto-fill, minmax(235px, 1fr))", gap: exerciseView === "list" ? 8 : 12 }}>
+            {sorted.slice(0, exShown).map((ex) => <TExCard key={ex.id} view={exerciseView} ex={ex} onOpen={() => setOpenEx(ex.id)} />)}
           </div>
           {sorted.length > exShown ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 16 }}>
@@ -14957,7 +15016,7 @@ export default function App() {
     saveEdits(next);
     return next;
   });
-  const habitDefs = () => clientHabitDefinitions(coll, edits, HABIT_DEFAULTS).map((x) => (x.name ? x : { ...x, name: L(x.cz || "", x.en || "") }));
+  const habitDefs = () => resolvePracticeHabitLabels(clientHabitDefinitions(coll, edits, HABIT_DEFAULTS)).map((x) => (x.name ? x : { ...x, name: L(x.cz || "", x.en || "") }));
   const activeHabits = () => habitDefs().filter((x) => !x.archived);
   const setHabitDefs = (list) => persistColl((c) => ({ ...c, habitDefs: list }));
   const dayStatusLabels = () => coll.dayStatusLabels || {};
@@ -15162,7 +15221,7 @@ export default function App() {
     // NÁVYKY · jen počty za posledních 30 dní a jména návyků. Žádná poznámka,
     // žádný text, žádný stav dne.
     if (sh.habits) {
-      const defs = clientHabitDefinitions(c, e, HABIT_DEFAULTS);
+      const defs = resolvePracticeHabitLabels(clientHabitDefinitions(c, e, HABIT_DEFAULTS));
       const dnes = new Date(todayISO() + "T12:00:00");
       const days = [];
       for (let i = 0; i < SHARE_WINDOW_DAYS; i++) {
@@ -17125,7 +17184,7 @@ export default function App() {
             const items = g.items.filter((f) => isEnabled(f.key) && sideRooms.includes(f.key));
             if (!items.length) return null;
             return (
-            <div key={g.cz} style={{ marginBottom: 16 }}>
+            <div key={g.cz} className="tm-sidebar-group" style={{ marginBottom: 16 }}>
               <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.2em", fontSize: 12, color: t.navKicker, padding: "0 8px 6px" }}>{L(g.cz, g.en)}</div>
               {items.map((f) => renderNavItem(f))}
             </div>
