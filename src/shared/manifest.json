@@ -1,7 +1,7 @@
 {
   "generatedBy": "Shared/scripts/sync-product-core.mjs",
   "canonicalSource": "Work/web-application/Shared/product-core/",
-  "sharedCoreVersion": "1.33.76",
+  "sharedCoreVersion": "1.33.77",
   "note": "Zrcadlo sdíleného jádra. Needituj tyhle soubory v aplikačním repozitáři — `npm run shared:check` to pozná a build spadne.",
   "files": {
     "public/market-chart.css": "2a694f0d7edddfbb94bc40dd37ce3bee8e826cd43632f888fc0bf0f63236dec6",
@@ -223,7 +223,7 @@
     "src/shared/ui/typography.js": "7b001d164b74831d46a86f4c3554d05876cf042fa271362704331fa2bbcade3c",
     "src/shared/ui/typography.jsx": "4abd3f98e2b791ddc21c57760a9d7fc12e09c16de1706c25aa5adb0f15d28112",
     "src/shared/ui/wellbeingPalette.js": "b17a69043ff09cb4a33abbab2244a36b831efe6c6c9541793f20303d2bac295b",
-    "src/shared/version.js": "f945d2298aa88d08b24a17ad1ec11b32e2faaf1f714a445847e808d8b53bd3cc",
+    "src/shared/version.js": "f1e91a3077599b3abf8a958c0dd54fd01d2712ca9e6455a1309e1183056acbdc",
     "src/training/adapters.js": "46347ee58d25e50e03bcab2ecc82c4eddf1e048e7af041173bb008d34a20e6af",
     "src/training/atlasResolver.js": "7d656de854b93919676029fcf5fc7940bb86ceba5211521687f444d354858009",
     "src/training/carryProgressPolicy.js": "e59a02b57e134599c889a0e89e1774baf548cf847d04a1424c0d1dd9edb0b5cf",
@@ -392,6 +392,7 @@
     "tests/hinge-audit.test.js": "cedc7344b961bb148a40f4f51285fd9505932c68ebf4cafd24ea1b5af8bd1d14",
     "tests/hip-audit.test.js": "e98cbbcd615b1bc7b01d53731ea7d38d23cbd1e1ce945b534d2f276b957ea6f1",
     "tests/icon-family.test.js": "ccd5a2d2e96dda18384d7e76b51dd6c144cb21cbd199f4de7e0b4f617cf0376f",
+    "tests/jsx-bindings.test.js": "2cf3e02200b918b2afa7815cb3a1d9df6fb849b544d6e04c17884f490450417c",
     "tests/landing-audit.test.js": "6b8375238787e182a62c2be8858f14a83b5633248de62d109539aef87af15863",
     "tests/landing-initialization.test.js": "3e8e8d872694f78fc675edb2198ae6376a4afb8b3de120f4b00f0f51f3e9e511",
     "tests/library-links-review.test.js": "e1f188d2d54648abf0d08eb26da750188e0c6403b1a5baf17476da95bf1ebe1b",

@@ -199,6 +199,11 @@ const ThemeCtx = createContext(null);
 const useT = () => useContext(ThemeCtx);
 const TM_ICON_UI = createIconUI({ useT, L });
 const TM_SVALY = createMuscleFig({ useT, L, resolveMap:resolveMuscleMap });
+const TMuscleMap = TM_SVALY.TmSvalyFigura;
+
+function CaretIcon({ dir = "up", size = 9 }) { return <FamilyIcon id={({up:"collapse",down:"expand",left:"back",right:"forward"})[dir] || "collapse"} size={size} />; }
+function SearchIcon({ size = 13 }) { return <FamilyIcon id="search" size={size} />; }
+function TrainIcon({ size = 15 }) { return <FamilyIcon id="movement" size={size} />; }
 
 // ---- Interactive store (browse history + edit + persist) ----
 const StoreCtx = createContext(null);
