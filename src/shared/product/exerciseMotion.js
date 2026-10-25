@@ -1910,6 +1910,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 24553,
     "sha256": "d9a68bcaf74245abe8e1fc7c11ebddd6fd227f37c65bf21605f8973bba13acb0",
     "poster": "/exercise-motion/mbd_single_fold-poster-e0132a202f11b4f9.webp"
+  },
+  "faq_foot_chin": {
+    "oneSide": false,
+    "src": "/exercise-motion/faq_foot_chin-7fd569b7b90b4993.mp4",
+    "bytes": 29879,
+    "sha256": "7fd569b7b90b499300579126f7291e6725f66315af93c59284a88cdc1b2600d6",
+    "poster": "/exercise-motion/faq_foot_chin-poster-0043ec7d9f6ca7d0.webp"
+  },
+  "faq_foot_dip": {
+    "oneSide": false,
+    "src": "/exercise-motion/faq_foot_dip-f2a2548ff52b1a6a.mp4",
+    "bytes": 26112,
+    "sha256": "f2a2548ff52b1a6aef38c832ada9db1b5a6a3356c4bfcef6164bcd173357bd29",
+    "poster": "/exercise-motion/faq_foot_dip-poster-1b63687d70cd8e42.webp"
+  },
+  "faq_deficit_push": {
+    "oneSide": false,
+    "src": "/exercise-motion/faq_deficit_push-4f50fd2c763189b9.mp4",
+    "bytes": 25286,
+    "sha256": "4f50fd2c763189b9b4749d6968970c9cb2919a2126e3db8fcb1ccf53e524a6e8",
+    "poster": "/exercise-motion/faq_deficit_push-poster-6ce8460a064ff422.webp"
+  },
+  "vpul26_neutral_pullup": {
+    "oneSide": false,
+    "src": "/exercise-motion/vpul26_neutral_pullup-e5bd3d6ffc477f2d.mp4",
+    "bytes": 27101,
+    "sha256": "e5bd3d6ffc477f2d236dea51961e5c387fba15ea6bbfd27080f2c6b475b1fe0c",
+    "poster": "/exercise-motion/vpul26_neutral_pullup-poster-b96dc85eec91e637.webp"
+  },
+  "shrimp": {
+    "oneSide": true,
+    "src": "/exercise-motion/shrimp-10cc3421aee50b07.mp4",
+    "bytes": 38136,
+    "sha256": "10cc3421aee50b079416635cb37efb168dbbdc6fae0c96b46ed4eec6959d9bd8",
+    "poster": "/exercise-motion/shrimp-poster-fca7b61002673378.webp"
+  },
+  "gm_s_arms": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_s_arms-47c54f8854ebc6b8.mp4",
+    "bytes": 23079,
+    "sha256": "47c54f8854ebc6b89bd97acce518746989acc4816bef3e535e5d5187bb9eb301",
+    "poster": "/exercise-motion/gm_s_arms-poster-90d7ce70b227b7b3.webp"
+  },
+  "gm_w_squat_bends": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_squat_bends-d0a8f8cc41c713c1.mp4",
+    "bytes": 25323,
+    "sha256": "d0a8f8cc41c713c1dd304bab9db31343caa4f142942c159ec5f96b2984ccf509",
+    "poster": "/exercise-motion/gm_w_squat_bends-poster-70b6d626dd934012.webp"
+  },
+  "faq_lunge_reach": {
+    "oneSide": true,
+    "src": "/exercise-motion/faq_lunge_reach-fcce7e817f58a080.mp4",
+    "bytes": 23350,
+    "sha256": "fcce7e817f58a08067937cfded3df4c876ed794e06c27fc87439d32eded0c04c",
+    "poster": "/exercise-motion/faq_lunge_reach-poster-c80699eebd7ceebf.webp"
   }
 });
 
