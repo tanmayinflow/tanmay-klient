@@ -265,3 +265,70 @@ test("unavailable IndexedDB permits local-only compaction but never silently ret
   await assert.rejects(archive.read(), { name: "SecurityError" });
   await assert.rejects(archive.update(rows => [...rows, snapshot(2)]), { name: "SecurityError" });
 });
+
+test("document-only quota saves latest complete pending values through the durable backend", async () => {
+  const storage = memory(25); let active = false, values = {};
+  const store = { isActive: () => active, save: async entries => { await Promise.resolve(); values = { ...values, ...entries }; active = true; } };
+  const writer = createLocalDocumentWriter({ getStorage: () => storage, documentStore: store, recoverQuota: async () => false });
+  assert.equal(writer.write(COLL, { note: "old".repeat(100) }), false);
+  writer.write(COLL, { note: "latest".repeat(100) });
+  await writer.settled();
+  assert.deepEqual(JSON.parse(values[COLL]), { note: "latest".repeat(100) });
+  assert.equal(writer.currentFailure(), null);
+  assert.equal(writer.write(EDITS, { day: true }), false, 'queued async commit must never authorize attachment deletion');
+  assert.equal(writer.retry(), false);
+  await writer.settled(); assert.deepEqual(JSON.parse(values[EDITS]), { day: true });
+});
+
+test("an edit during a durable commit is saved next and failure keeps it retryable", async () => {
+  const storage = memory(); let release, failNext = false, saved;
+  const gate = new Promise(resolve => { release = resolve; });
+  const store = { isActive: () => true, save: async entries => { await gate; if (failNext) throw new DOMException('Quota','QuotaExceededError'); saved = entries; } };
+  const writer = createLocalDocumentWriter({ getStorage: () => storage, documentStore: store });
+  writer.write(COLL, { note: 'first' }); await Promise.resolve();
+  writer.write(COLL, { note: 'newest' }); release(); await writer.settled();
+  assert.deepEqual(JSON.parse(saved[COLL]), { note: 'newest' });
+  failNext = true; writer.write(COLL, { note: 'keep me' }); await writer.settled();
+  assert.equal(writer.currentFailure().kind, 'quota');
+  failNext = false; assert.equal(writer.retry(), false); await writer.settled();
+  assert.deepEqual(JSON.parse(saved[COLL]), { note: 'keep me' }); assert.equal(writer.currentFailure(), null);
+});
+
+test("pausing for an external document drains in-flight work but keeps newer edits unwritten until a choice", async () => {
+  const storage = memory(); let release; const writes = [];
+  const gate = new Promise(resolve => { release = resolve; });
+  const store = { isActive: () => true, save: async entries => { await gate; writes.push(entries); } };
+  const writer = createLocalDocumentWriter({ getStorage: () => storage, documentStore: store });
+  writer.write(COLL, { note: 'started' }); await Promise.resolve();
+  writer.pause(); writer.write(COLL, { note: 'pending choice' }); release(); await writer.settled();
+  assert.equal(writes.length, 1); assert.equal(writer.retry(), false);
+  assert.equal(writer.currentFailure().kind, 'pending');
+  writer.resume(); await writer.settled();
+  assert.equal(writes.length, 2); assert.deepEqual(JSON.parse(writes[1][COLL]), { note: 'pending choice' });
+  assert.equal(writer.currentFailure(), null);
+});
+
+test("accepting another tab's document discards old pending values before resuming", async () => {
+  const storage = memory(), writes = [];
+  const store = { isActive: () => true, save: async entries => { writes.push(entries); } };
+  const writer = createLocalDocumentWriter({ getStorage: () => storage, documentStore: store });
+  writer.pause(); writer.write(COLL, { note: 'old RAM' });
+  writer.clearPending(); writer.write(COLL, { note: 'chosen' }); writer.write(EDITS, { day: 'chosen' });
+  assert.equal(writes.length, 0); writer.resume(); await writer.settled();
+  assert.equal(writes.length, 1); assert.deepEqual(JSON.parse(writes[0][COLL]), { note: 'chosen' });
+  assert.deepEqual(JSON.parse(writes[0][EDITS]), { day: 'chosen' });
+});
+
+test("a small edit during first migration stays queued and cannot fork the legacy baseline", async () => {
+  const storage = memory(50); let active = false, release; const writes = [];
+  const gate = new Promise(resolve => { release = resolve; });
+  const store = { isActive: () => active, save: async entries => { await gate; writes.push(entries); active = true; } };
+  const writer = createLocalDocumentWriter({ getStorage: () => storage, documentStore: store });
+  writer.write(COLL, { large: 'x'.repeat(200) }); await Promise.resolve();
+  const version = writer.writeVersion();
+  assert.equal(writer.write(EDITS, { day: true }), false);
+  assert.equal(storage.getItem(EDITS), null); assert.ok(writer.writeVersion() > version);
+  release(); await writer.settled();
+  assert.deepEqual(JSON.parse(writes.at(-1)[EDITS]), { day: true });
+  assert.equal(writer.currentFailure(), null);
+});

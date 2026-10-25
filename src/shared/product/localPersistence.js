@@ -34,16 +34,16 @@ export function localSaveDiagnostic(failure, L) {
   if (!failure) return "";
   const size = failure.sizes;
   const amount = n => `${(n / 1e6).toFixed(2)} M`;
-  return `${failure.name || "Error"} · ${failure.where || "document"}` + (size?.available ? L(
+  return `${failure.name || "Error"} · ${failure.where || "document"}` + (Number.isFinite(failure.attemptedCharacters) ? L(` · nový zápis ${amount(failure.attemptedCharacters)}`, ` · attempted write ${amount(failure.attemptedCharacters)}`) : "") + (size?.available ? L(
     ` · znaky: dokument ${amount(size.documentCharacters)}, zálohy ${amount(size.backupCharacters)}, ostatní ${amount(size.otherCharacters)}`,
     ` · characters: document ${amount(size.documentCharacters)}, backups ${amount(size.backupCharacters)}, other ${amount(size.otherCharacters)}`) : "");
 }
 
 /** A success clears only that key's failure. Recovery always retries the newest
  * pending value; an older asynchronous compression can never overwrite an edit. */
-export function createLocalDocumentWriter({ getStorage, onChange = () => {}, recoverQuota }) {
+export function createLocalDocumentWriter({ getStorage, onChange = () => {}, recoverQuota, documentStore }) {
   const pending = new Map(), failures = new Map();
-  let recovery = null, lastFailure = null;
+  let recovery = null, durableWork = null, lastFailure = null, epoch = 0, paused = false, writeVersion = 0, pauseVersion = 0;
   const notify = () => onChange(failures.values().next().value || null);
   function fail(key, error, where, characters, serialization = false) {
     let sizes;
@@ -52,7 +52,29 @@ export function createLocalDocumentWriter({ getStorage, onChange = () => {}, rec
     failures.set(key, lastFailure);
     notify();
   }
+  function persistDurably() {
+    if (!documentStore || durableWork || paused) return;
+    const generation = epoch;
+    durableWork = Promise.resolve().then(async () => {
+      while (pending.size && generation === epoch && !paused) {
+        const batch = [...pending];
+        try {
+          await documentStore.save(Object.fromEntries(batch.map(([key, item]) => [key, item.text])));
+          if (generation !== epoch) return;
+          for (const [key, item] of batch) {
+            if (pending.get(key) === item) { pending.delete(key); failures.delete(key); }
+          }
+          notify();
+        } catch (error) {
+          if (generation === epoch) for (const [key, item] of pending) fail(key, error, item.where, item.text.length);
+          return; // Keep every latest value for retry/export; never spin on a failed database.
+        }
+      }
+    }).finally(() => { durableWork = null; });
+  }
   function attempt(key, item, recover = true) {
+    if (paused) return false;
+    if (durableWork || documentStore?.isActive()) { persistDurably(); return false; }
     try {
       getStorage().setItem(key, item.text);
       pending.delete(key); failures.delete(key); notify(); return true;
@@ -63,23 +85,32 @@ export function createLocalDocumentWriter({ getStorage, onChange = () => {}, rec
           // A queued daily archive may already have freed space before the
           // explicit compaction runs. Retry once even if compaction was a no-op.
           for (const [pendingKey, latest] of pending) attempt(pendingKey, latest, false);
-        }).catch(() => { /* Preserve the original failure and every pending write. */ }).finally(() => { recovery = null; });
+        }).catch(() => { if (documentStore) persistDurably(); /* Preserve pending writes if recovery fails. */ }).finally(() => { recovery = null; });
+      } else if (storageFailureKind(error) === "quota" && documentStore && (!recover || !recoverQuota)) {
+        persistDurably();
       }
       return false;
     }
   }
   return {
     write(key, value, where = key) {
+      writeVersion++;
       let text;
       try { text = JSON.stringify(value); if (typeof text !== "string") throw new TypeError("Document is not serializable"); }
       catch (error) { pending.delete(key); fail(key, error, where, 0, true); return false; }
       const item = { text, where }; pending.set(key, item); return attempt(key, item);
     },
-    retry() { for (const [key, item] of pending) attempt(key, item); return failures.size === 0; },
-    currentFailure: () => failures.values().next().value || null,
+    retry() { for (const [key, item] of pending) attempt(key, item); return failures.size === 0 && pending.size === 0; },
+    currentFailure: () => failures.values().next().value || (pending.size ? { kind: "pending", name: "PendingLocalWrite" } : null),
     lastFailure: () => lastFailure,
-    settled: async () => { if (recovery) await recovery; },
-    clearPending() { pending.clear(); failures.clear(); notify(); },
+    settled: async () => { while (recovery || durableWork) await (recovery || durableWork); },
+    // External versions must be compared before pending RAM can write again.
+    // Already-started transactions are drained by settled(), never cancelled.
+    pause() { paused = true; return ++pauseVersion; },
+    isPaused: () => paused,
+    writeVersion: () => writeVersion,
+    resume(token = pauseVersion) { if (token !== pauseVersion) return; paused = false; for (const [key, item] of pending) attempt(key, item); },
+    clearPending() { epoch++; pending.clear(); failures.clear(); notify(); },
   };
 }
 

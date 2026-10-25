@@ -6,6 +6,7 @@ import worker from '../worker/index.js';
 import { makeEnv, req } from './helpers/env.js';
 import { createDocumentSyncQueue } from '../src/shared/product/documentSyncQueue.js';
 import { bootstrapSyncDecision } from '../src/shared/product/bootstrapSync.js';
+import { createLocalDocumentWriter } from '../src/shared/product/localPersistence.js';
 
 const source = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const client = source.includes('const clientAccount = createClientSession()');
@@ -24,9 +25,11 @@ async function harness({ metaFailure = false } = {}) {
   const firstRead = new Promise(resolve => { started = resolve; });
   const effects = [], timers = [], writes = [];
   const coll = { current: { draft: 'older draft' } }, edits = { current: {} };
+  const localWriter = createLocalDocumentWriter({ getStorage: () => ({ getItem: () => null, setItem: noop }) });
   const ctx = {
     React: { useRef: current => ({ current }), useCallback: fn => fn, useEffect: fn => effects.push(fn) },
     createDocumentSyncQueue, bootstrapSyncDecision,
+    TM_LOCAL_WRITER: localWriter, _localStorageDecision: { current: false },
     _syncReady: { current: true }, clientAccount: { isCurrent: () => true }, ownerId: 'verified',
     _collRef: coll, _editsRef: edits, coll: coll.current, edits: edits.current,
     _serializeDoc: (c, e) => JSON.stringify({ coll: c, edits: e }),
@@ -61,7 +64,7 @@ async function harness({ metaFailure = false } = {}) {
     run = () => { effects[1](); return timers.pop()(); };
     retry = actions.zkusOdeslat;
   }
-  return { run, retry, coll, release, firstRead, writes, reads: () => metadataReads, conflict: () => conflict, api,
+  return { run, retry, coll, release, firstRead, writes, localWriter, reads: () => metadataReads, conflict: () => conflict, api,
     adoptedRevision: value => { ctx._rev.current = value; ctx._ver.current = value; } };
 }
 
@@ -109,4 +112,14 @@ test('a failed job does not permanently lock later document sync', async () => {
   const run = createDocumentSyncQueue();
   await assert.rejects(run(async () => { throw new Error('offline'); }), /offline/);
   assert.equal(await run(async () => 'recovered'), 'recovered');
+});
+
+if (!client) test('Main: a local document decision blocks a cloud write already waiting for metadata', async () => {
+  const h = await harness();
+  const pending = h.run(); await h.firstRead;
+  h.localWriter.pause(); h.release(); await pending;
+  assert.deepEqual(h.writes, []);
+  assert.equal((await h.api('/api/state')).body.doc.coll.draft, 'baseline');
+  h.localWriter.resume(); await h.retry();
+  assert.equal((await h.api('/api/state')).body.doc.coll.draft, 'older draft');
 });
