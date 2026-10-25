@@ -1854,6 +1854,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 33047,
     "sha256": "b12537007579227efcb85d8dbd08ca60886bda819da57983da5c27b5da03566a",
     "poster": "/exercise-motion/wipers-poster-a02b4f8b4fee053e.webp"
+  },
+  "shouldercars": {
+    "oneSide": true,
+    "src": "/exercise-motion/shouldercars-e7e568cd996cb292.mp4",
+    "bytes": 31701,
+    "sha256": "e7e568cd996cb292fc272d5e4c0711683e4f0735f80fab208b761318645509dc",
+    "poster": "/exercise-motion/shouldercars-poster-5eaf7bdaaa70f53f.webp"
+  },
+  "an_vertjump": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_vertjump-88a7420c3b213777.mp4",
+    "bytes": 34939,
+    "sha256": "88a7420c3b213777f471e5e90e98f41d7cb84b34174bbb8c26a4f0a4c156c89e",
+    "poster": "/exercise-motion/an_vertjump-poster-979ac73c12ff4afd.webp"
+  },
+  "pushpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/pushpress-47a3e7293ff0ec45.mp4",
+    "bytes": 26550,
+    "sha256": "47a3e7293ff0ec4534496242d05a177f85748bf8c1872c0f08d69369287cf65a",
+    "poster": "/exercise-motion/pushpress-poster-2625fd95fd14e7e4.webp"
+  },
+  "gm_w_spine": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_spine-5b90b7729f1cc72f.mp4",
+    "bytes": 14659,
+    "sha256": "5b90b7729f1cc72f0d415bb3a3cc74f5f594f0ee5da32172e143ac31796e1467",
+    "poster": "/exercise-motion/gm_w_spine-poster-47510fed1293ba2d.webp"
+  },
+  "gm_w_wrist_open": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_wrist_open-9bf8a97fbd3ef448.mp4",
+    "bytes": 18192,
+    "sha256": "9bf8a97fbd3ef44861c1a5a136ac2fd13675ea9359d37fb1b0e2f6a8343fcf0a",
+    "poster": "/exercise-motion/gm_w_wrist_open-poster-8215619afff36a2a.webp"
+  },
+  "gm_w_horizontal": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_horizontal-767f841836006409.mp4",
+    "bytes": 18406,
+    "sha256": "767f84183600640907f2cc8f252db514f0fa7f278a3daeaa6a2671262e51d3d0",
+    "poster": "/exercise-motion/gm_w_horizontal-poster-b7a91aa6b28cb76b.webp"
+  },
+  "mbd_lunge_knee_lift": {
+    "oneSide": true,
+    "src": "/exercise-motion/mbd_lunge_knee_lift-3bc178d6ee861b6c.mp4",
+    "bytes": 27028,
+    "sha256": "3bc178d6ee861b6c8ff87d4c4d40b9603a086f6d32d90f568f5a653c108243e5",
+    "poster": "/exercise-motion/mbd_lunge_knee_lift-poster-c0ced9c9453c1c6f.webp"
+  },
+  "mbd_single_fold": {
+    "oneSide": true,
+    "src": "/exercise-motion/mbd_single_fold-d9a68bcaf74245ab.mp4",
+    "bytes": 24553,
+    "sha256": "d9a68bcaf74245abe8e1fc7c11ebddd6fd227f37c65bf21605f8973bba13acb0",
+    "poster": "/exercise-motion/mbd_single_fold-poster-e0132a202f11b4f9.webp"
   }
 });
 
