@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { SOURCE_COVER_ART, SOURCE_COVER_TYPE_ART, SOURCE_COVER_HASHES, sourceCoverArt } from "../src/shared/product/sourceCovers.js";
+import { SOURCE_COVER_ART, SOURCE_COVER_HASHES, sourceCoverArt } from "../src/shared/product/sourceCovers.js";
 import vm from "node:vm";
 import ts from "typescript";
 import React from "react";
@@ -13,10 +13,10 @@ test("every current source category has a shipped, verified illustration", () =>
   assert.ok(categories, "source category registry exists");
   const names = [...categories[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
   assert.deepEqual([...new Set(names)].sort(), Object.keys(SOURCE_COVER_ART).sort());
-  const urls = [...new Set([...Object.values(SOURCE_COVER_ART), ...Object.values(SOURCE_COVER_TYPE_ART)])];
-  assert.equal(urls.length, 8, "the reviewed family contains exactly eight motifs");
+  const urls = [...new Set(Object.values(SOURCE_COVER_ART))];
+  assert.equal(urls.length, 19, "the restored family retains all nineteen original genre illustrations");
   for (const url of urls) {
-    assert.ok(url.startsWith("/media/source-covers/"));
+    assert.match(url, /^\/media\/source-covers\/[a-z-]+-v2\.webp$/);
     const bytes = readFileSync(new URL("../public" + url, import.meta.url));
     assert.equal(bytes.toString("ascii", 0, 4), "RIFF");
     assert.equal(bytes.toString("ascii", 8, 12), "WEBP");
@@ -37,19 +37,14 @@ test("category selection depends only on the saved category and does not mutate 
   assert.equal(sourceCoverArt("Philosophy"), SOURCE_COVER_ART.Philosophy);
 });
 
-test("recognized media use their own cover while books retain genre motifs", () => {
-  for (const type of ["Movie", "Podcast", "Article", "Feed"]) {
-    for (const category of ["Movement", "Philosophy", "", "Unknown"]) {
-      assert.equal(sourceCoverArt(category, type), SOURCE_COVER_TYPE_ART[type]);
+test("restored illustrations depend on the saved genre for every medium", () => {
+  for (const type of ["Book", "Movie", "Podcast", "Article", "Feed", null, {}, ["Book"], "constructor", "__proto__"]) {
+    for (const category of ["Movement", "Philosophy", "Self-help", "Novel", "Psychology"]) {
+      assert.equal(sourceCoverArt(category, type), SOURCE_COVER_ART[category]);
     }
-  }
-  assert.equal(sourceCoverArt("Movement", "Book"), SOURCE_COVER_ART.Movement);
-  assert.equal(sourceCoverArt("Novel", "Book"), SOURCE_COVER_ART.Novel);
-  assert.equal(sourceCoverArt("Philosophy", "Book"), SOURCE_COVER_ART.Philosophy);
-  assert.equal(sourceCoverArt("Unknown", "Book"), SOURCE_COVER_TYPE_ART.Book);
-  assert.equal(sourceCoverArt(undefined, "Book"), SOURCE_COVER_TYPE_ART.Book);
-  for (const type of [null, {}, ["Book"], "constructor", "__proto__", "../../private", "Unknown"]) {
-    assert.equal(sourceCoverArt("Unknown", type), null);
+    for (const category of ["", "Unknown", undefined, "constructor", "__proto__"]) {
+      assert.equal(sourceCoverArt(category, type), null, "unknown genres retain the medium glyph instead of a new minimalist cover");
+    }
   }
 });
 

@@ -17176,11 +17176,9 @@ export default function App() {
               linkou. Panel tím nepřibude ani o řádek — na telefonu se pořád
               vejde celý a nemusí rolovat. */}
           <div className="tm-sidebar-search" style={{ display: "flex", alignItems: "stretch", minHeight: 44, marginBottom: 16, borderRadius: 9, border: `1px solid ${t.navHairline}`, overflow: "hidden" }}>
-            <button className="tm-nav-item" onClick={() => { setMenuOpen(false); setFindOpen(true); }}
+            <button className="tm-nav-item" aria-label={L("Hledat všude", "Search everywhere")} title={L("Hledat všude", "Search everywhere")} aria-keyshortcuts="Meta+K Control+K" onClick={() => { setMenuOpen(false); setFindOpen(true); }}
               style={{ flex: 1, minWidth: 0, textAlign: "left", display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", border: "none", borderRadius: 0, background: "transparent", cursor: "pointer", color: t.navTextSec, fontFamily: FONT_BODY, fontSize: 13 }}>
               <span style={{ width: 20, display: "inline-flex", justifyContent: "center", color: t.navIcon }}><TmIcLupa size={15} /></span>
-              {L("Hledat všude", "Search everywhere")}
-              <span className="tm-mhide" style={{ marginLeft: "auto", fontFamily: FONT_TAG, letterSpacing: "0.1em", fontSize: 12, color: t.navMuted }}>⌘K</span>
             </button>
 
           </div>

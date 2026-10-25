@@ -34,7 +34,7 @@ ${s}:has(.tm-page[data-room="praxe"] [data-practice-phase="rano"]) .tm-ground::a
 ${s} :is(.tm-sidebar,.tm-tabbar) { color: var(--tm-nav-text); background-color: var(--land-nav-bg) !important; background-image: var(--land-nav-material) !important; background-size: 768px auto !important; }
 ${s} .tm-sidebar-lines > span { background: var(--tm-nav-text); }
 ${s} .tm-sidebar .tm-logo > span { color: var(--tm-nav-text) !important; }
-${s} .tm-sidebar-search { border-color: var(--tm-nav-border) !important; }
+${s} .tm-sidebar-search { border-color: color-mix(in srgb, var(--tm-nav-border) 28%, transparent) !important; }
 /* Scroll remains native; it no longer reserves a pale gutter beside the material. */
 ${s}, ${s} body, ${s} .tm-scroll { scrollbar-width: none !important; scrollbar-gutter: auto !important; }
 ${s}::-webkit-scrollbar, ${s} body::-webkit-scrollbar, ${s} .tm-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
