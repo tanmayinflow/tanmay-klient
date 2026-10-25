@@ -1966,6 +1966,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 23350,
     "sha256": "fcce7e817f58a08067937cfded3df4c876ed794e06c27fc87439d32eded0c04c",
     "poster": "/exercise-motion/faq_lunge_reach-poster-c80699eebd7ceebf.webp"
+  },
+  "pseudo": {
+    "oneSide": false,
+    "src": "/exercise-motion/pseudo-a00f2560f34cb5ae.mp4",
+    "bytes": 17617,
+    "sha256": "a00f2560f34cb5ae63f6154e96a400b7ec07cc16a11f84c04a7c6c929e973750",
+    "poster": "/exercise-motion/pseudo-poster-bdd1da6f797f58cc.webp"
+  },
+  "wallhspu": {
+    "oneSide": false,
+    "src": "/exercise-motion/wallhspu-3805a7b237ae7fdc.mp4",
+    "bytes": 14904,
+    "sha256": "3805a7b237ae7fdc77d4d621ca3fc903b0819a75825d878a714e27c32a4ea105",
+    "poster": "/exercise-motion/wallhspu-poster-c5c5f78d4263d021.webp"
+  },
+  "faq_onearm_row": {
+    "oneSide": true,
+    "src": "/exercise-motion/faq_onearm_row-d2ac795b2fb90bed.mp4",
+    "bytes": 22983,
+    "sha256": "d2ac795b2fb90bed0bcc8e4e275ef66bce6ddef17301ab46b20040201eb8dfa0",
+    "poster": "/exercise-motion/faq_onearm_row-poster-e413485a5787dde3.webp"
+  },
+  "archpull": {
+    "oneSide": false,
+    "src": "/exercise-motion/archpull-c906a2581062a772.mp4",
+    "bytes": 42152,
+    "sha256": "c906a2581062a77263e012500524f677bfe49b413f3c89ce060f0af949da3b65",
+    "poster": "/exercise-motion/archpull-poster-3c7a44b7ff5642a0.webp"
+  },
+  "skinthecat": {
+    "oneSide": false,
+    "src": "/exercise-motion/skinthecat-f9cb8ab464c509c2.mp4",
+    "bytes": 29539,
+    "sha256": "f9cb8ab464c509c26e82e99298997ea7d14377a6e6b50036511068e4d56e43f2",
+    "poster": "/exercise-motion/skinthecat-poster-346735101025f918.webp"
+  },
+  "hspu90": {
+    "oneSide": false,
+    "src": "/exercise-motion/hspu90-4eedf40b9531b182.mp4",
+    "bytes": 20809,
+    "sha256": "4eedf40b9531b18257239eabbce17bb2f2b9fcec24e4674ae81f687b0d34d2cc",
+    "poster": "/exercise-motion/hspu90-poster-d9f5a0c67b86c509.webp"
+  },
+  "oap": {
+    "oneSide": true,
+    "src": "/exercise-motion/oap-f792e0c1c50d0ecb.mp4",
+    "bytes": 19266,
+    "sha256": "f792e0c1c50d0ecb21d20ebe243cadb158f807515ed460318bd75e39adc333b6",
+    "poster": "/exercise-motion/oap-poster-45a30c30b8344086.webp"
+  },
+  "flrow": {
+    "oneSide": false,
+    "src": "/exercise-motion/flrow-57e622a2d32c040c.mp4",
+    "bytes": 26377,
+    "sha256": "57e622a2d32c040c5c3167609a23e942f5dba3272a2331867918520fd2f993b5",
+    "poster": "/exercise-motion/flrow-poster-4d91eed8e4f47ca7.webp"
   }
 });
 
