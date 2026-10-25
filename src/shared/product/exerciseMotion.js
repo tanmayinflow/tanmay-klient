@@ -1798,6 +1798,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 38172,
     "sha256": "03fd33293bff0bfe5f11d97887ae5fea95b7c48771be276b367b1bfb4e645e95",
     "poster": "/exercise-motion/sq26_sit_to_stand-poster-a710aafe3ba80ec0.webp"
+  },
+  "cobra": {
+    "oneSide": false,
+    "src": "/exercise-motion/cobra-95fa8deb7105a503.mp4",
+    "bytes": 21173,
+    "sha256": "95fa8deb7105a503f30d0ca989d180511f4d12b6fab89ab890335f2693e737a6",
+    "poster": "/exercise-motion/cobra-poster-0b4e79d90fd2d1c2.webp"
+  },
+  "bandpull": {
+    "oneSide": false,
+    "src": "/exercise-motion/bandpull-b53c3a9e939f2f71.mp4",
+    "bytes": 19664,
+    "sha256": "b53c3a9e939f2f715f0801a97563c2c426d6e677f2bb4c5b44eca2bc1fed5633",
+    "poster": "/exercise-motion/bandpull-poster-1cc7ca390949efe7.webp"
+  },
+  "boxjump": {
+    "oneSide": false,
+    "src": "/exercise-motion/boxjump-a259a33db3cb3b56.mp4",
+    "bytes": 34388,
+    "sha256": "a259a33db3cb3b5631e27cf1d32bc3f1986f0353d83c39dfc3fd01e8ab967e85",
+    "poster": "/exercise-motion/boxjump-poster-723e7c7b6a85d7c0.webp"
+  },
+  "banddip": {
+    "oneSide": false,
+    "src": "/exercise-motion/banddip-034acabebdcdb515.mp4",
+    "bytes": 33952,
+    "sha256": "034acabebdcdb515c17f41616bcf3806e6da5bf4f961197b55c33f81287f5825",
+    "poster": "/exercise-motion/banddip-poster-136edb3745959521.webp"
+  },
+  "lsitpullup": {
+    "oneSide": false,
+    "src": "/exercise-motion/lsitpullup-5b02b10a566c21a3.mp4",
+    "bytes": 40592,
+    "sha256": "5b02b10a566c21a3a28b34ceccdb8e54af573f47560bd4bfc71443f84e7d30fb",
+    "poster": "/exercise-motion/lsitpullup-poster-43d126899cbce7c1.webp"
+  },
+  "ghr": {
+    "oneSide": false,
+    "src": "/exercise-motion/ghr-d0fdacdc02670b54.mp4",
+    "bytes": 24009,
+    "sha256": "d0fdacdc02670b54d226877373dd3697beb5b502679db98d3d2b99f345ca0618",
+    "poster": "/exercise-motion/ghr-poster-a87320c2015175ef.webp"
+  },
+  "clappush": {
+    "oneSide": false,
+    "src": "/exercise-motion/clappush-4e885c3b4e18a4cb.mp4",
+    "bytes": 22884,
+    "sha256": "4e885c3b4e18a4cb2b046d717b0dece361544e6ee50a90e823f57ceb86da7d15",
+    "poster": "/exercise-motion/clappush-poster-718cce7797eb1f4e.webp"
+  },
+  "wipers": {
+    "oneSide": false,
+    "src": "/exercise-motion/wipers-b12537007579227e.mp4",
+    "bytes": 33047,
+    "sha256": "b12537007579227efcb85d8dbd08ca60886bda819da57983da5c27b5da03566a",
+    "poster": "/exercise-motion/wipers-poster-a02b4f8b4fee053e.webp"
   }
 });
 
