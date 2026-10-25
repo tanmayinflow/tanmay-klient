@@ -11,7 +11,8 @@ const CSS=`
 .tm-finance-flow button,.tm-finance-flow input,.tm-finance-flow select{font:inherit}
 .tm-finance-flow label:has(input[type=month]):focus-within{outline:2px solid currentColor;outline-offset:3px;border-radius:6px}
 .tm-finance-flow .tm-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.tm-finance-tabs{display:flex;gap:6px;overflow-x:auto;margin:14px 0 24px;scrollbar-width:thin}
+.tm-finance-tabs{display:flex;gap:6px;overflow-x:auto;margin:14px 0 24px;scrollbar-width:none}
+.tm-finance-tabs::-webkit-scrollbar{display:none}
 .tm-finance-tabs button{flex:0 0 auto;font-family:var(--tm-font-tag);text-transform:uppercase;letter-spacing:.1em;font-size:12px;padding:10px 12px}
 .tm-finance-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:18px 0}
 .tm-finance-totals button{text-align:left;padding:10px 4px;min-width:0;overflow-wrap:anywhere}

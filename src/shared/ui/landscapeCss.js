@@ -88,15 +88,15 @@ ${s} .tm-page-title { position: relative; isolation: isolate; --land-art: none; 
 ${s} .tm-page-title::before { content: ''; position: absolute; inset: 0; z-index: -1; background: currentColor; mask: var(--land-art) right center/contain no-repeat; -webkit-mask: var(--land-art) right center/contain no-repeat; opacity: .38; pointer-events: none; }
 
 /* Original three-contour source; its SVG alpha stroke stays legible at phone width. */
-${s} .tm-page-title::after, ${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="denik"]) + .tm-prose::after, ${s} .tm-compass-divider::after { content: ''; display: block; height: var(--land-line-height); background: var(--tm-link); mask: url('/media/landscape/terrain-divider.svg?v=20260922') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/terrain-divider.svg?v=20260922') center/100% 100% no-repeat; pointer-events: none; }
+${s} .tm-page-title::after, ${s} .tm-page-title:is([data-art-room^="praxe"],[data-art-room="denik"]) + .tm-prose::after, ${s} .tm-compass-divider::after { content: ''; display: block; height: var(--land-line-height); background: var(--tm-link); mask: url('/media/landscape/terrain-divider.svg?v=20260922') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/terrain-divider.svg?v=20260922') center/100% 100% no-repeat; pointer-events: none; }
 ${s} .tm-page-title::after { position: absolute; left: calc(-1 * var(--land-bleed)); right: calc(-1 * var(--land-bleed)); top: calc(100% + 4px); z-index: -1; }
-${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="kompas"],[data-art-room="denik"],[data-art-room="hospodareni"],[data-art-room="zapisnik"],[data-art-room="prameny"]) { margin-bottom: 0; }
-${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="kompas"],[data-art-room="denik"],[data-art-room="hospodareni"],[data-art-room="zapisnik"],[data-art-room="prameny"])::after { content: none; }
-${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="denik"]) + .tm-prose { margin-bottom: 4px !important; }
-${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="denik"]) + .tm-prose::after { margin: 4px calc(-1 * var(--land-bleed)) 0; }
-${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="denik"]) + .tm-prose + * { margin-top: 6px !important; }
-${s} .tm-page-title[data-art-room="praxe"] + .tm-prose + div { height: 0 !important; margin-top: 0 !important; }
-${s} .tm-page-title[data-art-room="praxe"] + .tm-prose + div + div > [role="tablist"] { margin-top: 4px !important; }
+${s} .tm-page-title:is([data-art-room^="praxe"],[data-art-room="kompas"],[data-art-room="denik"],[data-art-room="hospodareni"],[data-art-room="zapisnik"],[data-art-room="prameny"]) { margin-bottom: 0; }
+${s} .tm-page-title:is([data-art-room^="praxe"],[data-art-room="kompas"],[data-art-room="denik"],[data-art-room="hospodareni"],[data-art-room="zapisnik"],[data-art-room="prameny"])::after { content: none; }
+${s} .tm-page-title:is([data-art-room^="praxe"],[data-art-room="denik"]) + .tm-prose { margin-bottom: 4px !important; }
+${s} .tm-page-title:is([data-art-room^="praxe"],[data-art-room="denik"]) + .tm-prose::after { margin: 4px calc(-1 * var(--land-bleed)) 0; }
+${s} .tm-page-title:is([data-art-room^="praxe"],[data-art-room="denik"]) + .tm-prose + * { margin-top: 6px !important; }
+${s} .tm-page-title[data-art-room^="praxe"] + .tm-prose + div { height: 0 !important; margin-top: 0 !important; }
+${s} .tm-page-title[data-art-room^="praxe"] + .tm-prose + div + div > [role="tablist"] { margin-top: 4px !important; }
 ${s} .tm-page-title[data-art-room="kompas"] + .tm-prose { margin-bottom: 0 !important; }
 ${s} .tm-compass-divider { background: transparent !important; height: var(--land-line-height) !important; margin: 4px 0 !important; }
 ${s} .tm-compass-divider::after { margin-inline: calc(-1 * var(--land-bleed)); }
@@ -113,9 +113,9 @@ ${s} .tm-page-title[data-art-room="terminy"] { min-height: 122px; margin-bottom:
 ${s} .tm-page-title[data-art-room="terminy"]::before { inset: -4px 12px auto auto; width: 122px; height: 116px; }
 ${s} .tm-page-title[data-art-room="terminy"]::after { content: none; }
 @media (max-width: 370px) { ${s} .tm-page-title[data-art-room="terminy"]::before { right: 0; width: 96px; height: 104px; } }
-${s} .tm-page-title:is([data-art-room="praxe"],[data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"]) { min-height: 104px; }
+${s} .tm-page-title:is([data-art-room^="praxe"],[data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"]) { min-height: 104px; }
 ${s} .tm-page-title:is([data-art-room="kompas"],[data-art-room="hospodareni"],[data-art-room="socsite"],[data-art-room="kos"])::before { inset: 0 8px auto auto; width: 128px; height: 100px; opacity: .32; }
-${s} .tm-page-title[data-art-room="praxe"]::before { inset: 0 8px auto auto; width: 142px; height: 100px; background-size: contain; background-position: right top; opacity: .28; }
+${s} .tm-page-title[data-art-room^="praxe"]::before { inset: 0 8px auto auto; width: 142px; height: 100px; background-size: contain; background-position: right top; opacity: .28; }
 ${s} .tm-page-title[data-art-room="hospodareni"]::before { content: none; }
 ${s} .tm-page-title[data-art-room="hospodareni"] { min-height: 0; }
 /* The two-word Content heading needs the full line on phones. */
@@ -137,7 +137,7 @@ ${s} .tm-page[data-room="klienti"] .tm-page-title::before { inset: 0 0 auto auto
   ${s} .tm-page-title[data-art-room="denik"]::before { right: 44px; width: 88px; height: 66px; }
   ${s} .tm-page-title[data-art-room="prameny"]::before { top: 0; right: 48px; width: 84px; height: 60px; }
   ${s} .tm-page-title[data-art-room="prameny"] h1 { padding-top: 30px; }
-  ${s} .tm-page-title[data-art-room="praxe"]::before { width: 128px; }
+  ${s} .tm-page-title[data-art-room^="praxe"]::before { width: 128px; }
   ${s} .tm-page-title[data-art-room="trenink"]::before { width: 165px; }
   ${s} .tm-page[data-room="klienti"] .tm-page-title::before { width: 186px; }
   ${s} .tm-page-title[data-art-room="trenink"] h1, ${s} .tm-page[data-room="klienti"] .tm-page-title h1 { padding-top: 96px; }
@@ -149,13 +149,7 @@ ${s} .tm-page[data-room] .tm-page-title::before {
 ${s} .tm-spell-sword {
   color: var(--land-art-ink); opacity: var(--land-art-opacity);
 }
-${s} [data-source-cover="category"] > img { opacity: 0 !important; }
-${s} [data-source-cover="category"]::after {
-  content: ''; position: absolute; inset: var(--tm-cover-inset); pointer-events: none;
-  background: var(--land-art-ink);
-  mask: var(--tm-cover-art) center/contain no-repeat;
-  -webkit-mask: var(--tm-cover-art) center/contain no-repeat;
-}
+/* SourceCover paints its single themed ink mask locally in every appearance. */
 ${s} :is(.tm-earth-action,.tm-cta) { background-color: var(--tm-accent) !important; background-image: var(--tm-action-material) !important; background-size: 768px auto !important; color: var(--tm-on-accent) !important; }
 ${s} .tm-page h1 { color: var(--tm-heading); }
 @media print { ${s} .tm-page-title::before, ${s} .tm-page-title::after, ${s} .tm-ground::after, ${s} .tm-prose::after, ${s} .tm-compass-divider::after, ${s} .tm-cs-head::after, ${s} .tm-tabbar::before { content: none; } }

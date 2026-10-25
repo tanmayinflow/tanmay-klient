@@ -396,7 +396,7 @@ export function createPracticeUI(deps) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
         <span style={metaLabel(t)}>{label}</span>
-        <span style={{ display: "inline-flex", gap: 6 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 24 }}>
           {[1, 2, 3, 4, 5].map((n) => (
             <button key={n} className="tm-wb-dot tm-tap" onClick={() => onChange(value === n ? 0 : n)} title={String(n)} aria-label={(label ? label + " · " : "") + n} aria-pressed={n <= value} style={{ width: 17, height: 17, borderRadius: "50%", border: `1.5px solid ${n <= value ? color : t.border}`, background: n <= value ? color : "transparent", cursor: "pointer", padding: 0, transition: "background .12s ease" }} />
           ))}
@@ -445,6 +445,8 @@ export function createPracticeUI(deps) {
               </span>
             </div>
             <DotTap label={L("Nálada", "Mood")} value={cur.mood} onChange={(v) => set({ mood: v })} color={colors.mood} />
+          </div>
+          <div data-pv="wellbeing-daily-row" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "14px 26px", marginBottom: 12 }}>
             <DotTap label={L("Energie", "Energy")} value={cur.energy} onChange={(v) => set({ energy: v })} color={colors.energy} />
             <DotTap label={L("Potenciál dne", "Day potential")} value={cur.well} onChange={(v) => set({ well: v })} color={colors.well} />
             <ZnameniDne cur={cur} set={set} rekni={rekni} />
@@ -474,9 +476,9 @@ export function createPracticeUI(deps) {
 
   function ZnameniDne({ cur, set, rekni = () => {} }) {
     const { t } = useT();
-    const iconToggle = (on) => ({ background: "transparent", border: "none", cursor: "pointer", fontSize: 22, padding: "0 2px", opacity: on ? 1 : 0.25, transition: "opacity .12s ease" });
+    const iconToggle = (on) => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", height: 24, lineHeight: 1, background: "transparent", border: "none", cursor: "pointer", fontSize: 22, padding: "0 2px", opacity: on ? 1 : 0.25, transition: "opacity .12s ease" });
     return (
-      <div data-pv="znameni" style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <div data-pv="znameni" style={{ display: "flex", flexDirection: "column", gap: 5 }}>
         <span style={metaLabel(t)}>{L("Pečetě", "Seals")}</span>
         <span style={{ display: "inline-flex", alignItems: "center" }}>
           {WB_ZNAMENI.map(({ k, Ic, cz, en, pCz, pEn }) => {

@@ -186,7 +186,7 @@ export function shellMobileCss(t) {
     max-height: var(--tm-sb-height); box-sizing: border-box;
     z-index: 60 !important; transform: translate(-110%, -50%);
     transition: transform .25s ease, box-shadow .25s ease;
-    width: min(284px, calc(80 * var(--tm-vw))) !important;
+    width: min(300px, calc(82 * var(--tm-vw))) !important;
     border: 1px solid ${t.borderSoft} !important; border-radius: 24px;
     padding-top: 6px !important; padding-bottom: 8px !important; }
   .tm-sidebar.collapsed { margin-left: 0; }
@@ -204,7 +204,15 @@ export function shellMobileCss(t) {
   .tm-sidebar .tm-sidebar-group { margin-bottom: 2px !important; }
   .tm-sidebar .tm-sidebar-group > div:first-child { padding-bottom: 0 !important; line-height: 1.2; }
   /* poslední karta se nadechne · čára s Košem až po klidné pauze */
-  .tm-sidebar .tm-sbdno { margin-top: 4px !important; padding-top: 0 !important; }
+  .tm-sidebar .tm-sbdno { margin-top: 20px !important; padding-top: 0 !important; }
+  /* Shorter phones keep the larger footer pause by tightening only the
+     noninteractive gaps. Every navigation and history target stays 44px. */
+  @media (max-height: 850px) {
+    .tm-sidebar { padding-bottom: 6px !important; }
+    .tm-sidebar .tm-sidebar-search { margin-bottom: 2px !important; }
+    .tm-sidebar .tm-sidebar-group { margin-bottom: 0 !important; }
+    .tm-sidebar .tm-sidebar-group > div:first-child { line-height: 1.1; }
+  }
   .tm-sidebar.open { transform: translate(0, -50%); box-shadow: ${t.mode === "dark" ? "1px 0 0 0 rgba(240,232,218,0.10), 10px 0 28px -8px rgba(8,5,3,0.55), 34px 0 76px -26px rgba(8,5,3,0.6)" : "1px 0 0 0 rgba(22,67,61,0.07), 10px 0 28px -10px rgba(16,42,38,0.10), 34px 0 76px -30px rgba(22,67,61,0.18)"}; }
   .tm-burger { display: flex !important; }
   .tm-sidetoggle { display: none !important; }

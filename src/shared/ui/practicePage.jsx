@@ -5,7 +5,7 @@ import { FONT_BODY, FONT_TAG } from "./type.js";
 
 // Both roles use the same day composition. Personal morning material is an
 // explicit coach slot; the daily source always comes from the current account.
-export function createPracticePage({useT,useStore,L,PageTitle,BufferedInput,TmIcPraxe,TmIcPrameny,TmPasPrahu,DayView,PraxeOverview,CenterSheet,pProse,SourceMorning=null}) {
+export function createPracticePage({useT,useStore,L,PageTitle,BufferedInput,TmIcPraxe,TmIcPrameny,TmPasPrahu,DayView,PraxeOverview,CenterSheet,pProse,SourceMorning=null,practiceArtKey}) {
   function DailySource({go}) {
     const {t}=useT(); const st=useStore();
     const list=(st.allSources?st.allSources():st.coll.content||[]).filter(e=>!e.archive&&(e.carry||"").trim());
@@ -32,7 +32,7 @@ export function createPracticePage({useT,useStore,L,PageTitle,BufferedInput,TmIc
           {st.editMode?<BufferedInput value={st.pageMetaOf("praxe").sub||intro} onCommit={sub=>st.setPageMeta("praxe",{sub})} style={{fontFamily:FONT_BODY,fontSize:13,color:t.heroInkSoft,lineHeight:1.65,maxWidth:520}}/>:<p style={{fontFamily:FONT_BODY,fontSize:13,color:t.heroInkSoft,margin:0,lineHeight:1.65,maxWidth:520}}>{st.pageMetaOf("praxe").sub||intro}</p>}
         </div>
       </div>
-      <PageTitle pageKey="praxe" icon={<span style={{color:t.sand,display:"inline-flex"}}><TmIcPraxe size={42}/></span>} kicker={L("Drž svou praxi","Hold the practice")}>{L("Praxe","Practice")}</PageTitle>
+      <PageTitle pageKey="praxe" artKey={practiceArtKey} icon={<span style={{color:t.sand,display:"inline-flex"}}><TmIcPraxe size={42}/></span>} kicker={L("Drž svou praxi","Hold the practice")}>{L("Praxe","Practice")}</PageTitle>
       <p className="tm-prose" style={pProse(t)}>{L("Ráno záměr. Přes den praxe. Večer ohlédnutí.","Intention in the morning. Practice through the day. Review at night.")}</p>
       <div style={{height:6}}/>
       <div style={{maxWidth:760}}>

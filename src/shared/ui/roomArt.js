@@ -1,8 +1,9 @@
 // Reviewed object illustrations. Keep their original files and alpha intact.
-export const TRAINING_YOGA_ART = 'training-yoga-strap-v3.webp';
+export const TRAINING_YOGA_ART = 'training-rings-v2.webp';
 
 export const ROOM_ART = Object.freeze({
   praxe: 'practice-illustration-v1.png',
+  'praxe-client': 'practice-fire-v4.webp',
   trenink: TRAINING_YOGA_ART,
   denik: 'journal-illustration-v3.png',
   kompas: 'compass-illustration-v1.png',

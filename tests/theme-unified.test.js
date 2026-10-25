@@ -88,7 +88,7 @@ test('all themes share original organic assets; artwork never covers real photos
   const css=landscapeCss();
   assert.match(css,/data-frame-grammar="landscape"/);
   assert.match(css,/edge-wide\.png/);
-  assert.match(css,/\[data-source-cover="category"\]::after/);
+  assert.ok(!css.includes('[data-source-cover="category"]::after'), 'SourceCover owns the single themed mask');
   assert.ok(!css.includes('[data-source-cover="real"]'));
   assert.ok(!/wood|felt|polygon\(/.test(css));
   for(const id of allowed) assert.ok(css.includes(`data-appearance="${id}"`));

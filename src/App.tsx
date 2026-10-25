@@ -18,6 +18,7 @@ import {MOVEMENT_AUDIT_CONTEXT} from './data/movementAuditContext.js';
 import {TRUNK_AUDIT_CONTEXT} from './data/trunkAuditContext.js';
 import { ExerciseMotion } from './shared/ui/ExerciseMotion.jsx';
 import { ExerciseLibraryFilters, ExerciseLibraryRowContent, ExerciseTaxonomySummary, ExerciseTaxonomyEditor } from './shared/ui/exerciseLibrary.jsx';
+import { movementIllustrationExercise } from './training/exerciseMovementIllustrations.js';
 import { createExerciseFilters, buildExerciseIndex, selectExerciseLibrary } from './training/exerciseLibrary.js';
 import { exerciseTaxonomy as baseExerciseTaxonomy } from './training/exerciseTaxonomy.js';
 function exerciseTaxonomy(ex,meta){return baseExerciseTaxonomy(ex,meta,{musclesOf:resolveMuscleMap});}
@@ -6531,10 +6532,12 @@ const tExOnShelf = (ex, extra) => tExOnDefaultShelf(ex)
   || ((extra || []).includes("archived") && tStatusOf(ex) !== "active");
 
 // Approved exercise illustrations; a missing plate reserves an empty area.
+const tmAtlas = ex => ex && (TV.landingArtworkFor(ex,tMetaOf(ex),LANDING_AUDIT_CONTEXT) || TV.complexTaskArtworkFor(ex,tMetaOf(ex),COMPLEX_TASK_AUDIT_CONTEXT) || TV.throwArtworkFor(ex,tMetaOf(ex),THROW_AUDIT_CONTEXT) || TV.breathingArtworkFor(ex,tMetaOf(ex),BREATHING_AUDIT_CONTEXT) || TV.positionHoldArtworkFor(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT) || TV.elbowHandArtworkFor(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT) || TV.shoulderArtworkFor(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT) || TV.hipArtworkFor(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT) || TV.lowerLegArtworkFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT) || TV.locomotionArtworkFor(ex,LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+
 function TExArt({ ex, size = 120, fluid = false }) {
   const { t } = useT();
   if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted} />;
-  const atlas = ex && (TV.landingArtworkFor(ex,tMetaOf(ex),LANDING_AUDIT_CONTEXT) || TV.complexTaskArtworkFor(ex,tMetaOf(ex),COMPLEX_TASK_AUDIT_CONTEXT) || TV.throwArtworkFor(ex,tMetaOf(ex),THROW_AUDIT_CONTEXT) || TV.breathingArtworkFor(ex,tMetaOf(ex),BREATHING_AUDIT_CONTEXT) || TV.positionHoldArtworkFor(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT) || TV.elbowHandArtworkFor(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT) || TV.shoulderArtworkFor(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT) || TV.hipArtworkFor(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT) || TV.lowerLegArtworkFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT) || TV.locomotionArtworkFor(ex,LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
+  const atlas = tmAtlas(ex);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
   return <EmptyExerciseImage size={size} fluid={fluid}/>;
 }
@@ -9306,7 +9309,7 @@ function TExPick({ onPick, onClose, onNew }) {
   return (
     <TPickShell title={L("Vyber cvik", "Pick an exercise")} onClose={onClose}>
       <div ref={inRef} style={{ maxHeight: "45vh", overflowY: "auto", flexShrink: 0 }}>
-        <ExerciseLibraryFilters t={t} renderBodyMap={props => <TMuscleMap {...props} />} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
+        <ExerciseLibraryFilters t={t} renderBodyMap={props => <TMuscleMap {...props} />} renderMovementIllustration={movement => { const ex = movementIllustrationExercise(exerciseIndex, movement, { artOf: tmAtlas, isUnverified: isUnverifiedIllustration }); return ex ? <TExArt ex={ex} size={80} /> : null; }} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
           sort={exerciseSort} onSort={setExerciseSort} count={list.length} hiddenCount={hiddenCount}
           MultiSelect={TMultiSel} allowCustomOrder={false}
           muscleOptions={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))}
@@ -9458,6 +9461,7 @@ function TExShelf({ ex, size = 10.5 }) {
 function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag, view = "grid" }) {
   const { t } = useT();
   const st = useStore();
+  const showDelete = !!(st.editMode && onDelete);
 
   const [over, setOver] = useState(false);
   const rootRef = React.useRef(null);
@@ -9474,7 +9478,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag,
       onDragLeave={() => setOver(false)}
       onDrop={drag ? (e) => { e.preventDefault(); setOver(false); const p = (e.dataTransfer.getData("text/plain") || "").split(":"); if (p[0] === "tex" && p[1] !== ex.id) st.reorderEntry("tEx", p[1], ex.id); } : undefined}
       style={{ position: "relative", display: "flex", borderRadius: 10, outline: over ? `2px solid ${t.accent}` : "none" }}>
-    <button onClick={selecting ? onToggleSel : onOpen} style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: 0, overflow: "hidden", transition: "all .18s ease", boxShadow: t.shadow, display: "flex", flexDirection: view === "list" ? "row" : "column", alignItems: view === "list" ? "center" : "stretch", ...(view === "list" ? { padding: "10px 12px", paddingRight: selecting || onDelete ? 44 : 12, gap: 14, boxShadow: "none", background: selecting && selected ? t.activeNav : "transparent" } : {}) }}>
+    <button onClick={selecting ? onToggleSel : onOpen} style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: 0, overflow: "hidden", transition: "all .18s ease", boxShadow: t.shadow, display: "flex", flexDirection: view === "list" ? "row" : "column", alignItems: view === "list" ? "center" : "stretch", ...(view === "list" ? { padding: "10px 0", paddingRight: selecting || showDelete ? 44 : 0, gap: 14, border: "none", borderRadius: 0, boxShadow: "none", background: "transparent" } : {}) }}>
       {view === "list" ? <ExerciseLibraryRowContent t={t} title={tExName(ex)} focus={resolveMuscleMap(ex, tMetaOf(ex)).primary.map(k => L((T_MUS[k] || {}).cz, (T_MUS[k] || {}).en)).filter(Boolean).join(" · ") || <ExerciseTaxonomySummary taxonomyOf={exerciseTaxonomy} t={t} exercise={ex} meta={tMetaOf(ex)} compact />} illustration={<TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />} /> : <>
       {/* DESKA PŘES CELOU KARTU · ilustrace sahá k okrajům rámečku cviku,
           na telefonu i na počítači. Lněné pole plátu je čtvercové a vyplní
@@ -9504,7 +9508,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag,
     </button>
     {selecting
       ? <span style={{ position: "absolute", top: 10, right: 10, zIndex: 2 }}><Check done={!!selected} /></span>
-      : onDelete && <button title={L("Do koše", "To trash")} onClick={onDelete} style={tDelBtn(t)}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+      : showDelete && <button title={L("Do koše", "To trash")} aria-label={L("Přesunout do koše: ", "Move to trash: ") + tExName(ex)} onClick={onDelete} style={tDelBtn(t)}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
     </div>
   );
 }
@@ -9918,7 +9922,7 @@ const personalCalendar = createGoogleCalendar({role:"client",L,todayISO,BRAND,
   verifyAccount:()=>clientAccount.verify()});
 const {SetSection,SetSwitch,SetChoice}=createSettingsUI({useT,L});
 const {CalAuto,CalSettings}=createCalendarUI({useT,useStore,L,getLang:()=>LANG,fmtCZ,engine:personalCalendar,SetSection,SetSwitch,SetChoice,PersonalSettingsSections});
-const PageHabit = createPracticePage({useT,useStore,L,PageTitle,BufferedInput,TmIcPraxe,TmIcPrameny,TmPasPrahu,DayView,PraxeOverview,CenterSheet,pProse,SourceMorning:()=> <MorningSpells items={ANTI_DOOM_SPELLS} L={L}/>});
+const PageHabit = createPracticePage({useT,useStore,L,PageTitle,practiceArtKey:"praxe-client",BufferedInput,TmIcPraxe,TmIcPrameny,TmPasPrahu,DayView,PraxeOverview,CenterSheet,pProse,SourceMorning:()=> <MorningSpells items={ANTI_DOOM_SPELLS} L={L}/>});
 
 // ---- KOMPAS · sdílená orientace ------------------------------------------
 // Týž soubor jako v osobní aplikaci (src/shared/ui/compass.jsx). Klientský
@@ -13482,7 +13486,7 @@ function PageTrenink() {
       {tab === "knihovna" && (
         <>
           <div data-guide="trenink.library">
-            <ExerciseLibraryFilters t={t} renderBodyMap={props => <TMuscleMap {...props} />} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
+            <ExerciseLibraryFilters t={t} renderBodyMap={props => <TMuscleMap {...props} />} renderMovementIllustration={movement => { const ex = movementIllustrationExercise(exerciseIndex, movement, { artOf: tmAtlas, isUnverified: isUnverifiedIllustration }); return ex ? <TExArt ex={ex} size={80} /> : null; }} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
               view={exerciseView} onViewChange={setExerciseView} sort={exerciseSort} onSort={setExerciseSort} count={sorted.length} hiddenCount={hiddenCount}
               MultiSelect={TMultiSel} allowCustomOrder={false}
               muscleOptions={T_MUSCLES.map((m) => ({ v: m.k, label: L(m.cz, m.en) }))}

@@ -2,7 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { SOURCE_COVER_ART, SOURCE_COVER_HASHES, sourceCoverArt } from "../src/shared/product/sourceCovers.js";
+import { SOURCE_COVER_ART, SOURCE_COVER_TYPE_ART, SOURCE_COVER_HASHES, sourceCoverArt } from "../src/shared/product/sourceCovers.js";
+import vm from "node:vm";
+import ts from "typescript";
+import React from "react";
 
 test("every current source category has a shipped, verified illustration", () => {
   const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
@@ -10,7 +13,9 @@ test("every current source category has a shipped, verified illustration", () =>
   assert.ok(categories, "source category registry exists");
   const names = [...categories[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
   assert.deepEqual([...new Set(names)].sort(), Object.keys(SOURCE_COVER_ART).sort());
-  for (const url of Object.values(SOURCE_COVER_ART)) {
+  const urls = [...new Set([...Object.values(SOURCE_COVER_ART), ...Object.values(SOURCE_COVER_TYPE_ART)])];
+  assert.equal(urls.length, 8, "the reviewed family contains exactly eight motifs");
+  for (const url of urls) {
     assert.ok(url.startsWith("/media/source-covers/"));
     const bytes = readFileSync(new URL("../public" + url, import.meta.url));
     assert.equal(bytes.toString("ascii", 0, 4), "RIFF");
@@ -30,4 +35,78 @@ test("category selection depends only on the saved category and does not mutate 
   assert.equal(sourceCoverArt(source.category), SOURCE_COVER_ART.Science);
   assert.equal(source.icon, "/real-cover.png");
   assert.equal(sourceCoverArt("Philosophy"), SOURCE_COVER_ART.Philosophy);
+});
+
+test("recognized media use their own cover while books retain genre motifs", () => {
+  for (const type of ["Movie", "Podcast", "Article", "Feed"]) {
+    for (const category of ["Movement", "Philosophy", "", "Unknown"]) {
+      assert.equal(sourceCoverArt(category, type), SOURCE_COVER_TYPE_ART[type]);
+    }
+  }
+  assert.equal(sourceCoverArt("Movement", "Book"), SOURCE_COVER_ART.Movement);
+  assert.equal(sourceCoverArt("Novel", "Book"), SOURCE_COVER_ART.Novel);
+  assert.equal(sourceCoverArt("Philosophy", "Book"), SOURCE_COVER_ART.Philosophy);
+  assert.equal(sourceCoverArt("Unknown", "Book"), SOURCE_COVER_TYPE_ART.Book);
+  assert.equal(sourceCoverArt(undefined, "Book"), SOURCE_COVER_TYPE_ART.Book);
+  for (const type of [null, {}, ["Book"], "constructor", "__proto__", "../../private", "Unknown"]) {
+    assert.equal(sourceCoverArt("Unknown", type), null);
+  }
+});
+
+function coverFixture(props) {
+  let states = [], cursor = 0;
+  const hooks = { ...React, useState(initial) {
+    const index = cursor++;
+    if (!(index in states)) states[index] = initial;
+    return [states[index], value => { states[index] = value; }];
+  } };
+  const source = readFileSync(new URL("../src/shared/ui/sourceCover.jsx", import.meta.url), "utf8");
+  const compiled = ts.transpileModule(source, { compilerOptions: { jsx: ts.JsxEmit.React, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText;
+  const module = { exports: {} };
+  vm.runInNewContext(compiled, { module, exports: module.exports, require: id => id === "react" ? hooks : { sourceCoverArt } });
+  let tree;
+  function render() {
+    cursor = 0;
+    const child = module.exports.SourceCover(props);
+    tree = child.type(child.props);
+  }
+  render();
+  return {
+    get root() { return tree; },
+    get image() { return tree.props.children?.props?.children?.[0]; },
+    get ink() { return tree.props.children?.props?.children?.[1]; },
+    fail() { this.image.props.onError(); render(); },
+    theme(next) { props = { ...props, theme: next }; render(); },
+  };
+}
+
+test("real covers remain whole and unmodified; failures change only display", () => {
+  const record = Object.freeze({ src: "/my-saved-cover.png", category: "Movement", type: "Book" });
+  const before = JSON.stringify(record);
+  const cover = coverFixture({ ...record, theme: { callout: "#222", textSec: "#ddd", mode: "dark" }, glyph: () => null });
+  assert.equal(cover.root.props["data-source-cover"], "real");
+  assert.equal(cover.image.props.src, record.src);
+  assert.equal(cover.image.props.style.objectFit, "contain");
+  assert.equal(cover.image.props.style.opacity, 1);
+  assert.equal(cover.image.props.style.filter, undefined);
+  assert.equal(cover.ink, false);
+  cover.fail();
+  assert.equal(cover.root.props["data-source-cover"], "category");
+  assert.equal(cover.image.props.src, SOURCE_COVER_ART.Movement);
+  cover.fail();
+  assert.equal(cover.root.props["data-source-cover"], "medium");
+  assert.equal(JSON.stringify(record), before);
+});
+
+test("fallback cover ink and background follow the current theme without fixed image colors", () => {
+  const cover = coverFixture({ category: "Novel", type: "Book", theme: { callout: "#eee", textSec: "#333" } });
+  assert.equal(cover.root.props["data-source-art"], "theme-ink");
+  assert.equal(cover.image.props.style.opacity, 0, "original raster colors never paint the fallback");
+  assert.equal(cover.root.props.style.background, "#eee");
+  assert.equal(cover.ink.props.style.background, "var(--land-art-ink, #333)");
+  assert.ok(cover.ink.props.style.mask.includes(SOURCE_COVER_ART.Novel));
+  assert.ok(cover.ink.props.style.mask.includes("contain"));
+  cover.theme({ callout: "#222", textSec: "#ddd" });
+  assert.equal(cover.root.props.style.background, "#222");
+  assert.equal(cover.ink.props.style.background, "var(--land-art-ink, #ddd)");
 });

@@ -120,7 +120,7 @@ export function createSourcesUI(deps) {
         {odTanmaye && <div style={{ marginBottom: 10 }}><OriginBadge s={e} /></div>}
         <button title={L("Nahrát obálku", "Upload cover")} disabled={odTanmaye} onClick={() => { if (!odTanmaye && coverRef.current) coverRef.current.click(); }} style={{ background: "transparent", border: "none", cursor: odTanmaye ? "default" : "pointer", padding: 0, marginBottom: 12, display: "block" }}>
           <span style={{ width: 92, height: 128, borderRadius: 8, border: `1px solid ${t.border}`, display: "block", overflow: "hidden" }}>
-            <SourceCover src={imgSrc(e.icon)} category={e.category} theme={t} glyph={glyfTypu(e.type)} variant="detail" />
+            <SourceCover src={imgSrc(e.icon)} category={e.category} type={e.type} theme={t} glyph={glyfTypu(e.type)} variant="detail" />
           </span>
         </button>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 }}>
@@ -228,7 +228,7 @@ export function createSourcesUI(deps) {
       >
         {selecting && <span className="tm-selmark" style={{ width: 22, height: 22, flexShrink: 0, borderRadius: 7, border: `1.5px solid ${selected ? t.accent : t.border}`, background: selected ? t.accent : "transparent", color: t.onAccent, fontSize: 12, lineHeight: "19px", textAlign: "center", touchAction: "none" }}>{selected ? <FamilyIcon id="check" size={16} label={L("Hotovo","Done")} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</span>}
         <span style={{ width: 30, height: 40, borderRadius: 5, flexShrink: 0, overflow: "hidden" }}>
-          <SourceCover src={imgSrc(e.icon)} category={e.category} theme={t} glyph={glyfTypu(e.type)} variant="row" />
+          <SourceCover src={imgSrc(e.icon)} category={e.category} type={e.type} theme={t} glyph={glyfTypu(e.type)} variant="row" />
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -406,7 +406,7 @@ export function createSourcesUI(deps) {
       </>,
       face: {
         noDivider: true,
-        cover: <SourceCover src={imgSrc(e.icon)} category={e.category} theme={t} glyph={glyfTypu(e.type)} />,
+        cover: <SourceCover src={imgSrc(e.icon)} category={e.category} type={e.type} theme={t} glyph={glyfTypu(e.type)} />,
       },
     });
 

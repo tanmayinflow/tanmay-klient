@@ -74,7 +74,7 @@ function FacetPanel({ t, field, values, onChange }) {
   </div>;
 }
 
-export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFilterCount = 0, sort = 'recommended', onSort, count, hiddenCount = 0, muscleOptions = [], levelOptions = [], allowCustomOrder = false, autoFocus = false, view = 'grid', onViewChange, renderBodyMap }) {
+export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFilterCount = 0, sort = 'recommended', onSort, count, hiddenCount = 0, muscleOptions = [], levelOptions = [], allowCustomOrder = false, autoFocus = false, view = 'grid', onViewChange, renderBodyMap, renderMovementIllustration }) {
   const [expanded, setExpanded] = useState(null);
   const [more, setMore] = useState(false);
   const [searchOpen, setSearchOpen] = useState(autoFocus || !!filters?.q);
@@ -87,6 +87,11 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
   const field = allFields.find(item => item.key === expanded);
   const active = allFields.flatMap(item => (value[item.key] || []).map(id => ({ key: item.key, id, label: item.options.find(option => option.v === id)?.label || id })));
   const any = active.length || extraFilterCount || value.q || value.includeSecondary || value.includeArchived || value.equipmentMode !== 'uses';
+  const movementExamples = expanded === 'movements' && renderMovementIllustration ? value.movements.map(movement => {
+    const option = field.options.find(item => item.v === movement);
+    const illustration = option && renderMovementIllustration(movement);
+    return illustration ? { movement, label: option.label, illustration } : null;
+  }).filter(Boolean) : [];
   const facetButton = key => {
     const item = allFields.find(choice => choice.key === key);
     const n = (value[key]?.length || 0) + (key === 'regions' ? value.muscles.length : 0);
@@ -121,6 +126,12 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
         <div style={{ width: 'min(100%, 300px)', margin: '0 auto 12px' }}>{renderBodyMap({ fluid: true, selectedMuscles: value.muscles, highlightedMuscles: highlightedBodyMuscles(value), selectedRegions: value.regions, onToggleMuscle: key => onChange(toggleBodyMuscle(value, key)), onToggleRegion: key => onChange(selectBodyRegions(value, value.regions.includes(key) ? value.regions.filter(item => item !== key) : [...value.regions.filter(item => item !== 'whole_body'), key])) })}</div>
         <p style={{ color: t.textMuted, fontSize: 13, lineHeight: 1.5 }}>{L('Vyber oblast podle názvu nebo klepnutím na postavu. Klepnutím na sval výběr zpřesníš; obrysy kolen a chodidel označují celé oblasti.', 'Choose a body area by name or on the figure. Tap a muscle to narrow the selection; knee and foot outlines mark whole areas.')}</p>
       </div>}
+      {movementExamples.length > 0 && <div data-movement-illustrations="" aria-hidden="true" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '12px 16px', padding: '8px 0 14px' }}>
+        {movementExamples.map(({movement, label, illustration}) => <figure key={movement} data-movement-example={movement} style={{ margin: 0, width: 96, maxWidth: '100%', textAlign: 'center' }}>
+            <div style={{ width: 80, height: 80, margin: '0 auto 5px' }}>{illustration}</div>
+            <figcaption style={{ fontSize: 12, lineHeight: 1.4, color: t.textMuted, overflowWrap: 'anywhere' }}>{label}</figcaption>
+          </figure>)}
+      </div>}
       <FacetPanel t={t} field={field} values={value[field.key] || []} onChange={next => onChange(field.key === 'regions' ? selectBodyRegions(value, next) : field.key === 'muscles' ? selectBodyMuscles(value, next) : { ...value, [field.key]: next })} />
       {expanded === 'regions' && <details style={{ marginTop: 8 }}><summary style={{ cursor: 'pointer', minHeight: 44, display: 'flex', alignItems: 'center', fontSize: 13 }}>{L('Svaly podle názvu', 'Muscles by name')}</summary><FacetPanel t={t} field={allFields.find(item => item.key === 'muscles')} values={value.muscles} onChange={next => onChange(selectBodyMuscles(value, next))} /></details>}
       {expanded === 'equipment' && <div style={{ padding: '10px 0', color: t.textSec, fontSize: 13, lineHeight: 1.6 }}>
@@ -154,7 +165,7 @@ export function ExerciseLibraryRowContent({ t, title, focus, illustration }) {
     <span data-exercise-round-image="" aria-hidden="true" style={{ display: 'grid', placeItems: 'center', flex: '0 0 64px', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: `1px solid ${t.border}`, background: 'transparent', padding: 6, boxSizing: 'border-box' }}>{illustration}</span>
     <span style={{ display: 'block', minWidth: 0, flex: 1 }}>
       <span title={title} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.5, color: t.heading }}>{title}</span>
-      <span title={typeof focus === 'string' ? focus : undefined} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.5, color: t.textMuted }}>{focus || L('Zaměření zatím neurčeno', 'Focus not yet specified')}</span>
+      <span title={typeof focus === 'string' ? focus : undefined} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.5, color: t.textMuted, borderBottom: `1px solid ${t.borderSoft}`, paddingBottom: 8, marginTop: 2 }}>{focus || L('Zaměření zatím neurčeno', 'Focus not yet specified')}</span>
     </span>
   </>;
 }
