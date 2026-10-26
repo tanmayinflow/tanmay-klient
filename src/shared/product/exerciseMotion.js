@@ -2197,6 +2197,62 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 44201,
     "sha256": "9a8590ac4018b72bc16f8e4e7d46807ed2b85e5312cefaa2a201bf765a57c7fa",
     "poster": "/exercise-motion/ex26_around_world-poster-a1013399b9efc2fc.webp"
+  },
+  "ex26_bentknee_calf": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_bentknee_calf-f7aa2bff076a6194.mp4",
+    "bytes": 24695,
+    "sha256": "f7aa2bff076a6194b9908dfa20e5630682994975bc9bd9ee7c49282958b982ac",
+    "poster": "/exercise-motion/ex26_bentknee_calf-poster-f7126d28142f6b7c.webp"
+  },
+  "ex26_single_hipthrust": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_single_hipthrust-788ba83dca8f0240.mp4",
+    "bytes": 34185,
+    "sha256": "788ba83dca8f0240c36477eea883b8406ba70492e653f7f9d93aba1101d2b428",
+    "poster": "/exercise-motion/ex26_single_hipthrust-poster-c7c69e1e876ef4e6.webp"
+  },
+  "ex26_db_supported_row": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_db_supported_row-2367a9229f518b0f.mp4",
+    "bytes": 55769,
+    "sha256": "2367a9229f518b0ffacb8bc69191bfa50f5e177857cde9c2880d4eaf405d2557",
+    "poster": "/exercise-motion/ex26_db_supported_row-poster-5ae9fb2d3405df86.webp"
+  },
+  "ex26_sumo_squat": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_sumo_squat-09a949eb1c17f9fb.mp4",
+    "bytes": 54565,
+    "sha256": "09a949eb1c17f9fbca474e6a746b7713cfe1912ecb78ec40fd3798c808c52c2e",
+    "poster": "/exercise-motion/ex26_sumo_squat-poster-d925226800b7ed6a.webp"
+  },
+  "ex26_smith_squat": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_smith_squat-da166f63d09fc0b0.mp4",
+    "bytes": 51097,
+    "sha256": "da166f63d09fc0b0cfa828899582e153f7e04167179498782854449c0ef46bdf",
+    "poster": "/exercise-motion/ex26_smith_squat-poster-ba526d4c4f4dd685.webp"
+  },
+  "dbtriext": {
+    "oneSide": false,
+    "src": "/exercise-motion/dbtriext-5d8d52d022a33a30.mp4",
+    "bytes": 22593,
+    "sha256": "5d8d52d022a33a30104c38329a805043c75dcb1407a6c2c965d4f67b5e7cbc23",
+    "poster": "/exercise-motion/dbtriext-poster-c787f7fd71680427.webp"
+  },
+  "ex26_v_raise": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_v_raise-66cbd92e1fa14016.mp4",
+    "bytes": 32263,
+    "sha256": "66cbd92e1fa140169ac9a7e48a3fe1d9076cbe866663b9774e4020fc104bc0ee",
+    "poster": "/exercise-motion/ex26_v_raise-poster-ae35dff22b49c09d.webp"
+  },
+  "highknees": {
+    "oneSide": false,
+    "src": "/exercise-motion/highknees-116c8df02c7d912d.mp4",
+    "bytes": 76843,
+    "sha256": "116c8df02c7d912d5af74a2f97054ca64dc22801435997e139f946169e769b37",
+    "poster": "/exercise-motion/highknees-poster-151519dcdd1bdfe4.webp"
   }
 });
 
