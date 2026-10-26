@@ -27,6 +27,7 @@ import * as R from "./repo.js";
 import * as E from "./engine.js";
 import * as G from "./google.js";
 import { migrateLegacy, migrationState, seedDefaults } from "./migrate.js";
+import { replaceDayAvailability, replaceWeekAvailability } from "./dayAvailability.js";
 
 const MAX_BODY = 128 * 1024;
 
@@ -247,6 +248,7 @@ export async function handleCoach(request, env, url, ctx) {
           id: k.id, startsAt: Number(k.starts_at_utc), endsAt: Number(k.ends_at_utc), source: k.source, note: k.note })),
         googleBusy: busy.windows.map((w) => ({ startsAt: w.s, endsAt: w.e })),
         googleConnected: !!busy.connected,
+        googleBusyKnown: !busy.connected || !busy.stale,
         rules, overrides,
       });
     }
@@ -422,8 +424,11 @@ export async function handleCoach(request, env, url, ctx) {
         const { value, errors } = validateService({ ...current, ...body });
         if (errors.length) return bad(ERR.VALIDATION_ERROR, errors.join("; "));
         const cols = Object.keys(value);
-        await db.prepare(`UPDATE booking_services SET ${cols.map((k) => k + " = ?").join(", ")}, updated_at = ? WHERE id = ?`)
-          .bind(...cols.map((k) => value[k]), now, id).run();
+        const revision = body.expectedUpdatedAt;
+        if (revision !== undefined && (!Number.isFinite(revision) || revision < 0)) return bad(ERR.VALIDATION_ERROR, "revision");
+        const updated = await db.prepare(`UPDATE booking_services SET ${cols.map((k) => k + " = ?").join(", ")}, updated_at = ? WHERE id = ?${revision !== undefined ? " AND updated_at = ?" : ""}`)
+          .bind(...cols.map((k) => value[k]), Math.max(now, Number(current.updated_at) + 1), id, ...(revision !== undefined ? [revision] : [])).run();
+        if (revision !== undefined && !updated.meta?.changes) return bad("AVAILABILITY_CHANGED", "reload service", 409);
         if (body.locationIds) await setServiceLocations(db, id, body.locationIds);
         return ok({ service: await R.getService(db, id) });
       }
@@ -487,10 +492,12 @@ export async function handleCoach(request, env, url, ctx) {
         if (!list) return bad(ERR.VALIDATION_ERROR, "rules");
         if (list.length > 200) return bad(ERR.VALIDATION_ERROR, "too many rules");
         const stmts = [db.prepare("DELETE FROM booking_availability_rules")];
+        const normalized = [];
         for (const r of list) {
           const weekday = int(r.weekday), s0 = int(r.start_minute), e0 = int(r.end_minute);
           if (weekday == null || weekday < 0 || weekday > 6) return bad(ERR.VALIDATION_ERROR, "weekday");
           if (!gridOk(s0) || !gridOk(e0) || e0 <= s0 || e0 > 1440) return bad(ERR.VALIDATION_ERROR, "window");
+          normalized.push({ ...r, weekday, start_minute: s0, end_minute: e0, active: r.active === undefined ? 1 : bool(r.active) });
           stmts.push(db.prepare(`INSERT INTO booking_availability_rules
               (id, weekday, start_minute, end_minute, service_id, location_id, valid_from, valid_until, active, created_at, updated_at)
               VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
@@ -499,10 +506,26 @@ export async function handleCoach(request, env, url, ctx) {
                   isDateISO(r.valid_from) ? r.valid_from : null, isDateISO(r.valid_until) ? r.valid_until : null,
                   r.active === undefined ? 1 : bool(r.active), now, now));
         }
+        if (body.expectedRuleIds !== undefined) {
+          const result = await replaceWeekAvailability(db, normalized, body.expectedRuleIds, now);
+          if (result.invalid) return bad(ERR.VALIDATION_ERROR, "revision");
+          if (result.conflict) return bad("AVAILABILITY_CHANGED", "reload week", 409);
+          return ok(result);
+        }
         await db.batch(stmts);
         return ok({ rules: await R.listRules(db) });
       }
       return methodNotAllowed();
+    }
+
+    if (path === "/api/booking/day-availability" && method === "PUT") {
+      const { body, invalid, tooBig } = await readBody(request);
+      if (tooBig) return bad(ERR.VALIDATION_ERROR, "body too large", 413);
+      if (invalid) return bad(ERR.VALIDATION_ERROR, "json");
+      const result = await replaceDayAvailability(db, body, now);
+      if (result.invalid) return bad(ERR.VALIDATION_ERROR, "day windows");
+      if (result.conflict) return bad("AVAILABILITY_CHANGED", "reload day", 409);
+      return ok(result);
     }
 
     if (path === "/api/booking/overrides") {

@@ -15,7 +15,7 @@
 import { MS_PER_MIN, SLOT_GRID_MIN } from "./types.js";
 import {
   zonedToUtc, localDateISO, shiftDateISO, weekdayOfDateISO,
-  startOfLocalDay, endOfLocalDay, localDayLengthMin, startOfISOWeek, daysBetweenISO,
+  startOfLocalDay, endOfLocalDay, startOfISOWeek, daysBetweenISO,
 } from "./time.js";
 
 const num = (v, dflt) => (Number.isFinite(Number(v)) ? Number(v) : dflt);
@@ -104,7 +104,8 @@ export function dayWindows(dateISO, tz, rules, overrides, opts) {
   const weekday = weekdayOfDateISO(dateISO);
   const dayStart = startOfLocalDay(dateISO, tz);
   const dayEnd = endOfLocalDay(dateISO, tz);
-  const dayLen = localDayLengthMin(dateISO, tz);
+  // Rules use wall-clock minutes (00:00..24:00), not elapsed minutes.
+  const dayLen = 1440;
 
   const applies = (r) => {
     if (r.active === 0 || r.active === false) return false;

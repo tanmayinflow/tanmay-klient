@@ -267,7 +267,7 @@ async function handleState(request, env, userId) {
 // je povolený otiskem, ne plošným 'unsafe-inline' — a test hlídá, že otisk
 // pořád sedí. Styly vložené zůstávají: aplikace je psaná inline styly a
 // hodnotami motivu, tvrdit u nich přísnost by bylo nepřesné.
-const INDEX_INLINE_SCRIPT_HASH = "sha256-oALKoME6jBbzx0TB3DCQ/aMiFTt+EZLos4N+5YF1K+I=";
+const INDEX_INLINE_SCRIPT_HASH = "sha256-68n5SX0hl/KF+/MmM4A1r+Dj5fpzXP2g18kZtqUzIbg=";
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -278,7 +278,7 @@ const CSP = [
   "script-src 'self' '" + INDEX_INLINE_SCRIPT_HASH + "' https://accounts.google.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: blob: https://covers.openlibrary.org https://m.media-amazon.com",
+  "img-src 'self' data: blob: https://covers.openlibrary.org https://m.media-amazon.com https://tanmaypractice.com/apple-touch-icon.png https://tanmaypractice.com/icon-192.png https://tanmaypractice.com/icon-512.png https://tanmaypractice.com/icon-maskable-512.png",
   "media-src 'self' data: blob:",
   "connect-src 'self' https://openlibrary.org https://www.omdbapi.com https://www.googleapis.com https://accounts.google.com https://photon.komoot.io",
   "worker-src 'self'",
