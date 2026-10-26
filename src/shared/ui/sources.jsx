@@ -218,6 +218,8 @@ export function createSourcesUI(deps) {
         ref={rootRef}
         data-cid={e.id}
         data-pick={e.id}
+        data-tm-surface="row"
+        data-tm-surface-active={!!(selected || dragging)}
         draggable={!noDrag && !selecting && !odTanmaye}
         onDragStart={!noDrag && !selecting && !odTanmaye ? (ev) => { ev.dataTransfer.setData("text/plain", "cid:" + e.id); ev.dataTransfer.effectAllowed = "move"; } : undefined}
         onDragOver={(ev) => ev.preventDefault()}

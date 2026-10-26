@@ -39,7 +39,7 @@ export function createListUI(deps) {
     const { t } = useT();
     const cur = tmViewOk(value), nx = tmNextView(cur);
     return (
-      <button type="button" onClick={() => onChange(nx)} aria-label={L("Zobrazení: ", "View: ") + tmViewLabel(cur)}
+      <button type="button" data-tm-surface="control" onClick={() => onChange(nx)} aria-label={L("Zobrazení: ", "View: ") + tmViewLabel(cur)}
         title={L("Zobrazení · ", "View · ") + tmViewLabel(cur) + " → " + tmViewLabel(nx)}
         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, flexShrink: 0, background: "transparent", border: "none", borderRadius: 9, cursor: "pointer", color: t.textMuted }}>
         <span key={cur} className="tm-turn" style={{ display: "inline-flex" }}>{TM_VW_IC[cur]}</span>
@@ -68,7 +68,7 @@ export function createListUI(deps) {
     if (view === "seznam") return (
       <div style={{ borderTop: `1px solid ${t.borderSoft}` }}>
         {items.map((it) => (
-          <button key={it.id} data-pick={it.id} onClick={hit(it.id)}
+          <button key={it.id} data-pick={it.id} data-tm-surface="row" data-tm-surface-active={on(it.id) || cur(it.id) ? "true" : undefined} onClick={hit(it.id)}
             className="tm-nav-item tm-row" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 46, background: on(it.id) ? hexA(t.accent, 0.07) : cur(it.id) ? hexA(t.sage, 0.09) : "transparent", border: "none", borderRadius: 8, padding: "7px 8px", cursor: "pointer", textAlign: "left", color: "inherit", fontFamily: "var(--tm-font-body)" }}>
             {selecting && <VwMark on={on(it.id)} />}
             {it.star && <span style={{ color: t.accent, fontSize: 12, flexShrink: 0 }}>★</span>}
@@ -82,7 +82,7 @@ export function createListUI(deps) {
     if (view === "cards") return (
       <div className="tm-vgrid">
         {items.map((it) => (
-          <button key={it.id} data-pick={it.id} onClick={hit(it.id)} className="tm-lift" style={{ ...cardBase(it.id), display: "flex", flexDirection: "column", minHeight: 130, padding: "13px 13px 11px" }}>
+          <button key={it.id} data-pick={it.id} data-tm-surface="card" data-tm-surface-active={on(it.id) || cur(it.id) ? "true" : undefined} onClick={hit(it.id)} className="tm-lift" style={{ ...cardBase(it.id), display: "flex", flexDirection: "column", minHeight: 130, padding: "13px 13px 11px" }}>
             {selecting && <VwMark on={on(it.id)} corner />}
             <span style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
               {it.star && <span style={{ color: t.accent, fontSize: 12, marginTop: 3 }}>★</span>}
@@ -100,16 +100,16 @@ export function createListUI(deps) {
         {items.map((it) => {
           const f = it.face || {};
           return (
-            <button key={it.id} data-pick={it.id} onClick={hit(it.id)} className="tm-lift" style={cardBase(it.id)}>
+            <button key={it.id} data-pick={it.id} data-tm-surface="card" data-tm-surface-active={on(it.id) || cur(it.id) ? "true" : undefined} onClick={hit(it.id)} className="tm-lift" style={cardBase(it.id)}>
               {selecting && <VwMark on={on(it.id)} corner />}
               {/* tvář · obrázek, jinak útržek stránky, jinak iniciála. Nikdy
                   dvakrát tentýž glyf — z toho se nedá nic vyčíst. */}
-              <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", height: 108, borderBottom: f.noDivider ? "none" : `1px solid ${t.borderSoft}`, background: t.callout, overflow: "hidden" }}>
+              <span data-tm-surface="inset" style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", height: 108, borderBottom: f.noDivider ? "none" : `1px solid ${t.borderSoft}`, background: t.callout, overflow: "hidden" }}>
                 {f.cover || (f.img
                   ? <img src={f.img} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                   : f.text
                     ? <><span className="tm-clamp5" style={{ alignSelf: "stretch", width: "100%", padding: "10px 11px 0", fontFamily: "var(--tm-font-body)", fontSize: 12, lineHeight: 1.62, color: t.textMuted, textAlign: "left" }}>{f.text}</span>
-                      <span style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 26, background: `linear-gradient(${hexA(t.callout, 0)}, ${t.callout})` }} /></>
+                      <span data-tm-surface="fade" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 26, background: `linear-gradient(${hexA(t.callout, 0)}, ${t.callout})` }} /></>
                     : <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 36, color: t.sand, opacity: 0.5, lineHeight: 1 }}>{f.ini || "·"}</span>)}
                 {f.glyph && <span style={{ position: "absolute", left: 8, bottom: 7, color: t.sand, opacity: 0.5, display: "inline-flex" }}>{React.createElement(f.glyph, { size: 15 })}</span>}
                 {f.badge && <span style={{ position: "absolute", right: 9, bottom: 5, fontFamily: "var(--tm-font-display)", fontSize: 15, color: t.sand }}>{f.badge}</span>}
@@ -132,7 +132,7 @@ export function createListUI(deps) {
   function HdrIcon({ on, title, onClick, children }) {
     const { t } = useT();
     return (
-      <button type="button" title={title} aria-label={title} onClick={onClick}
+      <button type="button" data-tm-surface="control" data-tm-surface-active={on ? "true" : undefined} title={title} aria-label={title} onClick={onClick}
         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 36, height: 38, flexShrink: 0, background: on ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 9, cursor: "pointer", color: on ? t.accent : t.textMuted }}>{children}</button>
     );
   }
@@ -140,7 +140,7 @@ export function createListUI(deps) {
   function HdrSearch({ value, onChange, onClose, placeholder }) {
     const { t } = useT();
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 10, background: t.card, border: `1px solid ${value ? t.accent : t.border}`, borderRadius: 12, padding: "10px 14px", margin: "0 0 12px" }}>
+      <div data-tm-surface="control" data-tm-surface-active={value ? "true" : undefined} style={{ display: "flex", alignItems: "center", gap: 10, background: t.card, border: `1px solid ${value ? t.accent : t.border}`, borderRadius: 12, padding: "10px 14px", margin: "0 0 12px" }}>
         <span style={{ color: t.sand, display: "inline-flex", flexShrink: 0 }}><TmIcLupa size={15} /></span>
         <input autoFocus value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { if (value) onChange(""); else onClose(); } }} placeholder={placeholder}
           style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 15, outline: "none" }} />
@@ -156,7 +156,7 @@ export function createListUI(deps) {
   function FiltrPill({ on, onClick, children }) {
     const { t } = useT();
     return (
-      <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", minHeight: 34, background: on ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${on ? t.accent : t.borderSoft}`, borderRadius: 999, padding: "5px 13px", cursor: "pointer", color: on ? t.accent : t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{children}</button>
+      <button data-tm-surface="chip" data-tm-surface-active={on ? "true" : undefined} onClick={onClick} style={{ display: "inline-flex", alignItems: "center", minHeight: 34, background: on ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${on ? t.accent : t.borderSoft}`, borderRadius: 999, padding: "5px 13px", cursor: "pointer", color: on ? t.accent : t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{children}</button>
     );
   }
 

@@ -35,7 +35,7 @@ function LibraryChoice({ t, label, value, options, onChange, style, icon }) {
   return <div ref={wrap} data-library-choice="" style={{ minWidth: 0, ...(icon ? { display: 'contents' } : {}), ...style }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={event => {
     if (event.key === 'Escape' && open) { event.preventDefault(); event.stopPropagation(); close(); }
   }}>
-    <button type="button" ref={trigger} aria-label={label} aria-describedby={`${id}-value`} aria-expanded={open} aria-controls={`${id}-options`} onClick={() => setOpen(!open)} onKeyDown={event => { if (['ArrowDown','ArrowUp'].includes(event.key)) { event.preventDefault(); setOpen(true); } }}
+    <button type="button" ref={trigger} data-tm-surface="control" data-tm-surface-active={open ? "true" : undefined} aria-label={label} aria-describedby={`${id}-value`} aria-expanded={open} aria-controls={`${id}-options`} onClick={() => setOpen(!open)} onKeyDown={event => { if (['ArrowDown','ArrowUp'].includes(event.key)) { event.preventDefault(); setOpen(true); } }}
       title={icon ? `${label}: ${selected.label}` : undefined} style={{ ...control(t), width: icon ? 44 : '100%', display: 'flex', alignItems: 'center', justifyContent: icon ? 'center' : 'space-between', gap: 12, textAlign: 'left', borderColor: open ? t.accent : icon ? 'transparent' : t.border, padding: icon ? 0 : '8px 12px', flexShrink: 0 }}>
       <span id={`${id}-value`} style={icon ? { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)' } : undefined}>{selected.label}</span><TmIcon id={icon || 'expand'} size={icon ? 20 : 12} style={{ flexShrink: 0, transform: !icon && open ? 'rotate(180deg)' : undefined }} />
     </button>
@@ -47,7 +47,7 @@ function LibraryChoice({ t, label, value, options, onChange, style, icon }) {
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (current + (['ArrowDown','ArrowRight'].includes(event.key) ? 1 : -1) + buttons.length) % buttons.length;
       onChange(options[next].v); buttons[next].focus();
     }}>
-      {options.map(option => <button type="button" key={option.v} role="radio" aria-checked={option.v === value} tabIndex={option.v === value ? 0 : -1} onClick={() => { onChange(option.v); close(); }}
+      {options.map(option => <button type="button" key={option.v} data-tm-surface="row" data-tm-surface-active={option.v === value ? "true" : undefined} role="radio" aria-checked={option.v === value} tabIndex={option.v === value ? 0 : -1} onClick={() => { onChange(option.v); close(); }}
         style={{ ...control(t), display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', textAlign: 'left', borderColor: 'transparent', background: option.v === value ? t.activeNav : 'transparent', color: option.v === value ? t.heading : t.text }}>
         <span>{option.label}</span>{option.v === value && <TmIcon id="check" size={14} style={{ flexShrink: 0 }} />}
       </button>)}
@@ -65,7 +65,7 @@ function FacetPanel({ t, field, values, onChange }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
       {field.options.filter(option => !group.v || option.group === group.v).map(option => {
         const selected = values.includes(option.v);
-        return <button type="button" key={option.v} aria-pressed={selected} aria-label={`${field.label}: ${option.label}`} onClick={() => onChange(selected ? values.filter(value => value !== option.v) : [...values, option.v])}
+        return <button type="button" key={option.v} data-tm-surface="chip" data-tm-surface-active={selected ? "true" : undefined} aria-pressed={selected} aria-label={`${field.label}: ${option.label}`} onClick={() => onChange(selected ? values.filter(value => value !== option.v) : [...values, option.v])}
           style={{ ...control(t), background: selected ? t.activeNav : 'transparent', borderColor: selected ? t.accent : t.borderSoft, color: selected ? t.heading : t.text, textAlign: 'left', display: 'inline-flex', alignItems: 'center', gap: 6 }}>{selected && <TmIcon id="check" size={14} />}{option.label}</button>;
       })}
       </div>
@@ -95,13 +95,13 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
   const facetButton = key => {
     const item = allFields.find(choice => choice.key === key);
     const n = (value[key]?.length || 0) + (key === 'regions' ? value.muscles.length : 0);
-    return <button type="button" key={key} aria-expanded={expanded === key} onClick={() => setExpanded(expanded === key ? null : key)} style={{ ...control(t), borderColor: n ? t.accent : t.border, color: n ? t.heading : t.text }}>
+    return <button type="button" key={key} data-tm-surface="control" data-tm-surface-active={n || expanded === key ? "true" : undefined} aria-expanded={expanded === key} onClick={() => setExpanded(expanded === key ? null : key)} style={{ ...control(t), borderColor: n ? t.accent : t.border, color: n ? t.heading : t.text }}>
       {item.label}{n ? ` · ${n}` : ''}<TmIcon id="expand" size={12} style={{ marginLeft: 8, display: 'inline-block', verticalAlign: 'middle', transform: expanded === key ? 'rotate(180deg)' : undefined }} />
     </button>;
   };
   return <section data-exercise-library-filters="" aria-label={L('Hledání v knihovně cviků', 'Find exercises')} style={{ fontFamily: FONT_BODY, marginBottom: 18, minWidth: 0 }}>
     <div data-library-toolbar="" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-      <button type="button" ref={searchTrigger} data-guide="trenink.library" aria-label={L('Hledat cvik', 'Search exercises')} title={L('Hledat cvik', 'Search exercises')} aria-expanded={searchOpen} aria-controls={searchId} onClick={() => setSearchOpen(!searchOpen)} style={{ ...control(t), width: 44, padding: 0, display: 'grid', placeItems: 'center', borderColor: searchOpen || value.q ? t.accent : 'transparent' }}><TmIcon id="search" size={20} /></button>
+      <button type="button" ref={searchTrigger} data-tm-surface="control" data-tm-surface-active={searchOpen || value.q ? "true" : undefined} data-guide="trenink.library" aria-label={L('Hledat cvik', 'Search exercises')} title={L('Hledat cvik', 'Search exercises')} aria-expanded={searchOpen} aria-controls={searchId} onClick={() => setSearchOpen(!searchOpen)} style={{ ...control(t), width: 44, padding: 0, display: 'grid', placeItems: 'center', borderColor: searchOpen || value.q ? t.accent : 'transparent' }}><TmIcon id="search" size={20} /></button>
       {onSort && <LibraryChoice t={t} icon="sort" label={L('Řazení cviků', 'Exercise order')} value={sort} onChange={onSort} options={[
         { v: 'recommended', label: L('Základní cviky nejdřív', 'Foundational exercises first') },
         { v: 'name', label: L('Podle názvu', 'By name') },
@@ -109,11 +109,11 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
         ...(allowCustomOrder ? [{ v: 'custom', label: L('Vlastní pořadí', 'Your own order') }] : []),
       ]} />}
       {onViewChange && <div role="group" aria-label={L('Zobrazení cviků', 'Exercise view')} style={{ display: 'flex', marginLeft: 'auto', gap: 2 }}>
-        {[['grid', 'view-cards', L('Karty cviků', 'Exercise cards')], ['list', 'view-rows', L('Cviky v řádcích', 'Exercise list')]].map(([mode, icon, label]) => <button key={mode} type="button" aria-label={label} title={label} aria-pressed={view === mode} onClick={() => onViewChange(mode)} style={{ ...control(t), width: 44, padding: 0, borderColor: 'transparent', color: view === mode ? t.heading : t.textMuted, background: view === mode ? t.activeNav : 'transparent', display: 'grid', placeItems: 'center' }}><TmIcon id={icon} size={20} /></button>)}
+        {[['grid', 'view-cards', L('Karty cviků', 'Exercise cards')], ['list', 'view-rows', L('Cviky v řádcích', 'Exercise list')]].map(([mode, icon, label]) => <button key={mode} type="button" data-tm-surface="control" data-tm-surface-active={view === mode ? "true" : undefined} aria-label={label} title={label} aria-pressed={view === mode} onClick={() => onViewChange(mode)} style={{ ...control(t), width: 44, padding: 0, borderColor: 'transparent', color: view === mode ? t.heading : t.textMuted, background: view === mode ? t.activeNav : 'transparent', display: 'grid', placeItems: 'center' }}><TmIcon id={icon} size={20} /></button>)}
       </div>}
       {searchOpen && <div id={searchId} style={{ display: 'flex', flexBasis: '100%', minWidth: 0, order: 2, gap: 4, marginTop: 4 }}>
-        <input ref={searchRef} type="search" aria-label={L('Hledat cvik nebo jiný název', 'Search exercises or alternate names')} placeholder={L('Hledat cvik…', 'Search exercises…')} value={value.q} onChange={event => patch({ q: event.target.value })} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setSearchOpen(false); searchTrigger.current?.focus(); } }} style={{ ...control(t), cursor: 'text', fontSize: 16, flex: 1, width: '100%', minWidth: 0, boxSizing: 'border-box' }} />
-        <button type="button" aria-label={L('Zavřít a vyčistit hledání', 'Close and clear search')} onClick={() => { patch({ q: '' }); setSearchOpen(false); searchTrigger.current?.focus(); }} style={{ ...control(t), width: 44, padding: 0, borderColor: 'transparent', display: 'grid', placeItems: 'center' }}><TmIcon id="close" size={18} /></button>
+        <input ref={searchRef} type="search" data-tm-surface="control" aria-label={L('Hledat cvik nebo jiný název', 'Search exercises or alternate names')} placeholder={L('Hledat cvik…', 'Search exercises…')} value={value.q} onChange={event => patch({ q: event.target.value })} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setSearchOpen(false); searchTrigger.current?.focus(); } }} style={{ ...control(t), cursor: 'text', fontSize: 16, flex: 1, width: '100%', minWidth: 0, boxSizing: 'border-box' }} />
+        <button type="button" data-tm-surface="control" aria-label={L('Zavřít a vyčistit hledání', 'Close and clear search')} onClick={() => { patch({ q: '' }); setSearchOpen(false); searchTrigger.current?.focus(); }} style={{ ...control(t), width: 44, padding: 0, borderColor: 'transparent', display: 'grid', placeItems: 'center' }}><TmIcon id="close" size={18} /></button>
       </div>}
     </div>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center' }}>
@@ -149,7 +149,7 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
       <label style={{ display: 'flex', alignItems: 'center', gap: 7, minHeight: 44 }}><input type="checkbox" checked={value.includeArchived} onChange={event => patch({ includeArchived: event.target.checked })} />{L('Zahrnout archiv a aliasy', 'Include archive and aliases')}</label>
     </div>}
     {active.length > 0 && <div aria-label={L('Použité filtry', 'Active filters')} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 10 }}>
-      {active.map(item => <button type="button" key={`${item.key}:${item.id}`} aria-label={`${L('Odebrat filtr', 'Remove filter')}: ${item.label}`} onClick={() => patch({ [item.key]: value[item.key].filter(id => id !== item.id) })} style={{ ...control(t), fontSize: 12, padding: '5px 9px', borderColor: t.borderSoft, display: 'inline-flex', alignItems: 'center', gap: 6 }}>{item.label}<TmIcon id="close" size={12} /></button>)}
+      {active.map(item => <button type="button" key={`${item.key}:${item.id}`} data-tm-surface="chip" data-tm-surface-active="true" aria-label={`${L('Odebrat filtr', 'Remove filter')}: ${item.label}`} onClick={() => patch({ [item.key]: value[item.key].filter(id => id !== item.id) })} style={{ ...control(t), fontSize: 12, padding: '5px 9px', borderColor: t.borderSoft, display: 'inline-flex', alignItems: 'center', gap: 6 }}>{item.label}<TmIcon id="close" size={12} /></button>)}
     </div>}
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 8, fontSize: 13, color: t.textMuted }}>
       <span role="status" aria-live="polite">{count} {L(count === 1 ? 'cvik' : count >= 2 && count <= 4 ? 'cviky' : 'cviků', count === 1 ? 'exercise' : 'exercises')}</span>

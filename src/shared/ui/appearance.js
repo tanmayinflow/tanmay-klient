@@ -20,9 +20,85 @@ export const LEGACY_APPEARANCE_KEY = "tm-appearance-v2";
 /** Nejstarší klíč. Čte se, nemaže se. */
 export const LEGACY_THEME_KEY = "tm-theme";
 
+// Depth is a device preference, independent of the eight color themes.
+export const SURFACE_STYLE_KEY = "tm-surface-style-v1";
+export const DEFAULT_SURFACE_STYLE = "veil";
+export const SURFACE_STYLE_IDS = Object.freeze(["original", "veil", "shadow", "clear"]);
+const SURFACE_STYLE_EVENT = "tm:surface-style-change";
+const surfaceFallbacks = new WeakMap();
+const unavailableStorage = {};
+
 function storage(store) {
   if (store) return store;
   try { return typeof localStorage === "undefined" ? null : localStorage; } catch (e) { return null; }
+}
+
+export function normalizeSurfaceStyle(value) {
+  return SURFACE_STYLE_IDS.includes(value) ? value : DEFAULT_SURFACE_STYLE;
+}
+
+function storedSurfaceStyle(s) {
+  try { return { readable: true, raw: s.getItem(SURFACE_STYLE_KEY) }; }
+  catch { return { readable: false, raw: undefined }; }
+}
+
+/** Missing, corrupt or inaccessible preferences use the owner's default. */
+export function readSurfaceStyle(store) {
+  const s = storage(store), key = s || unavailableStorage;
+  const saved = s ? storedSurfaceStyle(s) : { readable: false, raw: undefined };
+  const pending = surfaceFallbacks.get(key);
+  // A failed write still applies for this session, including later theme changes.
+  // An actual storage change (including account clearing) invalidates the fallback.
+  if (pending && (!saved.readable || saved.raw === pending.before)) return pending.value;
+  if (pending) surfaceFallbacks.delete(key);
+  return normalizeSurfaceStyle(saved.raw);
+}
+
+export function applyDocumentSurfaceStyle(value, doc) {
+  const clean = normalizeSurfaceStyle(value);
+  const d = doc || (typeof document === "undefined" ? null : document);
+  try { d?.documentElement?.setAttribute("data-surface-style", clean); } catch { /* optional appearance */ }
+  return clean;
+}
+
+/** Writes only the local appearance key; no document or sync payload changes. */
+export function writeSurfaceStyle(value, store) {
+  const clean = normalizeSurfaceStyle(value), s = storage(store), key = s || unavailableStorage;
+  const before = s ? storedSurfaceStyle(s).raw : undefined;
+  try {
+    if (!s) throw new Error("StorageUnavailable");
+    s.setItem(SURFACE_STYLE_KEY, clean);
+    surfaceFallbacks.delete(key);
+  } catch { surfaceFallbacks.set(key, { value: clean, before }); }
+  if (!store) {
+    applyDocumentSurfaceStyle(clean);
+    try { window.dispatchEvent(new CustomEvent(SURFACE_STYLE_EVENT)); } catch { /* no browser */ }
+  }
+  return clean;
+}
+
+/** Keep open settings and the DOM in agreement across same-origin tabs. */
+export function watchSurfaceStyle(cb, win) {
+  const w = win || (typeof window === "undefined" ? null : window);
+  if (!w?.addEventListener) return () => {};
+  function update(event) {
+    let s = null;
+    try { s = w.localStorage; } catch { /* private mode */ }
+    if (event.type === "storage") {
+      if (event.key !== null && event.key !== SURFACE_STYLE_KEY) return;
+      if (event.storageArea && event.storageArea !== s) return;
+      surfaceFallbacks.delete(s || unavailableStorage);
+    }
+    const clean = readSurfaceStyle(s);
+    applyDocumentSurfaceStyle(clean, w.document);
+    cb(clean);
+  }
+  w.addEventListener(SURFACE_STYLE_EVENT, update);
+  w.addEventListener("storage", update);
+  return () => {
+    w.removeEventListener(SURFACE_STYLE_EVENT, update);
+    w.removeEventListener("storage", update);
+  };
 }
 
 // Explicit local review control; never accepted on a deployed origin.
@@ -108,6 +184,7 @@ export function appearanceResolved(pref, prefersDark) {
 export function applyDocumentTheme(preset, prefersDark, doc) {
   const d = doc || (typeof document === "undefined" ? null : document);
   if (!d) return;
+  applyDocumentSurfaceStyle(readSurfaceStyle(), d);
   const attrs = documentThemeAttrs(preset, !!prefersDark);
   const field = appearanceField(preset, !!prefersDark);
   try {
@@ -130,7 +207,7 @@ export function applyDocumentTheme(preset, prefersDark, doc) {
 export function appearanceField(preset, prefersDark) { return resolveTheme(preset, !!prefersDark).background; }
 
 /** Klíče, které při střídání účtu patří předchozímu člověku. */
-export const APPEARANCE_KEYS = Object.freeze([APPEARANCE_KEY, LEGACY_APPEARANCE_KEY, LEGACY_THEME_KEY]);
+export const APPEARANCE_KEYS = Object.freeze([APPEARANCE_KEY, LEGACY_APPEARANCE_KEY, LEGACY_THEME_KEY, SURFACE_STYLE_KEY]);
 
 export {
   APPEARANCE_VERSION, DEFAULT_PRESET, resolvePresetId, isSystemAware,

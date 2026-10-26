@@ -6,11 +6,19 @@ import { TmIcon } from "./icons.jsx";
 // `npm run shared:check` fails the build when a mirror drifts from its hash.
 
 // Eight complete themes, one shared Landscape construction.
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { themeMaterialVars } from "./themeMaterials.js";
+import { DEFAULT_SURFACE_STYLE, readSurfaceStyle, writeSurfaceStyle, watchSurfaceStyle } from "./appearance.js";
 import {
   APPEARANCE_PRESETS, DEFAULT_PRESET, previewTokens,
 } from "./themeRegistry.js";
+
+const SURFACE_OPTIONS = [
+  { id: "original", cs: "Původní", en: "Original", descCs: "Původní podklady a oddělení bloků.", descEn: "Original surfaces and separation between blocks." },
+  { id: "veil", cs: "Lehký závoj", en: "Light veil", descCs: "Jemné průsvitné podklady s lehkým stínem.", descEn: "Soft translucent surfaces with a light shadow." },
+  { id: "shadow", cs: "Měkký stín", en: "Soft shadow", descCs: "Téměř průhledné podklady s měkkým stínem.", descEn: "Nearly transparent surfaces with a soft shadow." },
+  { id: "clear", cs: "Téměř průhledné", en: "Nearly transparent", descCs: "Průhledné podklady, oddělené jemnou linkou.", descEn: "Transparent surfaces separated by a fine line." },
+];
 
 export function createAppearanceUI(useT, L) {
   function Snippet({ preset }) {
@@ -66,6 +74,26 @@ export function createAppearanceUI(useT, L) {
 
   function VzhledSekce({ preset, onPreset, open = false, onToggle }) {
     const { t } = useT();
+    const [surface, setSurface] = useState(() => readSurfaceStyle());
+    const surfaceRefs = useRef([]);
+    useEffect(() => {
+      const unwatch = watchSurfaceStyle(setSurface);
+      setSurface(readSurfaceStyle());
+      return unwatch;
+    }, []);
+    function pickSurface(value) { setSurface(writeSurfaceStyle(value)); }
+    function moveSurface(event) {
+      const current = Math.max(0, SURFACE_OPTIONS.findIndex(item => item.id === surface));
+      let next;
+      if (["ArrowRight", "ArrowDown"].includes(event.key)) next = (current + 1) % SURFACE_OPTIONS.length;
+      else if (["ArrowLeft", "ArrowUp"].includes(event.key)) next = (current + SURFACE_OPTIONS.length - 1) % SURFACE_OPTIONS.length;
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = SURFACE_OPTIONS.length - 1;
+      else return;
+      event.preventDefault();
+      pickSurface(SURFACE_OPTIONS[next].id);
+      surfaceRefs.current[next]?.focus();
+    }
     const isDefault = preset === DEFAULT_PRESET;
     const label = (extra) => ({
       fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.2em",
@@ -96,8 +124,27 @@ export function createAppearanceUI(useT, L) {
             cursor: isDefault ? "default" : "pointer",
             fontFamily: "var(--tm-font-body)", fontSize: 13,
           }}>
-          {L("Použít výchozí vzhled", "Use default appearance")}
+          {L("Použít výchozí motiv", "Use default theme")}
         </button>
+
+        <h3 id="tm-surface-label" style={{...label(true),marginBottom:10}}>{L("Podklady a hloubka", "Surfaces and depth")}</h3>
+        <div role="radiogroup" aria-labelledby="tm-surface-label" onKeyDown={moveSurface}
+          style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(132px,1fr))",gap:10}}>
+          {SURFACE_OPTIONS.map((item, index) => {
+            const selected = surface === item.id;
+            return <button type="button" role="radio" key={item.id} aria-checked={selected}
+              aria-labelledby={`tm-surface-${item.id}-name`} aria-describedby={`tm-surface-${item.id}-description`}
+              tabIndex={selected ? 0 : -1} ref={el => { surfaceRefs.current[index] = el; }} onClick={() => pickSurface(item.id)}
+              style={{display:"flex",flexDirection:"column",gap:6,minWidth:0,minHeight:44,padding:"12px 10px",boxSizing:"border-box",textAlign:"left",cursor:"pointer",borderRadius:10,border:`1px solid ${selected ? t.interactiveAccent : t.borderSoft}`,background:selected ? t.activeNav : "transparent",color:t.text,fontFamily:"var(--tm-font-body)"}}>
+              <span style={{display:"flex",alignItems:"baseline",gap:6,fontSize:13.5,lineHeight:1.35}}>
+                <span aria-hidden="true" style={{width:14,flexShrink:0}}>{selected && <FamilyIcon id="check" size={14}/>}</span>
+                <span id={`tm-surface-${item.id}-name`}>{L(item.cs,item.en)}</span>
+              </span>
+              <span id={`tm-surface-${item.id}-description`} style={{fontSize:12,lineHeight:1.5,color:t.textSec}}>{L(item.descCs,item.descEn)}</span>
+              {item.id === DEFAULT_SURFACE_STYLE && <span style={{fontFamily:"var(--tm-font-tag)",fontSize:11,letterSpacing:".12em",textTransform:"uppercase",color:t.textSec}}>{L("Výchozí", "Default")}</span>}
+            </button>;
+          })}
+        </div>
         </div>}
       </div>
     );

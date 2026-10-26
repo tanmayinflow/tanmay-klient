@@ -117,7 +117,7 @@ export function createCompassUI(deps) {
     const inToday = st.getDay(today).tasks.some((task) => task.text === g.name);
     const fmtT = (iso) => { if (!iso) return null; const [y, m, d] = iso.split("-"); return (+d) + ". " + (+m) + ". " + y; };
     return (
-      <div onClick={() => onOpen && onOpen(g.name)} style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: "var(--tm-r-md)", padding: "12px 14px", marginBottom: 10, cursor: "pointer", boxShadow: t.shadow }} className="tm-nav-item tm-lift">
+      <div data-tm-surface="card" onClick={() => onOpen && onOpen(g.name)} style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: "var(--tm-r-md)", padding: "12px 14px", marginBottom: 10, cursor: "pointer", boxShadow: t.shadow }} className="tm-nav-item tm-lift">
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
           <span style={{ color: t.textMuted, fontSize: 13, lineHeight: "20px" }}>◎</span>
           <span style={{ flex: 1, minWidth: 0, fontFamily: "var(--tm-font-body)", fontSize: 15, fontWeight: 500, color: g.status === "Completed" ? t.textMuted : t.heading, textDecoration: g.status === "Completed" ? "line-through" : "none", lineHeight: 1.4 }}>{g.name}</span>
@@ -297,7 +297,7 @@ export function createCompassUI(deps) {
           const weekReview = areaReviewFor(st.areaVlqOf?.(a.name), date);
           const status = weekReview ? L("Tento týden zhodnoceno", "Reviewed this week") : L("Tento týden ještě nezhodnoceno", "Not reviewed this week yet");
           return (
-            <button key={a.name} onClick={() => onOpen(a.name)} title={`${status} · ${done} / ${gs.length} ${L("cílů", "goals")}`} aria-label={`${areaLabel(a.name)} · ${status}`} className="tm-nav-item tm-lift tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "6px 13px", minHeight: 44, maxWidth: "100%", cursor: "pointer" }}>
+            <button key={a.name} data-tm-surface="chip" onClick={() => onOpen(a.name)} title={`${status} · ${done} / ${gs.length} ${L("cílů", "goals")}`} aria-label={`${areaLabel(a.name)} · ${status}`} className="tm-nav-item tm-lift tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "6px 13px", minHeight: 44, maxWidth: "100%", cursor: "pointer" }}>
               <AreaGlyph name={a.name} size={15} />
               <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text }}>{areaLabel(a.name)}</span>
               {weekReview ? <FamilyIcon id="check" size={13} style={{ color: t.accentInk || t.accent, flexShrink: 0 }} /> : <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: "50%", border: `1px solid ${t.textMuted}`, opacity: .6, flexShrink: 0 }} />}
@@ -305,7 +305,7 @@ export function createCompassUI(deps) {
             </button>
           );
         })}
-        {onAdd && <button onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px solid transparent`, borderRadius: 10, minWidth: 44, minHeight: 44, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+        {onAdd && <button data-tm-surface="control" onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px solid transparent`, borderRadius: 10, minWidth: 44, minHeight: 44, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
       </div>
       {next && <button onClick={() => onOpen(next.name)} style={{ background: "transparent", border: "none", minHeight: 44, padding: "8px 0", fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.accentInk || t.accent, cursor: "pointer" }}>{L("Zhodnotit další krajinu", "Review the next landscape")} ›</button>}
       </div>
@@ -343,7 +343,7 @@ export function createCompassUI(deps) {
             const review = areaReviewFor(st.areaVlqOf?.(a.name), week);
             const goals = all.filter(g => g.area === a.name || (g.areas || []).includes(a.name));
             const done = goals.filter(g => g.status === "Completed").length;
-            return <button key={a.name} data-guide={guide} onClick={() => onOpen?.(a.name, week)} className="tm-nav-item" style={{ display: "grid", width: "100%", gridTemplateColumns: cols, alignItems: "center", minHeight: 56, padding: 0, background: "transparent", border: "none", borderBottom: `1px solid ${t.borderSoft}`, cursor: "pointer", textAlign: "left" }}>
+            return <button key={a.name} data-guide={guide} data-tm-surface="row" onClick={() => onOpen?.(a.name, week)} className="tm-nav-item" style={{ display: "grid", width: "100%", gridTemplateColumns: cols, alignItems: "center", minHeight: 56, padding: 0, background: "transparent", border: "none", borderBottom: `1px solid ${t.borderSoft}`, cursor: "pointer", textAlign: "left" }}>
               <span style={{ padding: "10px 8px", display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}><AreaGlyph name={a.name} size={15} /><span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.text, overflowWrap: "anywhere" }}>{areaLabel(a.name)}</span></span>
               <span style={{ padding: "8px", fontFamily: "var(--tm-font-body)", fontSize: 12, color: review ? t.accentInk || t.accent : t.textMuted }}>{review ? <><span style={{ display: "block" }}>{review.dulezitost} / {review.zit} <span style={{ color: t.textMuted }}>({L("z 5", "of 5")})</span></span><span style={{ fontSize: 11 }}>{L("Zhodnoceno", "Reviewed")}</span></> : L("Bez hodnocení", "Not reviewed")}</span>
               <span style={{ padding: "10px 8px", textAlign: "right", fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{done}/{goals.length}</span>
@@ -639,7 +639,7 @@ export function createCompassUI(deps) {
         <div style={{ ...eyebrow, marginBottom: 6 }}>{L("Cíle", "Goals")} · {gs.length}</div>
         {gs.length === 0 && <Prazdno kind="prvni" plain compact fakt={L("V této krajině zatím žádný cíl není.", "No goal in this landscape yet.")} pozvani={L("Přidej ho v Cílech a vyber tuhle krajinu.", "Add one in Goals and pick this landscape.")} />}
         {gs.map((g) => (
-          <button key={g.name} className="tm-row" onClick={() => openGoal && openGoal(g.name)} style={{ display: "flex", width: "100%", alignItems: "center", gap: 9, padding: "9px 6px", margin: "0 -6px", minHeight: 40, background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
+          <button key={g.name} className="tm-row" data-tm-surface="row" onClick={() => openGoal && openGoal(g.name)} style={{ display: "flex", width: "100%", alignItems: "center", gap: 9, padding: "9px 6px", margin: "0 -6px", minHeight: 40, background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
             <span style={{ color: t.textMuted, fontSize: 12 }}>◎</span>
             <span style={{ flex: 1, fontFamily: "var(--tm-font-body)", fontSize: 13, color: g.status === "Completed" ? t.textMuted : t.text, textDecoration: g.status === "Completed" ? "line-through" : "none" }}>{g.name}</span>
             <OwnerBadge g={g} />
@@ -813,7 +813,7 @@ export function createCompassUI(deps) {
                 {shown.map((g) => {
                   const inToday = todayNames.includes(g.name);
                   return (
-                    <div key={g.name} className="tm-motionrow" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 6px", margin: "0 -6px", borderRadius: 8, borderBottom: "none" }}>
+                    <div key={g.name} className="tm-motionrow" data-tm-surface="row" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 6px", margin: "0 -6px", borderRadius: 8, borderBottom: "none" }}>
                       <span title={PL(g.prio)} style={{ width: 8, height: 8, borderRadius: "50%", background: prioDot(g.prio), flexShrink: 0 }} />
                       <button onClick={() => setSel({ type: "goal", id: g.name })} style={{ flex: 1, minWidth: 0, minHeight: 34, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "4px 0", display: "flex", alignItems: "baseline", gap: 10 }}>
                         <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.name}</span>
@@ -845,7 +845,7 @@ export function createCompassUI(deps) {
                   {waiting.length > waitN && <button onClick={() => setWaitN(waiting.length)} className="tm-tap-c" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12, padding: "6px 0", minHeight: 30, flexShrink: 0 }}>{L("všech", "all")} {waiting.length} <FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
                 </div>
                 {waiting.slice(0, waitN).map((g, i) => (
-                  <div key={g.name} className="tm-motionrow" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", margin: "0 -6px", borderRadius: 8, borderBottom: i < Math.min(waiting.length, waitN) - 1 ? `1px solid ${t.borderSoft}` : "none" }}>
+                  <div key={g.name} className="tm-motionrow" data-tm-surface="row" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", margin: "0 -6px", borderRadius: 8, borderBottom: i < Math.min(waiting.length, waitN) - 1 ? `1px solid ${t.borderSoft}` : "none" }}>
                     <span title={PL(g.prio)} style={{ width: 8, height: 8, borderRadius: "50%", background: prioDot(g.prio), flexShrink: 0, opacity: 0.7 }} />
                     <button onClick={() => setSel({ type: "goal", id: g.name })} style={{ flex: 1, minWidth: 0, minHeight: 34, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "4px 0", fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.name}</button>
                     <OwnerBadge g={g} />

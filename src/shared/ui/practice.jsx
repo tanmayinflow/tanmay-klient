@@ -142,7 +142,7 @@ export function createPracticeUI(deps) {
     return (
       <div>
         {tasks.map((task) => (
-          <div key={task.id} className="tm-row" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", margin: "0 -6px" }}>
+          <div key={task.id} className="tm-row" data-tm-surface="row" data-tm-surface-active={!!task.done} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", margin: "0 -6px" }}>
             <button onClick={() => zmen((list) => list.map((x) => x.id === task.id ? { ...x, done: !x.done } : x))} aria-label={(task.done ? L("Odškrtnout ", "Uncheck ") : L("Zaškrtnout ", "Check ")) + task.text} aria-pressed={!!task.done} className="tm-tap-c" style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Check done={!!task.done} /></button>
             {/* každý řádek je odkaz · cíl z Kompasu se otevře, ručně psaný se dá povýšit */}
             <button onClick={() => (task.goal || goalNames.indexOf(task.text) >= 0) ? openG(task.text) : openOrMake(task.text)}
@@ -343,7 +343,7 @@ export function createPracticeUI(deps) {
     const empty = archive.length === 0 && mine.length === 0;
     const preview = (txt) => tmPlain(txt).split("\n").map((x) => x.trim()).filter(Boolean)[0] || "";
     const row = (key, title, tags, text, isOpen, onToggle, body) => (
-      <div key={key} style={{ background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, margin: "6px 0", boxShadow: isOpen ? t.shadow : "none" }}>
+      <div key={key} data-tm-surface="row" data-tm-surface-active={!!isOpen} data-tm-surface-editor={!!isOpen} style={{ background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, margin: "6px 0", boxShadow: isOpen ? t.shadow : "none" }}>
         <button onClick={onToggle} className="tm-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 8, padding: "8px 12px", cursor: "pointer" }}>
           <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 17, color: t.heading, flexShrink: 0 }}>{title}</span>
           {tags}
@@ -544,7 +544,7 @@ export function createPracticeUI(deps) {
         {recent.map((d, i) => {
           const w = wbOf(d);
           return (
-            <button key={d} onClick={() => st.setSelDate(d)} title={L("Otevřít den", "Open day")} style={{ width: "100%", textAlign: "left", background: d === date ? t.card : "transparent", border: "none", cursor: "pointer", display: "grid", gridTemplateColumns: "44px 44px auto auto auto auto 1fr", alignItems: "center", gap: 12, padding: "8px 6px", borderBottom: "none", borderRadius: 6 }}>
+            <button key={d} data-tm-surface="row" data-tm-surface-active={d === date} onClick={() => st.setSelDate(d)} title={L("Otevřít den", "Open day")} style={{ width: "100%", textAlign: "left", background: d === date ? t.card : "transparent", border: "none", cursor: "pointer", display: "grid", gridTemplateColumns: "44px 44px auto auto auto auto 1fr", alignItems: "center", gap: 12, padding: "8px 6px", borderBottom: "none", borderRadius: 6 }}>
               <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{fmtShort(d)}</span>
               <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textSec }}>{w.sleep != null ? w.sleep + " h" : "—"}</span>
               <DotMeter value={w.mood} color={colors.mood} />
@@ -586,7 +586,7 @@ export function createPracticeUI(deps) {
   function StatCard({ value, label }) {
     const { t } = useT();
     return (
-      <div className="tm-lift" style={{ flex: 1, minWidth: 110, background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "14px 16px" , boxShadow: t.shadow }}>
+      <div className="tm-lift" data-tm-surface="card" style={{ flex: 1, minWidth: 110, background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "14px 16px" , boxShadow: t.shadow }}>
         <div style={{ fontFamily: "var(--tm-font-display)", fontWeight: 400, fontSize: 28, color: t.heading, lineHeight: 1 }}>{value}</div>
         <div style={{ ...subLabel(t), marginBottom: 0, marginTop: 6 }}>{label}</div>
       </div>
@@ -614,7 +614,7 @@ export function createPracticeUI(deps) {
     const pick = (iso) => { st.setSelDate(iso); if (typeof document !== "undefined") { const el = document.getElementById("dayview"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); } };
     return (
       <div className="tm-calwrap" style={{ margin: "0 0 16px", animation: "tmsettle .24s ease-out" }}>
-      <div className="tm-calcard" style={{ border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 16, background: t.card, boxShadow: t.shadow }}>
+      <div className="tm-calcard" data-tm-surface="card" style={{ border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 16, background: t.card, boxShadow: t.shadow }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 22, color: t.heading }}>{MN[Mo - 1]} {Y}</span>
           <div style={{ display: "flex", gap: 6 }}>

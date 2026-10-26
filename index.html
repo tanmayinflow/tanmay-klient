@@ -60,6 +60,9 @@
         } catch (e) {}
         var dark = N.indexOf(id) >= 0;
         var h = document.documentElement;
+        var surface = "veil";
+        try { var savedSurface = localStorage.getItem("tm-surface-style-v1"); if (["original","veil","shadow","clear"].indexOf(savedSurface) >= 0) surface = savedSurface; } catch (e) {}
+        h.setAttribute("data-surface-style", surface);
         h.setAttribute("data-appearance", id);
         h.setAttribute("data-color-mode", dark ? "dark" : "light");
         h.setAttribute("data-frame-grammar", G[id]);

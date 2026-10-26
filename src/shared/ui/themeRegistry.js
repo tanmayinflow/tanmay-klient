@@ -319,6 +319,7 @@ function buildPalette(mode, s, legacy) {
   const out = {
     mode,
     polarity: mode,
+    shadowInk,
 
     // ---- plochy -------------------------------------------------------
     background: s.background,
@@ -550,6 +551,7 @@ function exactPalette(d) {
     ...(d.material ? { material: d.material } : {}),
     mode: d.polarity,
     polarity: d.polarity,
+    shadowInk,
 
     background: d.background,
     navigation: d.navigation,

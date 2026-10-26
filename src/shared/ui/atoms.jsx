@@ -37,7 +37,7 @@ export function createAtoms(deps) {
     const { t } = useT();
 
     return (
-      <button className="tm-pill" onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 7, cursor: "pointer", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 20, padding: "6px 14px", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, transition: "background .15s ease" }}>
+      <button className="tm-pill" data-tm-surface="chip" onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 7, cursor: "pointer", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 20, padding: "6px 14px", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, transition: "background .15s ease" }}>
         <span>{icon}</span>{label}<span className="tm-arrow" style={{ color: t.accent }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
       </button>
     );
@@ -134,14 +134,14 @@ export function createAtoms(deps) {
     };
     return (
       <div ref={wrapRef} style={{ position: "relative", display: "inline-block", ...(style && style.maxWidth ? { maxWidth: style.maxWidth } : {}), width: (style && style.width) || "auto" }}>
-        <button className="tm-select-trigger" type="button" aria-expanded={open} onClick={() => setOpen((x) => !x)} style={trigStyle}>
+        <button className="tm-select-trigger" data-tm-surface={ghost ? undefined : "control"} data-tm-surface-active={open ? "true" : undefined} type="button" aria-expanded={open} onClick={() => setOpen((x) => !x)} style={trigStyle}>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: ghost ? t.textMuted : (cur || value) ? t.text : t.textMuted }}>{cur ? cur.label : (value || placeholder || "—")}</span>
           <span style={{ color: t.textMuted, fontSize: 12, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}><FamilyIcon id="expand" size={12} label={L("Rozbalit","Expand")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
         </button>
         {open && (
           <div className="tm-select-menu" style={{ animation: "tmsettle .18s ease both", position: "absolute", top: "calc(100% + 5px)", left: 0, minWidth: "100%", maxWidth: "min(320px, calc(86 * var(--tm-vw)))", maxHeight: 280, overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 12, boxShadow: "0 8px 18px rgba(28,28,26,0.12)", zIndex: 60, padding: 5 }}>
             {opts.map((o) => (
-              <button key={o.v} type="button" onClick={() => { onChange(o.v); setOpen(false); }} className="tm-nav-item" style={{ display: "block", width: "100%", textAlign: "left", background: o.v === value ? t.card : "transparent", border: "none", cursor: "pointer", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: small ? 12.5 : 14, padding: "7px 10px", borderRadius: 6, whiteSpace: "nowrap" }}>{o.label}</button>
+              <button key={o.v} type="button" data-tm-surface="row" data-tm-surface-active={o.v === value ? "true" : undefined} onClick={() => { onChange(o.v); setOpen(false); }} className="tm-nav-item" style={{ display: "block", width: "100%", textAlign: "left", background: o.v === value ? t.card : "transparent", border: "none", cursor: "pointer", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: small ? 12.5 : 14, padding: "7px 10px", borderRadius: 6, whiteSpace: "nowrap" }}>{o.label}</button>
             ))}
           </div>
         )}
@@ -219,6 +219,8 @@ export function createAtoms(deps) {
         onPointerLeave={onInfo ? clear : undefined} onPointerCancel={onInfo ? clear : undefined}
         onContextMenu={onInfo ? (e) => e.preventDefault() : undefined}
         className="tm-chip"
+        data-tm-surface="chip"
+        data-tm-surface-active={active ? "true" : undefined}
         aria-pressed={active === undefined ? undefined : !!active}
         style={{ background: active ? t.card : "transparent", border: `1px solid ${active ? t.border : "transparent"}`, borderRadius: "var(--tm-r-pill)", padding: "8px 14px", minHeight: "var(--tm-tap-compact)", display: "inline-flex", alignItems: "center", cursor: "pointer", color: active ? t.heading : t.textMuted, boxShadow: active ? t.shadow : "none", fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, whiteSpace: "nowrap", WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "manipulation" }}>
         {label}

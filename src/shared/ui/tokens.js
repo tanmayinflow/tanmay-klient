@@ -1,3 +1,4 @@
+import { surfaceCss } from "./surfaceCss.js";
 import { roomArtCss } from "./roomArt.js";
 import { ownerRefinementsCss } from "./ownerRefinements.js";
 import { landscapeCss } from "./landscapeCss.js";
@@ -102,6 +103,7 @@ export function tokensCss(t, lang, typography = 'original') {
 
   /* barvy · aby na ně dosáhla i pravidla ve <style>, ne jen inline styl */
   --tm-bg: ${t.bg};
+  --tm-depth-ink: ${t.shadowInk || t.heading};
   --tm-bg-sidebar: ${t.bgSidebar};
   --tm-text: ${t.text};
   --tm-heading: ${t.heading};
@@ -215,6 +217,7 @@ ${skinCss()}
 ${landscapeCss()}
 ${roomArtCss()}
 ${ownerRefinementsCss()}
+${surfaceCss()}
 ${typographyCss(typography)}
 `;
 }

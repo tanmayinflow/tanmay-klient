@@ -734,7 +734,7 @@ function NavCard({ icon, title, sub, onClick }) {
   const { t } = useT();
 
   return (
-    <button onClick={onClick} className="tm-lift" style={{ flex: 1, minWidth: 150, textAlign: "left", cursor: "pointer", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "16px 18px" }}>
+    <button data-tm-surface="card" onClick={onClick} className="tm-lift" style={{ flex: 1, minWidth: 150, textAlign: "left", cursor: "pointer", background: t.card, border: `1px solid ${t.border}`, borderRadius: 10, padding: "16px 18px" }}>
       <div style={{ fontSize: 22, marginBottom: 8 }}>{icon}</div>
       <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{title}</div>
       {sub && <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, marginTop: 2 }}>{sub}</div>}
@@ -4552,7 +4552,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
     <div
       ref={rootRef}
       className={effOpen || selecting ? undefined : kind === "journal" ? "tm-grow" : "tm-lift"}
-      {...{ ["data-card-" + kind]: entry.id }}
+      {...{ ["data-card-" + kind]: entry.id }} data-tm-surface={full || effOpen ? undefined : "row"} data-tm-surface-active={selected || current || over || isTouchDragging ? "true" : undefined} data-tm-surface-editor={full || effOpen ? "true" : undefined}
       data-pick={entry.id}
       draggable={!selecting && !noDrag && !full && !holdManaged && !effOpen}
       onDragStart={!selecting && !noDrag && !full && !holdManaged && !effOpen ? (e) => { e.dataTransfer.setData("text/plain", "card-" + kind + ":" + entry.id); e.dataTransfer.effectAllowed = "move"; } : undefined}
@@ -5383,7 +5383,7 @@ function PageJournal() {
         </div>
       )}
       {!selecting && !composerOpen && todayEntry && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "10px 14px", margin: "12px 0 6px", boxShadow: t.shadow }}>
+        <div data-tm-surface="row" style={{ display: "flex", alignItems: "center", gap: 10, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "10px 14px", margin: "12px 0 6px", boxShadow: t.shadow }}>
           <span style={{ color: t.sand, display: "inline-flex" }}><PenIcon size={12} /></span>
           <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{L("Dnešní zápis uložen", "Today's entry saved")} · {fmtCZ(today)}</span>
           <span style={{ flex: 1 }} />
@@ -9478,7 +9478,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag,
       onDragLeave={() => setOver(false)}
       onDrop={drag ? (e) => { e.preventDefault(); setOver(false); const p = (e.dataTransfer.getData("text/plain") || "").split(":"); if (p[0] === "tex" && p[1] !== ex.id) st.reorderEntry("tEx", p[1], ex.id); } : undefined}
       style={{ position: "relative", display: "flex", borderRadius: 10, outline: over ? `2px solid ${t.accent}` : "none" }}>
-    <button onClick={selecting ? onToggleSel : onOpen} style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: 0, overflow: "hidden", transition: "all .18s ease", boxShadow: t.shadow, display: "flex", flexDirection: view === "list" ? "row" : "column", alignItems: view === "list" ? "center" : "stretch", ...(view === "list" ? { padding: "10px 0", paddingRight: selecting || showDelete ? 44 : 0, gap: 14, border: "none", borderRadius: 0, boxShadow: "none", background: "transparent" } : {}) }}>
+    <button data-tm-surface={view === "list" ? undefined : "card"} data-tm-surface-active={selecting || selected || over ? "true" : undefined} onClick={selecting ? onToggleSel : onOpen} style={{ width: "100%", height: "100%", textAlign: "left", cursor: "pointer", background: selecting && selected ? t.activeNav : t.card, border: `1px solid ${selecting && selected ? t.accent : t.border}`, borderRadius: 10, padding: 0, overflow: "hidden", transition: "all .18s ease", boxShadow: t.shadow, display: "flex", flexDirection: view === "list" ? "row" : "column", alignItems: view === "list" ? "center" : "stretch", ...(view === "list" ? { padding: "10px 0", paddingRight: selecting || showDelete ? 44 : 0, gap: 14, border: "none", borderRadius: 0, boxShadow: "none", background: "transparent" } : {}) }}>
       {view === "list" ? <ExerciseLibraryRowContent t={t} title={tExName(ex)} focus={resolveMuscleMap(ex, tMetaOf(ex)).primary.map(k => L((T_MUS[k] || {}).cz, (T_MUS[k] || {}).en)).filter(Boolean).join(" · ") || <ExerciseTaxonomySummary taxonomyOf={exerciseTaxonomy} t={t} exercise={ex} meta={tMetaOf(ex)} compact />} illustration={<TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />} /> : <>
       {/* DESKA PŘES CELOU KARTU · ilustrace sahá k okrajům rámečku cviku,
           na telefonu i na počítači. Lněné pole plátu je čtvercové a vyplní
@@ -12689,7 +12689,7 @@ function KBView() {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12, marginTop: 22 }}>
         {KB_DOCS.map((d) => (
-          <button key={d.id} onClick={() => setDocId(d.id)} className="tm-nav-item" style={{ textAlign: "left", cursor: "pointer", background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 18px", boxShadow: t.shadow }}>
+          <button data-tm-surface="card" key={d.id} onClick={() => setDocId(d.id)} className="tm-nav-item" style={{ textAlign: "left", cursor: "pointer", background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: "16px 18px", boxShadow: t.shadow }}>
             <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10, color: t.accent, marginBottom: 6 }}>{d.author}</div>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 20, color: t.heading, lineHeight: 1.25 }}>{L(d.cz, d.en)}</div>
             <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 15, color: t.sand, marginBottom: 8 }}>— {L(d.subcz, d.suben)}</div>
@@ -12714,7 +12714,7 @@ function KBPlanCard({ p, t, klienti, onOpen, onDelete, onSchedule, rec }) {
   const dated = (p.sessions || []).some((s) => s.date);
   const nextS = (p.sessions || []).filter((x) => !x.done && x.date && x.date >= todayISO()).sort((a, b) => (a.date < b.date ? -1 : 1))[0];
   return (
-    <div style={{ position: "relative", display: "flex", flexDirection: "column", background: t.card, border: `1px solid ${rec ? t.accent : t.border}`, borderRadius: 10, boxShadow: t.shadow, overflow: "hidden" }}>
+    <div data-tm-surface="card" data-tm-surface-active={rec ? "true" : undefined} style={{ position: "relative", display: "flex", flexDirection: "column", background: t.card, border: `1px solid ${rec ? t.accent : t.border}`, borderRadius: 10, boxShadow: t.shadow, overflow: "hidden" }}>
       <button title={L("Do koše", "To trash")} onClick={() => onDelete(p.id)} style={tDelBtn(t)}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
       <button onClick={() => onOpen(p.id)} className="tm-nav-item" style={{ textAlign: "left", cursor: "pointer", background: "transparent", border: "none", padding: "15px 17px 12px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 5, paddingRight: 18 }}>
@@ -13262,7 +13262,7 @@ function TvClientPlan({ onRun }) {
         const ss = p.sessions || [];
         const done = ss.filter((s) => { const r = recordFor(p, s); return r && r.state === "done"; }).length;
         return (
-          <div key={p.id} style={{ border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, padding: 14 }}>
+          <div data-tm-surface="card" key={p.id} style={{ border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, padding: 14 }}>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{L(p.cz, p.en) || L("Plán", "Plan")}</div>
             {TL(p.intro) ? <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.sand, marginTop: 5 }}><TrainingSourceText text={TL(p.intro)} color={t.accentInk || t.accent}/></div> : null}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
@@ -13365,7 +13365,7 @@ function TvClientHistory({ onRun }) {
         {sessions.slice(0, visibleCount).map((s) => {
           const c = TV.countSets(s);
           return (
-            <button key={s.id} onClick={() => onRun(s.id)} className="tm-lift"
+            <button data-tm-surface="row" key={s.id} onClick={() => onRun(s.id)} className="tm-lift"
               style={{ textAlign: "left", background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "11px 13px", cursor: "pointer", minHeight: 56 }}>
               <span style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
                 <span style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: t.heading, flex: 1 }}>{L(s.cz, s.en) || L("Trénink", "Workout")}</span>
@@ -14027,7 +14027,7 @@ const bkcBtn = (t, primary) => primary
 function BkcTermin({ b, onOpen, tlumene }) {
   const { t } = useT();
   return (
-    <button className="tm-booking-card" onClick={() => onOpen && onOpen(b)}
+    <button data-tm-surface="row" data-tm-surface-active={tlumene ? "true" : undefined} className="tm-booking-card" onClick={() => onOpen && onOpen(b)}
       style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", backgroundImage: tlumene ? "none" : "var(--land-field)", backgroundSize: "768px auto",
         border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10,
         cursor: onOpen ? "pointer" : "default", color: t.text, fontFamily: FONT_BODY, opacity: tlumene ? 0.75 : 1 }}>
@@ -14082,7 +14082,7 @@ function PageTerminy() {
 
       {/* Zůstatek · číslo, ne graf. A hned pod ním, co se s ním dá udělat. */}
       {kredity && (
-        <div style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "14px 16px", marginBottom: 22 }}>
+        <div data-tm-surface="card" style={{ background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "14px 16px", marginBottom: 22 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
             <span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage }}>{L("Zůstatek", "Balance")}</span>
             <span style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: t.heading }}>{bkcCredits(kredity.available)}</span>

@@ -271,7 +271,8 @@ export function shellMobileCss(t) {
   .tm-jsnip { display: none !important; }
   /* The list's paper edge belongs to the page only. A full editor is portaled
      into its own sheet and deliberately has no second, content-sized card. */
-  .tm-page [data-card-journal] { margin: 22px 4px !important; box-shadow: 0 0 0 8px ${t.callout}, 0 0 0 9px ${t.borderSoft} !important; }
+  .tm-page [data-card-journal] { margin: 22px 4px !important; }
+html:not(:is([data-surface-style="veil"],[data-surface-style="shadow"],[data-surface-style="clear"])) .tm-page [data-card-journal] { box-shadow: 0 0 0 8px ${t.callout}, 0 0 0 9px ${t.borderSoft} !important; }
   /* filtry Pramenů a Zápisníku · schované za ▾, jako v Deníku */
   .tm-deskonly { display: none !important; }
   /* lišta hromadných akcí nesmí zmizet pod dokem */

@@ -13,7 +13,7 @@ export function createPracticePage({useT,useStore,L,PageTitle,BufferedInput,TmIc
     const date=st.selDate||todayISO();
     const seed=date.split("-").reduce((a,x)=>a+parseInt(x,10),0);
     const entry=list[seed%list.length];
-    return <button onClick={()=>go("prameny")} className="tm-lift" style={{display:"block",width:"100%",textAlign:"left",background:t.card,border:`1px solid ${t.borderSoft}`,borderRadius:12,boxShadow:t.shadow,padding:"16px 18px 13px",margin:"14px 0 0",cursor:"pointer"}}>
+    return <button onClick={()=>go("prameny")} className="tm-lift" data-tm-surface="card" style={{display:"block",width:"100%",textAlign:"left",background:t.card,border:`1px solid ${t.borderSoft}`,borderRadius:12,boxShadow:t.shadow,padding:"16px 18px 13px",margin:"14px 0 0",cursor:"pointer"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,fontFamily:FONT_TAG,textTransform:"uppercase",letterSpacing:".2em",fontSize:12,color:t.accentInk||t.accent,marginBottom:9}}><TmIcPrameny size={13}/>{L("Dnešní pramen","Today's spring")}</div>
       <div style={{fontFamily:"var(--tm-font-display)",fontStyle:"italic",fontSize:17,lineHeight:1.45,color:t.text}}>{entry.carry}</div>
       <div style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,marginTop:8}}>{entry.title}{entry.author?" · "+entry.author:""}</div>

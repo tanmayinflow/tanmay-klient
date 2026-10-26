@@ -44,7 +44,7 @@ function Jars({ month }) {
         const frac = alloc > 0 ? Math.min(1, spent / alloc) : (spent > 0 ? 1 : 0);
         const over = alloc > 0 && spent > alloc;
         return (
-          <div key={code} style={{ padding: "10px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
+          <div key={code} data-tm-surface="row" data-tm-surface-active={!!(em || over)} data-tm-surface-editor={!!em} style={{ padding: "10px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "2px 10px", marginBottom: 5 }}>
               <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text }}>
                 <b style={{ color: t.accent, fontFamily: FONT_TAG, letterSpacing: "0.05em" }}>{code}</b> · {JAR_NAZEV(code)}{" "}
@@ -86,6 +86,9 @@ function WishRow({ r, buy, letGo }) {
     <div
       ref={rootRef}
       data-wish={r.id}
+      data-tm-surface="row"
+      data-tm-surface-active={!!(dragging || over || ripe)}
+      data-tm-surface-editor={noteVal !== (r.note || "")}
       draggable
       onDragStart={(e) => { e.dataTransfer.setData("text/plain", "wish:" + r.id); e.dataTransfer.effectAllowed = "move"; }}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
@@ -327,7 +330,7 @@ function DebtRow({ r, focus, duvod, onPay }) {
     ? { background: hexA(t.accent, 0.05), borderRadius: 8, padding: "11px 10px 12px", margin: "0 -10px" }
     : { background: "transparent", borderRadius: 0, padding: "11px 2px 12px", margin: "0px" };
   return (
-    <div style={{ ...ram, borderBottom: `1px solid ${t.borderSoft}` }}>
+    <div data-tm-surface="row" data-tm-surface-active={!!(focus || edit || platba || r.settled)} data-tm-surface-editor={!!(edit || platba)} style={{ ...ram, borderBottom: `1px solid ${t.borderSoft}` }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap" }}>
         <span style={{ fontFamily: FONT_BODY, fontSize: 15, color: t.text, flex: 1, minWidth: 120 }}>{r.name || L("beze jména", "unnamed")}</span>
         {focus ? <span style={{ ...finTag(t, true), cursor: "default" }}>{L("soustředím se", "focus")}</span> : <span style={metaLabel(t)}>{L("jen minimum", "minimum only")}</span>}
@@ -512,7 +515,7 @@ function BillRow({ occ, po, onPaid, onMove, onUndo, onEdit, editing }) {
   const zaplaceno = !!occ.log;
   const jinak = zaplaceno && Math.abs((Number(occ.log.amount) || 0) - (Number(b.amount) || 0)) > 0.5 && Number(b.amount) > 0;
   return (
-    <div style={{ padding: "9px 2px", borderBottom: `1px solid ${t.borderSoft}`, opacity: zaplaceno ? 0.6 : 1 }}>
+    <div data-tm-surface="row" data-tm-surface-active={!!(po || zaplaceno || isEditing || rezim)} data-tm-surface-editor={!!(isEditing || rezim)} style={{ padding: "9px 2px", borderBottom: `1px solid ${t.borderSoft}`, opacity: zaplaceno ? 0.6 : 1 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap" }}>
         <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: po ? t.accent : t.textMuted, width: 46, flexShrink: 0, ...numTab }}>{finShortDate(occ.due)}</span>
         <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text, flex: 1, minWidth: 100, textDecorationLine: zaplaceno ? "line-through" : "none", textDecorationColor: hexA(t.textMuted, 0.55) }}>{b.name || L("beze jména", "unnamed")}</span>

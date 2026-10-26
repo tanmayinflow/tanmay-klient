@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { APPEARANCE_PRESET_IDS, APPEARANCE_PRESETS, DEFAULT_PRESET, normalizeAppearance,
   resolveTheme, documentThemeAttrs, FUNCTIONAL, STATUS_CARRIERS, statusPalette, returnToSignature } from '../src/shared/ui/themeRegistry.js';
-import { readAppearance, writeAppearance, localPreviewAppearance } from '../src/shared/ui/appearance.js';
+import { readAppearance, writeAppearance, localPreviewAppearance, readSurfaceStyle } from '../src/shared/ui/appearance.js';
 import { MATERIAL_RECIPES, themeMaterialVars } from '../src/shared/ui/themeMaterials.js';
 import { contrast } from '../src/shared/ui/contrast.js';
 import { landscapeCss } from '../src/shared/ui/landscapeCss.js';
@@ -65,7 +65,7 @@ test('first paint matches React for all generations and does not overwrite saved
     for(const mode of ['light','dark','system']) cases.push({'tm-appearance-v2':JSON.stringify({family,mode})});
   for(const values of cases) {
     const before=JSON.stringify(values), pref=readAppearance(store(values));
-    assert.deepEqual(paint(values),documentThemeAttrs(pref.preset),before);
+    assert.deepEqual(paint(values),{...documentThemeAttrs(pref.preset), "data-surface-style":readSurfaceStyle(store(values))},before);
     assert.equal(JSON.stringify(values),before,'bootstrap must be read-only');
   }
 });
@@ -102,4 +102,16 @@ test('status meaning stays independent of decorative palette',()=>{
       assert.ok(STATUS_CARRIERS[role].glyph && STATUS_CARRIERS[role].shape);
     }
   }
+});
+
+
+test('surface first paint keeps each saved choice and safely defaults invalid or inaccessible storage',()=>{
+  for(const value of ['original','veil','shadow','clear','bad','__proto__']) {
+    const values={'tm-surface-style-v1':value};
+    assert.equal(paint(values)['data-surface-style'],readSurfaceStyle(store(values)));
+    assert.equal(values['tm-surface-style-v1'],value);
+  }
+  const attrs={};
+  runInNewContext(boot,{localStorage:{getItem(){throw Error('denied');}},window:{location:{hostname:'example.com',search:''}},document:{documentElement:{setAttribute:(k,v)=>{attrs[k]=v;},style:{setProperty(){}}},body:{style:{}},querySelector:()=>null}});
+  assert.equal(attrs['data-surface-style'],'veil');
 });
