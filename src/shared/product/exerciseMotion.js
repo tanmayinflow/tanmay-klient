@@ -2253,6 +2253,69 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 76843,
     "sha256": "116c8df02c7d912d5af74a2f97054ca64dc22801435997e139f946169e769b37",
     "poster": "/exercise-motion/highknees-poster-151519dcdd1bdfe4.webp"
+  },
+  "disloc": {
+    "oneSide": false,
+    "src": "/exercise-motion/disloc-561edeedf627d324.mp4",
+    "bytes": 33716,
+    "sha256": "561edeedf627d32476b36f29b18be3f9e8ff5b88a50781a21d293073d6bfeb90",
+    "poster": "/exercise-motion/disloc-poster-8ed285851089fcd7.webp"
+  },
+  "sq26_supported": {
+    "oneSide": false,
+    "src": "/exercise-motion/sq26_supported-e0c9a822a5c5f525.mp4",
+    "bytes": 46901,
+    "sha256": "e0c9a822a5c5f525352cc17615d2d39e0b7f9757e97e23d58a70fde07cd35b8b",
+    "poster": "/exercise-motion/sq26_supported-poster-e8d21377a843db88.webp"
+  },
+  "an_cablecurl": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_cablecurl-4aee2433168220bc.mp4",
+    "bytes": 44422,
+    "sha256": "4aee2433168220bc04e6ad66128cb02fc9e1c142ce5984e5d293b8a3010570dc",
+    "poster": "/exercise-motion/an_cablecurl-poster-1ea1fadc1c1602aa.webp"
+  },
+  "kneewall": {
+    "oneSide": true,
+    "src": "/exercise-motion/kneewall-61e8a0e9b516dd5c.mp4",
+    "bytes": 23513,
+    "sha256": "61e8a0e9b516dd5c5236bcdda5a8204a3976f5dc57b7581a249433b125a1e25b",
+    "poster": "/exercise-motion/kneewall-poster-144a10e69f615997.webp"
+  },
+  "jg_kati_cakrasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_kati_cakrasana-f119a12ebc34c964.mp4",
+    "bytes": 26423,
+    "sha256": "f119a12ebc34c9641cfe8741780bccf688edfe2a1efd90856a46c9befc0db1b7",
+    "poster": "/exercise-motion/jg_kati_cakrasana-poster-1f24de12e7fd405b.webp"
+  },
+  "nordic": {
+    "oneSide": false,
+    "src": "/exercise-motion/nordic-559ef44859f85e9e.mp4",
+    "bytes": 32818,
+    "sha256": "559ef44859f85e9e5cb1454a6ded016f3358102d7f0ae88c7e11aa5c1db5c4a5",
+    "poster": "/exercise-motion/nordic-poster-9135343f70bf1660.webp"
+  },
+  "eccham": {
+    "oneSide": false,
+    "src": "/exercise-motion/eccham-5a9b4469e3710631.mp4",
+    "bytes": 36868,
+    "sha256": "5a9b4469e371063168ee8a218307be2432dd5595162e7b8da8a6f3ad03bc6100",
+    "poster": "/exercise-motion/eccham-poster-a564941ac3e41784.webp"
+  },
+  "an_revlunge": {
+    "oneSide": true,
+    "src": "/exercise-motion/an_revlunge-83d7c3dd3074832f.mp4",
+    "bytes": 42387,
+    "sha256": "83d7c3dd3074832fbdfb62445805363ae7879ed98203e6303bcf5d0b14970db4",
+    "poster": "/exercise-motion/an_revlunge-poster-d86b4ea141538c36.webp"
+  },
+  "facepull": {
+    "oneSide": false,
+    "src": "/exercise-motion/facepull-c91eb0fc0b8b09e7.mp4",
+    "bytes": 28703,
+    "sha256": "c91eb0fc0b8b09e7f4bb25afc0b4a151d6e603f261ca30c1fa3409f3d392a8eb",
+    "poster": "/exercise-motion/facepull-poster-efeb01bafe1dd9c2.webp"
   }
 });
 
