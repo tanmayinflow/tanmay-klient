@@ -168,7 +168,7 @@ export function slotsForDay(dateISO, ctx) {
   const { tz, service, location, rules, overrides, busy } = ctx;
   const now = num(ctx.now, Date.now());
   const duration = Math.max(SLOT_GRID_MIN, num(service.duration_min, 60));
-  const step = Math.max(SLOT_GRID_MIN, num(service.slot_interval_min, 30));
+  const step = Math.max(SLOT_GRID_MIN, num(service.slot_interval_min, 60));
   const minNotice = Math.max(0, num(service.min_notice_min, 0));
   const horizonDays = Math.max(0, num(service.booking_horizon_days, 60));
   const b = bufferMinutes(service, location);

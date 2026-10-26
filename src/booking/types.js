@@ -221,7 +221,7 @@ export const SERVICE_DEFAULTS = Object.freeze({
   cancel_before_min: 1440,    // a day
   buffer_before_min: 0,
   buffer_after_min: 0,
-  slot_interval_min: 30,
+  slot_interval_min: 60,
   confirmation_mode: CONFIRMATION_MODE.REQUEST,
   daily_limit: 0,             // 0 = no limit
   weekly_limit: 0,

@@ -57,7 +57,7 @@ const M1 = [
      cancel_before_min    INTEGER NOT NULL DEFAULT 1440,
      buffer_before_min    INTEGER NOT NULL DEFAULT 0,
      buffer_after_min     INTEGER NOT NULL DEFAULT 0,
-     slot_interval_min    INTEGER NOT NULL DEFAULT 30,
+     slot_interval_min    INTEGER NOT NULL DEFAULT 60,
      confirmation_mode    TEXT NOT NULL DEFAULT 'REQUEST',
      daily_limit          INTEGER NOT NULL DEFAULT 0,
      weekly_limit         INTEGER NOT NULL DEFAULT 0,
