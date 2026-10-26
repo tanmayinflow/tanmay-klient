@@ -1,6 +1,7 @@
 // Public artwork only; exact original files, checked in both application repositories.
 export const ICON_ASSET_HASHES = {
   "moon-handdrawn-v2.png": "c8674dea395ed9cbd2a153122bad982673f4f223b84b1e4fdfbe6b3c6fbc5f8c",
+  "training-rings-mat-v4.png": "2fb675b18b50ba1fbeab33b8f19f445b61ac8a88a14ef8b3648c19d1c36ffac8",
   "training-rings-coiled-v3.png": "801d721295de2aec8268d6853116fe653eb53b73150f53a3ac56d24de35195b2",
   "manjushri-sword.png": "773864d451f2f210558794e307dfff476d783d5e0c7aff603fedfd93b9f19a32",
   "appointments-hourglass-v1.png": "c388fba99c3539f6dcb1974eab7e07f50d7ff31246aa03f03df30467413d820c",

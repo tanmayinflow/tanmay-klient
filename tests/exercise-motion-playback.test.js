@@ -15,6 +15,7 @@ function harness({ reduced = false, mode = 'full', refusal, autoPlay = true } = 
   const media = { matches: reduced, addEventListener: (k, cb) => { mediaListeners[k] = cb; }, removeEventListener: k => { delete mediaListeners[k]; } };
   const doc = { hidden: false, documentElement: { getAttribute: () => mode }, addEventListener: (k, cb) => { listeners[k] = cb; }, removeEventListener: k => { delete listeners[k]; } };
   const video = { paused: true, attributes: {}, playbackRate: 1,
+    addEventListener() {}, removeEventListener() {},
     getAttribute(k) { return this.attributes[k]; }, removeAttribute(k) { delete this.attributes[k]; },
     set src(v) { this.attributes.src = v; }, load() { loads++; },
     play() { plays++; if (refusal) return Promise.reject(Object.assign(new Error('Browser policy'), { name: refusal })); this.paused = false; this.props.onPlay(); return Promise.resolve(); },
@@ -28,7 +29,7 @@ function harness({ reduced = false, mode = 'full', refusal, autoPlay = true } = 
   };
   const context = { exports: {}, document: doc, window: { matchMedia: () => media, addEventListener: (k, cb) => { listeners[k] = cb; }, removeEventListener: k => { delete listeners[k]; } },
     IntersectionObserver: class { constructor(callback) { observer = callback; } observe() {} disconnect() {} },
-    require(name) { if (name === 'react') return React; if (name.includes('exerciseMotion.js')) return { exerciseMotionFor: () => null, claimMotionPlayer: () => { claimed++; }, releaseMotionPlayer: () => { released++; } }; return {}; },
+    require(name) { if (name === 'react') return React; if (name.includes('motionInkFrame')) return { attachMotionCanvas: () => () => {} }; if (name.includes('exerciseMotion.js')) return { exerciseMotionFor: () => null, claimMotionPlayer: () => { claimed++; }, releaseMotionPlayer: () => { released++; } }; return {}; },
   };
   vm.runInNewContext(code, context);
   const render = () => { cursor = 0; tree = context.Player({ motion: { src: '/exact-reviewed.mp4', poster: '/exact-reviewed.png' }, theme: {}, L: (cz) => cz, autoPlay }); return tree; };
@@ -46,10 +47,11 @@ function harness({ reduced = false, mode = 'full', refusal, autoPlay = true } = 
   };
 }
 
-test('eligible detail opens the exact clip once when visible; scrolling back does not restart a paused demonstration', async () => {
+test('eligible detail autoplays muted inline and resumes when scrolled back into view', async () => {
   const h = harness(); assert.equal(h.open(), true); assert.equal(h.stats().plays, 0);
   h.visible(true); await new Promise(resolve => setImmediate(resolve)); assert.equal(h.video.getAttribute('src'), '/exact-reviewed.mp4'); assert.equal(h.video.paused, false);
-  h.visible(false); assert.equal(h.video.paused, true); h.visible(true); assert.equal(h.stats().plays, 1); h.unmount();
+  assert.equal(h.video.muted, true); assert.equal(h.video.defaultMuted, true); assert.equal(h.video.playsInline, true);
+  h.visible(false); assert.equal(h.video.paused, true); h.visible(true); assert.equal(h.stats().plays, 2); h.unmount();
 });
 test('reduced motion, app motion off, and explicit manual mode never assign or autoplay media', () => {
   for (const options of [{ reduced: true }, { mode: 'off' }, { autoPlay: false }]) {

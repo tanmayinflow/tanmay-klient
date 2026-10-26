@@ -95,8 +95,8 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
   const facetButton = key => {
     const item = allFields.find(choice => choice.key === key);
     const n = (value[key]?.length || 0) + (key === 'regions' ? value.muscles.length : 0);
-    return <button type="button" key={key} data-tm-surface="control" data-tm-surface-active={n || expanded === key ? "true" : undefined} aria-expanded={expanded === key} onClick={() => setExpanded(expanded === key ? null : key)} style={{ ...control(t), borderColor: n ? t.accent : t.border, color: n ? t.heading : t.text }}>
-      {item.label}{n ? ` · ${n}` : ''}<TmIcon id="expand" size={12} style={{ marginLeft: 8, display: 'inline-block', verticalAlign: 'middle', transform: expanded === key ? 'rotate(180deg)' : undefined }} />
+    return <button type="button" key={key} data-tm-surface="control" data-tm-surface-active={n || expanded === key ? "true" : undefined} aria-expanded={expanded === key} onClick={() => setExpanded(expanded === key ? null : key)} style={{ ...control(t), fontSize: 13, padding: '8px', flexShrink: 0, whiteSpace: 'nowrap', borderColor: n ? t.accent : t.border, color: n ? t.heading : t.text }}>
+      {item.label}{n ? ` · ${n}` : ''}<TmIcon id="expand" size={12} style={{ marginLeft: 4, display: 'inline-block', verticalAlign: 'middle', transform: expanded === key ? 'rotate(180deg)' : undefined }} />
     </button>;
   };
   return <section data-exercise-library-filters="" aria-label={L('Hledání v knihovně cviků', 'Find exercises')} style={{ fontFamily: FONT_BODY, marginBottom: 18, minWidth: 0 }}>
@@ -116,15 +116,15 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
         <button type="button" data-tm-surface="control" aria-label={L('Zavřít a vyčistit hledání', 'Close and clear search')} onClick={() => { patch({ q: '' }); setSearchOpen(false); searchTrigger.current?.focus(); }} style={{ ...control(t), width: 44, padding: 0, borderColor: 'transparent', display: 'grid', placeItems: 'center' }}><TmIcon id="close" size={18} /></button>
       </div>}
     </div>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center' }}>
+    <div data-library-facet-row="" style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, alignItems: 'center', overflowX: 'auto', paddingBottom: 4 }}>
       {['regions', 'movements', 'equipment'].map(facetButton)}
-      <button type="button" aria-expanded={more} onClick={() => { setMore(!more); if (more && !['regions', 'movements', 'equipment'].includes(expanded)) setExpanded(null); }} style={{ ...control(t), borderColor: 'transparent', textDecoration: 'underline' }}>{more ? L('Méně filtrů', 'Fewer filters') : L('Další filtry', 'More filters')}</button>
+      <button type="button" aria-expanded={more} onClick={() => { setMore(!more); if (more && !['regions', 'movements', 'equipment'].includes(expanded)) setExpanded(null); }} style={{ ...control(t), fontSize: 12, padding: '8px 4px', flexShrink: 0, whiteSpace: 'nowrap', borderColor: 'transparent', textDecoration: 'underline' }}>{more ? L('Méně filtrů', 'Fewer filters') : L('Další filtry', 'More filters')}</button>
     </div>
     {more && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>{['focus', 'positions', 'supports', 'levels', 'muscles'].map(facetButton)}</div>}
     {field && <div style={{ marginTop: 10 }}>
       {expanded === 'regions' && renderBodyMap && <div data-body-filter="" style={{ paddingTop: 12, borderTop: `1px solid ${t.borderSoft}` }}>
-        <div style={{ width: 'min(100%, 300px)', margin: '0 auto 12px' }}>{renderBodyMap({ fluid: true, selectedMuscles: value.muscles, highlightedMuscles: highlightedBodyMuscles(value), selectedRegions: value.regions, onToggleMuscle: key => onChange(toggleBodyMuscle(value, key)), onToggleRegion: key => onChange(selectBodyRegions(value, value.regions.includes(key) ? value.regions.filter(item => item !== key) : [...value.regions.filter(item => item !== 'whole_body'), key])) })}</div>
-        <p style={{ color: t.textMuted, fontSize: 13, lineHeight: 1.5 }}>{L('Vyber oblast podle názvu nebo klepnutím na postavu. Klepnutím na sval výběr zpřesníš; obrysy kolen a chodidel označují celé oblasti.', 'Choose a body area by name or on the figure. Tap a muscle to narrow the selection; knee and foot outlines mark whole areas.')}</p>
+        <div style={{ width: 'min(100%, 300px)', margin: '0 auto 12px' }}>{renderBodyMap({ fluid: true, selectedMuscles: highlightedBodyMuscles(value), highlightedMuscles: highlightedBodyMuscles(value), selectedRegions: value.regions, onToggleMuscle: key => onChange(toggleBodyMuscle(value, key)), onToggleRegion: key => onChange(selectBodyRegions(value, value.regions.includes(key) ? value.regions.filter(item => item !== key) : [...value.regions.filter(item => item !== 'whole_body'), key])) })}</div>
+        <p style={{ color: t.textMuted, fontSize: 13, lineHeight: 1.5 }}>{L('Postava i štítky upravují stejný výběr. Oblasti můžeš přidávat a jednotlivé svaly zase odebrat. Obrysy kolen a chodidel označují celé oblasti.', 'The figure and labels edit the same selection. Add areas or remove individual muscles. Knee and foot outlines mark whole areas.')}</p>
       </div>}
       {movementExamples.length > 0 && <div data-movement-illustrations="" aria-hidden="true" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '12px 16px', padding: '8px 0 14px' }}>
         {movementExamples.map(({movement, label, illustration}) => <figure key={movement} data-movement-example={movement} style={{ margin: 0, width: 96, maxWidth: '100%', textAlign: 'center' }}>
@@ -132,8 +132,8 @@ export function ExerciseLibraryFilters({ t, filters, onChange, onClear, extraFil
             <figcaption style={{ fontSize: 12, lineHeight: 1.4, color: t.textMuted, overflowWrap: 'anywhere' }}>{label}</figcaption>
           </figure>)}
       </div>}
-      <FacetPanel t={t} field={field} values={value[field.key] || []} onChange={next => onChange(field.key === 'regions' ? selectBodyRegions(value, next) : field.key === 'muscles' ? selectBodyMuscles(value, next) : { ...value, [field.key]: next })} />
-      {expanded === 'regions' && <details style={{ marginTop: 8 }}><summary style={{ cursor: 'pointer', minHeight: 44, display: 'flex', alignItems: 'center', fontSize: 13 }}>{L('Svaly podle názvu', 'Muscles by name')}</summary><FacetPanel t={t} field={allFields.find(item => item.key === 'muscles')} values={value.muscles} onChange={next => onChange(selectBodyMuscles(value, next))} /></details>}
+      <FacetPanel t={t} field={field} values={field.key === 'muscles' ? highlightedBodyMuscles(value) : value[field.key] || []} onChange={next => onChange(field.key === 'regions' ? selectBodyRegions(value, next) : field.key === 'muscles' ? selectBodyMuscles(value, next) : { ...value, [field.key]: next })} />
+      {expanded === 'regions' && <details style={{ marginTop: 8 }}><summary style={{ cursor: 'pointer', minHeight: 44, display: 'flex', alignItems: 'center', fontSize: 13 }}>{L('Svaly podle názvu', 'Muscles by name')}</summary><FacetPanel t={t} field={allFields.find(item => item.key === 'muscles')} values={highlightedBodyMuscles(value)} onChange={next => onChange(selectBodyMuscles(value, next))} /></details>}
       {expanded === 'equipment' && <div style={{ padding: '10px 0', color: t.textSec, fontSize: 13, lineHeight: 1.6 }}>
         <LibraryChoice t={t} label={L('Jak filtrovat vybavení', 'Equipment matching')} value={value.equipmentMode} onChange={equipmentMode => patch({ equipmentMode })} options={[
           { v: 'uses', label: L('Cviky s vybranou pomůckou', 'Uses any selected equipment') },

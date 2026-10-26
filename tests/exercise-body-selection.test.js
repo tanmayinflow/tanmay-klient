@@ -60,23 +60,23 @@ function freeze(value) {
   return value;
 }
 
-test('area selection clears precise muscles and returns the whole requested area', () => {
+test('area selection retains precise muscles and returns the union of selected body areas', () => {
   const before = freeze(completeFilters({muscles:['bic'],movements:['joint'],equipment:['telo'],focus:['strength'],positions:['standing'],supports:['unsupported'],levels:[1],q:'arm',includeArchived:true}));
   const next = selectBodyRegions(before,['arms']);
-  assert.deepEqual(next,{...before,regions:['arms'],muscles:[]});
+  assert.deepEqual(next,{...before,regions:['arms'],muscles:['bic']});
   assert.deepEqual(ids(next),['arm-biceps','arm-triceps']);
   assert.deepEqual(before.muscles,['bic']);
   assert.deepEqual(before.regions,[]);
 });
 
-test('a figure muscle tap replaces an incompatible broad area and can be toggled off', () => {
+test('a figure muscle tap adds to a broad area and can be toggled off without losing it', () => {
   const before = freeze(completeFilters({regions:['thighs'],q:'back',movements:['joint'],equipment:['telo']}));
   const selected = toggleBodyMuscle(before,'lat');
-  assert.deepEqual(selected,{...before,regions:[],muscles:['lat']});
-  assert.deepEqual(ids(selected),['back-lat']);
+  assert.deepEqual(selected,{...before,muscles:['lat']});
+  assert.deepEqual(ids(selected),['back-lat','thigh-back']);
   const cleared = toggleBodyMuscle(selected,'lat');
-  assert.deepEqual(cleared,{...before,regions:[],muscles:[]});
-  assert.deepEqual(ids(cleared),['back-lat','back-upper','thigh-back']);
+  assert.deepEqual(cleared,{...before,muscles:[]});
+  assert.deepEqual(ids(cleared),['thigh-back']);
   assert.strictEqual(toggleBodyMuscle(before,'not-a-muscle'),before);
   assert.strictEqual(toggleBodyMuscle(before,'__proto__'),before);
 });
@@ -100,7 +100,7 @@ test('primary and secondary involvement remain distinct through area and muscle 
   assert.equal(area.includeSecondary,true);
   assert.deepEqual(ids(area),['arm-biceps','arm-triceps','back-lat','secondary-arms']);
   assert.deepEqual(ids({...area,includeSecondary:false}),['arm-biceps','arm-triceps']);
-  assert.deepEqual(ids(toggleBodyMuscle(area,'lat')),['back-lat','back-upper']);
+  assert.deepEqual(ids(toggleBodyMuscle(area,'lat')),['arm-biceps','arm-triceps','back-lat','back-upper','secondary-arms']);
   assert.equal(selectExerciseLibrary(index,primary).hiddenCount,1);
   assert.deepEqual(ids({...primary,includeArchived:true}),['archived-biceps','arm-biceps']);
 });
@@ -231,20 +231,20 @@ function find(tree,predicate) {
 const named = (tree,label) => find(tree,node => node.props['aria-label'] === label);
 const textButton = (tree,text) => find(tree,node => node.type === 'button' && (Array.isArray(node.props.children) ? node.props.children[0] : node.props.children) === text);
 
-test('actual body-map and named-area callbacks replace each other, keeping search and equipment', () => {
+test('actual body-map and named-area callbacks share an additive selection, keeping search and equipment', () => {
   let map;
   const host = filterHost({filters:completeFilters({regions:['thighs'],q:'arm',equipment:['telo']}),renderBodyMap(props) { map = props; return null; }});
   textButton(host.render(),'Oblast těla').props.onClick();
   let tree = host.render();
-  assert.deepEqual(map.selectedMuscles,[]);
+  assert.deepEqual(map.selectedMuscles.sort(),['add','ham','qua']);
   assert.deepEqual(map.selectedRegions,['thighs']);
   map.onToggleMuscle('bic');
-  assert.deepEqual(host.props.filters,completeFilters({muscles:['bic'],q:'arm',equipment:['telo']}));
+  assert.deepEqual(host.props.filters,completeFilters({regions:['thighs'],muscles:['bic'],q:'arm',equipment:['telo']}));
   assert.deepEqual(ids(host.props.filters),['arm-biceps']);
   tree = host.render();
   const area = find(tree,node => node.props.field?.key === 'regions');
   named(area.type(area.props),'Oblast těla: Paže').props.onClick();
-  assert.deepEqual(host.props.filters,completeFilters({regions:['arms'],q:'arm',equipment:['telo']}));
+  assert.deepEqual(host.props.filters,completeFilters({regions:['thighs','arms'],muscles:['bic'],q:'arm',equipment:['telo']}));
   assert.deepEqual(ids(host.props.filters),['arm-biceps','arm-triceps']);
   tree = host.render();
   const muscle = find(tree,node => node.props.field?.key === 'muscles');
@@ -252,7 +252,16 @@ test('actual body-map and named-area callbacks replace each other, keeping searc
   assert.deepEqual(host.props.filters,completeFilters({muscles:['tri'],q:'arm',equipment:['telo']}));
   host.render();
   map.onToggleRegion('knees');
-  assert.deepEqual(host.props.filters,completeFilters({regions:['knees'],q:'arm',equipment:['telo']}));
+  assert.deepEqual(host.props.filters,completeFilters({regions:['knees'],muscles:['tri'],q:'arm',equipment:['telo']}));
+});
+
+test('deselecting one highlighted muscle keeps the rest of its area and other selected areas', () => {
+  const before = completeFilters({regions:['thighs','arms','knees']});
+  const next = toggleBodyMuscle(before,'qua');
+  assert.deepEqual(next.regions,['arms','knees']);
+  assert.deepEqual(next.muscles.sort(),['add','ham']);
+  assert.deepEqual(highlightedBodyMuscles(next).sort(),['add','bic','ham','tri']);
+  assert.deepEqual(before.regions,['thighs','arms','knees']);
 });
 
 test('actual search and view callbacks preserve filters, and clearing body chips affects only that axis', () => {

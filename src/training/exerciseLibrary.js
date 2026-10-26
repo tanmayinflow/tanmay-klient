@@ -31,8 +31,11 @@ const overlaps = (wanted, values) => !array(wanted).length || wanted.some(value 
 function matches(entry, filters) {
   const { tax, muscles } = entry;
   const regions = filters.includeSecondary ? [...tax.regions, ...tax.secondaryRegions] : tax.regions;
-  if (!overlaps(filters.regions, regions) || !overlaps(filters.movements, tax.movements) || !overlaps(filters.focus, tax.focus) || !overlaps(filters.positions, tax.positions) || !overlaps(filters.supports, tax.supports) || !overlaps(filters.levels, [entry.level])) return false;
-  if (!overlaps(filters.muscles, filters.includeSecondary ? [...array(muscles.primary), ...array(muscles.secondary)] : muscles.primary)) return false;
+  const selectedRegions = array(filters.regions), selectedMuscles = array(filters.muscles);
+  const bodyMatch = !selectedRegions.length && !selectedMuscles.length
+    || selectedRegions.length > 0 && overlaps(selectedRegions, regions)
+    || selectedMuscles.length > 0 && overlaps(selectedMuscles, filters.includeSecondary ? [...array(muscles.primary), ...array(muscles.secondary)] : muscles.primary);
+  if (!bodyMatch || !overlaps(filters.movements, tax.movements) || !overlaps(filters.focus, tax.focus) || !overlaps(filters.positions, tax.positions) || !overlaps(filters.supports, tax.supports) || !overlaps(filters.levels, [entry.level])) return false;
   if (filters.equipmentMode === 'available') {
     if (!matchesAvailableEquipment(entry.equipment, filters.equipment)) return false;
   } else if (!overlaps(filters.equipment, entry.equipment.items)) return false;
