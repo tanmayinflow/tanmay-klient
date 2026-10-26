@@ -53,7 +53,7 @@ test('unknown and hostile-looking ids fall back safely while saved custom symbol
 test('all room artwork and raster variants are exact, first-party files',()=>{
  assert.equal(Object.keys(ROOM_ART).length,11);
  assert.equal(ROOM_ART['praxe-client'],'practice-fire-v4.webp');
- assert.equal(ROOM_ART.trenink,'training-rings-mat-v4.png');
+ assert.equal(ROOM_ART.trenink,'training-equipment-v5.png');
  assert.equal(ROOM_ART.hospodareni,undefined); // Owner removed the Finance header illustration.
  for(const [file,hash] of Object.entries(ICON_ASSET_HASHES)){
   const bytes=fs.readFileSync(path.join('public/media/icons',file));
