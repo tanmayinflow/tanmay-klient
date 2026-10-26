@@ -2134,6 +2134,69 @@ export const EXERCISE_MOTION = Object.freeze({
     "bytes": 33543,
     "sha256": "cbd54dac5962b7de14f4357b79f4c9692253cfe838eee6bedc4a6fa8680b46cc",
     "poster": "/exercise-motion/ex26_cable_facepull-poster-5d54afe2ca1952de.webp"
+  },
+  "ex26_single_db_calf": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_single_db_calf-c63aae53a97082e7.mp4",
+    "bytes": 27639,
+    "sha256": "c63aae53a97082e768481ec982086661caf0349da276a8140720f923aec35050",
+    "poster": "/exercise-motion/ex26_single_db_calf-poster-ac05472a7548c2e4.webp"
+  },
+  "ex26_lying_kneetuck": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_lying_kneetuck-84649d08877d179c.mp4",
+    "bytes": 21616,
+    "sha256": "84649d08877d179ce40184c809c7294e0b1225ba5c863bc4d5daff1421d56d4f",
+    "poster": "/exercise-motion/ex26_lying_kneetuck-poster-007f9731501d46a5.webp"
+  },
+  "ex26_captain_knee": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_captain_knee-12a0ef2bf2319343.mp4",
+    "bytes": 36347,
+    "sha256": "12a0ef2bf23193436ea2b2a73f6ad7324892b97fca085ac92d7dfc98543bf92d",
+    "poster": "/exercise-motion/ex26_captain_knee-poster-f6c957ec8882472e.webp"
+  },
+  "ex26_decline_crunch": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_decline_crunch-22ab5cd046de23e4.mp4",
+    "bytes": 32827,
+    "sha256": "22ab5cd046de23e4d590be8bb4d0882a9f0fd8f1bf854054187ab00af13fcfbe",
+    "poster": "/exercise-motion/ex26_decline_crunch-poster-796acb68dca0d1a1.webp"
+  },
+  "ex26_oblique_crunch": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_oblique_crunch-07c66260f41b8560.mp4",
+    "bytes": 32146,
+    "sha256": "07c66260f41b856047cc7f2df592e42553d0737ce2362260c8ac3b0a24d83238",
+    "poster": "/exercise-motion/ex26_oblique_crunch-poster-e9de0c43a05a520f.webp"
+  },
+  "ex26_halfkneel_pallof": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_halfkneel_pallof-54ed5e27680680d9.mp4",
+    "bytes": 42478,
+    "sha256": "54ed5e27680680d9f4d9e33b11e9dc5674ea54cfbe11d3b2c452cfece16f5fab",
+    "poster": "/exercise-motion/ex26_halfkneel_pallof-poster-aa9c72d4adf2831b.webp"
+  },
+  "ex26_cable_crunch": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_cable_crunch-d2aa3169e12b2970.mp4",
+    "bytes": 36279,
+    "sha256": "d2aa3169e12b29703a1e2cd41034ec6e983cdad4eeab704bddaa14758689a257",
+    "poster": "/exercise-motion/ex26_cable_crunch-poster-450e8a2b68ce5cfb.webp"
+  },
+  "ex26_behind_wrist": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_behind_wrist-85ebd48f5b8f6d8e.mp4",
+    "bytes": 40575,
+    "sha256": "85ebd48f5b8f6d8ec970a5a9d6c1d4978cd7d0d39db55e07503f38c35402f7f2",
+    "poster": "/exercise-motion/ex26_behind_wrist-poster-2c349504aa99dc44.webp"
+  },
+  "ex26_around_world": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_around_world-9a8590ac4018b72b.mp4",
+    "bytes": 44201,
+    "sha256": "9a8590ac4018b72bc16f8e4e7d46807ed2b85e5312cefaa2a201bf765a57c7fa",
+    "poster": "/exercise-motion/ex26_around_world-poster-a1013399b9efc2fc.webp"
   }
 });
 
