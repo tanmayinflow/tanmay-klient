@@ -80,26 +80,26 @@ function TvPlanOverview({ session, onStart, onList, onClose, onOpenEx }) {
           const plan = tvPlanText(b);
           const done = (b.sets || []).filter((s) => s.completed).length;
           return (
-            <div key={b.id} className="tm-tvplan" style={{ display: "grid", gridTemplateColumns: "64px minmax(0,1fr) auto", alignItems: "center", gap: 12, border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, padding: "10px 12px 10px 10px", minHeight: 76 }}>
-              <button onClick={() => onOpenEx && onOpenEx(b.exId)} aria-label={blockName(b, st)}
-                style={{ background: "transparent", border: "none", padding: 0, cursor: onOpenEx ? "pointer" : "default", color: t.sand, width: 64, height: 64, display: "grid", placeItems: "center" }}>
-                {row ? <TExArt ex={row} size={62} stroke="currentColor" showDot={false} /> : null}
-              </button>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 7, minWidth: 0 }}>
+            <button key={b.id} type="button" className="tm-tvplan tm-exercise-list" onClick={() => onOpenEx && onOpenEx(b.exId)} aria-label={blockName(b, st)} style={{ display: "grid", width: "100%", textAlign: "left", gridTemplateColumns: "64px minmax(0,1fr) auto", alignItems: "center", gap: 14, border: 0, background: "transparent", padding: "10px 0", minHeight: 84, cursor: onOpenEx ? "pointer" : "default" }}>
+              <span data-exercise-round-image="" aria-hidden="true"
+                style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: '50%', overflow: 'hidden', padding: 6, boxSizing: 'border-box', color: t.sand, width: 64, height: 64, display: "grid", placeItems: "center" }}>
+                {row ? <TExArt ex={row} fluid stroke="currentColor" showDot={false} /> : null}
+              </span>
+              <span style={{ minWidth: 0, borderBottom: `1px solid ${t.borderSoft}`, paddingBottom: 8 }}>
+                <span style={{ display: "flex", alignItems: "baseline", gap: 7, minWidth: 0 }}>
                   {labels[b.id] ? <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.1em", color: b.groupId ? t.accent : t.textMuted, flexShrink: 0 }}>{labels[b.id]}</span> : null}
-                  <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{blockName(b, st)}</span>
-                </div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: 15, color: t.heading, fontVariantNumeric: "tabular-nums", marginTop: 3 }}>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 16, color: t.heading, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{blockName(b, st)}</span>
+                </span>
+                <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, fontVariantNumeric: "tabular-nums", marginTop: 3 }}>
                   {plan.main}
-                </div>
-                <div style={{ fontFamily: FONT_TAG, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted, marginTop: 3 }}>
+                </span>
+                <span style={{ display: "block", fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted, marginTop: 3 }}>
                   {plan.warm ? `${plan.warm} ${L("rozehř.", "warm-up")} · ` : ""}{L("pauza ", "rest ")}{TV.fmtDuration(b.restSec || 0, tvCz())}
                   {done ? ` · ${done}/${(b.sets || []).length} ${L("hotovo", "done")}` : ""}
-                </div>
-              </div>
+                </span>
+              </span>
               <span aria-hidden="true" style={{ fontFamily: FONT_TAG, fontSize: 12, color: t.textMuted }}><FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
-            </div>
+            </button>
           );
         })}
       </div>

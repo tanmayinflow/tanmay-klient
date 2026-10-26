@@ -281,7 +281,6 @@ export function createCompassUI(deps) {
     const [overview, setOverview] = useState(false);
     const areas = st.listAreas();
     const reviewed = areas.filter(a => areaReviewFor(st.areaVlqOf?.(a.name), date));
-    const next = areas.find(a => !areaReviewFor(st.areaVlqOf?.(a.name), date));
     const all = st.allGoals();
     return (
       <div>
@@ -307,7 +306,6 @@ export function createCompassUI(deps) {
         })}
         {onAdd && <button data-tm-surface="control" onClick={onAdd} title={L("Nová krajina", "New landscape")} aria-label={L("Nová krajina", "New landscape")} className="tm-nav-item tm-landscape-chip" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: `1px solid transparent`, borderRadius: 10, minWidth: 44, minHeight: 44, padding: "0 13px", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
       </div>
-      {next && <button onClick={() => onOpen(next.name)} style={{ background: "transparent", border: "none", minHeight: 44, padding: "8px 0", fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.accentInk || t.accent, cursor: "pointer" }}>{L("Zhodnotit další krajinu", "Review the next landscape")} ›</button>}
       </div>
     );
   }
@@ -813,7 +811,7 @@ export function createCompassUI(deps) {
                 {shown.map((g) => {
                   const inToday = todayNames.includes(g.name);
                   return (
-                    <div key={g.name} className="tm-motionrow" data-tm-surface="row" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 6px", margin: "0 -6px", borderRadius: 8, borderBottom: "none" }}>
+                    <div key={g.name} className="tm-motionrow" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 6px", margin: "0 -6px", borderRadius: 8, borderBottom: "none" }}>
                       <span title={PL(g.prio)} style={{ width: 8, height: 8, borderRadius: "50%", background: prioDot(g.prio), flexShrink: 0 }} />
                       <button onClick={() => setSel({ type: "goal", id: g.name })} style={{ flex: 1, minWidth: 0, minHeight: 34, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "4px 0", display: "flex", alignItems: "baseline", gap: 10 }}>
                         <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.name}</span>
@@ -825,7 +823,7 @@ export function createCompassUI(deps) {
                       <button title={L("Položit zpět mezi čekající", "Put back among the waiting")} aria-label={L("Položit zpět mezi čekající", "Put back among the waiting")} onClick={() => st.editGoal(g.name, { status: "Not started" })}
                         style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 15, minWidth: 40, minHeight: 40, margin: "-6px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: 0.75 }}><FamilyIcon id="download" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
                       {/* přepínač · druhé klepnutí cíl z dneška zase sundá */}
-                      <button title={inToday ? L("Je v dnešním plánu · klepnutím odebrat", "In today's plan · tap to remove") : L("→ do dneška · pošle cíl do dnešního plánu", "→ into today · sends the goal into today's plan")}
+                      <button data-tm-surface="control" data-tm-surface-active={inToday} title={inToday ? L("Je v dnešním plánu · klepnutím odebrat", "In today's plan · tap to remove") : L("→ do dneška · pošle cíl do dnešního plánu", "→ into today · sends the goal into today's plan")}
                         aria-label={inToday ? L("Odebrat z dnešního plánu", "Remove from today's plan") : L("Poslat do dnešního plánu", "Send into today's plan")}
                         onClick={() => inToday ? st.pullGoalFromDay(g.name) : st.pushGoalToDay(g.name)}
                         style={{ background: inToday ? hexA(t.sage, 0.16) : "transparent", border: `1px solid ${inToday ? hexA(t.sage, 0.5) : t.borderSoft}`, borderRadius: "var(--tm-r-pill)", color: inToday ? t.sage : t.sand, cursor: "pointer", fontSize: 13, minWidth: 44, minHeight: 40, margin: "-6px 0", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "border-color .2s ease, color .2s ease, background .2s ease" }}>{inToday ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : <FamilyIcon id="forward" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} />}</button>
@@ -845,11 +843,11 @@ export function createCompassUI(deps) {
                   {waiting.length > waitN && <button onClick={() => setWaitN(waiting.length)} className="tm-tap-c" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12, padding: "6px 0", minHeight: 30, flexShrink: 0 }}>{L("všech", "all")} {waiting.length} <FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
                 </div>
                 {waiting.slice(0, waitN).map((g, i) => (
-                  <div key={g.name} className="tm-motionrow" data-tm-surface="row" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", margin: "0 -6px", borderRadius: 8, borderBottom: i < Math.min(waiting.length, waitN) - 1 ? `1px solid ${t.borderSoft}` : "none" }}>
+                  <div key={g.name} className="tm-motionrow" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 6px", margin: "0 -6px", borderRadius: 8, borderBottom: i < Math.min(waiting.length, waitN) - 1 ? `1px solid ${t.borderSoft}` : "none" }}>
                     <span title={PL(g.prio)} style={{ width: 8, height: 8, borderRadius: "50%", background: prioDot(g.prio), flexShrink: 0, opacity: 0.7 }} />
                     <button onClick={() => setSel({ type: "goal", id: g.name })} style={{ flex: 1, minWidth: 0, minHeight: 34, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: "4px 0", fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.name}</button>
                     <OwnerBadge g={g} />
-                    <button onClick={() => st.editGoal(g.name, { status: "In progress" })} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: "var(--tm-r-pill)", color: t.sand, cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 12, minHeight: 38, padding: "0 14px", flexShrink: 0, transition: "border-color .2s ease, color .2s ease" }}>{L("zvednout", "lift")}</button>
+                    <button data-tm-surface="control" onClick={() => st.editGoal(g.name, { status: "In progress" })} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: "var(--tm-r-pill)", color: t.sand, cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 12, minHeight: 38, padding: "0 14px", flexShrink: 0, transition: "border-color .2s ease, color .2s ease" }}>{L("zvednout", "lift")}</button>
                   </div>
                 ))}
               </div>

@@ -358,7 +358,7 @@ function PomoOverview() {
         const allMin = log.reduce((a, e) => a + (e.min || 0), 0);
         const days = new Set(log.map((e) => e.d)).size;
         return (
-          <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, boxShadow: t.shadow, padding: "12px 14px" }}>
+          <div data-tm-surface="card" style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, boxShadow: t.shadow, padding: "12px 14px" }}>
             <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginBottom: byCatAll.length ? 10 : 0 }}>
               <span><span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{fmtH(allMin)}</span> <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{L("soustředění", "of focus")}</span></span>
               <span><span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading }}>{log.length}</span> <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{L("bloků", "blocks")}</span></span>

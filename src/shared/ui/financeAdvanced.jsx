@@ -160,15 +160,15 @@ function Wishlist() {
   const shown = [...rows].filter((r) => view === "Vše" || r.cat === view); // manual order (drag to reorder)
   const chip = (active) => ({ background: active ? hexA(t.accent, 0.14) : "transparent", border: `1px solid ${active ? t.accent : t.borderSoft}`, borderRadius: 12, padding: "7px 12px", minHeight: 32, cursor: "pointer", color: active ? (t.accentInk || t.accent) : t.textMuted, fontFamily: FONT_TAG, letterSpacing: "0.08em", fontSize: 12, textTransform: "uppercase" });
   return (
-    <Callout icon={<span style={{ color: t.sand, display: "inline-flex" }}><SproutIcon size={20} /></span>} title={L("Zrání · pravidlo třiceti dnů", "Ripening · the thirty-day rule")}>
+    <Callout surface="card" icon={<span style={{ color: t.sand, display: "inline-flex" }}><SproutIcon size={20} /></span>} title={L("Zrání · pravidlo třiceti dnů", "Ripening · the thirty-day rule")}>
       <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, margin: "0 0 10px", lineHeight: 1.6 }}>{L("Impuls sem, ne do košíku — přání zraje třicet dní.", "The impulse goes here, not in the cart — a wish ripens for thirty days.")}</p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-        <input value={item} onChange={(e) => setItem(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} placeholder={L("Co tě láká…", "What tempts you…")} style={{ ...fieldStyle(t), flex: "1 1 150px", minWidth: 130 }} />
-        <input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} placeholder="Kč" style={{ ...fieldStyle(t), width: 96 }} />
+        <input data-tm-surface="control" value={item} onChange={(e) => setItem(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} placeholder={L("Co tě láká…", "What tempts you…")} style={{ ...fieldStyle(t), flex: "1 1 150px", minWidth: 130 }} />
+        <input data-tm-surface="control" type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} placeholder="Kč" style={{ ...fieldStyle(t), width: 96 }} />
         {item.trim() && <button onClick={add} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>Zasadit</button>}
       </div>
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-        {cats.map((c) => <button key={c} onClick={() => setCat(c)} style={chip(cat === c)}>{LV(c)}</button>)}
+        {cats.map((c) => <button key={c} data-tm-surface="control" data-tm-surface-active={cat === c} onClick={() => setCat(c)} style={chip(cat === c)}>{LV(c)}</button>)}
         {st.editMode && (addingCat
           ? <span style={{ display: "inline-flex", gap: 5 }}>
               <input autoFocus value={newCat} onChange={(e) => setNewCat(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveCat(); if (e.key === "Escape") { setAddingCat(false); setNewCat(""); } }} placeholder={L("nová…", "new…")} style={{ ...fieldStyle(t), width: 92, padding: "2px 8px", fontSize: 12 }} />

@@ -113,5 +113,5 @@ test('surface first paint keeps each saved choice and safely defaults invalid or
   }
   const attrs={};
   runInNewContext(boot,{localStorage:{getItem(){throw Error('denied');}},window:{location:{hostname:'example.com',search:''}},document:{documentElement:{setAttribute:(k,v)=>{attrs[k]=v;},style:{setProperty(){}}},body:{style:{}},querySelector:()=>null}});
-  assert.equal(attrs['data-surface-style'],'veil');
+  assert.equal(attrs['data-surface-style'],'shadow');
 });

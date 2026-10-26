@@ -43,10 +43,10 @@ export function createAtoms(deps) {
     );
   }
 
-  function Callout({ icon, title, children }) {
+  function Callout({ icon, title, children, surface }) {
     const { t } = useT();
     return (
-      <div style={{ display: "flex", gap: 14, background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 8, padding: "16px 18px", margin: "14px 0" , boxShadow: t.shadow }}>
+      <div data-tm-surface={surface} data-tm-surface-accent={surface ? "true" : undefined} style={{ display: "flex", gap: 14, background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 8, padding: "16px 18px", margin: "14px 0" , boxShadow: t.shadow }}>
         {icon && <div style={{ fontSize: 22, lineHeight: "26px" }}>{icon}</div>}
         <div style={{ flex: 1, minWidth: 0 }}>
           {title && <div style={{ fontFamily: "var(--tm-font-display)", fontSize: 22, color: t.heading, marginBottom: children ? 8 : 0 }}>{title}</div>}

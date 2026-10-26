@@ -50,7 +50,7 @@ export function createTimerSettings({ useT, useStore, L, hexA, TChip, TmIcon }) 
           <span style={{ display: 'block', fontSize: 13, color: chosen ? t.accentInk || t.accent : t.text }}>{chosen ? '✓ ' : ''}{label}</span>
           {description && <span style={{ display: 'block', fontSize: 12, color: t.textMuted, lineHeight: 1.45 }}>{description}</span>}
         </button>
-        <button aria-label={L('Poslechnout hlas', 'Preview voice') + ': ' + label} onClick={() => preview(voice)} style={{ ...quiet, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, background: playing === voice.voiceURI ? hexA(t.accent, .12) : 'transparent' }}><TmIcon name="sound" size={13} />{L('Poslech', 'Hear')}</button>
+        <button data-tm-surface="control" data-tm-surface-active={playing === voice.voiceURI} aria-label={L('Poslechnout hlas', 'Preview voice') + ': ' + label} onClick={() => preview(voice)} style={{ ...quiet, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, background: playing === voice.voiceURI ? hexA(t.accent, .12) : 'transparent' }}><TmIcon name="sound" size={13} />{L('Poslech', 'Hear')}</button>
       </div>;
     };
     return <div data-timer-voices="" style={{ display: 'flex', flexDirection: 'column', gap: 9, minWidth: 0, flex: '1 1 320px', maxWidth: 520 }}>
@@ -60,8 +60,8 @@ export function createTimerSettings({ useT, useStore, L, hexA, TChip, TmIcon }) 
       <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: 'italic', color: t.textMuted, lineHeight: 1.55 }}>{L('Na iPhonu si v Nastavení → Zpřístupnění → Čtení a mluvení → Hlasy můžeš stáhnout anglický hlas ve kvalitě Enhanced nebo Premium. Zde se ukážou hlasy, které prohlížeč zpřístupní.', 'On iPhone, download an Enhanced or Premium English voice in Settings → Accessibility → Read & Speak → Voices. This list shows the voices your browser makes available.')}</span>
       {rest.length > 0 && <details><summary style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, cursor: 'pointer', minHeight: 44, padding: '12px 0' }}>{L('Další anglické hlasy', 'More English voices')} · {rest.length}</summary>{rest.map(voice => row(voice, voice.name, voice.lang))}</details>}
       {voices.length > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <button aria-pressed={!selected} onClick={() => select('')} style={{ ...quiet, textAlign: 'left', maxWidth: '100%', borderColor: selected ? t.border : t.accent, color: selected ? t.textSec : t.accentInk || t.accent }}>{L('Nejlepší dostupný', 'Best available')}{automatic ? ' · ' + automatic.name : ''}</button>
-        <button onClick={() => preview(active)} style={{ ...quiet, display: 'inline-flex', alignItems: 'center', gap: 7 }}><TmIcon name="sound" size={13} />{L('Poslechnout vybraný', 'Preview selected')}</button>
+        <button data-tm-surface="control" data-tm-surface-active={!selected} aria-pressed={!selected} onClick={() => select('')} style={{ ...quiet, textAlign: 'left', maxWidth: '100%', borderColor: selected ? t.border : t.accent, color: selected ? t.textSec : t.accentInk || t.accent }}>{L('Nejlepší dostupný', 'Best available')}{automatic ? ' · ' + automatic.name : ''}</button>
+        <button data-tm-surface="control" data-tm-surface-active={!!playing} onClick={() => preview(active)} style={{ ...quiet, display: 'inline-flex', alignItems: 'center', gap: 7 }}><TmIcon name="sound" size={13} />{L('Poslechnout vybraný', 'Preview selected')}</button>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{L('Tempo', 'Pace')}<input aria-label={L('Tempo hlasu', 'Voice pace')} type="range" min="80" max="130" value={Math.round((cfg.voiceRate || 1) * 100)} onChange={event => st.setTmCfg({ voiceRate: Number(event.target.value) / 100 })} style={{ width: 110, accentColor: 'var(--tm-accent)' }} /></label>
       </div>}
     </div>;

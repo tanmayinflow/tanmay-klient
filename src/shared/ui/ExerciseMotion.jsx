@@ -2,16 +2,24 @@ import React, { useEffect, useRef, useState } from 'react';
 import { exerciseMotionFor, claimMotionPlayer, releaseMotionPlayer } from '../product/exerciseMotion.js';
 import './exerciseMotion.css';
 
-export function ExerciseMotion({ exercise, theme, L }) {
+export function ExerciseMotion({ exercise, theme, L, autoPlay = false }) {
   const motion = exerciseMotionFor(exercise);
-  return motion ? <MotionPlayer key={motion.src} motion={motion} theme={theme} L={L} /> : null;
+  return motion ? <MotionPlayer key={motion.src} motion={motion} theme={theme} L={L} autoPlay={autoPlay} /> : null;
 }
 
-function MotionPlayer({ motion, theme, L }) {
+export function motionMayAutoplay() {
+  return typeof window !== 'undefined' && !document.hidden
+    && document.documentElement.getAttribute('data-tm-motion') !== 'off'
+    && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+function MotionPlayer({ motion, theme, L, autoPlay }) {
   const videoRef = useRef(null);
   const regionRef = useRef(null);
   const intentRef = useRef(0);
-  const [open, setOpen] = useState(false);
+  const automatic = useRef(autoPlay && motionMayAutoplay());
+  const startRef = useRef(null);
+  const [open, setOpen] = useState(automatic.current);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [time, setTime] = useState(0);
@@ -21,41 +29,59 @@ function MotionPlayer({ motion, theme, L }) {
   useEffect(() => {
     const video = videoRef.current;
     const stop = () => { intentRef.current += 1; video.pause(); };
-    const onHidden = () => { if (document.hidden) stop(); };
+    const onHidden = () => { if (document.hidden) { automatic.current = false; stop(); } };
+    const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    const onReduced = () => { if (media?.matches) { automatic.current = false; stop(); } };
+    const tryAutomatic = () => {
+      if (!automatic.current || !motionMayAutoplay()) return;
+      automatic.current = false;
+      startRef.current?.();
+    };
     document.addEventListener('visibilitychange', onHidden);
     window.addEventListener('pagehide', stop);
+    media?.addEventListener?.('change', onReduced);
     const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(entries => {
       if (!entries[0].isIntersecting) stop();
+      else tryAutomatic();
     });
     observer?.observe(regionRef.current);
+    if (!observer) tryAutomatic();
     return () => {
       stop();
       observer?.disconnect();
       document.removeEventListener('visibilitychange', onHidden);
       window.removeEventListener('pagehide', stop);
+      media?.removeEventListener?.('change', onReduced);
       releaseMotionPlayer(video);
       video.removeAttribute('src');
       video.load();
     };
   }, []);
-  async function play() {
+  async function start() {
     const video = videoRef.current;
-    if (!video.paused) { pause(); return; }
     const intent = ++intentRef.current;
     setOpen(true);
     setError(false);
     claimMotionPlayer(video);
-    // Assign and play in the tap handler: iOS keeps the user activation.
+    // Muted inline playback may start automatically. A denied browser policy
+    // leaves the explicit Play control ready for a user gesture.
     if (!video.getAttribute('src')) video.src = motion.src;
     video.playbackRate = speed;
     try {
       await video.play();
       if (intent !== intentRef.current || document.hidden) video.pause();
     } catch (failure) {
-      if (intent === intentRef.current && failure.name !== 'AbortError') setError(true);
+      if (intent === intentRef.current && !['AbortError', 'NotAllowedError'].includes(failure.name)) setError(true);
     }
   }
+  startRef.current = start;
+  function play() {
+    automatic.current = false;
+    if (!videoRef.current.paused) pause();
+    else start();
+  }
   function close() {
+    automatic.current = false;
     pause();
     const video = videoRef.current;
     releaseMotionPlayer(video);

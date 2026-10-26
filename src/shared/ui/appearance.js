@@ -22,7 +22,7 @@ export const LEGACY_THEME_KEY = "tm-theme";
 
 // Depth is a device preference, independent of the eight color themes.
 export const SURFACE_STYLE_KEY = "tm-surface-style-v1";
-export const DEFAULT_SURFACE_STYLE = "veil";
+export const DEFAULT_SURFACE_STYLE = "shadow";
 export const SURFACE_STYLE_IDS = Object.freeze(["original", "veil", "shadow", "clear"]);
 const SURFACE_STYLE_EVENT = "tm:surface-style-change";
 const surfaceFallbacks = new WeakMap();

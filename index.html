@@ -11,7 +11,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <!-- Installers can fetch this public brand icon without an Access session. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://tanmaypractice.com/apple-touch-icon.png" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -60,7 +61,7 @@
         } catch (e) {}
         var dark = N.indexOf(id) >= 0;
         var h = document.documentElement;
-        var surface = "veil";
+        var surface = "shadow";
         try { var savedSurface = localStorage.getItem("tm-surface-style-v1"); if (["original","veil","shadow","clear"].indexOf(savedSurface) >= 0) surface = savedSurface; } catch (e) {}
         h.setAttribute("data-surface-style", surface);
         h.setAttribute("data-appearance", id);

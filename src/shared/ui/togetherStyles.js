@@ -66,10 +66,10 @@ export const togetherStyles=`
 .tm-together .tg-intro-row{display:flex;align-items:center;gap:18px;margin-bottom:18px}
 .tm-together .tg-intro{flex:1;min-width:0;font-size:14px;margin:0;max-width:none}
 .tm-together .tg-sharing-trigger{flex:0 0 128px;text-align:center;line-height:1.5}
-.tm-together button.tg-moon{position:absolute;right:0;top:0;width:140px;height:150px;border:0;padding:0;color:var(--tm-room-art-ink,var(--tg-accent));background:transparent;display:flex;flex-direction:column;align-items:center}
-.tg-moon svg{width:120px;height:144px;transition:transform .2s ease}
-.tg-moon:hover svg{transform:rotate(3deg)}
-.tg-moon span{position:absolute;top:194px;font-size:12px;line-height:1.4;color:var(--tg-accent);text-decoration:none;max-width:132px;text-align:center}
+.tm-together button.tg-moon{position:absolute;right:0;top:4px;width:124px;min-height:140px;border:0;padding:0 2px 8px;color:var(--tm-room-art-ink,var(--tg-text));background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;border-radius:8px}
+.tg-moon svg{width:108px;height:108px;flex-shrink:0}
+.tg-moon .tg-moon-phase{font-family:var(--tm-font-tag);font-size:11px;line-height:1.35;letter-spacing:.09em;text-transform:uppercase;color:var(--tg-accent);text-decoration:none;max-width:120px;text-align:center}
+.tg-moon:focus-visible{outline:2px solid var(--tg-accent);outline-offset:3px}
 .tg-moon-sheet summary{cursor:pointer;min-height:44px;padding:12px 0}
 .tg-moon-sheet a{color:inherit;text-underline-offset:3px}
 .tg-moon-sheet h3{font-family:var(--tm-font-display);font-size:25px;font-weight:400;margin:26px 0 8px}

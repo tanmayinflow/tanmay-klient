@@ -85,6 +85,10 @@ ${root} [data-tm-surface="card"] [data-tm-surface]:not([data-tm-surface="control
   background-color: transparent !important;
   box-shadow: none !important;
 }
+/* A semantic callout keeps its accent rail when its paper changes. */
+${root} [data-tm-surface][data-tm-surface-accent]${idle} {
+  border-left-color: var(--tm-accent) !important;
+}
 /* Open exercise rows stay open. Only the existing circular portrait carrier
    participates; no filtering of illustrations, personal images or video. */
 ${root} .tm-exercise-list [data-exercise-round-image] {

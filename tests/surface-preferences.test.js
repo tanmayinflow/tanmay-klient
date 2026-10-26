@@ -33,11 +33,11 @@ function withGlobals(values, run) {
   });
 }
 
-test('new and existing users without a surface preference receive veil without a migration write', () => {
-  assert.equal(DEFAULT_SURFACE_STYLE, 'veil');
+test('new and existing users without a surface preference receive shadow without a migration write', () => {
+  assert.equal(DEFAULT_SURFACE_STYLE, 'shadow');
   for (const saved of [{}, { 'tm-appearance-v3': JSON.stringify({ version: 4, preset: 'nagtang-black' }), coll: 'private content' }]) {
     const s = memory(saved), before = [...s.data];
-    assert.equal(readSurfaceStyle(s), 'veil');
+    assert.equal(readSurfaceStyle(s), 'shadow');
     assert.deepEqual([...s.data], before);
     assert.deepEqual(s.writes, []);
   }
@@ -47,8 +47,8 @@ test('only four literal surface IDs are accepted', () => {
   assert.deepEqual(SURFACE_STYLE_IDS, ['original', 'veil', 'shadow', 'clear']);
   for (const id of SURFACE_STYLE_IDS) assert.equal(normalizeSurfaceStyle(id), id);
   for (const invalid of [null, undefined, '', 'VEIL', '__proto__', 'constructor', ' veil ', '"clear"', {}, ['clear'], 0, true]) {
-    assert.equal(normalizeSurfaceStyle(invalid), 'veil');
-    assert.equal(readSurfaceStyle(memory({ [SURFACE_STYLE_KEY]: invalid })), 'veil');
+    assert.equal(normalizeSurfaceStyle(invalid), 'shadow');
+    assert.equal(readSurfaceStyle(memory({ [SURFACE_STYLE_KEY]: invalid })), 'shadow');
   }
 });
 
@@ -69,9 +69,9 @@ test('each choice, including Original, survives a fresh module load and changes 
 test('corrupt writes normalize safely and independent storage areas do not share choices', () => {
   const first = memory(), second = memory();
   writeSurfaceStyle('shadow', first);
-  assert.equal(readSurfaceStyle(second), 'veil');
+  assert.equal(readSurfaceStyle(second), 'shadow');
   writeSurfaceStyle('unknown', second);
-  assert.equal(readSurfaceStyle(second), 'veil');
+  assert.equal(readSurfaceStyle(second), 'shadow');
   assert.equal(readSurfaceStyle(first), 'shadow');
 });
 
@@ -88,16 +88,16 @@ test('quota failure keeps the live choice through theme changes and does not del
     assert.equal(s.getItem(SURFACE_STYLE_KEY), 'original');
     assert.equal(s.getItem('coll'), 'private content');
     s.removeItem(SURFACE_STYLE_KEY);
-    assert.equal(readSurfaceStyle(), 'veil', 'account clearing invalidates the previous session choice');
+    assert.equal(readSurfaceStyle(), 'shadow', 'account clearing invalidates the previous session choice');
   });
 });
 
 test('blocked reads and writes remain usable during the session without throwing', () => {
   const unavailable = { getItem() { throw new Error('Blocked'); }, setItem() { throw new Error('Blocked'); } };
-  assert.equal(readSurfaceStyle(unavailable), 'veil');
+  assert.equal(readSurfaceStyle(unavailable), 'shadow');
   assert.equal(writeSurfaceStyle('shadow', unavailable), 'shadow');
   assert.equal(readSurfaceStyle(unavailable), 'shadow');
-  assert.equal(readSurfaceStyle(memory()), 'veil');
+  assert.equal(readSurfaceStyle(memory()), 'shadow');
 });
 
 test('unavailable localStorage keeps the live selection until this page is closed', async () => {
@@ -135,8 +135,8 @@ test('storage observer ignores unrelated and foreign-area writes, handles clear,
   assert.equal(doc.attrs['data-surface-style'], 'shadow');
   s.removeItem(SURFACE_STYLE_KEY);
   send({ key: null });
-  assert.equal(doc.attrs['data-surface-style'], 'veil');
-  assert.deepEqual(changes, ['shadow', 'veil']);
+  assert.equal(doc.attrs['data-surface-style'], 'shadow');
+  assert.deepEqual(changes, ['shadow', 'shadow']);
   unwatch();
   assert.equal(handlers.size, 0);
 });
@@ -146,6 +146,6 @@ test('surface preference participates in the existing account-clear boundary', (
   const s = memory({ coll: 'private content' });
   writeSurfaceStyle('clear', s);
   for (const key of APPEARANCE_KEYS) s.removeItem(key);
-  assert.equal(readSurfaceStyle(s), 'veil');
+  assert.equal(readSurfaceStyle(s), 'shadow');
   assert.equal(s.getItem('coll'), 'private content');
 });

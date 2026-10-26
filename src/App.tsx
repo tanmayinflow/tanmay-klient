@@ -9127,7 +9127,7 @@ function TArea({ value, onCommit, placeholder }) {
   const { t } = useT();
   const [v, setV] = useState(value || "");
   React.useEffect(() => setV(value || ""), [value]);
-  return <textarea value={v} onChange={(e) => setV(e.target.value)} onBlur={() => { if (v !== (value || "")) onCommit(v); }} placeholder={placeholder} rows={2} style={{ width: "100%", background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.6, padding: "8px 10px", outline: "none", resize: "vertical" }} />;
+  return <textarea data-tm-surface="control" value={v} onChange={(e) => setV(e.target.value)} onBlur={() => { if (v !== (value || "")) onCommit(v); }} placeholder={placeholder} rows={2} style={{ width: "100%", boxSizing: "border-box", background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.6, padding: "8px 10px", outline: "none", resize: "vertical" }} />;
 }
 function TPairEdit({ label, val, onPatch }) {
   const { t } = useT();
@@ -9562,7 +9562,7 @@ function TExDetail({ exId, onClose, onOpen }) {
         </>
       )}
       <TMuscleMap ex={ex} meta={tMetaOf(ex)} mp={ex.mp} ms={ex.ms} fluid illustration={<TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />} />
-      {(!TV.landingMotionAllowed(ex,tMetaOf(ex),LANDING_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.positionHoldMotionAllowed(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.elbowHandMotionAllowed(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.shoulderMotionAllowed(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.hipMotionAllowed(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||TV.lowerLegPolicyFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT)?.allowMotion===false)?null:<ExerciseMotion key={ex.id} exercise={ex} theme={t} L={L} />}
+      {(!TV.landingMotionAllowed(ex,tMetaOf(ex),LANDING_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.positionHoldMotionAllowed(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.elbowHandMotionAllowed(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.shoulderMotionAllowed(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||!TV.hipMotionAllowed(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT,hipCurrentMotionFor(ex))||TV.lowerLegPolicyFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT)?.allowMotion===false)?null:<ExerciseMotion key={ex.id} exercise={ex} theme={t} L={L} autoPlay />}
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "6px 0 16px" }}>
         <Bindu size={7} style={{ marginTop: 6, flexShrink: 0 }} />
         <span style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: t.textMuted }}><span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage, marginRight: 8 }}>{L("bod pozornosti", "focus point")}</span><span style={{ fontStyle: "italic", color: t.sand, fontSize: 14.5 }}>{TL(ex.foc)}</span></span>
@@ -9638,9 +9638,7 @@ function TExDetail({ exId, onClose, onOpen }) {
         {edit && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Přiložit foto / video", "Attach photo / video")}</button>}
         <AttachmentStrip att={ex.att} onRemove={edit ? ((id) => patch({ att: (ex.att || []).filter((x) => x.id !== id) })) : undefined} />
       </div>
-      <div style={{ marginTop: 18, paddingTop: 12, borderTop: `1px solid ${t.borderSoft}` }}>
-        <button onClick={() => tAskDelete(st, "tEx", ex.id, onClose)} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5 }}>{L("Do koše", "To trash")}</button>
-      </div>
+
       {pickChain && (
         <TExPick
           onClose={() => setPickChain(null)}
@@ -10655,7 +10653,7 @@ function TmStepper({ label, value, onChange, min = 0, max = 5940, step = 5, fmt,
   const release = () => { clearTimeout(timer.current); timer.current = null; };
   React.useEffect(() => () => release(), []);
   const b = (dir, icon) => (
-    <button onClick={() => bump(dir)} onMouseDown={() => hold(dir)} onMouseUp={release} onMouseLeave={release} onTouchStart={() => hold(dir)} onTouchEnd={release}
+    <button data-tm-surface="control" onClick={() => bump(dir)} onMouseDown={() => hold(dir)} onMouseUp={release} onMouseLeave={release} onTouchStart={() => hold(dir)} onTouchEnd={release}
       aria-label={dir > 0 ? "+" : "−"}
       style={{ width: 40, height: 40, borderRadius: 10, background: "transparent", border: `1px solid ${t.border}`, color: t.textSec, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_BODY, fontSize: 18, lineHeight: 1, flexShrink: 0 }}>
       {icon}
@@ -10752,7 +10750,7 @@ function TmHome({ onRun }) {
       </div>
 
       {/* ---- what this mode is, and what it will cost you */}
-      <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: "18px 20px", marginBottom: 18 }}>
+      <div data-tm-surface="card" style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: "18px 20px", marginBottom: 18 }}>
         <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 14, color: t.textMuted, marginBottom: 16 }}>{L(TM_MODE[mode].say[0], TM_MODE[mode].say[1])}</div>
 
             <div style={{ display: "flex", gap: 22, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 18 }}>
@@ -10797,7 +10795,7 @@ function TmHome({ onRun }) {
         {settings ? "▾ " : "▸ "}{L("Nastavení časovače", "Timer settings")}
       </button>
       {settings && (
-        <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "16px 18px", display: "flex", gap: 26, flexWrap: "wrap", alignItems: "flex-start" }}>
+        <div data-tm-surface="card" style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "16px 18px", display: "flex", gap: 26, flexWrap: "wrap", alignItems: "flex-start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <TmSwitch on={cfg.sound} onChange={(v) => { st.setTmCfg({ sound: v }); tmAudio.set(v, cfg.volume, cfg.soundSet); }} label={L("Zvuk", "Sound")} />
             <TmSwitch on={cfg.voice} onChange={(v) => { st.setTmCfg({ voice: v }); tmVoice.set(v, { rate: cfg.voiceRate, cs: cfg.voiceCs, en: cfg.voiceEn }); }} label={L("Hlasový odpočet", "Voice countdown")} />
@@ -12845,7 +12843,7 @@ function TvNumInput({ value, onChange, disabled, style, ...rest }) {
     if (n === null || Number.isFinite(n)) { setTxt(n == null ? "" : String(n)); commit(n); }
     else setTxt(last.current == null ? "" : String(last.current));
   };
-  return <input {...rest} inputMode="decimal" disabled={disabled} value={txt} onChange={onInput} onBlur={onBlur} style={style} />;
+  return <input data-tm-surface="control" {...rest} inputMode="decimal" disabled={disabled} value={txt} onChange={onInput} onBlur={onBlur} style={style} />;
 }
 
 function TvField({ field, value, onChange, disabled, label }) {
@@ -13111,7 +13109,7 @@ function TvClientExerciseDetail({ exId, onClose }) {
   ].filter(([key]) => TL(rec?.[key]));
   return <CenterSheet title={tvName(rec) || L("Cvik", "Exercise")} onClose={onClose} vrstva={280}>
     {row && <div style={{color:t.text,display:"flex",justifyContent:"center",margin:"10px 0 20px"}}><TvClientGuideArt ex={row} size={200}/></div>}
-    {(!tvLandingClientMotionAllowed(st,exId,row)||!tvPositionHoldClientMotionAllowed(st,exId,row)||!tvElbowHandClientMotionAllowed(st,exId,row)||!tvShoulderClientMotionAllowed(st,exId,row)||!tvHipClientMotionAllowed(st,exId,row)||tvLocoClientPolicy(st,exId)?.allowMotion===false||(tvLocoClientPolicy(st,exId)?.blockedMotionSources||[]).includes(hipCurrentMotionFor(row||{id:exId})?.src))?null:<ExerciseMotion key={exId} exercise={row || { id: exId }} theme={t} L={L} />}
+    {(!tvLandingClientMotionAllowed(st,exId,row)||!tvPositionHoldClientMotionAllowed(st,exId,row)||!tvElbowHandClientMotionAllowed(st,exId,row)||!tvShoulderClientMotionAllowed(st,exId,row)||!tvHipClientMotionAllowed(st,exId,row)||tvLocoClientPolicy(st,exId)?.allowMotion===false||(tvLocoClientPolicy(st,exId)?.blockedMotionSources||[]).includes(hipCurrentMotionFor(row||{id:exId})?.src))?null:<ExerciseMotion key={exId} exercise={row || { id: exId }} theme={t} L={L} autoPlay />}
     {sections.map(([key,label])=><section key={key} style={{marginBottom:20}}>
       <h3 style={{fontFamily:FONT_TAG,fontSize:12,letterSpacing:".12em",textTransform:"uppercase",fontWeight:500,color:t.accentInk||t.accent,margin:"0 0 7px"}}>{label}</h3>
       <div style={{fontFamily:FONT_BODY,fontSize:15,lineHeight:1.7,color:t.textSec,whiteSpace:"pre-wrap"}}><TrainingSourceText text={TL(rec[key])} color={t.accentInk||t.accent}/></div>
@@ -13230,6 +13228,7 @@ function TvClientPlan({ onRun }) {
   const sessions = st.tvSessions();
   const plans = (del && del.plans) || [];
   const [open, setOpen] = useState(null);
+  const [detailEx, setDetailEx] = useState(null);
 
   if (!del || !plans.length) {
     return (
@@ -13293,12 +13292,10 @@ function TvClientPlan({ onRun }) {
                         {(tpl.blocks || []).map((b) => {
                           const r = tvClientRec(st, b.exId);
                           return (
-                            <div key={b.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "4px 0", fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>
-                              <span style={{ flex: 1, minWidth: 0 }}>{tvName(r) || TL(b.name)}</span>
-                              <span style={{ color: t.sand, fontVariantNumeric: "tabular-nums" }}>
-                                {(b.sets || []).length}<FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} />{tvFmtP(b.measurementType, (b.sets || [])[0] ? (b.sets || [])[0].planned : null)}
-                              </span>
-                            </div>
+                            <button type="button" className="tm-exercise-list" key={b.id} onClick={() => setDetailEx(b.exId)} style={{ display: "flex", width: "100%", minWidth: 0, gap: 14, alignItems: "center", padding: "10px 0", border: 0, background: "transparent", textAlign: "left", cursor: "pointer" }}>
+                              <ExerciseLibraryRowContent t={t} title={tvName(r) || TL(b.name)} focus={(b.sets || []).length + " × " + tvFmtP(b.measurementType, (b.sets || [])[0]?.planned)} illustration={<TvClientGuideArt ex={st.tvExerciseOf(b.exId) || {id:b.exId}} fluid />} />
+                              <FamilyIcon id="expand" size={16} />
+                            </button>
                           );
                         })}
                       </div>
@@ -13310,6 +13307,7 @@ function TvClientPlan({ onRun }) {
           </div>
         );
       })}
+      {detailEx && <TvClientExerciseDetail exId={detailEx} onClose={() => setDetailEx(null)} />}
     </div>
   );
 }
@@ -13407,7 +13405,7 @@ function PageTrenink() {
   const sessions = st.tvSessions();
 
   // ---- knihovna · filtry ----
-  const exerciseView = st.pageMetaOf("trenink").exerciseView === "list" ? "list" : "grid";
+  const exerciseView = st.pageMetaOf("trenink").exerciseView === "grid" ? "grid" : "list";
   const setExerciseView = view => st.setPageMeta("trenink", { exerciseView: view });
   const [exerciseFilters, setExerciseFilters] = useState(createExerciseFilters);
   const [exerciseSort, setExerciseSort] = useState("recommended");
