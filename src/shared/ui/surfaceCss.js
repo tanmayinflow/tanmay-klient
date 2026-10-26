@@ -5,6 +5,10 @@ export function surfaceCss() {
   const root = 'html:is([data-surface-style="veil"],[data-surface-style="shadow"],[data-surface-style="clear"])';
   const idle = ':not([data-tm-surface-active="true"]):not([data-tm-surface-editor="true"]):not([aria-invalid="true"]):not([aria-disabled="true"]):not(:disabled)';
   return `
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.tm-select-trigger:focus-visible, .tm-choice-panel input:focus-visible { outline: 2px solid var(--tm-accent); outline-offset: 3px; }
+
 ${root} {
   --tm-depth-i5: color-mix(in srgb, var(--tm-depth-ink) 5%, transparent);
   --tm-depth-i8: color-mix(in srgb, var(--tm-depth-ink) 8%, transparent);

@@ -68,7 +68,7 @@ export const togetherStyles=`
 .tm-together .tg-sharing-trigger{flex:0 0 128px;text-align:center;line-height:1.5}
 .tm-together button.tg-moon{position:absolute;right:0;top:4px;width:124px;min-height:140px;border:0;padding:0 2px 8px;color:var(--tm-room-art-ink,var(--tg-text));background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;border-radius:8px}
 .tg-moon svg{width:108px;height:108px;flex-shrink:0}
-.tg-moon .tg-moon-phase{font-family:var(--tm-font-tag);font-size:11px;line-height:1.35;letter-spacing:.09em;text-transform:uppercase;color:var(--tg-accent);text-decoration:none;max-width:120px;text-align:center}
+.tg-moon .tg-moon-phase{font-family:var(--tm-font-tag);font-size:11px;line-height:1.35;letter-spacing:.09em;text-transform:uppercase;color:var(--tg-accent);text-decoration:none;position:absolute;right:64px;bottom:17px;max-width:140px;text-align:left;white-space:nowrap}
 .tg-moon:focus-visible{outline:2px solid var(--tg-accent);outline-offset:3px}
 .tg-moon-sheet summary{cursor:pointer;min-height:44px;padding:12px 0}
 .tg-moon-sheet a{color:inherit;text-underline-offset:3px}

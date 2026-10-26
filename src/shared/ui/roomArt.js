@@ -1,5 +1,5 @@
 // Reviewed object illustrations. Keep their original files and alpha intact.
-export const TRAINING_YOGA_ART = 'training-rings-v2.webp';
+export const TRAINING_YOGA_ART = 'training-rings-coiled-v3.png';
 
 export const ROOM_ART = Object.freeze({
   praxe: 'practice-illustration-v1.png',

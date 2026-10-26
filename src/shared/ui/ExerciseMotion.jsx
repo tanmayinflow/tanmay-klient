@@ -21,9 +21,6 @@ function MotionPlayer({ motion, theme, L, autoPlay }) {
   const startRef = useRef(null);
   const [open, setOpen] = useState(automatic.current);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const [time, setTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [error, setError] = useState(false);
   const pause = () => { intentRef.current += 1; videoRef.current?.pause(); };
   useEffect(() => {
@@ -66,7 +63,7 @@ function MotionPlayer({ motion, theme, L, autoPlay }) {
     // Muted inline playback may start automatically. A denied browser policy
     // leaves the explicit Play control ready for a user gesture.
     if (!video.getAttribute('src')) video.src = motion.src;
-    video.playbackRate = speed;
+    video.playbackRate = 1;
     try {
       await video.play();
       if (intent !== intentRef.current || document.hidden) video.pause();
@@ -88,8 +85,6 @@ function MotionPlayer({ motion, theme, L, autoPlay }) {
     video.removeAttribute('src');
     video.load();
     setOpen(false);
-    setTime(0);
-    setDuration(0);
     setError(false);
   }
   const colors = { '--motion-ink': theme.text, '--motion-muted': theme.textMuted,
@@ -101,17 +96,8 @@ function MotionPlayer({ motion, theme, L, autoPlay }) {
       <video ref={videoRef} preload="none" playsInline muted loop aria-label={L('Kreslené provedení cviku', 'Illustrated exercise movement')}
         poster={open ? motion.poster : undefined}
         onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
-        onLoadedMetadata={event => setDuration(Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0)}
-        onTimeUpdate={event => setTime(event.currentTarget.currentTime)} onError={() => { if (videoRef.current?.getAttribute('src')) setError(true); }} />
-      <div className="tm-motion-controls">
-        <button type="button" onClick={play}>{playing ? L('Pozastavit', 'Pause') : L('Přehrát', 'Play')}</button>
-        <div role="group" aria-label={L('Rychlost přehrávání', 'Playback speed')}>
-          {[0.5, 1].map(value => <button key={value} type="button" aria-pressed={speed === value} onClick={() => { setSpeed(value); videoRef.current.playbackRate = value; }}>{value === 0.5 ? '0.5×' : '1×'}</button>)}
-        </div>
-      </div>
-      <input type="range" min="0" max={duration || 1} step="0.01" value={Math.min(time, duration || 1)} disabled={!duration}
-        aria-label={L('Poloha v pohybu', 'Movement position')} aria-valuetext={`${time.toFixed(1)} / ${duration.toFixed(1)} s`}
-        onChange={event => { pause(); videoRef.current.currentTime = Number(event.target.value); setTime(Number(event.target.value)); }} />
+        onError={() => { if (videoRef.current?.getAttribute('src')) setError(true); }} />
+      {!playing && <button type="button" className="tm-motion-launch" onClick={play}>{L('Přehrát pohyb', 'Play movement')}</button>}
       {motion.oneSide && <p>{L('Ukázka jedné strany. Při cvičení strany vystřídej.', 'One side is shown. Alternate sides when exercising.')}</p>}
       {error && <p role="status">{L('Pohyb se nepodařilo načíst. Zkus ho přehrát znovu po připojení.', 'The movement could not load. Reconnect and try playing it again.')}</p>}
     </div>

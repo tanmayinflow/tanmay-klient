@@ -47,5 +47,6 @@ test('multiple moon drawings retain independent clipping and accessible parent s
   assert.ok(references.length>0);
   for(const id of references) assert.ok(ids.includes(id),`missing SVG definition: ${id}`);
   assert.equal((html.match(/aria-hidden="true"/g)||[]).length,2,'the labelled MoonCompanion button owns the accessible text');
-  assert.ok(!/filter=|<image|https?:/.test(html),'engraving has no remote bitmap or expensive blur dependency');
+  assert.ok(html.includes('href="/media/icons/moon-handdrawn-v2.png"'));
+  assert.ok(!/filter=|https?:/.test(html),'engraving has no remote image or expensive blur dependency');
 });

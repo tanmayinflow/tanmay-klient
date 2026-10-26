@@ -1,3 +1,4 @@
+import { ChoiceField } from "./ChoiceField.jsx";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
 // ----------------------------------------------------------------------
 // ATOMY · značka, výběr, pruh, zápisky, řádek vlastnosti, chrom stránky
@@ -111,42 +112,9 @@ export function createAtoms(deps) {
     );
   }
 
-  function Select({ value, onChange, options, placeholder, style, small, ghost }) {
+  function Select(props) {
     const { t } = useT();
-    const [open, setOpen] = useState(false);
-    const wrapRef = React.useRef(null);
-    React.useEffect(() => {
-      if (!open) return;
-      const onDoc = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
-      const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setOpen(false); } };
-      document.addEventListener("mousedown", onDoc);
-      document.addEventListener("keydown", onKey);
-      return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
-    }, [open]);
-    const opts = options.map((o) => typeof o === "string" ? { v: o, label: o } : o);
-    const cur = opts.find((o) => o.v === value);
-    const trigStyle = {
-      display: "inline-flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-      background: ghost ? "transparent" : t.card, border: ghost ? "none" : `1px solid ${t.border}`, borderRadius: "var(--tm-r-sm)", color: t.text,
-      fontFamily: "var(--tm-font-body)", cursor: "pointer", outline: "none", width: "100%",
-      padding: ghost ? "4px 6px" : small ? "5px 9px" : "9px 11px", fontSize: ghost ? 12 : small ? 12.5 : 14,
-      ...(style || {}),
-    };
-    return (
-      <div ref={wrapRef} style={{ position: "relative", display: "inline-block", ...(style && style.maxWidth ? { maxWidth: style.maxWidth } : {}), width: (style && style.width) || "auto" }}>
-        <button className="tm-select-trigger" data-tm-surface={ghost ? undefined : "control"} data-tm-surface-active={open ? "true" : undefined} type="button" aria-expanded={open} onClick={() => setOpen((x) => !x)} style={trigStyle}>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: ghost ? t.textMuted : (cur || value) ? t.text : t.textMuted }}>{cur ? cur.label : (value || placeholder || "—")}</span>
-          <span style={{ color: t.textMuted, fontSize: 12, flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}><FamilyIcon id="expand" size={12} label={L("Rozbalit","Expand")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
-        </button>
-        {open && (
-          <div className="tm-select-menu" style={{ animation: "tmsettle .18s ease both", position: "absolute", top: "calc(100% + 5px)", left: 0, minWidth: "100%", maxWidth: "min(320px, calc(86 * var(--tm-vw)))", maxHeight: 280, overflowY: "auto", background: t.bg, border: `1px solid ${t.border}`, borderRadius: 12, boxShadow: "0 8px 18px rgba(28,28,26,0.12)", zIndex: 60, padding: 5 }}>
-            {opts.map((o) => (
-              <button key={o.v} type="button" data-tm-surface="row" data-tm-surface-active={o.v === value ? "true" : undefined} onClick={() => { onChange(o.v); setOpen(false); }} className="tm-nav-item" style={{ display: "block", width: "100%", textAlign: "left", background: o.v === value ? t.card : "transparent", border: "none", cursor: "pointer", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: small ? 12.5 : 14, padding: "7px 10px", borderRadius: 6, whiteSpace: "nowrap" }}>{o.label}</button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+    return <ChoiceField {...props} theme={t} L={L} />;
   }
 
   function ProgressBar({ value }) {

@@ -53,15 +53,15 @@ function FocusPicker({ note, setNote, cat, pickCat, onClose, photo = false }) {
       requestAnimationFrame(() => { if (trigger?.isConnected) trigger.focus({ preventScroll: true }); });
     };
   }, []);
-  return <div className="tm-pomo-picker" role="group" aria-labelledby={inputId + "-label"}
+  return <div className="tm-pomo-picker" data-tm-surface={photo ? undefined : "card"} role="group" aria-labelledby={inputId + "-label"}
     onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); } }}
     style={{ width: "100%", maxWidth: 420, boxSizing: "border-box", margin: "0 auto", textAlign: "center", padding: "18px 16px 10px", border: `1px solid ${palette.border}`, borderRadius: 18, background: palette.background, color: palette.ink, "--pomo-placeholder": palette.placeholder, "--pomo-focus": palette.focus }}>
     <style>{`.tm-pomo-picker input::placeholder{color:var(--pomo-placeholder)!important;opacity:1!important}.tm-pomo-picker :is(input,button):focus-visible{outline:2px solid var(--pomo-focus)!important;outline-offset:3px}.tm-pomo-picker input:focus{border-color:var(--pomo-focus)!important}`}</style>
     <label ref={headingRef} tabIndex={-1} id={inputId + "-label"} htmlFor={inputId} style={{ display: "block", fontFamily: FONT_DISPLAY, fontSize: 21, lineHeight: 1.3, color: palette.ink, marginBottom: 12, outline: "none" }}>{L("Na co se soustředíš?", "What are you focusing on?")}</label>
-    <input id={inputId} value={note} onChange={event => setNote(event.target.value)} placeholder={L("Konkrétně… (nepovinné)", "Specifically… (optional)")}
+    <input data-tm-surface={photo ? undefined : "control"} id={inputId} value={note} onChange={event => setNote(event.target.value)} placeholder={L("Konkrétně… (nepovinné)", "Specifically… (optional)")}
       style={{ width: "100%", minHeight: 44, boxSizing: "border-box", background: palette.input, border: `1px solid ${palette.border}`, borderRadius: 10, padding: "10px 12px", color: palette.ink, caretColor: palette.focus, fontFamily: FONT_BODY, fontSize: 16, outline: "none", textAlign: "left", marginBottom: 12 }} />
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-      {POMO_CATS.map(category => <button key={category.k} onClick={() => pickCat(category.k)}
+      {POMO_CATS.map(category => <button data-tm-surface={photo ? undefined : "control"} data-tm-surface-active={cat === category.k ? "true" : undefined} key={category.k} onClick={() => pickCat(category.k)}
         style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44, background: "transparent", border: `1px solid ${cat === category.k ? palette.focus : palette.border}`, borderRadius: 999, padding: "9px 14px", cursor: "pointer", color: palette.ink, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12 }}>
         <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: "50%", background: pomoCatColor(t, tags, category.k) }} />{L(category.cz, category.en)}
       </button>)}

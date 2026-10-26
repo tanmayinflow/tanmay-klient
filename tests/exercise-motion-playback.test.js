@@ -38,7 +38,7 @@ function harness({ reduced = false, mode = 'full', refusal, autoPlay = true } = 
   return { render, video, visible: value => observer([{ isIntersecting: value }]),
     hidden() { doc.hidden = true; listeners.visibilitychange(); }, reduced() { media.matches = true; mediaListeners.change(); },
     close() { walk(render()).find(n => n.props['aria-label'] === 'Zavřít pohybovou ukázku').props.onClick(); },
-    toggle() { walk(render()).find(n => n.type === 'button' && ['Přehrát', 'Pozastavit', '▷ '].includes(n.children[0])).props.onClick(); },
+    toggle() { walk(render()).find(n => n.type === 'button' && ['Přehrát pohyb', '▷ '].includes(n.children[0])).props.onClick(); },
     unmount() { cleanups.forEach(fn => fn?.()); },
     stats: () => ({ claimed, released, plays, loads }),
     statuses: () => walk(render()).filter(n => n.props.role === 'status'),
