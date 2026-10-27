@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "boxpistol": {
+    "oneSide": true,
+    "src": "/exercise-motion/boxpistol-594efb1ed66ea9ce.mp4",
+    "bytes": 36544,
+    "sha256": "594efb1ed66ea9ce51f9492d1144a2c72588cc24909fb8a697112f6058455847",
+    "poster": "/exercise-motion/boxpistol-poster-e3c12c64e00b41b3.webp"
+  },
+  "vup": {
+    "oneSide": false,
+    "src": "/exercise-motion/vup-d163845d62e04628.mp4",
+    "bytes": 31512,
+    "sha256": "d163845d62e046289fa5202c13e34d4807acf169fe7a6e412ebbd0914e314d12",
+    "poster": "/exercise-motion/vup-poster-2753c943ee08ed28.webp"
+  },
+  "ex26_heel_slide": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_heel_slide-afc9476db870a6e8.mp4",
+    "bytes": 21571,
+    "sha256": "afc9476db870a6e86b323422629973661005434b2b3a8e5364d169a36c19a183",
+    "poster": "/exercise-motion/ex26_heel_slide-poster-a50b96d27a06a2d5.webp"
+  },
+  "ex26_wall_march": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_wall_march-3991d582ff9f8ee4.mp4",
+    "bytes": 31756,
+    "sha256": "3991d582ff9f8ee4fc3083192ea890fc98848844b5caace016994a84f25f7371",
+    "poster": "/exercise-motion/ex26_wall_march-poster-573ada6bbe4ff842.webp"
+  },
+  "ex26_ball_wallsquat": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_wallsquat-1e8d97584013ba49.mp4",
+    "bytes": 39845,
+    "sha256": "1e8d97584013ba495bc4c8c25982439c473ea38c28ecaa282d05de5481ee33c4",
+    "poster": "/exercise-motion/ex26_ball_wallsquat-poster-24d7501aa8e4f64f.webp"
+  },
+  "ex26_ball_kneetuck": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_kneetuck-d4cfa36fb8691cc8.mp4",
+    "bytes": 32025,
+    "sha256": "d4cfa36fb8691cc86968bb40e83dd69edb6d49cfcf73921a106d5de9b1c23873",
+    "poster": "/exercise-motion/ex26_ball_kneetuck-poster-1a9c0f9eb8d21686.webp"
+  },
+  "ex26_barbell_rollout": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_barbell_rollout-4f17a27853bc349c.mp4",
+    "bytes": 35201,
+    "sha256": "4f17a27853bc349ce2f99036b65012dc931926a495f8c9081b3507f8babfac50",
+    "poster": "/exercise-motion/ex26_barbell_rollout-poster-5c9dd5b89c151470.webp"
+  },
+  "ex26_band_lyingcurl": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_band_lyingcurl-55e4fbb4d2ce5d38.mp4",
+    "bytes": 19573,
+    "sha256": "55e4fbb4d2ce5d38b77a15d509c22b701425f51b4f1095a2a6a9fbfd7eb79ab2",
+    "poster": "/exercise-motion/ex26_band_lyingcurl-poster-eb2a7d55988b9bbf.webp"
+  },
   "elephantwalk": {
     "oneSide": false,
     "src": "/exercise-motion/elephantwalk-619063acbb8e908b.mp4",
