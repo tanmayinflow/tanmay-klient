@@ -1,18 +1,20 @@
 import { syncAllDay, mergeAllDaySync } from "./calendarAllDay.js";
-import { eventFields, listCalendarEvents, reconcileSchedule, writeCalendarEvent } from "./calendarSchedule.js";
+import { calendarEventInWindow, eventFields, listCalendarEvents, reconcileSchedule, writeCalendarEvent } from "./calendarSchedule.js";
 import { syncClientTrainingCalendar } from "./trainingCalendarSync.js";
 import { syncOwnCycleCalendar } from "./cycleGoogleCalendar.js";
+import { syncTimedCalendar } from "./calendarTimed.js";
+import { createPersonalCalendarConnection } from "./personalCalendarConnection.js";
 
 // Main supplies its additional event sources. Client never evaluates those sources,
 // even if an imported collection contains Main calendar flags or shadow records.
-export function createGoogleCalendar({role="main", L, todayISO, BRAND, extraEvents=()=>[], getAccount=()=>"main", verifyAccount=()=>true, canRequest=()=>true, fetcher=(...args)=>fetch(...args)}) {
+export function createGoogleCalendar({role="main", L, todayISO, BRAND, extraEvents=()=>[], getAccount=()=>"main", verifyAccount=()=>true, canRequest=()=>true, fetcher=(...args)=>fetch(...args), connection:providedConnection}) {
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.app.created";
 const CAL_API = "https://www.googleapis.com/calendar/v3";
 const CAL_GIS = "https://accounts.google.com/gsi/client";
 const mainDefaults = {
   clientId: "", calId: "", calName: "tanmay",
-  klienti: true, trenink: true, rozvrh: false, motiv: true,
-  horizon: 14, busy: "klienti", titles: "plne", zpet: "",
+  klienti: true, trenink: true, rozvrh: true, motiv: true,
+  horizon: 14, busy: "klienti", titles: "plne", zpet: "tanmay",
   lastSync: 0, lastErr: "", lastCount: 0, cycle:false, cycleCalId:"",
 };
 const allKinds = [
@@ -24,16 +26,28 @@ const allKinds = [
 
 
 let runtimeClientId = "", preparing = null, generation = 0;
+const connection = providedConnection || createPersonalCalendarConnection({getAccount,verifyAccount,canRequest,fetcher,loadGoogle:()=>tmCalGis()});
+const durableToken = 'server-calendar-connection';
 const CAL_DEF = role === "client" ? {...mainDefaults, klienti:false, motiv:false, busy:"nic"} : mainDefaults;
 const CAL_KINDS = allKinds.filter(item => role !== "client" || ["rozvrh","trenink"].includes(item.k));
 const config = value => role === "client"
   ? {...CAL_DEF, ...value, clientId:value?.clientId||runtimeClientId, klienti:false, motiv:false, busy:value?.busy === "vse" ? "vse" : "nic"}
   : {...CAL_DEF, ...value, clientId:value?.clientId||runtimeClientId};
 function tmCalPrepare() {
-  if (!preparing) preparing = fetcher('/api/calendar/config',{credentials:'same-origin',cache:'no-store'})
-    .then(async response => { if (!response.ok) throw new Error('calendar-config-unavailable'); const data=await response.json(); runtimeClientId=data.configured?data.clientId:''; return config({}); })
+  if (!preparing) preparing = Promise.all([fetcher('/api/calendar/config',{credentials:'same-origin',cache:'no-store'}), connection.prepare(undefined,{authorize:false})])
+    .then(async ([response]) => { if (!response.ok) throw new Error('calendar-config-unavailable'); const data=await response.json(); runtimeClientId=data.configured?data.clientId:''; return config({}); })
     .finally(()=>{preparing=null;});
   return preparing;
+}
+const tmCalDurable = () => connection.configured() === true;
+const tmCalRestore = () => connection.prepare(undefined,{authorize:false});
+const tmCalConnectConfig = value => {
+  const cfg = config(value);
+  return tmCalDurable() && !cfg.durableSetup ? {...cfg,rozvrh:true,zpet:'vse',allDayWrite:false,cycle:false} : cfg;
+};
+function tmCalPrepareAuth(value) {
+  return tmCalRestore().then(() => tmCalDurable()
+    ? connection.prepare(tmCalScopeFor(tmCalConnectConfig(value)),{authorize:true}) : tmCalGis());
 }
 const accountError = () => Object.assign(new Error("calendar-account-changed"), {code:"calendar-account-changed"});
 const assertAccount = owner => { if (!owner || owner !== getAccount()) throw accountError(); };
@@ -82,7 +96,8 @@ const tmCalHH = (h) => { const p = String(h || "").split(":"); return String(Mat
 let TM_CAL_OWNER = null;
 let TM_CAL_TOK = null, TM_CAL_EXP = 0, TM_CAL_CLIENT = null, TM_CAL_CID = "", TM_CAL_SC = "", TM_CAL_GRANT = "";
 let authTask=null, authKey='';
-const tmCalLive = () => !!getAccount() && TM_CAL_OWNER === getAccount() && !!TM_CAL_TOK && Date.now() < TM_CAL_EXP - 60000;
+const tmCalLive = () => tmCalDurable() ? !!connection.status().connected
+  : !!getAccount() && TM_CAL_OWNER === getAccount() && !!TM_CAL_TOK && Date.now() < TM_CAL_EXP - 60000;
 /* KDO ROZHODUJE O PŘIHLÁŠENÍ. „Tiché" vydání tokenu (prompt: "") umí Google
    vydat bez ptaní jen tehdy, když je jeho relace v prohlížeči zdravá. Když
    není, místo tichého okna se ukáže PŘIHLAŠOVACÍ obrazovka — a protože se
@@ -125,6 +140,20 @@ function tmCalAuth(clientId, interactive, scope) {
   try { assertAccount(owner); if (!canRequest()) throw new Error("calendar-account-unavailable"); } catch (error) { return Promise.reject(error); }
   if (!clientId) return Promise.reject(new Error("no-client-id"));
   const sc = scope || CAL_SCOPE;
+  if (connection.configured() === null) return Promise.reject(new Error('calendar-connection-loading'));
+  if (tmCalDurable()) {
+    const accept = () => {
+      assertAccount(owner); if (version !== generation) throw accountError();
+      if (!connection.ready(sc)) throw new Error('calendar-permission-required');
+      TM_CAL_OWNER=owner;TM_CAL_TOK=durableToken;TM_CAL_CID=clientId;
+      TM_CAL_GRANT=Array.isArray(connection.status().scopes)?connection.status().scopes.join(' '):String(connection.status().scopes||'');
+      return durableToken;
+    };
+    if (connection.ready(sc)) return Promise.resolve().then(accept);
+    if (!interactive) return Promise.reject(new Error('calendar-permission-required'));
+    // connect() opens Google's prepared code popup before yielding the tap.
+    return connection.connect(sc).then(accept);
+  }
   if (tmCalLive() && TM_CAL_CID === clientId && sc.split(' ').every(s=>TM_CAL_GRANT.split(' ').includes(s))) return Promise.resolve(TM_CAL_TOK);
   const key=JSON.stringify([owner,clientId,sc,version]);
   if(authTask&&authKey===key)return authTask;
@@ -169,6 +198,7 @@ function tmCalReq(path, opts, tok, attempt, owner = TM_CAL_OWNER, version = gene
   try { guard(); if (!canRequest()) throw new Error("calendar-account-unavailable"); } catch (error) { return Promise.reject(error); }
   const n = attempt || 0;
   const o = opts || {};
+  if (tok === durableToken) return connection.request(path, o).then(data => { guard(); return data; });
   return fetcher(CAL_API + path, {
     method: o.method || "GET",
     headers: Object.assign({ Authorization: "Bearer " + tok }, o.body ? { "Content-Type": "application/json" } : {}, o.headers || {}),
@@ -265,137 +295,43 @@ function tmCalBody(ev, tz) {
 }
 const tmCalHash = (b) => { const s = JSON.stringify(b); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
 
-/* ČTENÍ ZPĚT. Google → rozvrh dne.
-   Dvě různé věci, které je potřeba nepomíchat:
-   · z kalendáře „tanmay" se čte zadarmo — ten si aplikace vytvořila, takže
-     na něj vidí z rozsahu, který už má;
-   · z hlavního kalendáře se čte jen s NOVÝM oprávněním, které vidí úplně
-     všechno. Proto se o něj říká teprve ve chvíli, kdy si to člověk zapne,
-     ne dopředu do zásoby. Google to sám doporučuje: „Nežádej o přístup
-     k datům při prvním přihlášení, pokud to není nutné pro jádro aplikace."
-
-   PRAVIDLA, KTERÁ CHRÁNÍ NAPSANÉ. Řádek, do kterého člověk sám něco napsal,
-   se nikdy nepřepíše — ani se do něj nepřipisuje. Zapisuje se jen do
-   prázdných a do těch, které sem předtím přinesl kalendář (ty nesou značku
-   src: "gcal"). Když událost v Googlu zmizí nebo se přesune, její řádek se
-   uklidí — ale jen pokud ho mezitím nikdo nepřepsal.
-
-   A HLAVNĚ: co přišlo z kalendáře, se nikdy neposílá zpátky do kalendáře.
-   Bez toho by vznikla smyčka, kde si aplikace donekonečna přepisuje vlastní
-   ozvěnu. Proto tmCalDesired řádky se značkou src: "gcal" přeskakuje. */
+/* App-owned blocks reconcile against their Google identity. Other timed events
+   are separate read-only projections, retaining precise times and overlaps.
+   Reading the primary calendar requires its explicit additional consent. */
 const CAL_READ_SCOPE = "https://www.googleapis.com/auth/calendar.events.readonly";
 const CAL_WRITE_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const tmCalScopeFor = (cfg) => (cfg && cfg.zpet === "vse") ? (CAL_SCOPE + " " + (cfg.allDayWrite ? CAL_WRITE_SCOPE : CAL_READ_SCOPE)) : CAL_SCOPE;
-const tmCalReady = cfg => tmCalLive() && TM_CAL_CID === config(cfg).clientId && tmCalScopeFor(config(cfg)).split(' ').every(s=>TM_CAL_GRANT.split(' ').includes(s));
-const tmCalMaZapis = () => TM_CAL_GRANT.split(" ").includes(CAL_WRITE_SCOPE);
-const tmCalMaCteni = () => tmCalMaZapis() || TM_CAL_GRANT.split(" ").includes(CAL_READ_SCOPE);
+const granted = () => tmCalDurable() ? (Array.isArray(connection.status().scopes)?connection.status().scopes:String(connection.status().scopes||'').split(' ')) : TM_CAL_GRANT.split(' ');
+const tmCalReady = cfg => tmCalDurable() ? !cfg?.calDisconnected && connection.ready(tmCalScopeFor(config(cfg)))
+  : tmCalLive() && TM_CAL_CID === config(cfg).clientId && tmCalScopeFor(config(cfg)).split(' ').every(s=>granted().includes(s));
+const tmCalMaZapis = () => granted().includes(CAL_WRITE_SCOPE);
+const tmCalMaCteni = () => tmCalMaZapis() || granted().includes(CAL_READ_SCOPE);
 const tmCalHourKey = (h) => String(h) + ":00";
-/* Z RFC3339 na hodinu rozvrhu v místním čase. Rozvrh má řádky po hodinách
-   od 6:00 do 23:00; událost v 9:37 patří do řádku 9:00. Nepředstírá se
-   přesnost, kterou rozvrh nemá. Co padne mimo, se nebere — není kam. */
+/* The slot identifies an app-owned field. Exact minutes remain in calTime;
+   newly created Google events use their independent calendarTimed records. */
 function tmCalSlot(dt) {
   try {
     const d = new Date(dt);
     if (isNaN(d.getTime())) return null;
     const h = d.getHours();
-    if (h < 6 || h > 23) return null;
     return { date: d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"), hour: tmCalHourKey(h) };
   } catch (e) { return null; }
 }
 function tmCalPull(st, cfg, tok) {
-  const dnes = todayISO();
-  const konec = tmCalShift(dnes, Math.max(1, Number(cfg.horizon) || 14));
-  const min = new Date(dnes + "T00:00:00").toISOString();
-  const max = new Date(konec + "T23:59:59").toISOString();
-  const kalendare = [];
-  if (cfg.calId) kalendare.push(cfg.calId);
-  if (cfg.zpet === "vse") kalendare.push("primary");
-  if (!kalendare.length) return Promise.resolve({ vlozeno: 0, uklizeno: 0 });
-
-  const q = "?timeMin=" + encodeURIComponent(min) + "&timeMax=" + encodeURIComponent(max)
-    + "&singleEvents=true&orderBy=startTime&maxResults=2500&showDeleted=false";
-  return Promise.all(kalendare.map((id) =>
-    listCalendarEvents(p => tmCalReq(p, null, tok), "/calendars/" + encodeURIComponent(id) + "/events", q)
-  )).then((davky) => {
-    const najdeno = {}; // date -> hour -> { gid, text }
-    davky.forEach((items) => items.forEach((ev) => {
-      if (!ev || ev.status === "cancelled") return;
-      // co poslala tahle aplikace, se zpátky nečte — jinak ozvěna
-      const pr = ((ev.extendedProperties || {}).private) || {};
-      if (pr.tmApp === "1") return;
-      // celodenní do hodinového rozvrhu nepatří
-      if (!ev.start || !ev.start.dateTime) return;
-      // odmítnutá pozvánka není plán
-      if ((ev.attendees || []).some((a) => a.self && a.responseStatus === "declined")) return;
-      const s = tmCalSlot(ev.start.dateTime);
-      if (!s || s.date < dnes || s.date > konec) return;
-      const txt = String(ev.summary || "").trim() || L("(bez názvu)", "(untitled)");
-      /* Delší událost obsadí tolik hodin, kolik trvá — do rozvrhu se
-         nevejde přesná délka, ale počet hodin ano a je to poctivější než
-         udělat ze schůzky na tři hodiny jednohodinový řádek. */
-      let sp = 1;
-      try {
-        const kon = ev.end && ev.end.dateTime ? new Date(ev.end.dateTime).getTime() : 0;
-        const zac = new Date(ev.start.dateTime).getTime();
-        if (kon > zac) sp = Math.max(1, Math.min(18, Math.round((kon - zac) / 3600000)));
-      } catch (e2) {}
-      najdeno[s.date] = najdeno[s.date] || {};
-      const cur = najdeno[s.date][s.hour];
-      /* Táž událost může ležet ve dvou kalendářích naráz. Bez porovnání
-         podle id by se do řádku zapsala dvakrát za sebou. */
-      if (cur && cur.ids.indexOf(ev.id) >= 0) return;
-      najdeno[s.date][s.hour] = cur
-        ? { ids: cur.ids.concat([ev.id]), gid: cur.gid + "," + ev.id, text: cur.text + " · " + txt, span: Math.max(cur.span || 1, sp) }
-        : { ids: [ev.id], gid: ev.id, text: txt, span: sp };
-    }));
-
-    let vlozeno = 0, uklizeno = 0;
-    for (let i = 0; i <= Math.max(1, Number(cfg.horizon) || 14); i++) {
-      const d = tmCalShift(dnes, i);
-      const sched = Object.assign({}, (st.getDay(d) || {}).sched || {});
-      const chce = najdeno[d] || {};
-      let zmena = false;
-      // co přibylo nebo se změnilo
-      Object.keys(chce).forEach((h) => {
-        const row = sched[h] || {};
-        const naps = String(row.text || "").trim();
-        const cizi = naps && row.src !== "gcal";
-        if (cizi) return;                                   // napsané se nesahá
-        if (row.src === "gcal" && row.gid === chce[h].gid && naps === chce[h].text && (row.span || 1) === (chce[h].span || 1)) return;
-        sched[h] = { ...row, text: chce[h].text, span: chce[h].span || 1, src: "gcal", gid: chce[h].gid };
-        zmena = true; vlozeno++;
-      });
-      // co z kalendáře zmizelo · uklidit, ale jen vlastní stopu
-      Object.keys(sched).forEach((h) => {
-        const row = sched[h] || {};
-        if (row.src !== "gcal" || chce[h]) return;
-        const zbytek = { ...row };
-        delete zbytek.src; delete zbytek.gid; delete zbytek.span; zbytek.text = "";
-        sched[h] = zbytek;
-        zmena = true; uklizeno++;
-      });
-      if (zmena) {
-        const before = (st.getDay(d) || {}).sched || {};
-        st.updateDay(d, current => {
-          const next = {...(current.sched || {})};
-          for (const [hour, row] of Object.entries(sched)) if (JSON.stringify(current.sched?.[hour] || {}) === JSON.stringify(before[hour] || {})) next[hour] = row;
-          return {sched:next};
-        });
-      }
-    }
-    return { vlozeno: vlozeno, uklizeno: uklizeno };
-  });
+  return syncTimedCalendar({ calendars: [cfg.calId, ...(cfg.zpet === 'vse' && tmCalMaCteni() ? ['primary'] : [])],
+    from: todayISO(), to: tmCalShift(todayISO(), Math.max(1, Number(cfg.horizon) || 14) + 1),
+    request: path => tmCalReq(path, null, tok), getDay: st.getCalendarDay, updateDays: st.updateCalendarDays, L,
+  }).then(result => ({ vlozeno: result.inserted, uklizeno: result.removed, chyby: result.errors }));
 }
 
 /* Vytvoří kalendář, když ještě není. Vrací jeho id. */
-function tmCalEnsure(cfg, tok, save, znovu) {
+function tmCalEnsure(cfg, tok, save) {
   if (cfg.calId) {
     return tmCalReq("/calendars/" + encodeURIComponent(cfg.calId), null, tok)
       .then(() => cfg.calId, (e) => {
-        /* Kalendář v Googlu zmizel — smazal ho člověk ručně. Vyrobí se
-           nový, ALE musí se zapomenout i stín: ten si pamatuje, co už je
-           odesláno, a bez vymazání by nový kalendář zůstal navždy prázdný. */
-        if (e.status === 404 || e.status === 410) { if (znovu) znovu(); return tmCalEnsure(Object.assign({}, cfg, { calId: "" }), tok, save, znovu); }
+        // A missing calendar may belong to another Google account. Never
+        // silently copy the person's data into a newly selected account.
+        if (e.status === 404 || e.status === 410 || e.status === 403) throw Object.assign(new Error('calendar-target-unavailable'),{status:e.status});
         throw e;
       });
   }
@@ -421,7 +357,8 @@ function tmCalSync(st, opts) {
   const version=generation;
   try { assertAccount(owner);if(!canRequest())throw new Error('calendar-account-unavailable'); } catch(error) { return Promise.reject(error); }
   if (TM_CAL_SYNC && TM_CAL_SYNC_OWNER === owner) return TM_CAL_SYNC;
-  const cfg=config({...st.calCfg(),...(opts?.interactive?{allDayWrite:true}:{})});
+  const cfg=opts?.interactive ? tmCalConnectConfig(st.calCfg()) : config(st.calCfg());
+  if (cfg.calDisconnected && !opts?.interactive) return Promise.reject(new Error('calendar-permission-required'));
   if(!opts?.interactive&&!tmCalReady(cfg))return Promise.reject(new Error('calendar-permission-required'));
   // Start OAuth inside the click, before asynchronous account verification.
   // Calendar reads and writes still wait for that verification below.
@@ -431,14 +368,16 @@ function tmCalSync(st, opts) {
     assertAccount(owner);
     if(version!==generation)throw accountError();
     if (!ok) throw new Error("calendar-account-unavailable");
-    return tmCalSyncRun(scopedStore(st,owner,version),opts,tok);
+    const scoped = scopedStore(st,owner,version);
+    if (opts?.interactive && tmCalDurable()) scoped.setCalCfg({...(cfg.durableSetup?{}:{rozvrh:cfg.rozvrh,zpet:cfg.zpet,allDayWrite:false,cycle:false}),durableSetup:true,calDisconnected:false});
+    return tmCalSyncRun(scoped,{...opts,config:cfg},tok);
   }).finally(() => { if (TM_CAL_SYNC === task) { TM_CAL_SYNC = null; TM_CAL_SYNC_OWNER = null; } });
   TM_CAL_SYNC = task;
   return task;
 }
 function tmCalSyncRun(st, opts, token) {
   const o = opts || {};
-  const cfg = config({...st.calCfg(), ...(o.interactive ? {allDayWrite:true} : {})});
+  const cfg = config(o.config || st.calCfg());
   if (!cfg.clientId) return Promise.reject(new Error("no-client-id"));
   const tz = tmCalTz();
   const shadow = Object.fromEntries(Object.entries(st.coll.calShadow || {}).filter(([key]) => role !== "client" || key.startsWith("rz|")).map(([key,value]) => [key,{...value}]));
@@ -446,8 +385,9 @@ function tmCalSyncRun(st, opts, token) {
   const tomb = Object.fromEntries(Object.entries(st.coll.calTomb || {}).filter(([key]) => role !== "client" || key.startsWith("rz|")));
   let calId = "";
   const res = { pridano: 0, zmeneno: 0, smazano: 0, chyby: 0 };
+  const from = todayISO(), to = tmCalShift(from, Math.max(1, Number(cfg.horizon) || 14) + 1);
   return Promise.resolve(token)
-    .then((tok) => tmCalEnsure(cfg, tok, (p) => st.setCalCfg(p), () => { Object.keys(shadow).forEach((k) => delete shadow[k]); }).then((id) => { calId = id; return tok; }))
+    .then((tok) => tmCalEnsure(cfg, tok, (p) => st.setCalCfg(p)).then((id) => { calId = id; return tok; }))
     .then(async tok=>{
       st.calendarGuard();
       const request=async(path,options)=>{st.calendarGuard();const data=await tmCalReq(path,options,tok);st.calendarGuard();return data;};
@@ -469,10 +409,10 @@ function tmCalSyncRun(st, opts, token) {
       return tok;
     })
     .then(async (tok) => {
-      if(o.interactive && cfg.zpet === "vse")st.setCalCfg({allDayWrite:tmCalMaZapis()});
+      if(o.interactive && cfg.zpet === "vse")st.setCalCfg({allDayWrite:!!cfg.allDayWrite && tmCalMaZapis()});
       const before = st.coll.calendarAllDay || [];
       const calendars = [calId, ...(cfg.zpet === "vse" && tmCalMaCteni() ? ["primary"] : [])];
-      const pulled = await syncAllDay({rows:before, calendars, defaultCalendar:calId, from:todayISO(), to:tmCalShift(todayISO(), Math.max(1, +cfg.horizon || 14) + 1), request:(path, opts)=>tmCalReq(path,opts,tok), makeId:tmB32, readOnlyCalendars:tmCalMaZapis()?[]:["primary"]});
+      const pulled = await syncAllDay({rows:before, calendars, defaultCalendar:calId, from:todayISO(), to:tmCalShift(todayISO(), Math.max(1, +cfg.horizon || 14) + 1), request:(path, opts)=>tmCalReq(path,opts,tok), makeId:tmB32, readOnlyCalendars:cfg.allDayWrite && tmCalMaZapis()?[]:["primary"]});
       st.setCalendarAllDay(current=>mergeAllDaySync(current,before,pulled.rows));
       res.chyby += pulled.errors;
       if(pulled.errors)res.prvni = L("Celodenní události čekají na další synchronizaci.", "All-day events await another sync.");
@@ -483,7 +423,7 @@ function tmCalSyncRun(st, opts, token) {
       const events = await listCalendarEvents(p => tmCalReq(p, null, tok), path, "?showDeleted=true&maxResults=2500&privateExtendedProperty=" + encodeURIComponent("tmApp=1"));
       const result = await reconcileSchedule({shadow, tomb, desired:()=>tmCalDesired({...st,getDay:st.getCalendarDay}, cfg), events,
         request:p=>tmCalReq(p,null,tok), path, bodyFor:ev=>tmCalBody(ev,tz), hash:tmCalHash,
-        getDay:st.getCalendarDay, updateDays:st.updateCalendarDays, slot:tmCalSlot});
+        getDay:st.getCalendarDay, updateDays:st.updateCalendarDays, slot:tmCalSlot, from, to});
       blockedSchedule = result.blocked;
       if(result.conflicts.length) {res.chyby += result.conflicts.length;res.prvni=L("Blok rozvrhu se změnil na obou místech nebo jeho nový čas koliduje s plánem. Nic se nepřepsalo. Sjednoť tento blok v kalendáři a plánu dne a synchronizuj znovu.","A schedule block changed in both places or its new time conflicts with the plan. Nothing was overwritten. Reconcile the block in the calendar and day plan, then sync again.");}
       return tok;
@@ -507,6 +447,7 @@ function tmCalSyncRun(st, opts, token) {
       // co v pravdě už není · měkce zrušit a zapomenout
       Object.keys(shadow).forEach((key) => {
         if (wantBy[key] || blockedSchedule.has(key)) return;
+        if (!calendarEventInWindow(key, shadow[key], from, to)) return;
         const gid = shadow[key].gid;
         jobs.push(() => tmCalReq(base + gid, { method: "PATCH", headers: shadow[key].etag ? {"If-Match":shadow[key].etag} : {}, body: { status: "cancelled" } }, tok)
           .then(() => { res.smazano++; if(key.startsWith("rz|"))tomb[key]={gid}; delete shadow[key]; },
@@ -537,7 +478,10 @@ function tmCalSyncRun(st, opts, token) {
          zapsat, co je nové. */
       if (!cfg.zpet) return null;
       if (cfg.zpet === "vse" && !tmCalMaCteni()) { res.bezCteni = 1; return null; }
-      return tmCalPull({...st,getDay:st.getCalendarDay}, cfg, tok).then((p) => { res.vlozeno = p.vlozeno; res.uklizeno = p.uklizeno; }, (e) => { res.chyby++; res.prvni = e.message || "calendar-read-failed"; });
+      return tmCalPull(st, {...cfg, calId}, tok).then((p) => {
+        res.vlozeno = p.vlozeno; res.uklizeno = p.uklizeno; res.chyby += p.chyby;
+        if (p.chyby && !res.prvni) res.prvni = L('Některé události z Googlu čekají na další načtení.', 'Some Google events are waiting for another refresh.');
+      }, (e) => { res.chyby++; res.prvni = e.message || "calendar-read-failed"; });
     })
     .then(() => {
       st.setCalState({ shadow: shadow, tomb: tomb });
@@ -557,21 +501,31 @@ function tmCalPool(jobs, n) {
   const run = () => (i >= jobs.length ? Promise.resolve() : jobs[i++]().then(run));
   return Promise.all(Array.from({ length: Math.min(n, jobs.length || 1) }, run));
 }
-/* Odpojení · smazat kalendář je jedna žádost a odnese všechno, co appka
-   kdy vytvořila. Pak odvolat token, ať nezůstane viset oprávnění. */
+/* Disconnect the personal connection, not the whole Google Cloud project
+   grant (which may also be used by the person's application sign-in). */
 function tmCalDisconnect(store, smazat) {
   const owner = getAccount();
   try { assertAccount(owner); } catch(error) { return Promise.reject(error); }
   generation++;authTask=null;authKey='';TM_CAL_SYNC=null;TM_CAL_SYNC_OWNER=null;
   const st = scopedStore(store,owner);
   const cfg = config(st.calCfg());
-  const fin = () => {
+  const durable = tmCalDurable();
+  const fin = (deleted = false) => {
     assertAccount(owner);
-    try { if (TM_CAL_TOK && window.google && window.google.accounts && window.google.accounts.oauth2) window.google.accounts.oauth2.revoke(TM_CAL_TOK, () => {}); } catch (e) {}
     TM_CAL_TOK = null; TM_CAL_EXP = 0; TM_CAL_CLIENT = null; TM_CAL_CID = ""; TM_CAL_OWNER = null;
-    st.setCalState({ shadow: {}, tomb: {} });
-    st.setCalCfg({ calId: "", cycle:false, lastSync: 0, lastErr: "", lastCount: 0 });
+    if (!durable || deleted) st.setCalState({ shadow: {}, tomb: {} });
+    st.setCalCfg({ ...(!durable || deleted ? {calId:"",lastCount:0} : {}), calDisconnected:durable, cycle:false, lastSync: 0, lastErr: "" });
   };
+  if (durable) {
+    // Stop local synchronization immediately even if removing the server
+    // connection must be retried after a network outage.
+    st.setCalCfg({calDisconnected:true,cycle:false});
+    const disconnect = async deleted => { await connection.disconnect(); fin(deleted); return {smazano:deleted}; };
+    if (!smazat || !cfg.calId) return disconnect(false);
+    return tmCalAuth(cfg.clientId,false,tmCalScopeFor(cfg))
+      .then(tok => tmCalReq('/calendars/' + encodeURIComponent(cfg.calId),{method:'DELETE'},tok))
+      .then(()=>disconnect(true),async()=>({...await disconnect(false),chyba:true}));
+  }
   if (!smazat || !cfg.calId || !cfg.clientId) { fin(); return Promise.resolve({ smazano: false }); }
   // Selhané smazání se dřív spolklo a odpojení se ohlásilo jako „Kalendář
   // smazán." Kalendář přitom v Googlu zůstal — a s ním zmizelo i jeho id,
@@ -615,7 +569,7 @@ function tmCalIcs(st) {
 }
 
 
-return {role,config,CAL_DEF,CAL_KINDS,tmCalPrepare,tmCalLoad:tmCalGis,tmCalReady,tmCalAccount:getAccount,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalMaCteni,tmCalSync,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin};
+return {role,config,CAL_DEF,CAL_KINDS,tmCalPrepare,tmCalRestore,tmCalDurable,tmCalConnectConfig,tmCalPrepareAuth,tmCalLoad:tmCalGis,tmCalReady,tmCalAccount:getAccount,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalMaCteni,tmCalSync,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin};
 }
 
 export function tmCalIcsLines(s) {

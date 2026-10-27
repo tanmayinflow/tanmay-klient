@@ -7,6 +7,16 @@ export const eventFields = event => ({
 });
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+export function calendarEventInWindow(key, previous, from, to) {
+  let date = key.startsWith('rz|') ? key.split('|')[1] : previous?.base?.start;
+  if (date?.includes('T')) {
+    const value = new Date(date);
+    if (!Number.isFinite(+value)) return false;
+    date = value.getFullYear() + '-' + String(value.getMonth() + 1).padStart(2, '0') + '-' + String(value.getDate()).padStart(2, '0');
+  }
+  return /^\d{4}-\d{2}-\d{2}$/.test(date || '') && (!from || date >= from) && (!to || date < to);
+}
+
 export async function listCalendarEvents(request, path, query) {
   const items = []; let page = '';
   do {
@@ -16,11 +26,14 @@ export async function listCalendarEvents(request, path, query) {
   return items;
 }
 
-export async function reconcileSchedule({ shadow, tomb, desired, events, request, path, bodyFor, hash, getDay, updateDays, slot }) {
+export async function reconcileSchedule({ shadow, tomb, desired, events, request, path, bodyFor, hash, getDay, updateDays, slot, from, to }) {
   const remote = new Map(events.map(event => [event.id, event]));
   const blocked = new Set(), conflicts = [];
   for (const [key, previous] of Object.entries(shadow)) {
     if (!key.startsWith('rz|')) continue;
+    // Leaving the rolling window is not a deletion. Preserve calendar history
+    // and future blocks that are merely outside the currently loaded horizon.
+    if ((from || to) && !calendarEventInWindow(key, previous, from, to)) continue;
     let event = remote.get(previous.gid);
     if (!event) {
       try { event = await request(path + '/' + encodeURIComponent(previous.gid)); }

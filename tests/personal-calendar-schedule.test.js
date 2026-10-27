@@ -1,7 +1,7 @@
 process.env.TZ = 'UTC';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {eventFields,listCalendarEvents,reconcileSchedule} from '../src/shared/product/calendarSchedule.js';
+import {calendarEventInWindow,eventFields,listCalendarEvents,reconcileSchedule} from '../src/shared/product/calendarSchedule.js';
 const key='rz|2026-09-23|9:00', path='/calendars/app/events';
 const bodyFor = row => ({summary:row.title,start:{dateTime:row.date+'T'+row.time.padStart(5,'0')+':00Z'},end:{dateTime:new Date(Date.parse(row.date+'T'+row.time.padStart(5,'0')+':00Z')+row.mins*60000).toISOString()}});
 const hash = body => JSON.stringify(eventFields(body));
@@ -88,4 +88,20 @@ test('a longer remote block cannot cover another scheduled activity',async()=>{
  const f=setup();f.change(d=>({...d,'2026-09-24':{sched:{'12:00':{text:'Keep visible',span:1}}}}));
  const result=await reconcileSchedule({...f.options,events:[{...f.original,...bodyFor({date:'2026-09-24',time:'11:15',mins:90,title:'Moved'})}]});
  assert.equal(result.conflicts.length,1);assert.equal(f.days()['2026-09-23'].sched['9:00'].text,'Practice');
+});
+
+test('past and distant schedule rows are not reconciled as deleted when the rolling window changes',async()=>{
+  const f=setup();let lookups=0;
+  const result=await reconcileSchedule({...f.options,events:[],from:'2026-09-24',to:'2026-10-01',request:async()=>{lookups++;throw Error('unexpected');}});
+  assert.equal(lookups,0);assert.equal(result.conflicts.length,0);
+  assert.equal(f.days()['2026-09-23'].sched['9:00'].text,'Practice');assert.ok(f.options.shadow[key]);
+  assert.equal(calendarEventInWindow(key,f.options.shadow[key],'2026-09-24','2026-10-01'),false);
+  assert.equal(calendarEventInWindow('rz|2026-11-01|9:00',{},'2026-09-24','2026-10-01'),false);
+  assert.equal(calendarEventInWindow('rz|2026-09-24|9:00',{},'2026-09-24','2026-10-01'),true);
+});
+
+test('deletion eligibility retains unknown legacy history and recognizes all-day shadows',()=>{
+  assert.equal(calendarEventInWindow('old|unknown',{},'2026-09-24','2026-10-01'),false);
+  assert.equal(calendarEventInWindow('training|id',{base:{start:'2026-09-23'}},'2026-09-24','2026-10-01'),false);
+  assert.equal(calendarEventInWindow('training|id',{base:{start:'2026-09-27'}},'2026-09-24','2026-10-01'),true);
 });

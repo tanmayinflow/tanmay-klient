@@ -1,4 +1,5 @@
 import { TmIcon as FamilyIcon } from "./icons.jsx";
+import { CalendarTimedRow, calendarScheduleRows } from "./calendarTimed.jsx";
 // GENERATED · SHARED PRODUCT CORE — do not edit inside an application repository.
 // Canonical source: Work/web-application/Shared/product-core/ui/practice.jsx
 // Change it there, then run `npm run shared:sync` in the outer workspace.
@@ -721,9 +722,11 @@ export function createPracticeUI(deps) {
     const { t } = useT();
     const st = useStore();
     const sched = st.getDay(date).sched || {};
+    const calendarTimed = (st.getCalendarDay?.(date) || st.getDay(date)).calendarTimed || [];
+    const hasNightPlan = calendarTimed.some(event=>parseInt(event.time,10)<6) || Object.entries(sched).some(([hour,row])=>parseInt(hour,10)<6&&String(row?.text||'').trim());
     const nyni = date === todayISO() ? new Date().getHours() : null; // hodina teď · pro bindu u rozvrhu
     const HOD = [];
-    for (let h = 6; h <= 23; h++) HOD.push(h + ":00");
+    for (let h = hasNightPlan ? 0 : 6; h <= 23; h++) HOD.push(h + ":00");
     const set = (hour, patch) => st.updateDay(date, (d) => {
       const s = d.sched || {};
       return { sched: { ...s, [hour]: { ...(s[hour] || {}), ...patch } } };
@@ -861,7 +864,7 @@ export function createPracticeUI(deps) {
       document.addEventListener("mouseup", pust);
     };
 
-    const bloky = [["Ráno", "Morning", 6, 11], ["Odpoledne", "Afternoon", 12, 17], ["Večer", "Evening", 18, 23]];
+    const bloky = [...(hasNightPlan?[["Noc", "Night", 0, 5]]:[]), ["Ráno", "Morning", 6, 11], ["Odpoledne", "Afternoon", 12, 17], ["Večer", "Evening", 18, 23]];
     /* Dlouhý stisk je tu gesto, ne pokus označit text. Dokud se do řádku
        nepíše, je označování i systémová nabídka vypnutá — jinak naskočí lupa
        a tažení se rozpadne dřív, než začne. V poli, do kterého se právě píše,
@@ -884,7 +887,8 @@ export function createPracticeUI(deps) {
         {bloky.map(([cz, en, od, doH]) => (
           <div key={cz} style={{ marginBottom: 14 }}>
             <div style={{ ...subLabel(t), marginBottom: 4 }}>{L(cz, en)}</div>
-            {HOD.filter((h) => { const n = parseInt(h, 10); return n >= od && n <= doH; }).map((h) => {
+            {calendarScheduleRows(HOD,sched,calendarTimed,od,doH).map(({hour:h,event}) => {
+              if(event)return <CalendarTimedRow key={event.id} event={event} t={t} L={L}/>;
               if (zakryto[h]) return null;
               const cur = sched[h] || {};
               const psano = String(cur.text || "").trim();

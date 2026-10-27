@@ -484,24 +484,24 @@ export function createCompassUI(deps) {
       setDraft(null);
     };
     return <section aria-label={L("Dlouhodobé cíle", "Long-term goals")} style={{ margin: "18px 0 22px", paddingTop: 16, borderTop: `1px solid ${t.borderSoft}` }}>
-      <h3 style={{ fontFamily: "var(--tm-font-display)", fontSize: 23, fontWeight: 500, color: t.heading, margin: "0 0 7px" }}>{L("Dlouhodobé cíle", "Long-term goals")}</h3>
+      <h3 style={{ fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 400, color: t.accentInk || t.accent, margin: "0 0 6px" }}>{L("Dlouhodobé cíle", "Long-term goals")} · {active.length}</h3>
       {!active.length && <p style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, lineHeight: 1.6, color: t.textMuted, margin: "0 0 10px" }}>{L("Kam chceš v této krajině dojít? K dlouhodobému cíli pak můžeš přiřadit jednotlivé cíle.", "Where would you like to go in this landscape? You can link individual goals to a long-term goal.")}</p>}
       {active.map(item => {
         const linked = goals.filter(goal => goalLongTermGoal(st.coll, goal, areas)?.id === item.id);
-        return <div key={item.id} data-tm-surface="row" style={{ padding: "10px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        return <div key={item.id} className="tm-row" data-tm-surface="row" style={{ padding: "9px 6px", margin: "0 -6px", minHeight: 40, background: "transparent", border: "none", textAlign: "left" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
             <button aria-label={`${item.completed ? L("Znovu otevřít", "Reopen") : L("Označit jako hotové", "Mark as completed")}: ${item.name}`} aria-pressed={item.completed}
               onClick={() => st.persistColl(coll => saveLongTermGoal(coll, area, { ...item, completed: !item.completed }))}
-              style={{ ...button, border: "none", flexShrink: 0, padding: "10px 8px", color: item.completed ? t.sage : t.textMuted }}><FamilyIcon id={item.completed ? "check" : "relationship"} size={18} /></button>
+              style={{ ...button, border: "none", flexShrink: 0, padding: "0 2px", minWidth: 24, minHeight: 40, color: item.completed ? t.sage : t.textMuted }}><FamilyIcon id={item.completed ? "check" : "relationship"} size={12} /></button>
             <div style={{ flex: 1, minWidth: 0, paddingTop: 6 }}>
-              <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 15, color: item.completed ? t.textMuted : t.text, textDecoration: item.completed ? "line-through" : "none", overflowWrap: "anywhere" }}>{item.name}</div>
+              <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: item.completed ? t.textMuted : t.text, textDecoration: item.completed ? "line-through" : "none", overflowWrap: "anywhere" }}>{item.name}</div>
               {item.target && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 4 }}>{L("Termín", "Target date")}: {fmtCZ(item.target)}</div>}
               {item.note && <p style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: 1.6, margin: "6px 0" }}>{item.note}</p>}
               <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 6 }}>{L("Přiřazené cíle", "Linked goals")}: {linked.length ? `${linked.filter(goal => goal.status === "Completed").length} / ${linked.length} ${L("hotovo", "complete")}` : L("zatím žádné", "none yet")}</div>
             </div>
             <button style={{ ...button, border: "none", padding: "7px 4px", flexShrink: 0 }} aria-label={`${L("Upravit dlouhodobý cíl", "Edit long-term goal")}: ${item.name}`} onClick={() => setDraft(item)}>{L("Upravit", "Edit")}</button>
           </div>
-          {linked.length > 0 && <details style={{ marginLeft: 34, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><summary style={{ cursor: "pointer", minHeight: 44, alignContent: "center", color: t.textMuted }}>{L("Zobrazit přiřazené cíle", "Show linked goals")}</summary>{linked.map(goal => <button key={goal.id || goal.name} onClick={() => openGoal?.(goal.name)} style={{ ...button, display: "block", width: "100%", border: "none", textAlign: "left", overflowWrap: "anywhere", color: goal.status === "Completed" ? t.textMuted : t.text }}>{goal.name}</button>)}</details>}
+          {linked.length > 0 && <details style={{ marginLeft: 33, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><summary style={{ cursor: "pointer", minHeight: 44, alignContent: "center", color: t.textMuted }}>{L("Zobrazit přiřazené cíle", "Show linked goals")}</summary>{linked.map(goal => <button key={goal.id || goal.name} onClick={() => openGoal?.(goal.name)} style={{ ...button, display: "block", width: "100%", border: "none", textAlign: "left", overflowWrap: "anywhere", color: goal.status === "Completed" ? t.textMuted : t.text }}>{goal.name}</button>)}</details>}
         </div>;
       })}
       {draft ? <form onSubmit={save} aria-label={draft.id ? L("Upravit dlouhodobý cíl", "Edit long-term goal") : L("Nový dlouhodobý cíl", "New long-term goal")} style={{ marginTop: 14 }}>
@@ -708,7 +708,6 @@ export function createCompassUI(deps) {
           ))}
         </div></details>
         <MetaSection meta={st.areaMetaOf(a.name)} onPatch={(p) => st.setAreaMeta(a.name, p)} placeholder={L("Piš k této krajině…", "Write about this landscape…")} />
-        <LandscapeLongTermGoals key={a.name} area={a.name} goals={gs} openGoal={openGoal} />
         <div style={{ height: 14 }} />
         <div style={{ ...eyebrow, marginBottom: 6 }}>{L("Cíle", "Goals")} · {gs.length}</div>
         {gs.length === 0 && <Prazdno kind="prvni" plain compact fakt={L("V této krajině zatím žádný cíl není.", "No goal in this landscape yet.")} pozvani={L("Přidej ho v Cílech a vyber tuhle krajinu.", "Add one in Goals and pick this landscape.")} />}
@@ -720,6 +719,7 @@ export function createCompassUI(deps) {
             <Tag label={GS(g.status)} color={GSTATUS_COLOR[g.status] || "default"} />
           </button>
         ))}
+        <LandscapeLongTermGoals key={a.name} area={a.name} goals={gs} openGoal={openGoal} />
         <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${t.borderSoft}` }}>
           {st.editMode && (
             <button

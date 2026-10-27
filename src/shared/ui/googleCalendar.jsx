@@ -3,7 +3,7 @@ import {TmIcon as FamilyIcon} from "./icons.jsx";
 import {FONT_BODY,FONT_TAG} from "./type.js";
 
 export function createCalendarUI({useT,useStore,L,getLang,fmtCZ,engine,SetSection,SetSwitch,SetChoice,PersonalSettingsSections}) {
-const {CAL_KINDS,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalReady,tmCalLoad,tmCalPrepare,tmCalAccount,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalSync,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin} = engine;
+const {CAL_KINDS,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalReady,tmCalLoad,tmCalPrepare,tmCalAccount,tmCalAvailable,tmCalSync,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin} = engine;
 const client = engine.role === "client";
 const klDownload = (name, text) => {
   const url=URL.createObjectURL(new Blob([text],{type:"text/calendar;charset=utf-8"}));
@@ -15,79 +15,48 @@ function CalAuto() {
   const ref = React.useRef(st);
   ref.current = st;
   React.useEffect(() => {
-    let disposed = false, busy = false, signature = null, catchUp = true;
-    let attempted = false, connection = '', gisReady = false, gisLoading = false, retryAt = 0;
-    const cfgOf = () => engine.config(ref.current.calCfg());
-    const keyOf = cfg => `${tmCalAccount()}|${cfg.clientId}|${cfg.calId}`;
-    const current = () => {
-      const cfg = cfgOf(), key = keyOf(cfg);
-      if (connection !== key) { connection=key; attempted=false; signature=null; catchUp=true; retryAt=0; }
-      // Only a successful live period rearms renewal after the next expiry.
-      // A failure remains locked in tmCalTicho across reloads.
-      if (tmCalReady(cfg)) attempted=false;
-      return cfg;
-    };
-    const preload = () => {
-      if (disposed || document.hidden || gisReady || gisLoading) return;
-      const cfg = current();
-      if (!cfg.clientId || !cfg.calId || !tmCalAvailable()) return;
-      gisLoading=true;
-      tmCalLoad().then(() => { gisReady=true; }, () => {}).finally(() => { gisLoading=false; });
-    };
-    const sync = force => {
-      if (disposed || document.hidden || busy || Date.now()<retryAt) return;
+    let disposed=false,busy=false,restoring=false,preparedConfig=false,signature=null,catchUp=true,retryAt=0,connection='';
+    const cfgOf=()=>engine.config(ref.current.calCfg());
+    const keyOf=cfg=>`${tmCalAccount()}|${cfg.clientId}|${cfg.calId}`;
+    const sync=force=>{
+      if(disposed||document.hidden||busy||Date.now()<retryAt)return;
       try {
-        const s0=ref.current, cfg=current();
-        // A timer never starts OAuth, including when a newly selected scope
-        // exceeds the old live token's grant.
-        if (!cfg.clientId || !cfg.calId || !tmCalAvailable() || !tmCalReady(cfg)) return;
+        const s0=ref.current,cfg=cfgOf(),key=keyOf(cfg);
+        if(key!==connection){connection=key;signature=null;catchUp=true;retryAt=0;}
+        if(!cfg.clientId||!cfg.calId||cfg.calDisconnected||!tmCalAvailable()||!tmCalReady(cfg))return;
         const tz=tmCalTz();
         const settings=[cfg.cycle,cfg.trenink,cfg.rozvrh,cfg.klienti,cfg.motiv,cfg.zpet,cfg.horizon,cfg.titles,cfg.busy];
         const training=client&&cfg.trenink?s0.getClientTrainingCalendar?.().schedule:null;
         const next=tmCalDesired(s0,cfg).map(e=>e.key+'~'+tmCalHash(tmCalBody(e,tz))).sort().join('|')+'|allDay:'+JSON.stringify((s0.coll.calendarAllDay||[]).map(r=>[r.id,r.rev,r.deleted]))+'|settings:'+JSON.stringify(settings)+'|training:'+JSON.stringify(training);
-        if (!force && !catchUp && next===signature) return;
+        if(!force&&!catchUp&&next===signature)return;
         busy=true;
-        const key=keyOf(cfg);
-        tmCalSync(s0,{interactive:false}).then(result => {
-          if (disposed || key!==keyOf(cfgOf())) return;
-          if (!result.chyby) {signature=next;catchUp=false;} else retryAt=Date.now()+60000;
-        }, () => {if(!disposed && key===keyOf(cfgOf()))retryAt=Date.now()+60000;}).finally(()=>{busy=false;});
-      } catch {busy=false;retryAt=Date.now()+60000;}
+        tmCalSync(s0,{interactive:false}).then(result=>{
+          if(disposed||key!==keyOf(cfgOf()))return;
+          if(!result.chyby){signature=next;catchUp=false;}else retryAt=Date.now()+60000;
+        },()=>{if(!disposed&&key===keyOf(cfgOf()))retryAt=Date.now()+60000;}).finally(()=>{busy=false;});
+      }catch{busy=false;retryAt=Date.now()+60000;}
     };
-    const tick=()=>{preload();sync(false);};
-    const read=()=>sync(true);
-    const back=()=>{if(!document.hidden){preload();read();}};
-    const gesture=event=>{
-      if (disposed || document.hidden || event.target?.closest?.('[data-calendar-controls]')) return;
-      if (typeof navigator!=='undefined' && navigator.userActivation && !navigator.userActivation.isActive) return;
-      const cfg=current();
-      if (!cfg.clientId || !cfg.calId || !tmCalAvailable() || tmCalReady(cfg) || attempted || tmCalTichoZakazano()) return;
-      // A live but insufficient grant needs explicit permission in settings.
-      // An unrelated tap must not ask for a newly enabled permission.
-      if (tmCalLive()) return;
-      // Do not await a script/network load inside the gesture: on iPhone
-      // transient activation may expire before Google's popup is requested.
-      if (!gisReady) {preload();return;}
-      attempted=true;
-      const key=keyOf(cfg);
-      tmCalAuth(cfg.clientId,false,tmCalScopeFor(cfg)).then(()=>{
-        if (!disposed && key===keyOf(cfgOf())) {catchUp=true;sync(true);}
-      },()=>{if(!disposed && key===keyOf(cfgOf()))tmCalTichoZapis(false);});
+    const restore=()=>{
+      if(disposed||document.hidden||restoring||!tmCalAvailable())return;
+      restoring=true;
+      const owner=tmCalAccount();
+      // Server restoration never opens Google. Only an explicit Connect tap
+      // may authorize; unrelated taps and recurring timers never do.
+      Promise.resolve(preparedConfig?undefined:tmCalPrepare()).then(()=>{
+        preparedConfig=true;
+        return engine.tmCalRestore?.();
+      }).then(()=>{
+        if(!disposed&&owner===tmCalAccount())sync(true);
+      },()=>{}).finally(()=>{restoring=false;});
     };
-    tmCalPrepare().then(preload,()=>{});
-    const outgoing=setInterval(tick,4000), incoming=setInterval(read,60000), initial=setTimeout(read,6000);
+    const back=()=>{if(!document.hidden){retryAt=0;restore();}};
+    restore();
+    const outgoing=setInterval(()=>sync(false),4000),incoming=setInterval(restore,60000);
     document.addEventListener('visibilitychange',back);
     window.addEventListener('focus',back);
-    // Touch gets activation on pointerup/touchend, never pointerdown.
-    document.addEventListener('click',gesture,true);
-    return () => {
-      disposed=true;
-      clearInterval(outgoing);clearInterval(incoming);clearTimeout(initial);
-      document.removeEventListener('click',gesture,true);
-      document.removeEventListener('visibilitychange',back);
-      window.removeEventListener('focus',back);
-    };
-  }, []);
+    window.addEventListener('online',back);
+    return ()=>{disposed=true;clearInterval(outgoing);clearInterval(incoming);document.removeEventListener('visibilitychange',back);window.removeEventListener('focus',back);window.removeEventListener('online',back);};
+  },[]);
   return null;
 }
 function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
@@ -96,7 +65,8 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
   const cfg = engine.config(st.calCfg());
   // Existing read-only grants keep working until the person explicitly
   // confirms the write permission needed for primary-calendar edits.
-  const settingsReady=tmCalReady({...cfg,...(cfg.zpet==='vse'?{allDayWrite:true}:{})});
+  const settingsReady=tmCalReady(cfg);
+  const durable=!!engine.tmCalDurable?.();
   const [stav, setStav] = useState("");      // "" | "jde" | "hotovo" | "chyba"
   const [zprava, setZprava] = useState("");
   const [otevreno, setOtevreno] = useState(false);
@@ -112,12 +82,12 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
     // person presses Connect. No authorization popup is opened by this effect.
     tmCalPrepare().catch(error => {if(!engine.config(st.calCfg()).clientId)throw error;}).then(() => {
       if (!engine.config(st.calCfg()).clientId) throw Error('no-client-id');
-      return tmCalLoad();
+      return tmCalLoad().then(()=>engine.tmCalPrepareAuth?.(engine.config(st.calCfg())));
     }).then(() => {if(alive)setPrepared('ready');}, () => {if(alive)setPrepared('unavailable');});
     return () => {alive=false;};
-  }, [open, cfg.clientId, prepareTry]);
+  }, [open, cfg.clientId, cfg.zpet, cfg.allDayWrite, prepareTry]);
   const set = (p) => st.setCalCfg(p);
-  const pripojeno = !!cfg.calId && !!cfg.clientId;
+  const pripojeno = !!cfg.calId && !!cfg.clientId && !cfg.calDisconnected;
   const kolik = () => { try { return tmCalDesired(st, cfg).length; } catch { return 0; } };
 
   const sync = (interactive) => {
@@ -134,8 +104,12 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
     }, (e) => {
       const m = String((e && (e.reason || e.message)) || "");
       setStav("chyba");
+      if (/nonce|prepared|consent-required/.test(m)) setPrepareTry(n=>n+1);
       setZprava(m === "no-client-id" ? L("Propojení Google kalendáře zatím není dostupné.", "Google Calendar connection is not available yet.")
         : m === 'google-loading' ? L('Google se ještě načítá. Za chvíli klepni znovu na připojení.','Google is still loading. Try connecting again in a moment.')
+        : /calendar-reconnect-required|calendar-refresh-consent-required/.test(m) ? L('Google potřebuje znovu potvrdit přístup. Klepni na Připojit.','Google needs you to confirm access again. Tap Connect.')
+        : /nonce|prepared/.test(m) ? L('Propojení znovu připravuji. Za chvíli klepni na Připojit.','Preparing the connection again. Tap Connect in a moment.')
+        : m === 'calendar-target-unavailable' ? L('Původní kalendář v tomto Google účtu není dostupný. Připoj účet, ve kterém byl vytvořený. Uložené události zůstaly zachované.','The original calendar is unavailable in this Google account. Connect the account where it was created. Saved events have been preserved.')
         : m === 'calendar-permission-required' ? L('Google nepovolil vše potřebné. Klepni na připojení a potvrď požadovaný přístup ke kalendáři.','Google did not grant all required permissions. Connect again and confirm the requested calendar access.')
         : /popup|auth|token/i.test(m) ? L("Google nepustil dovnitř. Zkus Připojit znovu.", "Google did not let us in. Try Connect again.")
         : L("Nepovedlo se · " + m, "Failed · " + m));
@@ -150,16 +124,20 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
           ? L("Kalendář smazán.", "Calendar deleted.")
           : L("Odpojeno, ale smazat kalendář se nepovedlo — v Googlu zůstal. Smaž ho tam ručně.", "Disconnected, but the calendar could not be deleted — it stayed in Google. Remove it there by hand.");
       setZprava(message+(cfg.cycleCalId?L(' Samostatný kalendář cyklu v Googlu zůstal a už se nesynchronizuje.',' The separate cycle calendar stayed in Google and no longer syncs.'):''));
+    }, () => {
+      setStav('chyba');
+      setZprava(L('Odpojení se nepovedlo potvrdit. Zkontroluj připojení k internetu a zkus to znovu.','Could not confirm disconnection. Check your internet connection and try again.'));
     });
   };
   const stavText = () => {
     if (stav === "jde") return L("Synchronizuji…", "Syncing…");
     if (!pripojeno) return L("Nepřipojeno", "Not connected");
-    if (!settingsReady) return L("Připojeno · obnov propojení s Googlem", "Connected · renew Google connection");
+    if (prepared==='loading') return L("Ověřuji propojení…", "Checking connection…");
+    if (!settingsReady) return L("Propojení čeká na potvrzení", "Connection needs confirmation");
     if (cfg.lastErr) return L("Synchronizace není dokončená", "Sync is incomplete");
     if (!cfg.lastSync) return L("Připojeno · zatím neodesláno", "Connected · nothing sent yet");
     const d = new Date(cfg.lastSync);
-    return L("Připojeno · naposledy ", "Connected · last sent ") + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    return L("Automaticky propojeno · naposledy ", "Automatically connected · last sync ") + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
   };
   const stavBarva = stav === "jde" ? t.sand : (!pripojeno ? t.textMuted : cfg.lastErr || !settingsReady ? t.accent : t.sage);
   const radek = { fontFamily: FONT_BODY, fontSize: 12, lineHeight: 1.6, color: t.textMuted, margin: "0 8px 8px" };
@@ -184,25 +162,25 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
       {pripojeno && stav !== "jde" && !settingsReady && tmCalTichoZakazano() && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 8px 10px" }}>
           <span style={{ flex: 1, minWidth: 0, flexBasis: 190, fontFamily: FONT_BODY, fontSize: 12, lineHeight: 1.6, color: t.textMuted }}>
-            {L('Propojení potřebuje tvoje potvrzení. Kalendář počká, dokud tady neobnovíš přístup. Aplikace se znovu nepřihlašuje sama.','The connection needs your confirmation. Calendar sync will wait until you renew access here. The app will not keep trying to sign in on its own.')}
+            {L('Google potřebuje tvoje potvrzení. Změny zůstanou uložené a po propojení se synchronizace obnoví.','Google needs your confirmation. Your changes stay saved and synchronization resumes after connecting.')}
           </span>
         </div>
       )}
-      <p style={radek}>{L('Přihlášení přes Google samo nepovoluje kalendář. Při propojení jednou potvrdíš přístup. Změny se potom přenášejí během používání aplikace a při návratu do ní.','Signing in with Google does not grant calendar access. Confirm access when connecting. Changes then sync while you use the app and when you return to it.')}</p>
+      <p style={radek}>{durable ? L('Po prvním propojení se přístup obnovuje automaticky. Změny se přenesou během používání aplikace a při návratu do ní. Pokud přístup v Googlu odebereš, aplikace si vyžádá nové potvrzení.','After connecting, access renews automatically. Changes sync while you use the app and when you return. If you revoke access in Google, the app will ask you to connect again.') : L('Přihlášení přes Google samo nepovoluje kalendář. Při propojení jednou potvrdíš přístup. Změny se potom přenášejí během používání aplikace a při návratu do ní.','Signing in with Google does not grant calendar access. Confirm access when connecting. Changes then sync while you use the app and when you return to it.')}</p>
 
       {!pripojeno && (
         <>
           <p style={radek}>
             {L("Aplikace si v tvém Googlu založí ", "The app will create a calendar in your Google account called ")}
             <span style={{ color: t.inkSand || t.sand }}>{L("vlastní kalendář „", "“")}{cfg.calName || "tanmay"}{L("“", "”")}</span>
-            {L(" a propojí ho s tím, co si níž zapneš. Hlavní kalendář připojí jen s tvým samostatným souhlasem.",
-               " and link it to the items you enable below. Your primary calendar is included only with your separate consent.")}
+            {L(" pro tvůj plán dne. Po potvrzení čtení se v plánu zobrazí i události z tvého hlavního Google kalendáře.",
+               " for your day plan. When you approve reading access, events from your primary Google calendar also appear in the plan.")}
           </p>
           <p style={radek}>
             {client ? L("Samostatné celodenní události a vlastní bloky rozvrhu se propojují oběma směry. V Googlu můžeš přesunout také datum budoucího, ještě nezačatého tréninku. Jeho obsah a výsledky zůstávají v aplikaci. Změny se načtou při návratu a během používání přibližně každou minutu, dokud platí přístup ke Googlu.", "Standalone all-day events and your schedule blocks sync both ways. You can also move the date of a future training session that has not started. Its content and results stay in the app. Changes are read when you return and approximately every minute while the app is in use and Google authorization is valid.") : L("Samostatné celodenní události a vlastní bloky rozvrhu se propojují oběma směry. Souhrny tréninků, motiv dne a klientská sezení upravuj v aplikaci. Změny z Googlu se načtou při návratu do aplikace a během používání přibližně každou minutu, dokud platí přihlášení ke Googlu.",
                "Standalone all-day events and your schedule blocks sync both ways. Edit training summaries, the daily motif and client sessions in the app. Google changes are read when you return and approximately every minute while the app is in use and Google authorization is valid.")}
           </p>
-          <p style={radek}>{L("Zpátky to jde kdykoli: v Googlu stačí odškrtnout ten jeden kalendář a všechno zmizí z pohledu. Odpojením tady se navíc dá celý smazat.", "Undo any time: unticking that one calendar in Google hides all of it. Disconnecting here can delete it outright.")}</p>
+          <p style={radek}>{L("Zpátky to jde kdykoli: v Googlu stačí odškrtnout ten jeden kalendář a všechno zmizí z pohledu. Odpojením se zastaví přenos změn, události v Googlu zůstanou.", "Undo any time: unticking that one calendar in Google hides all of it. Disconnecting stops synchronization and keeps your Google events.")}</p>
         </>
       )}
 
@@ -226,17 +204,17 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
 
       <SetChoice label={L("Číst zpět do rozvrhu", "Read back into the schedule")} value={cfg.zpet || ""}
         options={[{ v: "", label: L("ne", "no") }, { v: "tanmay", label: L("z aplikace", "from the app") }, { v: "vse", label: L("i z hlavního", "and the main one") }]}
-        onChange={(v) => { set({ zpet: v }); if (v === "vse" && cfg.zpet !== "vse") {tmCalTichoZapis(false);setZprava(L("Klepni na Obnovit propojení a potvrď přístup k hlavnímu kalendáři.", "Tap Renew connection and confirm access to your primary calendar."));} }} />
+        onChange={(v) => { set({ zpet: v }); if (v === "vse" && cfg.zpet !== "vse" && !tmCalReady({...cfg,zpet:v})) {tmCalTichoZapis(false);setZprava(L("Klepni na Obnovit propojení a potvrď přístup k hlavnímu kalendáři.", "Tap Renew connection and confirm access to your primary calendar."));} }} />
       <p style={radek}>
         {cfg.zpet === "vse"
-          ? L("Celodenní události se propisují oběma směry. Google při připojení požádá o čtení a úpravy událostí; aplikace upravuje jen ty, které zde změníš. Časové události se do rozvrhu načítají ke čtení.",
-              "All-day events sync both ways. Google will ask to read and edit events; the app edits only those you change here. Timed events are imported read-only.")
+          ? L("Tvůj hlavní Google kalendář se načítá do plánu dne včetně přesných časů. Nové bloky z aplikace se odesílají do kalendáře „tanmay“. Záznamy z hlavního kalendáře upravuj přímo v Googlu.",
+              "Your primary Google calendar appears in the day plan with exact times. New app blocks are sent to the “tanmay” calendar. Edit primary-calendar events in Google.")
           : cfg.zpet === "tanmay"
             ? L("Co zapíšeš přímo do kalendáře aplikace, se objeví v rozvrhu dne. Bez dalšího oprávnění — na svůj vlastní kalendář aplikace vidí.",
                 "What you write straight into the tanmay calendar shows up in the day schedule. No extra permission — the app can see its own calendar.")
             : L("Celodenní události v kalendáři aplikace se propisují oběma směry. Další časové události se načtou po zapnutí čtení zpět.", "All-day events in the tanmay calendar sync both ways. Enable read-back to import other timed events.")}
       </p>
-      {!!cfg.zpet && <p style={radek}>{L("Řádek s tvým vlastním textem se nikdy nepřepíše. Zapisuje se jen do prázdných. Události mimo 6:00–23:00 a celodenní se do hodinového rozvrhu nevejdou, takže se neberou.", "A row you wrote in yourself is never overwritten. Only empty rows get filled. Events outside 6:00–23:00 and all-day ones do not fit an hourly schedule, so they are skipped.")}</p>}
+      {!!cfg.zpet && <p style={radek}>{L("Události z Googlu se zobrazí v přesný čas vedle tvého plánu. Překrývající se události i noční časy zůstanou vidět. Celodenní události mají vlastní místo.", "Google events appear at their exact time alongside your plan. Overlapping events and overnight times remain visible. All-day events have their own place.")}</p>}
 
       <div style={{ height: 1, background: t.borderSoft, margin: "8px 8px" }} />
 
@@ -285,8 +263,8 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
               <button onClick={() => st.ask(L("Odpojit a kalendář v Googlu nechat být?", "Disconnect and leave the calendar in Google?"), () => odpojit(false), { yes: L("Odpojit", "Disconnect") })}
                 style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 999, padding: "8px 16px", minHeight: 40, cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12 }}>{L("Odpojit", "Disconnect")}</button>
-              <button onClick={() => st.ask(L("Smazat celý kalendář „" + (cfg.calName || "tanmay") + "“ v Googlu? V aplikaci zůstane všechno, zmizí jen ta kopie v kalendáři.", "Delete the whole “" + (cfg.calName || "tanmay") + "” calendar in Google? Everything stays in the app — only the calendar copy goes.")+(cfg.cycleCalId?L(' Samostatný kalendář cyklu se nesmaže a už se nebude synchronizovat.',' The separate cycle calendar will remain and stop syncing.'):''), () => odpojit(true), { yes: L("Smazat", "Delete") })}
-                style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 999, padding: "8px 16px", minHeight: 40, cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12 }}>{L('Odpojit a smazat kalendář aplikace','Disconnect and delete the app calendar')}</button>
+              {!durable && <button onClick={() => st.ask(L("Smazat celý kalendář „" + (cfg.calName || "tanmay") + "“ v Googlu? V aplikaci zůstane všechno, zmizí jen ta kopie v kalendáři.", "Delete the whole “" + (cfg.calName || "tanmay") + "” calendar in Google? Everything stays in the app — only the calendar copy goes.")+(cfg.cycleCalId?L(' Samostatný kalendář cyklu se nesmaže a už se nebude synchronizovat.',' The separate cycle calendar will remain and stop syncing.'):''), () => odpojit(true), { yes: L("Smazat", "Delete") })}
+                style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 999, padding: "8px 16px", minHeight: 40, cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12 }}>{L('Odpojit a smazat kalendář aplikace','Disconnect and delete the app calendar')}</button>}
             </div>
           )}
 
