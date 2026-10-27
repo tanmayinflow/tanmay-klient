@@ -2,6 +2,9 @@
   "name": "tanmay-klient",
   "compatibility_date": "2026-07-04",
   "workers_dev": false,
+  "vars": {
+    "GOOGLE_CALENDAR_CLIENT_ID": "1044384794752-qlgg6m33pb3mfcouedsgdmq79ld9lobl.apps.googleusercontent.com"
+  },
   "main": "./worker/index.js",
   "assets": {
     "directory": "./dist",
