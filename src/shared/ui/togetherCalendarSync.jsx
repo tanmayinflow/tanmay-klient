@@ -57,7 +57,7 @@ export function TogetherCalendarBackground(){
 export function TogetherCalendarSettings({lang='cs',allowManualClientId=false}){
   const {accountKey,status:accountStatus}=usePersonalProfile(),[loadedAccount,setLoadedAccount]=useState(null),[config,setConfig]=useState(emptyTogetherCalendar),[revision,setRevision]=useState(0),[status,setStatus]=useState('loading'),[message,setMessage]=useState(''),[authorized,setAuthorized]=useState(false),[choices,setChoices]=useState({});
   const token=useRef(null),busy=useRef(false),latest=useRef({config,revision});latest.current={config,revision};
-  const [publicClientId,setPublicClientId]=useState('');
+  const [publicClientId,setPublicClientId]=useState(''),[googleStatus,setGoogleStatus]=useState('idle'),[googleAttempt,setGoogleAttempt]=useState(0);
   const L=(cs,en)=>lang==='en'?en:cs,scoped=useMemo(()=>accountRequests(accountKey),[accountKey]);
   // Existing calendars keep the OAuth project that created them. A new one
   // uses the application's public configuration; no client types an ID.
@@ -73,7 +73,13 @@ export function TogetherCalendarSettings({lang='cs',allowManualClientId=false}){
   },[accountKey,scoped]);
   // Load GIS before the tap so Safari can open its authorization popup during
   // the user's gesture. Loading the library never requests calendar access.
-  useEffect(()=>{if(loadedAccount===accountKey&&clientId)loadGoogle().catch(()=>{});},[loadedAccount,accountKey,clientId]);
+  useEffect(()=>{
+    if(loadedAccount!==accountKey||!clientId)return;
+    let active=true;setGoogleStatus('loading');
+    loadGoogle().then(()=>{if(active){setGoogleStatus('ready');setMessage('');}})
+      .catch(()=>{if(active){setGoogleStatus('error');setMessage(L('Google se nepodařilo načíst. Zkontroluj připojení a zkus to znovu.','Google could not load. Check your connection and try again.'));}});
+    return()=>{active=false;};
+  },[loadedAccount,accountKey,clientId,googleAttempt,lang]);
   const save=async next=>{const data=await scoped.api('/calendar','PUT',{config:next,revision:latest.current.revision});latest.current={config:data.config,revision:data.revision};setConfig(data.config);setRevision(data.revision);return data.config;};
   const explain=error=>({
     'account-changed':L('Účet se změnil nebo čeká na ověření. Otevři nastavení znovu.','Your account changed or awaits verification. Reopen settings.'),
@@ -91,7 +97,11 @@ export function TogetherCalendarSettings({lang='cs',allowManualClientId=false}){
   const connect=async()=>{
     if(!isPersonalProfileVerified(accountKey))return;
     if(!clientId){setMessage(explain(new Error('invalid-client-id')));return;}
-    setStatus('busy');try{await loadGoogle();await verifiedAccount(accountKey);const auth=await new Promise((resolve,reject)=>{window.google.accounts.oauth2.initTokenClient({client_id:clientId,scope:TOGETHER_CALENDAR_SCOPE,include_granted_scopes:false,callback:response=>response.error?reject(new Error('google-sign-in-required')):resolve(response),error_callback:()=>reject(new Error('google-sign-in-required'))}).requestAccessToken({prompt:'select_account'});});
+    // A failed preload is retried separately. Never open a popup after an
+    // awaited load or account request, which loses Safari's tap activation.
+    if(googleStatus!=='ready'||!window.google?.accounts?.oauth2){setGoogleAttempt(value=>value+1);return;}
+    setStatus('busy');try{const auth=await new Promise((resolve,reject)=>{window.google.accounts.oauth2.initTokenClient({client_id:clientId,scope:TOGETHER_CALENDAR_SCOPE,include_granted_scopes:false,callback:response=>response.error?reject(new Error('google-sign-in-required')):resolve(response),error_callback:()=>reject(new Error('google-sign-in-required'))}).requestAccessToken({prompt:'select_account'});});
+      await verifiedAccount(accountKey);
       if(!window.google.accounts.oauth2.hasGrantedAllScopes(auth,TOGETHER_CALENDAR_SCOPE))throw new Error('google-scope-required');
       const state=await scoped.api('');if(state.link?.status!=='active')throw new Error('not-connected');
       let next={...config,clientId,linkId:state.link.id};
@@ -111,7 +121,7 @@ export function TogetherCalendarSettings({lang='cs',allowManualClientId=false}){
     <p>{L('Synchronizace běží při otevřené aplikaci a platném přihlášení ke Googlu. Celodenní a opakované události se nepřenášejí.','Sync runs while the app is open and Google authorization is valid. All-day and recurring events are not transferred.')}</p>
     {!clientId&&status!=='loading'&&<p role="status">{L('Propojení Google kalendáře ještě není pro tuto aplikaci nastavené. Technické nastavení doplní správce aplikace.','Google Calendar connection has not been configured for this app yet. The app administrator will complete the setup.')}</p>}
     {!config.calendarId&&<details><summary>{L('Pokročilé nastavení','Advanced settings')}</summary>{allowManualClientId&&!publicClientId&&<><label>{L('Google OAuth Client ID','Google OAuth Client ID')}<input aria-label="Google OAuth Client ID" value={config.clientId} onChange={event=>setConfig({...config,clientId:event.target.value.trim()})} placeholder="…apps.googleusercontent.com"/></label><p>{L('Nastavení správce aplikace. Tajný klíč sem nepatří.','App administrator setting. Do not enter a client secret here.')}</p></>}<label>{L('Časové pásmo kalendáře','Calendar time zone')}<input value={config.timeZone} onChange={event=>setConfig({...config,timeZone:event.target.value})}/></label></details>}
-    <div className="tm-personal-actions"><button type="button" disabled={status==='busy'||status==='loading'||!clientId} onClick={authorized?()=>synchronize():connect}>{status==='busy'?L('Pracuji…','Working…'):authorized?L('Synchronizovat teď','Sync now'):config.calendarId?L('Obnovit přihlášení','Renew authorization'):L('Připojit Google','Connect Google')}</button>{config.calendarId&&<button type="button" disabled={status==='busy'} onClick={disconnect}>{L('Odpojit','Disconnect')}</button>}</div>
+    <div className="tm-personal-actions"><button type="button" disabled={status==='busy'||status==='loading'||!clientId||(!authorized&&googleStatus==='loading')} onClick={authorized?()=>synchronize():connect}>{status==='busy'?L('Pracuji…','Working…'):authorized?L('Synchronizovat teď','Sync now'):googleStatus==='loading'?L('Načítám Google…','Loading Google…'):googleStatus==='error'?L('Zkusit načíst Google','Retry loading Google'):config.calendarId?L('Obnovit přihlášení','Renew authorization'):L('Připojit Google','Connect Google')}</button>{config.calendarId&&<button type="button" disabled={status==='busy'} onClick={disconnect}>{L('Odpojit','Disconnect')}</button>}</div>
     {!!config.lastSync&&<p>{L('Poslední synchronizace: ','Last sync: ')}{new Date(config.lastSync).toLocaleString(lang==='en'?'en-GB':'cs-CZ')}</p>}<p role="status">{message}</p>
     {!!config.conflicts.length&&<div><h4>{L('Změněno na obou místech','Changed in both places')}</h4>{config.conflicts.map((item,index)=><fieldset key={item.eventId}><legend>{item.title||`${L('Plán','Plan')} ${index+1}`}</legend><p>{L('V aplikaci: ','In the app: ')}{item.appWhen||L('Změna čeká na načtení.','Change awaits refresh.')}<br/>{L('V Googlu: ','In Google: ')}{item.googleCancelled?L('Zrušeno','Cancelled'):[item.googleTitle,item.googleWhen].filter(Boolean).join(' · ')||L('Změna čeká na načtení.','Change awaits refresh.')}</p><label><input type="radio" name={`calendar-${item.eventId}`} checked={choices[item.eventId]==='app'} onChange={()=>setChoices({...choices,[item.eventId]:'app'})}/>{L('Použít dohodu z aplikace','Use the app agreement')}</label><label><input type="radio" name={`calendar-${item.eventId}`} checked={choices[item.eventId]==='google'} onChange={()=>setChoices({...choices,[item.eventId]:'google'})}/>{item.googleCancelled?L('Potvrdit zrušení z Googlu','Accept the Google cancellation'):L('Převzít Google jako nový návrh','Use Google as a new proposal')}</label></fieldset>)}<button type="button" disabled={status==='busy'||!authorized||config.conflicts.some(item=>!choices[item.eventId])} onClick={()=>synchronize(choices)}>{L('Vyřešit změny','Resolve changes')}</button></div>}
   </div>;

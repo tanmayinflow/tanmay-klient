@@ -570,7 +570,7 @@ function tmCalDisconnect(store, smazat) {
     try { if (TM_CAL_TOK && window.google && window.google.accounts && window.google.accounts.oauth2) window.google.accounts.oauth2.revoke(TM_CAL_TOK, () => {}); } catch (e) {}
     TM_CAL_TOK = null; TM_CAL_EXP = 0; TM_CAL_CLIENT = null; TM_CAL_CID = ""; TM_CAL_OWNER = null;
     st.setCalState({ shadow: {}, tomb: {} });
-    st.setCalCfg({ calId: "", lastSync: 0, lastErr: "", lastCount: 0 });
+    st.setCalCfg({ calId: "", cycle:false, lastSync: 0, lastErr: "", lastCount: 0 });
   };
   if (!smazat || !cfg.calId || !cfg.clientId) { fin(); return Promise.resolve({ smazano: false }); }
   // Selhané smazání se dřív spolklo a odpojení se ohlásilo jako „Kalendář

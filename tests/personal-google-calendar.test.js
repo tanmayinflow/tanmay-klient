@@ -76,6 +76,13 @@ test('disconnect invalidates an in-flight sync and its late writes',async()=>{
   assert.equal(f.writes.length,writes);assert.equal(f.cfg.calId,'');assert.equal(f.calls.length,1);
 });
 
+test('disconnect stops cycle sharing and preserves its existing Google calendar',async()=>{
+  const f=fixture();f.cfg.cycle=true;f.cfg.cycleCalId='own-cycle-calendar';
+  await f.engine.tmCalDisconnect(f.st,false);
+  assert.equal(f.cfg.cycle,false);assert.equal(f.cfg.cycleCalId,'own-cycle-calendar');
+  assert.equal(f.calls.length,0);
+});
+
 test("OAuth callback cannot attach a previous account token after switching",async()=>{
   const f=fixture({holdAuth:true});
   const pending=f.engine.tmCalAuth(f.cfg.clientId,true);
