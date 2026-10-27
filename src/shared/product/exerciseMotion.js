@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "elephantwalk": {
+    "oneSide": false,
+    "src": "/exercise-motion/elephantwalk-619063acbb8e908b.mp4",
+    "bytes": 52782,
+    "sha256": "619063acbb8e908bd8719580dd490c4dd38b61034af5ae70119d8ff3216d9425",
+    "poster": "/exercise-motion/elephantwalk-poster-632155009dd02d17.webp"
+  },
+  "faq_scap_row": {
+    "oneSide": false,
+    "src": "/exercise-motion/faq_scap_row-76fd5b0c40b456cc.mp4",
+    "bytes": 33045,
+    "sha256": "76fd5b0c40b456cc43aab88281962e0984c3f2d30c8742eda39d0833dd07a783",
+    "poster": "/exercise-motion/faq_scap_row-poster-6c41bcfc65e77a03.webp"
+  },
+  "faq_hinge_squat": {
+    "oneSide": false,
+    "src": "/exercise-motion/faq_hinge_squat-99b4d45a79d3c8c0.mp4",
+    "bytes": 32611,
+    "sha256": "99b4d45a79d3c8c06b90317fb3c115bbff30395e1b2517ed87558032a1752fd9",
+    "poster": "/exercise-motion/faq_hinge_squat-poster-0f43c9a303589fb2.webp"
+  },
+  "frontsquat": {
+    "oneSide": false,
+    "src": "/exercise-motion/frontsquat-5418ae8b0430ffb5.mp4",
+    "bytes": 59711,
+    "sha256": "5418ae8b0430ffb518190c43a4d5b3b49acf49ad89034f0794e2f06c89c04dc5",
+    "poster": "/exercise-motion/frontsquat-poster-e1a668766614b951.webp"
+  },
+  "an_defdeadlift": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_defdeadlift-061f510f81510aa2.mp4",
+    "bytes": 55093,
+    "sha256": "061f510f81510aa25937b327f9f773a742c62be1674e5a5c97a1119537b22624",
+    "poster": "/exercise-motion/an_defdeadlift-poster-475f0f34ec84a1d4.webp"
+  },
+  "an_inclfrench": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_inclfrench-4ac4d74ede2b1bc9.mp4",
+    "bytes": 34601,
+    "sha256": "4ac4d74ede2b1bc9553b73432cc10067546c4eb30eb32b6438d02e5bc52d5c2f",
+    "poster": "/exercise-motion/an_inclfrench-poster-374286ac5047cf24.webp"
+  },
+  "cablerow": {
+    "oneSide": false,
+    "src": "/exercise-motion/cablerow-053971d1a048616d.mp4",
+    "bytes": 47186,
+    "sha256": "053971d1a048616d6727e244d9a9a9a3df0a2b496b5c3c1e9c4467b44f17bbc4",
+    "poster": "/exercise-motion/cablerow-poster-7ad62972c804f9cb.webp"
+  },
+  "br26_bodyweight_hipthrust": {
+    "oneSide": false,
+    "src": "/exercise-motion/br26_bodyweight_hipthrust-c712b9d4328927af.mp4",
+    "bytes": 52208,
+    "sha256": "c712b9d4328927af3629680b751cb71319ef990d7d0ba3bb73ef0cac3b42e55a",
+    "poster": "/exercise-motion/br26_bodyweight_hipthrust-poster-32a7fd692b533d17.webp"
+  },
   "drep": {
     "oneSide": false,
     "src": "/exercise-motion/drep-84a22400a1855cb6.mp4",
