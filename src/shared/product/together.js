@@ -6,11 +6,11 @@ export const TOGETHER_SCOPES = ["cycle", "wellbeing", "support", "phase", "cycle
 export const emptyTogether = () => ({ periods: [], mode: "estimate", modeChosen: false, usualLength: 28, days: {} });
 // Older accounts inherited records-only before estimates were the default.
 // Adapt reads without rewriting history or advancing the saved revision.
-// A saved checkbox from the period editor, an explicit choice, and pauses stay intact.
+// Only an explicit mode choice is an opt-out. An expected bleeding duration
+// says nothing about that preference; older editors also saved it by default.
 export function readTogether(value) {
   if (!value) return emptyTogether();
-  const hasPeriodChoice = Array.isArray(value.periods) && value.periods.some(p => Number.isInteger(p?.expectedLength) && p.expectedLength >= 1 && p.expectedLength <= 14);
-  if (value.mode === "observe" && value.modeChosen === undefined && !hasPeriodChoice) return {...value, mode: "estimate", modeChosen: false};
+  if (value.mode === "observe" && value.modeChosen !== true) return {...value, mode: "estimate", modeChosen: false};
   return value;
 }
 const text = (v,n) => typeof v === "string" ? v.trim().slice(0,n) : "";

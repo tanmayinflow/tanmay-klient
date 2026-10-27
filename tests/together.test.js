@@ -91,16 +91,21 @@ test('cycle estimates default on, while explicit choices and pauses survive lega
   assert.equal(readTogether(old).mode,'estimate');
   assert.equal(readTogether(old).modeChosen,false);
   assert.equal(JSON.stringify(old),before);
-  for(const doc of [{...old,mode:'paused'},{...old,modeChosen:true},{...old,modeChosen:false},{...old,periods:[{start:'2026-09-17',end:null,expectedLength:5}]}]){
+  for(const doc of [{...old,mode:'paused'},{...old,modeChosen:true}]){
     assert.equal(readTogether(doc),doc);
     assert.equal(readTogether(doc).mode,doc.mode);
+  }
+  for(const doc of [{...old,modeChosen:false},{...old,periods:[{start:'2026-09-17',end:null,expectedLength:5}]}]){
+    const saved=structuredClone(doc);
+    assert.equal(readTogether(doc).mode,'estimate');assert.equal(readTogether(doc).modeChosen,false);
+    assert.deepEqual(doc,saved);assert.deepEqual(readTogether(doc).periods,doc.periods);
   }
   for(const modeChosen of [null,0,1,'true',{},[]])assert.throws(()=>cleanTogether({...emptyTogether(),modeChosen}),'choice must be boolean');
 });
 
 test('an untouched pre-update record gets estimates without rewriting its history or revision',async()=>{
   const {call,sql}=fixture();await call('client:a');
-  const old={mode:'observe',usualLength:28,periods:[{start:'2026-09-17',end:null}],days:{'2026-09-17':{flow:'medium',note:'PRIVATE_OLD_NOTE'}}};
+  const old={mode:'observe',usualLength:28,periods:[{start:'2026-09-17',end:null,expectedLength:5}],days:{'2026-09-17':{flow:'medium',note:'PRIVATE_OLD_NOTE'}}};
   const raw=JSON.stringify(old);
   sql.prepare('INSERT INTO together_people (actor,doc,revision) VALUES (?,?,?)').run('client:a',raw,7);
   const current=await call('client:a');

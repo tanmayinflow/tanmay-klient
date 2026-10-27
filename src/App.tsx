@@ -33,6 +33,7 @@ import { tmAudio } from "./training/timerAudio.js";
 import { tmVoice, tmNum, tmVL, timerConfig } from "./training/timerVoice.js";
 import { createTimerSettings } from "./shared/ui/timerSettings.jsx";
 import { createGoogleCalendar } from "./shared/product/googleCalendar.js";
+import { clientTrainingCalendarSnapshot, applyClientTrainingCalendarSnapshot } from "./shared/product/trainingCalendarSync.js";
 import { createCalendarUI } from "./shared/ui/googleCalendar.jsx";
 import { createMementoUI } from "./shared/ui/memento.jsx";
 import { createAllDayEvents } from "./shared/ui/calendarAllDay.jsx";
@@ -118,6 +119,7 @@ import { createListUI } from "./shared/ui/lists.jsx";
 import { createSourcesUI } from "./shared/ui/sources.jsx";
 import { tmPlain } from "./shared/lang/text.js";
 import { GOAL_OWNER, mergeGoals, mayEditGoalField, sanitizeClientProgress, coachGoalsForClient } from "./shared/product/compass.js";
+import { reconcileGoalLongTermLink, renamedGoalLandscapeEdits } from "./shared/product/longTermGoals.js";
 import {
   SOURCE_ORIGIN, mergeSources, mayEditSourceField, sanitizeClientSourceNote,
   orphanedNotes, forkSource,
@@ -13242,7 +13244,7 @@ function TvClientPlan({ onRun }) {
     );
   }
 
-  const dateOf = (p, s) => recordFor(p, s)?.date || ((sched[p.id] || {})[s.id]) || s.date || "";
+  const dateOf = (p, s) => recordFor(p, s)?.date || (((sched[p.id] || {})[s.id]) ?? s.date ?? "");
   const recordFor = (p, s) => sessions.find((x) => x.planId === p.id && x.planSessionId === s.id) || null;
 
   const start = (p, s) => {
@@ -15679,7 +15681,7 @@ export default function App() {
       persistColl((c) => ({ ...c, goalProgress: { ...(c.goalProgress || {}), [cg.id]: { ...((c.goalProgress || {})[cg.id] || {}), ...cisty } } }));
       return;
     }
-    persistColl((c) => ({ ...c, goalEdits: { ...(c.goalEdits || {}), [name]: { ...((c.goalEdits || {})[name] || {}), ...patch } } }));
+    persistColl((c) => reconcileGoalLongTermLink({ ...c, goalEdits: { ...(c.goalEdits || {}), [name]: { ...((c.goalEdits || {})[name] || {}), ...patch } } }, name, patch));
   };
   const listAreas = () => {
     const removed = new Set(coll.removedAreas || []);
@@ -15732,11 +15734,7 @@ export default function App() {
       next.customAreas = [...(coll.customAreas || []), { name: nw, icon: area.icon, rating: area.rating, ratingMonth: area.ratingMonth }];
     }
     next.userGoals = (coll.userGoals || []).map((g) => (g.area === old || (g.areas || []).includes(old)) ? { ...g, area: g.area === old ? nw : g.area, areas: (g.areas || []).map((x) => (x === old ? nw : x)) } : g);
-    const ge = { ...(coll.goalEdits || {}) };
-    allGoals().filter((g) => !g.user && (g.area === old || (g.areas || []).includes(old))).forEach((g) => {
-      ge[g.name] = { ...(ge[g.name] || {}), area: g.area === old ? nw : g.area, areas: (g.areas || []).map((x) => (x === old ? nw : x)) };
-    });
-    next.goalEdits = ge;
+    next.goalEdits = renamedGoalLandscapeEdits(coll, allGoals(), old, nw);
     const moveKey = (obj) => { if (obj && obj[old] !== undefined) { const o = { ...obj }; o[nw] = o[old]; delete o[old]; return o; } return obj; };
     next.areaMeta = moveKey(coll.areaMeta);
     next.areaMonths = moveKey(coll.areaMonths);
@@ -15842,7 +15840,7 @@ export default function App() {
     }
     let next = { ...coll, goalOrder: names };
     if (patch) next = { ...next, goalEdits: { ...(next.goalEdits || {}), [drag]: { ...((next.goalEdits || {})[drag] || {}), ...patch } } };
-    persistColl(next);
+    persistColl(reconcileGoalLongTermLink(next, drag, patch));
   };
   const addGoal = (g) => persistColl((c) => ({ ...c, userGoals: [...(c.userGoals || []), g] }));
   const removeUserGoal = (id) => {
@@ -16218,9 +16216,42 @@ export default function App() {
   const tvSetSched = (planId, sessionId, date) => persistColl((c) => {
     const cur = (TV.trainingOf(c) || {}).sched || {};
     const forPlan = { ...(cur[planId] || {}) };
-    if (date) forPlan[sessionId] = date; else delete forPlan[sessionId];
+    forPlan[sessionId] = date || "";
     return TV.patchTraining(c, { sched: { ...cur, [planId]: forPlan } });
   });
+  const getClientTrainingCalendar = () => {
+    const owner = pomoAccountScope(clientAccount.getSnapshot(), ownerLoad());
+    if (!owner || !_syncReady.current || !clientAccount.isCurrent(owner)) throw Object.assign(new Error("calendar-account-changed"), { code: "calendar-account-changed" });
+    return clientTrainingCalendarSnapshot(_collRef.current);
+  };
+  const updateClientTrainingCalendar = async change => {
+    const owner = pomoAccountScope(clientAccount.getSnapshot(), ownerLoad());
+    const current = () => !!owner && _syncReady.current && clientAccount.isCurrent(owner) && owner === pomoAccountScope(clientAccount.getSnapshot(), ownerLoad());
+    const changedAccount = () => Object.assign(new Error("calendar-account-changed"), { code: "calendar-account-changed" });
+    if (!current()) throw changedAccount();
+    let unsubscribe = () => {};
+    try {
+      const changed = await new Promise((resolve, reject) => {
+        // persistColl intentionally skips its callback after an account switch.
+        // The subscription also settles that case instead of leaving a request pending.
+        unsubscribe = clientAccount.subscribe(() => { if (!current()) reject(changedAccount()); });
+        if (!current()) { reject(changedAccount()); return; }
+        persistColl(prev => {
+          if (!current()) { queueMicrotask(() => reject(changedAccount())); return prev; }
+          try {
+            const snapshot = clientTrainingCalendarSnapshot(prev), updated = change(snapshot);
+            if (!current()) { queueMicrotask(() => reject(changedAccount())); return prev; }
+            const next = updated === snapshot ? prev : applyClientTrainingCalendarSnapshot(prev, updated);
+            _collRef.current = next;
+            queueMicrotask(() => current() ? resolve(next !== prev) : reject(changedAccount()));
+            return next;
+          } catch (error) { queueMicrotask(() => reject(error)); return prev; }
+        });
+      });
+      if (!current()) throw changedAccount();
+      return changed;
+    } finally { unsubscribe(); }
+  };
   const seedTrainingColl = () => persistColl((c) => {
     if (!c.tSeeded) return tvApply(TV.seedExerciseExpansion({ ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] }, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT,lowerLegAuditContext:LOWER_LEG_AUDIT_CONTEXT,hipAuditContext:HIP_AUDIT_CONTEXT,shoulderAuditContext:SHOULDER_AUDIT_CONTEXT,elbowHandAuditContext:ELBOW_HAND_AUDIT_CONTEXT,landingAuditContext:LANDING_AUDIT_CONTEXT,complexTaskAuditContext:COMPLEX_TASK_AUDIT_CONTEXT,throwAuditContext:THROW_AUDIT_CONTEXT,breathingAuditContext:BREATHING_AUDIT_CONTEXT,positionHoldAuditContext:POSITION_HOLD_AUDIT_CONTEXT, auditMetadata:TEX_META }));
     let next = c;
@@ -16767,7 +16798,7 @@ export default function App() {
   };
   const store = { loadContentLibrary, contentLibraryReady:stateHydrated && !conflict && member === true, nbTagsFor, contentAvailable, journalAvailable: isEnabled("denik") && !roomPlacement(navConfig,"denik",navDefaults).hidden, readScale, setReadScale, uiCfg, setUiCfg, recentIds, pushRecent, nbFolders, addNbFolder, renameNbFolder, removeNbFolder, moveNbFolder, setEntriesFolder, restoreEntries, persistColl, undo, redo, canUndo: () => histRef.current.past.length > 0, canRedo: () => histRef.current.future.length > 0, caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, addPomoBlocks, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, calCfg, setCalCfg, getCalendarDay, updateCalendarDays, setCalState, setCalendarAllDay, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
     tvSessions, tvSessionOf, tvPutSession, tvEditSession, tvDropSession, tvPrefs, tvSetPrefs,
-    tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, syncPending,
+    tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, getClientTrainingCalendar, updateClientTrainingCalendar, syncPending,
     tmCfg, setTmCfg, tmSpecOf, setTmSpec,
     setSore, unsetSore, soreNow, tSaidBump };
 

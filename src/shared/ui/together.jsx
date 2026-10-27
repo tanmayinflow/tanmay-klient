@@ -10,13 +10,14 @@ import {TogetherCalendar} from "./togetherCalendar.jsx";
 import {TogetherCycleQuickEntry} from "./togetherCycleQuickEntry.jsx";
 import {cyclePeriodEntryDraft,cyclePeriodEntryPatch} from "../product/togetherCycleCalendar.js";
 import {TogetherDayWindow} from "./togetherDayWindow.jsx";
+import {TogetherPlanWindow} from "./togetherPlanWindow.jsx";
 import {TogetherConversationMap} from "./togetherConversationMap.jsx";
 import {TogetherMaintenance} from "./togetherMaintenance.jsx";
 import {TmIcon} from "./icons.jsx";
 import {ROOM_ART} from "./roomArt.js";
 import {TogetherJournal} from "./togetherJournal.jsx";
 import {PartnerPages} from "./togetherPages.jsx";
-import {dateKey,addDays,emptyTogether} from "../product/together.js";
+import {dateKey,addDays,emptyTogether,cycleSummary} from "../product/together.js";
 import {questionFor} from "../product/togetherJournal.js";
 import {TOGETHER_RITUALS,getTogetherRitualText} from "../product/togetherRituals.js";
 import {createTogetherAccountRequest} from "../product/togetherAccountClient.js";
@@ -49,8 +50,8 @@ function TogetherWorkspace({t,lang="cs",Header,Sheet,getPages,role="coach",accou
   const selectCycleDay=value=>{setCycleDay(value);setCycleSelection(v=>v+1);};
   const [answerContext,setAnswerContext]=useState(null);
   const [dateOpen,setDateOpen]=useState(false),[dayWindow,setDayWindow]=useState(null),[practiceOpen,setPracticeOpen]=useState(false);
-  const [plan,setPlan]=useState(null),[mode,setMode]=useState("estimate"),[length,setLength]=useState(28);
-  const pageRef=useRef(null),planHeadingRef=useRef(null),[focusRequest,setFocusRequest]=useState(null);
+  const [plan,setPlan]=useState(null),[planOpen,setPlanOpen]=useState(false),[mode,setMode]=useState("estimate"),[length,setLength]=useState(28);
+  const pageRef=useRef(null),[focusRequest,setFocusRequest]=useState(null);
   const periodDirty=useRef(false),journalDirty=useRef(false),[journalReset,setJournalReset]=useState(0);
   const generation=useRef(0),mounted=useRef(true),editing=useRef(false),snapshot=useRef(null),dayRef=useRef(day),answerDirty=useRef(false),cycleDirty=useRef(false),scopesDirty=useRef(false),scopeRevision=useRef(null);
   dayRef.current=day;
@@ -92,14 +93,16 @@ function TogetherWorkspace({t,lang="cs",Header,Sheet,getPages,role="coach",accou
   };
   const upcoming=(data?.plans||[]).filter(p=>p.status==="planned"&&p.date>=today).toSorted((a,b)=>(a.date+a.time).localeCompare(b.date+b.time))[0];
   const navigateTo=(next,target="view")=>{setTab(next);setFocusRequest({tab:next,target});};
-  const propose=(p,{afterOverlay=false}={})=>{setPlan(p);setTab("plans");setFocusRequest({tab:"plans",target:"plan",afterOverlay});};
+  const propose=(p,{afterOverlay=false}={})=>{setPlan(p);setPlanOpen(false);setTab("plans");setFocusRequest({tab:"plans",target:"plan",afterOverlay});};
+  const closePlan=()=>{setPlanOpen(false);setPlan(null);};
   useEffect(()=>{
     if(!focusRequest||focusRequest.tab!==tab)return;
     let frame,timer;
     const focusTarget=()=>{
+      if(focusRequest.target==="plan"){setPlanOpen(true);setFocusRequest(null);return;}
       const root=pageRef.current;
       const navigationTarget=root?.querySelector(`[data-tg-nav="${tab}"]`);
-      const target=focusRequest.target==="practice"?root?.querySelector(".tg-practice>summary"):focusRequest.target==="plan"?planHeadingRef.current:focusRequest.target==="tab"?navigationTarget:root?.querySelector(`[data-tg-view="${tab}"] > h2`)||navigationTarget;
+      const target=focusRequest.target==="practice"?root?.querySelector(".tg-practice>summary"):focusRequest.target==="tab"?navigationTarget:root?.querySelector(`[data-tg-view="${tab}"] > h2`)||navigationTarget;
       if(!target)return;
       target.focus({preventScroll:true});
       target.scrollIntoView({behavior:"auto",block:"start"});
@@ -113,6 +116,14 @@ function TogetherWorkspace({t,lang="cs",Header,Sheet,getPages,role="coach",accou
     return()=>{cancelAnimationFrame(frame);clearTimeout(timer);window.removeEventListener("popstate",schedule);};
   },[focusRequest,tab,plan,data]);
   const fmtSummary=summary?.next?`${dateLabel(summary.next.from)} – ${dateLabel(summary.next.to)}`:L("Bez odhadu další menstruace","No estimate for the next period");
+  const estimateReason=canTrack?(own.mode==="observe"||own.mode==="paused"?own.mode:cycleSummary(own,today).reason):null;
+  const estimateNotice={
+    empty:L("Odhady jsou zapnuté. Zapiš první skutečný začátek menstruace, klidně zpětně. Další dny pak uvidíš jako odhad.","Estimates are on. Record your first actual period start, including a past date. Future days will then appear as estimates."),
+    observe:L("Odhady máš vypnuté. Zapnout je můžeš v nastavení cyklu.","Estimates are turned off. You can enable them in cycle settings."),
+    paused:L("Odhady jsou pozastavené. Obnovit je můžeš v nastavení cyklu.","Estimates are paused. You can resume them in cycle settings."),
+    outdated:L("Od posledního zápisu už uplynul odhad dalšího začátku. Pokud mezitím začala nová menstruace, zapiš ji. Kalendář skutečné začátky nedoplňuje sám.","The next estimated start has passed since your last record. If a new period has started, record it. The calendar never fills in actual starts for you."),
+    variable:L("Podle zapsaných délek teď nelze nabídnout užitečný odhad další menstruace. Tvoje skutečné zápisy zůstávají v kalendáři.","The recorded cycle lengths do not currently support a useful next-period estimate. Your actual records remain in the calendar.")
+  }[estimateReason];
   const setField=(key,value)=>{setEntry(e=>({...e,[key]:value}));setDirty(true);};
   const selectDay=next=>{if(!next)return false;if(next===day)return true;if(dirty&&!window.confirm(L("Opustit neuložený zápis?","Discard the unsaved check-in?")))return false;setDay(next);setEntry(own.days[next]||{});setBaseRev(data.self.revision);setDirty(false);setDateOpen(false);return true;};
   const updateDoc=(patch,kind)=>save("self",{revision:patch.days?baseRev:data.self.revision,doc:{...own,...patch}},kind||(patch.days?"entry":patch.mode?"cycle":"period"));
@@ -183,6 +194,7 @@ function TogetherWorkspace({t,lang="cs",Header,Sheet,getPages,role="coach",accou
         <strong className="tg-cycle-phase">{phase?.id?L(...CYCLE_GUIDE[phase.id].name):L("Fáze zatím neurčená","Phase not determined")}</strong>
         <p>{summary?.day?`${L("Den","Day")} ${summary.day}`:""}{phase?.basis==="estimated"?L(" · odhad podle kalendáře"," · calendar estimate"):phase?.basis==="recorded"?L(" · podle zápisu"," · recorded"):""}</p>
         {summary?.next&&<p className="hint">{L("Další menstruace přibližně","Next period approximately")}: {fmtSummary}</p>}
+        {canTrack&&estimateNotice&&<p className="hint" role="status">{estimateNotice}</p>}
         {!canTrack&&!summary&&!phase&&<p>{L("Druhý z vás zatím fázi cyklu nesdílí.","Your partner is not sharing her cycle phase.")}</p>}
       </>)}
       {(canTrack||(data.link?.receivedScopes||data.link?.scopes)?.some(s=>["cycle","phase","cycle-note","pain","flow"].includes(s)))&&<TogetherCalendar periods={canTrack?own.periods:[]} cycleDoc={canTrack?own:undefined} summary={summary} phase={phase} plans={data.plans} recordDates={canTrack?Object.keys(own.days):[]} selectedDate={cycleDay} onDateChange={selectCycleDay} onOpenDay={openDayWindow} lang={lang} t={t} renderCycleActions={canTrack?(selected,model)=><TogetherCycleQuickEntry key={selected} doc={own} date={selected} today={today} model={model} lang={lang} busy={busy} draftLength={cycleLengths[selected]} onLengthChange={value=>setCycleLengths(drafts=>({...drafts,[selected]:value}))} draftShowEstimates={cycleEstimates[selected]} onEstimatesChange={value=>setCycleEstimates(drafts=>({...drafts,[selected]:value}))} onSave={async record=>{if(await savePeriod(record)){setCycleLengths(drafts=>{const next={...drafts};delete next[selected];return next;});setCycleEstimates(drafts=>{const next={...drafts};delete next[selected];return next;});}}} onEdit={record=>{if(!selectDay(selected))return;if(periodDirty.current&&!window.confirm(L("Nahradit rozepsaný záznam menstruace?","Replace the unsaved period record?")))return;setPeriod(cyclePeriodEntryDraft(own,record.start,today));periodDirty.current=false;setDayWindow("period");}} onSettings={()=>{if(selectDay(selected))setDayWindow("orientation");}}/>:undefined}/>}
@@ -193,7 +205,6 @@ function TogetherWorkspace({t,lang="cs",Header,Sheet,getPages,role="coach",accou
     </>}
     {data&&tab==="plans"&&<>
       {section(L("Náš společný čas","Our time together"),<><p>{L("Na něco se těšit je hezké. Z návrhu bude domluva, až vám oběma sedne čas i chuť.","It is good to have something to look forward to. A proposal becomes a plan when it works for both of you.")}</p>{!active?button(L("Nejdřív se propojit","Connect first"),()=>navigateTo("sharing")):button(L("Domluvit chvíli","Make a little time"),()=>propose({title:"",date:today,time:"18:00",minutes:30,note:""}),true)}</>)}
-      {active&&plan&&section(plan.id?L("Upravit návrh","Edit proposal"):L("Naše příští chvíle","Our next moment"),<><label>{L("Co podnikneme","What shall we do")}<input className="tm-navod" placeholder={L("Na co se spolu těšíme…","What we look forward to together…")} value={plan.title} maxLength={120} onChange={e=>setPlan(p=>({...p,title:e.target.value}))}/></label><div className="fields"><label>{L("Datum","Date")}<input type="date" value={plan.date} onChange={e=>setPlan(p=>({...p,date:e.target.value}))}/></label><label>{L("Čas","Time")}<input type="time" value={plan.time} onChange={e=>setPlan(p=>({...p,time:e.target.value}))}/></label></div><label>{L("Délka v minutách","Duration in minutes")}<input type="number" min="10" max="1440" value={plan.minutes} onChange={e=>setPlan(p=>({...p,minutes:Number(e.target.value)}))}/></label><label>{L("Poznámka pro oba","Note for both")}<TogetherText placeholder={L("Místo, přání nebo malá domluva…","A place, a wish or a small agreement…")} value={plan.note} maxLength={600} onChange={e=>setPlan(p=>({...p,note:e.target.value}))}/></label><div className="row">{button(L("Poslat návrh","Send proposal"),async()=>{if(await save("plan",plan))setPlan(null);},true)}{button(L("Zrušit úpravu","Cancel editing"),()=>setPlan(null))}</div></>,planHeadingRef)}
       {active&&section(L("Na čem se domlouváme","What we are planning"),data.plans.some(p=>p.status==="planned")?data.plans.filter(p=>p.status==="planned").toSorted((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).map(p=><details className="tg-plan-row" key={p.id}><summary><span>{p.title}<small>{dateLabel(p.date)} · {p.time} · {p.minutes} min<br/>{p.status==="done"?L("Proběhlo","Completed"):p.approved.owner&&p.approved.partner?L("Potvrzeno oběma","Confirmed by both"):L("Zatím návrh · druhý ho může potvrdit","A proposal · your partner can confirm it")}</small></span></summary>{p.note&&<p>{p.note}</p>}{p.status!=="done"&&<div className="row">{!p.approved[cycleOwner?"owner":"partner"]&&button(L("Potvrdit","Confirm"),()=>save("plan",{id:p.id,revision:p.revision,action:"confirm"}),true)}{button(L("Upravit","Edit"),()=>propose(p))}{p.approved.owner&&p.approved.partner&&button(L("Proběhlo","Complete"),()=>save("plan",{id:p.id,revision:p.revision,action:"done"}))}{button(L("Zrušit plán","Cancel plan"),()=>save("plan",{id:p.id,revision:p.revision,action:"cancel"}))}</div>}</details>):<p>{L("Zatím nic domluveného. Klidně začněte něčím malým, na co se těšíte oba.","Nothing agreed yet. Start with something small you can both look forward to.")}</p>)}
       {active&&<TogetherFold title={L("Kalendář společných plánů","Our plans calendar")}><TogetherCalendar showCycle={false} plans={data.plans} onOpenDay={openDayWindow} lang={lang} t={t}/></TogetherFold>}
       {active&&<TogetherInspiration lang={lang} onPlan={propose} Sheet={Sheet} t={t}/>}
@@ -201,6 +212,7 @@ function TogetherWorkspace({t,lang="cs",Header,Sheet,getPages,role="coach",accou
     </>}
     <TogetherJournal embedded renderWeekly={weekly=><TogetherConversationMap lang={lang} slots={{daily:conversationDaily,questions:<FaceToFacePrompts embedded lang={lang} question={data?.question} onQuestionSelect={active?chooseQuestion:null} busy={busy} locked={Boolean(data?.answer?.mine||data?.answer?.partner)} draftPending={answerDirty.current}/>,moments:<TogetherRituals lang={lang} onPlan={active?propose:null}/>,weekly}}/>} unlinkedWeekly={<><p>{L("Pro společné ukládání ohlédnutí nejdřív propojte účty.","Connect your accounts to save reflections together.")}</p>{button(L("Propojit účty","Connect accounts"),()=>navigateTo("sharing"))}</>} Sheet={Sheet} t={t} data={data} lang={lang} save={save} busy={busy} view={tab} onPlan={propose} onDirty={v=>{journalDirty.current=v;}} reset={journalReset} onPractice={()=>{setPracticeOpen(true);navigateTo("plans","practice");}}/>
     {dayWindow&&Sheet&&<TogetherDayWindow Sheet={Sheet} t={t} lang={lang} day={day} panel={dayWindow} onPanel={setDayWindow} onClose={()=>setDayWindow(null)} canTrack={canTrack} available={!!data} error={error} notice={notice} onRefresh={refresh} entry={<>{sharedDay}{dayEntry}</>} period={periodEditor} orientation={cycleSettings}/>}
+    {planOpen&&plan&&Sheet&&<TogetherPlanWindow Sheet={Sheet} t={t} lang={lang} plan={plan} onChange={setPlan} onClose={closePlan} busy={busy} available={!!data&&active} error={error} onRefresh={fetchSnapshot} onSave={async()=>{if(await save("plan",plan))closePlan();}}/>}
     {data&&tab==="sharing"&&<>
       {section(L("Dva účty, vaše rozhodnutí","Two accounts, your choice"),<><p>{L("Jeden z vás vytvoří kód, druhý jej zadá ve své aplikaci. Propojení začne až potvrzením toho, kdo kód vytvořil. Vlastní cyklus zapneš ve svém profilu; sdílení vždy volíš zvlášť.","One of you creates a code and the other enters it in their app. The connection starts only after the person who created the code confirms. Enable your own cycle in your profile; sharing remains a separate choice.")}</p><p><strong>{L("Stav","Status")}: {data.link?({invited:L("Kód čeká na použití","Code awaits use"),pending:L("Čeká na potvrzení","Awaiting your partner's confirmation"),active:L("Propojeno","Connected")}[data.link.status]):L("Nepřipojeno","Not connected")}</strong></p>
         {(!data.link||data.link.status==="invited")&&<>{button(L("Vytvořit nový kód","Create a new code"),()=>save("invite",{}),true)}{invite&&<><label>{L("Kód platí 24 hodin. Předej ho jen partnerovi.","Valid for 24 hours. Give it only to your partner.")}<input value={invite} readOnly onFocus={e=>e.target.select()}/></label>{button(L("Kopírovat kód","Copy code"),async()=>{try{await navigator.clipboard.writeText(invite);setNotice(L("Kód zkopírován.","Code copied."));}catch{setNotice(L("Označ kód a zkopíruj ho ručně.","Select and copy the code manually."));}})}</>}</>}

@@ -3,6 +3,7 @@ import { STATE_LIMIT, ensureStateStorage, encodeState, readStateMeta, readStateD
 import { handleContentLibrary } from "./contentLibrary.js";
 import { marketFrameResponse } from "../src/shared/product/marketFramePolicy.js";
 import { handleTogether } from "../src/shared/product/togetherApi.js";
+import { calendarConfigResponse } from "../src/shared/product/calendarPublicConfig.js";
 import { clientProfile, handleClientProfile, handleLegacyClientName } from "./clientProfile.js";
 import { createSkyTimeZoneHandler } from "../src/shared/product/skyGeocodingApi.js";
 const handleSkyTimeZone=createSkyTimeZoneHandler({fetchImpl:(...args)=>globalThis.fetch(...args)});
@@ -453,6 +454,7 @@ export default {
       if (!(await isMember(env, userId))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
+      if (url.pathname === "/api/calendar/config") return calendarConfigResponse(request,env);
       if (url.pathname === "/api/content-library") return handleContentLibrary(request, env);
       if (url.pathname === "/api/sky/timezone") return handleSkyTimeZone(request,{rateKey:userId});
       if (url.pathname === "/api/personal-profile") return handleClientProfile(request, env.DB, userId);

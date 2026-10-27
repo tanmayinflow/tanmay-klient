@@ -21,8 +21,7 @@ export function cyclePeriodDraft(doc, start, referenceDate=dateKey()) {
 /** Shared editable state for both the day sheet and the inline start action. */
 export function cyclePeriodEntryDraft(doc, start, referenceDate=dateKey()) {
   const draft=cyclePeriodDraft(doc,start,referenceDate);
-  const chosenObserve=doc?.mode==='observe' && (doc.modeChosen===true ||
-    cyclePeriodRecords(doc,referenceDate).some(period=>Number.isInteger(period.expectedLength)));
+  const chosenObserve=doc?.mode==='observe' && doc.modeChosen===true;
   return draft?{...draft,end:draft.end||'',showEstimates:doc?.mode!=='paused' && !chosenObserve}:null;
 }
 

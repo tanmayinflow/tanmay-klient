@@ -1,5 +1,7 @@
 import { syncAllDay, mergeAllDaySync } from "./calendarAllDay.js";
 import { eventFields, listCalendarEvents, reconcileSchedule, writeCalendarEvent } from "./calendarSchedule.js";
+import { syncClientTrainingCalendar } from "./trainingCalendarSync.js";
+import { syncOwnCycleCalendar } from "./cycleGoogleCalendar.js";
 
 // Main supplies its additional event sources. Client never evaluates those sources,
 // even if an imported collection contains Main calendar flags or shadow records.
@@ -11,7 +13,7 @@ const mainDefaults = {
   clientId: "", calId: "", calName: "tanmay",
   klienti: true, trenink: true, rozvrh: false, motiv: true,
   horizon: 14, busy: "klienti", titles: "plne", zpet: "",
-  lastSync: 0, lastErr: "", lastCount: 0,
+  lastSync: 0, lastErr: "", lastCount: 0, cycle:false, cycleCalId:"",
 };
 const allKinds = [
   { k: "klienti", cz: "Sezení s klienty", en: "Client sessions", cz2: "s časem a délkou · jediné, co doopravdy blokuje čas někomu dalšímu", en2: "with time and duration · the only thing that really blocks time for someone else" },
@@ -21,22 +23,33 @@ const allKinds = [
 ];
 
 
-const CAL_DEF = role === "client" ? {...mainDefaults, klienti:false, trenink:false, motiv:false, busy:"nic"} : mainDefaults;
-const CAL_KINDS = allKinds.filter(item => role !== "client" || item.k === "rozvrh");
+let runtimeClientId = "", preparing = null, generation = 0;
+const CAL_DEF = role === "client" ? {...mainDefaults, klienti:false, motiv:false, busy:"nic"} : mainDefaults;
+const CAL_KINDS = allKinds.filter(item => role !== "client" || ["rozvrh","trenink"].includes(item.k));
 const config = value => role === "client"
-  ? {...CAL_DEF, ...value, klienti:false, trenink:false, motiv:false, busy:value?.busy === "vse" ? "vse" : "nic"}
-  : {...CAL_DEF, ...value};
+  ? {...CAL_DEF, ...value, clientId:value?.clientId||runtimeClientId, klienti:false, motiv:false, busy:value?.busy === "vse" ? "vse" : "nic"}
+  : {...CAL_DEF, ...value, clientId:value?.clientId||runtimeClientId};
+function tmCalPrepare() {
+  if (!preparing) preparing = fetcher('/api/calendar/config',{credentials:'same-origin',cache:'no-store'})
+    .then(async response => { if (!response.ok) throw new Error('calendar-config-unavailable'); const data=await response.json(); runtimeClientId=data.configured?data.clientId:''; return config({}); })
+    .finally(()=>{preparing=null;});
+  return preparing;
+}
 const accountError = () => Object.assign(new Error("calendar-account-changed"), {code:"calendar-account-changed"});
 const assertAccount = owner => { if (!owner || owner !== getAccount()) throw accountError(); };
 const tmCalAvailable = () => !!getAccount() && canRequest();
-function scopedStore(st, owner) {
+function scopedStore(st, owner, version = generation) {
   const scoped = {...st};
-  for (const key of ["setCalCfg", "setCalState", "setCalendarAllDay", "updateCalendarDays", "updateDay"]) {
+  const guard = () => {assertAccount(owner);if(version!==generation)throw accountError();};
+  for(const key of ['getClientTrainingCalendar','getCalendarDay'])if(typeof st[key]==='function')scoped[key]=(...args)=>{guard();return st[key](...args);};
+  scoped.calendarGuard=guard;
+  for (const key of ["setCalCfg", "setCalState", "setCalendarAllDay", "updateCalendarDays", "updateDay", "updateClientTrainingCalendar"]) {
     if (typeof st[key] !== "function") continue;
     scoped[key] = (...args) => {
       assertAccount(owner);
+      if (version !== generation) throw accountError();
       return st[key](...args.map(arg => typeof arg === "function" ? (...values) => {
-        if (owner !== getAccount()) return key === "updateDay" ? {} : values[0];
+        if (owner !== getAccount() || version !== generation) return key === "updateDay" ? {} : values[0];
         return arg(...values);
       } : arg));
     };
@@ -68,6 +81,7 @@ const tmCalHH = (h) => { const p = String(h || "").split(":"); return String(Mat
    a jeho ztráta stojí jedno tiché obnovení — kdežto jeho únik stojí přístup. */
 let TM_CAL_OWNER = null;
 let TM_CAL_TOK = null, TM_CAL_EXP = 0, TM_CAL_CLIENT = null, TM_CAL_CID = "", TM_CAL_SC = "", TM_CAL_GRANT = "";
+let authTask=null, authKey='';
 const tmCalLive = () => !!getAccount() && TM_CAL_OWNER === getAccount() && !!TM_CAL_TOK && Date.now() < TM_CAL_EXP - 60000;
 /* KDO ROZHODUJE O PŘIHLÁŠENÍ. „Tiché" vydání tokenu (prompt: "") umí Google
    vydat bez ptaní jen tehdy, když je jeho relace v prohlížeči zdravá. Když
@@ -107,21 +121,28 @@ function tmCalGis() {
    vyskakovací okno bez gesta a zablokuje ho. */
 function tmCalAuth(clientId, interactive, scope) {
   const owner = getAccount();
+  const version = generation;
   try { assertAccount(owner); if (!canRequest()) throw new Error("calendar-account-unavailable"); } catch (error) { return Promise.reject(error); }
   if (!clientId) return Promise.reject(new Error("no-client-id"));
   const sc = scope || CAL_SCOPE;
-  if (tmCalLive() && TM_CAL_CID === clientId && TM_CAL_SC === sc) return Promise.resolve(TM_CAL_TOK);
-  return tmCalGis().then((o2) => new Promise((res, rej) => {
+  if (tmCalLive() && TM_CAL_CID === clientId && sc.split(' ').every(s=>TM_CAL_GRANT.split(' ').includes(s))) return Promise.resolve(TM_CAL_TOK);
+  const key=JSON.stringify([owner,clientId,sc,version]);
+  if(authTask&&authKey===key)return authTask;
+  const o2=typeof window!=='undefined'&&window.google?.accounts?.oauth2;
+  if(!o2)return Promise.reject(new Error('google-loading'));
+  const task=new Promise((res, rej) => {
     assertAccount(owner);
     let done = false, timeout;
     const accept = r => {
       if (done) return;
       try { assertAccount(owner); } catch(error) { fin(rej,error); return; }
+      if(version!==generation){fin(rej,accountError());return;}
       if (r && r.access_token) {
+        if(r.scope && !sc.split(' ').every(s=>r.scope.split(' ').includes(s))){fin(rej,new Error('calendar-permission-required'));return;}
         TM_CAL_OWNER = owner; TM_CAL_TOK = r.access_token;
         TM_CAL_CID = clientId; TM_CAL_SC = sc;
         TM_CAL_EXP = Date.now() + (Number(r.expires_in) || 3600) * 1000;
-        TM_CAL_GRANT = String(r.scope || ""); tmCalTichoZapis(true); fin(res,TM_CAL_TOK);
+        TM_CAL_GRANT = String(r.scope || sc); tmCalTichoZapis(true); fin(res,TM_CAL_TOK);
       } else fin(rej,new Error(r?.error || "no-token"));
     };
     const fin = (fn, v) => { if (done) return; done = true; clearTimeout(timeout); fn(v); };
@@ -136,13 +157,16 @@ function tmCalAuth(clientId, interactive, scope) {
     timeout = setTimeout(() => fin(rej, new Error("auth-timeout")), interactive ? 180000 : 25000);
     try { tokenClient.requestAccessToken({ prompt: interactive ? "consent" : "" }); }
     catch (e) { fin(rej, e); }
-  }));
+  });
+  authKey=key;authTask=task.finally(()=>{if(authKey===key){authTask=null;authKey='';}});
+  return authTask;
 }
 /* Jedno volání API. Opakuje jen to, co má smysl opakovat: 429, 403 kvůli
    rychlosti, 5xx a výpadek sítě. Exponenciálně s rozptylem, nejvýš pětkrát —
    tak to Google sám doporučuje. 401 se neopakuje, ten se řeší tokenem. */
-function tmCalReq(path, opts, tok, attempt, owner = TM_CAL_OWNER) {
-  try { assertAccount(owner); if (tok !== TM_CAL_TOK || owner !== TM_CAL_OWNER) throw accountError(); if (!canRequest()) throw new Error("calendar-account-unavailable"); } catch (error) { return Promise.reject(error); }
+function tmCalReq(path, opts, tok, attempt, owner = TM_CAL_OWNER, version = generation) {
+  const guard=()=>{assertAccount(owner);if(version!==generation||tok!==TM_CAL_TOK||owner!==TM_CAL_OWNER)throw accountError();};
+  try { guard(); if (!canRequest()) throw new Error("calendar-account-unavailable"); } catch (error) { return Promise.reject(error); }
   const n = attempt || 0;
   const o = opts || {};
   return fetcher(CAL_API + path, {
@@ -151,10 +175,12 @@ function tmCalReq(path, opts, tok, attempt, owner = TM_CAL_OWNER) {
     body: o.body ? JSON.stringify(o.body) : undefined,
   }).then((r) => {
     assertAccount(owner);
+    guard();
     if (r.status === 401) { TM_CAL_TOK = null; TM_CAL_EXP = 0; tmCalTichoZapis(false); }
     if (r.status === 204) return {};
     return r.text().then((txt) => {
       assertAccount(owner);
+      if(version!==generation)throw accountError();
       let j = null; try { j = txt ? JSON.parse(txt) : {}; } catch (e) { j = {}; }
       if (r.ok) return j;
       const reason = (((j.error || {}).errors || [])[0] || {}).reason || "";
@@ -163,15 +189,15 @@ function tmCalReq(path, opts, tok, attempt, owner = TM_CAL_OWNER) {
       const retry = r.status === 429 || r.status >= 500 || (r.status === 403 && /rateLimit|userRateLimit/i.test(reason));
       if (retry && n < 4) {
         const wait = Math.min(Math.pow(2, n) * 1000 + Math.floor(Math.random() * 900), 32000);
-        return new Promise((res) => setTimeout(res, wait)).then(() => tmCalReq(path, opts, tok, n + 1, owner));
+        return new Promise((res) => setTimeout(res, wait)).then(() => tmCalReq(path, opts, tok, n + 1, owner, version));
       }
       throw err;
     });
   }, (netErr) => {
-    assertAccount(owner);
+    guard();
     if (n < 3) {
       const wait = Math.min(Math.pow(2, n) * 1000 + Math.floor(Math.random() * 900), 8000);
-      return new Promise((res) => setTimeout(res, wait)).then(() => tmCalReq(path, opts, tok, n + 1, owner));
+      return new Promise((res) => setTimeout(res, wait)).then(() => tmCalReq(path, opts, tok, n + 1, owner, version));
     }
     throw netErr;
   });
@@ -260,6 +286,7 @@ const tmCalHash = (b) => { const s = JSON.stringify(b); let h = 5381; for (let i
 const CAL_READ_SCOPE = "https://www.googleapis.com/auth/calendar.events.readonly";
 const CAL_WRITE_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const tmCalScopeFor = (cfg) => (cfg && cfg.zpet === "vse") ? (CAL_SCOPE + " " + (cfg.allDayWrite ? CAL_WRITE_SCOPE : CAL_READ_SCOPE)) : CAL_SCOPE;
+const tmCalReady = cfg => tmCalLive() && TM_CAL_CID === config(cfg).clientId && tmCalScopeFor(config(cfg)).split(' ').every(s=>TM_CAL_GRANT.split(' ').includes(s));
 const tmCalMaZapis = () => TM_CAL_GRANT.split(" ").includes(CAL_WRITE_SCOPE);
 const tmCalMaCteni = () => tmCalMaZapis() || TM_CAL_GRANT.split(" ").includes(CAL_READ_SCOPE);
 const tmCalHourKey = (h) => String(h) + ":00";
@@ -391,18 +418,25 @@ function tmCalEnsure(cfg, tok, save, znovu) {
 let TM_CAL_SYNC = null, TM_CAL_SYNC_OWNER = null;
 function tmCalSync(st, opts) {
   const owner = getAccount();
-  try { assertAccount(owner); } catch(error) { return Promise.reject(error); }
+  const version=generation;
+  try { assertAccount(owner);if(!canRequest())throw new Error('calendar-account-unavailable'); } catch(error) { return Promise.reject(error); }
   if (TM_CAL_SYNC && TM_CAL_SYNC_OWNER === owner) return TM_CAL_SYNC;
+  const cfg=config({...st.calCfg(),...(opts?.interactive?{allDayWrite:true}:{})});
+  if(!opts?.interactive&&!tmCalReady(cfg))return Promise.reject(new Error('calendar-permission-required'));
+  // Start OAuth inside the click, before asynchronous account verification.
+  // Calendar reads and writes still wait for that verification below.
+  const authorization=tmCalAuth(cfg.clientId,!!opts?.interactive,tmCalScopeFor(cfg));
   TM_CAL_SYNC_OWNER = owner;
-  const task = Promise.resolve(verifyAccount()).then(ok => {
+  const task = Promise.all([authorization,Promise.resolve(verifyAccount())]).then(([tok,ok]) => {
     assertAccount(owner);
+    if(version!==generation)throw accountError();
     if (!ok) throw new Error("calendar-account-unavailable");
-    return tmCalSyncRun(scopedStore(st,owner),opts);
+    return tmCalSyncRun(scopedStore(st,owner,version),opts,tok);
   }).finally(() => { if (TM_CAL_SYNC === task) { TM_CAL_SYNC = null; TM_CAL_SYNC_OWNER = null; } });
   TM_CAL_SYNC = task;
   return task;
 }
-function tmCalSyncRun(st, opts) {
+function tmCalSyncRun(st, opts, token) {
   const o = opts || {};
   const cfg = config({...st.calCfg(), ...(o.interactive ? {allDayWrite:true} : {})});
   if (!cfg.clientId) return Promise.reject(new Error("no-client-id"));
@@ -412,8 +446,28 @@ function tmCalSyncRun(st, opts) {
   const tomb = Object.fromEntries(Object.entries(st.coll.calTomb || {}).filter(([key]) => role !== "client" || key.startsWith("rz|")));
   let calId = "";
   const res = { pridano: 0, zmeneno: 0, smazano: 0, chyby: 0 };
-  return tmCalAuth(cfg.clientId, !!o.interactive, tmCalScopeFor(cfg))
+  return Promise.resolve(token)
     .then((tok) => tmCalEnsure(cfg, tok, (p) => st.setCalCfg(p), () => { Object.keys(shadow).forEach((k) => delete shadow[k]); }).then((id) => { calId = id; return tok; }))
+    .then(async tok=>{
+      st.calendarGuard();
+      const request=async(path,options)=>{st.calendarGuard();const data=await tmCalReq(path,options,tok);st.calendarGuard();return data;};
+      if(role==='client'){
+        const result=await syncClientTrainingCalendar({st,cfg,calId,request,from:todayISO(),to:tmCalShift(todayISO(),Math.max(1,+cfg.horizon||14)+1),L});
+        res.chyby+=result.errors+result.conflicts.length;res.zmeneno+=result.changes;
+        if(result.errors||result.conflicts.length)res.prvni=L('Některý termín tréninku se změnil na obou místech. Zkontroluj ho, hotové tréninky zůstaly zachované.','A workout date changed in both places. Review it; completed workouts were preserved.');
+      }
+      if(cfg.cycle){
+        const api=async(path,method='GET',body,accountKey)=>{
+          st.calendarGuard();
+          const response=await fetcher(path,{method,credentials:'same-origin',cache:'no-store',headers:{...(body?{'Content-Type':'application/json'}:{}),...(accountKey?{'X-Tanmay-Account-Key':accountKey}:{})},...(body?{body:JSON.stringify(body)}:{})});
+          const data=await response.json();st.calendarGuard();if(!response.ok||!data.ok)throw new Error(data.error||'cycle-sync-unavailable');return data;
+        };
+        const result=await syncOwnCycleCalendar({cfg,request,api,saveConfig:st.setCalCfg,makeId:tmB32,today:todayISO(),lang:L('cs','en'),guard:st.calendarGuard});
+        res.chyby+=result.errors;
+        if(result.errors)res.prvni=L('Některé datum cyklu čeká na kontrolu. Smazání v Googlu nemaže zapsanou menstruaci v aplikaci.','A cycle date needs review. Deleting a Google copy does not delete a recorded period in the app.');
+      }
+      return tok;
+    })
     .then(async (tok) => {
       if(o.interactive && cfg.zpet === "vse")st.setCalCfg({allDayWrite:tmCalMaZapis()});
       const before = st.coll.calendarAllDay || [];
@@ -508,6 +562,7 @@ function tmCalPool(jobs, n) {
 function tmCalDisconnect(store, smazat) {
   const owner = getAccount();
   try { assertAccount(owner); } catch(error) { return Promise.reject(error); }
+  generation++;authTask=null;authKey='';TM_CAL_SYNC=null;TM_CAL_SYNC_OWNER=null;
   const st = scopedStore(store,owner);
   const cfg = config(st.calCfg());
   const fin = () => {
@@ -560,7 +615,7 @@ function tmCalIcs(st) {
 }
 
 
-return {role,config,CAL_DEF,CAL_KINDS,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalMaCteni,tmCalSync,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin};
+return {role,config,CAL_DEF,CAL_KINDS,tmCalPrepare,tmCalLoad:tmCalGis,tmCalReady,tmCalAccount:getAccount,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalMaCteni,tmCalSync,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin};
 }
 
 export function tmCalIcsLines(s) {

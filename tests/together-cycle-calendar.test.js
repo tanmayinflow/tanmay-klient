@@ -45,11 +45,32 @@ test('declining estimates is respected and a paused account needs an explicit op
 test('editing deliberately disabled estimates does not silently preselect them again',()=>{
   for(const source of [
     {...emptyTogether(),mode:'observe',modeChosen:true,periods:[{start:reference,end:null}]},
-    {mode:'observe',usualLength:28,periods:[{start:reference,end:null,expectedLength:6}],days:{}}
+    {mode:'observe',modeChosen:true,usualLength:28,periods:[{start:reference,end:null,expectedLength:6}],days:{}}
   ]) {
     const draft=cyclePeriodEntryDraft(source,reference,reference);
     assert.equal(draft.showEstimates,false);
     assert.equal(cyclePeriodEntryPatch(source,draft,reference).mode,'observe');
+  }
+});
+
+test('a backdated first period defaults to estimates even when a legacy saved duration exists',()=>{
+  for(const modeChosen of [undefined,false]) {
+    const source={mode:'observe',usualLength:28,periods:[{start:'2026-09-20',end:null,expectedLength:6}],days:{},...(modeChosen===undefined?{}:{modeChosen})};
+    const before=structuredClone(source);
+    const draft=cyclePeriodEntryDraft(source,'2026-09-20',reference);
+    assert.equal(draft.showEstimates,true);assert.equal(draft.expectedLength,6);
+    const saved=cleanTogether({...source,...cyclePeriodEntryPatch(source,draft,reference)},reference);
+    assert.equal(saved.mode,'estimate');assert.equal(saved.periods.length,1);
+    for(const offset of [28,29,30,31,32,33]) {
+      const day=cycleCalendarDay(saved,addDays('2026-09-20',offset),reference);
+      assert.equal(day.expectedPeriod,true);assert.equal(day.recorded,false);
+      assert.deepEqual(day.phase,{id:'menstrual',basis:'estimated'});
+    }
+    assert.equal(cycleCalendarDay(saved,'2026-10-24',reference).expectedPeriod,false);
+    assert.deepEqual(source,before);
+    const disabled=cleanTogether({...saved,...cyclePeriodEntryPatch(saved,{...draft,showEstimates:false},reference)},reference);
+    assert.equal(cyclePeriodEntryDraft(disabled,'2026-09-20',reference).showEstimates,false);
+    assert.equal(cycleCalendarDay(disabled,'2026-10-18',reference).expectedPeriod,false);
   }
 });
 

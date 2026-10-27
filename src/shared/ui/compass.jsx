@@ -22,6 +22,7 @@ import React, { useState } from "react";
 import { TmIcon, tmIconId, createIconUI } from "./icons.jsx";
 import { GOAL_OWNER, TM_UTEK, tmOtocFor, mayEditGoalField, goalOwnerLabel, G_VIEWS } from "../product/compass.js";
 import { areaReviewWeek, areaReviewWeekEnd, shiftAreaReviewWeek, areaReviewFor, areaReviewDraft, areaReviewWeeks, canSaveAreaReview, saveAreaReview } from "../product/areaReviews.js";
+import { landscapeLongTermGoals, saveLongTermGoal, archiveLongTermGoal, goalLandscape, goalLongTermGoal, linkGoalToLongTerm } from "../product/longTermGoals.js";
 
 export function createCompassUI(deps) {
   const {
@@ -444,6 +445,79 @@ export function createCompassUI(deps) {
     </section>;
   }
 
+  function LongTermGoalField({ goal, openArea }) {
+    const { t } = useT();
+    const st = useStore();
+    const area = goalLandscape(goal), areas = st.listAreas();
+    const exists = areas.some(item => item.name === area);
+    const choices = exists ? landscapeLongTermGoals(st.coll, area) : [];
+    const current = goalLongTermGoal(st.coll, goal, areas);
+    return <PropRow icon={TmGeoCil(15)} label={L("Dlouhodobý cíl", "Long-term goal")}>
+      <div style={{ minWidth: 0, maxWidth: "100%" }}>
+        <Select value={current?.id || ""} ghost small label={L("Dlouhodobý cíl", "Long-term goal")}
+          style={{ width: "100%", maxWidth: 230 }}
+          onChange={id => st.persistColl(coll => linkGoalToLongTerm(coll, goal, id, st.listAreas()))}
+          options={[{ v: "", label: L("Bez přiřazení", "Not linked") },
+            ...(current?.archivedAt ? [{ v: current.id, label: `${current.name} (${L("archiv", "archived")})` }] : []),
+            ...choices.map(item => ({ v: item.id, label: item.name }))]} />
+        {!exists && <span style={{ display: "block", fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{L("Nejdřív vyber krajinu.", "Choose a landscape first.")}</span>}
+        {exists && !choices.length && !current && <button onClick={() => openArea?.(area)} style={{ background: "transparent", border: "none", color: t.inkSand || t.accent, cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 12, padding: "8px 0", minHeight: 44, textAlign: "left" }}>{L("Přidat dlouhodobý cíl v krajině", "Add a long-term goal in this landscape")}</button>}
+        {!!current?.archivedAt && <span style={{ display: "block", fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted }}>{L("Tento dlouhodobý cíl je v archivu. Můžeš přiřazení změnit nebo zrušit.", "This long-term goal is archived. You can change or remove the link.")}</span>}
+      </div>
+    </PropRow>;
+  }
+
+  function LandscapeLongTermGoals({ area, goals, openGoal }) {
+    const { t } = useT();
+    const st = useStore();
+    const [draft, setDraft] = useState(null);
+    const all = landscapeLongTermGoals(st.coll, area, { includeArchived: true });
+    const active = all.filter(item => !item.archivedAt), archived = all.filter(item => item.archivedAt);
+    const areas = st.listAreas();
+    const button = { background: "transparent", border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-sm)", color: t.text, cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13, minHeight: 44, padding: "7px 12px" };
+    const field = { ...fieldStyle(t), width: "100%", boxSizing: "border-box", fontSize: 16 };
+    const save = event => {
+      event.preventDefault();
+      if (!draft?.name.trim()) return;
+      const entry = { ...draft, id: draft.id || uid() };
+      st.persistColl(coll => saveLongTermGoal(coll, area, entry));
+      setDraft(null);
+    };
+    return <section aria-label={L("Dlouhodobé cíle", "Long-term goals")} style={{ margin: "18px 0 22px", paddingTop: 16, borderTop: `1px solid ${t.borderSoft}` }}>
+      <h3 style={{ fontFamily: "var(--tm-font-display)", fontSize: 23, fontWeight: 500, color: t.heading, margin: "0 0 7px" }}>{L("Dlouhodobé cíle", "Long-term goals")}</h3>
+      {!active.length && <p style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, lineHeight: 1.6, color: t.textMuted, margin: "0 0 10px" }}>{L("Kam chceš v této krajině dojít? K dlouhodobému cíli pak můžeš přiřadit jednotlivé cíle.", "Where would you like to go in this landscape? You can link individual goals to a long-term goal.")}</p>}
+      {active.map(item => {
+        const linked = goals.filter(goal => goalLongTermGoal(st.coll, goal, areas)?.id === item.id);
+        return <div key={item.id} data-tm-surface="row" style={{ padding: "10px 0", borderBottom: `1px solid ${t.borderSoft}` }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <button aria-label={`${item.completed ? L("Znovu otevřít", "Reopen") : L("Označit jako hotové", "Mark as completed")}: ${item.name}`} aria-pressed={item.completed}
+              onClick={() => st.persistColl(coll => saveLongTermGoal(coll, area, { ...item, completed: !item.completed }))}
+              style={{ ...button, border: "none", flexShrink: 0, padding: "10px 8px", color: item.completed ? t.sage : t.textMuted }}><FamilyIcon id={item.completed ? "check" : "relationship"} size={18} /></button>
+            <div style={{ flex: 1, minWidth: 0, paddingTop: 6 }}>
+              <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 15, color: item.completed ? t.textMuted : t.text, textDecoration: item.completed ? "line-through" : "none", overflowWrap: "anywhere" }}>{item.name}</div>
+              {item.target && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 4 }}>{L("Termín", "Target date")}: {fmtCZ(item.target)}</div>}
+              {item.note && <p style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: 1.6, margin: "6px 0" }}>{item.note}</p>}
+              <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 6 }}>{L("Přiřazené cíle", "Linked goals")}: {linked.length ? `${linked.filter(goal => goal.status === "Completed").length} / ${linked.length} ${L("hotovo", "complete")}` : L("zatím žádné", "none yet")}</div>
+            </div>
+            <button style={{ ...button, border: "none", padding: "7px 4px", flexShrink: 0 }} aria-label={`${L("Upravit dlouhodobý cíl", "Edit long-term goal")}: ${item.name}`} onClick={() => setDraft(item)}>{L("Upravit", "Edit")}</button>
+          </div>
+          {linked.length > 0 && <details style={{ marginLeft: 34, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><summary style={{ cursor: "pointer", minHeight: 44, alignContent: "center", color: t.textMuted }}>{L("Zobrazit přiřazené cíle", "Show linked goals")}</summary>{linked.map(goal => <button key={goal.id || goal.name} onClick={() => openGoal?.(goal.name)} style={{ ...button, display: "block", width: "100%", border: "none", textAlign: "left", overflowWrap: "anywhere", color: goal.status === "Completed" ? t.textMuted : t.text }}>{goal.name}</button>)}</details>}
+        </div>;
+      })}
+      {draft ? <form onSubmit={save} aria-label={draft.id ? L("Upravit dlouhodobý cíl", "Edit long-term goal") : L("Nový dlouhodobý cíl", "New long-term goal")} style={{ marginTop: 14 }}>
+        <label style={{ display: "block", fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, marginBottom: 10 }}>{L("Název dlouhodobého cíle", "Long-term goal name")}<input autoFocus required maxLength={240} value={draft.name} onChange={event => setDraft({ ...draft, name: event.target.value })} style={{ ...field, marginTop: 5 }} /></label>
+        <label style={{ display: "block", fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, marginBottom: 10 }}>{L("Co pro tebe znamená (nepovinné)", "What it means to you (optional)")}<textarea maxLength={4000} rows={3} value={draft.note || ""} onChange={event => setDraft({ ...draft, note: event.target.value })} style={{ ...field, marginTop: 5, resize: "vertical" }} /></label>
+        <label style={{ display: "block", fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, marginBottom: 12 }}>{L("Termín (nepovinný)", "Target date (optional)")}<input type="date" value={draft.target || ""} onChange={event => setDraft({ ...draft, target: event.target.value })} style={{ ...field, marginTop: 5, colorScheme: t.mode === "light" ? "light" : "dark" }} /></label>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="submit" disabled={!draft.name.trim()} style={{ ...button, color: t.inkSand || t.accent, opacity: draft.name.trim() ? 1 : 0.5 }}>{L("Uložit dlouhodobý cíl", "Save long-term goal")}</button>
+          <button type="button" style={button} onClick={() => setDraft(null)}>{L("Zrušit", "Cancel")}</button>
+          {draft.id && <button type="button" style={button} onClick={() => { st.persistColl(coll => archiveLongTermGoal(coll, area, draft.id, true)); setDraft(null); }}>{L("Archivovat", "Archive")}</button>}
+        </div>
+      </form> : <button style={{ ...button, border: "none", color: t.inkSand || t.accent, display: "inline-flex", alignItems: "center", gap: 7, marginTop: 8 }} onClick={() => setDraft({ name: "", note: "", target: "" })}><FamilyIcon id="add" size={16} />{L("Přidat dlouhodobý cíl", "Add a long-term goal")}</button>}
+      {archived.length > 0 && <details style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, marginTop: 8 }}><summary style={{ minHeight: 44, alignContent: "center", cursor: "pointer", color: t.textMuted }}>{L("Archiv dlouhodobých cílů", "Archived long-term goals")} · {archived.length}</summary>{archived.map(item => <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0" }}><span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere", color: t.textMuted }}>{item.name}</span><button style={button} onClick={() => st.persistColl(coll => archiveLongTermGoal(coll, area, item.id, false))}>{L("Obnovit", "Restore")}</button></div>)}</details>}
+    </section>;
+  }
+
   // ---- detail cíle --------------------------------------------------------
   function GoalDetail({ name, openArea, onClose, onExpand, wide }) {
     const { t } = useT();
@@ -514,6 +588,7 @@ export function createCompassUI(deps) {
             )}
           </div>
         </PropRow>
+        <LongTermGoalField goal={g} openArea={openArea} />
         <PropRow icon={TmGeoTerm(15)} label={L("Termín", "Target date")}>
           {smim(g, "target")
             ? <input type="date" value={g.target || ""} onChange={(e) => st.editGoal(g.name, { target: e.target.value })} aria-label={L("Termín", "Target date")} style={{ background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none", colorScheme: t.mode === "light" ? "light" : "dark" }} />
@@ -633,6 +708,7 @@ export function createCompassUI(deps) {
           ))}
         </div></details>
         <MetaSection meta={st.areaMetaOf(a.name)} onPatch={(p) => st.setAreaMeta(a.name, p)} placeholder={L("Piš k této krajině…", "Write about this landscape…")} />
+        <LandscapeLongTermGoals key={a.name} area={a.name} goals={gs} openGoal={openGoal} />
         <div style={{ height: 14 }} />
         <div style={{ ...eyebrow, marginBottom: 6 }}>{L("Cíle", "Goals")} · {gs.length}</div>
         {gs.length === 0 && <Prazdno kind="prvni" plain compact fakt={L("V této krajině zatím žádný cíl není.", "No goal in this landscape yet.")} pozvani={L("Přidej ho v Cílech a vyber tuhle krajinu.", "Add one in Goals and pick this landscape.")} />}

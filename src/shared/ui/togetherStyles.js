@@ -108,6 +108,13 @@ export const togetherStyles=`
 .tm-together .tg-plan-row>summary{font-family:var(--tm-font-display);font-size:21px;font-weight:400;color:var(--tg-heading)}
 .tm-together .tg-plan-row small{display:block;font-family:var(--tm-font-body);font-size:12px;line-height:1.5;color:var(--tg-muted);margin-top:4px}
 .tm-together .tg-plan-row .row{padding:4px 0 14px}
+.tm-together.tg-plan-window{width:100%;min-width:0}
+.tm-together .tg-plan-actions{padding-top:20px}
+.tm-together .fields>label,.tm-together :is(input[type=date],input[type=time]){min-width:0}
+.tm-together :is(input[type=date],input[type=time]){-webkit-appearance:none;appearance:none;display:block;text-align:left}
+.tm-together :is(input[type=date],input[type=time])::-webkit-date-and-time-value{text-align:left;min-height:1.25em}
+@media(pointer:coarse){.tm-together :is(input,textarea,select){font-size:16px}.tm-together .tm-navod{font-size:18px}}
+@media(min-width:821px){.tm-cs.tg-plan-sheet{width:min(620px,calc(96 * var(--tm-vw)))!important}}
 .tm-together :is(textarea,input)::placeholder{color:var(--tg-muted);opacity:1}
 .tm-together :is(input,textarea){caret-color:var(--tg-accent)}
 .tm-together [data-tg-view]>h2,.tm-together [data-tg-nav]{scroll-margin-top:calc(96px + env(safe-area-inset-top))}

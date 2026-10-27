@@ -40,7 +40,7 @@ function fixture(options={}) {
 
 test("Client whitelist ignores imported Main flags, event sources and private notes",async()=>{
   const f=fixture();
-  assert.deepEqual(f.engine.CAL_KINDS.map(k=>k.k),["rozvrh"]);
+  assert.deepEqual(f.engine.CAL_KINDS.map(k=>k.k),["trenink","rozvrh"]);
   assert.deepEqual(f.engine.tmCalDesired(f.st,f.cfg).map(e=>e.kind),["rozvrh"]);
   assert.doesNotMatch(f.engine.tmCalIcs(f.st),/PRIVATE|coach/);
   const result=await f.engine.tmCalSync(f.st,{interactive:true});
@@ -52,6 +52,28 @@ test("Client whitelist ignores imported Main flags, event sources and private no
   assert.doesNotMatch(JSON.stringify(f.calls),/PRIVATE|coach-private/);
   assert.equal(f.calls.some(c=>c.method==="DELETE"),false);
   assert.deepEqual(Object.keys(f.st.coll.calShadow),["rz|2026-10-10|9:00"]);
+});
+
+test('background sync never opens OAuth when permission or token is missing',async()=>{
+  const f=fixture();await assert.rejects(f.engine.tmCalSync(f.st,{}),/calendar-permission-required/);
+  assert.equal(f.callbacks.length,0);assert.equal(f.calls.length,0);
+  await f.engine.tmCalAuth(f.cfg.clientId,true);
+  f.cfg.zpet='vse';await assert.rejects(f.engine.tmCalSync(f.st,{}),/calendar-permission-required/);
+  assert.equal(f.callbacks.length,1);assert.equal(f.calls.length,0);
+});
+
+test('explicit consent starts synchronously and two same-account gestures share one popup',async()=>{
+  const f=fixture({holdAuth:true});
+  const a=f.engine.tmCalAuth(f.cfg.clientId,true),b=f.engine.tmCalAuth(f.cfg.clientId,true);
+  assert.equal(f.callbacks.length,1);f.authorize();assert.equal(await a,await b);
+});
+
+test('disconnect invalidates an in-flight sync and its late writes',async()=>{
+  const f=fixture({holdRequest:true});const task=f.engine.tmCalSync(f.st,{interactive:true});
+  for(let i=0;i<20&&!f.calls.length;i++)await Promise.resolve();
+  assert.equal(f.calls.length,1);await f.engine.tmCalDisconnect(f.st,false);
+  const writes=f.writes.length;f.release();await assert.rejects(task,/calendar-account-changed/);
+  assert.equal(f.writes.length,writes);assert.equal(f.cfg.calId,'');assert.equal(f.calls.length,1);
 });
 
 test("OAuth callback cannot attach a previous account token after switching",async()=>{
