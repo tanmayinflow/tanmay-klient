@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "kb26_rdl": {
+    "oneSide": false,
+    "src": "/exercise-motion/kb26_rdl-305e91916c09f4d0.mp4",
+    "bytes": 31942,
+    "sha256": "305e91916c09f4d0589761c9e7d1f3a502050c58de2566e3fdac73a35798eee6",
+    "poster": "/exercise-motion/kb26_rdl-poster-d14cc26c9b1349b7.webp"
+  },
+  "deadbug": {
+    "oneSide": false,
+    "src": "/exercise-motion/deadbug-db318afded73e852.mp4",
+    "bytes": 25218,
+    "sha256": "db318afded73e8526c2f20149cacc9bd6e1366d9c26f51c7500f5d2ca2a2d060",
+    "poster": "/exercise-motion/deadbug-poster-b96a0ce3fe162946.webp"
+  },
+  "ex26_ball_hamcurl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_hamcurl-111348f34dd5de6f.mp4",
+    "bytes": 27156,
+    "sha256": "111348f34dd5de6f7bad5c51b50ec7bad965214deed928526f55ba244fb73cc8",
+    "poster": "/exercise-motion/ex26_ball_hamcurl-poster-a330c5bd647b5438.webp"
+  },
+  "ex26_chin_tuck": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_chin_tuck-f1df54cdd6ee96a0.mp4",
+    "bytes": 25298,
+    "sha256": "f1df54cdd6ee96a007849b82fdc2b799abc36ff2cb510402aa139fbd22ce5cce",
+    "poster": "/exercise-motion/ex26_chin_tuck-poster-64339bf0bfa02967.webp"
+  },
+  "atgsplit": {
+    "oneSide": true,
+    "src": "/exercise-motion/atgsplit-872b9dbab88b2667.mp4",
+    "bytes": 37316,
+    "sha256": "872b9dbab88b2667d6a63413d2a0ea8224517c58a6456297386a798a85fad118",
+    "poster": "/exercise-motion/atgsplit-poster-fc9e679aa00f2ad1.webp"
+  },
+  "elbowcars": {
+    "oneSide": false,
+    "src": "/exercise-motion/elbowcars-7b24f25f82637bf5.mp4",
+    "bytes": 33662,
+    "sha256": "7b24f25f82637bf570a9df44e24b74df593e301030edbecff15e1e4a0489671e",
+    "poster": "/exercise-motion/elbowcars-poster-fdca00e371ef97c9.webp"
+  },
+  "kb26_double_row": {
+    "oneSide": false,
+    "src": "/exercise-motion/kb26_double_row-770691f31d4c00c8.mp4",
+    "bytes": 41875,
+    "sha256": "770691f31d4c00c83628dff91723cf3c0f34a89358ca1a8c7ed23ec8d9d9b825",
+    "poster": "/exercise-motion/kb26_double_row-poster-d78e80aa05d5fa1f.webp"
+  },
+  "ex26_bb_overhead_tri": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_bb_overhead_tri-b702cd5187440788.mp4",
+    "bytes": 28477,
+    "sha256": "b702cd5187440788eb54378e608a9ecac63ed341652e7630ea83cd3243c3446c",
+    "poster": "/exercise-motion/ex26_bb_overhead_tri-poster-a0c0bd693d649e47.webp"
+  },
   "sissy": {
     "oneSide": false,
     "src": "/exercise-motion/sissy-9df734b2e5fa5077.mp4",
