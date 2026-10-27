@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "sissy": {
+    "oneSide": false,
+    "src": "/exercise-motion/sissy-9df734b2e5fa5077.mp4",
+    "bytes": 20661,
+    "sha256": "9df734b2e5fa50776d7cb5de2ab90bfe623a88da0bdb1e0939b593d04d5149c2",
+    "poster": "/exercise-motion/sissy-poster-4d7985bbb7372557.webp"
+  },
+  "stepup": {
+    "oneSide": true,
+    "src": "/exercise-motion/stepup-9632c42529c85425.mp4",
+    "bytes": 30047,
+    "sha256": "9632c42529c85425d0b5f189063bbc60eeeaf1e797126513d85c222a6ef482df",
+    "poster": "/exercise-motion/stepup-poster-07ac17ed43329955.webp"
+  },
+  "bench": {
+    "oneSide": false,
+    "src": "/exercise-motion/bench-b5e560795e97bee7.mp4",
+    "bytes": 54129,
+    "sha256": "b5e560795e97bee7b2b95f57402cbeccc38196909370f356e07cc9f481659f4a",
+    "poster": "/exercise-motion/bench-poster-46f66b8eb30f9120.webp"
+  },
+  "pushdown": {
+    "oneSide": false,
+    "src": "/exercise-motion/pushdown-963f9e0f3a2b729f.mp4",
+    "bytes": 30017,
+    "sha256": "963f9e0f3a2b729f589cafad8e9723b88420ffb53275163f2813706115cf640d",
+    "poster": "/exercise-motion/pushdown-poster-50de9f3bdf8d7b6c.webp"
+  },
+  "latpull": {
+    "oneSide": false,
+    "src": "/exercise-motion/latpull-eb4ac9e7a967f6b0.mp4",
+    "bytes": 32321,
+    "sha256": "eb4ac9e7a967f6b0ca7c1731a3cc0e8260cbacd91c6adcf29f5edacf029c8991",
+    "poster": "/exercise-motion/latpull-poster-b61bcbe82c5ea644.webp"
+  },
+  "wrists": {
+    "oneSide": false,
+    "src": "/exercise-motion/wrists-67be0b88c261f9af.mp4",
+    "bytes": 28529,
+    "sha256": "67be0b88c261f9af346a9686fbcff3949e6fe066ff7391032e27baef14eab59d",
+    "poster": "/exercise-motion/wrists-poster-1a459ee761c0c440.webp"
+  },
+  "ex26_mob_seated_rotation": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_seated_rotation-76d8aa9fdb7b78e2.mp4",
+    "bytes": 32612,
+    "sha256": "76d8aa9fdb7b78e2c327d2b857424bacaf219e41ef2be6507f153610854fd410",
+    "poster": "/exercise-motion/ex26_mob_seated_rotation-poster-d07c488f18597a01.webp"
+  },
+  "threadneedle": {
+    "oneSide": true,
+    "src": "/exercise-motion/threadneedle-da828bd3562eef4e.mp4",
+    "bytes": 28973,
+    "sha256": "da828bd3562eef4ec5316d4839d9bc129d5eacb3f0cb341af7bccf6a31d4229d",
+    "poster": "/exercise-motion/threadneedle-poster-ef6df72bc329271e.webp"
+  },
   "boxpistol": {
     "oneSide": true,
     "src": "/exercise-motion/boxpistol-594efb1ed66ea9ce.mp4",
