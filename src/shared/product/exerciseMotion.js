@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_trx_hamcurl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_trx_hamcurl-68b1bc368a1cec6d.mp4",
+    "bytes": 24405,
+    "sha256": "68b1bc368a1cec6d67a398f14481694eef1541d9d26f071903ff87e2174c9d31",
+    "poster": "/exercise-motion/ex26_trx_hamcurl-poster-323083372fcdc598.webp"
+  },
+  "ex26_mob_leg_swing_sagittal": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_leg_swing_sagittal-77f749a29ba54292.mp4",
+    "bytes": 28066,
+    "sha256": "77f749a29ba54292116cc8522f9716336203e1b03a71da9ac0a553686840f2b0",
+    "poster": "/exercise-motion/ex26_mob_leg_swing_sagittal-poster-732574d16ce60947.webp"
+  },
+  "ex26_kb_one_swing": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_kb_one_swing-5b96fb748645cdbb.mp4",
+    "bytes": 28884,
+    "sha256": "5b96fb748645cdbb2e8bee29cb5302e0220fe9591550606d7db572dfc03a4b01",
+    "poster": "/exercise-motion/ex26_kb_one_swing-poster-9109464bce9039e5.webp"
+  },
+  "ex26_trx_feet_pushup": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_trx_feet_pushup-76b8e0e90d50ae07.mp4",
+    "bytes": 26133,
+    "sha256": "76b8e0e90d50ae07c9f2551ce1284319428ab44ac286136c66e4536e4d448e5f",
+    "poster": "/exercise-motion/ex26_trx_feet_pushup-poster-e0060ef5676c00d0.webp"
+  },
+  "ex26_wide_bench": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_wide_bench-9a62c72c294dca6e.mp4",
+    "bytes": 56824,
+    "sha256": "9a62c72c294dca6e455e2d430d5dccdd20da19749885d855519eba21cbaf9318",
+    "poster": "/exercise-motion/ex26_wide_bench-poster-e83870a60ae4c0f5.webp"
+  },
+  "kb26_rack_reverse_lunge": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_rack_reverse_lunge-204122a35c16eee4.mp4",
+    "bytes": 32750,
+    "sha256": "204122a35c16eee417331266d3119c0fe8df794e6a28f7842691e4be464182bd",
+    "poster": "/exercise-motion/kb26_rack_reverse_lunge-poster-25ee3dd71d9a7858.webp"
+  },
+  "kb26_suitcase_march": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_suitcase_march-51bd84ff2759fe96.mp4",
+    "bytes": 33393,
+    "sha256": "51bd84ff2759fe969f4ffc3fbf73de1ccdb358bbd4679f8eae14fea02a1d098f",
+    "poster": "/exercise-motion/kb26_suitcase_march-poster-05bcb921f0583ec0.webp"
+  },
+  "an_highjump": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_highjump-99a338d09d380902.mp4",
+    "bytes": 32713,
+    "sha256": "99a338d09d380902b5af96971245527334ebdc4189dbafc3e2595f40cec201ca",
+    "poster": "/exercise-motion/an_highjump-poster-623a478a4295b64d.webp"
+  },
   "ex26_hamstring_slider": {
     "oneSide": false,
     "src": "/exercise-motion/ex26_hamstring_slider-68a06e5601715a8a.mp4",
