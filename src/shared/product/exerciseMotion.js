@@ -1,5 +1,65 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "wristcurl": {
+    "oneSide": true,
+    "src": "/exercise-motion/wristcurl-764c3521a095ffcf.mp4",
+    "bytes": 106214,
+    "sha256": "764c3521a095ffcfde2411a2044bd47d56c4207f2ee2c48c31f48622d71c0a9c",
+    "poster": "/exercise-motion/wristcurl-poster-6e1aee780f013d23.webp",
+    "note": {
+      "cz": "Dva samostatné úkoly: flexe dlaní vzhůru a extenze dlaní dolů. Ukázka obsahuje změnu úchopu bez zátěže. Opakování zapisuj pro každý úkol zvlášť.",
+      "en": "Two separate tasks: palm-up flexion and palm-down extension. The demonstration includes an unloaded grip change. Record repetitions separately for each task."
+    }
+  },
+  "ex26_prone_opposite": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_prone_opposite-ef1cbd1583f7616f.mp4",
+    "bytes": 14602,
+    "sha256": "ef1cbd1583f7616f33e7d4cbe24b96da7f837ccb028df6319a3192f508907b77",
+    "poster": "/exercise-motion/ex26_prone_opposite-poster-d41868c82549d0fa.webp"
+  },
+  "swing": {
+    "oneSide": false,
+    "src": "/exercise-motion/swing-e391d0cee93416c3.mp4",
+    "bytes": 61514,
+    "sha256": "e391d0cee93416c3bd27961cda43e1a84e9ca5b504c7f05a81032b04deb4b906",
+    "poster": "/exercise-motion/swing-poster-e5576864ccaed9ff.webp"
+  },
+  "ex26_lateral_bandwalk": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_lateral_bandwalk-63144dc4d3a217fd.mp4",
+    "bytes": 36154,
+    "sha256": "63144dc4d3a217fdbf3a98febc1b168cead12d968890f3f5d2994445f7d22d26",
+    "poster": "/exercise-motion/ex26_lateral_bandwalk-poster-a1d69e2cfd3a02eb.webp"
+  },
+  "ex26_mob_chair_extension": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_chair_extension-24440c2571d4cca1.mp4",
+    "bytes": 26766,
+    "sha256": "24440c2571d4cca1be099128d5d06315d08d2267998e91746c265d80b4ab96fc",
+    "poster": "/exercise-motion/ex26_mob_chair_extension-poster-050b0f69febbe7e7.webp"
+  },
+  "suitcase": {
+    "oneSide": true,
+    "src": "/exercise-motion/suitcase-75436c37bc95abd4.mp4",
+    "bytes": 39909,
+    "sha256": "75436c37bc95abd40c384a1c501b91b6a721ac48dbd1441b2c08301c4ae850da",
+    "poster": "/exercise-motion/suitcase-poster-e456d75705a2f0b1.webp"
+  },
+  "ex26_trx_hippress": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_trx_hippress-33f99cb63f35108d.mp4",
+    "bytes": 19271,
+    "sha256": "33f99cb63f35108da329fca56f6caa787b4d759c1935b64f659c496869948bf3",
+    "poster": "/exercise-motion/ex26_trx_hippress-poster-e94ceb723b1e5f35.webp"
+  },
+  "ex26_mob_kneeling_toerock": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_kneeling_toerock-943e57af9f8f002f.mp4",
+    "bytes": 30526,
+    "sha256": "943e57af9f8f002fcc92aaa1e1a54b247f433c513242ca37992fd1275de49491",
+    "poster": "/exercise-motion/ex26_mob_kneeling_toerock-poster-210e03c2b33165ee.webp"
+  },
   "ex26_trx_hamcurl": {
     "oneSide": false,
     "src": "/exercise-motion/ex26_trx_hamcurl-68b1bc368a1cec6d.mp4",

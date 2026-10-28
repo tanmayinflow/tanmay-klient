@@ -120,6 +120,7 @@ function MotionPlayer({ motion, theme, L, autoPlay }) {
       </div>
       {!playing && <button type="button" className="tm-motion-launch" onClick={play}>{L('Přehrát pohyb', 'Play movement')}</button>}
       {motion.oneSide && <p>{L('Ukázka jedné strany. Při cvičení strany vystřídej.', 'One side is shown. Alternate sides when exercising.')}</p>}
+      {motion.note && <p>{L(motion.note.cz, motion.note.en)}</p>}
       {error && <p role="status">{L('Pohyb se nepodařilo načíst. Zkus ho přehrát znovu po připojení.', 'The movement could not load. Reconnect and try playing it again.')}</p>}
       {renderError && <p role="status">{L('Ukázku se nepodařilo zobrazit. Zavři ji a otevři znovu.', 'The illustration could not be displayed. Close it and reopen it.')}</p>}
     </div>
