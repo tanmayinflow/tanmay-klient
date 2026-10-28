@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_hamstring_slider": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hamstring_slider-68a06e5601715a8a.mp4",
+    "bytes": 20622,
+    "sha256": "68a06e5601715a8a2a55a43003d04972da773d4bfde52c4ac8506ac808af0199",
+    "poster": "/exercise-motion/ex26_hamstring_slider-poster-632f3772122cac69.webp"
+  },
+  "anklemob": {
+    "oneSide": true,
+    "src": "/exercise-motion/anklemob-b6ed546a6521fc52.mp4",
+    "bytes": 29440,
+    "sha256": "b6ed546a6521fc521355665149077b0024d15e0cc1a90681298fcfb6d6eb27c7",
+    "poster": "/exercise-motion/anklemob-poster-ea2a5f8ba2355af9.webp"
+  },
+  "ex26_stepdown": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_stepdown-ff41b24bb4dd4244.mp4",
+    "bytes": 36844,
+    "sha256": "ff41b24bb4dd4244593b3491c96e72e6415f8e081bc0a04b7717080ea84f918a",
+    "poster": "/exercise-motion/ex26_stepdown-poster-3fc7e5edd229d2d4.webp"
+  },
+  "archersq": {
+    "oneSide": true,
+    "src": "/exercise-motion/archersq-4d9bc4cd337b8d1f.mp4",
+    "bytes": 48123,
+    "sha256": "4d9bc4cd337b8d1f919337007cf1cab21dbfd11a44cc617376408684c6140c71",
+    "poster": "/exercise-motion/archersq-poster-d3e189bd565bbdca.webp"
+  },
+  "kb26_goblet_split": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_goblet_split-cdb2436dc33ec3e4.mp4",
+    "bytes": 35229,
+    "sha256": "cdb2436dc33ec3e410c8c662355bbe09425ff5dc349be6e30a6abfed3466ee36",
+    "poster": "/exercise-motion/kb26_goblet_split-poster-9c2bf8170ff55bca.webp"
+  },
+  "ex26_hss_tall_pallof": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_hss_tall_pallof-c298b45c3e2c303a.mp4",
+    "bytes": 38136,
+    "sha256": "c298b45c3e2c303a73aa06f7621afa1b3bb6a28e33f06a7c6d930367e486575e",
+    "poster": "/exercise-motion/ex26_hss_tall_pallof-poster-9c631c1e89c5be18.webp"
+  },
+  "ig27_heel_bench_bridge": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig27_heel_bench_bridge-bdf2b004e4001bdb.mp4",
+    "bytes": 26732,
+    "sha256": "bdf2b004e4001bdb5745c19aacfe0361bee53355db80c433ca1b14b04a470306",
+    "poster": "/exercise-motion/ig27_heel_bench_bridge-poster-88df8e022b23778a.webp"
+  },
+  "ex26_ball_pushup": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_pushup-02f32ece113c9044.mp4",
+    "bytes": 40471,
+    "sha256": "02f32ece113c904458ec70ab1b7440483e1ace8d500b7489a52632516ad4f1bb",
+    "poster": "/exercise-motion/ex26_ball_pushup-poster-ca24caf408b4cd0d.webp"
+  },
   "kb26_rdl": {
     "oneSide": false,
     "src": "/exercise-motion/kb26_rdl-305e91916c09f4d0.mp4",
