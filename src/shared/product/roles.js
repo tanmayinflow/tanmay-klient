@@ -18,13 +18,13 @@
 export const ROLES = Object.freeze({ COACH: "coach", CLIENT: "client" });
 
 /** Místnosti, které klientská aplikace má vždycky. */
-export const CLIENT_ALWAYS = Object.freeze(["praxe", "trenink", "terminy", "kompas", "prameny"]);
+export const CLIENT_ALWAYS = Object.freeze(["praxe", "trenink", "terminy", "kompas"]);
 
 /** Soukromé prostory přístupné jen přes původní nenápadné vstupy. */
 export const CLIENT_HIDDEN = Object.freeze(["memento", "mandala"]);
 
 /** Místnosti, které si klient zapíná sám a které jsou ve výchozím stavu vypnuté. */
-export const CLIENT_OPTIONAL = Object.freeze(["denik", "zapisnik", "spolu", "hospodareni", "socsite"]);
+export const CLIENT_OPTIONAL = Object.freeze(["prameny", "denik", "zapisnik", "spolu", "hospodareni", "socsite"]);
 
 /** Místnosti, které v klientské aplikaci nikdy nejsou. Ne skryté — nejsou. */
 export const CLIENT_NEVER = Object.freeze([

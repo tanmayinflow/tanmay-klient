@@ -14462,16 +14462,17 @@ function BkcKniha({ refresh = 0, open: otevreno, onOpen: setOtevreno }) {
 
 
 // ---- MÍSTNOSTI, KTERÉ SI KLIENT ZAPÍNÁ SÁM -------------------------------
-// Praxe, Trénink, Termíny, Kompas a Prameny se nevybírají. Jsou to místnosti,
+// Praxe, Trénink, Termíny a Kompas se nevybírají. Jsou to místnosti,
 // kvůli kterým tenhle dům stojí, a nikdo je nemá vypínat — držel je dřív
 // „výběr modulů", a kdo si při uvítání odklikl málo, přišel o rezervace.
 //
-// Vybírá se soukromé psaní a Spolu. Všechno je ve výchozím stavu
+// Prameny, soukromé psaní a Spolu jsou volitelné. Všechno je ve výchozím stavu
 // vypnuté: nikdo nemá být postaven před prázdný deník, který si nevyžádal.
 const ALWAYS_ROOMS = CLIENT_ALWAYS.map((k) => ({
   key: k, cz: ROOM_COPY[k].cz, en: ROOM_COPY[k].en,
 }));
 const MODULES = [
+  { key: "prameny", icon: <TmIcPrameny size={20}/>, label: "Sources", lcs: "Prameny", dcs: "Podklady a inspirace pro tvoji praxi.", den: "Resources and inspiration for your practice." },
   { key: "spolu", icon: <TogetherIcon size={20}/>, label: "Together", lcs: "Spolu", dcs: "Soukromý cyklus a společné plány. Sdílení určuješ ty.", den: "Private cycle tracking and shared plans. You choose what to share." },
   { key: "denik",    icon: <TmIcDenik size={20}/>,  label: "Journal",      lcs: "Deník",         dcs: "Vlastní zápisy. Kryštof je nikdy nevidí.",        den: "Your own entries. Kryštof never sees them." },
   { key: "zapisnik", icon: <TmIcZapisnik size={20}/>, label: "Notebook",     lcs: "Zápisník",      dcs: "Poznámky, texty, myšlenky. Jen tvoje.",        den: "Notes, texts, thoughts. Yours only." },
@@ -14590,7 +14591,7 @@ function InviteGate() {
 }
 
 /** Soukromé místnosti a vědomé sdílení — první spuštění i pozdější správa.
- *  Dům samotný se nevybírá: Praxe, Trénink, Termíny, Kompas a Prameny tu jsou
+ *  Dům samotný se nevybírá: Praxe, Trénink, Termíny a Kompas tu jsou
  *  vždycky. Při uvítání se vybírají vlastní místnosti; později tento panel
  *  spravuje jen souhlasy se sdílením s trenérem.
  *  Motiv se bere z tokenů, ne z pevných barev — jinak by uvítání svítilo
@@ -14627,8 +14628,8 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: t.textSec, lineHeight: 1.7, maxWidth: "34em", margin: "14px auto 20px" }}>
           {firstRun
-            ? L("Tichý dům pro tvé tělo, praxi a směr. Praxe, Trénink, Termíny, Kompas a Prameny jsou tu od začátku. Zbytek si otevíráš podle sebe a všechno zůstává u tebe.",
-                "A quiet house for your body, practice and direction. Practice, Training, Sessions, Compass and Sources are here from the start. The rest you open yourself, and everything stays with you.")
+            ? L("Tichý dům pro tvé tělo, praxi a směr. Praxe, Trénink, Termíny a Kompas jsou tu od začátku. Zbytek si otevíráš podle sebe a všechno zůstává u tebe.",
+                "A quiet house for your body, practice and direction. Practice, Training, Sessions and Compass are here from the start. The rest you open yourself, and everything stays with you.")
             : L("Otevři si jen to, co teď žiješ. Data zavřených místností zůstávají uložená.",
                 "Open only what you live right now. Data of closed rooms stays saved.")}
         </div>
@@ -16637,9 +16638,9 @@ export default function App() {
   const removeTrainings = (kind, ids, cascade) => { (ids || []).forEach((id) => removeTraining(kind, id, cascade)); };
 
   // ---- ROLE A CAPABILITY · jedna vrstva, ne stovky podmínek ---------------
-  // Praxe, Trénink, Termíny, Kompas a Prameny jsou vždycky doma — bez nich
+  // Praxe, Trénink, Termíny a Kompas jsou vždycky doma — bez nich
   // nemá klientská aplikace smysl a nikdo je nemá vypínat. Volitelné jsou
-  // soukromé místnosti: Deník, Zápisník, Spolu, Hospodaření a Tvorba, které jsou
+  // Prameny a soukromé místnosti: Deník, Zápisník, Spolu, Hospodaření a Tvorba, které jsou
   // ve výchozím stavu vypnuté. Co která role smí, rozhoduje jediná tabulka
   // ve sdíleném jádru (src/shared/product/roles.js), ne podmínka v komponentě.
   //

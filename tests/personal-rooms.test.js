@@ -33,15 +33,15 @@ test("editing a creation resource preserves its nested folder, tag and unrelated
 
 test("new personal rooms are closed until explicitly enabled and never grant coach administration",()=>{
   const closed=deriveCapabilities({role:"client",member:true,modules:[]});
-  for(const key of ["hospodareni","socsite","denik"])assert.equal(roomVisible(closed,key),false);
-  const opened=deriveCapabilities({role:"client",member:true,modules:["hospodareni","socsite","denik","klienti"]});
-  for(const key of ["hospodareni","socsite","denik"])assert.equal(roomVisible(opened,key),true);
+  for(const key of ["prameny","hospodareni","socsite","denik"])assert.equal(roomVisible(closed,key),false);
+  const opened=deriveCapabilities({role:"client",member:true,modules:["prameny","hospodareni","socsite","denik","klienti"]});
+  for(const key of ["prameny","hospodareni","socsite","denik"])assert.equal(roomVisible(opened,key),true);
   for(const key of ["manageClients","manageAvailability","managePackages","editTrainingPrescription"])assert.equal(opened[key],false);
   const denied=deriveCapabilities({role:"client",member:false,modules:["hospodareni","socsite","denik"]});
   assert.ok(Object.values(denied).every(value=>!value));
 });
 test("personal room preferences preserve an explicit selection across serialization and hide without erasing data",()=>{
-  const coll={modules:["hospodareni","socsite"],income:[{id:"mine",amount:123,date:"2026-10-10"}],socItems:[{id:"draft",title:"My work"}]};
+  const coll={modules:["prameny","hospodareni","socsite"],income:[{id:"mine",amount:123,date:"2026-10-10"}],socItems:[{id:"draft",title:"My work"}]};
   const restored=JSON.parse(JSON.stringify(coll));
   assert.deepEqual(migrateClientModules(restored.modules),coll.modules);
   const defaults={sidebar:CLIENT_ROOMS,dock:[]};

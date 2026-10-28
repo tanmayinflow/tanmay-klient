@@ -37,7 +37,7 @@ test("klient bez členství nemá vůbec nic", () => {
   for (const v of Object.values(caps)) assert.equal(v, false);
 });
 
-test("Praxe, Trénink, Termíny, Kompas a Prameny jsou vždycky doma", () => {
+test("Praxe, Trénink, Termíny a Kompas jsou vždycky doma", () => {
   const caps = deriveCapabilities({ role: ROLES.CLIENT, member: true, modules: [], share: {} });
   for (const k of CLIENT_ALWAYS) {
     assert.equal(roomVisible(caps, k), true, k + " se nesmí dát vypnout");
@@ -106,15 +106,15 @@ test("trenérská role má opak: správu ano, klientovo sdílení ne", () => {
 test("dok drží Termíny i Trénink, ne obecné přetečení", () => {
   const caps = deriveCapabilities({ role: ROLES.CLIENT, member: true, modules: [], share: {} });
   const tabs = dockTabsFor((k) => roomVisible(caps, k));
-  assert.deepEqual(tabs, ["praxe", "trenink", "terminy", "kompas", "prameny"]);
+  assert.deepEqual(tabs, ["praxe", "trenink", "terminy", "kompas"]);
   assert.equal(app.indexOf('"Více"'), -1, "žádné obecné přetečení");
 });
 
 test("zapnuté soukromé místnosti přibudou za kritické, ne před ně", () => {
   const caps = deriveCapabilities({ role: ROLES.CLIENT, member: true, modules: ["denik", "zapisnik", "memento"], share: {} });
   const tabs = dockTabsFor((k) => roomVisible(caps, k));
-  assert.deepEqual(tabs.slice(0, 5), ["praxe", "trenink", "terminy", "kompas", "prameny"]);
-  assert.deepEqual(tabs.slice(5), ["denik", "zapisnik"]);
+  assert.deepEqual(tabs.slice(0, 4), ["praxe", "trenink", "terminy", "kompas"]);
+  assert.deepEqual(tabs.slice(4), ["denik", "zapisnik"]);
 });
 
 test("mapa domu odpovídá Main a přidává Svět jen se zapnutým Spolu", () => {
@@ -122,14 +122,13 @@ test("mapa domu odpovídá Main a přidává Svět jen se zapnutým Spolu", () =
   const groups = navGroupsFor((k) => roomVisible(caps, k)).map((g) => g.key);
   assert.deepEqual(groups, ["den", "smer", "pamet"]);
   const withTogether = deriveCapabilities({ role: ROLES.CLIENT, member: true, modules: ["spolu"] });
-  assert.deepEqual(navGroupsFor(k => roomVisible(withTogether, k)).map(g => g.key), ["den", "smer", "pamet", "svet"]);
+  assert.deepEqual(navGroupsFor(k => roomVisible(withTogether, k)).map(g => g.key), ["den", "smer", "svet"]);
 });
 
 test("prázdná skupina se nekreslí", () => {
   const caps = deriveCapabilities({ role: ROLES.CLIENT, member: true, modules: [], share: {} });
   const groups = navGroupsFor((k) => roomVisible(caps, k));
-  assert.deepEqual(groups.map((g) => g.key), ["den", "smer", "pamet"]);
-  assert.deepEqual(groups.find((g) => g.key === "pamet").rooms, ["prameny"]);
+  assert.deepEqual(groups.map((g) => g.key), ["den", "smer"]);
 });
 
 // ======================================================================
