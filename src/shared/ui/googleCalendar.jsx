@@ -23,7 +23,10 @@ function CalAuto() {
       try {
         const s0=ref.current,cfg=cfgOf(),key=keyOf(cfg);
         if(key!==connection){connection=key;signature=null;catchUp=true;retryAt=0;}
-        if(!cfg.clientId||!cfg.calId||cfg.calDisconnected||!tmCalAvailable()||!tmCalReady(cfg))return;
+        // A first redirect grant has no calendar yet. Let the ordinary sync
+        // create it after durable consent; never open Google automatically.
+        const firstCalendar=cfg.durableSetup&&engine.tmCalDurable?.();
+        if(!cfg.clientId||(!cfg.calId&&!firstCalendar)||cfg.calDisconnected||!tmCalAvailable()||!tmCalReady(cfg))return;
         const tz=tmCalTz();
         const settings=[cfg.cycle,cfg.trenink,cfg.rozvrh,cfg.klienti,cfg.motiv,cfg.zpet,cfg.horizon,cfg.titles,cfg.busy];
         const training=client&&cfg.trenink?s0.getClientTrainingCalendar?.().schedule:null;

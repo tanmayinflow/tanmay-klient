@@ -75,6 +75,21 @@ test('opening and returning restores a saved connection without Google popups',a
   f.unmount();assert.equal(f.docListeners.size,0);assert.equal(f.winListeners.size,0);assert.equal(f.timers.size,0);
 });
 
+test('a confirmed first durable connection starts calendar creation without another Connect tap',async()=>{
+  const f=fixture({tmCalDurable:()=>true});
+  f.state.cfg.calId='';f.state.cfg.durableSetup=true;f.state.restoreReady=true;
+  await f.mount();assert.equal(f.state.syncCalls,1);assert.equal(f.state.authCalls,0);
+  f.unmount();
+});
+
+test('an empty calendar never bootstraps without confirmed durable setup, a ready grant and an active connection',async()=>{
+  for(const patch of [{durableSetup:false},{calDisconnected:true},{notReady:true}]){
+    const f=fixture({tmCalDurable:()=>true});
+    f.state.cfg={...f.state.cfg,calId:'',durableSetup:true,...patch};f.state.restoreReady=!patch.notReady;
+    await f.mount();assert.equal(f.state.syncCalls,0);assert.equal(f.state.authCalls,0);f.unmount();
+  }
+});
+
 test('changed day plans sync automatically while unchanged plans wait for incoming polling',async()=>{
   const f=fixture();f.state.restoreReady=true;await f.mount();
   await f.tick();assert.equal(f.state.syncCalls,1);
