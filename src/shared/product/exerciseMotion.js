@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "gm_palm_pulse": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_palm_pulse-9790fe7fc5724427.mp4",
+    "bytes": 25263,
+    "sha256": "9790fe7fc5724427bd423acf8440cddf3fa927c22c3d7ee4874598c169ca1ebd",
+    "poster": "/exercise-motion/gm_palm_pulse-poster-6fc0d73ec9b46200.webp"
+  },
+  "ex26_hss_knee_fallout": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_hss_knee_fallout-2649de392c4920d9.mp4",
+    "bytes": 26752,
+    "sha256": "2649de392c4920d909f62f05b0b9e105b08fc326d4eac7294a5daae9bec183e3",
+    "poster": "/exercise-motion/ex26_hss_knee_fallout-poster-68614a6d6193258f.webp"
+  },
+  "ex26_mob_splitstance_toerock": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_splitstance_toerock-f5d1431d55aaf4df.mp4",
+    "bytes": 26659,
+    "sha256": "f5d1431d55aaf4df7f92a3e638a2999688c26d55f5de39d4effffb80eb7bbf19",
+    "poster": "/exercise-motion/ex26_mob_splitstance_toerock-poster-1014f13ec3d20351.webp"
+  },
+  "wgs": {
+    "oneSide": true,
+    "src": "/exercise-motion/wgs-5e7c2d403e14fa74.mp4",
+    "bytes": 23346,
+    "sha256": "5e7c2d403e14fa749d3ac18d0fe76287c8f03d6c866ee941e190b970ece96695",
+    "poster": "/exercise-motion/wgs-poster-f5ab4f10badb914b.webp"
+  },
+  "broadjump": {
+    "oneSide": false,
+    "src": "/exercise-motion/broadjump-206027cae419b150.mp4",
+    "bytes": 33000,
+    "sha256": "206027cae419b15021888fadade0c5bb8952f56baa796ea604c4d077e9a3738d",
+    "poster": "/exercise-motion/broadjump-poster-2f4c51b980f458af.webp"
+  },
+  "tuckjump": {
+    "oneSide": false,
+    "src": "/exercise-motion/tuckjump-c09a5fe1f8f8aff1.mp4",
+    "bytes": 32995,
+    "sha256": "c09a5fe1f8f8aff1ad8dacfd46a2877b3b5e82f0dc1976b82c408aac63b09d0d",
+    "poster": "/exercise-motion/tuckjump-poster-e6b47c5f96322c6b.webp"
+  },
+  "gm_w_round_flat": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_round_flat-2feb39460a2d5a7a.mp4",
+    "bytes": 30053,
+    "sha256": "2feb39460a2d5a7ae5318bf5e018e481da0b15b6698972ac68a8a91ad83ae148",
+    "poster": "/exercise-motion/gm_w_round_flat-poster-6084222bbd6a4445.webp"
+  },
+  "lunge": {
+    "oneSide": true,
+    "src": "/exercise-motion/lunge-39b142b4f1d8836e.mp4",
+    "bytes": 32668,
+    "sha256": "39b142b4f1d8836e74364729f82e0f1b0680cef110b88ebbfe25bfbc2b334e50",
+    "poster": "/exercise-motion/lunge-poster-72a28966d22ac614.webp"
+  },
   "wristcurl": {
     "oneSide": true,
     "src": "/exercise-motion/wristcurl-764c3521a095ffcf.mp4",
