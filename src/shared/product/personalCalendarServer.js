@@ -97,6 +97,7 @@ async function tokenCall(env,body,fetchImpl) {
   let value;try{value=await response.json();}catch{throw problem('calendar-temporarily-unavailable',503);}
   if(!response.ok){
     if(value?.error==='invalid_grant')throw problem('calendar-reconnect-required',401);
+    if(value?.error==='invalid_client')throw problem('calendar-client-configuration',503);
     throw problem('calendar-temporarily-unavailable',503);
   }
   if(!value?.access_token||!Number.isFinite(Number(value.expires_in))||Number(value.expires_in)<=0)throw problem('calendar-temporarily-unavailable',503);
@@ -275,17 +276,29 @@ export async function handlePersonalCalendar(request,db,actor,env,options={}) {
     // The worker has already authenticated the app account. A redirect uses
     // its one-time, actor/origin/generation-bound state instead of POST headers.
     // No code or provider message is reflected into the return URL or page.
-    let result='failed';
+    let result='failed',reason='';
     try{
       await schema(db);
       if(!personalCalendarConfigured(env))throw problem('calendar-not-configured',503);
       const nonce=url.searchParams.get('state');
       if(!nonce?.startsWith('r.'))throw problem('calendar-invalid-nonce');
+      if(url.searchParams.get('error')==='access_denied')throw problem('calendar-consent-denied');
       await connect(db,env,actor,origin,{nonce,code:url.searchParams.get('code')},accountKey,
         {fetchImpl:options.fetchImpl||((...args)=>fetch(...args)),now:options.now||Date.now});
       result='connected';
-    }catch{/* The app shows a retry message without exposing provider data. */}
-    return new Response(null,{status:303,headers:{Location:origin+'/?calendar='+result,'Cache-Control':'no-store, private','Referrer-Policy':'no-referrer'}});
+    }catch(error){
+      // Only our fixed categories may leave the server. Never reflect a raw
+      // provider error, exception, account identifier, state or authorization code.
+      const reasons=new Map([
+        ['calendar-not-configured','configuration'],['calendar-client-configuration','configuration'],
+        ['calendar-invalid-nonce','expired'],['calendar-account-changed','account-changed'],
+        ['calendar-consent-denied','denied'],['calendar-invalid-code','incomplete'],
+        ['calendar-permission-required','permissions'],['calendar-refresh-consent-required','refresh-consent'],
+        ['calendar-reconnect-required','code-rejected'],['calendar-temporarily-unavailable','provider-unavailable'],
+      ]);
+      reason=reasons.get(error?.code)||'server';
+    }
+    return new Response(null,{status:303,headers:{Location:origin+'/?calendar='+result+(reason?'&calendarReason='+reason:''),'Cache-Control':'no-store, private','Referrer-Policy':'no-referrer'}});
   }
   if(request.method==='GET'&&action==='/status'){
     try{await schema(db);return json(publicStatus(await rowFor(db,actor),env,origin,accountKey));}

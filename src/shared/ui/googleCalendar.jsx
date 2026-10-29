@@ -71,8 +71,19 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
   const settingsReady=tmCalReady(cfg);
   const durable=!!engine.tmCalDurable?.();
   const [stav, setStav] = useState("");      // "" | "jde" | "hotovo" | "chyba"
-  const [zprava, setZprava] = useState(()=>typeof window!=='undefined'&&new URLSearchParams(window.location?.search||'').get('calendar')==='failed'
-    ? L('Propojení se nedokončilo. Klepni na připojení a potvrď přístup v Googlu.','Connection did not finish. Connect again and confirm access in Google.') : '');
+  const [zprava, setZprava] = useState(()=>{
+    if(typeof window==='undefined')return '';
+    const params=new URLSearchParams(window.location?.search||'');
+    if(params.get('calendar')!=='failed')return '';
+    const reason=params.get('calendarReason');
+    if(reason==='configuration')return L('Propojení blokuje nastavení aplikace na serveru. Jeho opravu musí dokončit správce aplikace.','The app’s server configuration is blocking the connection. The app administrator needs to fix it.');
+    if(reason==='expired')return L('Platnost tohoto přihlášení vypršela nebo už bylo použito. Klepni znovu na Připojit.','This sign-in expired or was already used. Tap Connect again.');
+    if(reason==='permissions'||reason==='denied')return L('Google nepovolil potřebný přístup. Při připojení potvrď čtení událostí a správu kalendářů vytvořených aplikací.','Google did not grant the required access. When connecting, confirm reading events and managing calendars created by the app.');
+    if(reason==='refresh-consent')return L('Google nevrátil trvalé propojení. Připoj se znovu a potvrď přístup.','Google did not return persistent access. Connect again and confirm access.');
+    if(reason==='account-changed')return L('Účet se během připojování změnil. Připoj kalendář znovu v aktuálním účtu.','The account changed during sign-in. Connect the calendar again in the current account.');
+    if(reason==='server'||reason==='provider-unavailable')return L('Propojení se na serveru nepodařilo dokončit. Zkus to za chvíli znovu.','The server could not complete the connection. Please try again shortly.');
+    return L('Propojení se nedokončilo. Klepni na připojení a potvrď přístup v Googlu.','Connection did not finish. Connect again and confirm access in Google.');
+  });
   const connecting=React.useRef(false);
   const [otevreno, setOtevreno] = useState(false);
   const [navod, setNavod] = useState(false);
