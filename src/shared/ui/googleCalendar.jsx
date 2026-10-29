@@ -162,6 +162,11 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
         <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: stavBarva, animation: stav === "jde" ? "tmPulse 1.1s ease-in-out infinite" : "none" }} />
         <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_BODY, fontSize: 13, color: t.text }}>{stavText()}</span>
       </div>
+      <p style={radek}>
+        <a href="https://tanmaypractice.com/aplikace/soukromi/" target="_blank" rel="noopener noreferrer" style={{color:t.accentInk||t.accent,textDecoration:'underline'}}>
+          {L('Soukromí a přístup ke Google kalendáři','Privacy and Google Calendar access')}
+        </a>
+      </p>
       <div style={{padding:'0 8px 10px'}}>
         <button onClick={() => sync(!settingsReady)} disabled={stav==='jde' || prepared!=='ready' || !cfg.clientId}
           style={{background:t.accent,color:t.onAccent,border:'none',borderRadius:999,padding:'10px 18px',minHeight:44,fontFamily:FONT_BODY,fontSize:14,cursor:stav==='jde'||prepared!=='ready'?'default':'pointer',opacity:stav==='jde'||prepared!=='ready'?0.6:1}}>
