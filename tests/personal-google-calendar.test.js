@@ -260,3 +260,21 @@ test('prior broader grant does not enable writes to primary unless the saved cho
   assert.equal(f.cfg.allDayWrite,false);
   assert.ok(f.requests.every(request=>!request.path.includes('/primary/')||!request.method||request.method==='GET'));
 });
+
+test('a successful redirect restores first-connection choices only after server proof and preserves explicit reconnect choices',()=>{
+  for(const established of [false,true]){
+    const f=durableFixture();if(!established)delete f.cfg.durableSetup;
+    f.cfg.calDisconnected=true;f.cfg.rozvrh=false;f.cfg.zpet='';f.cfg.cycle=true;
+    let clean='';window.location={href:'https://app.example.test/?calendar=connected&keep=1'};
+    window.history={state:null,replaceState:(_s,_t,url)=>{clean=url;}};
+    assert.equal(f.engine.tmCalAcceptRedirect(f.st),true);
+    assert.equal(f.cfg.calDisconnected,false);assert.equal(f.cfg.durableSetup,true);
+    assert.equal(f.cfg.rozvrh,!established);assert.equal(f.cfg.zpet,established?'':'vse');assert.equal(f.cfg.cycle,established);
+    assert.equal(clean,'https://app.example.test/?keep=1');
+  }
+});
+test('a forged connected return marker cannot enable synchronization without a server grant',()=>{
+  const f=durableFixture({connected:false});delete f.cfg.durableSetup;f.cfg.calDisconnected=true;
+  window.location={href:'https://app.example.test/?calendar=connected'};window.history={replaceState:()=>assert.fail('Must not accept the return')};
+  assert.equal(f.engine.tmCalAcceptRedirect(f.st),false);assert.equal(f.cfg.calDisconnected,true);assert.equal(f.cfg.durableSetup,undefined);
+});

@@ -19,10 +19,17 @@ function fixture(overrides={}) {
   const window={addEventListener:(n,fn)=>winListeners.set(n,fn),removeEventListener:n=>winListeners.delete(n)};
   const navigator={userActivation:{isActive:true}};
   const store={calCfg:()=>state.cfg,coll:{calendarAllDay:[]},setCalCfg:patch=>{state.cfg={...state.cfg,...patch};}};
-  let effect,cleanup;
-  const react={...React,useRef:value=>({current:value}),useEffect:fn=>{effect=fn;}};
+  let effect,cleanup,manual=false,slot=0;const slots=[];
+  const react={...React,useRef:value=>{
+    if(!manual)return {current:value};const i=slot++;return slots[i]??(slots[i]={current:value});
+  },useState:init=>{
+    // Test dispatcher: choose server rendering or a controlled hook store.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    if(!manual)return React.useState(init);const i=slot++;if(!(i in slots))slots[i]=typeof init==='function'?init():init;
+    return [slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];
+  },useEffect:fn=>{effect=fn;}};
   const module={exports:{}};
-  const context=vm.createContext({module,exports:module.exports,document,window,navigator,Date,
+  const context=vm.createContext({module,exports:module.exports,document,window,navigator,Date,URLSearchParams,
     setInterval:(fn,ms)=>{timers.set(ms,fn);return ms;},setTimeout:(fn,ms)=>{timers.set(ms,fn);return ms;},
     clearInterval:id=>timers.delete(id),clearTimeout:id=>timers.delete(id),
     require:id=>{
@@ -50,6 +57,8 @@ function fixture(overrides={}) {
     SetSwitch:({label,on})=>React.createElement('button',{role:'switch','aria-checked':on},label),
     SetChoice:()=>null,PersonalSettingsSections:()=>null});
   return {state,document,navigator,engine,ui,docListeners,winListeners,timers,
+    renderSettings(){manual=true;slot=0;try{return ui.CalSettings({open:true});}finally{manual=false;}},
+    async prepareSettings(){cleanup?.();cleanup=effect();await flush();},
     async mount(){ui.CalAuto();cleanup=effect();await flush();},
     async click(explicit=false){docListeners.get('click')?.({target:{closest:()=>explicit?{}:null}});await flush();},
     async tick(ms=4000){timers.get(ms)?.();await flush();},
@@ -114,4 +123,28 @@ test('read-only primary access does not ask for unrelated write permission',()=>
   const html=renderToStaticMarkup(React.createElement(f.ui.CalSettings,{open:true}));
   assert.match(html,/>Sync<\/button>/);assert.doesNotMatch(html,/Renew connection/);
   assert.match(html,/exact times/);
+});
+
+function elements(node){return !node||typeof node!=='object'?[]:[node,...React.Children.toArray(node.props?.children).flatMap(elements)];}
+test('open Calendar settings refresh preparation on return and retry without loading a popup',async()=>{
+  let prepared=0;const f=fixture({tmCalPrepareAuth:async()=>{prepared++;}});
+  f.renderSettings();await f.prepareSettings();assert.equal(prepared,1);assert.equal(f.state.loadCalls,0);
+  await f.tick(60000);assert.equal(prepared,2);
+  f.document.hidden=true;await f.tick(60000);assert.equal(prepared,2);
+  await f.returnToApp();assert.equal(prepared,3);
+  f.unmount();assert.equal(f.timers.size,0);assert.equal(f.docListeners.size,0);assert.equal(f.winListeners.size,0);
+});
+test('an expired or failed authorization prepares a fresh attempt instead of leaving a dead Connect button',async()=>{
+  for(const reason of ['calendar-authorization-not-ready','calendar-popup-blocked','calendar-popup-closed']){
+    const f=fixture({tmCalPrepareAuth:async()=>{},tmCalSync:()=>Promise.reject(Error(reason))});
+    f.renderSettings();await f.prepareSettings();
+    const button=elements(f.renderSettings()).find(e=>e.type==='button'&&e.props.children==='Renew connection');
+    assert.equal(button.props.disabled,false);button.props.onClick();await flush();
+    const after=elements(f.renderSettings());
+    assert.equal(after.find(e=>e.type==='button'&&e.props.children==='Renew connection').props.disabled,true);
+    assert.ok(after.some(e=>e.type==='p'&&/Preparing|preparing|closed/.test(String(e.props.children))));
+    await f.prepareSettings();
+    assert.equal(elements(f.renderSettings()).find(e=>e.type==='button'&&e.props.children==='Renew connection').props.disabled,false);
+    f.unmount();
+  }
 });

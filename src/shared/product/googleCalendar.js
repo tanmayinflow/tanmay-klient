@@ -49,6 +49,16 @@ function tmCalPrepareAuth(value) {
   return tmCalRestore().then(() => tmCalDurable()
     ? connection.prepare(tmCalScopeFor(tmCalConnectConfig(value)),{authorize:true}) : tmCalGis());
 }
+function tmCalAcceptRedirect(st) {
+  if(typeof window==='undefined'||!window.location?.href)return false;
+  const url=new URL(window.location.href);
+  if(url.searchParams.get('calendar')!=='connected')return false;
+  const cfg=tmCalConnectConfig(st.calCfg());
+  if(!tmCalDurable()||!connection.ready(tmCalScopeFor(cfg)))return false;
+  st.setCalCfg({...(cfg.durableSetup?{}:{rozvrh:true,zpet:'vse',allDayWrite:false,cycle:false}),durableSetup:true,calDisconnected:false});
+  url.searchParams.delete('calendar');window.history.replaceState(window.history.state,'',url.href);
+  return true;
+}
 const accountError = () => Object.assign(new Error("calendar-account-changed"), {code:"calendar-account-changed"});
 const assertAccount = owner => { if (!owner || owner !== getAccount()) throw accountError(); };
 const tmCalAvailable = () => !!getAccount() && canRequest();
@@ -569,7 +579,7 @@ function tmCalIcs(st) {
 }
 
 
-return {role,config,CAL_DEF,CAL_KINDS,tmCalPrepare,tmCalRestore,tmCalDurable,tmCalConnectConfig,tmCalPrepareAuth,tmCalLoad:tmCalGis,tmCalReady,tmCalAccount:getAccount,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalMaCteni,tmCalSync,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin};
+return {role,config,CAL_DEF,CAL_KINDS,tmCalPrepare,tmCalRestore,tmCalDurable,tmCalConnectConfig,tmCalPrepareAuth,tmCalAcceptRedirect,tmCalLoad:tmCalGis,tmCalReady,tmCalAccount:getAccount,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalMaCteni,tmCalSync,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin};
 }
 
 export function tmCalIcsLines(s) {

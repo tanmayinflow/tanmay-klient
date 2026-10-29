@@ -31,7 +31,9 @@ function defaultGoogleLoader() {
 }
 
 export function createPersonalCalendarConnection({getAccount=()=>null,verifyAccount=()=>true,canRequest=()=>true,
-  fetcher=(...args)=>fetch(...args),loadGoogle=defaultGoogleLoader,now=Date.now}={}) {
+  fetcher=(...args)=>fetch(...args),loadGoogle=defaultGoogleLoader,now=Date.now,
+  useRedirect=()=>typeof window!=='undefined'&&typeof window.location?.assign==='function',
+  navigate=url=>window.location.assign(url)}={}) {
   let owner=null,epoch=0,revision=0,snapshot=blank(),nonce=null,oauth=null,statusTask=null,authorizationTask=null,activeConnect=null;
   function clear(nextOwner) {
     epoch++;revision++;owner=nextOwner;snapshot=blank();nonce=null;oauth=null;statusTask=null;authorizationTask=null;
@@ -62,7 +64,7 @@ export function createPersonalCalendarConnection({getAccount=()=>null,verifyAcco
   function authorizationReady(input) {
     let scopes;try{scopes=scopesOf(input);}catch{return false;}
     status();
-    return !!(getAccount()&&canRequest()&&snapshot.configured&&nonce&&nonce.epoch===epoch&&nonce.owner===owner&&nonce.expiresAt>now()+1000&&same(nonce.scopes,scopes)&&oauth?.initCodeClient);
+    return !!(getAccount()&&canRequest()&&snapshot.configured&&nonce&&nonce.epoch===epoch&&nonce.owner===owner&&nonce.expiresAt>now()+1000&&same(nonce.scopes,scopes)&&(nonce.authorizationUrl||oauth?.initCodeClient));
   }
   function validateStatus(value,expectedKey='') {
     if(!value||value.ok!==true||typeof value.configured!=='boolean'||typeof value.connected!=='boolean'||!Array.isArray(value.scopes)||value.scopes.some(scope=>!ALLOWED.has(scope))||typeof value.accountKey!=='string'||!value.accountKey||typeof value.generation!=='string'||(value.connected&&!value.generation))throw fail('calendar-invalid-response',502);
@@ -114,12 +116,21 @@ export function createPersonalCalendarConnection({getAccount=()=>null,verifyAcco
     task.promise=(async()=>{
       const expectedKey=snapshot.accountKey,before=revision;
       await verify(captured);
-      const [prepared,library]=await Promise.all([api('start',captured,{scopes},expectedKey),loadGoogle()]);
+      const redirect=useRedirect();
+      const [prepared,library]=await Promise.all([api('start',captured,{scopes,...(redirect?{mode:'redirect'}:{})},expectedKey),redirect?null:loadGoogle()]);
       guard(captured);
       if(before!==revision)throw fail('calendar-account-changed',409);
       if(!prepared||prepared.ok!==true||typeof prepared.nonce!=='string'||!prepared.nonce||!Number.isFinite(prepared.expiresAt)||prepared.expiresAt<=now()+1000||
-        typeof prepared.clientId!=='string'||!/^[a-zA-Z0-9._-]+\.apps\.googleusercontent\.com$/.test(prepared.clientId)||!same(scopesOf(prepared.scopes),scopes)||!library?.initCodeClient)throw fail('calendar-authorization-not-ready');
-      oauth=library;nonce={...captured,nonce:prepared.nonce,expiresAt:prepared.expiresAt,clientId:prepared.clientId,scopes,accountKey:expectedKey};
+        typeof prepared.clientId!=='string'||!/^[a-zA-Z0-9._-]+\.apps\.googleusercontent\.com$/.test(prepared.clientId)||!same(scopesOf(prepared.scopes),scopes)||(!redirect&&!library?.initCodeClient))throw fail('calendar-authorization-not-ready');
+      let authorizationUrl;
+      if(redirect){
+        const target=new URL(prepared.authorizationUrl);
+        if(target.origin!=='https://accounts.google.com'||target.pathname!=='/o/oauth2/v2/auth'||target.searchParams.get('state')!==prepared.nonce||
+          target.searchParams.get('client_id')!==prepared.clientId||target.searchParams.get('response_type')!=='code'||
+          !same(scopesOf(target.searchParams.get('scope')),scopes))throw fail('calendar-invalid-response');
+        authorizationUrl=target.href;
+      }
+      oauth=library;nonce={...captured,nonce:prepared.nonce,expiresAt:prepared.expiresAt,clientId:prepared.clientId,scopes,accountKey:expectedKey,authorizationUrl};
       return status();
     })();
     authorizationTask=task;
@@ -159,6 +170,9 @@ export function createPersonalCalendarConnection({getAccount=()=>null,verifyAcco
       }catch(error){finish(error);}
     };
     try{
+      // Top-level navigation also works in an installed iPhone app where the
+      // popup may never open. The server receives and exchanges the code.
+      if(prepared.authorizationUrl){guard(captured);navigate(prepared.authorizationUrl);return task.promise;}
       const client=oauth.initCodeClient({client_id:prepared.clientId,scope:scopes.join(' '),ux_mode:'popup',include_granted_scopes:false,state:prepared.nonce,
         callback:accept,error_callback:error=>{if(!responding)finish(fail(error?.type==='popup_closed'?'calendar-popup-closed':'calendar-popup-blocked'));}});
       guard(captured);client.requestCode();

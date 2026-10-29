@@ -46,7 +46,10 @@ function CalAuto() {
         preparedConfig=true;
         return engine.tmCalRestore?.();
       }).then(()=>{
-        if(!disposed&&owner===tmCalAccount())sync(true);
+        if(!disposed&&owner===tmCalAccount()){
+          engine.tmCalAcceptRedirect?.(ref.current);
+          sync(true);
+        }
       },()=>{}).finally(()=>{restoring=false;});
     };
     const back=()=>{if(!document.hidden){retryAt=0;restore();}};
@@ -68,7 +71,9 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
   const settingsReady=tmCalReady(cfg);
   const durable=!!engine.tmCalDurable?.();
   const [stav, setStav] = useState("");      // "" | "jde" | "hotovo" | "chyba"
-  const [zprava, setZprava] = useState("");
+  const [zprava, setZprava] = useState(()=>typeof window!=='undefined'&&new URLSearchParams(window.location?.search||'').get('calendar')==='failed'
+    ? L('Propojení se nedokončilo. Klepni na připojení a potvrď přístup v Googlu.','Connection did not finish. Connect again and confirm access in Google.') : '');
+  const connecting=React.useRef(false);
   const [otevreno, setOtevreno] = useState(false);
   const [navod, setNavod] = useState(false);
   const [nahled, setNahled] = useState(false);
@@ -76,24 +81,30 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
   const [prepareTry, setPrepareTry] = useState(0);
   React.useEffect(() => {
     if (!open) return;
-    let alive=true;
-    setPrepared('loading');
-    // Resolve the app's public OAuth configuration and preload GIS before a
-    // person presses Connect. No authorization popup is opened by this effect.
-    tmCalPrepare().catch(error => {if(!engine.config(st.calCfg()).clientId)throw error;}).then(() => {
-      if (!engine.config(st.calCfg()).clientId) throw Error('no-client-id');
-      return tmCalLoad().then(()=>engine.tmCalPrepareAuth?.(engine.config(st.calCfg())));
-    }).then(() => {if(alive)setPrepared('ready');}, () => {if(alive)setPrepared('unavailable');});
-    return () => {alive=false;};
+    let alive=true,busy=false;
+    const prepare=()=>{
+      if(!alive||busy||connecting.current||document.hidden)return;
+      busy=true;setPrepared('loading');
+      // Prepare the server-bound redirect before the tap. No Google window
+      // opens here, including on foreground return or after a failed attempt.
+      tmCalPrepare().catch(error => {if(!engine.config(st.calCfg()).clientId)throw error;}).then(() => {
+        if (!engine.config(st.calCfg()).clientId) throw Error('no-client-id');
+        return engine.tmCalPrepareAuth ? engine.tmCalPrepareAuth(engine.config(st.calCfg())) : tmCalLoad();
+      }).then(() => {if(alive)setPrepared('ready');}, () => {if(alive)setPrepared('unavailable');}).finally(()=>{busy=false;});
+    };
+    prepare();
+    const refresh=setInterval(prepare,60000);
+    document.addEventListener('visibilitychange',prepare);window.addEventListener('focus',prepare);window.addEventListener('online',prepare);
+    return () => {alive=false;clearInterval(refresh);document.removeEventListener('visibilitychange',prepare);window.removeEventListener('focus',prepare);window.removeEventListener('online',prepare);};
   }, [open, cfg.clientId, cfg.zpet, cfg.allDayWrite, prepareTry]);
   const set = (p) => st.setCalCfg(p);
   const pripojeno = !!cfg.calId && !!cfg.clientId && !cfg.calDisconnected;
   const kolik = () => { try { return tmCalDesired(st, cfg).length; } catch { return 0; } };
 
   const sync = (interactive) => {
-    setStav("jde"); setZprava("");
+    connecting.current=true;setStav("jde"); setZprava("");
     tmCalSync(st, { interactive: interactive }).then((r) => {
-      setStav(r.chyby ? "chyba" : "hotovo");
+      connecting.current=false;setStav(r.chyby ? "chyba" : "hotovo");
       const zpet = (r.vlozeno || r.uklizeno)
         ? L(` · z kalendáře ${r.vlozeno || 0}`, ` · from the calendar ${r.vlozeno || 0}`) : "";
       setZprava(r.chyby
@@ -103,14 +114,16 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
           : L(`Přidáno ${r.pridano} · upraveno ${r.zmeneno} · odebráno ${r.smazano}` + zpet, `Added ${r.pridano} · updated ${r.zmeneno} · removed ${r.smazano}` + zpet));
     }, (e) => {
       const m = String((e && (e.reason || e.message)) || "");
-      setStav("chyba");
-      if (/nonce|prepared|consent-required/.test(m)) setPrepareTry(n=>n+1);
+      connecting.current=false;setStav("chyba");
+      if (/nonce|prepared|consent|authorization|popup|permission-required/.test(m)) {setPrepared('loading');setPrepareTry(n=>n+1);}
       setZprava(m === "no-client-id" ? L("Propojení Google kalendáře zatím není dostupné.", "Google Calendar connection is not available yet.")
         : m === 'google-loading' ? L('Google se ještě načítá. Za chvíli klepni znovu na připojení.','Google is still loading. Try connecting again in a moment.')
         : /calendar-reconnect-required|calendar-refresh-consent-required/.test(m) ? L('Google potřebuje znovu potvrdit přístup. Klepni na Připojit.','Google needs you to confirm access again. Tap Connect.')
-        : /nonce|prepared/.test(m) ? L('Propojení znovu připravuji. Za chvíli klepni na Připojit.','Preparing the connection again. Tap Connect in a moment.')
+        : /nonce|prepared|authorization-not-ready/.test(m) ? L('Propojení znovu připravuji. Za chvíli klepni na Připojit.','Preparing the connection again. Tap Connect in a moment.')
         : m === 'calendar-target-unavailable' ? L('Původní kalendář v tomto Google účtu není dostupný. Připoj účet, ve kterém byl vytvořený. Uložené události zůstaly zachované.','The original calendar is unavailable in this Google account. Connect the account where it was created. Saved events have been preserved.')
         : m === 'calendar-permission-required' ? L('Google nepovolil vše potřebné. Klepni na připojení a potvrď požadovaný přístup ke kalendáři.','Google did not grant all required permissions. Connect again and confirm the requested calendar access.')
+        : /popup-blocked|popup_failed_to_open/.test(m) ? L('Přihlašovací okno se neotevřelo. Připravuji nový pokus.','The sign-in window did not open. Preparing another attempt.')
+        : /popup-closed|popup_closed/.test(m) ? L('Přihlašovací okno bylo zavřeno. Připojení můžeš zkusit znovu.','The sign-in window was closed. You can connect again.')
         : /popup|auth|token/i.test(m) ? L("Google nepustil dovnitř. Zkus Připojit znovu.", "Google did not let us in. Try Connect again.")
         : L("Nepovedlo se · " + m, "Failed · " + m));
     });

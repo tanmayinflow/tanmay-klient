@@ -148,11 +148,16 @@ async function start(db,env,actor,origin,body,now) {
   const scopes=cleanScopes(body.scopes);
   await db.prepare(`INSERT INTO personal_calendar_connections (actor,origin,client_id,generation,created_at,updated_at)
     VALUES (?,?,?,?,?,?) ON CONFLICT(actor) DO NOTHING`).bind(actor,origin,env.GOOGLE_CALENDAR_CLIENT_ID,random(),now(),now()).run();
-  const current=await rowFor(db,actor),nonce=random(),expiresAt=now()+TTL;
+  const current=await rowFor(db,actor),nonce=(body.mode==='redirect'?'r.':'')+random(),expiresAt=now()+TTL;
   await db.prepare('DELETE FROM personal_calendar_nonces WHERE expires_at < ?').bind(now()).run();
   await db.prepare(`INSERT INTO personal_calendar_nonces (nonce_hash,actor,origin,client_id,generation,scopes_json,expires_at) VALUES (?,?,?,?,?,?,?)`)
     .bind(await hash(nonce),actor,origin,env.GOOGLE_CALENDAR_CLIENT_ID,current.generation,JSON.stringify(scopes),expiresAt).run();
-  return json({ok:true,nonce,clientId:env.GOOGLE_CALENDAR_CLIENT_ID,scopes,expiresAt});
+  const authorization=new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  if(body.mode==='redirect'){
+    authorization.search=new URLSearchParams({client_id:env.GOOGLE_CALENDAR_CLIENT_ID,redirect_uri:origin+'/api/calendar/callback',
+      response_type:'code',scope:scopes.join(' '),state:nonce,access_type:'offline',prompt:'consent',include_granted_scopes:'false'}).toString();
+  }
+  return json({ok:true,nonce,clientId:env.GOOGLE_CALENDAR_CLIENT_ID,scopes,expiresAt,...(body.mode==='redirect'?{authorizationUrl:authorization.href}:{})});
 }
 async function connect(db,env,actor,origin,body,accountKey,options) {
   if(typeof body.nonce!=='string'||body.nonce.length>100||typeof body.code!=='string'||!body.code||body.code.length>4096)throw problem('calendar-invalid-code');
@@ -164,7 +169,7 @@ async function connect(db,env,actor,origin,body,accountKey,options) {
   if(!changed(used))throw problem('calendar-invalid-nonce');
   const current=await rowFor(db,actor);
   if(current?.generation!==nonce.generation)throw problem('calendar-account-changed',409);
-  const result=await tokenCall(env,{code:body.code,grant_type:'authorization_code',redirect_uri:origin},options.fetchImpl);
+  const result=await tokenCall(env,{code:body.code,grant_type:'authorization_code',redirect_uri:body.nonce.startsWith('r.')?origin+'/api/calendar/callback':origin},options.fetchImpl);
   const scopes=granted(result.scope);
   if(!list(nonce.scopes_json).every(scope=>scopes.includes(scope)))throw problem('calendar-permission-required',403);
   // Never combine a new Google account's access token with an older account's refresh token.
@@ -266,6 +271,22 @@ export async function handlePersonalCalendar(request,db,actor,env,options={}) {
   const accountKey=await personalProfileAccountKey(actor);
   const accountHeader=request.headers.get('X-Tanmay-Account-Key');
   if(accountHeader&&accountHeader!==accountKey)return failure('calendar-account-changed',409);
+  if(request.method==='GET'&&action==='/callback'){
+    // The worker has already authenticated the app account. A redirect uses
+    // its one-time, actor/origin/generation-bound state instead of POST headers.
+    // No code or provider message is reflected into the return URL or page.
+    let result='failed';
+    try{
+      await schema(db);
+      if(!personalCalendarConfigured(env))throw problem('calendar-not-configured',503);
+      const nonce=url.searchParams.get('state');
+      if(!nonce?.startsWith('r.'))throw problem('calendar-invalid-nonce');
+      await connect(db,env,actor,origin,{nonce,code:url.searchParams.get('code')},accountKey,
+        {fetchImpl:options.fetchImpl||((...args)=>fetch(...args)),now:options.now||Date.now});
+      result='connected';
+    }catch{/* The app shows a retry message without exposing provider data. */}
+    return new Response(null,{status:303,headers:{Location:origin+'/?calendar='+result,'Cache-Control':'no-store, private','Referrer-Policy':'no-referrer'}});
+  }
   if(request.method==='GET'&&action==='/status'){
     try{await schema(db);return json(publicStatus(await rowFor(db,actor),env,origin,accountKey));}
     catch{return failure('calendar-unavailable',503);}
