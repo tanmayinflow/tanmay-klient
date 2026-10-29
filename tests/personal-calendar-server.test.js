@@ -13,6 +13,7 @@ async function fixture() {
   const db=makeD1(),env={...config};let time=1900000000000;
   const calls=[];let tokenHook=null,apiHook=null;
   const fetchImpl=async(url,init)=>{
+    assert.equal(init.redirect,'manual','Cloudflare supports manual/follow, not error; credentials must not follow redirects');
     calls.push({url,init});
     if(url==='https://oauth2.googleapis.com/token'){
       const body=new URLSearchParams(init.body);
@@ -40,6 +41,27 @@ async function fixture() {
 }
 const row=(f,actor=A)=>f.db.prepare('SELECT * FROM personal_calendar_connections WHERE actor = ?').bind(actor).first();
 const apiBody=connection=>({generation:connection.generation,path:'/calendars/primary/events?maxResults=2500'});
+
+test('token exchange, refresh and Calendar API reject redirects without forwarding credentials or provider content',async()=>{
+  for(const status of [301,302,303,307,308]){
+    const redirect=()=>new Response('private-provider-body',{status,headers:{Location:'https://untrusted.example/collect'}});
+    const f=await fixture(),start=await f.begin();f.token(redirect);
+    const rejected=await f.request('connect',{nonce:start.nonce,code:'synthetic-code'});
+    assert.equal(rejected.status,503);assert.equal(f.calls.length,1);
+    assert.doesNotMatch(await rejected.text(),/private-provider|untrusted|synthetic/);
+    assert.equal((await row(f)).token_ciphertext,'');
+    f.token(null);const connected=await f.connect();f.api(redirect);
+    const before=f.calls.length,api=await f.request('request',apiBody(connected));
+    assert.equal(api.status,503);assert.equal(f.calls.length,before+1);
+    assert.equal(api.headers.get('Location'),null);
+    assert.doesNotMatch(await api.text(),/private-provider|untrusted|synthetic/);
+    f.advance(3600001);f.token(redirect);
+    const beforeRefresh=f.calls.length,refresh=await f.request('request',apiBody(connected));
+    assert.equal(refresh.status,503);assert.equal(f.calls.length,beforeRefresh+1);
+    assert.equal((await row(f)).status,'CONNECTED');
+    assert.doesNotMatch(await refresh.text(),/private-provider|untrusted|synthetic/);
+  }
+});
 function heldTokenResponse() {
   let arrive,release;
   const arrived=new Promise(resolve=>{arrive=resolve;});

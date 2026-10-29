@@ -91,9 +91,12 @@ async function live(db,expected) {
 }
 async function tokenCall(env,body,fetchImpl) {
   let response;
-  try {response=await fetchImpl(TOKEN,{method:'POST',redirect:'error',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+  // Workers supports manual/follow only. Reject redirects ourselves so the
+  // client secret and bearer tokens can never follow an unexpected Location.
+  try {response=await fetchImpl(TOKEN,{method:'POST',redirect:'manual',headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body:new URLSearchParams({client_id:env.GOOGLE_CALENDAR_CLIENT_ID,client_secret:env.GOOGLE_CALENDAR_CLIENT_SECRET,...body}).toString()});}
   catch {throw problem('calendar-temporarily-unavailable',503);}
+  if(response.status>=300&&response.status<400)throw problem('calendar-temporarily-unavailable',503);
   let value;try{value=await response.json();}catch{throw problem('calendar-temporarily-unavailable',503);}
   if(!response.ok){
     if(value?.error==='invalid_grant')throw problem('calendar-reconnect-required',401);
@@ -247,9 +250,10 @@ async function proxy(db,env,actor,origin,body,options) {
     const credential=await access(db,env,row,options,attempt>0);
     requireGrant(target,credential.scopes);await live(db,row);
     let response;
-    try {response=await options.fetchImpl(API+target.path,{method:target.method,redirect:'error',headers:{Authorization:'Bearer '+credential.token,...target.headers,...(target.body?{'Content-Type':'application/json'}:{})},body:target.body?JSON.stringify(target.body):undefined});}
+    try {response=await options.fetchImpl(API+target.path,{method:target.method,redirect:'manual',headers:{Authorization:'Bearer '+credential.token,...target.headers,...(target.body?{'Content-Type':'application/json'}:{})},body:target.body?JSON.stringify(target.body):undefined});}
     catch{throw problem('calendar-temporarily-unavailable',503);}
     await live(db,row);
+    if(response.status>=300&&response.status<400)throw problem('calendar-temporarily-unavailable',503);
     if(response.status===401&&attempt===0){mapFor(caches,db).delete(keyFor(row));continue;}
     if(response.status===204)return new Response(null,{status:204,headers:{'Cache-Control':'no-store, private'}});
     const text=await response.text();
