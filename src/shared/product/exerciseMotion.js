@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "an_wpushup": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_wpushup-7ffec45e3db39e62.mp4",
+    "bytes": 33757,
+    "sha256": "7ffec45e3db39e62d51626f489eab0bb1edc62dccf47b067a483aba5565d2b86",
+    "poster": "/exercise-motion/an_wpushup-poster-618f63524900cc1c.webp"
+  },
+  "hip9090": {
+    "oneSide": false,
+    "src": "/exercise-motion/hip9090-49ed87192dc2630c.mp4",
+    "bytes": 93329,
+    "sha256": "49ed87192dc2630c0dc735d0f77c357ab3e141a84a43c75fa2c2bc90e1d01d01",
+    "poster": "/exercise-motion/hip9090-poster-faa96f8173b05b0f.webp"
+  },
+  "pullthrough": {
+    "oneSide": false,
+    "src": "/exercise-motion/pullthrough-c884f92ec5a8d3bb.mp4",
+    "bytes": 28949,
+    "sha256": "c884f92ec5a8d3bbf9a9c65df61ba2b43ddd2a1f67c01e1cb2765332a4397e0b",
+    "poster": "/exercise-motion/pullthrough-poster-01a260585ab22950.webp"
+  },
+  "an_frenchpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_frenchpress-956fc026b04c139c.mp4",
+    "bytes": 21793,
+    "sha256": "956fc026b04c139c027017ef06b5f5a40a8276d06e91f75aec91f6c455de8a9d",
+    "poster": "/exercise-motion/an_frenchpress-poster-6f2fa8b4e240d07e.webp"
+  },
+  "ex26_py_lateral_stick": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_lateral_stick-e4d5ffb9c600310a.mp4",
+    "bytes": 32506,
+    "sha256": "e4d5ffb9c600310a910718406a52e2aceb2127c2d2411c32ae67b34d5d877f30",
+    "poster": "/exercise-motion/ex26_py_lateral_stick-poster-dd9c3c87bde9b810.webp"
+  },
+  "ex26_frog_jump": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_frog_jump-7092fa07303595a6.mp4",
+    "bytes": 32923,
+    "sha256": "7092fa07303595a62e9782c399f077d881e12c009f02c99a661ed36194bcb75e",
+    "poster": "/exercise-motion/ex26_frog_jump-poster-68de0a6386548cf0.webp"
+  },
+  "ex26_drop_landing": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_drop_landing-3e7bbd7383b703e2.mp4",
+    "bytes": 42196,
+    "sha256": "3e7bbd7383b703e2d574e469d6541fa7ff1dcbdb5105333fddd319a373ac27f4",
+    "poster": "/exercise-motion/ex26_drop_landing-poster-f597d47004140ea7.webp"
+  },
+  "ex26_rotational_jump": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_rotational_jump-ca24944bf573cce3.mp4",
+    "bytes": 19127,
+    "sha256": "ca24944bf573cce35f02c8a2a671075d6b6fb03e4403ce6e481e559f1015ca69",
+    "poster": "/exercise-motion/ex26_rotational_jump-poster-920d4597efa77a18.webp"
+  },
   "gm_palm_pulse": {
     "oneSide": false,
     "src": "/exercise-motion/gm_palm_pulse-9790fe7fc5724427.mp4",
