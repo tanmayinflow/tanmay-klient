@@ -1,5 +1,68 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_plank_updown": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_plank_updown-1b973e3b33aa03aa.mp4",
+    "bytes": 37821,
+    "sha256": "1b973e3b33aa03aa4e38be3779f63e75b62d3b1c293d5ffb339ed88812184aec",
+    "poster": "/exercise-motion/ex26_plank_updown-poster-ddb691a25386efb1.webp"
+  },
+  "ex26_half_getup": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_half_getup-f6babf2312411f24.mp4",
+    "bytes": 33486,
+    "sha256": "f6babf2312411f24b041c20a922881ee7bd8827c9a8bb956260993602a824734",
+    "poster": "/exercise-motion/ex26_half_getup-poster-5f2e3ae44abcd117.webp"
+  },
+  "ex26_band_legext": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_band_legext-63374cfed0490c71.mp4",
+    "bytes": 22634,
+    "sha256": "63374cfed0490c71997465f96466b7653dfa84d071f7d32256f3bf106594ef8a",
+    "poster": "/exercise-motion/ex26_band_legext-poster-e7ed3578dfdd2e73.webp"
+  },
+  "ex26_mob_supine_active_kneeext": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_supine_active_kneeext-e3be5e4ab1a5060c.mp4",
+    "bytes": 23217,
+    "sha256": "e3be5e4ab1a5060c3f01eee750cf991d17a1168795ace0a2d1b20a90bda56288",
+    "poster": "/exercise-motion/ex26_mob_supine_active_kneeext-poster-3973efd203ecadc4.webp"
+  },
+  "ex26_mob_lumbar_locked": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_lumbar_locked-bac6f6e65bc1d3f6.mp4",
+    "bytes": 21772,
+    "sha256": "bac6f6e65bc1d3f643a198acb5af3d5c1e82319b746a99e37ac5d208b0ecdd67",
+    "poster": "/exercise-motion/ex26_mob_lumbar_locked-poster-b1a01de8faf4bc6d.webp"
+  },
+  "kb26_gorilla_row": {
+    "oneSide": false,
+    "src": "/exercise-motion/kb26_gorilla_row-cee57ec002c122c7.mp4",
+    "bytes": 43018,
+    "sha256": "cee57ec002c122c715f46ec57611dc701c8d4a9729224eb2da444c292edba8a2",
+    "poster": "/exercise-motion/kb26_gorilla_row-poster-e93d4e292fe6dda2.webp"
+  },
+  "kb26_goblet_lateral": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_goblet_lateral-5c323f27b930edfb.mp4",
+    "bytes": 48498,
+    "sha256": "5c323f27b930edfb52b056ea38fc7e963bc492da0e1a4c03162bf8af9aa18475",
+    "poster": "/exercise-motion/kb26_goblet_lateral-poster-44c907b4d9755f2a.webp"
+  },
+  "kb26_push_press": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_push_press-1e7726a72b4c2d16.mp4",
+    "bytes": 21420,
+    "sha256": "1e7726a72b4c2d16ce1086b6a43e6530311555faa78298d5ec14fa0066c4e93a",
+    "poster": "/exercise-motion/kb26_push_press-poster-3418ca5b575131eb.webp"
+  },
+  "kb26_double_reverse_lunge": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_double_reverse_lunge-b3513017297e96f0.mp4",
+    "bytes": 23589,
+    "sha256": "b3513017297e96f0e56af32d30dfb9b82aa2507d4802a16bbe121e50da86a37a",
+    "poster": "/exercise-motion/kb26_double_reverse_lunge-poster-d5fc34f394b4f40e.webp"
+  },
   "an_wpushup": {
     "oneSide": false,
     "src": "/exercise-motion/an_wpushup-7ffec45e3db39e62.mp4",
