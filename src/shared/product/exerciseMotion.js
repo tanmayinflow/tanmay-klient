@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_dns_quad_forward": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_dns_quad_forward-959d174e457e8f61.mp4",
+    "bytes": 14656,
+    "sha256": "959d174e457e8f61b9beef7529c1ab08897cd44cd8084645e91e25a1454a9ed2",
+    "poster": "/exercise-motion/ex26_dns_quad_forward-poster-4257d173a8ae0d04.webp"
+  },
+  "ig27_kneeling_instep_rock": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig27_kneeling_instep_rock-177d1cd6bdff66bc.mp4",
+    "bytes": 24987,
+    "sha256": "177d1cd6bdff66bcfca5c4fe32bbb99cffc963184a625a67c8f59643703a1ec8",
+    "poster": "/exercise-motion/ig27_kneeling_instep_rock-poster-66d79232d9929a77.webp"
+  },
+  "ig28_bear_knee_extension": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig28_bear_knee_extension-8954222598bcab8f.mp4",
+    "bytes": 21702,
+    "sha256": "8954222598bcab8f3f7fbc005fc092fb44a46ed19578522c19750d965dabb069",
+    "poster": "/exercise-motion/ig28_bear_knee_extension-poster-28946d56ece16520.webp"
+  },
+  "ex26_pelvic_tilt": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_pelvic_tilt-8510064baaadd34f.mp4",
+    "bytes": 14034,
+    "sha256": "8510064baaadd34f8a17678c68c94c5490fd8a54bf18301d8db4cc4ac38ede14",
+    "poster": "/exercise-motion/ex26_pelvic_tilt-poster-c8d38801b2494902.webp"
+  },
+  "ex26_mob_squat_hip_ir": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_squat_hip_ir-1807e27b84dd64fa.mp4",
+    "bytes": 30604,
+    "sha256": "1807e27b84dd64fa6f2c244f65356a7f90c1a6d764d77bb525b02e127e4d6306",
+    "poster": "/exercise-motion/ex26_mob_squat_hip_ir-poster-5da74cff42f28a72.webp"
+  },
+  "gm_finger_pulse": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_finger_pulse-b589c791ae3cbc7d.mp4",
+    "bytes": 26445,
+    "sha256": "b589c791ae3cbc7d2e350955e22aeb436d9da6ef9f8662ea11c82e07f5844d09",
+    "poster": "/exercise-motion/gm_finger_pulse-poster-59f7e69c16801af3.webp"
+  },
+  "ig28_neck_prone_lift": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig28_neck_prone_lift-af42f7d69d32afde.mp4",
+    "bytes": 14725,
+    "sha256": "af42f7d69d32afdeab4b388a355d6b5ac22aa7186abab4c92b9d5535059bfef1",
+    "poster": "/exercise-motion/ig28_neck_prone_lift-poster-bb3c4a41ec9244a6.webp"
+  },
+  "ex26_hss_sideplank_march": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_hss_sideplank_march-483d6cca8c39ca13.mp4",
+    "bytes": 17160,
+    "sha256": "483d6cca8c39ca13795db7d9995ba2cc91ea01ad290f682788a1183fb7139850",
+    "poster": "/exercise-motion/ex26_hss_sideplank_march-poster-f023ccc6538e944b.webp"
+  },
   "ig26_slider_pike": {
     "oneSide": false,
     "src": "/exercise-motion/ig26_slider_pike-b4a31809e5df12a4.mp4",
