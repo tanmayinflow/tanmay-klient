@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ig26_slider_pike": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig26_slider_pike-b4a31809e5df12a4.mp4",
+    "bytes": 22160,
+    "sha256": "b4a31809e5df12a4df10ffe313052acf2c59332a6d90c7f0fb30db64c6f5b7e7",
+    "poster": "/exercise-motion/ig26_slider_pike-poster-592169929ba5f694.webp"
+  },
+  "ex26_lateral_linehop": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_lateral_linehop-1ceda5252c74cbf1.mp4",
+    "bytes": 42340,
+    "sha256": "1ceda5252c74cbf19bc658dc1c14f9ed12c88343294c74d925cbe0801663566e",
+    "poster": "/exercise-motion/ex26_lateral_linehop-poster-6dc2c3b64930a024.webp"
+  },
+  "ig26_sideplank_legraise": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig26_sideplank_legraise-fcf9dc9c46cc9a69.mp4",
+    "bytes": 18794,
+    "sha256": "fcf9dc9c46cc9a69200b9b6cbd74db89a13a4be15efc24769e35a1d8e269acc2",
+    "poster": "/exercise-motion/ig26_sideplank_legraise-poster-ff7d8ba35bfd5bb1.webp"
+  },
+  "ig27_split_calf_raise": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig27_split_calf_raise-006c4994d37be0a2.mp4",
+    "bytes": 21901,
+    "sha256": "006c4994d37be0a28e4e4e28b786cf3bfec275362ec1e9ac9cad8732e8c5e17c",
+    "poster": "/exercise-motion/ig27_split_calf_raise-poster-b6c6a40702fde864.webp"
+  },
+  "ig26_skater_squat": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig26_skater_squat-4e2c39ff789403a9.mp4",
+    "bytes": 19952,
+    "sha256": "4e2c39ff789403a919e53bbbf628d027b583beadbc757d08f7361c2e3a6c50cd",
+    "poster": "/exercise-motion/ig26_skater_squat-poster-1213e01bcb9e2532.webp"
+  },
+  "ig27_pushup_plus": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig27_pushup_plus-8f3de0c3ce5bb65b.mp4",
+    "bytes": 26974,
+    "sha256": "8f3de0c3ce5bb65b40640589e367e57f141fcb0b6389de6227cd912c66259c85",
+    "poster": "/exercise-motion/ig27_pushup_plus-poster-3a5a0f160c96e8cc.webp"
+  },
+  "ig27_forearm_scap_press": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig27_forearm_scap_press-393d8a2a9ba89eb0.mp4",
+    "bytes": 18643,
+    "sha256": "393d8a2a9ba89eb0b4ee0dc1668d69b2063e5d5ebbe206700d88abe4cf368fe7",
+    "poster": "/exercise-motion/ig27_forearm_scap_press-poster-8e7fcae851895458.webp"
+  },
+  "ig27_prone_band_press": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig27_prone_band_press-2041a612a8dde97a.mp4",
+    "bytes": 13869,
+    "sha256": "2041a612a8dde97a121a55188f4ebe2894cf1cf309ce85ce558e594db02a3dae",
+    "poster": "/exercise-motion/ig27_prone_band_press-poster-f72836b63f090a10.webp"
+  },
   "ex26_db_single_rdl": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_db_single_rdl-ba57c56121c6d688.mp4",
