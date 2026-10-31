@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_db_single_rdl": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_db_single_rdl-ba57c56121c6d688.mp4",
+    "bytes": 41832,
+    "sha256": "ba57c56121c6d688cb2bd5b6f1db9f620b352d070feff0d7c91148d471b8bd2a",
+    "poster": "/exercise-motion/ex26_db_single_rdl-poster-b90ff015f07861f2.webp"
+  },
+  "ecccalf": {
+    "oneSide": true,
+    "src": "/exercise-motion/ecccalf-3d510f897ed0356e.mp4",
+    "bytes": 30721,
+    "sha256": "3d510f897ed0356eb75022c43e92592b9d2f63232889221613749610d2c61192",
+    "poster": "/exercise-motion/ecccalf-poster-ceaaf4b59d4fd184.webp"
+  },
+  "ex26_reverse_march": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_reverse_march-a9954ee0b1926949.mp4",
+    "bytes": 22419,
+    "sha256": "a9954ee0b19269495349a09a3072eae1f04b52d7ba7dcaaa574c653750ccf9fe",
+    "poster": "/exercise-motion/ex26_reverse_march-poster-39f95cf6486763db.webp"
+  },
+  "ex26_mob_leg_swing_lateral": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_leg_swing_lateral-bda76b2c37ee60b5.mp4",
+    "bytes": 28799,
+    "sha256": "bda76b2c37ee60b561390ae788bbb430bfc04752d695ddaa90551078b88a908a",
+    "poster": "/exercise-motion/ex26_mob_leg_swing_lateral-poster-3bb6f8aa97bc452f.webp"
+  },
+  "ig26_seated_support_lift": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig26_seated_support_lift-db1bbfebc4eb6f61.mp4",
+    "bytes": 24039,
+    "sha256": "db1bbfebc4eb6f61409d86e6bef7488aee4b21f8376e5b943d54e3b86aefe78a",
+    "poster": "/exercise-motion/ig26_seated_support_lift-poster-32c008e5f4df94e0.webp"
+  },
+  "ex26_hss_rack_march": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_hss_rack_march-d7249e96704aafdc.mp4",
+    "bytes": 21007,
+    "sha256": "d7249e96704aafdcafd74feed65aff2c8a84a00c8c0555dd030057f336a1584d",
+    "poster": "/exercise-motion/ex26_hss_rack_march-poster-5c875d66c8fb9ad5.webp"
+  },
+  "ex26_ball_pike": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_pike-7d1c903a20dc88ae.mp4",
+    "bytes": 18465,
+    "sha256": "7d1c903a20dc88ae8982155e2d28bacab855d44b25a7ecbb4dd6969d17fcb6f4",
+    "poster": "/exercise-motion/ex26_ball_pike-poster-5b67234c92d759f8.webp"
+  },
+  "ex26_kb_halo": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_kb_halo-73301ef9f194db1e.mp4",
+    "bytes": 41406,
+    "sha256": "73301ef9f194db1e88b3b1c7ca669fb2c2cd0b3a4bc89267417112610eb6a294",
+    "poster": "/exercise-motion/ex26_kb_halo-poster-f9b4704bf1a57707.webp"
+  },
   "ex26_plank_updown": {
     "oneSide": false,
     "src": "/exercise-motion/ex26_plank_updown-1b973e3b33aa03aa.mp4",
