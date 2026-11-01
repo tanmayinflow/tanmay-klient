@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "gm_shoulder_twist": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_shoulder_twist-e2cc5db202680c1d.mp4",
+    "bytes": 22991,
+    "sha256": "e2cc5db202680c1db1a4854cb1eaa7688a977220ae87faae191a3c9765852a93",
+    "poster": "/exercise-motion/gm_shoulder_twist-poster-f1db2297a5f24f23.webp"
+  },
+  "ig28_neck_supine_lift": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig28_neck_supine_lift-3a231d45d3282677.mp4",
+    "bytes": 17491,
+    "sha256": "3a231d45d32826778566f6dedf8c5d4fcfca82925d2ced0bb6a22ae1e18ae51c",
+    "poster": "/exercise-motion/ig28_neck_supine_lift-poster-70afa8e9a2a0cd2f.webp"
+  },
+  "ex26_mob_prone_hip_rotation": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_prone_hip_rotation-2d0b91f5f629f260.mp4",
+    "bytes": 30067,
+    "sha256": "2d0b91f5f629f260c3348d5029ff4d2cd475c6dc7d623ace7b6b7ae41a251a6a",
+    "poster": "/exercise-motion/ex26_mob_prone_hip_rotation-poster-84a2e29d0795b401.webp"
+  },
+  "renegade": {
+    "oneSide": true,
+    "src": "/exercise-motion/renegade-7e4dcff7db4b4e75.mp4",
+    "bytes": 27565,
+    "sha256": "7e4dcff7db4b4e758611b124428c66cb5c81d047077b48949574cf08f3ff66e2",
+    "poster": "/exercise-motion/renegade-poster-3a4b835fd4b6bf89.webp"
+  },
+  "ex26_band_inversion": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_band_inversion-fac3e12df8c6fda3.mp4",
+    "bytes": 35779,
+    "sha256": "fac3e12df8c6fda363717e60b412c0d095ce86589de97de4418d29285b7d7dd9",
+    "poster": "/exercise-motion/ex26_band_inversion-poster-4e8d653e0081f70a.webp"
+  },
+  "ex26_mob_halfkneel_groin": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_halfkneel_groin-c33d5a41ec549014.mp4",
+    "bytes": 25666,
+    "sha256": "c33d5a41ec549014853d561a76098bac19221536dbe6a957f9a8af1c43801260",
+    "poster": "/exercise-motion/ex26_mob_halfkneel_groin-poster-1f6d46a2c742f5be.webp"
+  },
+  "ex26_mob_hip_ir_liftoff": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_hip_ir_liftoff-b5d112afe9bc26fa.mp4",
+    "bytes": 28376,
+    "sha256": "b5d112afe9bc26fa39af3d1740fd2a7a5b8b53b6b1f7e8a639685f1553e5b775",
+    "poster": "/exercise-motion/ex26_mob_hip_ir_liftoff-poster-c8fa26cb767799aa.webp"
+  },
+  "ex26_dns_oblique_reach": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_dns_oblique_reach-1d821d8802323b8e.mp4",
+    "bytes": 24563,
+    "sha256": "1d821d8802323b8e14ff3c784c481468eeedfd655bd2e0b48fa78b410f386ad0",
+    "poster": "/exercise-motion/ex26_dns_oblique_reach-poster-4356de20f3fb7319.webp"
+  },
   "ex26_dns_quad_forward": {
     "oneSide": false,
     "src": "/exercise-motion/ex26_dns_quad_forward-959d174e457e8f61.mp4",
