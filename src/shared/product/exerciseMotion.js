@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_clean_pull": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_clean_pull-a87d675ecd656bd7.mp4",
+    "bytes": 37879,
+    "sha256": "a87d675ecd656bd73bc907ec7a3bb87d4bc49867b47f6cf96fb92724c07e2bda",
+    "poster": "/exercise-motion/ex26_clean_pull-poster-b37a7cd196bc3e95.webp"
+  },
+  "ex26_kb_double_pushpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_kb_double_pushpress-02a72bbf0284ed91.mp4",
+    "bytes": 21880,
+    "sha256": "02a72bbf0284ed9117a10bf07e1dffbac36f1a69d0608144d1448b1549d48f99",
+    "poster": "/exercise-motion/ex26_kb_double_pushpress-poster-b80772540fd9c530.webp"
+  },
+  "ex26_side_armroll": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_side_armroll-baffacc4f271a4a5.mp4",
+    "bytes": 33576,
+    "sha256": "baffacc4f271a4a5b218ca48b08c88de254ead53326fdd86e2a4fe4e39f619c0",
+    "poster": "/exercise-motion/ex26_side_armroll-poster-44cebf7026fb7caa.webp"
+  },
+  "ex26_hang_clean": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hang_clean-fedaaf16d9437db6.mp4",
+    "bytes": 44835,
+    "sha256": "fedaaf16d9437db61b4b508f62e23766eb8caaa11239bd016f34f322d481b419",
+    "poster": "/exercise-motion/ex26_hang_clean-poster-063986ebcd29b837.webp"
+  },
+  "ex26_sideplank_row": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_sideplank_row-bf7c746f7f4e81b4.mp4",
+    "bytes": 26927,
+    "sha256": "bf7c746f7f4e81b48316839f90500b9840fd88b83d885ce1c457e6c49d752acf",
+    "poster": "/exercise-motion/ex26_sideplank_row-poster-46c37892b8fe3e3e.webp"
+  },
+  "ex26_heel_pull": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_heel_pull-d8a94b38d401de03.mp4",
+    "bytes": 16694,
+    "sha256": "d8a94b38d401de039c066d1d06cb6634dc1f82cc463e1c4dc5420a691cf4e1ed",
+    "poster": "/exercise-motion/ex26_heel_pull-poster-547e320592dfe70e.webp"
+  },
+  "ex26_antirotation_lunge": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_antirotation_lunge-6bb1e0df06519a63.mp4",
+    "bytes": 30912,
+    "sha256": "6bb1e0df06519a6351e7c9e65fa9eb83e6152b3ab65b6716b44a7d7f93b1977f",
+    "poster": "/exercise-motion/ex26_antirotation_lunge-poster-85c386c1214135fb.webp"
+  },
+  "ex26_single_box_pushoff": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_single_box_pushoff-1260ba44ec28f360.mp4",
+    "bytes": 29151,
+    "sha256": "1260ba44ec28f36052130ab56a525d463cabe41191af25936491cda474afacd7",
+    "poster": "/exercise-motion/ex26_single_box_pushoff-poster-127252773f510592.webp"
+  },
   "ig28_reverse_plank_slide": {
     "oneSide": false,
     "src": "/exercise-motion/ig28_reverse_plank_slide-495d99430ffff391.mp4",
