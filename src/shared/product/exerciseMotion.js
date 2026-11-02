@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_dns_side_reach": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_dns_side_reach-b71a922e63069803.mp4",
+    "bytes": 23188,
+    "sha256": "b71a922e63069803dd5578ea711067c2d5ec075fe7d382d1c144fe39c837c6eb",
+    "poster": "/exercise-motion/ex26_dns_side_reach-poster-4e35253465c64b3e.webp"
+  },
+  "ex26_dns_bear_row": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_dns_bear_row-775eb3bbbcba3d92.mp4",
+    "bytes": 23013,
+    "sha256": "775eb3bbbcba3d92049f772ea1a0f11288652710501e30ce5e9a8f6ea85a54fe",
+    "poster": "/exercise-motion/ex26_dns_bear_row-poster-56ab2c3c0561b58b.webp"
+  },
+  "ex26_dns_side_band": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_dns_side_band-c8066e2e446e55e4.mp4",
+    "bytes": 25784,
+    "sha256": "c8066e2e446e55e47bd0c9ed6e4709c556d50fadc6cd15a1ee51392dac71eaa8",
+    "poster": "/exercise-motion/ex26_dns_side_band-poster-68353e336ed19fd4.webp"
+  },
+  "ex26_hss_bear_tap": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hss_bear_tap-86585a403d6a0583.mp4",
+    "bytes": 32330,
+    "sha256": "86585a403d6a058394397c5a797ee4c17552c00415f82fa7735fa6bec0098475",
+    "poster": "/exercise-motion/ex26_hss_bear_tap-poster-5c0974b7a5e8d367.webp"
+  },
+  "ex26_mob_toe_ankle_coordination": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_toe_ankle_coordination-38af7e33575ba25e.mp4",
+    "bytes": 24405,
+    "sha256": "38af7e33575ba25e3382da37d7111bf282ebd537907da1aa6537faf93ec473a8",
+    "poster": "/exercise-motion/ex26_mob_toe_ankle_coordination-poster-882826c62a8381c0.webp"
+  },
+  "ig27_pike_footheld_extensions": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig27_pike_footheld_extensions-1eebc5a6d0515d27.mp4",
+    "bytes": 89217,
+    "sha256": "1eebc5a6d0515d2761231772a112379e50122eaf85e1e94d761188d6ad97da4e",
+    "poster": "/exercise-motion/ig27_pike_footheld_extensions-poster-b31ba59b5c630c15.webp"
+  },
+  "ig27_stork_squat": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig27_stork_squat-3ed66f9928bde5fd.mp4",
+    "bytes": 20313,
+    "sha256": "3ed66f9928bde5fdf1396db44a83bd27abc5e9538de0872ce7c2b90276e11f90",
+    "poster": "/exercise-motion/ig27_stork_squat-poster-61184a6d957d611d.webp"
+  },
+  "ig26_band_hip_flexion": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig26_band_hip_flexion-c8cd6f8c041a348f.mp4",
+    "bytes": 22571,
+    "sha256": "c8cd6f8c041a348f051f31bffd6c13d19a8702bf12e8bc4db1cd94f70df0aad1",
+    "poster": "/exercise-motion/ig26_band_hip_flexion-poster-ce5f8cdf28274ff8.webp"
+  },
   "gm_shoulder_twist": {
     "oneSide": false,
     "src": "/exercise-motion/gm_shoulder_twist-e2cc5db202680c1d.mp4",
