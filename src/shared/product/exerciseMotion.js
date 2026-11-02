@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_ladder_lateral": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_ladder_lateral-e8bf9b0e6a5bff9e.mp4",
+    "bytes": 29898,
+    "sha256": "e8bf9b0e6a5bff9e7b0c14d4df0625553eaca0e8f4398e9a999e9793630ff84c",
+    "poster": "/exercise-motion/ex26_ladder_lateral-poster-6a2bca254417b80e.webp"
+  },
+  "ex26_py_pogo_forward": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_pogo_forward-56fc693e97f7ebf5.mp4",
+    "bytes": 24120,
+    "sha256": "56fc693e97f7ebf568a86efe526ad1493453ed950168d6098fe09f3fc7033c7e",
+    "poster": "/exercise-motion/ex26_py_pogo_forward-poster-242f90af4d392d1e.webp"
+  },
+  "ex26_py_pogo_lateral": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_pogo_lateral-3601e3d770aa2a48.mp4",
+    "bytes": 36976,
+    "sha256": "3601e3d770aa2a482e8deda514c5bfe712e03b536a53e7e4fedb8b98b764dbb6",
+    "poster": "/exercise-motion/ex26_py_pogo_lateral-poster-4579c25c79fc4c3b.webp"
+  },
+  "ex26_lateral_zigzag": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_lateral_zigzag-7c6b331d3b087f58.mp4",
+    "bytes": 42599,
+    "sha256": "7c6b331d3b087f5869c60f5a9343a610cea7e82995a00dc2adc3275a870b4db7",
+    "poster": "/exercise-motion/ex26_lateral_zigzag-poster-09670dfd18161cb4.webp"
+  },
+  "ex26_py_single_pogo_forward": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_single_pogo_forward-6ceb1d4d6f9f3490.mp4",
+    "bytes": 25962,
+    "sha256": "6ceb1d4d6f9f3490398a50983f711b69e366d94f4e7739b1edba3ff69d0ec8ad",
+    "poster": "/exercise-motion/ex26_py_single_pogo_forward-poster-00580563df1e9124.webp"
+  },
+  "ex26_py_broad_backward": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_broad_backward-45e9d3699db53714.mp4",
+    "bytes": 30888,
+    "sha256": "45e9d3699db53714d24b638609e93d8dc4e35ec8899ca299536c95809db58f66",
+    "poster": "/exercise-motion/ex26_py_broad_backward-poster-d459d9153cbc61fa.webp"
+  },
+  "ex26_py_hop_lateral_out": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_hop_lateral_out-b1c764de631c5a9d.mp4",
+    "bytes": 37725,
+    "sha256": "b1c764de631c5a9d36a091496cc6ac114ec496b90086bfd7e715beee5d9aa5b6",
+    "poster": "/exercise-motion/ex26_py_hop_lateral_out-poster-4e74a82050f78fc2.webp"
+  },
+  "ex26_py_hop_medial_in": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_hop_medial_in-8f1174f8108e5c30.mp4",
+    "bytes": 36368,
+    "sha256": "8f1174f8108e5c30dd31260ee24bb993101198a4ff098caa3cf67316a63ab70b",
+    "poster": "/exercise-motion/ex26_py_hop_medial_in-poster-7ea750ca1fa3a674.webp"
+  },
   "ex26_lateral_cone_jump": {
     "oneSide": false,
     "src": "/exercise-motion/ex26_lateral_cone_jump-f0f926bed9b3049f.mp4",
