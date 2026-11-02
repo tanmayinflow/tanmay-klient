@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_lateral_cone_jump": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_lateral_cone_jump-f0f926bed9b3049f.mp4",
+    "bytes": 32209,
+    "sha256": "f0f926bed9b3049fc84583e7651ff5d8a0e803158e4e3ade63b17a8e28872c38",
+    "poster": "/exercise-motion/ex26_lateral_cone_jump-poster-2cf891288834ec6e.webp"
+  },
+  "ex26_mb_backward": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mb_backward-534c7c9002732af7.mp4",
+    "bytes": 19830,
+    "sha256": "534c7c9002732af7cbf56da6466333f089808fcb393a91f594646436fd8c4aec",
+    "poster": "/exercise-motion/ex26_mb_backward-poster-940b12423bb478e5.webp"
+  },
+  "ex26_cone_jump": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_cone_jump-babc8e326812d58b.mp4",
+    "bytes": 34251,
+    "sha256": "babc8e326812d58b524ff1b5af3f495106e57c0b8571ec889abbfb41026c0adb",
+    "poster": "/exercise-motion/ex26_cone_jump-poster-e4687076f2a7358e.webp"
+  },
+  "ex26_alternate_box_pushoff": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_alternate_box_pushoff-0a605c2315440145.mp4",
+    "bytes": 33666,
+    "sha256": "0a605c23154401458421dc41d0ac7e63f411d7ea8014f195ee7ab30ee6c8fc4b",
+    "poster": "/exercise-motion/ex26_alternate_box_pushoff-poster-1668ed98214cd364.webp"
+  },
+  "ex26_hss_deadbug_band": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hss_deadbug_band-7edc9ef04defdb49.mp4",
+    "bytes": 23451,
+    "sha256": "7edc9ef04defdb498e00c2f4cbf9df46b36d9d53d55590ea0e956d2e2bc5595a",
+    "poster": "/exercise-motion/ex26_hss_deadbug_band-poster-8c4e43bef0c6c34d.webp"
+  },
+  "ex26_backpedal": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_backpedal-ac644e2294877bb6.mp4",
+    "bytes": 37412,
+    "sha256": "ac644e2294877bb6ac858e5d93e157cfefd6e5d32e1e59c721c9dd169a9f6c0d",
+    "poster": "/exercise-motion/ex26_backpedal-poster-2072f321f7da6b9c.webp"
+  },
+  "ex26_ladder_forward": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ladder_forward-cda47fb6c3c0da02.mp4",
+    "bytes": 36615,
+    "sha256": "cda47fb6c3c0da025cf1ccc479243dabee6f1ab12442506ad5ada0752c40ebf6",
+    "poster": "/exercise-motion/ex26_ladder_forward-poster-e2bcb8bdb9d19928.webp"
+  },
+  "ex26_mb_rot_slam": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mb_rot_slam-eb75d74757f05382.mp4",
+    "bytes": 63490,
+    "sha256": "eb75d74757f0538276576318496a635083b4355001b9174c009f869659b5112c",
+    "poster": "/exercise-motion/ex26_mb_rot_slam-poster-2dea69c46eae23a2.webp"
+  },
   "ex26_clean_pull": {
     "oneSide": false,
     "src": "/exercise-motion/ex26_clean_pull-a87d675ecd656bd7.mp4",
