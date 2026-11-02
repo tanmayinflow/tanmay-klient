@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ig28_reverse_plank_slide": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig28_reverse_plank_slide-495d99430ffff391.mp4",
+    "bytes": 25651,
+    "sha256": "495d99430ffff3917a132d9c7fa2bf116fd310482680b7454b945fc649ace9df",
+    "poster": "/exercise-motion/ig28_reverse_plank_slide-poster-da2cd0b49fc44a59.webp"
+  },
+  "ig27_rotational_sl_rdl": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig27_rotational_sl_rdl-835d173da7135b25.mp4",
+    "bytes": 22025,
+    "sha256": "835d173da7135b2559566e14d8520ad1b03c2a0c45451274c85884df4dc218d0",
+    "poster": "/exercise-motion/ig27_rotational_sl_rdl-poster-6003e95105441b32.webp"
+  },
+  "ex26_kb_lowwindmill": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_kb_lowwindmill-5a1080cdd277e576.mp4",
+    "bytes": 15446,
+    "sha256": "5a1080cdd277e57628015bf20c9412f870f9d7ab82f13492b5a5bbc5b243bae8",
+    "poster": "/exercise-motion/ex26_kb_lowwindmill-poster-8393c357c146813b.webp"
+  },
+  "ex26_ball_suitcasepass": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_suitcasepass-b2ef849f7d8422d8.mp4",
+    "bytes": 39813,
+    "sha256": "b2ef849f7d8422d8eb3851edb1a81c1c56bc729a249f66f028b8183c24f42b6c",
+    "poster": "/exercise-motion/ex26_ball_suitcasepass-poster-43cb1671a22e6578.webp"
+  },
+  "ex26_ball_runner": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_runner-8f4e46c3f67fa546.mp4",
+    "bytes": 27015,
+    "sha256": "8f4e46c3f67fa54625e6f705d5dd03c36498a337e7ec7e52e4a52d1dd2ae606a",
+    "poster": "/exercise-motion/ex26_ball_runner-poster-7286a7ab5b6e1b2f.webp"
+  },
+  "ex26_single_broad_stick": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_single_broad_stick-b9f2c190242f0dc8.mp4",
+    "bytes": 37940,
+    "sha256": "b9f2c190242f0dc8d74216f8bc5e89165be7961b260494beb72868021b25c41b",
+    "poster": "/exercise-motion/ex26_single_broad_stick-poster-8d6a338c42ccab4a.webp"
+  },
+  "ex26_marble_pickup": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_marble_pickup-f4ccc60a7711b930.mp4",
+    "bytes": 33627,
+    "sha256": "f4ccc60a7711b9303bd316f9f9eed3a72848313eac12014e5b77a9f7ea55ee58",
+    "poster": "/exercise-motion/ex26_marble_pickup-poster-dc1cb153e0c52f64.webp"
+  },
+  "ex26_lateral_shuffle": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_lateral_shuffle-42ac950c265127ed.mp4",
+    "bytes": 41231,
+    "sha256": "42ac950c265127edd04cd989938352a8f8f0ee109a0829029a7062c1cb2438cc",
+    "poster": "/exercise-motion/ex26_lateral_shuffle-poster-503af32e941335f5.webp"
+  },
   "ex26_dns_side_reach": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_dns_side_reach-b71a922e63069803.mp4",
