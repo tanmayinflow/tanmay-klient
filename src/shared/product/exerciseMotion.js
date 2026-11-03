@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "wpullup": {
+    "oneSide": false,
+    "src": "/exercise-motion/wpullup-f77d9aa81ff9c407.mp4",
+    "bytes": 31925,
+    "sha256": "f77d9aa81ff9c4072b81fc058c6b2a0d1be1f9cc38258e0fbfc6c99a1c98e499",
+    "poster": "/exercise-motion/wpullup-poster-feb8cfa70280009e.webp"
+  },
+  "exppull": {
+    "oneSide": false,
+    "src": "/exercise-motion/exppull-be0731891adfe52e.mp4",
+    "bytes": 22407,
+    "sha256": "be0731891adfe52e76a23ed21ddc0672806fb8b60ee9b758d03f88de3345065c",
+    "poster": "/exercise-motion/exppull-poster-bc342cb655ed62ef.webp"
+  },
+  "ex26_bb_skullcrusher": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_bb_skullcrusher-bf63ac8dde70d747.mp4",
+    "bytes": 31805,
+    "sha256": "bf63ac8dde70d747e182594bf63b0818b63faf7a0d4cad4f5c66e6fc242d57d1",
+    "poster": "/exercise-motion/ex26_bb_skullcrusher-poster-0501591b64f562a8.webp"
+  },
+  "archpush": {
+    "oneSide": false,
+    "src": "/exercise-motion/archpush-e534d561dc317f94.mp4",
+    "bytes": 30545,
+    "sha256": "e534d561dc317f945e23330d95ab4304de7e900d48ebaf3d38920034b2fd2a5e",
+    "poster": "/exercise-motion/archpush-poster-a2abfbc885ad980f.webp"
+  },
+  "ex26_stagger_pushup": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_stagger_pushup-067e710bc6d28ae4.mp4",
+    "bytes": 27806,
+    "sha256": "067e710bc6d28ae42b50c7766fd5612a90fcc749e204e7df9d18e0a01f1dffdf",
+    "poster": "/exercise-motion/ex26_stagger_pushup-poster-ea3ca0f01ec7199e.webp"
+  },
+  "standingcalfmachine": {
+    "oneSide": false,
+    "src": "/exercise-motion/standingcalfmachine-6bb604d9ba3930d8.mp4",
+    "bytes": 40437,
+    "sha256": "6bb604d9ba3930d8c8919eae00cf81476b212eddb3f89863ad621712b85f4e54",
+    "poster": "/exercise-motion/standingcalfmachine-poster-a3b0b6a477e0eb3e.webp"
+  },
+  "sissysquat": {
+    "oneSide": false,
+    "src": "/exercise-motion/sissysquat-f6564bb9cdc2a1ee.mp4",
+    "bytes": 30224,
+    "sha256": "f6564bb9cdc2a1ee01a94f53d3aa92e4c32af9c7d163c95d25a8528517c81d34",
+    "poster": "/exercise-motion/sissysquat-poster-6294629a1a0b2a19.webp"
+  },
+  "ex26_dns_bear_transition": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_dns_bear_transition-11ec040169bc34c7.mp4",
+    "bytes": 34190,
+    "sha256": "11ec040169bc34c79f48815568af8d9dc3225f32e6e1fef6ad88ecfe206c404f",
+    "poster": "/exercise-motion/ex26_dns_bear_transition-poster-99678fdd898197a1.webp"
+  },
   "ex26_ladder_lateral": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_ladder_lateral-e8bf9b0e6a5bff9e.mp4",
