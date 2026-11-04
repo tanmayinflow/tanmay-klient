@@ -1,5 +1,68 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_cable_adduction": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_cable_adduction-ff264d8d071e79c9.mp4",
+    "bytes": 26012,
+    "sha256": "ff264d8d071e79c94c9daf7580e2f12924e8e6b0960e12bd20f1d7f7d2e11f86",
+    "poster": "/exercise-motion/ex26_cable_adduction-poster-407cc8ce62be2ca8.webp"
+  },
+  "woodchop": {
+    "oneSide": true,
+    "src": "/exercise-motion/woodchop-a69fa083486f701b.mp4",
+    "bytes": 33041,
+    "sha256": "a69fa083486f701baa4bf7bcb98e4addbc2c4dc908c62919b7b835528e27d3c4",
+    "poster": "/exercise-motion/woodchop-poster-2184ce63eae34e97.webp"
+  },
+  "machinechestpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/machinechestpress-ba55ec2da7ef4650.mp4",
+    "bytes": 36126,
+    "sha256": "ba55ec2da7ef465047fa15563254d1a36344ed90b153bfc9fcefb2c4c485a697",
+    "poster": "/exercise-motion/machinechestpress-poster-a8fffb3c55a7658b.webp"
+  },
+  "lyinglegcurl": {
+    "oneSide": false,
+    "src": "/exercise-motion/lyinglegcurl-32e5f4d582786cbb.mp4",
+    "bytes": 27596,
+    "sha256": "32e5f4d582786cbb0184ccb37511ff3d579b627ed123f6e9c12b6ea29c1bd77c",
+    "poster": "/exercise-motion/lyinglegcurl-poster-b105614aa1acc6e1.webp"
+  },
+  "cablefly": {
+    "oneSide": false,
+    "src": "/exercise-motion/cablefly-909e3845957afa69.mp4",
+    "bytes": 30416,
+    "sha256": "909e3845957afa69f5c1f5011f580ba6f31b0304bc68348376b9bc773c3d748c",
+    "poster": "/exercise-motion/cablefly-poster-120d164aa829aaf0.webp"
+  },
+  "cablelatraise": {
+    "oneSide": true,
+    "src": "/exercise-motion/cablelatraise-8f1624bfdd67a9ff.mp4",
+    "bytes": 23634,
+    "sha256": "8f1624bfdd67a9ff88ee92c9fcb513a2e350405ccd9aa9df7a1bcf07d168735e",
+    "poster": "/exercise-motion/cablelatraise-poster-cea78c8fa7207670.webp"
+  },
+  "inclrow": {
+    "oneSide": false,
+    "src": "/exercise-motion/inclrow-9c6867e194a94549.mp4",
+    "bytes": 26587,
+    "sha256": "9c6867e194a94549deec25cd9de3fe5145b44037dad80ae580c5613c9beab6d5",
+    "poster": "/exercise-motion/inclrow-poster-05aebb6aaac97a6d.webp"
+  },
+  "vp26_seated_db_press": {
+    "oneSide": false,
+    "src": "/exercise-motion/vp26_seated_db_press-f6caece39908d3a5.mp4",
+    "bytes": 22852,
+    "sha256": "f6caece39908d3a5667a4381c0d6ff79a40064a79c16365c0ef30e2d4dc95930",
+    "poster": "/exercise-motion/vp26_seated_db_press-poster-1c9d225a9a01272d.webp"
+  },
+  "vpul26_foot_assisted_chin": {
+    "oneSide": false,
+    "src": "/exercise-motion/vpul26_foot_assisted_chin-5002234bbe542bbe.mp4",
+    "bytes": 27696,
+    "sha256": "5002234bbe542bbedc2081afaf2ac08d3395295e28d9e748f6b5557e9bd3c35c",
+    "poster": "/exercise-motion/vpul26_foot_assisted_chin-poster-e7f67758d552064d.webp"
+  },
   "ex26_kb_thruster": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_kb_thruster-4b48aed86498e6d8.mp4",
