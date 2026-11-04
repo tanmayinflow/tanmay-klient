@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "burpee": {
+    "oneSide": false,
+    "src": "/exercise-motion/burpee-f14ee8173ccbee43.mp4",
+    "bytes": 53028,
+    "sha256": "f14ee8173ccbee43ef391656133c99f190b4222d73420e348084f8628c77fe36",
+    "poster": "/exercise-motion/burpee-poster-87cb57e20d69de89.webp"
+  },
+  "bicycle": {
+    "oneSide": false,
+    "src": "/exercise-motion/bicycle-b483c552d0a052cd.mp4",
+    "bytes": 33065,
+    "sha256": "b483c552d0a052cd4361a8f187a730887a9ada9c42b77d5402bf2cf33bddd90d",
+    "poster": "/exercise-motion/bicycle-poster-45977ebc044a7a55.webp"
+  },
+  "ex26_hollow_rock": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hollow_rock-0ef6a5ef1571c2ff.mp4",
+    "bytes": 14035,
+    "sha256": "0ef6a5ef1571c2ff00b60cc81b414b139f91d23a4feb30eb25b97ef73008468f",
+    "poster": "/exercise-motion/ex26_hollow_rock-poster-953ee312ddf63e27.webp"
+  },
+  "straightarmpd": {
+    "oneSide": false,
+    "src": "/exercise-motion/straightarmpd-4be11a13e068d2c8.mp4",
+    "bytes": 30615,
+    "sha256": "4be11a13e068d2c82b49b91c200ce232a7e0eb13c986da4cc03fb389dad65107",
+    "poster": "/exercise-motion/straightarmpd-poster-77ea66aaa2e6e738.webp"
+  },
+  "ex26_body_saw": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_body_saw-7a0fd04396be333c.mp4",
+    "bytes": 13022,
+    "sha256": "7a0fd04396be333c9b1730fdd7f0439125f79cc6b32edb312cb839a1c7cc5f07",
+    "poster": "/exercise-motion/ex26_body_saw-poster-71592bbb6fb3f056.webp"
+  },
+  "hacksquat": {
+    "oneSide": false,
+    "src": "/exercise-motion/hacksquat-cb72926002ff2bc5.mp4",
+    "bytes": 43015,
+    "sha256": "cb72926002ff2bc528db4f5ed00d44dd68b282b380876f75777696e6ef1fe58d",
+    "poster": "/exercise-motion/hacksquat-poster-becc9dc6b568a966.webp"
+  },
+  "ex26_hss_birddog_elbow": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_hss_birddog_elbow-0a8312c6be6ce114.mp4",
+    "bytes": 27383,
+    "sha256": "0a8312c6be6ce114d3d8944c45687a64f9a1c17bd61b343443023ffd9a11605d",
+    "poster": "/exercise-motion/ex26_hss_birddog_elbow-poster-5a0ee7d14e909988.webp"
+  },
+  "an_ohcabletri": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_ohcabletri-9303855961e8e33a.mp4",
+    "bytes": 24284,
+    "sha256": "9303855961e8e33aebafd191b9db652b4637440084c2034738b22385eab4f622",
+    "poster": "/exercise-motion/an_ohcabletri-poster-abf7ffa2145263f9.webp"
+  },
   "wpullup": {
     "oneSide": false,
     "src": "/exercise-motion/wpullup-f77d9aa81ff9c407.mp4",
