@@ -107,12 +107,12 @@ test('one custom block prevents a shared delivery stamp before JSON erases own u
  assert.equal(TV.shoulderDeliveredViewPolicy({...d,shoulderAudit:undefined}),null);
 });
 
-test('public shoulder package excludes all53 private Main entries and their stamps',()=>{
- assert.equal(Object.keys(publicEntries).length,68);
+test('public shoulder package includes shared default cards without account metadata',()=>{
+ assert.equal(Object.keys(publicEntries).length,121);
  assert.ok(Object.values(publicEntries).every(e=>!Object.hasOwn(e,'metadata')&&!Object.hasOwn(e,'profiles')));
- const privateIds=Object.keys(context.entries).filter(id=>!publicEntries[id]);assert.equal(privateIds.length,context.role==='main'?53:0);
+ const privateIds=Object.keys(context.entries).filter(id=>!publicEntries[id]);assert.equal(privateIds.length,0);
  for(const id of privateIds){assert.ok(row(id));assert.equal(bundle(id,[block(id)]).exercises[0].shoulderAudit,undefined);assert.equal(TV.shoulderViewPolicyFor(row(id),meta[id],{...context,role:'client'}),null);}
- if(context.role==='client'){assert.equal(context.entries.an_inclfly,undefined);assert.equal(row('an_inclfly'),undefined);}
+ if(context.role==='client'){assert.ok(context.entries.an_inclfly);assert.ok(row('an_inclfly'));}
 });
 
 test('retained Shoulder views keep earlier recording capabilities and only correct the reviewed family',()=>{

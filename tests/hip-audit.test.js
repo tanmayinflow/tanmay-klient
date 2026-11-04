@@ -76,11 +76,11 @@ test('public delivery opts the whole identity out before JSON loses own block ov
  assert.equal(TV.hipDeliveredPolicy({...payload,progression:['Own','Own']}),null);
 });
 
-test('public metadata has no private profiles; thirteen private Main entries never get a public stamp',()=>{
- assert.equal(Object.keys(publicEntries).length,52);
+test('shared public defaults contain no account profiles or metadata',()=>{
+ assert.equal(Object.keys(publicEntries).length,65);
  assert.ok(Object.values(publicEntries).every(e=>!Object.hasOwn(e,'profiles')&&!Object.hasOwn(e,'metadata')));
  const privateIds=Object.keys(context.entries).filter(id=>!publicEntries[id]);
- assert.equal(privateIds.length,context.role==='main'?13:0);
+ assert.equal(privateIds.length,0);
  for(const id of privateIds){assert.equal(bundle(id,[block(id)]).exercises[0].hipAudit,undefined);assert.equal(TV.hipPolicyFor(row(id),meta[id],{...context,role:'client'}),null);}
 });
 

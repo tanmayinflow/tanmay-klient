@@ -1,5 +1,47 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_kb_thruster": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_kb_thruster-4b48aed86498e6d8.mp4",
+    "bytes": 21244,
+    "sha256": "4b48aed86498e6d81f2a181c3a6021b1863d6c7d6b372f977cb96ca6e6a4b6fb",
+    "poster": "/exercise-motion/ex26_kb_thruster-poster-effcdb38b75f5082.webp"
+  },
+  "kb26_double_deadlift": {
+    "oneSide": false,
+    "src": "/exercise-motion/kb26_double_deadlift-ab7f98d6f1f8c49e.mp4",
+    "bytes": 22612,
+    "sha256": "ab7f98d6f1f8c49e31d6932d1356078c55820218b03a9491fb15e25ad7056806",
+    "poster": "/exercise-motion/kb26_double_deadlift-poster-7388c16a6cde7857.webp"
+  },
+  "kb26_goblet_box": {
+    "oneSide": false,
+    "src": "/exercise-motion/kb26_goblet_box-8697254cf84ef9cb.mp4",
+    "bytes": 20370,
+    "sha256": "8697254cf84ef9cbe393ab3b9863cc4a8f7513301dc8db7e6c633a16d2b5ea5f",
+    "poster": "/exercise-motion/kb26_goblet_box-poster-c3b12ef5ff81761d.webp"
+  },
+  "chestsupprow": {
+    "oneSide": false,
+    "src": "/exercise-motion/chestsupprow-bbbc303678c30ebf.mp4",
+    "bytes": 29978,
+    "sha256": "bbbc303678c30ebf5f742d99edce7e6c37d130a507ed9e031efe18ad8aa5b221",
+    "poster": "/exercise-motion/chestsupprow-poster-f74fc350c0ba4645.webp"
+  },
+  "beltsquat": {
+    "oneSide": false,
+    "src": "/exercise-motion/beltsquat-866ba5d3587f7f4d.mp4",
+    "bytes": 29195,
+    "sha256": "866ba5d3587f7f4d6e039edac0b72b3d77a4ec8fcb8ea48a83b87ea95023b09d",
+    "poster": "/exercise-motion/beltsquat-poster-fc5c30292eb61d9b.webp"
+  },
+  "ex26_barbell_thruster": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_barbell_thruster-f6d83d32306f96ef.mp4",
+    "bytes": 32555,
+    "sha256": "f6d83d32306f96efd3a099b1c03f4c17241012f023b826e89cb47a128adb443b",
+    "poster": "/exercise-motion/ex26_barbell_thruster-poster-9ba45ca32863caaa.webp"
+  },
   "legpress": {
     "oneSide": false,
     "src": "/exercise-motion/legpress-b023d1c45319fd40.mp4",

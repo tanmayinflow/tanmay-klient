@@ -32,7 +32,7 @@ const ownValue=(o,k,v)=>{assert.ok(Object.hasOwn(o,k));assert.ok(Object.is(o[k],
 const body=(start,end)=>{const s=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8'),a=s.indexOf(start),b=s.indexOf(end,a+start.length);assert.ok(a>=0&&b>a,'Actual App consumer boundary');return s.slice(a,b);};
 
 test('position/hold current scope adopts actual defaults and guards every captured source profile',()=>{
- assert.equal(Object.keys(context.entries).length,context.role==='main'?221:46);assert.equal(Object.keys(publicEntries).length,46);
+ assert.equal(Object.keys(context.entries).length,221);assert.equal(Object.keys(publicEntries).length,221);
  for(const[id,local]of Object.entries(context.entries)){
   assert.ok(row(id),id);assert.ok(policy(id),id+' actual seeded trust');
   for(const original of local.profiles){
@@ -95,7 +95,7 @@ test('actual legacy App reads a reviewed own-null context without restoring old 
 });
 
 test('public delivery is content-bound and rejects mixed custom prescriptions and private cards',()=>{
- const privateIds=Object.keys(context.entries).filter(id=>!publicEntries[id]);assert.equal(privateIds.length,context.role==='main'?175:0);
+ const privateIds=Object.keys(context.entries).filter(id=>!publicEntries[id]);assert.equal(privateIds.length,0);
  for(const id of privateIds){assert.equal(bundle(id,[block(id)]).exercises[0].positionHoldAudit,undefined);assert.equal(TV.positionHoldViewPolicyFor(row(id),meta[id],{...context,role:'client'}),null);}
  for(const id of Object.keys(publicEntries)){
   const delivered=bundle(id,[block(id)]).exercises[0];assert.ok(TV.positionHoldDeliveredPolicy(delivered),id);assert.equal(Object.hasOwn(delivered,'notes'),false);assert.equal(Object.hasOwn(delivered,'taxonomy'),false);

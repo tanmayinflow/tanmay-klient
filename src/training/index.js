@@ -77,3 +77,4 @@ export {COMPLEX_TASK_AUDIT_ENTRIES} from './catalogComplexTaskAuditData.js';
 export * from './catalogLandingAudit.js';
 export {LANDING_AUDIT_ENTRIES,LANDING_BLOCK_POLICY_FIELDS} from './catalogLandingAuditData.js';
 export * from './landingRecordingContract.js';
+export * from './catalogParity.js';

@@ -7,6 +7,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadLibrary, loadEngine, seedOrder, SEED_NAMES } from "../scripts/lib/exercise-library.mjs";
 import { TRAINING_V2_EXERCISES } from "../src/training/catalogV2.js";
+import { LIBRARY_PARITY_ADDITIONS } from "../src/training/catalogParityData.js";
+import { EXERCISE_EQUIPMENT } from "../src/training/exerciseEquipment.js";
 
 const lib = loadLibrary();
 const E = loadEngine();
@@ -18,7 +20,7 @@ test("271 původních řádků je ve stejném pořadí · rozšíření V2 lež�
   assert.equal(order.length, 271);
   assert.equal(SEED_NAMES.length, 16);
   assert.deepEqual(rows.slice(0, 271).map((x) => x.id), order);
-  assert.equal(rows.length, 271 + TRAINING_V2_EXERCISES.length);
+  assert.equal(rows.length, 271 + TRAINING_V2_EXERCISES.length + LIBRARY_PARITY_ADDITIONS.client.length);
   assert.equal(new Set(rows.map((x) => x.id)).size, rows.length);
   for (const x of rows) assert.ok(lib.meta[x.id], `${x.id} nemá TEX_META`);
   for (const id of Object.keys(lib.meta)) assert.ok(byId[id], `TEX_META zná ${id}, knihovna ne`);
@@ -26,7 +28,7 @@ test("271 původních řádků je ve stejném pořadí · rozšíření V2 lež�
 
 test("taxonomie je úplná · žádný neznámý klíč", () => {
   const pat = new Set(lib.taxonomy.patterns.map((x) => x.k));
-  const eq = new Set(lib.taxonomy.equipment.map((x) => x.k));
+  const eq = new Set([...lib.taxonomy.equipment.map((x) => x.k), ...EXERCISE_EQUIPMENT.map(x=>x.id)]);
   const mus = new Set(lib.taxonomy.muscles.map((x) => x.k));
   const jo = new Set(lib.taxonomy.joints.map((x) => x.k));
   for (const x of rows) {

@@ -6,7 +6,7 @@ const resolve=(row,meta)=>TV.resolveExercise(row,meta,undefined,...Array(6).fill
 const adopted=(id,original=context.entries[id].profiles[0])=>TV.applyBreathingAudit({tEx:[original]},{breathingAuditContext:context,auditMetadata:{[id]:context.entries[id].metadata}}).tEx[0];
 
 test('breathing migration preserves personal fields, deleted rows and exact role ownership',()=>{
- assert.equal(Object.keys(context.entries).length,context.role==='main'?7:6);assert.equal(Object.keys(TV.BREATHING_AUDIT_ENTRIES).length,6);
+ assert.equal(Object.keys(context.entries).length,7);assert.equal(Object.keys(TV.BREATHING_AUDIT_ENTRIES).length,7);
  for(const[id,entry]of Object.entries(context.entries))for(const before of entry.profiles){
   const copy=structuredClone(before),after=adopted(id,before);assert.deepEqual(before,copy);assert.ok(TV.breathingPolicyFor(after,entry.metadata,context),id);
   for(const key of ['eq','exe','warmupPolicy','requiresCoach','source'])for(const value of [null,undefined]){const own={...before,[key]:value};assert.equal(adopted(id,own),own,id+'/'+key);}
@@ -14,7 +14,7 @@ test('breathing migration preserves personal fields, deleted rows and exact role
   assert.equal(TV.breathingPolicyFor(after,{...entry.metadata,personal:undefined},context),null);
  }
  const history=[{actual:{durationSec:73,addedWeight:null},side:'L'}],result=TV.applyBreathingAudit({tEx:[],history},{breathingAuditContext:context,auditMetadata:{}});assert.deepEqual(result.tEx,[]);assert.equal(result.history,history);
- assert.ok(!TV.BREATHING_AUDIT_ENTRIES.jg_simhasana);if(context.role==='client')assert.ok(!context.entries.jg_simhasana);
+ assert.ok(TV.BREATHING_AUDIT_ENTRIES.jg_simhasana);assert.ok(context.entries.jg_simhasana); // Public default, shared by explicit catalogue-parity approval.
 });
 
 test('actual breathing selection requires opt-in, precise equipment and a separate retention decision',()=>{

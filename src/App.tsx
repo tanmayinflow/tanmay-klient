@@ -6391,7 +6391,7 @@ const TEX_META_V2 = Object.fromEntries(Object.entries(TV.TRAINING_V2_META).map((
   for (const k of Object.keys(m)) { if (k !== "src" && k !== "ev") out[k] = m[k]; }
   return [id, out];
 }));
-const TEX_META = { ...TEX_META_BASE, ...TEX_META_V2 };
+const TEX_META = { ...TEX_META_BASE, ...TEX_META_V2, ...TV.LIBRARY_PARITY_META };
 
 // ---- the resolvers · the row wins, then the audit, then a derived default -----
 // Three sources in a fixed order, and only ever these three. A person's own edit
@@ -11262,9 +11262,11 @@ function tpGenerate(p, exs, sore, obs = {}) {
         const o = { level, equip, injuries, prefMus, prefJ, pat, exclude: used, recMax,
                     roles: ["strength", "hypertrophy", "power"], block: "strength",
                     excludeCanon: usedCanon, excludeFamilies: usedFamilies };
-        // A block must never come out empty for want of variety: if the family filter
-        // leaves nothing, the family filter is the thing that yields.
+        // Prefer a different movement pattern before repeating a family, matching
+        // the main application's ranking of the shared exercise catalogue.
         let ranked = tpRank(exs, o);
+        if (!ranked.length) ranked = tpRank(exs, { ...o, pat: null });
+        if (!ranked.length) ranked = tpRank(exs, { ...o, recMax: null });
         if (!ranked.length) ranked = tpRank(exs, { ...o, excludeFamilies: null });
         const ex = ranked[0] || null;
         const r = add(ex);
@@ -16254,7 +16256,7 @@ export default function App() {
     } finally { unsubscribe(); }
   };
   const seedTrainingColl = () => persistColl((c) => {
-    if (!c.tSeeded) return tvApply(TV.seedExerciseExpansion({ ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] }, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT,lowerLegAuditContext:LOWER_LEG_AUDIT_CONTEXT,hipAuditContext:HIP_AUDIT_CONTEXT,shoulderAuditContext:SHOULDER_AUDIT_CONTEXT,elbowHandAuditContext:ELBOW_HAND_AUDIT_CONTEXT,landingAuditContext:LANDING_AUDIT_CONTEXT,complexTaskAuditContext:COMPLEX_TASK_AUDIT_CONTEXT,throwAuditContext:THROW_AUDIT_CONTEXT,breathingAuditContext:BREATHING_AUDIT_CONTEXT,positionHoldAuditContext:POSITION_HOLD_AUDIT_CONTEXT, auditMetadata:TEX_META }));
+    if (!c.tSeeded) return tvApply(TV.seedCompleteExerciseLibrary('client', { ...c, tSeeded: true, exAudit: 1, tSeedV2: true, tSeedV3: true, tSeedV4: true, tSeedV5: true, tSeedV6: true, tSeedV7: true, tSeedV8: true, tSeedV9: true, tSeedV10: true, tSer: TSER_SEED, tEx: [...TEX_ALL, ...(c.tEx || [])], tWo: [...TWO_SEED, ...(c.tWo || [])], tPl: [...TPL_SEED, ...(c.tPl || [])], tLog: c.tLog || [] }, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT,lowerLegAuditContext:LOWER_LEG_AUDIT_CONTEXT,hipAuditContext:HIP_AUDIT_CONTEXT,shoulderAuditContext:SHOULDER_AUDIT_CONTEXT,elbowHandAuditContext:ELBOW_HAND_AUDIT_CONTEXT,landingAuditContext:LANDING_AUDIT_CONTEXT,complexTaskAuditContext:COMPLEX_TASK_AUDIT_CONTEXT,throwAuditContext:THROW_AUDIT_CONTEXT,breathingAuditContext:BREATHING_AUDIT_CONTEXT,positionHoldAuditContext:POSITION_HOLD_AUDIT_CONTEXT, auditMetadata:TEX_META }));
     let next = c;
     const seedById = Object.fromEntries(TEX_ALL.map((x) => [x.id, x]));
     if (!next.tSeedV2) {
@@ -16555,7 +16557,7 @@ export default function App() {
       const fixed = tExAuditFix(next.tEx || []);
       next = { ...next, exAudit: EX_AUDIT_VER, exAuditN: fixed.touched, tEx: fixed.rows };
     }
-    return tvApply(TV.seedExerciseExpansion(next, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT,lowerLegAuditContext:LOWER_LEG_AUDIT_CONTEXT,hipAuditContext:HIP_AUDIT_CONTEXT,shoulderAuditContext:SHOULDER_AUDIT_CONTEXT,elbowHandAuditContext:ELBOW_HAND_AUDIT_CONTEXT,landingAuditContext:LANDING_AUDIT_CONTEXT,complexTaskAuditContext:COMPLEX_TASK_AUDIT_CONTEXT,throwAuditContext:THROW_AUDIT_CONTEXT,breathingAuditContext:BREATHING_AUDIT_CONTEXT,positionHoldAuditContext:POSITION_HOLD_AUDIT_CONTEXT, auditMetadata:TEX_META }));
+    return tvApply(TV.seedCompleteExerciseLibrary('client', next, TEX_SEED_V2, { includeLungeFoundations: true, includeClientVerticalPushFoundations: true, includeClientVerticalPullFoundations: true, trunkAuditContext:TRUNK_AUDIT_CONTEXT,movementAuditContext:MOVEMENT_AUDIT_CONTEXT,balanceAuditContext:BALANCE_AUDIT_CONTEXT,locomotionAuditContext:LOCOMOTION_AUDIT_CONTEXT,lowerLegAuditContext:LOWER_LEG_AUDIT_CONTEXT,hipAuditContext:HIP_AUDIT_CONTEXT,shoulderAuditContext:SHOULDER_AUDIT_CONTEXT,elbowHandAuditContext:ELBOW_HAND_AUDIT_CONTEXT,landingAuditContext:LANDING_AUDIT_CONTEXT,complexTaskAuditContext:COMPLEX_TASK_AUDIT_CONTEXT,throwAuditContext:THROW_AUDIT_CONTEXT,breathingAuditContext:BREATHING_AUDIT_CONTEXT,positionHoldAuditContext:POSITION_HOLD_AUDIT_CONTEXT, auditMetadata:TEX_META }));
   });
   // ---- the timer · settings, presets, history ----
   // The English voice choice is independent of the interface language.

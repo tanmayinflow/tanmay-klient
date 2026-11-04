@@ -1,3 +1,4 @@
+import { LIBRARY_PARITY_ADDITIONS, LIBRARY_PARITY_META } from '../../src/training/catalogParityData.js';
 import {landingEquipmentDecision,landingSelectionAllowed,landingPolicyFor} from '../../src/training/catalogLandingAudit.js';
 import {LANDING_AUDIT_CONTEXT} from '../../src/data/landingAuditContext.js';
 import {complexTaskEquipmentDecision,complexTaskSelectionAllowed,complexTaskPolicyFor} from '../../src/training/catalogComplexTaskAudit.js';
@@ -118,6 +119,9 @@ export function loadLibrary() {
   seeds[EXTENSION_NAME] = ext;
   for (const ex of ext) all.push({ ...ex, seed: EXTENSION_NAME });
 
+  seeds.TEX_SEED_PARITY = LIBRARY_PARITY_ADDITIONS.client;
+  for (const ex of seeds.TEX_SEED_PARITY) all.push({ ...ex });
+
   const taxonomy = {
     patterns: extract(src, "T_PATTERNS"),
     equipment: extract(src, "T_EQUIP"),
@@ -135,7 +139,7 @@ export function loadLibrary() {
     for (const k of Object.keys(m)) { if (k !== "src" && k !== "ev") out[k] = m[k]; }
     return [id, out];
   }));
-  const meta = metaBase ? { ...metaBase, ...metaV2 } : null;
+  const meta = metaBase ? { ...metaBase, ...metaV2, ...LIBRARY_PARITY_META } : null;
   const tiers = extract(src, "TEX_TIERS", true);
   const statuses = extract(src, "TEX_STATUSES", true);
   const goalRoles = extract(src, "TEX_GOAL_ROLES", true);
@@ -216,13 +220,13 @@ export function loadEngine() {
   const { src } = loadLibrary();
   const parts = ENGINE_DECLS.map((n) => sliceDecl(src, n));
   const sandbox = { createAccessoryFocus,hasElbowHandAccessoryFocus,console, TextEncoder, JSON, Math, Date, Object, Array, Number, String, Set, Map,
-    LANDING_AUDIT_CONTEXT, COMPLEX_TASK_AUDIT_CONTEXT, THROW_AUDIT_CONTEXT, BREATHING_AUDIT_CONTEXT, POSITION_HOLD_AUDIT_CONTEXT, ELBOW_HAND_AUDIT_CONTEXT, SHOULDER_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { landingEquipmentDecision,landingSelectionAllowed,landingPolicyFor, complexTaskEquipmentDecision, complexTaskSelectionAllowed, complexTaskPolicyFor, throwEquipmentDecision, throwSelectionAllowed, throwPolicyFor, breathingEquipmentDecision, breathingSelectionAllowed, breathingPolicyFor, positionHoldEquipmentDecision, positionHoldViewPolicyFor, positionHoldDeliveredViewPolicy, positionHoldPolicyFor, elbowHandEquipmentDecision, elbowHandViewPolicyFor, elbowHandPolicyFor, shoulderEquipmentDecision, hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
+    LANDING_AUDIT_CONTEXT, COMPLEX_TASK_AUDIT_CONTEXT, THROW_AUDIT_CONTEXT, BREATHING_AUDIT_CONTEXT, POSITION_HOLD_AUDIT_CONTEXT, ELBOW_HAND_AUDIT_CONTEXT, SHOULDER_AUDIT_CONTEXT, HIP_AUDIT_CONTEXT, LOWER_LEG_AUDIT_CONTEXT, LOCOMOTION_AUDIT_CONTEXT, TV: { LIBRARY_PARITY_META, landingEquipmentDecision,landingSelectionAllowed,landingPolicyFor, complexTaskEquipmentDecision, complexTaskSelectionAllowed, complexTaskPolicyFor, throwEquipmentDecision, throwSelectionAllowed, throwPolicyFor, breathingEquipmentDecision, breathingSelectionAllowed, breathingPolicyFor, positionHoldEquipmentDecision, positionHoldViewPolicyFor, positionHoldDeliveredViewPolicy, positionHoldPolicyFor, elbowHandEquipmentDecision, elbowHandViewPolicyFor, elbowHandPolicyFor, shoulderEquipmentDecision, hipEquipmentDecision, lowerLegEquipmentDecision, locomotionEquipmentDecision, TRAINING_V2_META, extensionFor } };
   vm.createContext(sandbox);
   // `const` at the top level of a script is lexically scoped, not a property of the
   // context — so the script hands the names out itself on the last line.
   // TEX_META je v aplikaci sloučení, takže je sloučením i tady — deklarované
   // za vyřezanými literály a před vším, co ho čte.
-  const merged = "const TEX_META = { ...TEX_META_BASE, ...Object.fromEntries(Object.entries(TV.TRAINING_V2_META).map(function (e) { var m = e[1], out = {}; Object.keys(m).forEach(function (k) { if (k !== 'src' && k !== 'ev') out[k] = m[k]; }); return [e[0], out]; })) };";
+  const merged = "const TEX_META = { ...TEX_META_BASE, ...Object.fromEntries(Object.entries(TV.TRAINING_V2_META).map(function (e) { var m = e[1], out = {}; Object.keys(m).forEach(function (k) { if (k !== 'src' && k !== 'ev') out[k] = m[k]; }); return [e[0], out]; })), ...TV.LIBRARY_PARITY_META };";
   const expose = "globalThis.__engine = { " + ENGINE_DECLS.join(", ") + ", TEX_META };";
   const idx = ENGINE_DECLS.indexOf("TEX_META_BASE");
   const body = parts.slice(0, idx + 1).join("\n") + "\n" + merged + "\n" + parts.slice(idx + 1).join("\n");

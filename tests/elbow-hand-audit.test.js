@@ -36,8 +36,8 @@ const dataFor=id=>publicEntries[id]||context.entries[id]?.data;
 const body=(file,start,end)=>{const source=readFileSync(new URL(file,import.meta.url),'utf8'),a=source.indexOf(start),b=source.indexOf(end,a+start.length);assert.ok(a>=0&&b>a,'Consumer moved: update extraction to actual location');return source.slice(a,b);};
 
 test('Elbow/hand role scope and every captured before/after profile remain guarded',()=>{
- assert.equal(Object.keys(context.entries).length,context.role==='main'?73:37);
- assert.equal(Object.keys(publicEntries).length,37);
+ assert.equal(Object.keys(context.entries).length,73);
+ assert.equal(Object.keys(publicEntries).length,73);
  assert.equal(Object.keys(context.entries).filter(id=>dataFor(id).policy.viewOnly).length,3);
  for(const[id,local]of Object.entries(context.entries)){
   assert.ok(row(id),id);assert.ok(TV.elbowHandEntryFor(row(id),meta[id],context),id);
@@ -76,10 +76,10 @@ test('migration preserves deletions, history, own overrides and free taxonomy no
 });
 
 test('public delivery never includes private cards or private profile metadata',()=>{
- const privateIds=Object.keys(context.entries).filter(id=>!publicEntries[id]);assert.equal(privateIds.length,context.role==='main'?36:0);
+ const privateIds=Object.keys(context.entries).filter(id=>!publicEntries[id]);assert.equal(privateIds.length,0);
  assert.ok(Object.values(publicEntries).every(e=>!Object.hasOwn(e,'metadata')&&!Object.hasOwn(e,'profiles')));
  for(const id of privateIds){assert.equal(bundle(id,[block(id)]).exercises[0].elbowHandAudit,undefined);assert.equal(TV.elbowHandViewPolicyFor(row(id),meta[id],{...context,role:'client'}),null);}
- if(context.role==='client'){for(const id of['an_hammer','an_inclcurl','kr_mob_048','gm_palm_pulse']){assert.equal(context.entries[id],undefined);assert.equal(row(id),undefined);}}
+ if(context.role==='client'){for(const id of['an_hammer','an_inclcurl','kr_mob_048','gm_palm_pulse']){assert.ok(context.entries[id]);assert.ok(row(id));}}
  const d=bundle('dbcurl',[block('dbcurl')]).exercises[0];assert.ok(TV.elbowHandDeliveredPolicy(d));assert.equal(Object.hasOwn(d,'taxonomy'),false);assert.equal(Object.hasOwn(d,'notes'),false);
 });
 
