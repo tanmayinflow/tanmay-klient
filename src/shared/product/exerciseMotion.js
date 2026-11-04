@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_cable_kickback": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_cable_kickback-8f29fe9b57703c4d.mp4",
+    "bytes": 25037,
+    "sha256": "8f29fe9b57703c4d624072ff99158be6645fdbc0f07eb0823b4199b9903b176e",
+    "poster": "/exercise-motion/ex26_cable_kickback-poster-5bfda79bd1d564f5.webp"
+  },
+  "vp26_foot_assisted_dip": {
+    "oneSide": false,
+    "src": "/exercise-motion/vp26_foot_assisted_dip-0cd7e4e0427f6127.mp4",
+    "bytes": 23650,
+    "sha256": "0cd7e4e0427f6127a90c1d859d09680d41f04367f164f03ebaaa3197290d7739",
+    "poster": "/exercise-motion/vp26_foot_assisted_dip-poster-90de36749e309d5a.webp"
+  },
+  "ex26_band_eversion": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_band_eversion-be7b4ae6220dc5fb.mp4",
+    "bytes": 25705,
+    "sha256": "be7b4ae6220dc5fb78afc9c98b5be4b9b152bceb317ca085cec9adf4555e9f52",
+    "poster": "/exercise-motion/ex26_band_eversion-poster-77056b1eec49be06.webp"
+  },
+  "ll26_supported_floor_calf": {
+    "oneSide": false,
+    "src": "/exercise-motion/ll26_supported_floor_calf-9751f46af04d0dd6.mp4",
+    "bytes": 16042,
+    "sha256": "9751f46af04d0dd61e603b8a1733ae81034ecd8cb3b164c2044c556500e9db43",
+    "poster": "/exercise-motion/ll26_supported_floor_calf-poster-ccd19afeed554f6f.webp"
+  },
+  "ex26_mob_dowel_er": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_dowel_er-cbce84477d419851.mp4",
+    "bytes": 17459,
+    "sha256": "cbce84477d41985168ec006f8484ca42868abded0ff059c69ffd52413c5d427b",
+    "poster": "/exercise-motion/ex26_mob_dowel_er-poster-bd2207f1f386272a.webp"
+  },
+  "ex26_singleleg_pushup": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_singleleg_pushup-447fdf48eb9d1f1f.mp4",
+    "bytes": 23255,
+    "sha256": "447fdf48eb9d1f1f1e3b2e4de2560d4dccd702ebeb06d5b63124cc2e2c366615",
+    "poster": "/exercise-motion/ex26_singleleg_pushup-poster-95a7ceaa8189cc14.webp"
+  },
+  "ex26_mob_quadruped_neck_control": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_quadruped_neck_control-b2869ff1ba4f0423.mp4",
+    "bytes": 14843,
+    "sha256": "b2869ff1ba4f04234f9d990d9ee6bf27695c879a08a85fb8f6bedadbb0246713",
+    "poster": "/exercise-motion/ex26_mob_quadruped_neck_control-poster-76919a4d366b725e.webp"
+  },
+  "ig27_seated_band_hip_ir": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig27_seated_band_hip_ir-cc7942e97b7f069e.mp4",
+    "bytes": 23609,
+    "sha256": "cc7942e97b7f069e440e90f5bad459553df9685f40d34f6c35755f2ee4105ce9",
+    "poster": "/exercise-motion/ig27_seated_band_hip_ir-poster-03a2b7265f180664.webp"
+  },
   "ex26_cable_adduction": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_cable_adduction-ff264d8d071e79c9.mp4",
