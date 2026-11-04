@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "legpress": {
+    "oneSide": false,
+    "src": "/exercise-motion/legpress-b023d1c45319fd40.mp4",
+    "bytes": 30888,
+    "sha256": "b023d1c45319fd4035b7d5a266e84691a4057ff182331aadc25cd2748790833c",
+    "poster": "/exercise-motion/legpress-poster-c634d4314a913b47.webp"
+  },
+  "ringrow": {
+    "oneSide": false,
+    "src": "/exercise-motion/ringrow-42a0b6762e1970d3.mp4",
+    "bytes": 21895,
+    "sha256": "42a0b6762e1970d3460be658ba69dc93f74baa063d9b846de6315b4fd3d04507",
+    "poster": "/exercise-motion/ringrow-poster-ae52f64e2fb272f0.webp"
+  },
+  "oacablerow": {
+    "oneSide": true,
+    "src": "/exercise-motion/oacablerow-eb8ef632ca920796.mp4",
+    "bytes": 29472,
+    "sha256": "eb8ef632ca920796a5fab1fd20687b61f7be0f8cf101211ac57494cba081272b",
+    "poster": "/exercise-motion/oacablerow-poster-3064c0df77ca0a14.webp"
+  },
+  "assistpullup": {
+    "oneSide": false,
+    "src": "/exercise-motion/assistpullup-6c086a63964d4c36.mp4",
+    "bytes": 24712,
+    "sha256": "6c086a63964d4c360b3a92a8c428c7fa5c543442954b2c8c8725a18794389959",
+    "poster": "/exercise-motion/assistpullup-poster-4d0d203f4f2bb32c.webp"
+  },
+  "ex26_mob_shinbox_rise": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_shinbox_rise-2f0ab9cdaa14695e.mp4",
+    "bytes": 26711,
+    "sha256": "2f0ab9cdaa14695e457941c18e9d268cd63ab17589daf1074a40cf09551f519c",
+    "poster": "/exercise-motion/ex26_mob_shinbox_rise-poster-260f2e24b0f8d8d7.webp"
+  },
+  "ex26_mob_travel_butterfly": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_travel_butterfly-35d3f90c802f70ee.mp4",
+    "bytes": 55830,
+    "sha256": "35d3f90c802f70ee3c40b3dff2ca3833583322641c5f84c419467cae3f271ab1",
+    "poster": "/exercise-motion/ex26_mob_travel_butterfly-poster-b0b0ccdf4901287d.webp"
+  },
+  "ringdips": {
+    "oneSide": false,
+    "src": "/exercise-motion/ringdips-41f0713e0377e36b.mp4",
+    "bytes": 19382,
+    "sha256": "41f0713e0377e36bb3cdff8249ed9a328e0112a43fd4c7ca0aacd38d9528caa1",
+    "poster": "/exercise-motion/ringdips-poster-d69c6421308728fd.webp"
+  },
+  "ex26_smith_incline": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_smith_incline-b0136e457c0fe13c.mp4",
+    "bytes": 32053,
+    "sha256": "b0136e457c0fe13c4f725c7560db6feaf0e9e4b6a8675c2babb26fe6723dfa63",
+    "poster": "/exercise-motion/ex26_smith_incline-poster-804b2fe903170dee.webp"
+  },
   "burpee": {
     "oneSide": false,
     "src": "/exercise-motion/burpee-f14ee8173ccbee43.mp4",
