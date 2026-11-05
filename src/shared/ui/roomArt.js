@@ -3,7 +3,7 @@ export const TRAINING_YOGA_ART = 'training-equipment-v6.png';
 
 export const ROOM_ART = Object.freeze({
   praxe: 'practice-illustration-v1.png',
-  'praxe-client': 'practice-fire-v4.webp',
+  'praxe-client': 'practice-illustration-v1.png',
   trenink: TRAINING_YOGA_ART,
   denik: 'journal-illustration-v3.png',
   kompas: 'compass-illustration-v1.png',

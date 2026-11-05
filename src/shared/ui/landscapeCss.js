@@ -61,12 +61,13 @@ ${s} input[type="range"]::-moz-range-track { height: 4px; border: 1px solid var(
 ${s} input[type="range"]::-moz-range-progress { height: 4px; background: transparent; }
 ${s} input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--tm-link); }
 ${s} input[type="range"]:disabled { opacity: .45; cursor: default; }
-/* Earth headers carry the website's actual outgoing contour; controls stay outside the mask. */
-${s} :is(.tm-cs-head,.tm-nahled-head) { isolation: isolate; background-color: var(--land-header-bg) !important; background-image: var(--land-header-material) !important; background-position: center top; background-size: 768px auto; color: var(--land-header-ink) !important; border-bottom-color: transparent !important; }
-${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: ''; position: absolute; left: 0; right: 0; bottom: -46px; height: 130px; z-index: -1; background-color: var(--land-header-bg); background-image: var(--land-header-material); background-position: center bottom; background-size: 768px auto; mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; -webkit-mask: url('/media/landscape/edge-wide.png') center/100% 100% no-repeat; pointer-events: none; }
-${s} :is(.tm-cs-head,.tm-nahled-head) :is(button,span,svg) { color: var(--land-header-ink) !important; }
+/* Reading and panel headers continue the page material, without a colored mask.
+   Keep an opaque field behind sticky controls so scrolling text stays readable. */
+${s} :is(.tm-cs-head,.tm-nahled-head) { isolation: isolate; background-color: var(--tm-bg) !important; background-image: var(--land-field) !important; background-position: left top; background-size: 768px auto; color: var(--tm-text) !important; border-bottom-color: transparent !important; }
+${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: none; }
+${s} :is(.tm-cs-head,.tm-nahled-head) :is(button,span,svg) { color: var(--tm-text) !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) button { background: transparent !important; border-color: currentColor !important; }
-${s} :is(.tm-cs-head,.tm-nahled-head) button:focus-visible { outline-color: var(--land-header-ink) !important; }
+${s} :is(.tm-cs-head,.tm-nahled-head) button:focus-visible { outline-color: var(--tm-link) !important; }
 ${s} .tm-cs { --land-sheet-pad: clamp(18px, calc(3 * var(--tm-vw)), 34px); padding: 0 !important; }
 ${s} .tm-cs-head { top: 0 !important; margin: 0 !important; padding: 18px var(--land-sheet-pad) 12px !important; }
 ${s} .tm-cs-body { padding: 40px var(--land-sheet-pad) 34px !important; }
