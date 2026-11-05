@@ -1,5 +1,33 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "neckcars": {
+    "oneSide": false,
+    "src": "/exercise-motion/neckcars-544db4013c9df647.mp4",
+    "bytes": 66115,
+    "sha256": "544db4013c9df647fc578f9c4c390c550f38ff91021051df2603b95a45f3d1ff",
+    "poster": "/exercise-motion/neckcars-poster-9858cd9993f1ecaa.webp"
+  },
+  "kneecars": {
+    "oneSide": true,
+    "src": "/exercise-motion/kneecars-55e78f6261b3724b.mp4",
+    "bytes": 23416,
+    "sha256": "55e78f6261b3724ba14592faa0904d540e080447553e1ef26fee4ef4824d516a",
+    "poster": "/exercise-motion/kneecars-poster-762c6617f311f979.webp"
+  },
+  "ex26_hss_deadbug_wall": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hss_deadbug_wall-78d3feffdaa1d1d3.mp4",
+    "bytes": 16409,
+    "sha256": "78d3feffdaa1d1d3f0ff29e06eabdd52d02aeb48bba1ac73a5120f9479b6b515",
+    "poster": "/exercise-motion/ex26_hss_deadbug_wall-poster-bdb68d2d2454c396.webp"
+  },
+  "ex26_hss_deadbug_ball": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hss_deadbug_ball-759353ad601f7bab.mp4",
+    "bytes": 17410,
+    "sha256": "759353ad601f7baba6497d5be216937efa01d597cc2d6bf24e594f8ef343710b",
+    "poster": "/exercise-motion/ex26_hss_deadbug_ball-poster-155e8d410c5c45c5.webp"
+  },
   "ex26_mob_finger_wallclimb": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_mob_finger_wallclimb-a474b03a6cba88f7.mp4",
