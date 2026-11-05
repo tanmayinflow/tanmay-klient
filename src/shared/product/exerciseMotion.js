@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_bb_lunge": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_bb_lunge-2132bd695835f14d.mp4",
+    "bytes": 34780,
+    "sha256": "2132bd695835f14d6eb6cc86bb782904f0063bb5c8caf08b24085dfb33579ad5",
+    "poster": "/exercise-motion/ex26_bb_lunge-poster-dc0f588f120fa2a4.webp"
+  },
+  "bwcurl": {
+    "oneSide": false,
+    "src": "/exercise-motion/bwcurl-a7959a52380d1338.mp4",
+    "bytes": 21916,
+    "sha256": "a7959a52380d13384b66d527a2754c5924e68b5794c5d10a0ccae015fc00a1d2",
+    "poster": "/exercise-motion/bwcurl-poster-9b55cd5042ca41a6.webp"
+  },
+  "hr26_suspension_row": {
+    "oneSide": false,
+    "src": "/exercise-motion/hr26_suspension_row-9e5e136dbf66c796.mp4",
+    "bytes": 26968,
+    "sha256": "9e5e136dbf66c796e092b6e23fce5b76e7230aee60a92d9fa5e01c192688ea4a",
+    "poster": "/exercise-motion/hr26_suspension_row-poster-c61ef2f92029acd7.webp"
+  },
+  "ex26_ball_kneel_circles": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_kneel_circles-adb22d7675a749a7.mp4",
+    "bytes": 24932,
+    "sha256": "adb22d7675a749a733257dcf339416b6dac29a6fbd27583302fa30c5ffb141f7",
+    "poster": "/exercise-motion/ex26_ball_kneel_circles-poster-353c6a8888c23e52.webp"
+  },
+  "ex26_ball_plank_circles": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_plank_circles-e71d2c679958da88.mp4",
+    "bytes": 26082,
+    "sha256": "e71d2c679958da888d1a899233169aa773348556ea18f35e77d73dda9bb8dbf3",
+    "poster": "/exercise-motion/ex26_ball_plank_circles-poster-0fa6ab89083a5d3f.webp"
+  },
+  "ex26_mob_adductor_rock": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_adductor_rock-37608738b1d45b28.mp4",
+    "bytes": 20968,
+    "sha256": "37608738b1d45b286c89d240c40cb88b59bedd6488bae33d842c89aea436af50",
+    "poster": "/exercise-motion/ex26_mob_adductor_rock-poster-12eff3c1309623ec.webp"
+  },
+  "faq_plank_walkout": {
+    "oneSide": false,
+    "src": "/exercise-motion/faq_plank_walkout-6f31cadc77843f1c.mp4",
+    "bytes": 20767,
+    "sha256": "6f31cadc77843f1cb98a5c869a257996e19700ff4407488e7b2b4a5338d7292e",
+    "poster": "/exercise-motion/faq_plank_walkout-poster-46041173395026b5.webp"
+  },
+  "landminerow": {
+    "oneSide": true,
+    "src": "/exercise-motion/landminerow-6193c6fc58da0f73.mp4",
+    "bytes": 24226,
+    "sha256": "6193c6fc58da0f73950748fc8c22e2408397b037276c3816736f8ed8214de7b1",
+    "poster": "/exercise-motion/landminerow-poster-569054ce56af5fb4.webp"
+  },
   "neckcars": {
     "oneSide": false,
     "src": "/exercise-motion/neckcars-544db4013c9df647.mp4",
