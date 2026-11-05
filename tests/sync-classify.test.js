@@ -51,6 +51,17 @@ test("výpadek sítě zůstává výpadkem sítě", () => {
   assert.equal(syncDruh(null, null, new Error("Failed to fetch")), SYNC_SIT);
 });
 
+test("HTML from an unavailable gateway is not an expired login", () => {
+  for (const status of [408, 429, 500, 502, 503, 504, 520, 524]) {
+    assert.equal(syncDruh(html({ status, ok: false }), null, null), SYNC_SERVER, String(status));
+  }
+  assert.equal(syncDruh(html({ status: 413, ok: false }), null, null), SYNC_VELIKOST);
+});
+
+test("a missing or malformed JSON receipt cannot acknowledge a saved draft", () => {
+  for (const body of [null, {}, { version: 3 }]) assert.equal(syncDruh(res({}), body, null), SYNC_SERVER);
+});
+
 test("opakovat se nabízí jen tam, kde to může zabrat", () => {
   assert.equal(syncLzeZkusitZnovu(SYNC_SIT), true);
   assert.equal(syncLzeZkusitZnovu(SYNC_SERVER), true);
@@ -59,7 +70,7 @@ test("opakovat se nabízí jen tam, kde to může zabrat", () => {
 });
 
 test("hláška řekne příčinu, ne jen následek", () => {
-  assert.match(syncHlaska(SYNC_PRIHLASENI, L, {}), /Přihlášení vypršelo/);
+  assert.match(syncHlaska(SYNC_PRIHLASENI, L, {}), /Přihlášení se nepodařilo ověřit/);
   assert.match(syncHlaska(SYNC_VELIKOST, L, { bytes: 2100000 }), /strop úložiště/);
   assert.match(syncHlaska(SYNC_VELIKOST, L, { bytes: 2100000 }), /2\.1 MB/);
   assert.match(syncHlaska(SYNC_SERVER, L, { stav: 500 }), /\(500\)/);

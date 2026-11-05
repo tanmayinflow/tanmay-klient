@@ -60,7 +60,7 @@ const writeJournal = (page, title) => page.evaluate((t) => {
 const vidi = (page, re) => page.getByText(re).count();
 const tlacitko = (page, re) => page.getByRole("button", { name: re }).count();
 
-const PRIHLASENI = /Přihlášení vypršelo|sign-in has expired/;
+const PRIHLASENI = /Přihlášení se nepodařilo ověřit|sign-in could not be verified/;
 const STROP = /strop úložiště|storage ceiling/;
 const ODMITL = /Server zápis odmítl|server refused the write/;
 const JEN_ZDE = /jen v tomhle zařízení|on this device only/;

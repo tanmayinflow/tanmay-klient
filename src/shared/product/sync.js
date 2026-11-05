@@ -47,11 +47,14 @@ export function syncDruh(res, telo, err) {
     if (typeof kod === "string" && kod.indexOf("member") !== -1) return SYNC_CLENSTVI;
     return SYNC_PRIHLASENI;
   }
-  if (!jeJson(res)) return SYNC_PRIHLASENI;
   if (res.status === 413 || (telo && telo.code === "too-large")) return SYNC_VELIKOST;
+  // Edge/gateway errors often contain HTML, not the Worker's JSON. They
+  // cannot prove that the account has expired, and must remain retryable.
+  if (res.status >= 500 || res.status === 408 || res.status === 429) return SYNC_SERVER;
+  if (!jeJson(res)) return SYNC_PRIHLASENI;
   if (!res.ok) return SYNC_SERVER;
   // Stav 200 sám o sobě není potvrzení zápisu. Tělo musí říct `ok`.
-  if (telo && telo.ok === false) return SYNC_SERVER;
+  if (!telo || telo.ok !== true) return SYNC_SERVER;
   return SYNC_OK;
 }
 
@@ -79,8 +82,8 @@ export function syncHlaska(druh, L, info) {
   const stav = (info && info.stav) || 0;
   if (druh === SYNC_PRIHLASENI) {
     return L(
-      "Přihlášení vypršelo. Změny zůstávají v tomhle zařízení a na server se nedostanou, dokud aplikaci nenačteš znovu.",
-      "Your sign-in has expired. Changes stay on this device and will not reach the server until you reload the app."
+      "Přihlášení se nepodařilo ověřit. Změny zůstávají v tomhle zařízení. Pokud hláška přetrvá, načti aplikaci znovu a přihlas se.",
+      "Your sign-in could not be verified. Changes stay on this device. If this message persists, reload the app and sign in."
     );
   }
   if (druh === SYNC_CLENSTVI) {

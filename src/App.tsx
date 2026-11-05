@@ -154,6 +154,7 @@ import { scopeLegacyClientPins } from "./clientPinned.js";
 import {createFinanceExperience} from "./shared/ui/financeExperience.jsx";
 import { personalNotebookRoom } from "./shared/product/personalRooms.js";
 import { createDocumentSyncQueue } from "./shared/product/documentSyncQueue.js";
+import { createSyncRecovery } from "./shared/product/syncRecovery.js";
 
 /**
  * Tanmay Practice · Client App
@@ -15346,6 +15347,10 @@ export default function App() {
       } else if (m) {
         baseVersion = Math.max(baseVersion, m.ver);
       }
+      if (cur === _lastSynced.current) {
+        setSyncErr(null); setSyncPending(false); setSyncOdlozeno(false); _druhSelhani.current = null;
+        return true;
+      }
     }
     const v = await syncFetch("/api/state", {
       method: "PUT",
@@ -15375,9 +15380,16 @@ export default function App() {
   // posílat — zopakuje se celé podání ruky.
   const _syncOnceRef = React.useRef(null);
   const zkusOdeslat = React.useCallback(async () => {
+    if (conflict || !clientAccount.isCurrent(ownerId)) return false;
     if (!_syncReady.current) { if (_syncOnceRef.current) await _syncOnceRef.current(); return _syncReady.current; }
-    return await _pushRef.current({ force: true });
-  }, []);
+    return await _pushRef.current({ retry: true });
+  }, [conflict, ownerId]);
+  const _retrySyncRef = React.useRef(zkusOdeslat); _retrySyncRef.current = zkusOdeslat;
+  const _syncRecoveryKind = syncErr?.druh, _syncRecoveryBlocked = !!conflict;
+  React.useEffect(() => {
+    if (_syncRecoveryBlocked || !(syncLzeZkusitZnovu(_syncRecoveryKind) || _syncRecoveryKind === SYNC_PRIHLASENI)) return;
+    return createSyncRecovery({ retry: () => _retrySyncRef.current() });
+  }, [_syncRecoveryKind, _syncRecoveryBlocked]);
   const keepMine = () => {
     // vědomé přepsání · vezmeme si číslo serveru a hned pošleme svou verzi
     if (conflict) _ver.current = Math.max(_ver.current, conflict.ver || 0);
@@ -15424,6 +15436,7 @@ export default function App() {
           _ver.current = sver;
           syncMarkSave(sver, tmDocSig(cur));
           _dirty.current = false;
+          setSyncErr(null); setSyncPending(false); setSyncOdlozeno(false); _druhSelhani.current = null;
         } else if (decision === "conflict") {
           // obojí se pohnulo · tady se nerozhoduje za člověka
           _ver.current = mark?.v || 0;
@@ -15512,11 +15525,21 @@ export default function App() {
   React.useEffect(() => {
     const onVis = async () => {
       if (document.visibilityState !== "visible" || !_syncReady.current || conflict) return;
+      return _documentSyncQueue.current(async () => {
       const s = await _readServer();
       if (!s || !s.doc || !s.doc.coll) return;
-      if (s.ver <= _ver.current) return;
+      if (s.ver <= _ver.current) {
+        if (_serializeDoc(_collRef.current, _editsRef.current) === _lastSynced.current) {
+          setSyncErr(null); setSyncPending(false); setSyncOdlozeno(false); _druhSelhani.current = null;
+        }
+        return;
+      }
       const mine = _serializeDoc(_collRef.current, _editsRef.current);
-      if (mine === _lastSynced.current) adoptServer(s.doc, s.ver); else setConflict({ doc: s.doc, ver: s.ver });
+      if (mine === _lastSynced.current) {
+        adoptServer(s.doc, s.ver);
+        setSyncErr(null); setSyncOdlozeno(false); _druhSelhani.current = null;
+      } else setConflict({ doc: s.doc, ver: s.ver });
+      });
     };
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
