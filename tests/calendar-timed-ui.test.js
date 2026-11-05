@@ -10,6 +10,7 @@ const React=require('react'),ts=require('typescript'),{renderToStaticMarkup}=req
 const code=ts.transpileModule(fs.readFileSync(new URL(inApp?'../src/shared/ui/calendarTimed.jsx':'../ui/calendarTimed.jsx',import.meta.url),'utf8'),{compilerOptions:{jsx:ts.JsxEmit.React,module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText;
 const module={exports:{}};vm.runInNewContext(code,{module,exports:module.exports,require});
 const {CalendarTimedRow,calendarScheduleRows}=module.exports;
+const Check=({done})=>React.createElement('span',{className:done?'tm-check on':'tm-check'});
 
 test('Google times interleave with precise own blocks and keep overlaps as distinct rows',()=>{
   const events=[{id:'a',time:'09:37'},{id:'b',time:'09:37'},{id:'c',time:'08:05'}];
@@ -19,7 +20,19 @@ test('Google times interleave with precise own blocks and keep overlaps as disti
 });
 
 test('timed row renders exact interval and overnight continuation using current theme',()=>{
-  const html=renderToStaticMarkup(React.createElement(CalendarTimedRow,{event:{id:'a',title:'Late arrival',time:'23:37',endTime:'24:00',continuesAfter:true},t:{text:'#ddd',borderSoft:'#333',textMuted:'#999',sage:'#aaa'},L:(cs,en)=>en}));
+  const html=renderToStaticMarkup(React.createElement(CalendarTimedRow,{event:{id:'a',title:'Late arrival',time:'23:37',endTime:'24:00',continuesAfter:true},t:{text:'#ddd',borderSoft:'#333',textMuted:'#999',sage:'#aaa'},L:(cs,en)=>en,Check}));
   assert.match(html,/23:37–24:00/);assert.match(html,/Late arrival/);assert.match(html,/continues the next day/);
-  assert.match(html,/color:#ddd/);assert.doesNotMatch(html,/<input|<button/);
+  assert.match(html,/color:#ddd/);assert.doesNotMatch(html,/<input/);
+  assert.match(html,/aria-pressed="false"/);assert.match(html,/Mark complete: Late arrival/);
+});
+
+test('completion uses the existing Check, announces its state and can be toggled back',()=>{
+  let calls=0;
+  const row=CalendarTimedRow({event:{id:'primary|a',title:'Meeting',time:'09:37',endTime:'10:22'},t:{},L:(cs,en)=>en,Check,done:true,onToggle:()=>calls++});
+  const button=row.props.children[0];
+  assert.equal(button.props.children.type,Check);
+  assert.equal(button.props['aria-pressed'],true);
+  button.props.onClick();assert.equal(calls,1);
+  const html=renderToStaticMarkup(row);
+  assert.match(html,/Mark incomplete: Meeting/);assert.match(html,/line-through/);
 });

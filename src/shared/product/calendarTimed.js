@@ -5,6 +5,16 @@ const clock = date => String(date.getHours()).padStart(2, '0') + ':' + String(da
 const nextDay = date => { const next = new Date(date + 'T12:00:00'); next.setDate(next.getDate() + 1); return dayKey(next); };
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+// Completion belongs to this person's app, not to the Google event projection.
+// Calendar + instance ID keeps overlaps/recurrences distinct and survives moves.
+export function toggleCalendarEventDone(collection, eventId) {
+  if (typeof eventId !== 'string' || !eventId) return collection;
+  const done = { ...collection.calendarEventDone };
+  if (done[eventId]) delete done[eventId];
+  else done[eventId] = true;
+  return { ...collection, calendarEventDone: done };
+}
+
 // Google events remain separate records. An hourly text field cannot represent
 // two meetings at 09:10 and 09:45, or an overlap with the person's own plan.
 export function timedCalendarSegments(event, calendarId, from, to, untitled = '(untitled)') {

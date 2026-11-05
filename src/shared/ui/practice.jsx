@@ -1,5 +1,6 @@
 import { TmIcon as FamilyIcon } from "./icons.jsx";
 import { CalendarTimedRow, calendarScheduleRows } from "./calendarTimed.jsx";
+import { toggleCalendarEventDone } from "../product/calendarTimed.js";
 // GENERATED · SHARED PRODUCT CORE — do not edit inside an application repository.
 // Canonical source: Work/web-application/Shared/product-core/ui/practice.jsx
 // Change it there, then run `npm run shared:sync` in the outer workspace.
@@ -888,7 +889,7 @@ export function createPracticeUI(deps) {
           <div key={cz} style={{ marginBottom: 14 }}>
             <div style={{ ...subLabel(t), marginBottom: 4 }}>{L(cz, en)}</div>
             {calendarScheduleRows(HOD,sched,calendarTimed,od,doH).map(({hour:h,event}) => {
-              if(event)return <CalendarTimedRow key={event.id} event={event} t={t} L={L}/>;
+              if(event)return <CalendarTimedRow key={event.id} event={event} t={t} L={L} Check={Check} done={!!st.coll.calendarEventDone?.[event.id]} onToggle={()=>st.persistColl(previous=>toggleCalendarEventDone(previous,event.id))}/>;
               if (zakryto[h]) return null;
               const cur = sched[h] || {};
               const psano = String(cur.text || "").trim();

@@ -1,7 +1,7 @@
 process.env.TZ = 'Europe/Prague';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { syncTimedCalendar, timedCalendarSegments } from '../src/shared/product/calendarTimed.js';
+import { syncTimedCalendar, timedCalendarSegments, toggleCalendarEventDone } from '../src/shared/product/calendarTimed.js';
 
 const from = '2026-10-27', to = '2026-10-30';
 const event = (id, time, end, rest = {}) => ({ id, summary: id, start: { dateTime: time }, end: { dateTime: end }, ...rest });
@@ -122,4 +122,35 @@ test('a newer projection arriving during the read is not overwritten', async () 
   f.options.request = async () => { f.setDays(days => ({ ...days, [from]: { calendarTimed: newer } })); return { items: [meeting] }; };
   await syncTimedCalendar(f.options);
   assert.deepEqual(f.days()[from].calendarTimed, newer);
+});
+
+test('completion survives saved-state reload and Google refresh/move without writing to Google', async () => {
+  const f = fixture();
+  await syncTimedCalendar(f.options);
+  const id = f.days()[from].calendarTimed[0].id;
+  let coll = toggleCalendarEventDone({ cal: { calId: 'app' }, notebook: ['keep'] }, id);
+  const saved = JSON.parse(JSON.stringify({ coll, edits: f.days() }));
+  coll = saved.coll; f.setDays(() => saved.edits);
+  f.calendars.app = [event('meeting', '2026-10-28T11:15:00+01:00', '2026-10-28T12:00:00+01:00', { summary: 'Renamed' })];
+  await syncTimedCalendar(f.options);
+  const moved = f.days()['2026-10-28'].calendarTimed[0];
+  assert.equal(coll.calendarEventDone[moved.id], true);
+  assert.equal(moved.title, 'Renamed'); assert.equal(moved.time, '11:15');
+  assert.deepEqual(coll.notebook, ['keep']);
+  assert.equal(coll.cal.calId, 'app');
+  assert.ok(f.calls.every(path => path.includes('/events?')));
+  coll = toggleCalendarEventDone(coll, moved.id);
+  assert.equal(!!coll.calendarEventDone[moved.id], false);
+});
+
+test('completion separates calendar IDs and recurrence instances and preserves concurrent collection changes', () => {
+  const first = { calendarEventDone: { 'primary|meeting_1': true }, custom: 'latest' };
+  const second = toggleCalendarEventDone(first, 'other|meeting_1');
+  assert.deepEqual(first.calendarEventDone, { 'primary|meeting_1': true });
+  assert.equal(second.calendarEventDone['primary|meeting_1'], true);
+  assert.equal(second.calendarEventDone['other|meeting_1'], true);
+  assert.equal(!!second.calendarEventDone['primary|meeting_2'], false);
+  assert.equal(second.custom, 'latest');
+  assert.equal(!!({}).calendarEventDone?.['primary|meeting_1'], false);
+  assert.equal(toggleCalendarEventDone(second, ''), second);
 });

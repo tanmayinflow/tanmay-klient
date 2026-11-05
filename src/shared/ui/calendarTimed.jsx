@@ -1,11 +1,12 @@
 import React from 'react';
 
 // Imported events retain their own rows, including overlaps and times before 06:00.
-export function CalendarTimedRow({event,t,L}) {
-  return <div data-calendar-event={event.id} style={{display:'flex',alignItems:'baseline',gap:10,padding:'7px 0',borderBottom:`1px solid ${t.borderSoft}`,fontFamily:'var(--tm-font-body)',fontSize:13,color:t.text}}>
-    <span aria-hidden="true" style={{width:25,flexShrink:0,color:t.textMuted,fontSize:10}}>○</span>
+export function CalendarTimedRow({event,t,L,Check,done=false,onToggle}) {
+  return <div data-calendar-event={event.id} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'7px 0',borderBottom:`1px solid ${t.borderSoft}`,fontFamily:'var(--tm-font-body)',fontSize:13,color:t.text}}>
+    <button type="button" onClick={onToggle} aria-label={L(done?'Označit jako nesplněné: ':'Označit jako splněné: ',done?'Mark incomplete: ':'Mark complete: ')+event.title} aria-pressed={done} title={L('Hotovo','Done')} style={{background:'transparent',border:'none',cursor:'pointer',padding:0,marginTop:1,flexShrink:0}}><Check done={done}/></button>
+    <span aria-hidden="true" style={{width:9,flexShrink:0}}/>
     <span style={{width:84,flexShrink:0,fontFamily:'var(--tm-font-tag)',fontSize:13,letterSpacing:'0.05em',color:t.sage,whiteSpace:'nowrap'}}>{event.time}–{event.endTime}</span>
-    <span style={{flex:1,minWidth:0,overflowWrap:'anywhere'}}>{event.title}
+    <span style={{flex:1,minWidth:0,overflowWrap:'anywhere'}}><span style={{color:done?t.textMuted:t.text,textDecorationLine:done?'line-through':'none'}}>{event.title}</span>
       <span style={{display:'block',color:t.textMuted,fontSize:10,marginTop:2}}>{L('Google kalendář','Google Calendar')}{event.continuesBefore?L(' · pokračuje z předchozího dne',' · continues from the previous day'):''}{event.continuesAfter?L(' · pokračuje další den',' · continues the next day'):''}</span>
     </span>
   </div>;
