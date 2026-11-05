@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_mob_finger_wallclimb": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_finger_wallclimb-a474b03a6cba88f7.mp4",
+    "bytes": 17188,
+    "sha256": "a474b03a6cba88f7d14b687fb71ed83d1507c552000ed2267784df8e659a0f1b",
+    "poster": "/exercise-motion/ex26_mob_finger_wallclimb-poster-db01e6daa374eadf.webp"
+  },
+  "ex26_spider_plank": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_spider_plank-e73befc8fcfe4619.mp4",
+    "bytes": 16156,
+    "sha256": "e73befc8fcfe46194e8933802801b12f98a3f8e8d35653d49f4c06d81b4ffca4",
+    "poster": "/exercise-motion/ex26_spider_plank-poster-6cf212ee4178440c.webp"
+  },
+  "ex26_mob_hip_er_liftoff": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mob_hip_er_liftoff-ec67a397599f2ee8.mp4",
+    "bytes": 24296,
+    "sha256": "ec67a397599f2ee8881ce8b0aa0987116c80c92e52260689d36e3a91d7e58941",
+    "poster": "/exercise-motion/ex26_mob_hip_er_liftoff-poster-03b5c865b3839d9a.webp"
+  },
+  "ig27_kneeling_cuban_rotation": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig27_kneeling_cuban_rotation-32d58d1b81fd10ac.mp4",
+    "bytes": 28910,
+    "sha256": "32d58d1b81fd10ac97f217179e9b9cecacfbdb52efdacdd7db1b5804e16d94c9",
+    "poster": "/exercise-motion/ig27_kneeling_cuban_rotation-poster-2d52c1d816a5dc76.webp"
+  },
+  "ex26_dns_prone_reach": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_dns_prone_reach-3bb62a6acd9f3f1e.mp4",
+    "bytes": 11072,
+    "sha256": "3bb62a6acd9f3f1e2b1d0185f3f34f20047e0f95d3048cc54a00a5959dfbf83c",
+    "poster": "/exercise-motion/ex26_dns_prone_reach-poster-34abf11773148a8e.webp"
+  },
+  "ex26_dns_halfkneel_stand": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_dns_halfkneel_stand-48beaf2f429ae78e.mp4",
+    "bytes": 29090,
+    "sha256": "48beaf2f429ae78e91eb75c5328cc8956a8a4ff3123bed6fd97ff9acb8dd5af5",
+    "poster": "/exercise-motion/ex26_dns_halfkneel_stand-poster-3aba82a70578fc56.webp"
+  },
+  "ex26_single_cable_press": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_single_cable_press-165aa5c69dfd357a.mp4",
+    "bytes": 24131,
+    "sha256": "165aa5c69dfd357a20e601455b08dc71decf48122216228827a2b8fd14b8d9fa",
+    "poster": "/exercise-motion/ex26_single_cable_press-poster-6e93075d415db7d2.webp"
+  },
+  "ex26_hss_deadbug_weight": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hss_deadbug_weight-838b0b9f09eb30e2.mp4",
+    "bytes": 19006,
+    "sha256": "838b0b9f09eb30e24b2246f044da4ef33bc5ecfd0fdb4ef4e486706b99521662",
+    "poster": "/exercise-motion/ex26_hss_deadbug_weight-poster-46d482ce631308e7.webp"
+  },
   "ex26_cable_kickback": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_cable_kickback-8f29fe9b57703c4d.mp4",
