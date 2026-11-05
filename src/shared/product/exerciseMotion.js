@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_plank_rotation": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_plank_rotation-ff63ed846b686aad.mp4",
+    "bytes": 20372,
+    "sha256": "ff63ed846b686aad9faed181e1f056cfa54071172e5a9db45f5ff27eda5a0ed8",
+    "poster": "/exercise-motion/ex26_plank_rotation-poster-deee1d246c38c733.webp"
+  },
+  "ex26_ring_triceps": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ring_triceps-839a348529e47514.mp4",
+    "bytes": 20125,
+    "sha256": "839a348529e47514f6cc09e7ead14227917b2a0db6cf2ff79054f33754784bd1",
+    "poster": "/exercise-motion/ex26_ring_triceps-poster-ccc88cb41dbac9d6.webp"
+  },
+  "ex26_trx_kneetuck": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_trx_kneetuck-8c08f6d4e3129254.mp4",
+    "bytes": 14877,
+    "sha256": "8c08f6d4e31292548ca796dda0d14207db223bdc57ef92f76ed25d717fb3676d",
+    "poster": "/exercise-motion/ex26_trx_kneetuck-poster-2e67b7e011d8d031.webp"
+  },
+  "st26_db_pair": {
+    "oneSide": true,
+    "src": "/exercise-motion/st26_db_pair-30721b459b9ef239.mp4",
+    "bytes": 19710,
+    "sha256": "30721b459b9ef239ce0225122545206d0bd5a3d763c1bf4b7320fc6ad84f476b",
+    "poster": "/exercise-motion/st26_db_pair-poster-706d2fd1e6b2cb16.webp"
+  },
+  "ex26_db_forward_lunge": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_db_forward_lunge-eb3bc252d7b63c54.mp4",
+    "bytes": 29562,
+    "sha256": "eb3bc252d7b63c540d7eb923ea5b51e2d2b12c287c1227e9030d78287c13ce30",
+    "poster": "/exercise-motion/ex26_db_forward_lunge-poster-083e797be9af00c3.webp"
+  },
+  "ex26_ball_walkout": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_ball_walkout-32d5610b5d31bf75.mp4",
+    "bytes": 43269,
+    "sha256": "32d5610b5d31bf7576a0baf9bf372a0050503987217c43f9b852c76ddb92c1a4",
+    "poster": "/exercise-motion/ex26_ball_walkout-poster-3b4213e775a90fef.webp"
+  },
+  "faq_dip_negative": {
+    "oneSide": false,
+    "src": "/exercise-motion/faq_dip_negative-a16c36c45c8c7129.mp4",
+    "bytes": 56725,
+    "sha256": "a16c36c45c8c712982f1b9a436157632b9114e2558835faadd2f5fecaf1dd97c",
+    "poster": "/exercise-motion/faq_dip_negative-poster-2b48870a952d6178.webp"
+  },
+  "mbslam": {
+    "oneSide": false,
+    "src": "/exercise-motion/mbslam-7e466ecb2671c5b6.mp4",
+    "bytes": 47835,
+    "sha256": "7e466ecb2671c5b682f27e3682c936ab14613eed644c5d9a582ccdd2c7ea2916",
+    "poster": "/exercise-motion/mbslam-poster-db9e804266334520.webp"
+  },
   "ex26_bb_lunge": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_bb_lunge-2132bd695835f14d.mp4",
