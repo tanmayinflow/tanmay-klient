@@ -362,6 +362,41 @@ function tmCalEnsure(cfg, tok, save) {
    musí poslouchat toho, komu patří — appka, která si své události vrací
    zpátky, je ta nejrychlejší cesta, jak o člověka přijít. */
 let TM_CAL_SYNC = null, TM_CAL_SYNC_OWNER = null;
+// Explicit recovery only. An inaccessible legacy target must never silently
+// redirect a person's exports to another Google account.
+function tmCalReplaceUnavailable(st) {
+  const owner = getAccount(), version = generation, cfg = config(st.calCfg());
+  try {
+    assertAccount(owner);
+    if (!canRequest() || !tmCalReady(cfg)) throw new Error('calendar-permission-required');
+    if (!cfg.calId || cfg.lastErr !== 'calendar-target-unavailable' || !st.persistColl) throw new Error('calendar-repair-not-available');
+    if (TM_CAL_SYNC) throw new Error('calendar-sync-in-progress');
+  } catch (error) { return Promise.reject(error); }
+  const guard = () => { assertAccount(owner); if (version !== generation || !canRequest()) throw accountError(); };
+  TM_CAL_SYNC_OWNER = owner;
+  const task = Promise.resolve(verifyAccount()).then(async ok => {
+    guard(); if (!ok) throw accountError();
+    const tok = await tmCalAuth(cfg.clientId, false, tmCalScopeFor(cfg));
+    guard();
+    // Recheck before creating anything; a transient failure might have cleared.
+    try { await tmCalReq('/calendars/' + encodeURIComponent(cfg.calId), null, tok); throw new Error('calendar-target-available'); }
+    catch (error) { if (![403,404,410].includes(error.status)) throw error; }
+    guard();
+    const created = await tmCalReq('/calendars', {method:'POST', body:{summary:cfg.calName || 'tanmay',timeZone:tmCalTz(),description:L('Rozvrh a tréninky z aplikace tanmay.','Schedule and training from the tanmay app.')}}, tok);
+    guard();
+    if (!created.id) throw new Error('calendar-create-failed');
+    st.persistColl(previous => {
+      if (owner !== getAccount() || version !== generation || previous.cal?.calId !== cfg.calId) return previous;
+      const archive = {at:Date.now(), config:{...previous.cal}, shadow:{...(previous.calShadow || {})}, tomb:{...(previous.calTomb || {})}};
+      return {...previous, calConnectionArchive:[...(previous.calConnectionArchive || []),archive],
+        cal:{...previous.cal,calId:created.id,clientId:runtimeClientId || cfg.clientId,lastErr:'',lastSync:0,lastCount:0,calDisconnected:false},
+        calShadow:{},calTomb:{}};
+    });
+    return {chyby:0,pridano:0,zmeneno:0,smazano:0};
+  }).finally(() => { if (TM_CAL_SYNC === task) { TM_CAL_SYNC = null; TM_CAL_SYNC_OWNER = null; } });
+  TM_CAL_SYNC = task;
+  return task;
+}
 function tmCalSync(st, opts) {
   const owner = getAccount();
   const version=generation;
@@ -579,7 +614,7 @@ function tmCalIcs(st) {
 }
 
 
-return {role,config,CAL_DEF,CAL_KINDS,tmCalPrepare,tmCalRestore,tmCalDurable,tmCalConnectConfig,tmCalPrepareAuth,tmCalAcceptRedirect,tmCalLoad:tmCalGis,tmCalReady,tmCalAccount:getAccount,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalMaCteni,tmCalSync,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin};
+return {role,config,CAL_DEF,CAL_KINDS,tmCalPrepare,tmCalRestore,tmCalDurable,tmCalConnectConfig,tmCalPrepareAuth,tmCalAcceptRedirect,tmCalLoad:tmCalGis,tmCalReady,tmCalAccount:getAccount,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalMaCteni,tmCalSync,tmCalReplaceUnavailable,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin};
 }
 
 export function tmCalIcsLines(s) {

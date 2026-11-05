@@ -244,6 +244,53 @@ test('a saved calendar unavailable in the chosen Google account is not recreated
   assert.equal(f.cfg.calId,'my-calendar');assert.equal(f.requests.length,0);assert.equal(f.calls.length,0);
 });
 
+function repairFixture(status=404) {
+  const f=durableFixture(), requests=[];
+  f.cfg.lastErr='calendar-target-unavailable';f.st.coll.cal=f.cfg;
+  f.st.coll.calTomb={deleted:{gid:'keep-deletion'}};
+  f.st.persistColl=fn=>{f.st.coll=fn(f.st.coll);Object.assign(f.cfg,f.st.coll.cal);f.st.coll.cal=f.cfg;};
+  f.connection.request=async(path,options)=>{
+    requests.push({path,...options});
+    if(path==='/calendars/my-calendar') {if(status===200)return {id:'my-calendar'};throw Object.assign(Error('unavailable'),{status});}
+    if(path==='/calendars'&&options?.method==='POST')return {id:'replacement-calendar'};
+    throw Error('Unexpected request');
+  };
+  return {...f,repairRequests:requests};
+}
+
+test('explicit unavailable-calendar recovery preserves original links and creates no events or deletions',async()=>{
+  const f=repairFixture(), before=structuredClone(f.st.coll);
+  await f.engine.tmCalReplaceUnavailable(f.st);
+  assert.equal(f.cfg.calId,'replacement-calendar');
+  assert.equal(f.cfg.lastErr,'');assert.equal(f.cfg.lastSync,0);
+  assert.deepEqual(f.st.coll.calShadow,{});assert.deepEqual(f.st.coll.calTomb,{});
+  assert.deepEqual(f.st.coll.calConnectionArchive[0].shadow,before.calShadow);
+  assert.deepEqual(f.st.coll.calConnectionArchive[0].tomb,before.calTomb);
+  assert.equal(f.st.coll.calConnectionArchive[0].config.calId,'my-calendar');
+  assert.deepEqual(f.st.coll.calendarAllDay,before.calendarAllDay);
+  assert.equal(f.st.getDay(date).sched['9:00'].text,'My practice');
+  assert.deepEqual(f.repairRequests.map(r=>[r.path,r.method||'GET']),[['/calendars/my-calendar','GET'],['/calendars','POST']]);
+  assert.equal(f.consents.length,0);
+});
+
+test('recovery never replaces an accessible target or treats temporary failure as missing',async()=>{
+  for(const status of [200,429,500]) {
+    const f=repairFixture(status), before=structuredClone(f.st.coll);
+    await assert.rejects(f.engine.tmCalReplaceUnavailable(f.st));
+    assert.deepEqual(f.st.coll,before);assert.equal(f.repairRequests.length,1);
+  }
+  const f=repairFixture();f.cfg.lastErr='network-failure';
+  await assert.rejects(f.engine.tmCalReplaceUnavailable(f.st),/repair-not-available/);
+  assert.equal(f.repairRequests.length,0);
+});
+
+test('recovery cannot mutate a new account after a late calendar creation response',async()=>{
+  const f=repairFixture(), request=f.connection.request,before=structuredClone(f.st.coll);
+  f.connection.request=async(path,options)=>{const response=await request(path,options);if(options?.method==='POST')f.setOwner('other-account');return response;};
+  await assert.rejects(f.engine.tmCalReplaceUnavailable(f.st),/calendar-account-changed/);
+  assert.deepEqual(f.st.coll,before);
+});
+
 test('refreshing tomorrow preserves yesterday\'s Google events instead of cancelling them',async()=>{
   const f=durableFixture();await f.engine.tmCalSync(f.st,{});
   const original=f.st.coll.calShadow['rz|'+date+'|9:00'];assert.ok(original);

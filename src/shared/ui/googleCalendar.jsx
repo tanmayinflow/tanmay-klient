@@ -190,6 +190,15 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
         {prepared==='unavailable' && <p style={{...radek,margin:'8px 0 0'}}>{L('Propojení teď není dostupné.','The connection is currently unavailable.')} <button onClick={()=>setPrepareTry(n=>n+1)} style={{background:'transparent',border:'none',padding:'6px 0',color:t.accentInk||t.accent,cursor:'pointer',fontFamily:FONT_BODY}}>{L('Zkusit znovu','Try again')}</button></p>}
       </div>
       {zprava && <p style={{ ...radek, color: stav === "chyba" ? t.accent : t.sage }}>{zprava}</p>}
+      {cfg.lastErr === 'calendar-target-unavailable' && settingsReady && (
+        <div style={{padding:'0 8px 10px'}}>
+          <p style={{...radek,margin:'0 0 8px'}}>{L('Starší kalendář může patřit jinému účtu nebo dřívějšímu propojení. Můžeš založit nový kalendář v právě připojeném účtu. Původní kalendář a jeho uložené vazby zůstanou zachované.','The older calendar may belong to another account or an earlier connection. You can create a new calendar in the connected account. The original calendar and saved links will be preserved.')}</p>
+          <button disabled={stav==='jde'} onClick={() => st.ask(L('Založit nový kalendář v připojeném Google účtu a přenášet do něj aktuální rozvrh a tréninky podle nastavení? Starý kalendář se nesmaže. Jeho dříve propojené události se automaticky nepřesunou.','Create a new calendar in the connected Google account and export the current schedule and training according to your settings? The old calendar will not be deleted. Previously linked events will not be moved automatically.'), () => {
+            connecting.current=true;setStav('jde');setZprava('');
+            engine.tmCalReplaceUnavailable(st).then(() => {setStav('');setZprava(L('Nový kalendář je připravený. Automatická synchronizace naváže při používání aplikace.','The new calendar is ready. Automatic synchronization will continue while you use the app.'));}, () => {setStav('chyba');setZprava(L('Nový kalendář se nepodařilo připojit. Původní záznamy zůstaly zachované.','Could not connect the new calendar. Original records have been preserved.'));}).finally(() => {connecting.current=false;});
+          }, {yes:L('Založit nový kalendář','Create new calendar')})} style={{background:'transparent',border:`1px solid ${t.border}`,borderRadius:999,padding:'10px 18px',minHeight:44,color:t.text,fontFamily:FONT_BODY,fontSize:14,cursor:'pointer'}}>{L('Založit nový kalendář','Create new calendar')}</button>
+        </div>
+      )}
       {/* Failed renewal or a new scope waits for an explicit connection. */}
       {pripojeno && stav !== "jde" && !settingsReady && tmCalTichoZakazano() && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 8px 10px" }}>
