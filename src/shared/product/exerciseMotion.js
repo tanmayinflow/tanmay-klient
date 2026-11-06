@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "kbhighpull": {
+    "oneSide": true,
+    "src": "/exercise-motion/kbhighpull-262b5f5cd6e19cbc.mp4",
+    "bytes": 39516,
+    "sha256": "262b5f5cd6e19cbcf2023cd09de9ccdc885f9cee2c910aaad6ac17756cda7036",
+    "poster": "/exercise-motion/kbhighpull-poster-af2d9b2b7565aa37.webp"
+  },
+  "kb26_dead_clean": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_dead_clean-0204035bd1321356.mp4",
+    "bytes": 33805,
+    "sha256": "0204035bd13213564e82c9d0a21d37b80bf754c13a3607d00fc962a28263732a",
+    "poster": "/exercise-motion/kb26_dead_clean-poster-c25f0a78ed86864f.webp"
+  },
+  "kbsnatch": {
+    "oneSide": true,
+    "src": "/exercise-motion/kbsnatch-1133a99cb7b029ac.mp4",
+    "bytes": 34635,
+    "sha256": "1133a99cb7b029ace96a9a43e025669ede803a1dfdfbdcbd6c6a3eee2019c936",
+    "poster": "/exercise-motion/kbsnatch-poster-887d30f51b35eee3.webp"
+  },
+  "st26_db_supported": {
+    "oneSide": true,
+    "src": "/exercise-motion/st26_db_supported-7162ee5a1203a798.mp4",
+    "bytes": 19656,
+    "sha256": "7162ee5a1203a79893e599d8c164f84801c13736dfb3e81abe2c7ba88ac18441",
+    "poster": "/exercise-motion/st26_db_supported-poster-1310b27e0de9acfb.webp"
+  },
+  "kb26_dead_swing": {
+    "oneSide": false,
+    "src": "/exercise-motion/kb26_dead_swing-96f8d936d5288123.mp4",
+    "bytes": 46177,
+    "sha256": "96f8d936d528812339845afa428d340ab068263bb89e4f52ef89cca7d12a09b2",
+    "poster": "/exercise-motion/kb26_dead_swing-poster-3e15459d3e5c8048.webp"
+  },
+  "kb26_clean_strict_press": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_clean_strict_press-0448a0f6f72e7ef4.mp4",
+    "bytes": 37416,
+    "sha256": "0448a0f6f72e7ef480e04ef57501bdf2a0c911f8009171bb1479549c09243328",
+    "poster": "/exercise-motion/kb26_clean_strict_press-poster-30d83dfb2b391573.webp"
+  },
+  "ex26_db_snatch": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_db_snatch-825cdfac572da300.mp4",
+    "bytes": 45179,
+    "sha256": "825cdfac572da30000cf05db26116f5f8867a98acf07e2dcb414e7d01a3dc7de",
+    "poster": "/exercise-motion/ex26_db_snatch-poster-d5581e0a6dd0afe5.webp"
+  },
+  "ex26_kb_cleanpress": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_kb_cleanpress-98fd609e88381d57.mp4",
+    "bytes": 37624,
+    "sha256": "98fd609e88381d5704f7c820895b689a9f5bae53efd0a39552986b16c18b9670",
+    "poster": "/exercise-motion/ex26_kb_cleanpress-poster-798b8ad0bae7f2df.webp"
+  },
   "landminepress": {
     "oneSide": true,
     "src": "/exercise-motion/landminepress-7bbd70f7e7cec7c9.mp4",
