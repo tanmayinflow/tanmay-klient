@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "landminepress": {
+    "oneSide": true,
+    "src": "/exercise-motion/landminepress-7bbd70f7e7cec7c9.mp4",
+    "bytes": 23006,
+    "sha256": "7bbd70f7e7cec7c9f2b41beb0106f5cfd4f08ed5e94b2b5adf809b3c6608d6d3",
+    "poster": "/exercise-motion/landminepress-poster-1311b4cb255786c2.webp"
+  },
+  "faq_halfkneel_fold": {
+    "oneSide": true,
+    "src": "/exercise-motion/faq_halfkneel_fold-8c60bf2370ea2332.mp4",
+    "bytes": 26766,
+    "sha256": "8c60bf2370ea23329a01a23e7a486d9c7c29f71fe2e6ed1e9033d70cbb20330d",
+    "poster": "/exercise-motion/faq_halfkneel_fold-poster-11c8c40e2c1f085c.webp"
+  },
+  "ex26_trx_pike": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_trx_pike-55d5134e90544de8.mp4",
+    "bytes": 25507,
+    "sha256": "55d5134e90544de81a46b0ff2b23cbe02bbefc88db1aa748cfbdd30a0af363d9",
+    "poster": "/exercise-motion/ex26_trx_pike-poster-d32e5b2e83764c82.webp"
+  },
+  "an_heeltouch": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_heeltouch-7ee8b97641ae053a.mp4",
+    "bytes": 53892,
+    "sha256": "7ee8b97641ae053a4f2d747259f51103797321aea5347104ea21811c6f4e97fb",
+    "poster": "/exercise-motion/an_heeltouch-poster-53cb846c75f7ffdc.webp"
+  },
+  "kbclean": {
+    "oneSide": true,
+    "src": "/exercise-motion/kbclean-34ee2817b3d05443.mp4",
+    "bytes": 30344,
+    "sha256": "34ee2817b3d0544362be94ce68b775573a0d8c231140489845d5d2cace3c8f4b",
+    "poster": "/exercise-motion/kbclean-poster-28054cad222e0fe8.webp"
+  },
+  "ex26_mob_prone_swimmer": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_prone_swimmer-da3cb585ab19dd8b.mp4",
+    "bytes": 53008,
+    "sha256": "da3cb585ab19dd8b7bd5a48c12e54ef78e774b7d2466c253928102c630ec3688",
+    "poster": "/exercise-motion/ex26_mob_prone_swimmer-poster-66d4b3b2bf034830.webp"
+  },
+  "gm_w_hip_circle": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_hip_circle-4f9553bdd4dc8ecc.mp4",
+    "bytes": 56693,
+    "sha256": "4f9553bdd4dc8ecc4b4a49a89d34534e470e22bca68f49a8624e46bcf06fec9b",
+    "poster": "/exercise-motion/gm_w_hip_circle-poster-aa776d83e0031c70.webp"
+  },
+  "ex26_hss_bear_shift": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hss_bear_shift-9bf0ac1735cfdc77.mp4",
+    "bytes": 28038,
+    "sha256": "9bf0ac1735cfdc7781d79052b4443193f67c93b19e5c79475038b129b5698a15",
+    "poster": "/exercise-motion/ex26_hss_bear_shift-poster-1332d6eddbd97c04.webp"
+  },
   "wallball": {
     "oneSide": false,
     "src": "/exercise-motion/wallball-ee47cc5ca0e9e213.mp4",
