@@ -5,6 +5,12 @@ export function BackupControl({ prepare, textBackup, t, lang = 'cs', disabled = 
   const [progress, setProgress] = useState(null), [error, setError] = useState(''), [ready, setReady] = useState(null);
   const running = useRef(null), link = useRef(null), mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current?.abort(); if (link.current) URL.revokeObjectURL(link.current); }; }, []);
+  useEffect(() => {
+    if (!disabled) return;
+    running.current?.abort();
+    if (link.current) URL.revokeObjectURL(link.current);
+    link.current = null; setReady(null); setError('');
+  }, [disabled]);
   const start = async () => {
     if (running.current || disabled) return;
     const controller = new AbortController(); running.current = controller;
@@ -29,7 +35,7 @@ export function BackupControl({ prepare, textBackup, t, lang = 'cs', disabled = 
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
       {!ready && <button type="button" disabled={disabled || !!progress} onClick={start} style={{ ...button, background: t.accent, color: t.onAccent, opacity: disabled || progress ? 0.6 : 1 }}>{progress ? L('Připravuji…', 'Preparing…') : L('Připravit úplnou zálohu', 'Prepare complete backup')}</button>}
       {progress && <button type="button" onClick={() => running.current?.abort()} style={button}>{L('Zrušit přípravu', 'Cancel preparation')}</button>}
-      {ready && <a href={ready.url} download={filename} style={{ ...button, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', background: t.accent, color: t.onAccent }}>{L('Stáhnout ZIP', 'Download ZIP')} ({ready.bytes < 1048576 ? Math.max(1, Math.ceil(ready.bytes / 1024)) + ' kB' : (ready.bytes / 1048576).toFixed(1) + ' MB'})</a>}
+      {ready && !disabled && <a href={ready.url} download={filename} style={{ ...button, display: 'inline-flex', alignItems: 'center', textDecoration: 'none', background: t.accent, color: t.onAccent }}>{L('Stáhnout ZIP', 'Download ZIP')} ({ready.bytes < 1048576 ? Math.max(1, Math.ceil(ready.bytes / 1024)) + ' kB' : (ready.bytes / 1048576).toFixed(1) + ' MB'})</a>}
       {ready && <button type="button" onClick={start} disabled={disabled} style={button}>{L('Připravit znovu', 'Prepare again')}</button>}
     </div>
     {progress && <p role="status" aria-live="polite" style={{ margin: '10px 0', overflowWrap: 'anywhere' }}>{status}{progress.name && <><br/>{progress.name}</>}</p>}

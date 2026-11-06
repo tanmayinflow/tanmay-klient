@@ -1,7 +1,7 @@
 {
   "generatedBy": "Shared/scripts/sync-product-core.mjs",
   "canonicalSource": "Work/web-application/Shared/product-core/",
-  "sharedCoreVersion": "1.33.113",
+  "sharedCoreVersion": "1.33.114",
   "note": "Zrcadlo sdíleného jádra. Needituj tyhle soubory v aplikačním repozitáři — `npm run shared:check` to pozná a build spadne.",
   "files": {
     "public/market-chart.css": "2a694f0d7edddfbb94bc40dd37ce3bee8e826cd43632f888fc0bf0f63236dec6",
@@ -123,7 +123,7 @@
     "src/shared/product/visibility.js": "3d6e249e622e0560d4527ce7f67883fe06c46c235548db140a47ad2cf2ec5ef1",
     "src/shared/product/voiceRecorder.js": "96d7e252b5a3d364130d0f7310d832bf284e276c09491c1c76e19ae19187a413",
     "src/shared/ui/AttachmentSaveStatus.jsx": "f0409988583aee139bd098b0477556173c796d093996956dd415e330789b7b42",
-    "src/shared/ui/BackupControl.jsx": "9df11a6b9bc9461d1048c985fecd519f55a07f6b9fdcce2105060d450d99e5bc",
+    "src/shared/ui/BackupControl.jsx": "eb0a45e448970635f0dbf3bcb948820ea020889574e4deb350710ca8e8bd77bd",
     "src/shared/ui/ChoiceField.jsx": "4257842cfa201d8f90375ae3c30ac10261424cd43737b9cf29e420de590a2898",
     "src/shared/ui/ExerciseAtlasImage.jsx": "a2a3f2a8a95c05909507de09ceae47de0a38d0a5e010f47bf8d39fc66a42834b",
     "src/shared/ui/ExerciseMotion.jsx": "20b133df66a119be6a438059cca94233d0802ad874a5e585001a9c63858a7e90",
@@ -249,7 +249,7 @@
     "src/shared/ui/typography.js": "7b001d164b74831d46a86f4c3554d05876cf042fa271362704331fa2bbcade3c",
     "src/shared/ui/typography.jsx": "4abd3f98e2b791ddc21c57760a9d7fc12e09c16de1706c25aa5adb0f15d28112",
     "src/shared/ui/wellbeingPalette.js": "b17a69043ff09cb4a33abbab2244a36b831efe6c6c9541793f20303d2bac295b",
-    "src/shared/version.js": "204b5095f37f00bf33dd18730fc9d7cce0cd6eef01b7d485ae1e2388f26d3bca",
+    "src/shared/version.js": "192193b6356581f17e5bc9716897f34a2c3491c9b8a7167da731bcb8255409d7",
     "src/training/adapters.js": "46347ee58d25e50e03bcab2ecc82c4eddf1e048e7af041173bb008d34a20e6af",
     "src/training/atlasResolver.js": "7d656de854b93919676029fcf5fc7940bb86ceba5211521687f444d354858009",
     "src/training/carryProgressPolicy.js": "e59a02b57e134599c889a0e89e1774baf548cf847d04a1424c0d1dd9edb0b5cf",
