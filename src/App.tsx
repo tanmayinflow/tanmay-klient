@@ -400,7 +400,7 @@ function collectFileRefs(node, out) {
 // with media are pinnable.
 function pinnedRegistry() { try { const saved = JSON.parse(localStorage.getItem("tm_pinned") || "{}"); return saved.version === 2 ? saved.entries || {} : {}; } catch { return {}; } }
 function savePinnedRegistry(r) { localStorage.setItem("tm_pinned", JSON.stringify({version:2,entries:r})); }
-function isEntryPinned(id) { return !!pinnedRegistry()[id]; }
+function isEntryPinned(id, expectedIds) { const ids=pinnedRegistry()[id]; return !!ids?.length && (!expectedIds || [...ids].sort().join("|") === [...expectedIds].sort().join("|")); }
 function entryFileIds(entry) { const set = new Set(); collectFileRefs(entry, set); return [...set]; }
 async function pinEntry(entry) {
   const owner = clientAccount.getSnapshot().owner; const current = () => !!owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
@@ -434,7 +434,7 @@ function useVerifiedPin(entryId, expectedIds = null) {
       if (!current()) { if (!dead) setPinned(false); return; }
       const ids = pinnedRegistry()[entryId];
       let valid = false;
-      if (ids?.length && (!signature || [...ids].sort().join("|") === signature)) {
+      if (ids?.length && (expectedIds === null || [...ids].sort().join("|") === signature)) {
         try { valid = await verifyPinnedMedia({ids,cache:await caches.open("pinned"),urlFor:r2Url,current}); } catch {}
       }
       if (!dead) setPinned(valid);
@@ -445,9 +445,9 @@ function useVerifiedPin(entryId, expectedIds = null) {
   },[entryId,signature]);
   return [pinned,setPinned];
 }
-function PinDot({ id }) {
+function PinDot({ entry }) {
   const { t } = useT();
-  const [pinned] = useVerifiedPin(id);
+  const [pinned] = useVerifiedPin(entry.id, entryFileIds(entry));
   if (!pinned) return null;
   return <span title={L("Uloženo offline", "Saved offline")} style={{ width: 6, height: 6, borderRadius: "50%", background: t.accent, flexShrink: 0, display: "inline-block" }} />;
 }
@@ -4643,7 +4643,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
                 ? <><span style={{ fontFamily: FONT_DISPLAY, fontSize: 17, color: t.heading }}>{entry.date ? fmtCZ(entry.date) : (entry.title || L("Bez data", "No date"))}</span>
                   {entry.title && entry.date && <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{entry.title}</span>}</>
                 : <span style={{ fontFamily: FONT_DISPLAY, fontSize: 17, color: t.heading }}>{entry.title}</span>}
-              <PinDot id={entry.id} />
+              <PinDot entry={entry} />
               {selTags.map((n) => <Tag key={n} label={n} color={colorOf(n)} />)}
               {kind !== "journal" && entry.date && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{entry.date}</span>}
             </div>
@@ -4974,7 +4974,7 @@ function PageNotebook({ koren, korenNazev }) {
   const maTu = (n) => scopeAll.some((e) => entryTags(e).includes(n));
   const tabTags = koren ? tags.filter(([n]) => maTu(n)) : tags;
 
-  if (offlineOnly) shown = shown.filter((e) => isEntryPinned(e.id));
+  if (offlineOnly) shown = shown.filter((e) => isEntryPinned(e.id, entryFileIds(e)));
   const fullEntry = full ? all.find((e) => e.id === full) : null;
   // poznámka v jiném zobrazení · tvář v galerii je první obrázek v textu,
   // jinak iniciála názvu — poznámka bez obrázku má pořád svůj obličej
@@ -5241,7 +5241,7 @@ function PageJournal() {
   shown = sortBy === "dateAsc"
     ? [...shown].sort((x, y) => (x.date || "9999").localeCompare(y.date || "9999"))
     : [...shown].sort((x, y) => (y.date || "").localeCompare(x.date || ""));
-  if (offlineOnly) shown = shown.filter((e) => isEntryPinned(e.id));
+  if (offlineOnly) shown = shown.filter((e) => isEntryPinned(e.id, entryFileIds(e)));
   if (starOnly) shown = shown.filter((e) => e.star);
   if (!selecting && todayEntry && composerOpen) shown = shown.filter((e) => e.id !== todayEntry.id);
   const visible = q.trim() ? shown : shown.slice(0, limit);
