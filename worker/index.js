@@ -1,3 +1,4 @@
+import { handleAccountBackup } from "../src/shared/product/accountBackup.js";
 import { exerciseMotionAsset } from '../src/shared/product/exerciseMotionAsset.js';
 import { STATE_LIMIT, ensureStateStorage, encodeState, readStateMeta, readStateDocument, writeStateDocument, stateFailure } from "../src/shared/product/stateStorage.js";
 import { handleContentLibrary } from "./contentLibrary.js";
@@ -353,6 +354,8 @@ async function handleFiles(request, env, userId, id) {
     }
     headers.set("X-Content-Type-Options", "nosniff");
     headers.set("ETag", object.httpEtag);
+    headers.set("X-Tanmay-File", id);
+    if (Number.isFinite(object.size)) headers.set("Content-Length", String(object.size));
     headers.set("Cache-Control", "private, max-age=604800, immutable");
     return new Response(object.body, { headers });
   }
@@ -373,8 +376,8 @@ async function handleFilesList(request, env, userId) {
   const files = [];
   let cursor = undefined;
   do {
-    const res = await env.FILES.list({ prefix, cursor, limit: 1000 });
-    for (const o of res.objects) files.push({ id: o.key.slice(prefix.length), uploaded: o.uploaded ? new Date(o.uploaded).getTime() : 0 });
+    const res = await env.FILES.list({ prefix, cursor, limit: 1000, include: ["httpMetadata", "customMetadata"] });
+    for (const o of res.objects) { let name = o.customMetadata?.name || ""; try { name = decodeURIComponent(name); } catch {} files.push({ id: o.key.slice(prefix.length), size: o.size, name, type: o.httpMetadata?.contentType, uploaded: o.uploaded ? new Date(o.uploaded).getTime() : 0 }); }
     cursor = res.truncated ? res.cursor : undefined;
   } while (cursor);
   return Response.json({ files });
@@ -455,6 +458,7 @@ export default {
       if (!(await isMember(env, userId))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
+      if (url.pathname === "/api/backup") return handleAccountBackup(request, {db:env.DB,actor:`client:${userId}`,userId,role:"client"});
       if (url.pathname === "/api/calendar/config") return calendarConfigResponse(request,env);
       if (url.pathname.startsWith("/api/calendar/")) return handlePersonalCalendar(request,env.DB,`client:${userId}`,env);
       if (url.pathname === "/api/content-library") return handleContentLibrary(request, env);
