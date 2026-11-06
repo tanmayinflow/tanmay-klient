@@ -68,7 +68,7 @@ test('source detail properties render small canonical icons with labels for ever
     const deps = {
       useT, useStore: () => ({ allSources: () => [entry], editMode: false }), L, getLang: () => lang,
       hexA: value => value, PropRow, Tag: ({ label }) => React.createElement('span', null, label),
-      Select: nothing, RichArea: nothing, AttachmentStrip: nothing, imgSrc: () => null,
+      Select: nothing, RichArea: nothing, AttachmentStrip: nothing, PinToggle: nothing, imgSrc: () => null,
       typeGlyph: medium => icon(mediums[medium] || 'book'), TmIcKniha: icon('book'), ClipIcon: icon('link'),
       iconBtn: () => ({}), C_PROGRESS: ['Finished'], C_PROG_LABEL: value => value, C_PROG_COLOR: {},
       C_TYPES: Object.keys(mediums), C_TYPE_LABEL: value => value, C_TYPE_COLOR: {},

@@ -52,3 +52,32 @@ for (const origin of [sourcePolicy.SOURCE_ORIGIN.CLIENT, sourcePolicy.SOURCE_ORI
     }
   });
 }
+
+const toggleSource = app.slice(app.indexOf('function PinToggle('), app.indexOf('// One-time migration of legacy inline media'));
+assert.ok(toggleSource.includes('function PinToggle('));
+const fileIds = entry => [...(entry.att || []), ...(entry.attachment ? [entry.attachment] : [])].map(file => file.id);
+const PinToggle = vm.runInNewContext(compile(toggleSource) + '\nPinToggle;', {
+  React, useState: React.useState, useT, L, FONT_TAG: 'sans-serif', hexA: value => value,
+  entryFileIds: fileIds, useVerifiedPin: () => [false, noop],
+});
+
+for (const origin of [sourcePolicy.SOURCE_ORIGIN.CLIENT, sourcePolicy.SOURCE_ORIGIN.COACH]) {
+  test(`Sources normal detail exposes offline download for attached media (${origin})`, () => {
+    for (const media of [false, true]) {
+      const attachment = {id: 'detail-audio', r2: true};
+      const entry = {id: 'detail-source', title: 'Detail source', type: 'Book', origin,
+        ...(origin === sourcePolicy.SOURCE_ORIGIN.COACH ? {attachment: media ? attachment : null} : {att: media ? [attachment] : []})};
+      const {ContentDetail} = module.exports.createSourcesUI({
+        useT, useStore: () => ({coll: {content: [entry]}, hasCoachSources: () => true}), L,
+        hexA: value => value, imgSrc: value => value, typeGlyph: () => noop, iconBtn: () => ({}),
+        PinToggle, Tag: noop, Select: noop, PropRow: ({children}) => children,
+        RichArea: noop, AttachmentStrip: noop, ClipIcon: noop,
+        C_PROG_COLOR: {}, C_TYPE_COLOR: {}, C_CATS_BY_TYPE: {}, C_CATS: [],
+        C_PROG_LABEL: value => value, C_TYPE_LABEL: value => value,
+      });
+      const html = renderToStaticMarkup(React.createElement(ContentDetail, {id: entry.id}));
+      assert.equal(html.includes('Uložit offline'), media);
+      assert.ok(!html.includes('Do koše'), 'making downloads accessible must not expose edit-mode deletion');
+    }
+  });
+}
