@@ -110,7 +110,7 @@ test("každá místnost ve směrovači je opravdu definovaná", () => {
 
 test("příloha má kam spadnout, když spojení selže", () => {
   assert.match(app, /async function attDoUloziste\(file, id\)/);
-  assert.match(app, /await idbPut\(id, file\)/);
+  assert.match(app, /storeAttachment\(\{file,id,putLocal:/);
   assert.doesNotMatch(app, /await readFileAsAtt\(f\)\); \} catch \(e\) \{\}/, "selhání se nesmí spolknout");
   assert.match(app, /se nepodařilo uložit/, "člověk se to musí dozvědět");
 });
@@ -126,7 +126,8 @@ test("offline příloha se pošle nahoru, až bude signál", () => {
   assert.match(app, /window\.tmPrilohyNahoru = async/);
   assert.match(app, /function tmPovysPrilohy/);
   const i = app.indexOf("window.tmPrilohyNahoru = async");
-  assert.match(app.slice(i, i + 1400), /setTimeout\(\(\) => \{ if \(ulozeno > 0\) hotove\.forEach/);
+  assert.doesNotMatch(app.slice(i, app.indexOf("window.tmGcFiles", i)), /idbDel\(id\)/);
+  assert.match(app, /createMediaRecovery\(\{retry:/);
 });
 
 test("selhání odeslání na server se neztratí", () => {

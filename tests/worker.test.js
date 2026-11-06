@@ -339,7 +339,7 @@ test("v klientském Workeru neexistuje trenérská cesta k soukromému psaní", 
   const zakazane = [
     "/api/klienti", "/api/klienti/klient-a-example-test", "/api/klienti/klient-a-example-test/state",
     "/api/klienti/klient-a-example-test/journal", "/api/klienti/klient-a-example-test/notebook",
-    "/api/journal", "/api/notebook", "/api/search", "/api/backup", "/api/export", "/api/summary",
+    "/api/journal", "/api/notebook", "/api/search", "/api/backup/other-account", "/api/export", "/api/summary",
     "/api/admin", "/api/coach", "/api/states", "/api/members", "/api/attachments",
   ];
   for (const cesta of zakazane) {

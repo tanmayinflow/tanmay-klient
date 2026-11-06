@@ -29,10 +29,38 @@ test('closing editor while permission is pending releases a late stream',async()
   const started=f.controller.start();f.controller.dispose();resolve(f.stream);await started;
   assert.equal(f.rec,undefined);assert.equal(f.stopped,1);assert.deepEqual(f.saved,[]);
 });
-test('closing an active editor discards unfinished recording and stops every track',async()=>{
+test('closing an active editor stops every track without inserting into an unmounted editor',async()=>{
   const f=fixture();await f.controller.start();f.controller.dispose();assert.ok(f.stopped>0);assert.deepEqual(f.saved,[]);
 });
 test('permission rejection and save failure report recovery and clear busy state',async()=>{
   const denied=fixture({mediaDevices:{getUserMedia:async()=>{throw Error('denied');}}});await denied.controller.start();assert.deepEqual(denied.errors,['permission']);assert.equal(denied.states.at(-1),null);
-  const failed=fixture({onSave:async()=>{throw Error('storage');}});await failed.controller.start();failed.controller.stop();await new Promise(r=>setImmediate(r));assert.deepEqual(failed.errors,['save']);assert.equal(failed.states.at(-1),null);
+  const failed=fixture({onSave:async()=>{throw Error('storage');}});await failed.controller.start();failed.controller.stop();await new Promise(r=>setImmediate(r));assert.deepEqual(failed.errors,['save']);assert.equal(failed.states.at(-1).phase,'failed');assert.equal(await failed.controller.failedBlob().text(),'voice');
+});
+
+function journal() {
+  const rows=new Map();return {rows,create:async row=>{rows.set(row.id,{...row,chunks:[]});return row;},append:async(id,index,blob)=>{assert.equal(rows.get(id).chunks.length,index);rows.get(id).chunks.push(blob);},remove:async id=>rows.delete(id)};
+}
+test('audio checkpoints survive editor disposal and are scoped to the original draft',async()=>{
+  const drafts=journal(),f=fixture({drafts,id:()=> 'recording',metadata:{entryId:'note-a'}});
+  await f.controller.start();f.rec.ondataavailable({data:new Blob(['first'])});await new Promise(r=>setImmediate(r));
+  assert.equal(await drafts.rows.get('recording').chunks[0].text(),'first');
+  f.controller.dispose();await new Promise(r=>setImmediate(r));
+  assert.equal(drafts.rows.get('recording').entryId,'note-a');assert.equal(drafts.rows.get('recording').chunks.length,2);assert.deepEqual(f.saved,[]);
+});
+test('journal is removed only after successful insertion, while failed insertion can be retried',async()=>{
+  const drafts=journal();let fails=true;
+  const f=fixture({drafts,id:()=> 'recording',onSave:async()=>{if(fails)throw new Error('full');}});
+  await f.controller.start();f.controller.stop();await new Promise(r=>setImmediate(r));assert.ok(drafts.rows.has('recording'));
+  fails=false;await f.controller.retry();assert.equal(drafts.rows.size,0);assert.equal(f.states.at(-1),null);
+});
+test('checkpoint quota failure stops recording and preserves captured audio for download',async()=>{
+  const drafts=journal();drafts.append=async()=>{throw Object.assign(new Error('full'),{name:'QuotaExceededError'});};
+  const f=fixture({drafts,id:()=> 'recording',onSave:async()=>{throw new Error('offline and full');}});
+  await f.controller.start();f.rec.ondataavailable({data:new Blob(['first'])});await new Promise(r=>setImmediate(r));
+  assert.equal(f.rec.state,'inactive');assert.ok(f.errors.includes('checkpoint'));assert.ok(f.errors.includes('save'));
+  assert.equal(await f.controller.failedBlob().text(),'firstvoice');assert.ok(drafts.rows.has('recording'));
+});
+test('recording does not start when its durable journal cannot be created',async()=>{
+  const f=fixture({drafts:{create:async()=>{throw new Error('blocked');}}});await f.controller.start();
+  assert.equal(f.rec.state,'inactive');assert.ok(f.stopped>0);assert.deepEqual(f.errors,['checkpoint']);
 });

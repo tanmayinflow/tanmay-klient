@@ -1,3 +1,9 @@
+import { AttachmentSaveStatus } from "./shared/ui/AttachmentSaveStatus.jsx";
+import { uploadMedia, storeAttachment, pinMedia, verifyPinnedMedia, createMediaRecovery, MEDIA_MAX_BYTES } from "./shared/product/mediaSafety.js";
+import { buildCompleteBackup, collectMediaFiles } from "./shared/product/completeBackup.js";
+import { createRecordingDraftStore } from "./shared/product/recordingDrafts.js";
+import { BackupControl } from "./shared/ui/BackupControl.jsx";
+import { RecordingRecovery } from "./shared/ui/RecordingRecovery.jsx";
 import { createLandingRecordingUiBridge } from './shared/product/landingRecordingUiBridge.js';
 import { createLandingRecordingUI } from './shared/product/landingRecordingUI.jsx';
 import { LANDING_AUDIT_CONTEXT } from './data/landingAuditContext.js';
@@ -296,17 +302,49 @@ function syncMarkLoad() { try { const r = window.localStorage.getItem(LS_SYNCED)
 function syncMarkSave(v, sig) { try { window.localStorage.setItem(LS_SYNCED, JSON.stringify({ v: v || 0, sig })); } catch (e) {} }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function fmtSize(n) { if (!n && n !== 0) return ""; if (n < 1024) return n + " B"; if (n < 1048576) return Math.round(n / 1024) + " kB"; return (n / 1048576).toFixed(1) + " MB"; }
-function idbOpen() {
-  return new Promise((res, rej) => {
-    const r = indexedDB.open(window.localStorage.getItem("tm_files_namespace") || "tanmay_files", 1);
-    r.onupgradeneeded = () => { r.result.createObjectStore("files"); };
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
+function tmFileNamespace() { return (window.localStorage.getItem("tm_files_namespace") || "tanmay_files"); }
+function idbOpen(namespace = tmFileNamespace()) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(namespace, 1);
+    request.onupgradeneeded = () => { request.result.createObjectStore("files"); };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error("FileStorageBlocked"));
   });
 }
-async function idbPut(id, blob) { const db = await idbOpen(); return new Promise((res, rej) => { const tx = db.transaction("files", "readwrite"); tx.objectStore("files").put(blob, id); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); }
-async function idbGet(id) { const db = await idbOpen(); return new Promise((res, rej) => { const tx = db.transaction("files", "readonly"); const q = tx.objectStore("files").get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); }); }
-function idbDel(id) { idbOpen().then((db) => { const tx = db.transaction("files", "readwrite"); tx.objectStore("files").delete(id); }).catch(() => {}); }
+async function idbFileTransaction(write, operation, namespace = tmFileNamespace()) {
+  const db = await idbOpen(namespace);
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("files", write ? "readwrite" : "readonly"); let result;
+    tx.oncomplete = () => { db.close(); resolve(result); };
+    tx.onabort = () => { db.close(); reject(tx.error || new Error("FileStorageAborted")); };
+    tx.onerror = () => {};
+    try { operation(tx.objectStore("files"), value => { result = value; }); } catch (error) { tx.abort(); reject(error); }
+  });
+}
+function idbPut(id, blob, namespace) { return idbFileTransaction(true, store => store.put(blob, id), namespace); }
+function idbGet(id, namespace) { return idbFileTransaction(false, (store, done) => { store.get(id).onsuccess = event => done(event.target.result || null); }, namespace); }
+function idbDel(id) { return idbFileTransaction(true, store => store.delete(id)).catch(() => {}); }
+function idbList(namespace = tmFileNamespace()) { return idbFileTransaction(false, (store, done) => {
+  const rows = []; store.openCursor().onsuccess = event => { const cursor = event.target.result;
+    if (cursor) { rows.push({id:String(cursor.key),name:cursor.value.name || "",size:cursor.value.size,type:cursor.value.type}); cursor.continue(); } else done(rows);
+  };
+}, namespace); }
+const TM_RECORDING_STORES = new Map();
+function tmRecordingStore() {
+  const owner = clientAccount.getSnapshot().owner; const current = () => !!owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
+  if (!current()) throw new Error("account-changed");
+  const namespace = "client-" + owner;
+  if (!TM_RECORDING_STORES.has(namespace)) TM_RECORDING_STORES.set(namespace, createRecordingDraftStore({namespace,current}));
+  return TM_RECORDING_STORES.get(namespace);
+}
+function tmRecordingFile(blob, draft) {
+  const ext = /ogg/.test(blob.type) ? "ogg" : /mp4|mpeg|m4a/.test(blob.type) ? "m4a" : "webm";
+  const file = new File([blob], L("Nahrávka ", "Recording ") + new Date(draft?.createdAt || Date.now()).toISOString().slice(0,16).replace(/:/g,"-") + "." + ext, {type:blob.type});
+  if (draft?.id) Object.defineProperty(file, "tmRecordingId", {value:draft.id});
+  return file;
+}
+function tmDownloadRecording(blob, draft) { const file = tmRecordingFile(blob, draft); return tmDlBlob(file, file.name); }
 // ---- R2 file store (cloud, cross-device) ----
 // Media (images, files, audio, covers, icons) live in R2, referenced by id.
 // The IndexedDB helpers above are kept as the substrate for a future per-page
@@ -314,20 +352,16 @@ function idbDel(id) { idbOpen().then((db) => { const tx = db.transaction("files"
 function r2Url(id) { const owner = clientAccount.getSnapshot().owner || ownerLoad(); return "/api/files/" + encodeURIComponent(id) + (owner ? "?owner=" + encodeURIComponent(owner) : ""); }
 function r2Del(id) { clientFetch("/api/files/" + encodeURIComponent(id), { method: "DELETE" }).catch(() => {}); }
 async function r2Put(id, blob, name) {
-  const res = await clientFetch("/api/files/" + encodeURIComponent(id), {
-    method: "PUT",
-    headers: { "Content-Type": (blob && blob.type) || "application/octet-stream", "X-File-Name": encodeURIComponent(name || "") },
-    body: blob,
-  });
-  if (!res.ok) throw new Error("upload failed: " + res.status);
-  return true;
+  window.dispatchEvent(new CustomEvent("tm-media-upload",{detail:{id,sending:true}}));
+  try { return await uploadMedia({fetcher:clientFetch,id,blob,name}); }
+  finally { window.dispatchEvent(new CustomEvent("tm-media-upload",{detail:{id,sending:false}})); }
 }
 // cover/icon ref: new R2 { r2id } or legacy inline dataURL string
 function scopedFileUrl(url) { const match = typeof url === "string" && url.match(/^\/api\/files\/([^?#]+)/); return match ? r2Url(decodeURIComponent(match[1])) : url; }
 function imgSrc(v) { if (!v) return ""; if (typeof v === "string") return scopedFileUrl(v); if (v.r2id) return r2Url(v.r2id); return ""; }
 // attachment ref: R2 (id) or legacy inline base64 (data)
 function attUrl(a) { return a && a.r2 ? r2Url(a.id) : (a ? scopedFileUrl(a.data) : ""); }
-const R2_MAX = 95 * 1024 * 1024; // Worker request-body limit is 100 MB; stay under.
+const R2_MAX = MEDIA_MAX_BYTES; // Worker request-body limit is 100 MB; stay under.
 // Collect every R2 file id referenced anywhere in a document subtree.
 // Used by garbage collection (and later by the offline "pin page" toggle).
 // Přílohy, které čekají v zařízení na signál, a jejich povýšení, až přijde.
@@ -356,18 +390,7 @@ function tmPovysPrilohy(node, hotove) {
   return zmena ? out : node;
 }
 function collectFileRefs(node, out) {
-  if (!node) return;
-  if (Array.isArray(node)) { for (const x of node) collectFileRefs(x, out); return; }
-  if (typeof node === "string") {
-    const m = node.match(/^\/api\/files\/([^?#]+)$/);
-    if (m) out.add(decodeURIComponent(m[1]));
-    return;
-  }
-  if (typeof node === "object") {
-    if (node.r2 === true && node.id) out.add(node.id);
-    if (node.r2id) out.add(node.r2id);
-    for (const k of Object.keys(node)) collectFileRefs(node[k], out);
-  }
+  for (const id of collectMediaFiles(node).keys()) out.add(id);
 }
 
 // ---- Offline pinning (per-device; not synced) ----
@@ -375,25 +398,16 @@ function collectFileRefs(node, out) {
 // localStorage; the service worker serves /api/files/<id> from the "pinned"
 // cache when present. Text is always offline (localStorage), so only entries
 // with media are pinnable.
-function pinnedRegistry() { try { return JSON.parse(localStorage.getItem("tm_pinned") || "{}"); } catch (e) { return {}; } }
-function savePinnedRegistry(r) { try { localStorage.setItem("tm_pinned", JSON.stringify(r)); } catch (e) {} }
+function pinnedRegistry() { try { const saved = JSON.parse(localStorage.getItem("tm_pinned") || "{}"); return saved.version === 2 ? saved.entries || {} : {}; } catch { return {}; } }
+function savePinnedRegistry(r) { localStorage.setItem("tm_pinned", JSON.stringify({version:2,entries:r})); }
 function isEntryPinned(id) { return !!pinnedRegistry()[id]; }
 function entryFileIds(entry) { const set = new Set(); collectFileRefs(entry, set); return [...set]; }
 async function pinEntry(entry) {
-  const owner = clientAccount.getSnapshot().owner;
-  const current = () => owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
-  if (!current()) throw new Error("account unavailable");
-  const ids = entryFileIds(entry);
-  try {
-    const cache = await caches.open("pinned");
-    for (const id of ids) {
-      const url = r2Url(id);
-      try { const res = await clientFetch(url, { cache: "no-store" }); if (res.ok && current()) await cache.put(url, res.clone()); } catch (e) {}
-    }
-  } catch (e) {}
-  if (!current()) throw new Error("account changed");
-  const reg = pinnedRegistry(); reg[entry.id] = ids; savePinnedRegistry(reg);
-  return ids.length;
+  const owner = clientAccount.getSnapshot().owner; const current = () => !!owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
+  if (!current()) throw new Error("account-changed");
+  const namespace = tmFileNamespace();
+  return pinMedia({entryId:entry.id,ids:entryFileIds(entry),cache:await caches.open("pinned"),fetcher:clientFetch,urlFor:r2Url,
+    getLocalFile:id=>idbGet(id,namespace),readRegistry:pinnedRegistry,saveRegistry:savePinnedRegistry,current});
 }
 async function unpinEntry(entryId) {
   const owner = clientAccount.getSnapshot().owner;
@@ -410,26 +424,49 @@ async function unpinEntry(entryId) {
   if (!clientAccount.isCurrent(owner) || ownerLoad() !== owner) throw new Error("account changed");
   savePinnedRegistry(reg);
 }
+function useVerifiedPin(entryId, expectedIds = null) {
+  const [pinned,setPinned] = useState(false);
+  const signature = expectedIds ? [...expectedIds].sort().join("|") : "";
+  React.useEffect(() => {
+    let dead = false;
+    const owner = clientAccount.getSnapshot().owner; const current = () => !!owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
+    const check = async () => {
+      if (!current()) { if (!dead) setPinned(false); return; }
+      const ids = pinnedRegistry()[entryId];
+      let valid = false;
+      if (ids?.length && (!signature || [...ids].sort().join("|") === signature)) {
+        try { valid = await verifyPinnedMedia({ids,cache:await caches.open("pinned"),urlFor:r2Url,current}); } catch {}
+      }
+      if (!dead) setPinned(valid);
+    };
+    void check(); window.addEventListener("tm-pin-change",check); window.addEventListener("focus",check);
+    document.addEventListener("visibilitychange",check);
+    return () => { dead=true; window.removeEventListener("tm-pin-change",check); window.removeEventListener("focus",check); document.removeEventListener("visibilitychange",check); };
+  },[entryId,signature]);
+  return [pinned,setPinned];
+}
 function PinDot({ id }) {
   const { t } = useT();
-  if (!isEntryPinned(id)) return null;
+  const [pinned] = useVerifiedPin(id);
+  if (!pinned) return null;
   return <span title={L("Uloženo offline", "Saved offline")} style={{ width: 6, height: 6, borderRadius: "50%", background: t.accent, flexShrink: 0, display: "inline-block" }} />;
 }
 function PinToggle({ entry }) {
   const { t } = useT();
   const ids = entryFileIds(entry);
-  const [pinned, setPinned] = useState(() => isEntryPinned(entry.id));
+  const [pinned, setPinned] = useVerifiedPin(entry.id, ids);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
   if (!ids.length) return null;
   const toggle = async () => {
-    setBusy(true);
-    try { if (pinned) { await unpinEntry(entry.id); setPinned(false); } else { await pinEntry(entry); setPinned(true); } } catch (e) {}
-    setBusy(false);
+    setBusy(true); setError(false);
+    try { if (pinned) { await unpinEntry(entry.id); setPinned(false); } else { await pinEntry(entry); setPinned(true); } } catch (e) { setPinned(false); setError(true); }
+    setBusy(false); window.dispatchEvent(new Event("tm-pin-change"));
   };
   return (
-    <button onClick={toggle} disabled={busy} title={pinned ? L("Uloženo offline — klikni pro odebrání", "Saved offline — click to remove") : L("Uložit média této stránky offline", "Save this page's media offline")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: pinned ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${pinned ? t.accent : t.border}`, borderRadius: 999, padding: "4px 11px", cursor: busy ? "default" : "pointer", color: pinned ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5, opacity: busy ? 0.6 : 1, whiteSpace: "nowrap" }}>
+    <button onClick={toggle} disabled={busy} title={pinned ? L("Uloženo offline — klikni pro odebrání", "Saved offline — click to remove") : L("Uložit média této stránky offline", "Save this page's media offline")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: pinned ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${pinned ? t.accent : t.border}`, borderRadius: 999, padding: "4px 11px", cursor: busy ? "default" : "pointer", color: pinned ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5, opacity: busy ? 0.6 : 1, whiteSpace: "normal", minHeight: 44 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: pinned ? t.accent : t.textMuted, flexShrink: 0 }} />
-      {busy ? L("Ukládám…", "Saving…") : pinned ? L("Uloženo offline", "Saved offline") : L("Uložit offline", "Save offline")}
+      {busy ? L("Ukládám…", "Saving…") : error ? L("Stažení selhalo. Zkusit znovu", "Download failed. Retry") : pinned ? L("Uloženo offline", "Saved offline") : L("Uložit offline", "Save offline")}
     </button>
   );
 }
@@ -493,17 +530,14 @@ async function migrateNode(node, stats, dryRun) {
    stopy. Osobní aplikace tohle řeší odjakživa druhým patrem v IndexedDB;
    sem to nikdy nedojelo. Teď dojelo. */
 async function attDoUloziste(file, id) {
-  try {
-    await r2Put(id, file, file.name);
-    return { id, name: file.name, type: file.type || "application/octet-stream", size: file.size, r2: true };
-  } catch (e) {
-    // spojení selhalo · soubor zůstane v zařízení a počká si na signál
-    await idbPut(id, file);
-    return { id, name: file.name, type: file.type || "application/octet-stream", size: file.size, idb: true };
-  }
+  const owner = clientAccount.getSnapshot().owner; const current = () => !!owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
+  const namespace = tmFileNamespace();
+  const attachment = await storeAttachment({file,id,putLocal:(key,blob)=>idbPut(key,blob,namespace),upload:r2Put,current});
+  setTimeout(() => window.dispatchEvent(new Event("tm-media-pending")), 0);
+  return attachment;
 }
 async function makeAudioAtt(file) {
-  const a = await attDoUloziste(file, uid() + "a");
+  const a = await attDoUloziste(file, file.tmRecordingId || uid() + "a");
   return { ...a, type: file.type || "audio/mpeg" };
 }
 async function filesToAtts(fileList, askFn) {
@@ -1055,6 +1089,7 @@ function AudioRow({ a, onRemove }) {
   const src = useAttSrc(a);
   return <div style={{display:"grid",gap:8,marginTop:12,padding:"12px 0",borderTop:`1px solid ${t.borderSoft}`,minWidth:0}}>
     <span style={{fontFamily:FONT_BODY,fontSize:12,color:t.textSec,overflowWrap:"anywhere"}}>{a.name} · {fmtSize(a.size)}</span>
+    <AttachmentSaveStatus attachment={a} t={t} lang={LANG}/>
     {src ? <audio aria-label={a.name} controls src={src} style={{height:40,width:"100%",minWidth:0}}/> : <span role="status">{L("Načítám nahrávku…","Loading recording…")}</span>}
     <button type="button" onClick={()=>tmSdilejPrilohu(a)} style={{justifySelf:"start",background:"transparent",border:0,color:t.text,cursor:"pointer",minHeight:44,padding:"7px 12px",fontFamily:FONT_BODY,fontSize:13}}>{L("Sdílet nahrávku","Share recording")}</button>
     {onRemove && <button type="button" onClick={()=>onRemove(a.id)} style={{justifySelf:"start",background:"transparent",border:`1px solid ${t.border}`,borderRadius:6,color:t.text,cursor:"pointer",minHeight:44,padding:"7px 12px",fontFamily:FONT_BODY,fontSize:13}}>{L("Odebrat nahrávku","Remove recording")}</button>}
@@ -1078,7 +1113,7 @@ function AttachmentStrip({ att, onRemove }) {
       {imgs.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {imgs.map((a) => (
-            <ObrazekPrilohy key={a.id} a={a} zoom={zoom} setZoom={setZoom} onRemove={onRemove} sdilPril={sdilPril} />
+            <div key={a.id} style={{maxWidth:"100%"}}><ObrazekPrilohy a={a} zoom={zoom} setZoom={setZoom} onRemove={onRemove} sdilPril={sdilPril} /><AttachmentSaveStatus attachment={a} t={t} lang={LANG}/></div>
           ))}
         </div>
       )}
@@ -1103,7 +1138,7 @@ function AttachmentStrip({ att, onRemove }) {
       {files.filter((a) => !(a.type || "").startsWith("audio/")).length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: imgs.length ? 8 : 0 }}>
           {files.filter((a) => !(a.type || "").startsWith("audio/")).map((a) => (
-            <SouborPrilohy key={a.id} a={a} onRemove={onRemove} sdilPril={sdilPril} />
+            <div key={a.id} style={{maxWidth:"100%"}}><SouborPrilohy a={a} onRemove={onRemove} sdilPril={sdilPril} /><AttachmentSaveStatus attachment={a} t={t} lang={LANG}/></div>
           ))}
         </div>
       )}
@@ -4524,10 +4559,11 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
     const added = await filesToAtts(fileList, st.ask);
     if (added.length) {
       const ted = (stRef.current.coll[kind] || []).find((e) => e.id === entry.id) || entry;
-      stRef.current.updateEntry(kind, entry.id, { att: [...(ted.att || []), ...added] });
+      stRef.current.updateEntry(kind, entry.id, { att: [...(ted.att || []).filter(a => !added.some(n => n.id === a.id)), ...added] });
       setOpen(true);
     }
     if (fileRef.current) fileRef.current.value = "";
+    return added;
   };
   /* NAHRÁVKA · někdy je rychlejší větu říct než napsat. Nahrává se do téže
      přílohy jako zvukový soubor, takže přehrávání, sdílení i mazání už
@@ -4537,13 +4573,24 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
   const [recording,setRecording] = useState(null);
   const recorderRef = React.useRef(null);
   const attachRef = React.useRef(attachFiles); attachRef.current=attachFiles;
+  const recordingStore = React.useMemo(() => tmRecordingStore(), [entry.id]);
+  const saveVoice = async (blob, draft) => {
+    const added = await attachRef.current([tmRecordingFile(blob,draft)]);
+    if (!added?.length) throw new Error("recording-not-saved");
+    await new Promise(resolve => setTimeout(resolve,0));
+    await TM_LOCAL_WRITER.settled();
+    if (TM_LOCAL_WRITER.currentFailure()) throw new Error("recording-document-pending");
+    const saved = JSON.parse(window.localStorage.getItem(LS_COLL) || "{}");
+    if (!(saved[kind] || []).find(row=>row.id===entry.id)?.att?.some(att=>att.id===added[0].id)) throw new Error("recording-reference-pending");
+  };
+  const saveVoiceRef = React.useRef(saveVoice); saveVoiceRef.current = saveVoice;
   React.useEffect(()=>{
     const controller=createVoiceRecorder({mediaDevices:navigator.mediaDevices,Recorder:globalThis.MediaRecorder,onState:setRecording,
-      onSave:blob=>{const ext=/ogg/.test(blob.type)?"ogg":/mp4|mpeg|m4a/.test(blob.type)?"m4a":"webm";return attachRef.current([new File([blob],L("Nahrávka ","Recording ")+new Date().toISOString().slice(0,16).replace(/:/g,"-")+"."+ext,{type:blob.type})]);},
-      onError:reason=>stRef.current.ask(reason==="save"?L("Nahrávku se nepodařilo uložit.","The recording could not be saved."):reason==="unsupported"?L("Tento prohlížeč neumí nahrávat zvuk.","This browser cannot record audio."):L("Nahrávání se nepodařilo. Zkontroluj povolení mikrofonu a zkus to znovu.","Recording failed. Check microphone permission and try again."),null)});
+      drafts:recordingStore,metadata:{entryId:entry.id,kind},onSave:(blob,draft)=>saveVoiceRef.current(blob,draft),
+      onError:reason=>stRef.current.ask(reason==="save"?L("Nahrávka čeká na uložení. Zkus uložení znovu nebo ji stáhni.","The recording is waiting to be saved. Retry or download it."):reason==="checkpoint"?L("Záchrannou kopii nahrávky nelze zapsat. Zkontroluj volné místo. Hotový zvuk můžeš stáhnout.","The recording recovery copy could not be saved. Check available space. You can download the captured audio."):reason==="unsupported"?L("Tento prohlížeč neumí nahrávat zvuk.","This browser cannot record audio."):L("Nahrávání se nepodařilo. Zkontroluj povolení mikrofonu a zkus to znovu.","Recording failed. Check microphone permission and try again."),null)});
     recorderRef.current=controller;return()=>controller.dispose();
-  },[entry.id]);
-  const recordingStatus=recording?<RecordingStatus state={recording} t={t} lang={LANG} onStop={()=>recorderRef.current.stop()} onCancel={()=>recorderRef.current.cancel()}/>:null;
+  },[entry.id,recordingStore]);
+  const recordingStatus=recording?<RecordingStatus state={recording} t={t} lang={LANG} onStop={()=>recorderRef.current.stop()} onCancel={()=>recorderRef.current.cancel()} onRetry={()=>recorderRef.current.retry()} onDownload={()=>{const blob=recorderRef.current.failedBlob();if(blob)tmDownloadRecording(blob);}}/>:null;
   const naPrilohu = druh => { if(druh==="nahravka")recorderRef.current.start();else fileRef.current?.click(); };
 
   const colorOf = (name) => ((tags.find((x) => x[0] === name)) || [])[1] || "default";
@@ -4637,6 +4684,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
             </div>
           )}
           <RichArea recordingStatus={full ? recordingStatus : null} value={entry.text || ""} onChange={(v) => st.updateEntry(kind, entry.id, { text: v })} zamek={!!entry.zamek} naPrilohu={full ? naPrilohu : undefined} onZmensit={full ? onZmensit : undefined} stranky={full && entry.rezim === "stranky"} />
+          <RecordingRecovery store={recordingStore} entryId={entry.id} onRecover={saveVoice} onDownload={tmDownloadRecording} t={t} lang={LANG} refresh={recording?.phase}/>
           <AttachmentStrip att={entry.att} onRemove={(st.editMode || full) && !entry.zamek ? ((id) => st.updateEntry(kind, entry.id, { att: (entry.att || []).filter((x) => x.id !== id) })) : undefined} />
           {full && <Backlinks title={entry.title} selfId={entry.id} />}
         </div>
@@ -15142,10 +15190,9 @@ export default function App() {
       }
       if (hotove.size && clientAccount.isCurrent(owner)) {
         // Místní kopie se maže až potom, co je povýšený odkaz zapsaný.
-        let ulozeno = 0;
-        setColl((prev) => { const nx = tmPovysPrilohy(prev, hotove); if (nx !== prev && saveColl(nx)) ulozeno++; return nx; });
-        setEdits((prev) => { const nx = tmPovysPrilohy(prev, hotove); if (nx !== prev && saveEdits(nx)) ulozeno++; return nx; });
-        setTimeout(() => { if (ulozeno > 0) hotove.forEach((id) => idbDel(id)); }, 0);
+        setColl((prev) => { const nx = tmPovysPrilohy(prev, hotove); if (nx !== prev) saveColl(nx); return nx; });
+        setEdits((prev) => { const nx = tmPovysPrilohy(prev, hotove); if (nx !== prev) saveEdits(nx); return nx; });
+        // Keep the local media recovery copy; document acknowledgement is separate.
       }
       return { cekalo: cekaji.size, nahrano: hotove.size };
     };
@@ -15192,17 +15239,7 @@ export default function App() {
     return () => { try { delete window.tmMigrateMedia; delete window.tmGcFiles; delete window.tmPrilohyNahoru; } catch (e) {} };
   }, []);
   // Jeden běh naráz, po startu a při návratu signálu.
-  React.useEffect(() => {
-    let bezi = false;
-    const dotlac = () => {
-      if (bezi || !window.tmPrilohyNahoru) return;
-      bezi = true;
-      Promise.resolve(window.tmPrilohyNahoru()).catch(() => {}).then(() => { bezi = false; });
-    };
-    const t = setTimeout(dotlac, 4000);
-    window.addEventListener("online", dotlac);
-    return () => { clearTimeout(t); window.removeEventListener("online", dotlac); };
-  }, []);
+  React.useEffect(() => createMediaRecovery({retry:() => window.tmPrilohyNahoru?.()}), []);
 
   // ---- Cross-device sync via D1 (/api/state) ----
   // localStorage stays the instant local cache; the server is the shared source
@@ -16783,7 +16820,7 @@ export default function App() {
     if (!settingsDataState.current?.canExport || !clientAccount.isCurrent(ownerId) || ownerLoad() !== ownerId) return;
     try {
       const files = buildClientBackup(_collRef.current, _editsRef.current, { date: todayISO(), lang, safeName: tmSafeName, bodyOut: tmBodyOut, recovery: readPracticeRecovery(window.localStorage, ownerId) });
-      if (!tmDlBlob(tmZip(files), "tanmay-klient-zaloha-" + todayISO() + ".zip")) throw new Error("download");
+      if (!tmDlBlob(tmZip(files), "tanmay-klient-textova-zaloha-" + todayISO() + ".zip")) throw new Error("download");
       setDataMessage(L("Záloha je připravená ke stažení.", "Your backup is ready to download."));
     } catch { setDataMessage(L("Zálohu se nepodařilo připravit. Tvoje data se nezměnila.", "The backup could not be prepared. Your data has not changed.")); }
   };
@@ -17141,7 +17178,7 @@ export default function App() {
         {saveErr && (
           <div role="status" aria-live="polite" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 400, background: t.accent, color: t.onAccent || t.bg, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
             <span style={{ flex: 1, minWidth: 200 }}>{localSaveMessage(saveErr, L)}<details style={{ fontSize: 11 }}><summary>{L("Podrobnosti chyby", "Error details")}</summary>{localSaveDiagnostic(saveErr, L)}</details></span>
-            <button disabled={!dataAccess.canExport} onClick={downloadClientBackup} style={{ background: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}>{L("Stáhnout zálohu", "Download backup")}</button>
+            <button disabled={!dataAccess.canExport} onClick={downloadClientBackup} style={{ background: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}>{L("Stáhnout textovou zálohu", "Download text backup")}</button>
             <button onClick={() => { if (clientAccount.isCurrent(ownerId)) { saveColl(_collRef.current); saveEdits(_editsRef.current); } }} style={{ background: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Zkusit uložit znovu", "Try saving again")}</button>
           </div>
         )}
@@ -17408,16 +17445,13 @@ export default function App() {
                     {manualSyncBusy ? L("Odesílám…", "Sending…") : L("Odeslat teď", "Send now")}
                   </button>}
                 {conflict && <button onClick={()=>setSetsOpen(false)} style={{ ...tmButton(t), minHeight: 44 }}>{L("Vybrat verzi", "Choose a version")}</button>}
-                <button disabled={!dataAccess.canExport} onClick={downloadClientBackup} style={{ ...tmButton(t), minHeight: 44, opacity: dataAccess.canExport ? 1 : 0.55 }}>{L("Stáhnout zálohu", "Download backup")}</button>
+                <button disabled={!dataAccess.canExport} onClick={downloadClientBackup} style={{ ...tmButton(t), minHeight: 44, opacity: dataAccess.canExport ? 1 : 0.55 }}>{L("Stáhnout textovou zálohu", "Download text backup")}</button>
               </div>
             </SetSection>
             <SetSection title={L("Data", "Data")} id="data" open={settingsSection==="data"} onOpen={setSettingsSection}>
-              <button className="tm-nav-item" disabled={!dataAccess.canExport} onClick={downloadClientBackup}
-                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", padding: "12px 8px", minHeight: 48, background: "transparent", border: "none", borderRadius: 10, color: t.text, cursor: dataAccess.canExport ? "pointer" : "default", opacity: dataAccess.canExport ? 1 : 0.55, fontFamily: FONT_BODY, fontSize: 13 }}>
-                <FamilyIcon id="download" size={18}/>
-                <span style={{ flex: 1, minWidth: 0 }}>{L("Stáhnout zálohu", "Download backup")}<span style={{ display: "block", color: t.textSec, fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>{L("ZIP s čitelnými texty a daty tohoto dokumentu, včetně neodeslaných změn.", "A ZIP with readable text and this document’s data, including unsent changes.")}</span></span>
-              </button>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textSec, margin: "0 8px 16px", lineHeight: 1.55 }}>{L("Přílohy, samostatná data Spolu, profil účtu a rezervace v záloze nejsou.", "Attachments, separate Together data, account profile and bookings are not included.")}</p>
+              <BackupControl key={ownerId} t={t} lang={lang} disabled={!dataAccess.canExport} filename={"tanmay-klient-uplna-zaloha-"+todayISO()+".zip"} textBackup={downloadClientBackup}
+                prepare={options=>{const owner=ownerId,namespace=tmFileNamespace();return buildCompleteBackup({coll:_collRef.current,edits:_editsRef.current,textFiles:buildClientBackup(_collRef.current,_editsRef.current,{date:todayISO(),lang,safeName:tmSafeName,bodyOut:tmBodyOut}),role:"client",fetcher:clientFetch,getLocalFile:id=>idbGet(id,namespace),listLocalFiles:()=>idbList(namespace),drafts:tmRecordingStore(),extraLocal:{practiceRecovery:readPracticeRecovery(window.localStorage,owner),preferences:Object.fromEntries(APPEARANCE_KEYS.map(key=>[key,window.localStorage.getItem(key)]))},current:()=>clientAccount.isCurrent(owner)&&ownerLoad()===owner,...options});}}/>
+              {dataAccess.canExport && <RecordingRecovery store={tmRecordingStore()} onDownload={tmDownloadRecording} t={t} lang={lang}/>}
               {dataAccess.canExport && <LocalStorageStatus t={t} L={L} getDocument={() => ({ coll: _collRef.current, edits: _editsRef.current })} writer={TM_LOCAL_WRITER} />}
               <button className="tm-nav-item" disabled={!dataAccess.canReset || manualSyncBusy} onClick={()=>confirmPracticeReset()}
                 style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", padding: "12px 8px", minHeight: 48, background: "transparent", border: "none", borderRadius: 10, color: t.text, cursor: dataAccess.canReset ? "pointer" : "default", opacity: dataAccess.canReset ? 1 : 0.55, fontFamily: FONT_BODY, fontSize: 13 }}>

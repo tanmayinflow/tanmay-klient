@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-export function RecordingStatus({state,onStop,onCancel,t,lang='cs'}){
+export function RecordingStatus({state,onStop,onCancel,onRetry,onDownload,t,lang='cs'}){
   const [tick,setTick]=useState(Date.now());
   useEffect(()=>{if(state?.phase!=='recording')return;setTick(Date.now());const id=setInterval(()=>setTick(Date.now()),500);return()=>clearInterval(id);},[state?.phase,state?.startedAt]);
   if(!state)return null;
@@ -9,9 +9,9 @@ export function RecordingStatus({state,onStop,onCancel,t,lang='cs'}){
     <style>{`@keyframes tm-recording-breathe{50%{opacity:.35}}.tm-recording-dot{animation:tm-recording-breathe 1.2s ease-in-out infinite}@media(prefers-reduced-motion:reduce){.tm-recording-dot{animation:none}}`}</style>
     <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:recording?8:0}}>
       <span aria-hidden="true" className={recording?'tm-recording-dot':undefined} style={{width:10,height:10,borderRadius:'50%',background:t.accent,flexShrink:0}}/>
-      <strong role="status">{recording?L('Nahrávám hlas','Recording your voice'):state.phase==='saving'?L('Ukládám nahrávku…','Saving recording…'):L('Čekám na mikrofon…','Waiting for microphone…')}</strong>
+      <strong role="status">{recording?L('Nahrávám hlas','Recording your voice'):state.phase==='saving'?L('Ukládám nahrávku…','Saving recording…'):state.phase==='failed'?L('Nahrávka čeká na uložení','Recording is waiting to be saved'):L('Čekám na mikrofon…','Waiting for microphone…')}</strong>
       {recording&&<span aria-label={L('Délka nahrávky','Recording duration')} style={{marginLeft:'auto',fontVariantNumeric:'tabular-nums'}}>{Math.floor(seconds/60)}:{String(seconds%60).padStart(2,'0')}</span>}
     </div>
-    {state.phase!=='saving'&&<div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{recording&&<button type="button" onClick={onStop} style={button}>{L('Zastavit a vložit','Stop and insert')}</button>}<button type="button" onClick={onCancel} style={{...button,borderColor:'transparent'}}>{L('Zrušit','Cancel')}</button></div>}
+    {state.phase==='failed'?<div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}><button type="button" onClick={onRetry} style={button}>{L('Zkusit uložit znovu','Retry saving')}</button><button type="button" onClick={onDownload} style={button}>{L('Stáhnout nahrávku','Download recording')}</button></div>:state.phase!=='saving'&&<div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{recording&&<button type="button" onClick={onStop} style={button}>{L('Zastavit a vložit','Stop and insert')}</button>}<button type="button" onClick={onCancel} style={{...button,borderColor:'transparent'}}>{L('Zrušit','Cancel')}</button></div>}
   </div>;
 }
