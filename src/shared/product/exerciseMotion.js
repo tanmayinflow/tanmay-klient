@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_kb_double_clean": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_kb_double_clean-dd115ccb85a06609.mp4",
+    "bytes": 38961,
+    "sha256": "dd115ccb85a06609b32d7a6dce38c68571a1bbc2d4052e934c1167b66457b6cc",
+    "poster": "/exercise-motion/ex26_kb_double_clean-poster-19d0613fa36ae742.webp"
+  },
+  "jumplunge": {
+    "oneSide": false,
+    "src": "/exercise-motion/jumplunge-7279a229261ac1f8.mp4",
+    "bytes": 57158,
+    "sha256": "7279a229261ac1f814864fe469481c89bf013ae84fb2863f0ba3f2ed104e3faa",
+    "poster": "/exercise-motion/jumplunge-poster-630c6003964f7e43.webp"
+  },
+  "an_walklunge": {
+    "oneSide": false,
+    "src": "/exercise-motion/an_walklunge-0db0be4aabdf0766.mp4",
+    "bytes": 55657,
+    "sha256": "0db0be4aabdf0766bb25cc3096fbf2c5749ab2ae1bbe51e3bb6453ecf51df8a7",
+    "poster": "/exercise-motion/an_walklunge-poster-47fb4c997aeb7731.webp"
+  },
+  "ex26_hss_pallof_stepout": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_hss_pallof_stepout-1ea007051a3850b3.mp4",
+    "bytes": 34694,
+    "sha256": "1ea007051a3850b3a71405d0c1ccd4f3a3538c612c55211c913ec6d2b29492f9",
+    "poster": "/exercise-motion/ex26_hss_pallof_stepout-poster-8695a599a0ae410e.webp"
+  },
+  "frontrackcarry": {
+    "oneSide": false,
+    "src": "/exercise-motion/frontrackcarry-f9ea97c3cb26f208.mp4",
+    "bytes": 36702,
+    "sha256": "f9ea97c3cb26f2084e35aa071edc88c65feb1f306af5894469d879a1e92b8ad1",
+    "poster": "/exercise-motion/frontrackcarry-poster-c613bbfffb85c5cb.webp"
+  },
+  "bodyrow": {
+    "oneSide": false,
+    "src": "/exercise-motion/bodyrow-091c87c844a004e2.mp4",
+    "bytes": 30856,
+    "sha256": "091c87c844a004e22be42dafd1be64816bd16c14838c17bffd6653523420bdd2",
+    "poster": "/exercise-motion/bodyrow-poster-1a4d99bbf6453b5a.webp"
+  },
+  "ex26_waiter_carry": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_waiter_carry-2005b6fddc5b5472.mp4",
+    "bytes": 27451,
+    "sha256": "2005b6fddc5b5472b435eee3f25168d6c7cc2a736f8e19283f98d26909a39309",
+    "poster": "/exercise-motion/ex26_waiter_carry-poster-7817c16c0f18a67b.webp"
+  },
+  "kb26_double_swing": {
+    "oneSide": false,
+    "src": "/exercise-motion/kb26_double_swing-bf3e8c98ea681a63.mp4",
+    "bytes": 25436,
+    "sha256": "bf3e8c98ea681a63a54ca99f055ddf67fc25e1e8caea080c35489252dfeb6fb4",
+    "poster": "/exercise-motion/kb26_double_swing-poster-19d0613fa36ae742.webp"
+  },
   "kbhighpull": {
     "oneSide": true,
     "src": "/exercise-motion/kbhighpull-262b5f5cd6e19cbc.mp4",
@@ -3511,13 +3567,7 @@ export const EXERCISE_MOTION = Object.freeze({
     "sha256": "465bf210bf17fa3e6a979979de20bc27b9f522654e5ec568a65c9f8185742d66",
     "poster": "/exercise-motion/diamond-poster-1e6b4efcdf773dce.webp"
   },
-  "bodyrow": {
-    "oneSide": false,
-    "src": "/exercise-motion/bodyrow-0bd1fbb2953c9fa2.mp4",
-    "bytes": 31523,
-    "sha256": "0bd1fbb2953c9fa2a81f179664b7f6a6e522f92005bd89467fb108031e0e67d3",
-    "poster": "/exercise-motion/bodyrow-poster-5c183ce8a12a1e8c.webp"
-  },
+
   "negpull": {
     "oneSide": false,
     "src": "/exercise-motion/negpull-c2bb78e3e72963bb.mp4",

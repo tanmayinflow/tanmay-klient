@@ -35,22 +35,23 @@ export const UNIFIED_ART = {
     "sourceSha256": "aeea0a135acc4fd7515bc15448d08a3c1844fb6b0cfdc3df347fb1546e6ca153"
   },
   "bodyrow": {
-    "appId": "bodyrow",
-    "atlasId": "bodyrow",
-    "unified": true,
-    "primary": {
-      "width": 960,
-      "height": 960,
-      "sourceSha256": "411e6923cbd652c867991540e01271af22a095d9078b5f625c97c101f4031f07",
-      "thumb": "/unified-atlas/bodyrow-94e27fc1fde2afcf-thumb.webp",
-      "detail": "/unified-atlas/bodyrow-24536e3c272ce4c9-detail.webp",
-      "inkThumb": "/unified-atlas/bodyrow-199f220a748beed4-inkThumb.webp",
-      "inkDetail": "/unified-atlas/bodyrow-ebebf3af90a0f703-inkDetail.webp",
-      "fillThumb": "/unified-atlas/bodyrow-35c55362e3f62c1b-fillThumb.webp",
-      "fillDetail": "/unified-atlas/bodyrow-563cbbfbf36b8b6c-fillDetail.webp"
-    },
-    "sourceSha256": "411e6923cbd652c867991540e01271af22a095d9078b5f625c97c101f4031f07"
+  "appId": "bodyrow",
+  "atlasId": "bodyrow",
+  "unified": true,
+  "transparentBody": true,
+  "primary": {
+    "width": 960,
+    "height": 960,
+    "sourceSha256": "0882b6fba337959ce2e748feea53236adf8d51deede18a68aec0ecb8678d3e20",
+    "thumb": "/unified-atlas/bodyrow-overhand-original-256-67eb6d7f32727722.webp",
+    "inkThumb": "/unified-atlas/bodyrow-overhand-ink-256-4042192c6eba37e9.webp",
+    "fillThumb": "/unified-atlas/bodyrow-overhand-fill-256-8167ff40b4271c4e.webp",
+    "detail": "/unified-atlas/bodyrow-overhand-original-960-b9572ee28d0acacb.webp",
+    "inkDetail": "/unified-atlas/bodyrow-overhand-ink-960-76b7fa3411d0d636.webp",
+    "fillDetail": "/unified-atlas/bodyrow-overhand-fill-960-f424c6d9c5f994a5.webp"
   },
+  "sourceSha256": "0882b6fba337959ce2e748feea53236adf8d51deede18a68aec0ecb8678d3e20"
+},
   "glutebridge": {
     "appId": "glutebridge",
     "atlasId": "glutebridge",
