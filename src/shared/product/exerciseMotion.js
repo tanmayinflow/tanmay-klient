@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "wallball": {
+    "oneSide": false,
+    "src": "/exercise-motion/wallball-ee47cc5ca0e9e213.mp4",
+    "bytes": 26040,
+    "sha256": "ee47cc5ca0e9e213654b150f4c4fd20102a54fcce43451502eab7c9cf04dad4f",
+    "poster": "/exercise-motion/wallball-poster-0f69ed63347454fa.webp"
+  },
+  "faq_chin_negative": {
+    "oneSide": false,
+    "src": "/exercise-motion/faq_chin_negative-ca8d3df1d672351e.mp4",
+    "bytes": 59167,
+    "sha256": "ca8d3df1d672351e0c8dc0f01feaebb2d351a0fbdbdc96406e29cade15a40710",
+    "poster": "/exercise-motion/faq_chin_negative-poster-6ca328f71d4afe0f.webp"
+  },
+  "gm_w_side": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_side-be02298acdc6981d.mp4",
+    "bytes": 24867,
+    "sha256": "be02298acdc6981ddb0e4290f0259dc65d5ef56ef9e7d30fa7fed62173b3de79",
+    "poster": "/exercise-motion/gm_w_side-poster-0e6187887d4cb86a.webp"
+  },
+  "gm_w_forearm_circle": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_forearm_circle-b8d98ea857a8caa6.mp4",
+    "bytes": 39761,
+    "sha256": "b8d98ea857a8caa6f79b37bfbd55fcca066d814960cc2f1ad09b53a7d21055c0",
+    "poster": "/exercise-motion/gm_w_forearm_circle-poster-35851efe837f7c41.webp"
+  },
+  "gm_w_bend_twist": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_bend_twist-a213d64021ffde0d.mp4",
+    "bytes": 35221,
+    "sha256": "a213d64021ffde0d590f6edb21db03a99798fb5b4e9eee15eaeb4243625670d7",
+    "poster": "/exercise-motion/gm_w_bend_twist-poster-708297433343a9d0.webp"
+  },
+  "ex26_hip_airplane": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_hip_airplane-8c9d82b1a90bd6f2.mp4",
+    "bytes": 24000,
+    "sha256": "8c9d82b1a90bd6f26a08b3ec03157e018067b278ed78530af0947fb7ea2bc06d",
+    "poster": "/exercise-motion/ex26_hip_airplane-poster-46e94ed000827686.webp"
+  },
+  "ex26_lateral_stepup": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_lateral_stepup-e4db73e444485840.mp4",
+    "bytes": 20795,
+    "sha256": "e4db73e4444858402275cb2d7fce3f46370373290ce308703ffe47b962cfa6e3",
+    "poster": "/exercise-motion/ex26_lateral_stepup-poster-6808cb08b271326a.webp"
+  },
+  "gm_w_trunk_circle": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_trunk_circle-6f9882f949d70cc4.mp4",
+    "bytes": 44611,
+    "sha256": "6f9882f949d70cc4438981c5de584ac9b522080014bb2c99bde99b8229e940f5",
+    "poster": "/exercise-motion/gm_w_trunk_circle-poster-a9f0c95a60ae4da9.webp"
+  },
   "ex26_plank_rotation": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_plank_rotation-ff63ed846b686aad.mp4",
