@@ -30,7 +30,7 @@ export function createSourcesUI(deps) {
     Tag, Select, PropRow,
     PageTitle, Prazdno, CenterSheet, RichArea, AttachmentStrip, filesToAtts,
     ViewCycle, HdrIcon, HdrSearch, HdrLbl, FiltrPill, UndoBar, useHoldSelect, RoomView, TmIcFiltr, tmViewOk,
-    useHoldReorder, PinDot, PinToggle, isEntryPinned, imgSrc, r2Put, r2Del, resizeImageToBlob,
+    useHoldReorder, PinDot, PinToggle, isEntryPinned, entryFileIds, imgSrc, r2Put, r2Del, resizeImageToBlob,
     TmIcPrameny, TmIcLupa, TmIcKniha, ClipIcon, TmArtKapka,
     // glyf typu se bere až za běhu · v osobní aplikaci vzniká pozdě ve zdroji
     typeGlyph,
@@ -235,7 +235,7 @@ export function createSourcesUI(deps) {
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <span style={{ fontFamily: "var(--tm-font-display)", fontSize: 17, color: t.heading, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</span>
-            <PinDot id={e.id} />
+            <PinDot entry={e} />
             <OriginBadge s={e} />
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4, flexWrap: "wrap" }} onClick={(ev) => ev.stopPropagation()}>
@@ -316,7 +316,7 @@ export function createSourcesUI(deps) {
     // (Deník ji záměrně nemá: tam pořadí určuje čas a vytahovat zápis z proudu by ho rozbilo.)
     shown = [...shown.filter((e) => e.star), ...shown.filter((e) => !e.star)];
     if (q.trim()) { const needle = q.trim().toLowerCase(); shown = shown.filter((e) => ((e.title || "") + " " + (e.author || "")).toLowerCase().includes(needle)); }
-    if (offlineOnly) shown = shown.filter((e) => isEntryPinned(e.id));
+    if (offlineOnly) shown = shown.filter((e) => isEntryPinned(e.id, entryFileIds(e)));
     const counts = { "Vše": live.length, "Archiv": all.length - live.length };
     C_TYPES.forEach((x) => { counts[x] = live.filter((e) => e.type === x).length; });
     const progBase = view === "Archiv" ? all.filter((e) => e.archive) : view === "Vše" ? live : live.filter((e) => e.type === view);

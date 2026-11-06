@@ -10013,7 +10013,7 @@ const { OriginBadge, ContentDetail, ContentRow, PageContent } = createSourcesUI(
   Tag, Select, PropRow,
   PageTitle, Prazdno, CenterSheet, RichArea, AttachmentStrip, filesToAtts,
   ViewCycle, HdrIcon, HdrSearch, HdrLbl, FiltrPill, UndoBar, useHoldSelect, RoomView, TmIcFiltr, tmViewOk,
-  useHoldReorder, PinDot, PinToggle, isEntryPinned, imgSrc, r2Put, r2Del, resizeImageToBlob,
+  useHoldReorder, PinDot, PinToggle, isEntryPinned, entryFileIds, imgSrc, r2Put, r2Del, resizeImageToBlob,
   TmIcPrameny, TmIcLupa, TmIcKniha, ClipIcon, TmArtKapka,
   typeGlyph: (typ) => C_TYPE_GLYPH[typ] || TmIcKniha,
   iconBtn, fieldStyle, tmPlain, tmToTop,
