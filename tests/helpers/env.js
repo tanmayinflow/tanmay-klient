@@ -16,8 +16,11 @@ export function makeD1() {
   const exec = (sql, args) => {
     const st = db.prepare(sql);
     if (/^\s*(select|pragma|with)/i.test(sql)) return { rows: st.all(...args) };
-    const info = st.run(...args);
-    return { rows: [], changes: Number(info && info.changes) || 0 };
+    // D1 reports sqlite3_total_changes(), including trigger side effects.
+    const before = db.prepare('SELECT total_changes() AS n').get().n;
+    st.run(...args);
+    const after = db.prepare('SELECT total_changes() AS n').get().n;
+    return { rows: [], changes: Number(after - before) };
   };
 
   let gate = Promise.resolve(); // jedna transakce naráz, přesně jako v D1

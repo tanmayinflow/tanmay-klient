@@ -79,13 +79,17 @@ async function bootstrap(db, bucket, raw) {
 async function reserve(db, bucket, key, user, bytes, removal = false) {
   await ensureUser(db, user);
   const token = crypto.randomUUID();
-  const result = await db.prepare(`INSERT OR IGNORE INTO storage_budget_reservations(bucket,key,user_id,bytes,token)
+  await db.prepare(`INSERT OR IGNORE INTO storage_budget_reservations(bucket,key,user_id,bytes,token)
     SELECT ?,?,?,MAX(0,?-COALESCE(o.bytes,0)),? FROM storage_budget_pool p JOIN storage_budget_users u ON u.id=?
     LEFT JOIN storage_budget_objects o ON o.bucket=? AND o.key=?
     WHERE p.id=1 AND (SELECT count(*) FROM storage_budget_buckets WHERE ready=1)=2
     AND (?=1 OR (p.used+p.reserved+MAX(0,?-COALESCE(o.bytes,0))<=? AND u.used+u.reserved+MAX(0,?-COALESCE(o.bytes,0))<=MIN(u.ceiling,COALESCE(u.personal,u.ceiling))))`)
     .bind(bucket,key,user,bytes,token,user,bucket,key,removal ? 1 : 0,bytes,STORAGE_LIMITS.globalBytes,bytes).run();
-  if (result.meta.changes !== 1) {
+  // D1 meta.changes includes writes performed by triggers. One reservation
+  // therefore changes three rows. Confirm this request's exact token instead
+  // of interpreting the provider's aggregate change count as an insert count.
+  const acquired = await db.prepare('SELECT token FROM storage_budget_reservations WHERE bucket=? AND key=? AND token=?').bind(bucket,key,token).first();
+  if (!acquired) {
     const ready=await db.prepare('SELECT count(*) AS n FROM storage_budget_buckets WHERE ready=1').first();
     if (ready.n !== 2) throw fail('storage-initializing');
     const pending=await db.prepare('SELECT token FROM storage_budget_reservations WHERE bucket=? AND key=?').bind(bucket,key).first();

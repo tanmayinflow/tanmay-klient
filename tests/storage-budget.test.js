@@ -14,6 +14,16 @@ async function setup() {
 const get = (files,db,role='main',userId='primary')=>handleStorageBudget(new Request('https://app.test/api/storage'),{db,files,role,userId}).then(r=>r.json());
 const put = (files,db,body,role='main',userId='primary')=>handleStorageBudget(new Request('https://app.test/api/storage',{method:'PUT',body:JSON.stringify(body)}),{db,files,role,userId}).then(r=>r.json());
 
+test('D1 trigger-inclusive change counts do not reject a successful reservation',async()=>{
+ const {db,main}=await setup();
+ await get(main,db);
+ const inserted=await db.prepare("INSERT INTO storage_budget_reservations(bucket,key,user_id,bytes,token) VALUES('main','synthetic-counter','main:primary',0,'counter')").run();
+ assert.equal(inserted.meta.changes,3);
+ await db.prepare("DELETE FROM storage_budget_reservations WHERE bucket='main' AND key='synthetic-counter'").run();
+ await main.put('files/primary/confirmed','1234');
+ const overview=await get(main,db);assert.equal(overview.own.usedBytes,4);assert.equal(overview.own.reservedBytes,0);
+});
+
 test('both inventories required; existing files and system objects consume pooled capacity',async()=>{
  const db=makeD1(),a=makeR2(),b=makeR2();
  await a.put('files/primary/x','12345'); await b.put('content-library/snapshot','1234567');
