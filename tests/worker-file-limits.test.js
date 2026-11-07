@@ -11,7 +11,7 @@ async function setup(extra = {}) {
   return env;
 }
 function streamedRequest(length, source, email = EMAIL) {
-  const headers = { 'cf-access-authenticated-user-email': email, 'Content-Type': 'audio/webm', 'X-File-Name': 'Nahravka.webm' };
+  const headers = { 'cf-access-authenticated-user-email': email, 'Content-Type': 'application/octet-stream', 'X-File-Name': 'Priloha.bin' };
   if (length !== null) headers['Content-Length'] = String(length);
   return new Request('https://app.example.test/api/files/recording', {
     method: 'PUT', headers, body: new ReadableStream(source, { highWaterMark: 0 }), duplex: 'half',
@@ -56,7 +56,7 @@ test('exactly 95 MiB streams directly into R2 with metadata and a confirmed rece
     assert.match(key, /^files\/[a-z-]+\/recording$/);
     assert.equal(body, request.body, 'preserve native known-length request stream');
     assert.equal(request.bodyUsed, false, 'worker did not buffer the file');
-    assert.deepEqual(options, { httpMetadata: { contentType: 'audio/webm' }, customMetadata: { name: 'Nahravka.webm' }, storageClass: 'Standard' });
+    assert.deepEqual(options, { httpMetadata: { contentType: 'application/octet-stream' }, customMetadata: { name: 'Priloha.bin' }, storageClass: 'Standard' });
     const reader = body.getReader();
     for (;;) { const next = await reader.read(); if (next.done) break; bytes += next.value.byteLength; }
     reader.releaseLock();
@@ -104,4 +104,29 @@ test('inventory returns sizes and metadata across all pages without including an
   const first=files.find(file=>file.id==='first');
   assert.equal(first.size,5);assert.equal(first.name,'Řeč.webm');assert.equal(first.type,'audio/webm');
   assert.ok(files.every(file=>Number.isSafeInteger(file.size)));assert.ok(!files.some(file=>file.id==='private'));
+});
+
+
+test('audio and photo upload caps reject before reading the stream, including filename fallback', async () => {
+  for (const [type,name,limit] of [['audio/mpeg','voice.mp3',15000000],['image/jpeg','photo.jpg',2000000],['application/octet-stream','Hlas%20z%20knihy.m4a',15000000],['application/octet-stream','progress.PNG',2000000]]) {
+    let pulls=0,puts=0;
+    const env=await setup({FILES:{put:async()=>{puts++;}}});
+    const request=streamedRequest(limit+1,{pull(controller){pulls++;controller.close();}});
+    request.headers.set('Content-Type',type);request.headers.set('X-File-Name',name);
+    const response=await worker.fetch(request,env);
+    assert.equal(response.status,413,type+name);assert.equal((await response.json()).limit,limit);
+    assert.equal(pulls,0);assert.equal(puts,0);await request.body.cancel();
+  }
+});
+
+
+test('previously stored Ogg and Opus files play inline without changing their bytes',async()=>{
+ const env=await setup();
+ const upload=await worker.fetch(req('/api/files/anchor',{email:EMAIL,method:'PUT',body:'anchor'}),env);assert.equal(upload.status,200);
+ const anchor=[...env.FILES._store.keys()][0],prefix=anchor.slice(0,anchor.lastIndexOf('/')+1);
+ for(const [id,type,name] of [['legacy-opus','application/ogg','Hlas%20z%20knihy.opus'],['legacy-ogg','application/octet-stream','Souhrn.ogg']]){
+  await env.FILES.put(prefix+id,'OggS original bytes',{httpMetadata:{contentType:type},customMetadata:{name}});
+  const response=await worker.fetch(req('/api/files/'+id,{email:EMAIL}),env);
+  assert.equal(response.status,200);assert.equal(response.headers.get('Content-Type'),'audio/ogg');assert.equal(response.headers.get('Content-Disposition'),null);assert.equal(response.headers.get('X-Content-Type-Options'),'nosniff');assert.equal(await response.text(),'OggS original bytes');
+ }
 });

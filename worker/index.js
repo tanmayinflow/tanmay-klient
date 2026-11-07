@@ -1,6 +1,6 @@
+import { mediaUploadLimit, audioPlaybackMime } from "../src/shared/product/mediaLimits.js";
 import { guardedStorage, handleStorageBudget, storageBudgetFailure } from "../src/shared/product/storageBudgetServer.js";
 import { handleAccountBackup } from "../src/shared/product/accountBackup.js";
-import { MEDIA_MAX_BYTES } from "../src/shared/product/mediaSafety.js";
 import { exerciseMotionAsset } from '../src/shared/product/exerciseMotionAsset.js';
 import { STATE_LIMIT, ensureStateStorage, encodeState, readStateMeta, readStateDocument, writeStateDocument, stateFailure } from "../src/shared/product/stateStorage.js";
 import { handleContentLibrary } from "./contentLibrary.js";
@@ -332,19 +332,20 @@ async function handleFiles(request, env, userId, id) {
     if (!request.body) {
       return Response.json({ ok: false, error: "empty body" }, { status: 400 });
     }
+    const fileLimit = mediaUploadLimit(request.headers.get("Content-Type"), request.headers.get("X-File-Name"));
     // R2 requires a known-length stream. Blob/File uploads provide this header
     // through the browser. Keep the original body stream: a TransformStream
     // would lose its known length, and buffering 95 MiB risks Worker memory.
     const lengthHeader = request.headers.get("Content-Length");
     if (lengthHeader === null) {
-      return Response.json({ ok: false, code: "media-length-required", error: "content length required", limit: MEDIA_MAX_BYTES }, { status: 411 });
+      return Response.json({ ok: false, code: "media-length-required", error: "content length required", limit: fileLimit }, { status: 411 });
     }
     const length = Number(lengthHeader);
     if (!/^\d+$/.test(lengthHeader) || !Number.isSafeInteger(length) || length < 1) {
-      return Response.json({ ok: false, code: "media-size-invalid", error: "invalid content length", limit: MEDIA_MAX_BYTES }, { status: 400 });
+      return Response.json({ ok: false, code: "media-size-invalid", error: "invalid content length", limit: fileLimit }, { status: 400 });
     }
-    if (length > MEDIA_MAX_BYTES) {
-      return Response.json({ ok: false, code: "media-too-large", error: "file too large", limit: MEDIA_MAX_BYTES }, { status: 413 });
+    if (length > fileLimit) {
+      return Response.json({ ok: false, code: "media-too-large", error: "file too large", limit: fileLimit }, { status: 413 });
     }
     const contentType = request.headers.get("Content-Type") || "application/octet-stream";
     const name = request.headers.get("X-File-Name") || "";
@@ -360,7 +361,8 @@ async function handleFiles(request, env, userId, id) {
     if (!object) return new Response("Not found", { status: 404 });
     const headers = new Headers();
     object.writeHttpMetadata(headers);
-    const ct = headers.get("Content-Type") || "application/octet-stream";
+    const ct = audioPlaybackMime(headers.get("Content-Type") || "application/octet-stream", object.customMetadata?.name || "");
+    headers.set("Content-Type", ct);
     if (!INLINE_OK.test(ct)) {
       headers.set("Content-Type", "application/octet-stream");
       headers.set("Content-Disposition", "attachment");
