@@ -150,7 +150,8 @@ test("odeslání jde přes jedno místo, které pozná proč selhalo", () => {
   assert.equal(hola, 0, "všechna volání stavu jdou přes syncFetch");
   assert.match(app, /syncFetch\("\/api\/state\?meta=1"\)/, "kontrola verze čte jen razítko");
   assert.match(app, /import \{[^}]*syncDruh[^}]*\} from "\.\/shared\/product\/sync\.js"/);
-  assert.match(app, /await clientFetch\(path/, "state calls also verify the mounted account");
+  assert.match(app, /await stateTransportFetch\(path/, "state calls use the bounded document transport");
+  assert.match(app, /guard\(\); const response = await clientFetch\(url, options\); guard\(\)/, "every document piece verifies the same mounted account before and after its request");
 });
 
 test("proužek nabídne cestu ven, ne jen „Rozumím\"", () => {

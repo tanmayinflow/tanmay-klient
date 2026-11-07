@@ -4,11 +4,14 @@ export const STATE_LIMIT = 10_000_000;
 export const STATE_CHUNK_BYTES = 750_000;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
+const readySchemas = new WeakMap();
 const failure = (code, status, extra = {}) => Object.assign(new Error(code), { code, status, ...extra });
 const digest = async bytes => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), b => b.toString(16).padStart(2, "0")).join("");
 
 export async function ensureStateStorage(db) {
-  await db.batch([
+  let work = readySchemas.get(db);
+  if (!work) {
+    work = db.batch([
     db.prepare(`CREATE TABLE IF NOT EXISTS state_documents (
       user_id TEXT PRIMARY KEY, version INTEGER NOT NULL, updated_at INTEGER NOT NULL,
       rev INTEGER NOT NULL, bytes INTEGER NOT NULL, chunks INTEGER NOT NULL,
@@ -16,7 +19,10 @@ export async function ensureStateStorage(db) {
     db.prepare(`CREATE TABLE IF NOT EXISTS state_chunks (
       user_id TEXT NOT NULL, part INTEGER NOT NULL, data TEXT NOT NULL,
       PRIMARY KEY (user_id, part))`),
-  ]);
+    ]).catch(error => { readySchemas.delete(db); throw error; });
+    readySchemas.set(db, work);
+  }
+  await work;
 }
 
 export function encodeState(doc) {

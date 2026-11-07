@@ -21,6 +21,8 @@
 // přesměrování se stavem 0, což je jednoznačný podpis vypršelé relace.
 // ----------------------------------------------------------------------
 
+import { stateTransportFetch } from './stateTransportClient.js';
+
 export const SYNC_OK = "ok";
 export const SYNC_SIT = "sit";
 export const SYNC_PRIHLASENI = "prihlaseni";
@@ -64,7 +66,7 @@ export async function syncFetch(cesta, init) {
   const o = Object.assign({ cache: "no-store", credentials: "same-origin", redirect: "manual" }, init || {});
   let res = null, err = null, telo = null;
   try {
-    res = await fetch(cesta, o);
+    res = await stateTransportFetch(cesta, o);
   } catch (e) {
     err = e || new Error("fetch failed");
   }

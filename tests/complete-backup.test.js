@@ -21,7 +21,19 @@ function fixture(overrides = {}) {
     drafts: { list: async () => [{ id: 'draft' }], read: async () => ({ id: 'draft', type: 'audio/webm', bytes: 4, blob: new Blob(['PART']) }) },
     fetcher: async (url, init) => {
       calls.push({ url, init });
-      if (url === '/api/state') return Response.json({ ok: true, doc: { coll: { notebook: [{ text: 'starší server' }] } }, version: 7 });
+      if (url.startsWith('/api/state?')) {
+        const query = new URL(url, 'https://example.test').searchParams;
+        const data = JSON.stringify({ coll: { notebook: [{ text: 'starší server' }] } });
+        if (query.get('action') === 'manifest') {
+          const bytes = new TextEncoder().encode(data);
+          const sha256 = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(v => v.toString(16).padStart(2, '0')).join('');
+          return Response.json({ ok: true, meta: true, transport: 'chunks', version: 7, updated_at: 1, rev: 0,
+            bytes: bytes.length, sha256, chunks: [{ part: 0, offset: 1, length: [...data].length }], limit: 10000000, safe: 10000000, empty: false });
+        }
+        if (query.get('action') === 'read') return Response.json({ ok: true, version: 7, part: 0, offset: 1, data });
+        throw new Error('Unexpected state request');
+      }
+      if (url === '/api/state') throw new Error('Backup must not request the complete state in one Worker invocation');
       if (url === '/api/backup') return Response.json({ ok: true, account: { format: 'tanmay-account-records-v1', role: 'client', sections: { personal_profiles: [{ doc: '{"name":"Já"}' }] } } });
       if (url === '/api/files') return Response.json({ files: [{ id: 'image', name: '../obrázek.png', size: 3 }] });
       return new Response(new Uint8Array([0, 128, 255]), { headers: { 'X-Tanmay-File': 'image', 'Content-Length': '3', 'Content-Type': 'image/png' } });
@@ -49,6 +61,33 @@ test('snapshot captures unsaved RAM before waiting for the server', async () => 
   f.options.fetcher = async (...args) => { f.coll.notebook[0].text = 'later edit'; return old(...args); };
   const result = await buildCompleteBackup(f.options), files = await unzip(result.blob);
   assert.equal(JSON.parse(new TextDecoder().decode(files.get('_data/coll.json'))).notebook[0].text, '!img(image|200)');
+});
+
+test('backup rejects a corrupted state part before collecting account or media data', async () => {
+  const f = fixture(), original = f.options.fetcher;
+  f.options.fetcher = async (url, init) => {
+    const response = await original(url, init);
+    if (url.includes('action=read')) {
+      const part = await response.json();
+      return Response.json({ ...part, data: part.data.replace('server', 'broken') });
+    }
+    return response;
+  };
+  await assert.rejects(buildCompleteBackup(f.options));
+  assert.ok(f.calls.every(call => call.url.startsWith('/api/state?')));
+});
+
+test('backup stops a multipart state read as soon as the mounted account changes', async () => {
+  const f = fixture(), original = f.options.fetcher;
+  let current = true;
+  f.options.current = () => current;
+  f.options.fetcher = async (url, init) => {
+    const response = await original(url, init);
+    if (url.includes('action=read')) current = false;
+    return response;
+  };
+  await assert.rejects(buildCompleteBackup(f.options), { code: 'account-changed' });
+  assert.ok(f.calls.every(call => call.url.startsWith('/api/state?')));
 });
 for (const label of ['missing file', 'HTML fallback', 'wrong size', 'account switch', 'cancel']) test(`backup cannot report complete after ${label}`, async () => {
   const f = fixture(), original = f.options.fetcher; let current = true; const controller = new AbortController();

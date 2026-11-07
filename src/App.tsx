@@ -158,6 +158,7 @@ import { createMuscleFig } from "./shared/ui/muscles.jsx";
 import { TmIcTerminy, TmIcMemento } from "./shared/ui/icons.jsx";
 import { SHARED_CORE_VERSION } from "./shared/version.js";
 import { SYNC_OK, SYNC_SIT, SYNC_PRIHLASENI, syncDruh, syncHlaska, syncLzeZkusitZnovu } from "./shared/product/sync.js";
+import { stateTransportFetch } from "./shared/product/stateTransportClient.js";
 import { bootstrapSyncDecision } from "./shared/product/bootstrapSync.js";
 import { createClientSession } from "./clientSession.js";
 import { clientDataAccess, clientSyncStatus, buildClientBackup, readPracticeRecovery, changeClientPractice } from "./clientData.js";
@@ -290,8 +291,15 @@ const clientFetch = (url, init) => clientAccount.request(url, init);
 async function syncFetch(path, init) {
   let res = null, telo = null, error = null;
   try {
-    res = await clientFetch(path, { cache: "no-store", ...init });
+    const owner = clientAccount.getSnapshot().owner;
+    const guard = () => { if (!clientAccount.isCurrent(owner)) throw Object.assign(new Error("changed"), { code: "changed", status: 401 }); };
+    guard();
+    res = await stateTransportFetch(path, { cache: "no-store", ...init }, async (url, options) => {
+      guard(); const response = await clientFetch(url, options); guard(); return response;
+    });
+    guard();
     if ((res.headers.get("content-type") || "").includes("application/json")) telo = await res.json();
+    guard();
   } catch (e) { error = e; }
   return { res, telo, druh: error?.status === 401 || error?.code === "changed" ? SYNC_PRIHLASENI : syncDruh(res, telo, error), stav: res?.status || error?.status || 0 };
 }

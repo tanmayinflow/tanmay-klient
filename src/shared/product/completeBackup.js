@@ -1,4 +1,5 @@
 import { assertMediaResponse } from './mediaSafety.js';
+import { stateTransportFetch } from './stateTransportClient.js';
 const fail = (code, detail = {}) => Object.assign(new Error(code), { code, ...detail });
 const ID = /^[a-zA-Z0-9_-]{1,160}$/;
 const safeName = value => String(value || '').normalize('NFC').replace(/[\\/:*?"<>|\x00-\x1f]/g, '-').replace(/^\.+$/, '-').trim().slice(0, 120) || 'soubor';
@@ -76,7 +77,11 @@ export async function buildCompleteBackup({ coll, edits, textFiles = [], role, f
   const document = JSON.parse(JSON.stringify({ coll, edits }));
   if (!document.coll || !document.edits) throw fail('backup-document');
   const readJSON = async (url, validate) => {
-    guard(); const result = await fetcher(url, { cache: 'no-store', redirect: 'manual', signal }); guard();
+    guard();
+    const result = await stateTransportFetch(url, { cache: 'no-store', redirect: 'manual', signal }, async (...args) => {
+      guard(); const response = await fetcher(...args); guard(); return response;
+    });
+    guard();
     if (!result.ok || result.redirected || result.type === 'opaqueredirect' || !/application\/json/i.test(result.headers.get('content-type') || '')) throw fail('backup-server', { status: result.status });
     const body = await result.json(); guard(); if (!validate(body)) throw fail('backup-response'); return body;
   };

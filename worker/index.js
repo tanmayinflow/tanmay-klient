@@ -3,6 +3,7 @@ import { guardedStorage, handleStorageBudget, storageBudgetFailure } from "../sr
 import { handleAccountBackup } from "../src/shared/product/accountBackup.js";
 import { exerciseMotionAsset } from '../src/shared/product/exerciseMotionAsset.js';
 import { STATE_LIMIT, ensureStateStorage, encodeState, readStateMeta, readStateDocument, writeStateDocument, stateFailure } from "../src/shared/product/stateStorage.js";
+import { handleStateTransport } from "../src/shared/product/stateTransportServer.js";
 import { handleContentLibrary } from "./contentLibrary.js";
 import { marketFrameResponse } from "../src/shared/product/marketFramePolicy.js";
 import { handleTogether } from "../src/shared/product/togetherApi.js";
@@ -82,7 +83,16 @@ function identityConflictResponse() {
 }
 
 // ---- D1 state document -----------------------------------------------------
-async function ensureSchema(env) {
+const stateSchemaReady = new WeakMap();
+function ensureSchema(env) {
+  let work = stateSchemaReady.get(env.DB);
+  if (!work) {
+    work = initializeSchema(env).catch(error => { stateSchemaReady.delete(env.DB); throw error; });
+    stateSchemaReady.set(env.DB, work);
+  }
+  return work;
+}
+async function initializeSchema(env) {
   await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS state (
        user_id    TEXT PRIMARY KEY,
@@ -197,11 +207,32 @@ async function handleJoin(request, env, userId) {
 }
 
 // Documents are stored in atomic UTF-8 chunks; legacy rows remain available for recovery.
+function transportClientMetadata(body) {
+  const hasShare = Object.prototype.hasOwnProperty.call(body, "share");
+  let shareValue = null;
+  if (hasShare && body.share != null) {
+    const check = validateShareSnapshot(body.share);
+    if (!check.ok) throw Object.assign(new Error("share summary refused"), { code: "share-summary-refused", status: 400 });
+    const raw = JSON.stringify(body.share);
+    if (raw.length <= 100000) shareValue = raw;
+  }
+  const modules = Array.isArray(body.modules) ? [...new Set(body.modules.filter(key => CLIENT_OPTIONAL.includes(key) || key === "memento"))] : null;
+  return { hasShare, shareValue, modulesValue: modules ? JSON.stringify(modules) : null };
+}
 async function handleState(request, env, userId) {
 
   try {
     await ensureSchema(env);
     await ensureStateStorage(env.DB);
+    if (new URL(request.url).searchParams.get("transport") === "chunks") {
+      return handleStateTransport(request, {
+        db: env.DB, userId, checkRev: false, prepareMetadata: transportClientMetadata,
+        extraStatements: (metadata, guard, id, token) => [
+          ...(metadata.hasShare ? [env.DB.prepare("UPDATE members SET share=? WHERE user_id=? AND " + guard).bind(metadata.shareValue, userId, id, token)] : []),
+          env.DB.prepare("UPDATE members SET modules=? WHERE user_id=? AND " + guard).bind(metadata.modulesValue, userId, id, token),
+        ],
+      });
+    }
     if (request.method === "GET") {
       if (new URL(request.url).searchParams.get("meta") === "1") {
         return Response.json({ ok: true, meta: true, ...await readStateMeta(env.DB, userId), limit: STATE_LIMIT, safe: STATE_LIMIT });
