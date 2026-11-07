@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "kb26_double_clean_press": {
+    "oneSide": false,
+    "src": "/exercise-motion/kb26_double_clean_press-7b03266b9924171c.mp4",
+    "bytes": 34612,
+    "sha256": "7b03266b9924171ca5a4e095b848372e9a9609eef1b24e5ffe03202fe44f8be4",
+    "poster": "/exercise-motion/kb26_double_clean_press-poster-c399f029123871fb.webp"
+  },
+  "deadpull": {
+    "oneSide": false,
+    "src": "/exercise-motion/deadpull-4bd750130b530219.mp4",
+    "bytes": 33302,
+    "sha256": "4bd750130b530219d6ce6f1c2cd4d67814eb0d41b1acc54003a1fad5b3229e57",
+    "poster": "/exercise-motion/deadpull-poster-523a41a936ff3beb.webp"
+  },
+  "ex26_bearhug_carry": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_bearhug_carry-ba0235c52ad37898.mp4",
+    "bytes": 43847,
+    "sha256": "ba0235c52ad378980f7ccbc608388620e857026bb6f00b26d63b31452f4f830e",
+    "poster": "/exercise-motion/ex26_bearhug_carry-poster-44421b9821e6dec7.webp"
+  },
+  "ex26_cross_carry": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_cross_carry-6b9812d2777ac77b.mp4",
+    "bytes": 39691,
+    "sha256": "6b9812d2777ac77b54ad4066c5f62a673d055d1ca3c8daee2c90eae08011a1dc",
+    "poster": "/exercise-motion/ex26_cross_carry-poster-4f75e21c16431825.webp"
+  },
+  "mbd_pancake_walk": {
+    "oneSide": false,
+    "src": "/exercise-motion/mbd_pancake_walk-655697073fd3b0b4.mp4",
+    "bytes": 39288,
+    "sha256": "655697073fd3b0b400ce1c5f10985ac0906974dad23355846838bc06cedfca66",
+    "poster": "/exercise-motion/mbd_pancake_walk-poster-5f37b9925a178ccb.webp"
+  },
+  "ig26_seated_jump": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig26_seated_jump-b005efa5ff6c9b19.mp4",
+    "bytes": 56194,
+    "sha256": "b005efa5ff6c9b1975cb040cb6c849f64c1026cbc6ed8d36cd828766352a7980",
+    "poster": "/exercise-motion/ig26_seated_jump-poster-9888ac337f385eff.webp"
+  },
+  "ex26_mob_prone_overhead_lift": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_prone_overhead_lift-86619caa6b216d2b.mp4",
+    "bytes": 15635,
+    "sha256": "86619caa6b216d2bb4d46e4281c7b76e02111e225d1790be4ddce8d4792f5831",
+    "poster": "/exercise-motion/ex26_mob_prone_overhead_lift-poster-a1a472949347bbbf.webp"
+  },
+  "ex26_dns_supine_band": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_dns_supine_band-9d3675e91e4c482d.mp4",
+    "bytes": 24647,
+    "sha256": "9d3675e91e4c482da3aeabcc1528e2e08a506a3b5843b83150b6b353e6c0ba67",
+    "poster": "/exercise-motion/ex26_dns_supine_band-poster-4f8b2fb181963347.webp"
+  },
   "ex26_kb_double_clean": {
     "oneSide": false,
     "src": "/exercise-motion/ex26_kb_double_clean-dd115ccb85a06609.mp4",
