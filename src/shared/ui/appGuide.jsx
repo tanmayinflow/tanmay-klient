@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useId } from 'react';
 import { createPortal } from 'react-dom';
-import { getGuideTours, combineGuideTours, guideArrow, placeGuidePanel, visibleGuideRect } from '../product/appGuide.js';
+import { getGuideTours, createGuideStarter, combineGuideTours, guideArrow, placeGuidePanel, visibleGuideRect } from '../product/appGuide.js';
 
 function viewportNow() {
   const v = window.visualViewport;
@@ -51,9 +51,10 @@ export function AppGuide({ t, lang = 'cs', role = 'client', currentRoom,
   contextBlocked = false, insets = {}, registerEscape }) {
   const L = (cs, en) => lang === 'en' ? en : cs;
   const tours = getGuideTours({ role, availableRooms, availableSteps, lang });
+  const starter = createGuideStarter(tours, lang);
   const combined = combineGuideTours(tours, lang);
-  const choices = combined ? [combined, ...tours] : [];
-  const [selected, setSelected] = useState(() => tours.some(tour => tour.room === currentRoom) ? currentRoom : tours[0]?.room || '');
+  const choices = starter ? [starter, ...tours, combined] : [];
+  const [selected, setSelected] = useState(() => starter?.room || '');
   const [mode, setMode] = useState('choose');
   const [index, setIndex] = useState(0);
   const [attempt, setAttempt] = useState(0);
@@ -86,7 +87,7 @@ export function AppGuide({ t, lang = 'cs', role = 'client', currentRoom,
   useEffect(() => {
     if (!choices.some(item => item.room === selected)) {
       setMode('choose'); setIndex(0); setPaused(false);
-      setSelected(tours.find(item => item.room === currentRoom)?.room || tours[0]?.room || '');
+      setSelected(starter?.room || '');
     } else if (index >= (tour?.steps.length || 0)) setIndex(0);
   }, [allowedSignature, selected, index, currentRoom]);
 
@@ -225,78 +226,76 @@ export function AppGuide({ t, lang = 'cs', role = 'client', currentRoom,
   const liveContext = !!step && step.room === currentRoom && !contextBlocked && !paused;
   const rect = liveContext && geometry.phase === 'ready' ? geometry.rect : null;
   const usableHeight = Math.max(80, geometry.viewport.height - (resolvedInsets.top || 0) - (resolvedInsets.bottom || 0) - 24);
-  const maxHeight = Math.min(mode === 'choose' ? 560 : 272, usableHeight);
+  const maxHeight = Math.min(mode === 'choose' ? 480 : 240, usableHeight);
   // Reserve the full tour card height even while its temporary loading/pause
   // text is shorter. Otherwise a tight viewport could alternate between
   // the short fallback (fits) and the full explanation (does not fit).
   const panelHeight = mode === 'tour' ? maxHeight : Math.min(panelSize.height, maxHeight);
   const placement = placeGuidePanel({ target: rect, viewport: geometry.viewport, panelWidth: 352, panelHeight, insets: resolvedInsets });
   const arrow = guideArrow(rect, placement, Math.min(panelSize.height, maxHeight));
-  const ready = !!rect && placement.connected;
+  // A visible target stays useful even when the panel has to sit separately.
+  // Only the connecting arrow depends on there being room beside the target.
+  const ready = !!rect;
   const phase = !step ? 'choose' : paused || contextBlocked ? 'paused' : currentRoom !== step.room && geometry.phase !== 'loading' ? 'away' : geometry.phase;
-  const body = phase === 'loading' ? L('Otevírám příslušné místo…', 'Opening the relevant place…')
-    : phase === 'paused' ? L('Průvodce čeká. Můžeš si stránku volně prohlédnout.', 'The guide is paused. Explore the page freely.')
-    : phase === 'away' ? L('Teď jsi na jiné stránce. Vrať se ke kroku, nebo vyber průvodce pro toto místo.', 'You are on another page. Return to this step, or choose a guide for this page.')
-    : phase === 'missing' ? L('Toto místo teď není otevřené. Zkus ho otevřít znovu, nebo přejdi k dalšímu kroku.', 'This place is not open right now. Try opening it again, or move to the next step.')
-    : phase === 'covered' ? L('Toto místo překrývá jiné okno. Zavři ho, nebo se vrať ke kroku.', 'Another window covers this place. Close it, or return to the step.')
-    : !ready ? L('Místo je mimo záběr. Zobraz ho znovu, až budeš chtít pokračovat.', 'The place is outside the view. Show it again when you want to continue.')
+  const body = phase === 'loading' ? L('Otevírám…', 'Opening…')
+    : phase === 'paused' ? L('Vyzkoušej si to. Pak můžeš pokračovat.', 'Try it out. Continue when you are ready.')
+    : phase === 'away' ? L('Jsi na jiné stránce. Vrať se ke kroku, nebo vyber jinou část.', 'You are on another page. Return to this step or choose another section.')
+    : phase === 'missing' ? L('Toto místo se neotevřelo. Zkus to znovu, nebo pokračuj dál.', 'This place did not open. Try again or continue to the next step.')
+    : phase === 'covered' ? L('Zavři okno nad stránkou a pokračuj.', 'Close the window over the page to continue.')
+    : !ready ? L('Posuň stránku zpět, nebo klepni na Zobrazit místo.', 'Scroll back or choose Show this place.')
     : step?.body;
-  const button = { background: 'transparent', color: t.text, border: `1px solid ${t.borderSoft || t.border}`, minHeight: 44, borderRadius: 6, padding: '7px 12px', font: 'inherit', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 };
-  const quiet = { ...button, borderColor: 'transparent', padding: '7px 8px' };
-  const primary = { ...button, background: t.accent, borderColor: t.accent, color: t.onAccent || t.bg };
+  const button = { background: 'transparent', color: t.text, border: 0, minHeight: 44, borderRadius: 0, padding: '7px 10px', font: 'inherit', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 };
+  const quiet = { ...button, padding: '7px 8px' };
+  const primary = { ...button, color: t.accentInk || t.accent, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 5, textDecorationThickness: 1 };
   const move = delta => {
     setPaused(false);
     setIndex(value => Math.max(0, Math.min(value + delta, tour.steps.length - 1)));
     titleRef.current?.focus({ preventScroll: true });
   };
   const retry = () => { setPaused(false); setAttempt(value => value + 1); };
-  const choose = () => { setMode('choose'); setPaused(false); };
-  const start = () => { if (!tour) return; setIndex(0); setPaused(false); setMode('tour'); titleRef.current?.focus({ preventScroll: true }); };
+  const choose = () => { setMode('choose'); setPaused(false); titleRef.current?.focus({ preventScroll: true }); };
+  const start = picked => { if (!picked) return; setSelected(picked.room); setIndex(0); setPaused(false); setMode('tour'); titleRef.current?.focus({ preventScroll: true }); };
   return createPortal(<div className="tm-app-guide" data-guide-layer="true" style={{ position: 'fixed', inset: 0, zIndex: 3100, pointerEvents: 'none', '--guide-accent': t.accent, '--guide-border': t.border, '--guide-text': t.text, '--guide-surface': t.card || t.bg }}>
-    <style>{`.tm-app-guide{font-family:var(--ff-body,"DM Sans",sans-serif);font-size:13px;line-height:1.55}.tm-app-guide button:focus-visible,.tm-app-guide select:focus-visible{outline:2px solid var(--guide-accent);outline-offset:3px}.tm-app-guide button:hover:not(:disabled){text-decoration:underline;text-underline-offset:4px}.tm-app-guide button:disabled{opacity:.4;cursor:default}.tm-app-guide ::selection{background:var(--guide-accent);color:var(--guide-surface)}.tm-app-guide h2:focus{outline:none}.tm-app-guide-panel{transition:box-shadow .18s ease-out}.tm-app-guide select{color-scheme:inherit}.tm-app-guide option{background:var(--guide-surface);color:var(--guide-text)}@media(prefers-reduced-motion:reduce){.tm-app-guide-panel{transition:none}}`}</style>
-    {ready && <>
-      <div aria-hidden="true" data-guide-highlight="true" style={{ position: 'fixed', left: rect.left - 3, top: rect.top - 3, width: rect.width + 6, height: rect.height + 6, border: `1.5px solid ${t.accent}`, borderRadius: 7, boxSizing: 'border-box', pointerEvents: 'none' }}/>
-      {arrow && <svg aria-hidden="true" style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}>
+    <style>{`.tm-app-guide{font-family:var(--ff-body,"DM Sans",sans-serif);font-size:14px;line-height:1.55}.tm-app-guide button:focus-visible,.tm-app-guide summary:focus-visible{outline:2px solid var(--guide-accent);outline-offset:3px}.tm-app-guide button:hover:not(:disabled){text-decoration:underline;text-underline-offset:4px}.tm-app-guide button:disabled{opacity:.4;cursor:default}.tm-app-guide ::selection{background:var(--guide-accent);color:var(--guide-surface)}.tm-app-guide h2:focus{outline:none}.tm-guide-picker summary{cursor:pointer;min-height:44px;box-sizing:border-box;padding:12px 0}.tm-guide-picker summary::marker{color:var(--guide-accent)}.tm-app-guide-panel{background-image:var(--land-field,none);background-size:768px auto}`}</style>
+    {ready && arrow && <svg aria-hidden="true" data-guide-arrow="true" style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}>
         <defs><marker id={`tm-guide-arrow-${uid}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M1 1 5 3 1 5" fill="none" stroke={t.accent} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></marker></defs>
         <path d={`M${arrow.x1},${arrow.y1} L${arrow.x2},${arrow.y2}`} fill="none" stroke={t.accent} strokeWidth="1.3" markerEnd={`url(#tm-guide-arrow-${uid})`}/>
       </svg>}
-    </>}
-    <section ref={panelRef} role="region" aria-label={L('Průvodce aplikací', 'App guide')} className="tm-app-guide-panel" style={{ position: 'fixed', left: placement.left, top: placement.top, width: placement.width, maxHeight, boxSizing: 'border-box', overflowY: 'auto', overscrollBehavior: 'contain', pointerEvents: 'auto', background: t.card || t.bg, color: t.text, border: `1px solid ${t.border}`, borderRadius: 12, boxShadow: t.shadowLift || '0 6px 24px rgba(0,0,0,.15)', padding: '12px 14px', scrollbarWidth: 'thin', scrollbarColor: `${t.border} transparent` }}
+    <section ref={panelRef} role="region" aria-label={L('Průvodce aplikací', 'App guide')} className="tm-app-guide-panel" style={{ position: 'fixed', left: placement.left, top: placement.top, width: placement.width, maxHeight, boxSizing: 'border-box', overflowY: 'auto', overscrollBehavior: 'contain', pointerEvents: 'auto', backgroundColor: t.bg, color: t.text, border: 0, borderRadius: 0, boxShadow: 'none', padding: '16px 18px', scrollbarWidth: 'thin', scrollbarColor: `${t.border} transparent` }}
       onKeyDown={event => {
         if (mode !== 'tour' || event.target?.tagName === 'SELECT' || event.target?.tagName === 'INPUT' || event.target?.isContentEditable) return;
         if (event.key === 'ArrowRight' && index < tour.steps.length - 1) { event.preventDefault(); move(1); }
         if (event.key === 'ArrowLeft' && index > 0) { event.preventDefault(); move(-1); }
       }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <h2 id={titleId} ref={titleRef} tabIndex={-1} style={{ flex: 1, margin: '4px 0 8px', fontFamily: 'var(--ff-display,"EB Garamond",Georgia,serif)', fontWeight: 400, fontSize: 23, lineHeight: 1.16, color: t.heading || t.text }}>{mode === 'choose' ? L('Průvodce aplikací', 'App guide') : step?.title || L('Průvodce aplikací', 'App guide')}</h2>
+        <h2 id={titleId} ref={titleRef} tabIndex={-1} style={{ flex: 1, margin: '4px 0 12px', fontFamily: 'var(--ff-display,"EB Garamond",Georgia,serif)', fontWeight: 400, fontSize: 25, lineHeight: 1.16, color: t.heading || t.text }}>{mode === 'choose' ? L('Měj jasno, co dál', 'Know your next step') : step?.title || L('Průvodce aplikací', 'App guide')}</h2>
         {mode === 'tour' && <button type="button" onClick={() => setPaused(value => !value)} aria-label={paused ? L('Pokračovat v průvodci', 'Resume guide') : L('Pozastavit průvodce', 'Pause guide')} style={{ ...quiet, width: 44, flexShrink: 0, marginTop: -6 }}><GuideIcon kind={paused ? 'next' : 'pause'}/></button>}
         <button type="button" onClick={close} aria-label={L('Zavřít průvodce', 'Close guide')} title="Esc" style={{ ...quiet, width: 44, flexShrink: 0, marginTop: -6, marginRight: -8 }}><GuideIcon kind="close"/></button>
       </div>
       {mode === 'choose' ? <>
-        <p style={{ margin: '0 0 12px', color: t.textSec || t.text }}>{L('Krátké kroky přímo na stránce. Během průvodce můžeš aplikaci dál používat.', 'Short steps on the page itself. You can keep using the app during the guide.')}</p>
         {tours.length ? <>
-          <div id={`tm-guide-tour-label-${uid}`} style={{ marginBottom: 5 }}>{L('Co chceš prozkoumat?', 'What would you like to explore?')}</div>
-          <details className="tm-guide-picker" style={{ border: `1px solid ${t.border}`, borderRadius: 8 }}>
-            <summary aria-label={`${L('Co chceš prozkoumat?', 'What would you like to explore?')} ${tour?.label || ''}`} style={{ minHeight: 44, padding: '10px 12px', cursor: 'pointer', color: t.text }}>{tour?.label}</summary>
-            <div role="group" aria-label={L('Části průvodce', 'Guide sections')} style={{ maxHeight: 210, overflowY: 'auto', overscrollBehavior: 'contain', padding: '0 8px 8px' }}>
-              {choices.map(item => <button key={item.room} type="button" aria-pressed={item.room === selected} onClick={event => { setSelected(item.room); const picker = event.currentTarget.closest('details'); if (picker) { picker.open = false; picker.querySelector('summary')?.focus(); } }} style={{ display: 'block', textAlign: 'left', width: '100%', minHeight: 52, padding: '9px 5px', border: 0, borderBottom: `1px solid ${t.borderSoft || t.border}`, borderRadius: 0, background: 'transparent', color: item.room === selected ? t.accentInk || t.accent : t.text, font: 'inherit', cursor: 'pointer' }}>
-                <span style={{ display: 'block', fontWeight: item.room === selected ? 600 : 400 }}>{item.label} <span style={{ fontSize: 11, color: t.textMuted }}>{item.steps.length} {lang === 'en' ? (item.steps.length === 1 ? 'step' : 'steps') : item.steps.length === 1 ? 'krok' : item.steps.length < 5 ? 'kroky' : 'kroků'}</span></span>
-                <span style={{ display: 'block', color: t.textSec, fontSize: 12, lineHeight: 1.5 }}>{item.room === '__all__' ? L('Postupně všechny tvoje dostupné stránky.', 'All your available pages, one by one.') : item.steps[0]?.title}</span>
+          <p style={{ margin: '0 0 12px', color: t.textSec || t.text }}>{L('Najdi svůj plán a vrať se k tomu, co se ti daří.', 'Find your plan and see what is working for you.')}</p>
+          <button type="button" onClick={()=>start(starter)} style={{ ...primary, paddingLeft: 0 }}>{L('Ukázat první kroky', 'Show me the first steps')}<GuideIcon kind="next" size={15}/></button>
+          <details className="tm-guide-picker" style={{ marginTop: 8 }}>
+            <summary>{L('Chci najít něco konkrétního', 'I am looking for something specific')}</summary>
+            <div role="group" aria-label={L('Části průvodce', 'Guide sections')}>
+              {[...tours].sort((a,b)=>Number(b.room===currentRoom)-Number(a.room===currentRoom)).map(item => <button key={item.room} type="button" onClick={()=>start(item)} style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', width: '100%', minHeight: 60, padding: '10px 0', border: 0, background: 'transparent', color: t.text, font: 'inherit', cursor: 'pointer' }}>
+                <span style={{ flex: 1 }}><span style={{ display: 'block' }}>{item.steps[0]?.title}</span><span style={{ display: 'block', color: t.textSec || t.text, fontSize: 12 }}>{item.label}</span></span>
+                <GuideIcon kind="next" size={15}/>
               </button>)}
+              <button type="button" onClick={()=>start(combined)} style={{...quiet,paddingLeft:0,color:t.textSec||t.text}}>{L('Projít všechny části', 'Explore every section')}<GuideIcon kind="next" size={15}/></button>
             </div>
           </details>
-          <p style={{ color: t.textSec, fontSize: 12, margin: '8px 0' }}>{selected === '__all__' ? L('Projdeme všechny dostupné části. Kdykoli můžeš přestat nebo se vrátit.', 'Explore every available section. You can stop or go back at any time.') : tour?.steps.map(item => item.title).join(' · ')}</p>
-          <button type="button" onClick={start} disabled={!tour} style={{ ...primary, width: '100%' }}>{L('Spustit průvodce', 'Start guide')}<GuideIcon kind="next" size={15}/></button>
         </> : <p role="status" style={{ margin: '0 0 6px' }}>{L('Průvodce tu zatím nemá dostupnou stránku.', 'There is no available page to guide you through yet.')}</p>}
       </> : <>
-        <div style={{ fontFamily: 'var(--ff-tag,"Barlow Condensed",sans-serif)', color: t.textMuted || t.text, marginBottom: 7, fontSize: 12, letterSpacing: '.06em', fontVariantNumeric: 'tabular-nums' }} aria-live="polite">{tour?.label} · {Math.min(index + 1, tour?.steps.length || 0)} / {tour?.steps.length || 0}</div>
+        <div style={{ color: t.textSec || t.text, marginBottom: 7, fontSize: 12, fontVariantNumeric: 'tabular-nums' }} aria-live="polite">{Math.min(index + 1, tour?.steps.length || 0)} / {tour?.steps.length || 0}</div>
         <p id={textId} role={!ready ? 'status' : undefined} style={{ margin: '0 0 9px', color: t.textSec || t.text }}>{body}</p>
         {!ready && phase !== 'loading' && !contextBlocked && <button type="button" onClick={retry} style={{ ...quiet, color: t.accent, paddingLeft: 0 }}><GuideIcon kind="locate" size={17}/>{L('Zobrazit místo', 'Show this place')}</button>}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingTop: 3 }}>
-          <button type="button" onClick={() => move(-1)} disabled={!tour || index === 0} aria-label={L('Předchozí krok', 'Previous step')} style={quiet}><GuideIcon kind="back" size={14}/>{L('Zpět', 'Back')}</button>
-          <button type="button" onClick={choose} style={{ ...quiet, marginLeft: 'auto', color: t.textMuted || t.text }}>{L('Jiné místo', 'Another place')}</button>
+          <button type="button" onClick={() => move(-1)} disabled={!tour || index === 0} aria-label={L('Předchozí krok', 'Previous step')} style={{...quiet,width:44,flexShrink:0}}><GuideIcon kind="back" size={14}/></button>
+          <button type="button" onClick={choose} style={{ ...quiet, marginRight: 'auto', color: t.textSec || t.text }}>{L('Jiná část', 'Other sections')}</button>
           {index >= (tour?.steps.length || 0) - 1
-            ? <button type="button" onClick={close} style={primary}>{L('Hotovo', 'Done')}</button>
+            ? <button type="button" onClick={close} style={primary}>{L('Vyzkoušet', 'Try it now')}<GuideIcon kind="next" size={14}/></button>
             : <button type="button" onClick={() => move(1)} style={primary}>{L('Dál', 'Next')}<GuideIcon kind="next" size={14}/></button>}
         </div>
       </>}

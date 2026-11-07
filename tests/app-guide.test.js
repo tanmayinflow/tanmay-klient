@@ -1,6 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { APP_GUIDE_STEPS, getGuideTours, combineGuideTours, visibleGuideRect, placeGuidePanel, guideArrow } from '../src/shared/product/appGuide.js';
+import { APP_GUIDE_STEPS, APP_GUIDE_VERSION, getGuideTours, createGuideStarter, combineGuideTours, visibleGuideRect, placeGuidePanel, guideArrow } from '../src/shared/product/appGuide.js';
+
+test('first visit uses three practical steps without a tour of every room', () => {
+  const tours = getGuideTours({ role: 'client', availableRooms: ['praxe', 'trenink', 'terminy', 'kompas', 'prameny', 'klienti'] });
+  const before = JSON.stringify(tours), starter = createGuideStarter(tours);
+  assert.deepEqual(starter.steps.map(step => step.id), ['trenink.calendar', 'praxe.habits', 'kompas.goals']);
+  assert.equal(new Set(starter.steps.map(step => step.room)).size, 3);
+  assert.equal(JSON.stringify(tours), before);
+  assert.ok(starter.steps.every(step => tours.some(tour => tour.steps.includes(step))));
+  assert.equal(APP_GUIDE_VERSION, 5, 'Copy changes must not reopen a dismissed guide for all existing users');
+});
+
+test('short first visit respects disabled rooms and step allowlists, including empty accounts', () => {
+  const tours = getGuideTours({ role: 'client', availableRooms: ['kompas', 'praxe', 'klienti'], availableSteps: ['kompas.direction', 'praxe.today', 'klienti.list'], lang: 'en' });
+  const starter = createGuideStarter(tours, 'en');
+  assert.equal(starter.label, 'First steps');
+  assert.deepEqual(starter.steps.map(step => step.id), ['praxe.today', 'kompas.direction']);
+  assert.equal(createGuideStarter(getGuideTours({ availableRooms: ['kompas'] })).steps.length, 1);
+  assert.equal(createGuideStarter([]), null);
+  assert.equal(createGuideStarter(getGuideTours({ availableRooms: ['trenink'], availableSteps: [] })), null);
+});
 
 test('show everything retains page transitions and the effective permissions', () => {
   const tours = getGuideTours({ role: 'client', availableRooms: ['praxe', 'trenink', 'klienti', 'nastaveni'], availableSteps: ['praxe.today', 'trenink.calendar', 'klienti.overview', 'nastaveni.version'] });
@@ -45,12 +65,12 @@ test('room tours use unique explicit anchors, short bilingual copy and role-awar
     assert.match(step.anchor, /^[a-z]+\.[a-z]+$/);
     for (const field of ['title', 'body']) {
       assert.equal(step[field].length, 2);
-      for (const text of step[field]) assert.ok(text.trim().length > 0 && text.length < 360, step.id);
+      for (const text of step[field]) assert.ok(text.trim().length > 0 && text.length < 220, step.id);
     }
   }
   const client = getGuideTours({ role: 'client', availableRooms: ['trenink', 'denik'], lang: 'en' });
-  assert.match(client.find(tour => tour.room === 'trenink').steps[0].body, /does not overwrite/);
-  assert.match(client.find(tour => tour.room === 'denik').steps[1].body, /trainer cannot see/);
+  assert.match(client.find(tour => tour.room === 'trenink').steps[0].body, /results stay alongside/);
+  assert.match(client.find(tour => tour.room === 'denik').steps[1].body, /coach cannot see/);
   const coach = getGuideTours({ role: 'coach', availableRooms: ['trenink'] })[0];
   assert.ok(!coach.steps[0].body.includes('Trenér připravuje'));
 });
