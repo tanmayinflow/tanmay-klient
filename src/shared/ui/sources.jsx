@@ -91,7 +91,7 @@ export function createSourcesUI(deps) {
         const old = e.icon;
         const blob = await resizeImageToBlob(file, 360);
         const id = uid() + "i";
-        await r2Put(id, blob, file.name);
+        await r2Put(id, blob, blob.name || file.name);
         upd({ icon: { r2id: id } });
         if (old && old.r2id) r2Del(old.r2id);
       } catch (err) {}
@@ -109,7 +109,7 @@ export function createSourcesUI(deps) {
     };
     const attach = async (fileList) => {
       const added = await filesToAtts(fileList, st.ask);
-      if (added.length) upd({ att: [...(e.att || []), ...added] });
+      if (added.length && !odTanmaye) st.updateEntry("content", e.id, current => ({ att: [...(current.att || []).filter(a => !added.some(n => n.id === a.id)), ...added] }));
       if (fileRef.current) fileRef.current.value = "";
     };
     const scoreN = e.score === "" || e.score == null ? null : +e.score;
@@ -166,7 +166,7 @@ export function createSourcesUI(deps) {
           </div>
         )}
         <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px 0 6px", flexWrap: "wrap" }}>
-          <input ref={fileRef} type="file" multiple accept=".pdf,audio/*,image/*,.doc,.docx,.txt" onChange={(ev) => attach(ev.target.files)} style={{ display: "none" }} />
+          <input ref={fileRef} type="file" multiple accept=".pdf,audio/*,.opus,.ogg,.oga,image/*,.doc,.docx,.txt" onChange={(ev) => attach(ev.target.files)} style={{ display: "none" }} />
           {!odTanmaye && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "8px 12px", minHeight: 38, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 7 }}><ClipIcon size={13} />{L("PDF · audio shrnutí · soubor", "PDF · audio summary · file")}</button>}
           {gdEmbed && !odTanmaye && <button onClick={() => setGdOpen(!gdOpen)} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "8px 12px", minHeight: 38, cursor: "pointer", color: gdOpen ? (t.accentInk || t.accent) : (t.inkSand || t.sand), fontFamily: "var(--tm-font-body)", fontSize: 12 }}>Google Drive</button>}
           <PinToggle entry={e} />

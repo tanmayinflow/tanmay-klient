@@ -110,9 +110,13 @@ test("každá místnost ve směrovači je opravdu definovaná", () => {
 
 test("příloha má kam spadnout, když spojení selže", () => {
   assert.match(app, /async function attDoUloziste\(file, id\)/);
-  assert.match(app, /storeAttachment\(\{file,id,putLocal:/);
-  assert.doesNotMatch(app, /await readFileAsAtt\(f\)\); \} catch \(e\) \{\}/, "selhání se nesmí spolknout");
-  assert.match(app, /se nepodařilo uložit/, "člověk se to musí dozvědět");
+  const i = app.indexOf("async function attDoUloziste");
+  const blok = app.slice(i, app.indexOf("async function makeAudioAtt", i));
+  assert.match(blok, /prepared = await prepareNewAttachment\(file,/);
+  assert.match(blok, /storeAttachment\(\{file:prepared,id,putLocal:\(key,blob\)=>idbPut\(key,blob,namespace\),upload:r2Put,current\}\)/);
+  const collector = app.slice(app.indexOf("async function filesToAtts"), app.indexOf("async function resizeImageToBlob"));
+  assert.doesNotMatch(collector, /await readFileAsAtt\(f\)\); \} catch \(e\) \{\}/, "selhání se nesmí spolknout");
+  assert.match(collector, /catch \(e\) \{[\s\S]*askFn\(mediaPreparationMessage\(e, f\.name, L\), null\)/, "člověk se to musí dozvědět přes sdílenou zprávu");
 });
 
 test("sběrač souborů má obě brzdy, které má osobní aplikace", () => {
@@ -184,10 +188,15 @@ test("odeslání se ptá na verzi serveru a nikdy tiše nepřepisuje", () => {
   assert.match(app, /Nechat moji/);
 });
 
-test("zmenšení obrázku vždycky doběhne", () => {
+test("zmenšení obrázku používá sdílený kompresor a vždy ukončí průběh", () => {
   const i = app.indexOf("function resizeImageToBlob");
-  const blok = app.slice(i, i + 1400);
-  assert.match(blok, /\} finally \{\s*URL\.revokeObjectURL\(url\);/);
+  assert.ok(i > 0);
+  const blok = app.slice(i, app.indexOf("async function readFileAsAtt", i));
+  assert.match(app, /import \{ compressPhoto \} from "\.\/shared\/product\/imageCompression\.js"/);
+  assert.match(blok, /await compressPhoto\(file,/);
+  assert.match(blok, /\} finally \{\s*tmMediaPreparing\(id, file, scope, \{ action: "end" \}\);/);
+  // Runtime URL cleanup on decode, encode and timeout failures lives in the
+  // shared image-compression tests, where the actual helper is executed.
 });
 
 test("html dokumentu sleduje zvolený jazyk", () => {

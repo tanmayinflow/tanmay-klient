@@ -56,17 +56,16 @@ test('abort also releases a hung local database or browser storage estimate', as
   const work=inspectStorage(fixture({signal:controller.signal,listLocalFiles:()=>new Promise(()=>{})}));
   controller.abort();await assert.rejects(work,/storage-cancelled/);
 });
-test('JPEG photo option resizes only new JPEGs and never substitutes a larger file', async () => {
-  const jpeg=new File(['original image content'],'photo.jpg',{type:'image/jpeg',lastModified:100});
-  let called=0;
-  const resize=async(_file,side)=>{called++;assert.equal(side,1600);return new Blob(['small'],{type:'image/jpeg'});};
-  const result=await preparePhotoAttachment(jpeg,{photoSide:1600},resize);
-  assert.equal(result.name,jpeg.name);assert.equal(result.lastModified,100);assert.equal(await result.text(),'small');
-  assert.equal(await preparePhotoAttachment(jpeg,{photoSide:0},resize),jpeg);
-  const png=new File(['png'],'transparent.png',{type:'image/png'});
-  assert.equal(await preparePhotoAttachment(png,{photoSide:1600},resize),png);assert.equal(called,1);
-  assert.equal(await preparePhotoAttachment(jpeg,{photoSide:1600},async()=>new Blob(['x'.repeat(200)])),jpeg);
+test('photo preferences use automatic preparation without changing other attachments', async () => {
+  const jpeg = new File(['original image content'], 'photo.jpg', { type: 'image/jpeg', lastModified: 100 });
+  const codec = { decode: async () => ({ width: 3200, height: 1800, close() {} }), encode: async (_image, options) => { assert.equal(options.width, 1600); return new Blob(['small'], { type: 'image/jpeg' }); } };
+  const result = await preparePhotoAttachment(jpeg, { photoSide: 1600 }, codec);
+  assert.equal(result.name, jpeg.name); assert.equal(result.lastModified, 100); assert.equal(await result.text(), 'small');
+  assert.equal(await preparePhotoAttachment(jpeg, { photoSide: 0 }, codec), jpeg);
+  const pdf = new File(['pdf'], 'document.pdf', { type: 'application/pdf' });
+  assert.equal(await preparePhotoAttachment(pdf, { photoSide: 1600 }, codec), pdf);
 });
+
 test('voice recorder reads the latest selected bitrate for each start', async () => {
   let rate=32000;const observed=[];
   class Recorder { static isTypeSupported(){return true;} constructor(_stream,options){this.state='inactive';this.mimeType='audio/webm';observed.push(options.audioBitsPerSecond);} start(){this.state='recording';} stop(){this.state='inactive';this.onstop();} }

@@ -1,10 +1,14 @@
+import { MediaPreparationStatus } from "./shared/ui/MediaPreparationStatus.jsx";
+import { prepareNewAttachment, mediaPreparationMessage } from "./shared/product/mediaPreparation.js";
+import { compressPhoto } from "./shared/product/imageCompression.js";
+import { mediaKind, mediaUploadLimit } from "./shared/product/mediaLimits.js";
 import { AttachmentSaveStatus } from "./shared/ui/AttachmentSaveStatus.jsx";
 import { uploadMedia, storeAttachment, pinMedia, verifyPinnedMedia, createMediaRecovery, MEDIA_MAX_BYTES } from "./shared/product/mediaSafety.js";
 import { buildCompleteBackup, collectMediaFiles } from "./shared/product/completeBackup.js";
 import { createRecordingDraftStore } from "./shared/product/recordingDrafts.js";
 import { BackupControl } from "./shared/ui/BackupControl.jsx";
 import { StorageOverview } from "./shared/ui/StorageOverview.jsx";
-import { readStoragePreferences, preparePhotoAttachment } from "./shared/product/storageOverview.js";
+import { readStoragePreferences } from "./shared/product/storageOverview.js";
 import { RecordingRecovery } from "./shared/ui/RecordingRecovery.jsx";
 import { createLandingRecordingUiBridge } from './shared/product/landingRecordingUiBridge.js';
 import { createLandingRecordingUI } from './shared/product/landingRecordingUI.jsx';
@@ -353,9 +357,20 @@ function tmDownloadRecording(blob, draft) { const file = tmRecordingFile(blob, d
 // "save offline" toggle; new media goes straight to R2.
 function r2Url(id) { const owner = clientAccount.getSnapshot().owner || ownerLoad(); return "/api/files/" + encodeURIComponent(id) + (owner ? "?owner=" + encodeURIComponent(owner) : ""); }
 function r2Del(id) { clientFetch("/api/files/" + encodeURIComponent(id), { method: "DELETE" }).catch(() => {}); }
+const TM_PREPARED_MEDIA_SCOPES = new WeakMap();
+function tmMediaScope() {
+  const namespace = tmFileNamespace();
+  const owner = clientAccount.getSnapshot().owner;
+  return { namespace, current: () => !!owner && clientAccount.isCurrent(owner) && ownerLoad() === owner && tmFileNamespace() === namespace };
+}
+function tmMediaPreparing(id, file, scope, detail) {
+  if (detail.action === "end" || scope.current()) window.dispatchEvent(new CustomEvent("tm-media-preparing", { detail: { id, name: file.name, kind: mediaKind(file.type,file.name), namespace: scope.namespace, ...detail } }));
+}
 async function r2Put(id, blob, name) {
+  const preparedScope = TM_PREPARED_MEDIA_SCOPES.get(blob);
+  if (preparedScope && !preparedScope.current()) throw new Error("account-changed");
   window.dispatchEvent(new CustomEvent("tm-media-upload",{detail:{id,sending:true}}));
-  try { return await uploadMedia({fetcher:clientFetch,id,blob,name}); }
+  try { const saved = await uploadMedia({fetcher:clientFetch,id,blob,name:blob.name || name}); if (preparedScope && !preparedScope.current()) throw new Error("account-changed"); return saved; }
   catch (error) { window.dispatchEvent(new CustomEvent("tm-media-upload",{detail:{id,sending:false,blocked:error.code}})); throw error; }
   finally { window.dispatchEvent(new CustomEvent("tm-media-upload",{detail:{id,sending:false}})); }
 }
@@ -533,62 +548,53 @@ async function migrateNode(node, stats, dryRun) {
    stopy. Osobní aplikace tohle řeší odjakživa druhým patrem v IndexedDB;
    sem to nikdy nedojelo. Teď dojelo. */
 async function attDoUloziste(file, id) {
-  const owner = clientAccount.getSnapshot().owner; const current = () => !!owner && clientAccount.isCurrent(owner) && ownerLoad() === owner;
-  const namespace = tmFileNamespace();
-  const attachment = await storeAttachment({file,id,putLocal:(key,blob)=>idbPut(key,blob,namespace),upload:r2Put,current});
+  const scope = tmMediaScope(), { namespace, current } = scope;
+  if (!current()) throw new Error("account-changed");
+  const preferences = readStoragePreferences(namespace), kind = mediaKind(file.type, file.name);
+  const preparing = file.size > mediaUploadLimit(file.type, file.name) || (kind === "image" && preferences.photoSide > 0);
+  if (preparing) tmMediaPreparing(id, file, scope, { action: "start", phase: "reading" });
+  let prepared;
+  try {
+    prepared = await prepareNewAttachment(file, { preferences, current, onProgress: progress => tmMediaPreparing(id, file, scope, { action: "progress", ...progress }) });
+    if (!current()) throw new Error("account-changed");
+    TM_PREPARED_MEDIA_SCOPES.set(prepared, scope);
+  } finally { tmMediaPreparing(id, file, scope, { action: "end" }); }
+  const attachment = await storeAttachment({file:prepared,id,putLocal:(key,blob)=>idbPut(key,blob,namespace),upload:r2Put,current});
   setTimeout(() => window.dispatchEvent(new Event("tm-media-pending")), 0);
   return attachment;
 }
 async function makeAudioAtt(file) {
-  const a = await attDoUloziste(file, file.tmRecordingId || uid() + "a");
-  return { ...a, type: file.type || "audio/mpeg" };
+  return attDoUloziste(file, file.tmRecordingId || uid() + "a");
 }
 async function filesToAtts(fileList, askFn) {
   const out = [];
   for (const f of Array.from(fileList || [])) {
-    const isAudio = (f.type || "").startsWith("audio/");
+    const isAudio = mediaKind(f.type, f.name) === "audio";
     const max = R2_MAX;
     if (f.size > max) { if (askFn) askFn(`„${f.name}" je příliš velký (${fmtSize(f.size)}). Limit ${fmtSize(max)}.`, null); continue; }
     // Selhání obou pater se člověku řekne. Tiché „nic se nestalo" tady
     // znamenalo ztracenou fotku bez jediného slova.
     try { out.push(isAudio ? await makeAudioAtt(f) : await readFileAsAtt(f)); }
     catch (e) {
-      if (askFn) askFn(L(`„${f.name}" se nepodařilo uložit. Zkus to prosím znovu, až budeš online.`, `"${f.name}" could not be saved. Please try again once you are online.`), null);
+      if (e?.message === "account-changed") throw e;
+      if (askFn) askFn(mediaPreparationMessage(e, f.name, L), null);
     }
   }
   return out;
 }
-function resizeImageToBlob(file, maxSide) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      // Bez try/catch se výjimka z plátna ztratila uvnitř posluchače: slib se
-      // nikdy neuzavřel a volající čekal donekonečna.
-      try {
-        const scale = Math.min(1, (maxSide || 320) / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
-        const c = document.createElement("canvas");
-        c.width = w; c.height = h;
-        const ctx2d = c.getContext("2d");
-        if (!ctx2d) throw new Error("canvas 2d context unavailable");
-        ctx2d.drawImage(img, 0, 0, w, h);
-        c.toBlob((b) => b ? resolve(b) : reject(new Error("blob failed")), "image/jpeg", 0.82);
-      } catch (e) {
-        reject(e);
-      } finally {
-        URL.revokeObjectURL(url);
-      }
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img load failed")); };
-    img.src = url;
-  });
+async function resizeImageToBlob(file, maxSide) {
+  const scope = tmMediaScope(), id = uid() + "prepare";
+  if (!scope.current()) throw new Error("account-changed");
+  tmMediaPreparing(id, file, scope, { action: "start", phase: "reading" });
+  try {
+    const prepared = await compressPhoto(file, { maxSide: maxSide || 320 });
+    if (!scope.current()) throw new Error("account-changed");
+    TM_PREPARED_MEDIA_SCOPES.set(prepared, scope);
+    return prepared;
+  } finally { tmMediaPreparing(id, file, scope, { action: "end" }); }
 }
 async function readFileAsAtt(file) {
-  const owner = clientAccount.getSnapshot().owner, namespace = tmFileNamespace();
-  const prepared = await preparePhotoAttachment(file, readStoragePreferences(namespace), resizeImageToBlob);
-  if (!owner || !clientAccount.isCurrent(owner) || ownerLoad() !== owner || tmFileNamespace() !== namespace) throw new Error("account-changed");
-  return attDoUloziste(prepared, uid());
+  return attDoUloziste(file, uid());
 }
 
 
@@ -762,7 +768,7 @@ function makePagePicker(st, pageKey, field, maxSide) {
         const old = st.pageMetaOf(pageKey)[field];
         const blob = await resizeImageToBlob(f, maxSide);
         const id = uid() + (field === "icon" ? "i" : "c");
-        await r2Put(id, blob, f.name);
+        await r2Put(id, blob, blob.name || f.name);
         st.setPageMeta(pageKey, { [field]: { r2id: id } });
         if (old && old.r2id) r2Del(old.r2id);
       }
@@ -1111,9 +1117,9 @@ function AttachmentStrip({ att, onRemove }) {
   };
   const [zoom, setZoom] = useState(null); // id of zoomed image
   if (!att || !att.length) return null;
-  const imgs = att.filter((a) => (a.type || "").startsWith("image/"));
+  const imgs = att.filter((a) => mediaKind(a.type || a.mime, a.name) === "image");
   const drives = att.filter((a) => a.type === "gdrive");
-  const files = att.filter((a) => !(a.type || "").startsWith("image/") && a.type !== "gdrive");
+  const files = att.filter((a) => mediaKind(a.type || a.mime, a.name) !== "image" && a.type !== "gdrive");
   return (
     <div style={{ marginTop: 10 }}>
       {imgs.length > 0 && (
@@ -1138,12 +1144,12 @@ function AttachmentStrip({ att, onRemove }) {
           </div>
         );
       })}
-      {files.filter((a) => (a.type || "").startsWith("audio/")).map((a) => (
+      {files.filter((a) => mediaKind(a.type || a.mime, a.name) === "audio").map((a) => (
         <AudioRow key={a.id} a={a} onRemove={onRemove} />
       ))}
-      {files.filter((a) => !(a.type || "").startsWith("audio/")).length > 0 && (
+      {files.filter((a) => mediaKind(a.type || a.mime, a.name) !== "audio").length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: imgs.length ? 8 : 0 }}>
-          {files.filter((a) => !(a.type || "").startsWith("audio/")).map((a) => (
+          {files.filter((a) => mediaKind(a.type || a.mime, a.name) !== "audio").map((a) => (
             <div key={a.id} style={{maxWidth:"100%"}}><SouborPrilohy a={a} onRemove={onRemove} sdilPril={sdilPril} /><AttachmentSaveStatus attachment={a} t={t} lang={LANG}/></div>
           ))}
         </div>
@@ -4286,7 +4292,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
       const blob = await resizeImageToBlob(file, 1200);
       if (richLockedRef.current) return;
       const gid = uid() + "g";
-      await r2Put(gid, blob, file.name);
+      await r2Put(gid, blob, blob.name || file.name);
       if (richLockedRef.current) return;
       const el = ref.current;
       if (el) {
@@ -4564,8 +4570,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
   const attachFiles = async (fileList) => {
     const added = await filesToAtts(fileList, st.ask);
     if (added.length) {
-      const ted = (stRef.current.coll[kind] || []).find((e) => e.id === entry.id) || entry;
-      stRef.current.updateEntry(kind, entry.id, { att: [...(ted.att || []).filter(a => !added.some(n => n.id === a.id)), ...added] });
+      stRef.current.updateEntry(kind, entry.id, current => ({ att: [...(current.att || []).filter(a => !added.some(n => n.id === a.id)), ...added] }));
       setOpen(true);
     }
     if (fileRef.current) fileRef.current.value = "";
@@ -4596,7 +4601,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
       onError:reason=>stRef.current.ask(reason==="save"?L("Nahrávka čeká na uložení. Zkus uložení znovu nebo ji stáhni.","The recording is waiting to be saved. Retry or download it."):reason==="checkpoint"?L("Záchrannou kopii nahrávky nelze zapsat. Zkontroluj volné místo. Hotový zvuk můžeš stáhnout.","The recording recovery copy could not be saved. Check available space. You can download the captured audio."):reason==="unsupported"?L("Tento prohlížeč neumí nahrávat zvuk.","This browser cannot record audio."):L("Nahrávání se nepodařilo. Zkontroluj povolení mikrofonu a zkus to znovu.","Recording failed. Check microphone permission and try again."),null)});
     recorderRef.current=controller;return()=>controller.dispose();
   },[entry.id,recordingStore]);
-  const recordingStatus=recording?<RecordingStatus state={recording} t={t} lang={LANG} onStop={()=>recorderRef.current.stop()} onCancel={()=>recorderRef.current.cancel()} onRetry={()=>recorderRef.current.retry()} onDownload={()=>{const blob=recorderRef.current.failedBlob();if(blob)tmDownloadRecording(blob);}}/>:null;
+  const recordingStatus=recording?<RecordingStatus state={recording} t={t} lang={LANG} onStart={()=>recorderRef.current.start()} onStop={()=>recorderRef.current.stop()} onCancel={()=>recorderRef.current.cancel()} onRetry={()=>recorderRef.current.retry()} onDownload={()=>{const blob=recorderRef.current.failedBlob();if(blob)tmDownloadRecording(blob);}}/>:null;
   const naPrilohu = druh => { if(druh==="nahravka")recorderRef.current.start();else fileRef.current?.click(); };
 
   const colorOf = (name) => ((tags.find((x) => x[0] === name)) || [])[1] || "default";
@@ -5234,7 +5239,7 @@ function PageJournal() {
     setDraftId(id);
   };
   const composerOpen = !todayEntry || !todayEntry.committed || editingToday;
-  const attachToday = async (fl) => { if (!todayEntry || !fl || !fl.length) return; const added = await filesToAtts(fl, st.ask); if (added.length) st.updateEntry("journal", todayEntry.id, { att: [...(todayEntry.att || []), ...added] }); if (todayFileRef.current) todayFileRef.current.value = ""; };
+  const attachToday = async (fl) => { if (!todayEntry || !fl || !fl.length) return; const added = await filesToAtts(fl, st.ask); if (added.length) st.updateEntry("journal", todayEntry.id, current => ({ att: [...(current.att || []), ...added] })); if (todayFileRef.current) todayFileRef.current.value = ""; };
 
   // ---- Na tento den · návrat na stejné místo v jiném roce ----
   const md = today.slice(5);
@@ -9599,7 +9604,7 @@ function TExDetail({ exId, onClose, onOpen }) {
     return { kinds: TV.recordKindsFor(rec.measurementType).filter((k) => recs[k]), recs, mt: rec.measurementType };
   })();
   const load = tLoadOf(ex);
-  const attach = async (fl) => { const added = await filesToAtts(fl, st.ask); if (added.length) patch({ att: [...(ex.att || []), ...added] }); if (fileRef.current) fileRef.current.value = ""; };
+  const attach = async (fl) => { const added = await filesToAtts(fl, st.ask); if (added.length) patch(current => ({ att: [...(current.att || []), ...added] })); if (fileRef.current) fileRef.current.value = ""; };
   return (
     <Drawer open onClose={onClose}>
       <TEditToggle on={localEdit} onToggle={() => setLocalEdit((x) => !x)} title={L("Upravit cvik", "Edit exercise")} />
@@ -15715,7 +15720,7 @@ export default function App() {
   const malaAddDeity = (nm) => persistColl((c) => ({ ...c, mala: [...(c.mala || []), { id: uid() + "d", name: nm, count: 0 }] }));
   const malaRemoveDeity = (id) => persistColl((c) => ({ ...c, mala: (c.mala || []).filter((m) => m.id !== id) }));
   const setKlCfg = (patch) => persistColl((c) => ({ ...c, klCfg: { ...(c.klCfg || {}), ...patch } }));
-  const updateEntry = (kind, id, patch) => persistColl((c) => ({ ...c, [kind]: (c[kind] || []).map((e) => (e.id === id ? { ...e, ...patch } : e)) }));
+  const updateEntry = (kind, id, patch) => persistColl((c) => ({ ...c, [kind]: (c[kind] || []).map((e) => (e.id === id ? { ...e, ...(typeof patch === "function" ? patch(e) : patch) } : e)) }));
   const trashAdd = (draft, item) => ({ ...draft, trash: [{ ...item, trashedAt: Date.now() }, ...((draft.trash) || [])] });
   const removeEntry = (kind, id) => persistColl((c) => {
     const list = c[kind] || [];
@@ -15958,7 +15963,7 @@ export default function App() {
   const monthsOf = (a) => ({ ...((coll.areaMonths || {})[a.name] || {}) });
   const setAreaMonth = (name, rom, v) => persistColl((c) => ({ ...c, areaMonths: { ...(c.areaMonths || {}), [name]: { ...((c.areaMonths || {})[name] || {}), [rom]: v } } }));
   const goalMetaOf = (name) => (coll.goalMeta || {})[name] || {};
-  const setGoalMeta = (name, patch) => persistColl((c) => ({ ...c, goalMeta: { ...(c.goalMeta || {}), [name]: { ...((c.goalMeta || {})[name] || {}), ...patch } } }));
+  const setGoalMeta = (name, patch) => persistColl((c) => ({ ...c, goalMeta: { ...(c.goalMeta || {}), [name]: { ...((c.goalMeta || {})[name] || {}), ...(typeof patch === "function" ? patch((c.goalMeta || {})[name] || {}) : patch) } } }));
   const readScale = () => { const v = +(coll.readScale || 1); return v >= 0.85 && v <= 1.45 ? v : 1; };
   const setReadScale = (v) => persistColl((c) => ({ ...c, readScale: Math.max(0.85, Math.min(1.45, +v || 1)) }));
   React.useEffect(()=>{TM_HAPTICS=coll.ui?.haptics!==false;document.documentElement.setAttribute("data-tm-motion",coll.ui?.motion||"full");},[coll.ui]);
@@ -15998,7 +16003,7 @@ export default function App() {
   const pageMetaOf = (key) => (coll.pageMeta || {})[key] || (coll.pageMeta || {})[PAGEKEY_LEGACY[key]] || {};
   const setPageMeta = (key, patch) => persistColl((c) => ({ ...c, pageMeta: { ...(c.pageMeta || {}), [key]: { ...((c.pageMeta || {})[key] || {}), ...patch } } }));
   const areaMetaOf = (name) => (coll.areaMeta || {})[name] || {};
-  const setAreaMeta = (name, patch) => persistColl((c) => ({ ...c, areaMeta: { ...(c.areaMeta || {}), [name]: { ...((c.areaMeta || {})[name] || {}), ...patch } } }));
+  const setAreaMeta = (name, patch) => persistColl((c) => ({ ...c, areaMeta: { ...(c.areaMeta || {}), [name]: { ...((c.areaMeta || {})[name] || {}), ...(typeof patch === "function" ? patch((c.areaMeta || {})[name] || {}) : patch) } } }));
   const goalNotes = (name) => (coll.goalNotes || {})[name] || [];
   const addGoalNote = (name, text) => persistColl((c) => ({ ...c, goalNotes: { ...(c.goalNotes || {}), [name]: [...((c.goalNotes || {})[name] || []), { id: uid(), date: todayISO(), text }] } }));
   const removeGoalNote = (name, id) => {
@@ -16919,6 +16924,7 @@ export default function App() {
   return (
     <ThemeCtx.Provider value={{ t, tags }}>
       <StoreCtx.Provider value={store}><GuideNavigationProvider request={guideRequest}>
+        <MediaPreparationStatus key={ownerId || "anonymous"} t={t} lang={lang} namespace={tmFileNamespace()}/>
         <OfflineBadge />
         {stateHydrated && pomoAccountScope({ status: accountStatus, owner: ownerId, member }, ownerLoad()) && <TmPomoFronta key={ownerId} />}
         {stateHydrated && pomoAccountScope({ status: accountStatus, owner: ownerId, member }, ownerLoad()) && <CalAuto key={"calendar:"+ownerId} />}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createVoiceRecorder} from '../src/shared/product/voiceRecorder.js';
+import {createVoiceRecorder,RECORDING_STOP_BYTES} from '../src/shared/product/voiceRecorder.js';
 
 function fixture(overrides={}){
   const states=[],saved=[],errors=[];let stopped=0,calls=0,rec;
@@ -63,4 +63,22 @@ test('checkpoint quota failure stops recording and preserves captured audio for 
 test('recording does not start when its durable journal cannot be created',async()=>{
   const f=fixture({drafts:{create:async()=>{throw new Error('blocked');}}});await f.controller.start();
   assert.equal(f.rec.state,'inactive');assert.ok(f.stopped>0);assert.deepEqual(f.errors,['checkpoint']);
+});
+test('recorder stops at 14.5 MB, saves every captured byte and allows the next part',async()=>{
+ const sizes=[],f=fixture({onSave:async blob=>sizes.push(blob.size)});
+ await f.controller.start();
+ f.rec.ondataavailable({data:new Blob([new Uint8Array(RECORDING_STOP_BYTES-1)])});
+ assert.equal(f.rec.state,'recording');
+ f.rec.ondataavailable({data:new Blob(['x'])});
+ await new Promise(r=>setImmediate(r));
+ assert.equal(f.rec.state,'inactive');assert.equal(sizes[0],RECORDING_STOP_BYTES+5);
+ assert.equal(f.states.at(-1).phase,'limit');assert.ok(f.stopped>0);
+ await f.controller.start();assert.equal(f.rec.state,'recording');f.controller.stop();await new Promise(r=>setImmediate(r));
+ assert.equal(sizes[1],5);
+});
+test('a delayed oversized browser chunk is retained in full for recovery when saving fails',async()=>{
+ const drafts=journal(),f=fixture({drafts,id:()=> 'late-chunk',onSave:async()=>{throw Error('requires conversion');}});
+ await f.controller.start();f.rec.ondataavailable({data:new Blob([new Uint8Array(16_000_000)])});
+ await new Promise(r=>setImmediate(r));
+ assert.equal(f.rec.state,'inactive');assert.equal(f.controller.failedBlob().size,16_000_005);assert.ok(drafts.rows.has('late-chunk'));assert.equal(f.states.at(-1).phase,'failed');
 });

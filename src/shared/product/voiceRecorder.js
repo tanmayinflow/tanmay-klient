@@ -1,3 +1,6 @@
+// Leave room for MediaRecorder's final container/chunk. Browsers may defer
+// dataavailable in the background; the upload pipeline remains the hard cap.
+export const RECORDING_STOP_BYTES = 14_500_000;
 // Closing the editor preserves the account-scoped journal. Explicit cancel discards it.
 export function createVoiceRecorder({ mediaDevices, Recorder, onState, onSave, onError,
   drafts, metadata = {}, audioBitsPerSecond = () => 64000, now = Date.now, id = () => 'rec' + crypto.randomUUID().replaceAll('-', ''),
@@ -26,11 +29,12 @@ export function createVoiceRecorder({ mediaDevices, Recorder, onState, onSave, o
       preparingStorage = true;
       if (drafts) draft = await drafts.create({ ...metadata, id: id(), type: rec.mimeType || mimeType || 'audio/webm' });
       if (disposed || attempt !== generation) { tracks(stream); if (draft) await drafts.remove(draft.id); return; }
-      const session = { rec, stream, draft, cancelled: false, chunks: [], journal: Promise.resolve(), sequence: 0, checkpointFailed: false };
+      const session = { rec, stream, draft, cancelled: false, chunks: [], journal: Promise.resolve(), sequence: 0, checkpointFailed: false, bytes:0, limitReached:false };
       active = session;
       rec.ondataavailable = event => {
         if (!event.data?.size || session.cancelled) return;
         session.chunks.push(event.data);
+        session.bytes += event.data.size;
         if (draft) {
           const sequence = session.sequence++;
           session.journal = session.journal.then(() => drafts.append(draft.id, sequence, event.data)).catch(() => {
@@ -39,6 +43,11 @@ export function createVoiceRecorder({ mediaDevices, Recorder, onState, onSave, o
               if (rec.state === 'recording') rec.stop();
             }
           });
+        }
+        if (!session.limitReached && session.bytes >= RECORDING_STOP_BYTES) {
+          session.limitReached = true;
+          emit({ phase:'saving', limitReached:true });
+          if(rec.state!=='inactive')rec.stop();
         }
       };
       rec.onerror = () => { if (!disposed) onError('record'); if (rec.state === 'recording') rec.stop(); tracks(stream); };
@@ -53,7 +62,7 @@ export function createVoiceRecorder({ mediaDevices, Recorder, onState, onSave, o
         try {
           if (blob.size) await onSave(blob, draft);
           if (draft) await drafts.remove(draft.id);
-          failed = null; emit(null);
+        failed = null; emit(session.limitReached ? {phase:'limit',bytes:blob.size} : null);
         } catch { failed = { blob, draft }; emit({ phase: 'failed' }); onError('save'); }
         finally { pending = false; }
       };

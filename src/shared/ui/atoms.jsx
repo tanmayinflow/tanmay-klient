@@ -132,7 +132,7 @@ export function createAtoms(deps) {
     const fileRef = React.useRef(null);
     const attach = async (fl) => {
       const added = await filesToAtts(fl, st.ask);
-      if (added.length) onPatch({ att: [...(meta.att || []), ...added] });
+      if (added.length) onPatch(current => ({ att: [...(current.att || []), ...added] }));
       if (fileRef.current) fileRef.current.value = "";
     };
     return (

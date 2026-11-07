@@ -1,4 +1,5 @@
-import { MEDIA_MAX_BYTES } from './mediaSafety.js';
+import { AUDIO_UPLOAD_BYTES } from './mediaLimits.js';
+import { compressPhoto } from './imageCompression.js';
 
 export const STORAGE_DEFAULTS = Object.freeze({ audioKbps: 64, photoSide: 0, budgetGiB: 0 });
 export function normalizeStoragePreferences(value = {}) {
@@ -71,14 +72,9 @@ export async function inspectStorage({ fetcher = fetch, getDocument, listLocalFi
 }
 export function recordingEstimate(kbps) {
   const rate = normalizeStoragePreferences({ audioKbps: kbps }).audioKbps;
-  return { hourBytes: rate * 1000 / 8 * 3600, maxMinutes: Math.floor(MEDIA_MAX_BYTES * 8 / (rate * 1000 * 60)) };
+  return { hourBytes: rate * 1000 / 8 * 3600, maxMinutes: Math.floor(AUDIO_UPLOAD_BYTES * 8 / (rate * 1000 * 60)) };
 }
-// Only JPEG photographs are transformed. PDFs, transparent PNG, animation,
-// HEIC and other originals keep their format and bytes.
-export async function preparePhotoAttachment(file, preferences, resize) {
-  const side = normalizeStoragePreferences(preferences).photoSide;
-  if (!side || file.type !== 'image/jpeg') return file;
-  const blob = await resize(file, side);
-  if (!blob?.size || blob.size >= file.size) return file;
-  return new File([blob], file.name, { type: 'image/jpeg', lastModified: file.lastModified });
+// New photographs share the same automatic size cap in both app shells.
+export async function preparePhotoAttachment(file, preferences, codec = {}) {
+  return compressPhoto(file, { maxSide: normalizeStoragePreferences(preferences).photoSide, ...(typeof codec === 'object' ? codec : {}) });
 }
