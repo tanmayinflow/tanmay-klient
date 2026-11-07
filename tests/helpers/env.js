@@ -7,6 +7,7 @@
 // or rolls back the entire sequence." Bez toho by se ochrana proti dvojí
 // rezervaci testovala proti něčemu, co se v provozu chová jinak.
 import { DatabaseSync } from "node:sqlite";
+import { STORAGE_SCHEMA } from "../../src/shared/product/storageBudgetServer.js";
 
 export function makeD1() {
   const db = new DatabaseSync(":memory:");
@@ -95,13 +96,21 @@ export function makeR2() {
 }
 
 export function makeEnv(extra = {}) {
-  return {
+  const env = {
     DB: makeD1(),
     FILES: makeR2(),
     ASSETS: { fetch: async () => new Response("<!doctype html><title>app</title>", { headers: { "Content-Type": "text/html" } }) },
     INVITE_WORD: "otevri se",
     ...extra,
   };
+  // Default fixture represents two already inventoried, empty buckets.
+  // Bootstrap/concurrency tests create fresh makeD1() explicitly.
+  const quotaDb = env.KLIENT_DB || env.DB;
+  if (quotaDb?._raw) {
+    for (const sql of STORAGE_SCHEMA) quotaDb._raw.exec(sql);
+    quotaDb._raw.exec("UPDATE storage_budget_buckets SET ready=1");
+  }
+  return env;
 }
 
 // Požadavek s identitou od Cloudflare Access (nebo bez ní).

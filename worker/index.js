@@ -1,3 +1,4 @@
+import { guardedStorage, handleStorageBudget, storageBudgetFailure } from "../src/shared/product/storageBudgetServer.js";
 import { handleAccountBackup } from "../src/shared/product/accountBackup.js";
 import { MEDIA_MAX_BYTES } from "../src/shared/product/mediaSafety.js";
 import { exerciseMotionAsset } from '../src/shared/product/exerciseMotionAsset.js';
@@ -398,9 +399,10 @@ async function handleFilesList(request, env, userId) {
   return Response.json({ files });
 }
 
-export default {
+const worker = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    env = { ...env, FILES: guardedStorage({ db: env.DB, raw: env.FILES, bucket: "client", request }) };
 
     if (url.pathname === "/api/health") {
       if (!userIdFrom(request)) return unauthorized();
@@ -473,6 +475,7 @@ export default {
       if (!(await isMember(env, userId))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
+      if (url.pathname === "/api/storage") return handleStorageBudget(request,{db:env.DB,files:env.FILES,role:"client",userId});
       if (url.pathname === "/api/backup") return handleAccountBackup(request, {db:env.DB,actor:`client:${userId}`,userId,role:"client"});
       if (url.pathname === "/api/calendar/config") return calendarConfigResponse(request,env);
       if (url.pathname.startsWith("/api/calendar/")) return handlePersonalCalendar(request,env.DB,`client:${userId}`,env);
@@ -523,3 +526,8 @@ export default {
     return withSecurityHeaders(await env.ASSETS.fetch(request));
   },
 };
+
+export default { ...worker, async fetch(request, env, ctx) {
+  try { return await worker.fetch(request, env, ctx); }
+  catch (error) { return storageBudgetFailure(error); }
+} };

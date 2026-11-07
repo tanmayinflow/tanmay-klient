@@ -56,7 +56,7 @@ test('exactly 95 MiB streams directly into R2 with metadata and a confirmed rece
     assert.match(key, /^files\/[a-z-]+\/recording$/);
     assert.equal(body, request.body, 'preserve native known-length request stream');
     assert.equal(request.bodyUsed, false, 'worker did not buffer the file');
-    assert.deepEqual(options, { httpMetadata: { contentType: 'audio/webm' }, customMetadata: { name: 'Nahravka.webm' } });
+    assert.deepEqual(options, { httpMetadata: { contentType: 'audio/webm' }, customMetadata: { name: 'Nahravka.webm' }, storageClass: 'Standard' });
     const reader = body.getReader();
     for (;;) { const next = await reader.read(); if (next.done) break; bytes += next.value.byteLength; }
     reader.releaseLock();
