@@ -1,5 +1,61 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "mbd_lunge_rocks": {
+    "oneSide": true,
+    "src": "/exercise-motion/mbd_lunge_rocks-e11277da31718573.mp4",
+    "bytes": 21964,
+    "sha256": "e11277da31718573592561371460d5df1d93d9d37646f3f1efa59025dd235085",
+    "poster": "/exercise-motion/mbd_lunge_rocks-poster-1e0eed534ef930ab.webp"
+  },
+  "ig26_wall_sit_calf": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig26_wall_sit_calf-90ecd2d58c080691.mp4",
+    "bytes": 21282,
+    "sha256": "90ecd2d58c080691ad345179082de612f59ce5a8571c7f1cc3e2a3a4e818b49c",
+    "poster": "/exercise-motion/ig26_wall_sit_calf-poster-8835d4614aac54aa.webp"
+  },
+  "ig27_seated_leg_crossover": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig27_seated_leg_crossover-8569e751c118a6aa.mp4",
+    "bytes": 62974,
+    "sha256": "8569e751c118a6aaeae5c646ae03dc83ccc1a2ffb79641ebada673453af0d098",
+    "poster": "/exercise-motion/ig27_seated_leg_crossover-poster-1f429d3d9b535115.webp"
+  },
+  "ex26_transverse_lunge": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_transverse_lunge-5aea4924461215c2.mp4",
+    "bytes": 46797,
+    "sha256": "5aea4924461215c224d71c058f82e23e5fab18ed850224f4b97d99fb9e7bbeeb",
+    "poster": "/exercise-motion/ex26_transverse_lunge-poster-575125d49a507a19.webp"
+  },
+  "jg_tiryaka_tadasana": {
+    "oneSide": false,
+    "src": "/exercise-motion/jg_tiryaka_tadasana-48c307ad0440c230.mp4",
+    "bytes": 24126,
+    "sha256": "48c307ad0440c230cfeaa71ce0340ec473d8b7e4b2898f6ab04128cc31f7a9c5",
+    "poster": "/exercise-motion/jg_tiryaka_tadasana-poster-eb2eac809f8cc73f.webp"
+  },
+  "act_walk": {
+    "oneSide": false,
+    "src": "/exercise-motion/act_walk-d77c1f395615d3ac.mp4",
+    "bytes": 29941,
+    "sha256": "d77c1f395615d3ac32294a492274dde2851b62878dd3b2d73061dfeed0bde29b",
+    "poster": "/exercise-motion/act_walk-poster-1c33c2968c1aeac3.webp"
+  },
+  "act_run": {
+    "oneSide": false,
+    "src": "/exercise-motion/act_run-cc5a967b28869ef8.mp4",
+    "bytes": 30483,
+    "sha256": "cc5a967b28869ef8ffc2f83563d27bd1166501f10de366a0b0f229edf61585b4",
+    "poster": "/exercise-motion/act_run-poster-5fa8492cd8656d7a.webp"
+  },
+  "kb26_rack_carry": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_rack_carry-6e6546f36c08be71.mp4",
+    "bytes": 32020,
+    "sha256": "6e6546f36c08be719377a663906998c8043c503cbb2581d4c731b716ceb67461",
+    "poster": "/exercise-motion/kb26_rack_carry-poster-5135548a6d83a1c4.webp"
+  },
   "kb26_double_clean_press": {
     "oneSide": false,
     "src": "/exercise-motion/kb26_double_clean_press-7b03266b9924171c.mp4",
