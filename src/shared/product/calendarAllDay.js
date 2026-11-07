@@ -1,3 +1,5 @@
+import { listCalendarEvents } from './calendarSchedule.js';
+
 // Separate from generated training/motif events: these records belong to both calendars.
 export const allDayFields = row => ({ title: row.title || '', start: row.start, end: row.end });
 const same = (a,b) => JSON.stringify(a) === JSON.stringify(b);
@@ -21,11 +23,15 @@ export async function syncAllDay({rows,calendars,defaultCalendar,from,to,request
   let errors=0;
   for(const calendarId of calendars){
     const path='/calendars/'+encodeURIComponent(calendarId)+'/events';
-    const events=new Map(); let page='';
+    const events=new Map();
     try {
-      do {const data=await request(path+'?singleEvents=true&showDeleted=true&maxResults=2500&timeMin='+encodeURIComponent(from+'T00:00:00Z')+'&timeMax='+encodeURIComponent(to+'T00:00:00Z')+(page?'&pageToken='+encodeURIComponent(page):''));
-        for(const ev of data.items||[])events.set(ev.id,ev);page=data.nextPageToken||'';
-      }while(page);
+      // Google interprets all-day boundaries in the source calendar's zone.
+      // A one-day margin covers every UTC offset; filter by the nominal dates
+      // below so the visible window remains exact in every calendar zone.
+      const start=new Date(from+'T00:00:00Z'),end=new Date(to+'T00:00:00Z');
+      start.setUTCDate(start.getUTCDate()-1);end.setUTCDate(end.getUTCDate()+1);
+      const query='?singleEvents=true&showDeleted=true&maxResults=2500&timeMin='+encodeURIComponent(start.toISOString())+'&timeMax='+encodeURIComponent(end.toISOString());
+      for(const event of await listCalendarEvents(request,path,query))events.set(event.id,event);
     } catch {errors++;continue;} // A failed read never means an empty calendar.
     for(const row of result.filter(r=>(r.calendarId||defaultCalendar)===calendarId)){
       let remote=row.gid?events.get(row.gid):null;
@@ -58,7 +64,7 @@ export async function syncAllDay({rows,calendars,defaultCalendar,from,to,request
     }
     for(const event of events.values()){
       const own=event.extendedProperties?.private;
-      if(!event.start?.date||event.status==='cancelled'||(own?.tmApp==='1'&&own.tmKind!=='allDay')||event.attendees?.some(a=>a.self&&a.responseStatus==='declined'))continue;
+      if(!event.start?.date||event.start.date>=to||event.end?.date<=from||event.status==='cancelled'||(own?.tmApp==='1'&&own.tmKind!=='allDay')||event.attendees?.some(a=>a.self&&a.responseStatus==='declined'))continue;
       const key=calendarId+'|'+event.id;if(byRemote.has(key))continue;
       const row=googleAllDay(event,calendarId);if(readOnlyCalendars.includes(calendarId))row.readOnly=true;row.rev=0;row.syncRev=0;result.push(row);byRemote.set(key,row);
     }

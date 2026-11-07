@@ -4,6 +4,7 @@ import { syncClientTrainingCalendar } from "./trainingCalendarSync.js";
 import { syncOwnCycleCalendar } from "./cycleGoogleCalendar.js";
 import { syncTimedCalendar } from "./calendarTimed.js";
 import { createPersonalCalendarConnection } from "./personalCalendarConnection.js";
+import { calendarWindow } from "./calendarWindow.js";
 
 // Main supplies its additional event sources. Client never evaluates those sources,
 // even if an imported collection contains Main calendar flags or shadow records.
@@ -14,7 +15,7 @@ const CAL_GIS = "https://accounts.google.com/gsi/client";
 const mainDefaults = {
   clientId: "", calId: "", calName: "tanmay",
   klienti: true, trenink: true, rozvrh: true, motiv: true,
-  horizon: 14, busy: "klienti", titles: "plne", zpet: "tanmay",
+  horizon: 14, horizonMonths: 0, readPastMonths: 0, busy: "klienti", titles: "plne", zpet: "tanmay",
   lastSync: 0, lastErr: "", lastCount: 0, cycle:false, cycleCalId:"",
 };
 const allKinds = [
@@ -30,9 +31,14 @@ const connection = providedConnection || createPersonalCalendarConnection({getAc
 const durableToken = 'server-calendar-connection';
 const CAL_DEF = role === "client" ? {...mainDefaults, klienti:false, motiv:false, busy:"nic"} : mainDefaults;
 const CAL_KINDS = allKinds.filter(item => role !== "client" || ["rozvrh","trenink"].includes(item.k));
-const config = value => role === "client"
+const roleConfig = value => role === "client"
   ? {...CAL_DEF, ...value, clientId:value?.clientId||runtimeClientId, klienti:false, motiv:false, busy:value?.busy === "vse" ? "vse" : "nic"}
   : {...CAL_DEF, ...value, clientId:value?.clientId||runtimeClientId};
+const config = value => {
+  const cfg = roleConfig(value), window = calendarWindow(cfg, todayISO());
+  return {...cfg, horizon:window.horizonDays, horizonMonths:window.horizonMonths, readPastMonths:window.readPastMonths};
+};
+const tmCalWindow = value => calendarWindow(config(value), todayISO());
 function tmCalPrepare() {
   if (!preparing) preparing = Promise.all([fetcher('/api/calendar/config',{credentials:'same-origin',cache:'no-store'}), connection.prepare(undefined,{authorize:false})])
     .then(async ([response]) => { if (!response.ok) throw new Error('calendar-config-unavailable'); const data=await response.json(); runtimeClientId=data.configured?data.clientId:''; return config({}); })
@@ -328,8 +334,9 @@ function tmCalSlot(dt) {
   } catch (e) { return null; }
 }
 function tmCalPull(st, cfg, tok) {
+  const window = tmCalWindow(cfg);
   return syncTimedCalendar({ calendars: [cfg.calId, ...(cfg.zpet === 'vse' && tmCalMaCteni() ? ['primary'] : [])],
-    from: todayISO(), to: tmCalShift(todayISO(), Math.max(1, Number(cfg.horizon) || 14) + 1),
+    from: window.readFrom, to: window.to,
     request: path => tmCalReq(path, null, tok), getDay: st.getCalendarDay, updateDays: st.updateCalendarDays, L,
   }).then(result => ({ vlozeno: result.inserted, uklizeno: result.removed, chyby: result.errors }));
 }
@@ -430,14 +437,14 @@ function tmCalSyncRun(st, opts, token) {
   const tomb = Object.fromEntries(Object.entries(st.coll.calTomb || {}).filter(([key]) => role !== "client" || key.startsWith("rz|")));
   let calId = "";
   const res = { pridano: 0, zmeneno: 0, smazano: 0, chyby: 0 };
-  const from = todayISO(), to = tmCalShift(from, Math.max(1, Number(cfg.horizon) || 14) + 1);
+  const {from, to, readFrom} = tmCalWindow(cfg);
   return Promise.resolve(token)
     .then((tok) => tmCalEnsure(cfg, tok, (p) => st.setCalCfg(p)).then((id) => { calId = id; return tok; }))
     .then(async tok=>{
       st.calendarGuard();
       const request=async(path,options)=>{st.calendarGuard();const data=await tmCalReq(path,options,tok);st.calendarGuard();return data;};
       if(role==='client'){
-        const result=await syncClientTrainingCalendar({st,cfg,calId,request,from:todayISO(),to:tmCalShift(todayISO(),Math.max(1,+cfg.horizon||14)+1),L});
+        const result=await syncClientTrainingCalendar({st,cfg,calId,request,from,to,L});
         res.chyby+=result.errors+result.conflicts.length;res.zmeneno+=result.changes;
         if(result.errors||result.conflicts.length)res.prvni=L('Některý termín tréninku se změnil na obou místech. Zkontroluj ho, hotové tréninky zůstaly zachované.','A workout date changed in both places. Review it; completed workouts were preserved.');
       }
@@ -457,7 +464,7 @@ function tmCalSyncRun(st, opts, token) {
       if(o.interactive && cfg.zpet === "vse")st.setCalCfg({allDayWrite:!!cfg.allDayWrite && tmCalMaZapis()});
       const before = st.coll.calendarAllDay || [];
       const calendars = [calId, ...(cfg.zpet === "vse" && tmCalMaCteni() ? ["primary"] : [])];
-      const pulled = await syncAllDay({rows:before, calendars, defaultCalendar:calId, from:todayISO(), to:tmCalShift(todayISO(), Math.max(1, +cfg.horizon || 14) + 1), request:(path, opts)=>tmCalReq(path,opts,tok), makeId:tmB32, readOnlyCalendars:cfg.allDayWrite && tmCalMaZapis()?[]:["primary"]});
+      const pulled = await syncAllDay({rows:before, calendars, defaultCalendar:calId, from:readFrom, to, request:(path, opts)=>tmCalReq(path,opts,tok), makeId:tmB32, readOnlyCalendars:cfg.allDayWrite && tmCalMaZapis()?[]:["primary"]});
       st.setCalendarAllDay(current=>mergeAllDaySync(current,before,pulled.rows));
       res.chyby += pulled.errors;
       if(pulled.errors)res.prvni = L("Celodenní události čekají na další synchronizaci.", "All-day events await another sync.");
@@ -614,7 +621,7 @@ function tmCalIcs(st) {
 }
 
 
-return {role,config,CAL_DEF,CAL_KINDS,tmCalPrepare,tmCalRestore,tmCalDurable,tmCalConnectConfig,tmCalPrepareAuth,tmCalAcceptRedirect,tmCalLoad:tmCalGis,tmCalReady,tmCalAccount:getAccount,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalMaCteni,tmCalSync,tmCalReplaceUnavailable,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin};
+return {role,config,CAL_DEF,CAL_KINDS,tmCalWindow,tmCalPrepare,tmCalRestore,tmCalDurable,tmCalConnectConfig,tmCalPrepareAuth,tmCalAcceptRedirect,tmCalLoad:tmCalGis,tmCalReady,tmCalAccount:getAccount,tmCalDesired,tmCalBody,tmCalHash,tmCalTz,tmCalLive,tmCalAvailable,tmCalAuth,tmCalScopeFor,tmCalMaCteni,tmCalSync,tmCalReplaceUnavailable,tmCalDisconnect,tmCalIcs,tmCalTichoZakazano,tmCalTichoZapis,tmOrigin};
 }
 
 export function tmCalIcsLines(s) {

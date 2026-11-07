@@ -323,7 +323,7 @@ function PomoOverview() {
       <Eyebrow>{per === "den" ? L("Dnešní bloky", "Today's blocks") : per === "tyden" ? L("Bloky tohoto týdne", "This week's blocks") : L("Bloky tohoto měsíce", "This month's blocks")}</Eyebrow>
       {inPer.length === 0 && <Prazdno kind="prvni" plain compact
         fakt={L("Zatím žádný blok.", "No block yet.")}
-        pozvani={L("Pusť časovač a nech ho doběhnout — počítá se až zvon.", "Start the timer and let it run — only the bell counts.")} />}
+        pozvani={L("Pusť časovač a nech ho doběhnout. Počítá se až zvon.", "Start the timer and let it run. Only the bell counts.")} />}
       {(() => {
         const byTs = [...inPer].sort((a, b) => (b.ts || 0) - (a.ts || 0));
         const out = []; let lastD = null;
@@ -462,7 +462,7 @@ function PomodoroTimer() {
 
   const onPickPhoto = async (file) => {
     if (!file) return;
-    if (file.size > 1.5 * 1024 * 1024) { st.ask(L(`Fotka je moc velká (${fmtSize(file.size)}). Limit 1,5 MB — localStorage.`, `The photo is too large (${fmtSize(file.size)}). Limit 1.5 MB — localStorage.`), null); return; }
+    if (file.size > 1.5 * 1024 * 1024) { st.ask(L(`Fotka je moc velká (${fmtSize(file.size)}). Limit 1,5 MB: localStorage.`, `The photo is too large (${fmtSize(file.size)}). Limit 1.5 MB: localStorage.`), null); return; }
     try { const att = await readFileAsAtt(file); st.setPomoSettings({ bg: attUrl(att) }); } catch (e) {}
   };
   const numField = (label, key, min, max) => { const val = cfg[key] != null ? cfg[key] : (key === "custom" ? 45 : 0); return (

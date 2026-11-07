@@ -61,6 +61,36 @@ test('failed calendar reads keep previous events while successful calendars upda
   assert.deepEqual(f.days()[from].calendarTimed, [keep]);
 });
 
+test('long calendar reads follow empty intermediate pages and preserve the complete cache if a later page fails', async () => {
+  const cached = timedCalendarSegments(meeting, 'app', from, to)[0].row;
+  const f = fixture({ [from]: { calendarTimed: [cached], sched: { '9:00': { text: 'Keep my plan' } } } });
+  const calls = [];
+  const options = { ...f.options, from: '2026-04-27', to: '2027-04-28', request: async path => {
+    calls.push(path);
+    const token = new URL(path, 'https://calendar.test').searchParams.get('pageToken');
+    if (!token) return { items: [], nextPageToken: 'page two /+' };
+    if (token === 'page two /+') return { items: [meeting], nextPageToken: 'last' };
+    throw Error('Connection lost on the final page');
+  } };
+  const before = structuredClone(f.days());
+  const failed = await syncTimedCalendar(options);
+  assert.equal(failed.errors, 1); assert.deepEqual(f.days(), before); assert.equal(calls.length, 3);
+  const final = event('future', '2027-04-27T10:00:00+02:00', '2027-04-27T11:00:00+02:00');
+  const result = await syncTimedCalendar({ ...options, request: async path => {
+    const token = new URL(path, 'https://calendar.test').searchParams.get('pageToken');
+    return !token ? { items: [], nextPageToken: 'two' } : { items: [meeting, final] };
+  } });
+  assert.equal(result.errors, 0); assert.equal(f.days()['2027-04-27'].calendarTimed[0].title, 'future');
+  assert.equal(f.days()[from].sched['9:00'].text, 'Keep my plan');
+});
+
+test('a repeated pagination cursor fails safely without looping or removing cached events', async () => {
+  const row = timedCalendarSegments(meeting, 'app', from, to)[0].row;
+  const f = fixture({ [from]: { calendarTimed: [row] } }); let requests = 0;
+  const result = await syncTimedCalendar({ ...f.options, request: async () => { requests++; return { items: [], nextPageToken: 'same' }; } });
+  assert.equal(requests, 2); assert.equal(result.errors, 1); assert.deepEqual(f.days()[from].calendarTimed, [row]);
+});
+
 test('a changed-account failure is propagated instead of applying a partial projection', async () => {
   const f = fixture({}, { app: [meeting], primary: Object.assign(Error('calendar-account-changed'), { code: 'calendar-account-changed' }) });
   await assert.rejects(syncTimedCalendar(f.options), /calendar-account-changed/);

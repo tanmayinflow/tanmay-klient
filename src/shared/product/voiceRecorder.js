@@ -1,6 +1,6 @@
 // Closing the editor preserves the account-scoped journal. Explicit cancel discards it.
 export function createVoiceRecorder({ mediaDevices, Recorder, onState, onSave, onError,
-  drafts, metadata = {}, now = Date.now, id = () => 'rec' + crypto.randomUUID().replaceAll('-', ''),
+  drafts, metadata = {}, audioBitsPerSecond = () => 64000, now = Date.now, id = () => 'rec' + crypto.randomUUID().replaceAll('-', ''),
   doc = globalThis.document, win = globalThis.window }) {
   let active = null, pending = false, disposed = false, generation = 0, failed = null;
   const tracks = stream => stream?.getTracks().forEach(track => track.stop());
@@ -19,7 +19,9 @@ export function createVoiceRecorder({ mediaDevices, Recorder, onState, onSave, o
       if (disposed || attempt !== generation) { tracks(stream); return; }
       const mimeType = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'].find(type => Recorder.isTypeSupported?.(type));
       let rec;
-      try { rec = new Recorder(stream, { audioBitsPerSecond: 64000, ...(mimeType ? { mimeType } : {}) }); }
+      const requestedRate = typeof audioBitsPerSecond === 'function' ? audioBitsPerSecond() : audioBitsPerSecond;
+      const bitRate = [32000, 64000, 128000].includes(requestedRate) ? requestedRate : 64000;
+      try { rec = new Recorder(stream, { audioBitsPerSecond: bitRate, ...(mimeType ? { mimeType } : {}) }); }
       catch { rec = new Recorder(stream); }
       preparingStorage = true;
       if (drafts) draft = await drafts.create({ ...metadata, id: id(), type: rec.mimeType || mimeType || 'audio/webm' });

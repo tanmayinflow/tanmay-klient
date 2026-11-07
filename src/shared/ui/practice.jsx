@@ -90,7 +90,7 @@ export function createPracticeUI(deps) {
         <button onClick={cycle} title={L("Mimo kontakt → V kontaktu → V souladu → prázdné", "Out of contact → In contact → In accord → empty")} style={{ background: "transparent", border: "none", outline: "none", boxShadow: "none", borderRadius: 0, padding: "2px 0", minHeight: 30, cursor: "pointer", fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, color: idx >= 0 ? c : t.textMuted, textAlign: "right", WebkitTapHighlightColor: "transparent" }}>
           {idx >= 0 ? statuses[idx].label : (day.s || L("Jaký byl tvůj dnešek?", "How did today carry you?"))}
         </button>
-        {legacy && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 4 }}>{L("starší volný zápis — kliknutím přejdeš na tři stavy", "older free-form note — click to switch to the three states")}</div>}
+        {legacy && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 4 }}>{L("starší volný zápis: kliknutím přejdeš na tři stavy", "older free-form note: click to switch to the three states")}</div>}
         {st.editMode && (
           <div style={{ marginTop: 12, padding: "10px 12px", background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, textAlign: "left" }}>
             <div style={{ ...subLabel(t), marginBottom: 6 }}>{L("Přejmenuj stavy dne", "Rename day statuses")}</div>
@@ -103,7 +103,7 @@ export function createPracticeUI(deps) {
                 </div>
               ))}
             </div>
-            <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, fontStyle: "italic", marginTop: 7 }}>{L("Historie zůstává — přejmenování nemění dřívější dny.", "History is kept — renaming doesn't change earlier days.")}</div>
+            <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, fontStyle: "italic", marginTop: 7 }}>{L("Historie zůstává. Přejmenování nemění dřívější dny.", "History is kept. Renaming doesn't change earlier days.")}</div>
           </div>
         )}
       </div>
@@ -951,7 +951,7 @@ export function createPracticeUI(deps) {
         ))}
         {st.editMode && (
           <p style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted, margin: "2px 2px 0", lineHeight: 1.55 }}>
-            {L("Podrž řádek a přetáhni ho na jinou hodinu. U drženého bloku se dole objeví šipky — ťuknutím se blok prodlouží nebo zkrátí o hodinu, tažením dolů se roztáhne rovnou kam chceš. Zaškrtnutí zůstává jedno.", "Hold a row and drag it to another hour. Arrows appear beneath the held block — tap to lengthen or shorten it by an hour, or drag down to stretch it straight to where you want. It keeps one checkbox.")}
+            {L("Podrž řádek a přetáhni ho na jinou hodinu. U drženého bloku se dole objeví šipky. Ťuknutím se blok prodlouží nebo zkrátí o hodinu, tažením dolů se roztáhne rovnou kam chceš. Zaškrtnutí zůstává jedno.", "Hold a row and drag it to another hour. Arrows appear beneath the held block. Tap to lengthen or shorten it by an hour, or drag down to stretch it straight to where you want. It keeps one checkbox.")}
           </p>
         )}
       </div>
@@ -1007,7 +1007,7 @@ export function createPracticeUI(deps) {
               ><FamilyIcon id="drag" size={16} label={L("Přesunout","Move")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
               <TmIconPickerButton obj={d} kind="habit" onPick={(id) => upd(d.slot, { iconId: id })} preview={<HabitGlyph slot={d.slot} icon={d.icon} iconId={d.iconId} size={18} />} />
               <input value={d.name} onChange={(e) => upd(d.slot, { name: e.target.value })} placeholder={L("Název návyku…", "Habit name…")} style={{ flex: 1, minWidth: 60, background: "transparent", border: "none", outline: "none", borderBottom: `1px solid transparent`, fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, padding: "1px 0" }} />
-              <button title={L("Archivovat — historie zůstane", "Archive — history stays")} onClick={() => st.ask(L(`Archivovat návyk „${d.name}"?`, `Archive habit "${d.name}"?`), () => upd(d.slot, { archived: true }))} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 12, border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+              <button title={L("Archivovat: historie zůstane", "Archive: history stays")} onClick={() => st.ask(L(`Archivovat návyk „${d.name}"?`, `Archive habit "${d.name}"?`), () => upd(d.slot, { archived: true }))} style={{ ...iconBtn(t), width: 22, height: 22, minWidth: 22, padding: 0, fontSize: 12, border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
             </div>
           ))}
           <button onClick={addHabit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 10px", borderRadius: 8, background: "transparent", border: `1px solid transparent`, cursor: "pointer", color: t.inkSand, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("návyk", "habit")}</button>
@@ -1233,7 +1233,7 @@ export function createPracticeUI(deps) {
       return (
         <Prazdno kind="prvni" plain
           fakt={L("Zatím tu není zaznamenaný žádný den.", "No day is recorded here yet.")}
-          pozvani={L("Odškrtni dnes první návyk — přehled začne od něj.", "Tick your first habit today — the overview starts there.")} />
+          pozvani={L("Odškrtni dnes první návyk. Přehled začne od něj.", "Tick your first habit today. The overview starts there.")} />
       );
     }
     return (

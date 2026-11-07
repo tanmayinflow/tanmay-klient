@@ -58,7 +58,7 @@ function Jars({ month }) {
           </div>
         );
       })}
-      {em && sumPct !== 100 && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.accent, marginTop: 8 }}>{L("Součet sklenic je", "Jars add up to")} {sumPct} % — {L("má být 100 %.", "should be 100 %.")}</p>}
+      {em && sumPct !== 100 && <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.accent, marginTop: 8 }}>{L("Součet sklenic je", "Jars add up to")} {sumPct} %. {L("má být 100 %.", "should be 100 %.")}</p>}
       {income === 0 && <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, marginTop: 10 }}>{L("Přidej příjem za tento měsíc a sklenice se rozpočítají.", "Add this month's income and the jars will be allocated.")}</p>}
     </div>
   );
@@ -102,7 +102,7 @@ function WishRow({ r, buy, letGo }) {
           {r.item}
           {r.cat && <span style={{ marginLeft: 7, fontFamily: FONT_TAG, letterSpacing: "0.06em", fontSize: 12, color: t.sage, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "1px 7px", textTransform: "uppercase", verticalAlign: "1px" }}>{r.cat}</span>}
         </span>
-        <button onClick={() => st.updateEntry("wishlist", r.id, { need: need ? "want" : "need" })} title={need ? L("Potřeba — klikni pro Chci", "Need — click for Want") : L("Chci — klikni pro Potřeba", "Want — click for Need")} style={{ background: need ? hexA(t.accent, 0.14) : "transparent", border: `1px solid ${need ? t.accent : t.borderSoft}`, borderRadius: 12, padding: "2px 10px", cursor: "pointer", color: need ? t.accent : t.textMuted, fontFamily: FONT_TAG, letterSpacing: "0.07em", fontSize: 12, textTransform: "uppercase" }}>{need ? L("potřeba", "need") : L("chci", "want")}</button>
+        <button onClick={() => st.updateEntry("wishlist", r.id, { need: need ? "want" : "need" })} title={need ? L("Potřeba: klikni pro Chci", "Need: click for Want") : L("Chci: klikni pro Potřeba", "Want: click for Need")} style={{ background: need ? hexA(t.accent, 0.14) : "transparent", border: `1px solid ${need ? t.accent : t.borderSoft}`, borderRadius: 12, padding: "2px 10px", cursor: "pointer", color: need ? t.accent : t.textMuted, fontFamily: FONT_TAG, letterSpacing: "0.07em", fontSize: 12, textTransform: "uppercase" }}>{need ? L("potřeba", "need") : L("chci", "want")}</button>
         <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{money(r.amount)}</span>
         <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", fontSize: 12, color: ripe ? t.accent : t.textMuted, textTransform: "uppercase" }}>{ripe ? L("dozráno", "ripe") : L("zbývá " + zbyvaDni + " " + finPlural(zbyvaDni, "den", "dny", "dní"), zbyvaDni + (zbyvaDni === 1 ? " day" : " days") + " left")}</span>
         <button onClick={() => letGo(r)} title={L("Do koše", "To trash")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 13, padding: 0, lineHeight: 1, flexShrink: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
@@ -161,7 +161,7 @@ function Wishlist() {
   const chip = (active) => ({ background: active ? hexA(t.accent, 0.14) : "transparent", border: `1px solid ${active ? t.accent : t.borderSoft}`, borderRadius: 12, padding: "7px 12px", minHeight: 32, cursor: "pointer", color: active ? (t.accentInk || t.accent) : t.textMuted, fontFamily: FONT_TAG, letterSpacing: "0.08em", fontSize: 12, textTransform: "uppercase" });
   return (
     <Callout surface="card" icon={<span style={{ color: t.sand, display: "inline-flex" }}><SproutIcon size={20} /></span>} title={L("Zrání · pravidlo třiceti dnů", "Ripening · the thirty-day rule")}>
-      <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, margin: "0 0 10px", lineHeight: 1.6 }}>{L("Impuls sem, ne do košíku — přání zraje třicet dní.", "The impulse goes here, not in the cart — a wish ripens for thirty days.")}</p>
+      <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, margin: "0 0 10px", lineHeight: 1.6 }}>{L("Impuls sem, ne do košíku. Přání zraje třicet dní.", "The impulse goes here, not in the cart a wish ripens for thirty days.")}</p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
         <input data-tm-surface="control" value={item} onChange={(e) => setItem(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} placeholder={L("Co tě láká…", "What tempts you…")} style={{ ...fieldStyle(t), flex: "1 1 150px", minWidth: 130 }} />
         <input data-tm-surface="control" type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }} placeholder="Kč" style={{ ...fieldStyle(t), width: 96 }} />
@@ -460,7 +460,7 @@ function FinDebts() {
         </button>
         {openLent && (
           <div style={{ marginTop: 8 }}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, margin: "0 0 8px", lineHeight: 1.6 }}>{L("Drží se zvlášť a nikdy se neodečítá od toho, co dlužím — jinak by ty peníze vypadaly, že tu už jsou.", "Kept separate and never netted against what I owe — otherwise the money looks like it's already here.")}</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, margin: "0 0 8px", lineHeight: 1.6 }}>{L("Drží se zvlášť a nikdy se neodečítá od toho, co dlužím. Jinak by ty peníze vypadaly, že tu už jsou.", "Kept separate and never netted against what I owe. Otherwise the money looks like it's already here.")}</p>
             {pujcene.map((r) => <DebtRow key={r.id} r={r} focus={false} duvod="" onPay={(x, a) => st.updateEntry("debts", x.id, { balance: Math.max(0, (Number(x.balance) || 0) - a) })} />)}
             <button onClick={() => pridej("owed")} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "7px 12px", cursor: "pointer", color: t.inkSand, fontFamily: FONT_BODY, fontSize: 12, marginTop: 8 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Přidat půjčku", "Add a loan")}</button>
           </div>

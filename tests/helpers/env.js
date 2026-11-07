@@ -74,18 +74,21 @@ export function makeR2() {
       if (!o) return null;
       const ct = (o.opts.httpMetadata || {}).contentType || "application/octet-stream";
       return {
-        body: o.bytes,
+        body: o.bytes, size: o.bytes.length,
         httpEtag: '"' + key + '"',
         customMetadata: o.opts.customMetadata,
         writeHttpMetadata(headers) { headers.set("Content-Type", ct); },
       };
     },
-    async head(key) { return store.has(key) ? { key } : null; },
+    async head(key) { const o = store.get(key); return o ? { key, size: o.bytes.length, httpMetadata: o.opts.httpMetadata, customMetadata: o.opts.customMetadata } : null; },
     async delete(key) { store.delete(key); },
-    async list({ prefix = "", limit = 1000 } = {}) {
-      const objects = [...store.entries()].filter(([k]) => k.startsWith(prefix)).slice(0, limit)
-        .map(([k, v]) => ({ key: k, uploaded: v.uploaded }));
-      return { objects, truncated: false, cursor: undefined };
+    async list({ prefix = "", limit = 1000, cursor } = {}) {
+      const start = Number(cursor) || 0;
+      const all = [...store.entries()].filter(([k]) => k.startsWith(prefix));
+      const objects = all.slice(start, start + limit)
+        .map(([k, v]) => ({ key: k, size: v.bytes.length, uploaded: v.uploaded, httpMetadata: v.opts.httpMetadata, customMetadata: v.opts.customMetadata }));
+      const truncated = start + limit < all.length;
+      return { objects, truncated, cursor: truncated ? String(start + limit) : undefined };
     },
     _store: store,
   };
@@ -109,6 +112,8 @@ export function req(path, { email, method = "GET", body, headers = {} } = {}) {
   if (body !== undefined) {
     init.body = typeof body === "string" ? body : JSON.stringify(body);
     if (!h.has("Content-Type")) h.set("Content-Type", "application/json");
+    // A real browser sends the UTF-8 length for these fixed-size request bodies.
+    if (!h.has("Content-Length")) h.set("Content-Length", String(new TextEncoder().encode(init.body).byteLength));
   }
   return new Request("https://klient.example.test" + path, init);
 }

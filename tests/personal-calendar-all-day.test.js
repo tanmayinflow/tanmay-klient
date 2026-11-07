@@ -10,6 +10,28 @@ test('failed reads preserve imported events and pending offline changes',async()
  const rows=[{...googleAllDay(ev(),'cal'),rev:2,syncRev:1,title:'Offline edit'}];
  const r=await syncAllDay({...opts,rows,request:async()=>{throw Error('offline')}});assert.deepEqual(r.rows,rows);assert.equal(r.errors,1);
 });
+
+test('all-day query covers source-calendar timezones while keeping the requested nominal date window',async()=>{
+ const calls=[];
+ const r=await syncAllDay({...opts,rows:[],request:async(path)=>{calls.push(path);return {items:[
+   ev({id:'before',start:{date:'2026-09-21'},end:{date:'2026-09-22'}}),
+   ev({id:'first',start:{date:'2026-09-22'},end:{date:'2026-09-23'}}),
+   ev({id:'last',start:{date:'2026-09-30'},end:{date:'2026-10-01'}}),
+   ev({id:'after',start:{date:'2026-10-01'},end:{date:'2026-10-02'}}),
+ ]};}});
+ const query=new URL(calls[0],'https://calendar.test').searchParams;
+ assert.equal(query.get('timeMin'),'2026-09-21T00:00:00.000Z');assert.equal(query.get('timeMax'),'2026-10-02T00:00:00.000Z');
+ assert.deepEqual(r.rows.map(row=>row.gid),['first','last']);
+});
+
+test('an incomplete multi-page all-day read never applies a partial calendar or pending writes',async()=>{
+ const rows=[{...googleAllDay(ev(),'cal'),rev:2,syncRev:1,title:'Keep local edit'}];let requests=0;
+ const r=await syncAllDay({...opts,rows,request:async(path,options)=>{
+   requests++;assert.equal(options,undefined);
+   if(path.includes('pageToken'))throw Error('offline');return {items:[ev({summary:'Remote change'})],nextPageToken:'next /+'};
+ }});
+ assert.equal(requests,2);assert.equal(r.errors,1);assert.deepEqual(r.rows,rows);
+});
 test('local change patches the same event with an etag and no attendee/description replacement',async()=>{
  const calls=[],rows=[{...googleAllDay(ev(),'cal'),rev:2,syncRev:1,title:'New title'}];
  const r=await syncAllDay({...opts,rows,request:async(path,o)=>{calls.push([path,o]);return o?ev({etag:'v2'}):{items:[ev()]}}});

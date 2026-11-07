@@ -615,7 +615,7 @@ export function createCompassUI(deps) {
                 placeholder={L("Až ___, udělám ___", "When ___, I will ___")}
                 aria-label={L("Spouštěč", "Trigger")}
                 style={{ width: "100%", boxSizing: "border-box", background: "transparent", border: "none", borderBottom: `1px solid ${t.borderSoft}`, color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 15, padding: "3px 2px 8px", outline: "none" }} />
-              <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 6, lineHeight: 1.5 }}>{L("Místo nebo chvíle, ne hodina. Bez údaje, jak dlouho — ten účinek srazí.", "A cue or a moment, not a clock hour. No duration — that halves the effect.")}</div>
+              <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 6, lineHeight: 1.5 }}>{L("Místo nebo chvíle, ne hodina. Bez údaje, jak dlouho. Ten účinek srazí.", "A cue or a moment, not a clock hour. No duration. That halves the effect.")}</div>
             </div>
             <PropRow icon={TmGeoArch(15)} label={L("Archiv", "Archive")}>
               <button onClick={() => st.editGoal(g.name, { archive: !g.archive })} title={L("Archivovat / vrátit", "Archive / restore")} aria-label={L("Archivovat / vrátit", "Archive / restore")} style={{ width: 26, height: 26, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 4, border: `1.5px solid ${g.archive ? t.accent : t.border}`, background: g.archive ? t.accent : "transparent", cursor: "pointer", color: t.bg, fontSize: 12, lineHeight: 1, padding: 0 }}>{g.archive ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}</button>
@@ -914,7 +914,7 @@ export function createCompassUI(deps) {
               <div style={{ marginTop: shown.length > 0 ? 18 : 0, borderTop: `1px solid ${t.borderSoft}`, padding: "6px 0 0" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
                   <span style={{ flex: 1, fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted }}>
-                    {shown.length > 0 ? L("Čekají · zvedni další, kdykoliv chceš", "Waiting · lift another whenever you want") : L("Nic není v pohybu. Tyhle čekají — zvedni jeden.", "Nothing is in motion. These are waiting — lift one.")}
+                    {shown.length > 0 ? L("Čekají · zvedni další, kdykoliv chceš", "Waiting · lift another whenever you want") : L("Nic není v pohybu. Tyhle čekají. Zvedni jeden.", "Nothing is in motion. These are waiting. Lift one.")}
                   </span>
                   {waiting.length > waitN && <button onClick={() => setWaitN(waiting.length)} className="tm-tap-c" style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12, padding: "6px 0", minHeight: 30, flexShrink: 0 }}>{L("všech", "all")} {waiting.length} <FamilyIcon id="forward" size={12} label={L("Dále","Next")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
                 </div>

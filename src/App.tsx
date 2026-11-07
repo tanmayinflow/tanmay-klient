@@ -3,6 +3,8 @@ import { uploadMedia, storeAttachment, pinMedia, verifyPinnedMedia, createMediaR
 import { buildCompleteBackup, collectMediaFiles } from "./shared/product/completeBackup.js";
 import { createRecordingDraftStore } from "./shared/product/recordingDrafts.js";
 import { BackupControl } from "./shared/ui/BackupControl.jsx";
+import { StorageOverview } from "./shared/ui/StorageOverview.jsx";
+import { readStoragePreferences, preparePhotoAttachment } from "./shared/product/storageOverview.js";
 import { RecordingRecovery } from "./shared/ui/RecordingRecovery.jsx";
 import { createLandingRecordingUiBridge } from './shared/product/landingRecordingUiBridge.js';
 import { createLandingRecordingUI } from './shared/product/landingRecordingUI.jsx';
@@ -464,7 +466,7 @@ function PinToggle({ entry }) {
     setBusy(false); window.dispatchEvent(new Event("tm-pin-change"));
   };
   return (
-    <button onClick={toggle} disabled={busy} title={pinned ? L("Uloženo offline — klikni pro odebrání", "Saved offline — click to remove") : L("Uložit média této stránky offline", "Save this page's media offline")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: pinned ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${pinned ? t.accent : t.border}`, borderRadius: 999, padding: "4px 11px", cursor: busy ? "default" : "pointer", color: pinned ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5, opacity: busy ? 0.6 : 1, whiteSpace: "normal", minHeight: 44 }}>
+    <button onClick={toggle} disabled={busy} title={pinned ? L("Uloženo offline: klikni pro odebrání", "Saved offline: click to remove") : L("Uložit média této stránky offline", "Save this page's media offline")} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: pinned ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${pinned ? t.accent : t.border}`, borderRadius: 999, padding: "4px 11px", cursor: busy ? "default" : "pointer", color: pinned ? t.accent : t.textMuted, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.09em", fontSize: 10.5, opacity: busy ? 0.6 : 1, whiteSpace: "normal", minHeight: 44 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: pinned ? t.accent : t.textMuted, flexShrink: 0 }} />
       {busy ? L("Ukládám…", "Saving…") : error ? L("Stažení selhalo. Zkusit znovu", "Download failed. Retry") : pinned ? L("Uloženo offline", "Saved offline") : L("Uložit offline", "Save offline")}
     </button>
@@ -582,7 +584,10 @@ function resizeImageToBlob(file, maxSide) {
   });
 }
 async function readFileAsAtt(file) {
-  return attDoUloziste(file, uid());
+  const owner = clientAccount.getSnapshot().owner, namespace = tmFileNamespace();
+  const prepared = await preparePhotoAttachment(file, readStoragePreferences(namespace), resizeImageToBlob);
+  if (!owner || !clientAccount.isCurrent(owner) || ownerLoad() !== owner || tmFileNamespace() !== namespace) throw new Error("account-changed");
+  return attDoUloziste(prepared, uid());
 }
 
 
@@ -868,7 +873,7 @@ function PageAtomic() {
   return (
     <>
       <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><BookIcon size={34} /></span>} pageKey="atomic" kicker={L("Výpisek · James Clear", "Notes · James Clear")}>Atomic Habits</PageTitle>
-      <p style={{ ...pProse(t), fontSize: 14 }}>{L("Rychlá referenční karta — jak zvyky fungují.", "A quick reference — how habits work.")} <span style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", color: t.sand }}>Malé zisky, které se skládají.</span></p>
+      <p style={{ ...pProse(t), fontSize: 14 }}>{L("Rychlá referenční karta o tom, jak zvyky fungují.", "A quick reference. How habits work.")} <span style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", color: t.sand }}>Malé zisky, které se skládají.</span></p>
 
       <Eyebrow>{L("Smyčka zvyku", "The habit loop")}</Eyebrow>
       <div data-guide="atomic.overview" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 20 }}>
@@ -902,7 +907,7 @@ function PageAtomic() {
 
       <Eyebrow>{L("Do hloubky", "In depth")}</Eyebrow>
       <Toggle summary={L("1 · Udělej to zřejmé", "1 · Make It Obvious")} color="orange">
-        <p style={{ margin: "0 0 6px" }}>Habit Scorecard — {L("výpis denních zvyků a jejich vědomé ohodnocení", "list your daily habits and rate them")} (+ / − / =).</p>
+        <p style={{ margin: "0 0 6px" }}>Habit Scorecard: {L("výpis denních zvyků a jejich vědomé ohodnocení", "list your daily habits and rate them")} (+ / − / =).</p>
         <ul style={li}>
           <li>Implementation intention: „I will meditate for 5 mins at 7am on the balcony."</li>
           <li>Habit stacking: „After [current habit], I will [new habit]."</li>
@@ -925,8 +930,8 @@ function PageAtomic() {
       </Toggle>
       <Toggle summary={L("4 · Udělej to uspokojivé", "4 · Make It Satisfying")} color="orange">
         <ul style={li}>
-          <li>{L("Okamžitá odměna, jakákoliv — mozek opakuje, co se hned vyplatí.", "Immediate reward, any — the brain repeats what pays off now.")}</li>
-          <li>{L("Nikdy nevynech dvakrát za sebou — tracker drží řadu.", "Never miss twice — the tracker keeps the streak.")}</li>
+          <li>{L("Okamžitá odměna, jakákoliv. Mozek opakuje, co se hned vyplatí.", "Immediate reward, any. The brain repeats what pays off now.")}</li>
+          <li>{L("Nikdy nevynech dvakrát za sebou. Tracker drží řadu.", "Never miss twice. The tracker keeps the streak.")}</li>
         </ul>
       </Toggle>
 
@@ -1101,7 +1106,7 @@ function AttachmentStrip({ att, onRemove }) {
   const stx = useStore();
   const sdilPril = async (a) => {
     const r = await tmSdilejPrilohu(a);
-    if (r === "chyba" && stx && stx.ask) stx.ask(L("Soubor se nepodařilo připravit ke sdílení — zkus to, až budeš online.", "The file could not be prepared for sharing — try again once you are online."), null);
+    if (r === "chyba" && stx && stx.ask) stx.ask(L("Soubor se nepodařilo připravit ke sdílení. Zkus to, až budeš online.", "The file could not be prepared for sharing. Try again once you are online."), null);
   };
   const [zoom, setZoom] = useState(null); // id of zoomed image
   if (!att || !att.length) return null;
@@ -2043,8 +2048,8 @@ function NastaveniPoznamky({ entry, kind = "notebook", tags = [], onClose, onPry
           jinak se sice otevře, ale není vidět. */}
       <CenterSheet center vrstva={96} title={L("Nastavení poznámky", "Note settings")} onClose={onClose}>
         {skupina(L("Čtení", "Reading"))}
-        {volba(!stranky, L("Plynule dolů", "Flowing down"), L("Jeden sloupec bez konce — jak se píše, tak se čte.", "One column without end — read the way it is written."), () => up({ rezim: "plynule" }))}
-        {volba(stranky, L("Po stránkách do strany", "Sideways, page by page"), L("Text se láme do stránek na šířku displeje — ve čtení i v psaní. Jedno přejetí prstem otočí právě jednu stránku a v pravém dolním rohu stojí, kolikátá z kolika. Kurzor si stránku hlídá sám.", "The text breaks into pages the width of the display — both when reading and when writing. One swipe turns exactly one page, and the bottom right corner says which of how many. The caret keeps its own page in view."), () => up({ rezim: "stranky" }))}
+        {volba(!stranky, L("Plynule dolů", "Flowing down"), L("Jeden sloupec bez konce. Jak se píše, tak se čte.", "One column without end. Read the way it is written."), () => up({ rezim: "plynule" }))}
+        {volba(stranky, L("Po stránkách do strany", "Sideways, page by page"), L("Text se láme do stránek na šířku displeje při čtení i psaní. Jedno přejetí prstem otočí právě jednu stránku a v pravém dolním rohu stojí, kolikátá z kolika. Kurzor si stránku hlídá sám.", "The text breaks into pages the width of the display. Both when reading and when writing. One swipe turns exactly one page, and the bottom right corner says which of how many. The caret keeps its own page in view."), () => up({ rezim: "stranky" }))}
 
         {skupina(L("Štítky", "Tags"))}
         <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 2 }}>
@@ -2056,7 +2061,7 @@ function NastaveniPoznamky({ entry, kind = "notebook", tags = [], onClose, onPry
             );
           })}
         </div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, margin: "8px 0 0", lineHeight: 1.5 }}>{L("Štítků může být víc — klepnutím se přidávají a odebírají.", "A note can carry several tags — tap to add or remove.")}</p>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, margin: "8px 0 0", lineHeight: 1.5 }}>{L("Štítků může být víc. Klepnutím se přidávají a odebírají.", "A note can carry several tags. Tap to add or remove.")}</p>
 
         {skupina(L("S poznámkou", "With this note"))}
         <button onClick={kopie} style={radek}>
@@ -3071,14 +3076,14 @@ function ExportBtn({ doc, docs, pocet, small, label, jmeno }) {
                   <span style={{ width: 22, flexShrink: 0, color: t.sand, display: "inline-flex", justifyContent: "center" }}><TmIcSdilet size={15} /></span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 13 }}>{mnoho ? L("Sdílet jako soubory", "Share as files") : L("Sdílet jako soubor", "Share as a file")}</span>
-                    <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 1 }}>{mnoho ? (pocet > TM_SDIL_MAX ? L("víc než deset — půjde to jako archiv", "more than ten — it will go as an archive") : tmPocet(pocet, "soubor", "soubory", "souborů", "file", "files") + L(" do nabídky telefonu", " into your phone's sheet")) : L("celý text, otevře se nabídka telefonu", "the whole text, opens your phone's sheet")}</span>
+                    <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 1 }}>{mnoho ? (pocet > TM_SDIL_MAX ? L("víc než deset: půjde to jako archiv", "more than ten: it will go as an archive") : tmPocet(pocet, "soubor", "soubory", "souborů", "file", "files") + L(" do nabídky telefonu", " into your phone's sheet")) : L("celý text, otevře se nabídka telefonu", "the whole text, opens your phone's sheet")}</span>
                   </span>
                 </button>
                 <button onClick={() => sdilej("text")} className="tm-nav-item" style={polozka}>
                   <span style={{ width: 22, flexShrink: 0, color: t.sand, display: "inline-flex", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 15 }}>„</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Sdílet jako zprávu", "Share as a message")}</span>
-                    <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 1 }}>{mnoho ? L("z každého jen začátek — celé to patří do souboru", "the opening of each — the whole thing belongs in a file") : L("holý text do chatu, delší se zkrátí", "plain text for a chat, long ones get trimmed")}</span>
+                    <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, marginTop: 1 }}>{mnoho ? L("z každého jen začátek: celé to patří do souboru", "the opening of each: the whole thing belongs in a file") : L("holý text do chatu, delší se zkrátí", "plain text for a chat, long ones get trimmed")}</span>
                   </span>
                 </button>
               </>
@@ -3115,10 +3120,10 @@ function ExportBtn({ doc, docs, pocet, small, label, jmeno }) {
               {printRow(L("Zápatí se značkou", "Footer with the brand"), "foot")}
               {printRow(L("Datum", "Date"), "date")}
               {printRow(L("Čísla stran", "Page numbers"), "pages")}
-              <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, padding: "2px 10px 6px", lineHeight: 1.5 }}>{L("Adresa a datum od prohlížeče jsou vypnuté — na stránce je jen tohle.", "The browser's own URL and date are switched off — only this appears.")}</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, padding: "2px 10px 6px", lineHeight: 1.5 }}>{L("Adresa a datum od prohlížeče jsou vypnuté. Na stránce je jen tohle.", "The browser's own URL and date are switched off. Only this appears.")}</span>
             </span>
           )}
-          <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, padding: "4px 10px 5px", lineHeight: 1.5, flexShrink: 0 }}>{L("PDF se otevře v tiskovém okně — vyber „Uložit jako PDF\".", "PDF opens the print dialog — choose \"Save as PDF\".")}</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 12, fontStyle: "italic", color: t.textMuted, padding: "4px 10px 5px", lineHeight: 1.5, flexShrink: 0 }}>{L("PDF se otevře v tiskovém okně. Vyber „Uložit jako PDF\".", "PDF opens the print dialog. Choose \"Save as PDF\".")}</span>
         </div>,
         document.body
       )}
@@ -3372,7 +3377,7 @@ function FolderSheet({ onClose, folder, setFolder, koren, korenNazev, mode, coun
         ))}
 
         {!kids.length && !here.length && !adding && (
-          <Prazdno kind="prvni" plain compact fakt={L("Ve složce nic není.", "This folder is empty.")} pozvani={L("Přetáhni sem poznámku — nebo tu jednu založ.", "Drag a note here — or start one.")} />
+          <Prazdno kind="prvni" plain compact fakt={L("Ve složce nic není.", "This folder is empty.")} pozvani={L("Přetáhni sem poznámku, nebo tu jednu založ.", "Drag a note here, or start one.")} />
         )}
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
@@ -4358,7 +4363,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
       )}
       {!zamek && sazecZpet && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 8, padding: "7px 12px", margin: "6px 0" }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, flex: 1, lineHeight: 1.5 }}>{sazecZpet === "nic" ? L("Sazeč prošel text — už je vysázený.", "The typesetter read the text — it is already set.") : L("Sazeč rozsadil text podle významu.", "The typesetter laid the text out by meaning.")}</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, flex: 1, lineHeight: 1.5 }}>{sazecZpet === "nic" ? L("Sazeč prošel text. Už je vysázený.", "The typesetter read the text. It is already set.") : L("Sazeč rozsadil text podle významu.", "The typesetter laid the text out by meaning.")}</span>
           {sazecZpet !== "nic" && <button onClick={sazecVratit} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.textSec, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, padding: "4px 12px", flexShrink: 0 }}>{L("Vrátit", "Undo")}</button>}
           <button onClick={() => setSazecZpet(null)} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 13, padding: "2px 4px", flexShrink: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         </div>
@@ -4586,7 +4591,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
   const saveVoiceRef = React.useRef(saveVoice); saveVoiceRef.current = saveVoice;
   React.useEffect(()=>{
     const controller=createVoiceRecorder({mediaDevices:navigator.mediaDevices,Recorder:globalThis.MediaRecorder,onState:setRecording,
-      drafts:recordingStore,metadata:{entryId:entry.id,kind},onSave:(blob,draft)=>saveVoiceRef.current(blob,draft),
+      drafts:recordingStore,metadata:{entryId:entry.id,kind},audioBitsPerSecond:()=>readStoragePreferences(tmFileNamespace()).audioKbps*1000,onSave:(blob,draft)=>saveVoiceRef.current(blob,draft),
       onError:reason=>stRef.current.ask(reason==="save"?L("Nahrávka čeká na uložení. Zkus uložení znovu nebo ji stáhni.","The recording is waiting to be saved. Retry or download it."):reason==="checkpoint"?L("Záchrannou kopii nahrávky nelze zapsat. Zkontroluj volné místo. Hotový zvuk můžeš stáhnout.","The recording recovery copy could not be saved. Check available space. You can download the captured audio."):reason==="unsupported"?L("Tento prohlížeč neumí nahrávat zvuk.","This browser cannot record audio."):L("Nahrávání se nepodařilo. Zkontroluj povolení mikrofonu a zkus to znovu.","Recording failed. Check microphone permission and try again."),null)});
     recorderRef.current=controller;return()=>controller.dispose();
   },[entry.id,recordingStore]);
@@ -4626,7 +4631,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <input data-guide={full ? (kind === "journal" ? "denik.write" : "zapisnik.write") : undefined} value={entry.title} onChange={(e) => st.updateEntry(kind, entry.id, { title: e.target.value })} placeholder={kind === "journal" ? L("Název (nepovinný)…", "Title (optional)…") : L("Název…", "Title…")} style={{ flex: 1, minWidth: 160, background: "transparent", border: "none", borderBottom: `1px solid transparent`, fontFamily: FONT_DISPLAY, fontSize: full ? 26 : 18, color: t.heading, outline: "none", padding: "0 0 2px" }} />
               <button onClick={() => setTagPick((x) => !x)} title={L("Změnit kategorie", "Change categories")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", gap: 5, flexWrap: "wrap" }}>{selTags.length ? selTags.map((n) => <Tag key={n} label={n} color={colorOf(n)} />) : <Tag label={L("+ štítek", "+ tag")} color="default" />}</button>
-              <input type="date" value={entry.date || ""} onChange={(e) => st.updateEntry(kind, entry.id, { date: e.target.value })} title={L("Datum poznámky — podle něj se řadí", "Note date — used for sorting")} style={{ background: "transparent", border: "none", color: entry.date ? t.textMuted : hexA(t.textMuted, 0.5), fontFamily: FONT_BODY, fontSize: 12, outline: "none", padding: 0, colorScheme: t.mode === "light" ? "light" : "dark", width: 110 }} />
+              <input type="date" value={entry.date || ""} onChange={(e) => st.updateEntry(kind, entry.id, { date: e.target.value })} title={L("Datum poznámky: podle něj se řadí", "Note date: used for sorting")} style={{ background: "transparent", border: "none", color: entry.date ? t.textMuted : hexA(t.textMuted, 0.5), fontFamily: FONT_BODY, fontSize: 12, outline: "none", padding: 0, colorScheme: t.mode === "light" ? "light" : "dark", width: 110 }} />
             </div>
             {tagPick && (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
@@ -4680,7 +4685,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
           {!full && recordingStatus}
           {entry.zamek && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10, fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>
-              <span style={{ color: t.sage }}>◉</span>{L("Text je zamčený — otevři nastavení poznámky a odemkni ho.", "The text is locked — open the note settings to unlock it.")}
+              <span style={{ color: t.sage }}>◉</span>{L("Text je zamčený. Otevři nastavení poznámky a odemkni ho.", "The text is locked. Open the note settings to unlock it.")}
             </div>
           )}
           <RichArea recordingStatus={full ? recordingStatus : null} value={entry.text || ""} onChange={(v) => st.updateEntry(kind, entry.id, { text: v })} zamek={!!entry.zamek} naPrilohu={full ? naPrilohu : undefined} onZmensit={full ? onZmensit : undefined} stranky={full && entry.rezim === "stranky"} />
@@ -4720,7 +4725,7 @@ function NbTagRow({ n, c, ops, renaming, setRenaming, newName, setNewName }) {
         <>
           <span style={{ flex: 1 }}><Tag label={n} color={c} /></span>
           {n !== ops.protectedName && <button title={L("Přejmenovat", "Rename")} onClick={() => { setRenaming(n); setNewName(n); }} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="edit" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
-          {n !== ops.protectedName && <button title={L(`Smazat kategorii — položky přejdou do ${ops.protectedName}`, `Delete category — items move to ${ops.protectedName}`)} onClick={() => st.ask(L(`Smazat kategorii „${n}"? Položky přejdou do ${ops.protectedName}.`, `Delete category "${n}"? Items move to ${ops.protectedName}.`), () => ops.remove(n))} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+          {n !== ops.protectedName && <button title={L(`Smazat kategorii: položky přejdou do ${ops.protectedName}`, `Delete category: items move to ${ops.protectedName}`)} onClick={() => st.ask(L(`Smazat kategorii „${n}"? Položky přejdou do ${ops.protectedName}.`, `Delete category "${n}"? Items move to ${ops.protectedName}.`), () => ops.remove(n))} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
         </>
       )}
     </div>
@@ -9078,7 +9083,7 @@ function tAskDelete(st, kind, id, after) {
     );
     return;
   }
-  const head = L(`„${name}" — ${tJoin(used)}.`, `"${name}" — ${tJoin(used)}.`);
+  const head = L(`„${name}": ${tJoin(used)}.`, `"${name}": ${tJoin(used)}.`);
   const tail = L(
     "Smazat je spolu s ním, nebo je nechat být? Z koše se dá vrátit všechno, i to, co odešlo s ním.",
     "Delete those along with it, or leave them standing? The trash can bring all of it back, cascade included."
@@ -9103,8 +9108,8 @@ function tAskDeleteMany(st, kind, ids, after) {
     return;
   }
   st.ask(
-    L(`Přesunout ${noun} do koše?\n\n${used} z nich je použito jinde — v trénincích, plánech, deníku nebo záznamech.`,
-      `Move ${noun} to the trash?\n\n${used} of them are used elsewhere — in workouts, plans, the log or records.`),
+    L(`Přesunout ${noun} do koše?\n\n${used} z nich je použito jinde: v trénincích, plánech, deníku nebo záznamech.`,
+      `Move ${noun} to the trash?\n\n${used} of them are used elsewhere: in workouts, plans, the log or records.`),
     () => done(true),
     { yes: L("Smazat vše", "Delete all"), alt: { label: L("Jen je samotné", "Just these"), onClick: () => done(false) } }
   );
@@ -9167,7 +9172,7 @@ function TEditToggle({ on, onToggle, title }) {
   const st = useStore();
   if (st.editMode) return null;
   return (
-    <button onClick={onToggle} title={on ? L("Hotovo — zpět ke čtení", "Done — back to reading") : (title || L("Upravit", "Edit"))} style={{ float: "right", marginRight: 8, marginTop: 2, background: on ? t.activeNav : "transparent", border: `1px solid ${on ? t.accent : t.borderSoft}`, borderRadius: 14, color: on ? t.accent : t.textMuted, cursor: "pointer", padding: "3px 11px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, whiteSpace: "nowrap" }}>
+    <button onClick={onToggle} title={on ? L("Hotovo: zpět ke čtení", "Done: back to reading") : (title || L("Upravit", "Edit"))} style={{ float: "right", marginRight: 8, marginTop: 2, background: on ? t.activeNav : "transparent", border: `1px solid ${on ? t.accent : t.borderSoft}`, borderRadius: 14, color: on ? t.accent : t.textMuted, cursor: "pointer", padding: "3px 11px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, whiteSpace: "nowrap" }}>
       {on ? "✓ " + L("Hotovo", "Done") : "✎ " + L("Upravit", "Edit")}
     </button>
   );
@@ -9288,7 +9293,7 @@ function TSkillPick({ exs, values, onChange }) {
       </div>
       {values.length > 1 && (
         <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontStyle: "italic", color: t.textMuted, marginTop: 6 }}>
-          {L("Dovednosti se v relacích střídají — každá dostane svůj den.", "The skills take turns across sessions — each gets its day.")}
+          {L("Dovednosti se v relacích střídají. Každá dostane svůj den.", "The skills take turns across sessions. Each gets its day.")}
         </div>
       )}
     </div>
@@ -9388,7 +9393,7 @@ function TExPick({ onPick, onClose, onNew }) {
           </div>
         )}
       </div>
-      <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, padding: "8px 2px 6px" }}>{L("Klikni na cvik — přidá se do tréninku.", "Click an exercise — it joins the workout.")}</div>
+      <div style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: t.textMuted, padding: "8px 2px 6px" }}>{L("Klikni na cvik. Přidá se do tréninku.", "Click an exercise. It joins the workout.")}</div>
     </TPickShell>
   );
 }
@@ -11693,7 +11698,7 @@ function KBGraph({ k, t }) {
     const cells = [[L("Tlak", "Push"), L("prsa · ramena · triceps", "chest · shoulders · triceps")], [L("Tah", "Pull"), L("záda · biceps", "back · biceps")], [L("Nohy", "Legs"), L("stehna · lýtka · hýždě", "legs · calves · glutes")]];
     return (
       <svg viewBox="0 0 560 190" role="img" style={wrap}>
-        <title>{L("Štěpený trénink — push · pull · legs", "Split training — push · pull · legs")}</title>
+        <title>{L("Štěpený trénink: push · pull · legs", "Split training: push · pull · legs")}</title>
         {cells.map((c, i) => {
           const x = 40 + i * 172;
           return (
@@ -11765,7 +11770,7 @@ function KBGraph({ k, t }) {
   if (k === "vi_hss") {
     return (
       <svg viewBox="0 0 560 252" role="img" style={wrap}>
-        <title>{L("HSS jako válec — nitrobřišní tlak", "The deep core as a cylinder")}</title>
+        <title>{L("HSS jako válec: nitrobřišní tlak", "The deep core as a cylinder")}</title>
         <path d="M190,66 L190,188 A62,17 0 0 0 314,188 L314,66" fill={sage} fillOpacity="0.10" stroke={sage} strokeWidth="1.4" />
         <ellipse cx="252" cy="66" rx="62" ry="17" fill={cop} fillOpacity="0.13" stroke={cop} strokeWidth="1.6" />
         <ellipse cx="252" cy="188" rx="62" ry="17" fill={sage} fillOpacity="0.18" stroke={sage} strokeWidth="1.3" />
@@ -11822,7 +11827,7 @@ function KBGraph({ k, t }) {
       <svg viewBox="0 0 560 212" role="img" style={wrap}>
         <title>{L("Tři pilíře", "Three pillars")}</title>
         <rect x="70" y="24" width="420" height="26" rx="5" fill={callout} stroke={line} />
-        <text x="280" y="42" textAnchor="middle" fill={head} style={{ ...dsp, fontSize: 15 }}>{L("Cíl — skill", "The goal — a skill")}</text>
+        <text x="280" y="42" textAnchor="middle" fill={head} style={{ ...dsp, fontSize: 15 }}>{L("Cíl: skill", "The goal a skill")}</text>
         {P.map((p, i) => {
           const x = 110 + i * 155;
           return (
@@ -11870,7 +11875,7 @@ function KBGraph({ k, t }) {
     const bands = [[L("70–100 %", "70–100%"), 26, 66, brick], [L("50–70 %", "50–70%"), 66, 104, sand], [L("30–50 %", "30–50%"), 104, 142, sage], [L("0–30 %", "0–30%"), 142, 180, mut]];
     return (
       <svg viewBox="0 0 560 206" role="img" style={wrap}>
-        <title>{L("Intenzita — blízkost selhání", "Intensity — proximity to failure")}</title>
+        <title>{L("Intenzita: blízkost selhání", "Intensity: proximity to failure")}</title>
         {bands.map((b, i) => (
           <g key={i}>
             <rect x="150" y={b[1]} width="370" height={b[2] - b[1]} fill={b[3]} fillOpacity="0.09" />
@@ -11888,7 +11893,7 @@ function KBGraph({ k, t }) {
   if (k === "cycle") {
     return (
       <svg viewBox="0 0 560 214" role="img" style={wrap}>
-        <title>{L("Superkompenzace — jeden cyklus", "Supercompensation — one cycle")}</title>
+        <title>{L("Superkompenzace: jeden cyklus", "Supercompensation: one cycle")}</title>
         <line x1="40" y1="120" x2="524" y2="120" stroke={soft} strokeWidth="1" strokeDasharray="4 4" />
         <text x="524" y="114" textAnchor="end" fill={mut} style={{ fontFamily: FONT_BODY, fontSize: 10.5 }}>{L("výchozí úroveň", "baseline")}</text>
         <path d="M40,120 C90,120 120,158 158,160 C210,163 240,132 262,120 C300,99 320,84 340,82 C400,78 440,110 500,116" fill="none" stroke={sage} strokeWidth="2.8" strokeLinecap="round" />
@@ -12011,7 +12016,7 @@ function KBGraph({ k, t }) {
   if (k === "gasbrake") {
     return (
       <svg viewBox="0 0 560 168" role="img" style={wrap}>
-        <title>{L("Ruce — plyn a brzda", "The hands — gas and brake")}</title>
+        <title>{L("Ruce: plyn a brzda", "The hands: gas and brake")}</title>
         <g transform="translate(120,18)">
           <rect x="0" y="40" width="120" height="90" rx="16" fill={pane} stroke={line} />
           {[0, 1, 2, 3].map((i) => <rect key={i} x={6 + i * 28} y="6" width="20" height="46" rx="9" fill={pane} stroke={line} />)}
@@ -12048,7 +12053,7 @@ function KBGraph({ k, t }) {
       [L("Tempo", "Tempo"), L("pomalé negativy, pauzy", "slow negatives, pauses")],
       [L("Stabilita", "Stability"), L("kruhy, jednostranně", "rings, unilateral")],
       [L("Objem", "Volume"), L("série · opak. · frekvence", "sets · reps · frequency")],
-      [L("Zátěž", "Load"), L("vesta, guma — až nakonec", "vest, band — last of all")],
+      [L("Zátěž", "Load"), L("vesta a guma až nakonec", "vest, band: last of all")],
     ];
     return (
       <svg viewBox="0 0 560 236" role="img" style={wrap}>
@@ -12076,7 +12081,7 @@ function KBGraph({ k, t }) {
     const lab = [L("Test", "Test"), "1", "2", "3", L("Test", "Test")];
     return (
       <svg viewBox="0 0 560 200" role="img" style={wrap}>
-        <title>{L("Fáze — změř, trénuj, přeměř", "Phase — measure, train, re-measure")}</title>
+        <title>{L("Fáze: změř, trénuj, přeměř", "Phase: measure, train, re-measure")}</title>
         <line x1="40" y1="170" x2="524" y2="170" stroke={soft} strokeWidth="1" />
         <path d="M60,150 L160,150 L160,120 L280,120 L280,90 L400,90 L400,60 L500,60" fill="none" stroke={sage} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
         {pts.map((c, i) => {
@@ -13288,8 +13293,8 @@ function TvClientPlan({ onRun }) {
       <div className="tm-view" style={{ padding: "26px 20px", textAlign: "center" }}>
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 24, color: t.heading }}>{L("Zatím tu není plán.", "No plan here yet.")}</div>
         <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, color: t.textMuted, marginTop: 8, lineHeight: 1.65, maxWidth: 420, margin: "8px auto 0" }}>
-          {L("Až ti ho trenér pošle, objeví se sám. Trénovat můžeš i bez něj — časovač a knihovna jsou tu pořád.",
-             "It will appear on its own once your coach sends it. You can train without one — the timer and the library are here either way.")}
+          {L("Až ti ho trenér pošle, objeví se sám. Trénovat můžeš i bez něj. Časovač a knihovna jsou tu pořád.",
+             "It will appear on its own once your coach sends it. You can train without one. The timer and the library are here either way.")}
         </div>
       </div>
     );
@@ -13825,7 +13830,7 @@ function TmGuide({ onClose }) {
     {
       kicker: L("Tělo", "Body"),
       title: L("Tři znamení", "Three marks"),
-      body: L("Miska připomíná soustředění na vděčnost a spojení s ní. Diamant kultivování vznešeného záměru — bódhičitty. Kruh chvíli, kdy se záměr a vnitřní kontemplace projevily ve skutečném jednání.",
+      body: L("Miska připomíná soustředění na vděčnost a spojení s ní. Diamant kultivování vznešeného záměru, bódhičitty. Kruh chvíli, kdy se záměr a vnitřní kontemplace projevily ve skutečném jednání.",
               "The bowl recalls connecting with gratitude. The diamond recalls cultivating the noble intention of bodhicitta. The circle marks intention and inner contemplation taking form in real action."),
       tips: [L("Nejsou to úkoly ani skóre. Jen tiché značky, že se to dnes stalo.", "They are not tasks and not scores. Just quiet marks that it happened today.")],
     },
@@ -13860,22 +13865,22 @@ function TmGuide({ onClose }) {
     {
       kicker: L("Tvoje", "Yours"),
       title: L("Deník a Zápisník jsou jen tvoje", "Journal and Notebook are yours alone"),
-      body: L("Obě místnosti jsou vypnuté, dokud si je neotevřeš v Nastavení → Stránky a navigace. Trenér k jejich obsahu nemá žádnou cestu — ani přes aplikaci, ani přes server. Nevidí text, názvy ani počty.",
-              "Both rooms stay closed until you open them in Settings → Pages and navigation. Your trainer has no path to what is inside — not through the app, not through the server. No text, no titles, no counts."),
+      body: L("Obě místnosti jsou vypnuté, dokud si je neotevřeš v Nastavení → Stránky a navigace. Trenér k jejich obsahu nemá žádnou cestu, ani přes aplikaci, ani přes server. Nevidí text, názvy ani počty.",
+              "Both rooms stay closed until you open them in Settings → Pages and navigation. Your trainer has no path to what is inside. Not through the app, not through the server. No text, no titles, no counts."),
       tips: [L("Zavření místnosti nic nemaže. Zápisy zůstanou, jen zmizí z navigace.", "Closing a room deletes nothing. The entries stay, they just leave the navigation.")],
     },
     {
       kicker: L("Sdílení", "Sharing"),
       title: L("Co uvidí Kryštof, rozhoduješ ty", "You decide what Kryštof sees"),
-      body: L("Sdílet jde průběh návyků za posledních třicet dní, názvy a stav vybraných cílů a tvoje odcvičené části plánu. Nic víc. Ohlédnutí, Deník, Zápisník, Memento ani přílohy se neposílají nikdy — ani souhrnem.",
-              "You can share the last thirty days of habit progress, the names and status of selected goals, and what you trained from the plan. Nothing else. The evening review, Journal, Notebook, Memento and attachments are never sent — not even as a summary."),
+      body: L("Sdílet jde průběh návyků za posledních třicet dní, názvy a stav vybraných cílů a tvoje odcvičené části plánu. Nic víc. Ohlédnutí, Deník, Zápisník, Memento ani přílohy se neposílají nikdy, ani souhrnem.",
+              "You can share the last thirty days of habit progress, the names and status of selected goals, and what you trained from the plan. Nothing else. The evening review, Journal, Notebook, Memento and attachments are never sent. Not even as a summary."),
       tips: [L("Vypnutí platí hned a dosavadní souhrn se zneplatní. Nastavení najdeš pod Sdílení s trenérem.", "Switching it off applies immediately and voids the previous summary. Find it in Settings → Sharing with your coach.")],
     },
     {
       kicker: L("Bez signálu", "Offline"),
       title: L("Psát můžeš i bez signálu", "You can write without a signal"),
-      body: L("Praxe, zápisy i tréninkový záznam fungují offline a odešlou se, až bude spojení. Rezervace a změna sdílení potřebují server — bez signálu se o ně nepokusí a řeknou to.",
-              "Practice, writing and the training log work offline and go up when the connection returns. Booking and changing what you share need the server — offline they will not pretend, they will say so."),
+      body: L("Praxe, zápisy i tréninkový záznam fungují offline a odešlou se, až bude spojení. Rezervace a změna sdílení potřebují server. Bez signálu se o ně nepokusí a řeknou to.",
+              "Practice, writing and the training log work offline and go up when the connection returns. Booking and changing what you share need the server. Offline they will not pretend, they will say so."),
       tips: [],
     },
     {
@@ -14612,8 +14617,8 @@ function InviteGate() {
           {L("Vstup do praxe", "Entering the practice")}
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: t.textSec, lineHeight: 1.7, margin: "16px auto 28px", maxWidth: "26em" }}>
-          {L("Tento prostor se otevírá slovem, které dostaneš ode mě. Pokud ho ještě nemáš, ozvi se — začíná to rozhovorem.",
-             "This space opens with a word you receive from me. If you don't have it yet, reach out — it begins with a conversation.")}
+          {L("Tento prostor se otevírá slovem, které dostaneš ode mě. Pokud ho ještě nemáš, ozvi se. Začíná to rozhovorem.",
+             "This space opens with a word you receive from me. If you don't have it yet, reach out. It begins with a conversation.")}
         </div>
         <input
           value={word}
@@ -14734,8 +14739,8 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
           </div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 8 }}>
             <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: t.accent, flexShrink: 0, marginTop: 6 }} />
-            {L("Deník, Zápisník, Ohlédnutí, Memento, soukromé poznámky u Pramenů ani přílohy se nesdílejí nikdy — ani zapnuté, ani souhrnem.",
-               "Journal, Notebook, the evening looking-back, Memento, private notes on Sources and attachments are never shared — not switched on, not in a summary.")}
+            {L("Deník, Zápisník, Ohlédnutí, Memento, soukromé poznámky u Pramenů ani přílohy se nesdílejí nikdy, ani zapnuté, ani souhrnem.",
+               "Journal, Notebook, the evening looking-back, Memento, private notes on Sources and attachments are never shared. Not switched on, not in a summary.")}
           </div>
           {shareRow("habits", "Návyky", "Habits", "Posledních 30 dní zaškrtnutí a jména návyků. Bez poznámek a bez textu.", "Last 30 days of checkmarks and habit names. No notes, no text.")}
           {shareRow("goals", "Cíle", "Goals", "Názvy cílů a jejich stav. Ne příští krok, ne poznámka.", "Goal names and their status. Not the next step, not the note.")}
@@ -17337,7 +17342,7 @@ export default function App() {
             </div>
             <button
               onClick={() => setEditMode((e) => !e)}
-              title={editMode ? L("Zamknout — zpět do režimu praxe", "Lock — back to practice mode") : L("Odemknout strukturu — mazání, přejmenování, správa návyků, tagů a kategorií", "Unlock structure — deleting, renaming, managing habits, tags and categories")}
+              title={editMode ? L("Zamknout: zpět do režimu praxe", "Lock: back to practice mode") : L("Odemknout strukturu: mazání, přejmenování, správa návyků, tagů a kategorií", "Unlock structure. Deleting, renaming, managing habits, tags and categories")}
               style={{ background: editMode ? t.activeNav : "transparent", border: `1px solid ${editMode ? t.accent : t.borderSoft}`, borderRadius: 20, color: editMode ? t.accent : t.textSec, cursor: "pointer", padding: "7px 14px", minHeight: 34, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, display: "flex", alignItems: "center", gap: 7 }}
             >
               <span>{editMode ? <FamilyIcon id="edit" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : "●"}</span>{editMode ? L("Editace", "Editing") : L("Zamčeno", "Locked")}
@@ -17394,7 +17399,7 @@ export default function App() {
               {fmtCZ(todayISO())} · ☾ {moonName(moonPhaseOf(todayISO()))}{(() => { const su = sunsetOf(todayISO()); return su ? ` · ${L("západ", "sunset")} ${su}` : ""; })()}
             </button>
             {[
-              { ic: editMode ? "✎" : "●", lbl: editMode ? L("Editace zapnuta — klepni pro zamčení", "Editing on — tap to lock") : L("Zamčeno — klepni pro editaci", "Locked — tap to edit"), act: editMode, on: () => setEditMode((e) => !e) },
+              { ic: editMode ? "✎" : "●", lbl: editMode ? L("Editace zapnuta: klepni pro zamčení", "Editing on: tap to lock") : L("Zamčeno: klepni pro editaci", "Locked: tap to edit"), act: editMode, on: () => setEditMode((e) => !e) },
               { ic: lang === "cs" ? "CZ" : "EN", lbl: L("Jazyk · čeština / angličtina", "Language · Czech / English"), on: toggleLang },
               { icn: TmIcSdileni, lbl: L("Sdílení s trenérem", "Sharing with your coach"), on: () => setPickerOpen(true) },
               { ic: "?", lbl: L("Průvodce aplikací", "App guide"), on: () => { setSetsOpen(false); setGuideOpen(true); } },
@@ -17449,8 +17454,9 @@ export default function App() {
               </div>
             </SetSection>
             <SetSection title={L("Data", "Data")} id="data" open={settingsSection==="data"} onOpen={setSettingsSection}>
+              {dataAccess.canExport && <StorageOverview localDocument="localstorage" key={ownerId} t={t} lang={lang} namespace={tmFileNamespace()} getContext={()=>{const owner=ownerId,namespace=tmFileNamespace();return {fetcher:clientFetch,getDocument:()=>({coll:_collRef.current,edits:_editsRef.current}),listLocalFiles:()=>idbList(namespace),drafts:tmRecordingStore(),current:()=>clientAccount.isCurrent(owner)&&ownerLoad()===owner&&tmFileNamespace()===namespace};}}/>}
               <BackupControl key={ownerId} t={t} lang={lang} disabled={!dataAccess.canExport} filename={"tanmay-klient-uplna-zaloha-"+todayISO()+".zip"} textBackup={downloadClientBackup}
-                prepare={options=>{const owner=ownerId,namespace=tmFileNamespace();return buildCompleteBackup({coll:_collRef.current,edits:_editsRef.current,textFiles:buildClientBackup(_collRef.current,_editsRef.current,{date:todayISO(),lang,safeName:tmSafeName,bodyOut:tmBodyOut}),role:"client",fetcher:clientFetch,getLocalFile:id=>idbGet(id,namespace),listLocalFiles:()=>idbList(namespace),drafts:tmRecordingStore(),extraLocal:{practiceRecovery:readPracticeRecovery(window.localStorage,owner),preferences:Object.fromEntries(APPEARANCE_KEYS.map(key=>[key,window.localStorage.getItem(key)]))},current:()=>clientAccount.isCurrent(owner)&&ownerLoad()===owner,...options});}}/>
+                prepare={options=>{const owner=ownerId,namespace=tmFileNamespace();return buildCompleteBackup({coll:_collRef.current,edits:_editsRef.current,textFiles:buildClientBackup(_collRef.current,_editsRef.current,{date:todayISO(),lang,safeName:tmSafeName,bodyOut:tmBodyOut}),role:"client",fetcher:clientFetch,getLocalFile:id=>idbGet(id,namespace),listLocalFiles:()=>idbList(namespace),drafts:tmRecordingStore(),extraLocal:{storageOptions:readStoragePreferences(namespace),practiceRecovery:readPracticeRecovery(window.localStorage,owner),preferences:Object.fromEntries(APPEARANCE_KEYS.map(key=>[key,window.localStorage.getItem(key)]))},current:()=>clientAccount.isCurrent(owner)&&ownerLoad()===owner,...options});}}/>
               {dataAccess.canExport && <RecordingRecovery store={tmRecordingStore()} onDownload={tmDownloadRecording} t={t} lang={lang}/>}
               {dataAccess.canExport && <LocalStorageStatus t={t} L={L} getDocument={() => ({ coll: _collRef.current, edits: _editsRef.current })} writer={TM_LOCAL_WRITER} />}
               <button className="tm-nav-item" disabled={!dataAccess.canReset || manualSyncBusy} onClick={()=>confirmPracticeReset()}
@@ -17481,8 +17487,8 @@ export default function App() {
                 <span style={{ fontFamily: FONT_TAG, letterSpacing: "0.08em", color: t.textMuted }}>v{TM_GUIDE_VERZE}</span>
               </div>
               <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginTop: 10 }}>
-                {L("Tvoje data leží ve tvém vlastním prostoru. Kryštof vidí jen to, co si zapneš ve Sdílení — Deník, Zápisník ani Ohlédnutí mezi to nepatří a nikdy patřit nebudou.",
-                   "Your data lives in your own space. Kryštof sees only what you switch on in Sharing — Journal, Notebook and the evening review are not part of it and never will be.")}
+                {L("Tvoje data leží ve tvém vlastním prostoru. Kryštof vidí jen to, co si zapneš ve Sdílení. Deník, Zápisník ani Ohlédnutí mezi to nepatří a nikdy patřit nebudou.",
+                   "Your data lives in your own space. Kryštof sees only what you switch on in Sharing. Journal, Notebook and the evening review are not part of it and never will be.")}
               </div>
             </SetSection>
           </CenterSheet>

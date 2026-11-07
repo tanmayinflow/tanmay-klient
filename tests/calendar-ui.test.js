@@ -141,6 +141,29 @@ test('read-only primary access does not ask for unrelated write permission',()=>
 });
 
 function elements(node){return !node||typeof node!=='object'?[]:[node,...React.Children.toArray(node.props?.children).flatMap(elements)];}
+
+test('calendar settings change history and future separately and can return to the legacy day range',()=>{
+  const f=fixture();
+  let choices=elements(f.renderSettings());
+  const ahead=choices.find(e=>e.props?.label==='Plan and read ahead');
+  assert.ok(ahead.props.options.some(option=>option.v==='m12'));
+  ahead.props.onChange('m6');
+  choices=elements(f.renderSettings());
+  const history=choices.find(e=>e.props?.label==='Read past events');
+  history.props.onChange('3');
+  assert.equal(f.state.cfg.horizonMonths,6);assert.equal(f.state.cfg.readPastMonths,3);
+  ahead.props.onChange('14');
+  assert.equal(f.state.cfg.horizonMonths,0);assert.equal(f.state.cfg.horizon,14);assert.equal(f.state.cfg.readPastMonths,3);
+  assert.equal(f.state.authCalls,0);assert.equal(f.state.cfg.zpet,'tanmay');
+});
+
+test('changing only the history range refreshes calendar data automatically without authorization',async()=>{
+  const f=fixture();f.state.restoreReady=true;await f.mount();
+  await f.tick();assert.equal(f.state.syncCalls,1);
+  f.state.cfg.readPastMonths=3;await f.tick();assert.equal(f.state.syncCalls,2);
+  f.state.cfg.horizonMonths=6;await f.tick();assert.equal(f.state.syncCalls,3);
+  assert.equal(f.state.authCalls,0);f.unmount();
+});
 test('open Calendar settings refresh preparation on return and retry without loading a popup',async()=>{
   let prepared=0;const f=fixture({tmCalPrepareAuth:async()=>{prepared++;}});
   f.renderSettings();await f.prepareSettings();assert.equal(prepared,1);assert.equal(f.state.loadCalls,0);

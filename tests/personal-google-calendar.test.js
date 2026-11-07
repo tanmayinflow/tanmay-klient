@@ -34,8 +34,8 @@ function fixture(options={}) {
     return new Response(JSON.stringify({error:{}}),{status:404});
   };
   const connection=options.connection?.({fetcher}) || {configured:()=>false,status:()=>({configured:false,connected:false}),prepare:async()=>({configured:false,connected:false})};
-  const engine=createGoogleCalendar({role:"client",L,todayISO:()=>today,BRAND:{copper:"#a00",linen:"#fff"},getAccount:()=>owner,canRequest:()=>online,fetcher,connection,
-    extraEvents:()=>{throw new Error("Client must never read Main sources");}});
+  const engine=createGoogleCalendar({role:options.role||"client",L,todayISO:()=>today,BRAND:{copper:"#a00",linen:"#fff"},getAccount:()=>owner,canRequest:()=>online,fetcher,connection,
+    extraEvents:options.extraEvents||(()=>{throw new Error("Client must never read Main sources");})});
   return {engine,st,cfg,calls,writes,events,values,callbacks,connection,setToday:value=>{today=value;},setOwner:v=>{owner=v;},setOnline:v=>{online=v;},authorize:()=>callback({access_token:"late-token",scope:"",expires_in:3600}),release:()=>heldResponse()};
 }
 
@@ -145,10 +145,10 @@ test("offline pauses consent and calendar traffic without discarding the same ac
 const ownScope='https://www.googleapis.com/auth/calendar.app.created';
 const readScope='https://www.googleapis.com/auth/calendar.events.readonly';
 const writeScope='https://www.googleapis.com/auth/calendar.events';
-function durableFixture({connected=true,configured=true}={}) {
+function durableFixture({connected=true,configured=true,...options}={}) {
   const status={configured,connected,scopes:[ownScope,readScope],generation:'same-connection'};
   const requests=[],consents=[],preparations=[];let disconnected=0;
-  const f=fixture({connection:({fetcher})=>({
+  const f=fixture({...options,connection:({fetcher})=>({
     configured:()=>status.configured,status:()=>({...status}),
     ready:scopes=>status.connected && String(scopes||'').split(' ').every(scope=>status.scopes.includes(scope)),
     prepare:async(scopes,options)=>{preparations.push({scopes,...options});return {...status};},
@@ -169,6 +169,58 @@ function durableFixture({connected=true,configured=true}={}) {
 test('new defaults enable day schedule and app-calendar import without overriding saved choices',()=>{
   const f=fixture();assert.equal(f.engine.config({}).rozvrh,true);assert.equal(f.engine.config({}).zpet,'tanmay');
   assert.equal(f.engine.config({rozvrh:false}).rozvrh,false);assert.equal(f.engine.config({zpet:''}).zpet,'');
+});
+
+test('calendar defaults retain the saved legacy window and bound imported range preferences',()=>{
+  const f=fixture();
+  assert.equal(f.engine.config({}).horizon,14);assert.equal(f.engine.config({}).readPastMonths,0);
+  assert.equal(f.engine.config({horizon:30}).horizon,30);
+  assert.equal(f.engine.config({horizon:Infinity}).horizon,14);
+  assert.equal(f.engine.config({horizon:9000}).horizon,366);
+  assert.equal(f.engine.config({horizonMonths:9000,readPastMonths:-1}).readPastMonths,0);
+  assert.equal(f.engine.config({horizon:14,horizonMonths:6}).horizon,182);
+});
+
+test('both roles read months backwards and plan months ahead without exporting old schedules or requesting new access',async()=>{
+  for(const role of ['main','client']){
+    const f=durableFixture({role,extraEvents:()=>[]});f.st.coll.calShadow={};
+    Object.assign(f.cfg,{readPastMonths:3,horizonMonths:6});
+    for(const date of ['2026-07-10','2027-04-10','2027-04-11'])f.st.updateDay(date,()=>({sched:{'10:00':{text:'Plan '+date}}}));
+    for(const date of ['2026-07-10','2027-04-10']){
+      f.events.set('meeting-'+date,{id:'meeting-'+date,summary:'Meeting '+date,start:{dateTime:new Date(date+'T09:00:00').toISOString()},end:{dateTime:new Date(date+'T10:00:00').toISOString()}});
+      f.events.set('all-'+date,{id:'all-'+date,summary:'All day '+date,start:{date},end:{date:date.slice(0,-2)+'11'}});
+    }
+    const result=await f.engine.tmCalSync(f.st,{});assert.equal(result.chyby,0);
+    assert.equal(f.st.getCalendarDay('2026-07-10').calendarTimed[0].title,'Meeting 2026-07-10');
+    assert.equal(f.st.getCalendarDay('2027-04-10').calendarTimed[0].title,'Meeting 2027-04-10');
+    assert.ok(f.st.coll.calendarAllDay.some(row=>row.start==='2026-07-10'));
+    assert.ok(f.st.coll.calendarAllDay.some(row=>row.start==='2027-04-10'));
+    const titles=f.requests.filter(r=>r.method==='POST').map(r=>r.body.summary);
+    assert.ok(titles.includes('Plan 2027-04-10'));assert.ok(!titles.includes('Plan 2027-04-11'));assert.ok(!titles.includes('Plan 2026-07-10'));
+    const timed=f.requests.filter(r=>r.path.includes('singleEvents=true&showDeleted=false'));
+    assert.ok(timed.length>=2);
+    for(const request of timed){
+      const query=new URL(request.path,'https://calendar.test').searchParams;
+      assert.equal(query.get('timeMin'),new Date('2026-07-10T00:00:00').toISOString());
+      assert.equal(query.get('timeMax'),new Date('2027-04-11T00:00:00').toISOString());
+    }
+    assert.equal(f.consents.length,0);assert.equal(f.callbacks.length,0);
+    assert.ok(f.requests.every(request=>!request.path.includes('/primary/')||!request.method||request.method==='GET'));
+    const ics=f.engine.tmCalIcs(f.st);assert.match(ics,/Plan 2027-04-10/);assert.doesNotMatch(ics,/Plan 2027-04-11|Plan 2026-07-10/);
+  }
+});
+
+test('shortening a month window preserves the already published future event and imported past events',async()=>{
+  const f=durableFixture();Object.assign(f.cfg,{readPastMonths:3,horizonMonths:6});
+  f.st.updateDay('2027-04-01',()=>({sched:{'10:00':{text:'Future practice'}}}));
+  f.events.set('past',{id:'past',summary:'Past meeting',start:{dateTime:new Date('2026-07-10T09:00:00').toISOString()},end:{dateTime:new Date('2026-07-10T10:00:00').toISOString()}});
+  await f.engine.tmCalSync(f.st,{});
+  const future=structuredClone(f.st.coll.calShadow['rz|2027-04-01|10:00']);assert.ok(future);
+  const count=f.requests.length;Object.assign(f.cfg,{readPastMonths:0,horizonMonths:0,horizon:7});
+  await f.engine.tmCalSync(f.st,{});
+  assert.deepEqual(f.st.coll.calShadow['rz|2027-04-01|10:00'],future);
+  assert.equal(f.st.getCalendarDay('2026-07-10').calendarTimed[0].title,'Past meeting');
+  assert.equal(f.requests.slice(count).some(r=>r.method==='PATCH'&&r.body?.status==='cancelled'),false);
 });
 
 test('a restored durable connection syncs new app rows without OAuth or a browser access token',async()=>{

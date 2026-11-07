@@ -41,7 +41,7 @@ function SocRychly({ onNew }) {
   const rovnou = () => { const n = socNovy(v.trim()); st.addEntry("socItems", n); setV(""); if (onNew) onNew(n.id); };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid transparent`, borderRadius: 10, padding: "5px 10px 5px 5px", margin: "4px 0 6px" }}>
-      <button onClick={rovnou} title={L("Nový kus obsahu — rovnou otevřít", "New piece of content — open right away")}
+      <button onClick={rovnou} title={L("Nový kus obsahu: rovnou otevřít", "New piece of content: open right away")}
         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, background: "transparent", border: "none", borderRight: `1px solid transparent`, cursor: "pointer", color: t.sand, fontSize: 17, flexShrink: 0 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
       <input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) pridej(); }}
         aria-label={L("Nový nápad", "New idea")} placeholder={L("Zachyť nový nápad…", "Capture a new idea…")}
@@ -88,7 +88,7 @@ function SocPilire({ items }) {
   const max = Math.max(1, ...pilire.map((p) => items.filter((i) => i.pillar === p.id).length));
   return (
     <div>
-      <div style={{ ...pProse(t), fontSize: 13 }}><ContentCopy name="pillarsIntro" cs="Jméno pilíře nese i jeho účel. Rovnováha není povinnost — ale když jeden pilíř dlouho mlčí, ptej se proč." en="A pillar's name carries its purpose. Balance isn't a duty — but when one pillar stays silent for long, ask why."/></div>
+      <div style={{ ...pProse(t), fontSize: 13 }}><ContentCopy name="pillarsIntro" cs="Jméno pilíře nese i jeho účel. Rovnováha není povinnost, ale když jeden pilíř dlouho mlčí, ptej se proč." en="A pillar's name carries its purpose. Balance isn't a duty, but when one pillar stays silent for long, ask why."/></div>
       {pilire.map((p) => {
         const n = items.filter((i) => i.pillar === p.id).length;
         const c = tags[p.color] || tags.default;
@@ -431,7 +431,7 @@ function SocHacky() {
   const STAVY = { test: { cz: "otestovat", en: "to test", color: "yellow", next: "posted" }, posted: { cz: "publikováno", en: "posted", color: "green", next: "logged" }, logged: { cz: "zapsáno", en: "logged", color: "blue", next: "test" } };
   return (
     <div>
-      <div style={{ ...pProse(t), fontSize: 13 }}><ContentCopy name="hooksIntro" cs="Hook je hypotéza. Publikuj, přečti retenci, zapiš — teprve pak víš. Šablony a vzory najdeš doslovně v Zápisníku tvorby." en="A hook is a hypothesis. Post it, read retention, log it — only then you know. The template libraries live verbatim in the creation notebook."/></div>
+      <div style={{ ...pProse(t), fontSize: 13 }}><ContentCopy name="hooksIntro" cs="Hook je hypotéza. Publikuj, přečti retenci, zapiš. Teprve pak víš. Šablony a vzory najdeš doslovně v Zápisníku tvorby." en="A hook is a hypothesis. Post it, read retention, log it. Only then you know. The template libraries live verbatim in the creation notebook."/></div>
       <div style={{ display: "flex", gap: 8, margin: "4px 0 10px" }}>
         <input value={novy} onChange={(e) => setNovy(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && novy.trim()) { st.addEntry("socHooks", { id: uid(), text: novy.trim(), typ: "", status: "test", retention: "", vysledek: "", link: "" }); setNovy(""); } }}
           placeholder={L("Vlastní hook k otestování…", "Your own hook to test…")} style={{ flex: 1, background: "transparent", border: `1px solid transparent`, borderRadius: 8, outline: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 13, padding: "6px 10px" }} />

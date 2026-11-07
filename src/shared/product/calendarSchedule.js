@@ -18,10 +18,12 @@ export function calendarEventInWindow(key, previous, from, to) {
 }
 
 export async function listCalendarEvents(request, path, query) {
-  const items = []; let page = '';
+  const items = [], pages = new Set(); let page = '';
   do {
     const result = await request(path + query + (page ? '&pageToken=' + encodeURIComponent(page) : ''));
     items.push(...(result.items || [])); page = result.nextPageToken || '';
+    if (page && pages.has(page)) throw new Error('calendar-pagination-stalled');
+    if (page) pages.add(page);
   } while (page);
   return items;
 }

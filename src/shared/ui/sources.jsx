@@ -176,7 +176,7 @@ export function createSourcesUI(deps) {
         </div>
         {gdEmbed && gdOpen && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "2px 0 8px" }}>
-            <input value={gdUrl} onChange={(ev) => setGdUrl(ev.target.value)} placeholder={L("vlož odkaz z Google Drive — soubor, dokument, složka…", "paste a Google Drive link — file, doc, folder…")} autoFocus
+            <input value={gdUrl} onChange={(ev) => setGdUrl(ev.target.value)} placeholder={L("vlož odkaz z Google Drive: soubor, dokument, složka…", "paste a Google Drive link: file, doc, folder…")} autoFocus
               style={{ flex: 1, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, padding: "7px 10px", outline: "none" }} />
             <button onClick={() => { const u = gdUrl.trim(); if (u && tmGdEmbed(u)) { upd({ att: [...(e.att || []), { id: uid(), type: "gdrive", url: u, name: "Google Drive" }] }); setGdUrl(""); setGdOpen(false); } }} disabled={!tmGdEmbed(gdUrl.trim())}
               style={{ background: "transparent", border: `1px solid ${tmGdEmbed(gdUrl.trim()) ? t.accent : t.borderSoft}`, borderRadius: 8, padding: "7px 14px", cursor: "pointer", color: tmGdEmbed(gdUrl.trim()) ? (t.accentInk || t.accent) : t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{L("Vložit", "Embed")}</button>

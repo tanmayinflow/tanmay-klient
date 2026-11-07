@@ -1,4 +1,5 @@
 import { handleAccountBackup } from "../src/shared/product/accountBackup.js";
+import { MEDIA_MAX_BYTES } from "../src/shared/product/mediaSafety.js";
 import { exerciseMotionAsset } from '../src/shared/product/exerciseMotionAsset.js';
 import { STATE_LIMIT, ensureStateStorage, encodeState, readStateMeta, readStateDocument, writeStateDocument, stateFailure } from "../src/shared/product/stateStorage.js";
 import { handleContentLibrary } from "./contentLibrary.js";
@@ -329,6 +330,20 @@ async function handleFiles(request, env, userId, id) {
   if (request.method === "PUT") {
     if (!request.body) {
       return Response.json({ ok: false, error: "empty body" }, { status: 400 });
+    }
+    // R2 requires a known-length stream. Blob/File uploads provide this header
+    // through the browser. Keep the original body stream: a TransformStream
+    // would lose its known length, and buffering 95 MiB risks Worker memory.
+    const lengthHeader = request.headers.get("Content-Length");
+    if (lengthHeader === null) {
+      return Response.json({ ok: false, code: "media-length-required", error: "content length required", limit: MEDIA_MAX_BYTES }, { status: 411 });
+    }
+    const length = Number(lengthHeader);
+    if (!/^\d+$/.test(lengthHeader) || !Number.isSafeInteger(length) || length < 1) {
+      return Response.json({ ok: false, code: "media-size-invalid", error: "invalid content length", limit: MEDIA_MAX_BYTES }, { status: 400 });
+    }
+    if (length > MEDIA_MAX_BYTES) {
+      return Response.json({ ok: false, code: "media-too-large", error: "file too large", limit: MEDIA_MAX_BYTES }, { status: 413 });
     }
     const contentType = request.headers.get("Content-Type") || "application/octet-stream";
     const name = request.headers.get("X-File-Name") || "";

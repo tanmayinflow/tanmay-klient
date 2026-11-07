@@ -28,7 +28,7 @@ function CalAuto() {
         const firstCalendar=cfg.durableSetup&&engine.tmCalDurable?.();
         if(!cfg.clientId||(!cfg.calId&&!firstCalendar)||cfg.calDisconnected||!tmCalAvailable()||!tmCalReady(cfg))return;
         const tz=tmCalTz();
-        const settings=[cfg.cycle,cfg.trenink,cfg.rozvrh,cfg.klienti,cfg.motiv,cfg.zpet,cfg.horizon,cfg.titles,cfg.busy];
+        const settings=[cfg.cycle,cfg.trenink,cfg.rozvrh,cfg.klienti,cfg.motiv,cfg.zpet,cfg.horizon,cfg.horizonMonths,cfg.readPastMonths,cfg.titles,cfg.busy];
         const training=client&&cfg.trenink?s0.getClientTrainingCalendar?.().schedule:null;
         const next=tmCalDesired(s0,cfg).map(e=>e.key+'~'+tmCalHash(tmCalBody(e,tz))).sort().join('|')+'|allDay:'+JSON.stringify((s0.coll.calendarAllDay||[]).map(r=>[r.id,r.rev,r.deleted]))+'|settings:'+JSON.stringify(settings)+'|training:'+JSON.stringify(training);
         if(!force&&!catchUp&&next===signature)return;
@@ -69,6 +69,7 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
   const { t } = useT();
   const st = useStore();
   const cfg = engine.config(st.calCfg());
+  const calendarWindow = engine.tmCalWindow?.(cfg);
   // Existing read-only grants keep working until the person explicitly
   // confirms the write permission needed for primary-calendar edits.
   const settingsReady=tmCalReady(cfg);
@@ -149,7 +150,7 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
         ? L("Odpojeno. Kalendář v Googlu zůstal.", "Disconnected. The calendar stayed in Google.")
         : (v && v.smazano)
           ? L("Kalendář smazán.", "Calendar deleted.")
-          : L("Odpojeno, ale smazat kalendář se nepovedlo — v Googlu zůstal. Smaž ho tam ručně.", "Disconnected, but the calendar could not be deleted — it stayed in Google. Remove it there by hand.");
+          : L("Odpojeno, ale smazat kalendář se nepovedlo. V Googlu zůstal. Smaž ho tam ručně.", "Disconnected, but the calendar could not be deleted. It stayed in Google. Remove it there by hand.");
       setZprava(message+(cfg.cycleCalId?L(' Samostatný kalendář cyklu v Googlu zůstal a už se nesynchronizuje.',' The separate cycle calendar stayed in Google and no longer syncs.'):''));
     }, () => {
       setStav('chyba');
@@ -251,18 +252,25 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
           ? L("Tvůj hlavní Google kalendář se načítá do plánu dne včetně přesných časů. Nové bloky z aplikace se odesílají do kalendáře „tanmay“. Záznamy z hlavního kalendáře upravuj přímo v Googlu.",
               "Your primary Google calendar appears in the day plan with exact times. New app blocks are sent to the “tanmay” calendar. Edit primary-calendar events in Google.")
           : cfg.zpet === "tanmay"
-            ? L("Co zapíšeš přímo do kalendáře aplikace, se objeví v rozvrhu dne. Bez dalšího oprávnění — na svůj vlastní kalendář aplikace vidí.",
-                "What you write straight into the tanmay calendar shows up in the day schedule. No extra permission — the app can see its own calendar.")
+            ? L("Co zapíšeš přímo do kalendáře aplikace, se objeví v rozvrhu dne. Další oprávnění není potřeba, aplikace má ke svému kalendáři přístup.",
+                "What you write straight into the tanmay calendar shows up in the day schedule. No extra permission is needed because the app can access its own calendar.")
             : L("Celodenní události v kalendáři aplikace se propisují oběma směry. Další časové události se načtou po zapnutí čtení zpět.", "All-day events in the tanmay calendar sync both ways. Enable read-back to import other timed events.")}
       </p>
       {!!cfg.zpet && <p style={radek}>{L("Události z Googlu se zobrazí v přesný čas vedle tvého plánu. Překrývající se události i noční časy zůstanou vidět. Celodenní události mají vlastní místo.", "Google events appear at their exact time alongside your plan. Overlapping events and overnight times remain visible. All-day events have their own place.")}</p>}
 
       <div style={{ height: 1, background: t.borderSoft, margin: "8px 8px" }} />
 
-      <SetChoice label={L("Jak daleko dopředu", "How far ahead")} value={String(cfg.horizon)}
-        options={[{ v: "7", label: L("týden", "a week") }, { v: "14", label: L("dva týdny", "two weeks") }, { v: "30", label: L("měsíc", "a month") }]}
-        onChange={(v) => set({ horizon: +v })} />
-      <p style={radek}>{L('Tato volba platí pro plánované události. Pokud zapneš vlastní cyklus, přenesou se i zapsaná data menstruace z minulosti.','This applies to planned events. If you enable your own cycle, recorded period dates from the past are included too.')}</p>
+      <SetChoice label={L("Plánovat a číst dopředu", "Plan and read ahead")} value={cfg.horizonMonths ? 'm'+cfg.horizonMonths : String(cfg.horizon)}
+        options={[{ v: "7", label: L("týden", "a week") }, { v: "14", label: L("dva týdny", "two weeks") },
+          ...(cfg.horizonMonths || cfg.horizon !== 30 ? [] : [{ v: "30", label: L("30 dní", "30 days") }]),
+          { v: "m1", label: L("měsíc", "a month") }, { v: "m3", label: L("3 měsíce", "3 months") }, { v: "m6", label: L("6 měsíců", "6 months") }, { v: "m12", label: L("rok", "a year") }]}
+        onChange={(v) => set(v.startsWith('m') ? { horizonMonths: +v.slice(1) } : { horizon: +v, horizonMonths: 0 })} />
+      <SetChoice label={L("Číst minulost", "Read past events")} value={String(cfg.readPastMonths || 0)}
+        options={[{ v: "0", label: L("od dneška", "from today") }, { v: "1", label: L("měsíc", "a month") }, { v: "3", label: L("3 měsíce", "3 months") }, { v: "6", label: L("6 měsíců", "6 months") }, { v: "12", label: L("rok", "a year") }]}
+        onChange={(v) => set({ readPastMonths: +v })} />
+      {calendarWindow && <p style={radek}>{L('Rozsah načítání: ', 'Read range: ')}{fmtCZ(calendarWindow.readFrom)}{L(' až ', ' to ')}{fmtCZ(calendarWindow.last)}.</p>}
+      <p style={radek}>{L('Rozsah se posouvá s dnešním datem. Čtení minulosti neodesílá staré plány ani tréninky. Ty se odesílají od dneška do zvoleného data. Kratší rozsah nesmaže události mimo něj. Delší období může trvat déle a uloží více událostí do zařízení.','The range moves with today’s date. Reading past events does not send old plans or training. Those are sent from today through the selected date. Shortening the range does not delete events outside it. Longer periods may take more time and store more events on this device.')}</p>
+      <p style={radek}>{L('Mimo tento rozsah můžeš dál plánovat v aplikaci. Pro načtení dalších událostí z Googlu rozsah rozšiř. Vlastní menstruační cyklus má samostatné propojení, které zahrnuje i zapsaná data z minulosti.','You can still plan in the app outside this range. Extend the range to load more Google events. Your own menstrual cycle has a separate connection that also includes recorded dates from the past.')}</p>
       <SetChoice label={L("Ukázat jako obsazené", "Show as busy")} value={cfg.busy}
         options={[...(!client ? [{ v: "klienti", label: L("jen sezení", "sessions only") }] : []), { v: "vse", label: L("vše", "everything") }, { v: "nic", label: L("nic", "nothing") }]}
         onChange={(v) => set({ busy: v })} />
@@ -304,7 +312,7 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
               <button onClick={() => st.ask(L("Odpojit a kalendář v Googlu nechat být?", "Disconnect and leave the calendar in Google?"), () => odpojit(false), { yes: L("Odpojit", "Disconnect") })}
                 style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 999, padding: "8px 16px", minHeight: 40, cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12 }}>{L("Odpojit", "Disconnect")}</button>
-              {!durable && <button onClick={() => st.ask(L("Smazat celý kalendář „" + (cfg.calName || "tanmay") + "“ v Googlu? V aplikaci zůstane všechno, zmizí jen ta kopie v kalendáři.", "Delete the whole “" + (cfg.calName || "tanmay") + "” calendar in Google? Everything stays in the app — only the calendar copy goes.")+(cfg.cycleCalId?L(' Samostatný kalendář cyklu se nesmaže a už se nebude synchronizovat.',' The separate cycle calendar will remain and stop syncing.'):''), () => odpojit(true), { yes: L("Smazat", "Delete") })}
+              {!durable && <button onClick={() => st.ask(L("Smazat celý kalendář „" + (cfg.calName || "tanmay") + "“ v Googlu? V aplikaci zůstane všechno, zmizí jen ta kopie v kalendáři.", "Delete the whole “" + (cfg.calName || "tanmay") + "” calendar in Google? Everything stays in the app. Only the calendar copy goes.")+(cfg.cycleCalId?L(' Samostatný kalendář cyklu se nesmaže a už se nebude synchronizovat.',' The separate cycle calendar will remain and stop syncing.'):''), () => odpojit(true), { yes: L("Smazat", "Delete") })}
                 style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 999, padding: "8px 16px", minHeight: 40, cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12 }}>{L('Odpojit a smazat kalendář aplikace','Disconnect and delete the app calendar')}</button>}
             </div>
           )}
@@ -313,7 +321,7 @@ function CalSettings({ open, onOpen, settingsId="kal", togetherEnabled=true }) {
         style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 10, padding: "10px 8px", minHeight: 44, cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 13 }}>
         <span style={{ color: t.sage }}><FamilyIcon id="download" size={16} label={L("Dolů","Down")} style={{ display: "inline-block", verticalAlign: "middle" }} /></span>{L("Stáhnout jako .ics", "Download as .ics")}
       </button>
-      <p style={{ ...radek, marginTop: -2 }}>{L("Bez Googlu a bez přihlašování. Naimportuje se do jakéhokoli kalendáře — ale je to snímek, ne spojení: po změně je potřeba stáhnout znovu.", "No Google, no sign-in. Imports into any calendar — but it is a snapshot, not a link: after a change you download it again.")}</p>
+      <p style={{ ...radek, marginTop: -2 }}>{L("Bez Googlu a bez přihlašování. Soubor otevřeš v jiném kalendáři. Obsahuje aktuální plán, po změně je potřeba stáhnout ho znovu.", "No Google, no sign-in. Open the file in another calendar. It contains the current plan, so download it again after making changes.")}</p>
     </SetSection></div>
   );
 }
@@ -330,7 +338,7 @@ function CalPreview() {
   const barva = (k) => (k === "klienti" ? t.accent : k === "trenink" ? t.sand : k === "rozvrh" ? t.sage : t.textMuted);
   if (!evs.length) return (
     <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, margin: "0 8px 10px", lineHeight: 1.6 }}>
-      {L("Zatím není co poslat. Zapni aspoň jednu věc níž — a musí být v nejbližších dnech něco naplánovaného.", "Nothing to send yet. Switch on at least one thing below — and there has to be something scheduled in the coming days.")}
+      {L("Zatím není co poslat. Zapni aspoň jednu věc níž a naplánuj ji ve zvoleném období.", "Nothing to send yet. Switch on at least one thing below and plan it within the selected period.")}
     </p>
   );
   let last = "";
