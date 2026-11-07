@@ -3,6 +3,16 @@ import assert from 'node:assert/strict';
 import { uploadMedia, storeAttachment, pinMedia, verifyPinnedMedia, createMediaRecovery } from '../src/shared/product/mediaSafety.js';
 
 const file = () => new File(['original voice'], 'hlas.webm', { type: 'audio/webm' });
+test('server quota rejection retains the original and its specific reason locally', async () => {
+  const local = new Map();
+  const result = await storeAttachment({ file: file(), id: 'voice', putLocal: async (id, blob) => local.set(id, blob),
+    upload: (id, blob) => uploadMedia({ id, blob, fetcher: async () => Response.json({ code: 'storage-user-limit' }, { status: 409 }) }) });
+  assert.equal(result.cloudBlock, 'storage-user-limit'); assert.equal(result.idb, true); assert.equal(result.r2, undefined);
+  assert.equal(await local.get('voice').text(), 'original voice');
+});
+test('unknown server error strings never become stored attachment metadata', async () => {
+  await assert.rejects(uploadMedia({ id: 'voice', blob: file(), fetcher: async () => Response.json({ code: 'untrusted content' }, { status: 500 }) }), { code: 'upload-rejected' });
+});
 const media = (id, text = 'original voice') => new Response(text, { headers: { 'X-Tanmay-File': id, 'Content-Length': String(new TextEncoder().encode(text).length) } });
 for (const [label, reply] of [
   ['HTML 200', () => new Response('<html>Access</html>')], ['negative JSON', () => Response.json({ ok: false, id: 'voice' })],

@@ -1,13 +1,21 @@
 // A media acknowledgement is a protocol receipt, not merely an HTTP status.
 export const MEDIA_MAX_BYTES = 95 * 1024 * 1024;
 const failure = (code, extra = {}) => Object.assign(new Error(code), { code, ...extra });
+export const STORAGE_BLOCK_CODES = Object.freeze(['storage-initializing', 'storage-pending', 'storage-user-limit', 'storage-capacity', 'storage-operations', 'storage-unavailable']);
 export async function uploadMedia({ fetcher = fetch, id, blob, name = '', signal }) {
   if (!blob || blob.size > MEDIA_MAX_BYTES) throw failure('media-too-large');
   const response = await fetcher('/api/files/' + encodeURIComponent(id), {
     method: 'PUT', redirect: 'manual', signal,
     headers: { 'Content-Type': blob.type || 'application/octet-stream', 'X-File-Name': encodeURIComponent(name) }, body: blob,
   });
-  if (!response.ok || response.redirected || response.type === 'opaqueredirect') throw failure('upload-rejected', { status: response.status });
+  if (!response.ok || response.redirected || response.type === 'opaqueredirect') {
+    let code = 'upload-rejected';
+    if (!response.redirected && /application\/json/i.test(response.headers.get('content-type') || '')) {
+      const detail = await response.json().catch(() => null);
+      if (STORAGE_BLOCK_CODES.includes(detail?.code)) code = detail.code;
+    }
+    throw failure(code, { status: response.status });
+  }
   if (!/application\/json/i.test(response.headers.get('content-type') || '')) throw failure('upload-receipt');
   const receipt = await response.json().catch(() => null);
   if (receipt?.ok !== true || receipt.id !== id) throw failure('upload-receipt');
@@ -29,7 +37,7 @@ export async function storeAttachment({ file, id, putLocal, upload, current = ()
     return { ...metadata, r2: true };
   } catch (error) {
     if (!current()) throw failure('account-changed');
-    if (local) return { ...metadata, idb: true };
+    if (local) return { ...metadata, idb: true, ...(STORAGE_BLOCK_CODES.includes(error.code) ? { cloudBlock: error.code } : {}) };
     throw failure('media-not-saved', { cause: error, localError });
   }
 }

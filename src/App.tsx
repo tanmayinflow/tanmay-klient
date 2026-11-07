@@ -356,6 +356,7 @@ function r2Del(id) { clientFetch("/api/files/" + encodeURIComponent(id), { metho
 async function r2Put(id, blob, name) {
   window.dispatchEvent(new CustomEvent("tm-media-upload",{detail:{id,sending:true}}));
   try { return await uploadMedia({fetcher:clientFetch,id,blob,name}); }
+  catch (error) { window.dispatchEvent(new CustomEvent("tm-media-upload",{detail:{id,sending:false,blocked:error.code}})); throw error; }
   finally { window.dispatchEvent(new CustomEvent("tm-media-upload",{detail:{id,sending:false}})); }
 }
 // cover/icon ref: new R2 { r2id } or legacy inline dataURL string
