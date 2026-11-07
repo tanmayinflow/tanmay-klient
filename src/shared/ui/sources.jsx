@@ -38,7 +38,7 @@ export function createSourcesUI(deps) {
     C_TYPES, C_TYPE_LABEL, C_TYPE_COLOR, C_PROGRESS, C_PROG_LABEL, C_PROG_COLOR,
     C_CATS, C_CATS_BY_TYPE, C_CAT_LABEL, tmDocPramene,
     // volitelné · osobní aplikace je má, klientská zatím ne
-    ExportBtn = null, gdEmbed = null,
+    ExportBtn = null, gdEmbed = null, NotesReader = null,
   } = deps;
 
   const tmGdEmbed = gdEmbed || (() => null);
@@ -73,6 +73,8 @@ export function createSourcesUI(deps) {
     React.useEffect(() => { autosize(); }, [id]);
     const [gdOpen, setGdOpen] = useState(false);
     const [gdUrl, setGdUrl] = useState("");
+    const [reading, setReading] = useState(false);
+    React.useEffect(() => { setReading(false); }, [id]);
     if (!e) return null;
     const odTanmaye = e.origin === SOURCE_ORIGIN.COACH;
     // Zápis prochází jedinou tabulkou pravomocí (product/sources.js). Kanonický
@@ -113,9 +115,13 @@ export function createSourcesUI(deps) {
       if (fileRef.current) fileRef.current.value = "";
     };
     const scoreN = e.score === "" || e.score == null ? null : +e.score;
-    if (study) return <article style={{maxWidth:720,margin:"0 auto",paddingBottom:80}}><h1 style={{fontFamily:"var(--tm-font-display)",fontWeight:400,fontSize:30,lineHeight:1.2}}>{e.title}</h1><p style={{color:t.textSec,fontFamily:"var(--tm-font-body)",fontSize:13}}>{[e.author,L("Postřehy ke studiu","Study notes")].filter(Boolean).join(" · ")}</p><RichArea value={odTanmaye?(e.note||""):(e.text||"")} onChange={v=>upd(odTanmaye?{note:v}:{text:v})} placeholder={L("Co si z toho odnáším…","What I take from it…")}/></article>;
+    const noteText = odTanmaye ? (e.note || "") : (e.text || "");
+    const reader = reading && NotesReader ? <NotesReader entry={{id:e.id,title:e.title,text:noteText,rezim:"stranky"}} settings={false} pagingControls onZavri={()=>setReading(false)} onPsat={()=>setReading(false)}/> : null;
+    const readButton = NotesReader && noteText.trim() ? <button type="button" onClick={()=>setReading(true)} style={{...iconBtn(t),width:"auto",minHeight:44,padding:"6px 10px",gap:6,fontFamily:"var(--tm-font-body)",fontSize:12}}><FamilyIcon id="book" size={15}/>{L("Číst po stránkách", "Read by page")}</button> : null;
+    if (study) return <>{reader}<article style={{maxWidth:720,margin:"0 auto",paddingBottom:80}}><h1 style={{fontFamily:"var(--tm-font-display)",fontWeight:400,fontSize:30,lineHeight:1.2}}>{e.title}</h1><p style={{color:t.textSec,fontFamily:"var(--tm-font-body)",fontSize:13}}>{[e.author,L("Postřehy ke studiu","Study notes")].filter(Boolean).join(" · ")}</p>{readButton}<RichArea value={noteText} onChange={v=>upd(odTanmaye?{note:v}:{text:v})} placeholder={L("Co si z toho odnáším…","What I take from it…")}/></article></>;
     return (
       <div style={wide ? { maxWidth: 640 } : undefined}>
+        {reader}
         <input ref={coverRef} type="file" accept="image/*" onChange={(ev) => pickCover(ev.target.files && ev.target.files[0])} style={{ display: "none" }} />
         {odTanmaye && <div style={{ marginBottom: 10 }}><OriginBadge s={e} /></div>}
         <button title={L("Nahrát obálku", "Upload cover")} disabled={odTanmaye} onClick={() => { if (!odTanmaye && coverRef.current) coverRef.current.click(); }} style={{ background: "transparent", border: "none", cursor: odTanmaye ? "default" : "pointer", padding: 0, marginBottom: 12, display: "block" }}>
@@ -185,8 +191,9 @@ export function createSourcesUI(deps) {
         <AttachmentStrip att={odTanmaye ? (e.attachment ? [e.attachment] : []) : e.att} onRemove={odTanmaye ? undefined : ((aid) => upd({ att: (e.att || []).filter((x) => x.id !== aid) }))} />
 
         <div style={{ borderTop: `1px solid ${t.borderSoft}`, marginTop: 14, paddingTop: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
             <div style={{ flex: 1, fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.sage }}>{L("Postřehy", "Notes")}</div>
+            {readButton}
             {onStudy && <button type="button" onClick={onStudy} style={{...iconBtn(t),width:"auto",padding:"6px 10px",fontFamily:"var(--tm-font-body)",fontSize:12}}><FamilyIcon id="expand" size={15}/>{L("Studovat", "Study")}</button>}
             {ExportBtn && <ExportBtn small doc={() => ({
               title: e.title || L("Titul", "Title"),
@@ -197,7 +204,7 @@ export function createSourcesUI(deps) {
             })} />}
           </div>
           {odTanmaye && <div style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted, margin: "-2px 0 8px", lineHeight: 1.55 }}>{L("Tvoje. Kryštof to nečte.", "Yours. Kryštof does not read this.")}</div>}
-          <RichArea value={odTanmaye ? (e.note || "") : (e.text || "")} onChange={(v) => upd(odTanmaye ? { note: v } : { text: v })} placeholder={L("Co si z toho odnáším…", "What I take from it…")} />
+          <RichArea value={noteText} onChange={(v) => upd(odTanmaye ? { note: v } : { text: v })} placeholder={L("Co si z toho odnáším…", "What I take from it…")} />
         </div>
       </div>
     );

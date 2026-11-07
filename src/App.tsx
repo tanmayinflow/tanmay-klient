@@ -1987,7 +1987,7 @@ function CisloStranky({ strana, pocet, t, style }) {
   );
 }
 
-function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat }) {
+function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat, settings = true, pagingControls = false }) {
   const { t } = useT();
   const st = useStore();
   const [nastaveni, setNastaveni] = useState(false);
@@ -2005,10 +2005,10 @@ function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat }
           ne nadpis textu — proto verzálky a prostrkání jako u listů. */}
       <div className="tm-nahled-head" style={{ position: "absolute", top: "calc(13px + env(safe-area-inset-top))", left: 18, right: 14, display: "flex", alignItems: "center", gap: 12, pointerEvents: "none" }}>
         <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nazev}</span>
-        <button onClick={(e) => { e.stopPropagation(); setNastaveni(true); }} title={L("Nastavení poznámky", "Note settings")}
+        {settings ? <button onClick={(e) => { e.stopPropagation(); setNastaveni(true); }} title={L("Nastavení poznámky", "Note settings")}
           style={{ pointerEvents: "auto", flexShrink: 0, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 34, height: 34, cursor: "pointer", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
           <TmIcNastaveni size={16} />
-        </button>
+        </button> : <button type="button" autoFocus onClick={(e) => { e.stopPropagation(); onZavri(); }} title={L("Zavřít čtení", "Close reading")} aria-label={L("Zavřít čtení", "Close reading")} style={{...iconBtn(t),pointerEvents:"auto",width:44,height:44,flexShrink:0}}><FamilyIcon id="close" size={16}/></button>}
       </div>
       {/* Čtení sahá k malému zápatí a bezpečné hraně, bez rezervy na skrytý dok.
           Klepnutí do textu vrací zpátky k psaní. */}
@@ -2020,11 +2020,16 @@ function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat }
       </div>
       {/* Nápověda i počet stránek mají společné malé zápatí. Text může
           zalomit a číslo zůstává vedle něj, nikdy přes poslední řádek čtení. */}
-      <div style={{ position: "absolute", left: 18, right: 18, bottom: "calc(16px + env(safe-area-inset-bottom))", display: "flex", alignItems: "center", gap: 12, fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, lineHeight: 1.5, color: hexA(t.textMuted, 0.75), pointerEvents: "none" }}>
+      {pagingControls && stranky ? <div onClick={e=>e.stopPropagation()} style={{position:"absolute",left:18,right:18,bottom:"calc(8px + env(safe-area-inset-bottom))",display:"flex",alignItems:"center",gap:12,fontFamily:FONT_BODY,fontSize:12,lineHeight:1.5,color:t.textSec}}>
+        <button type="button" aria-label={L("Předchozí stránka","Previous page")} disabled={str.strana<=1} onClick={()=>str.jdi(str.strana-2)} style={{...iconBtn(t),width:44,height:44,flexShrink:0}}><FamilyIcon id="back" size={16}/></button>
+        <span style={{flex:1,minWidth:0,textAlign:"center"}}><span role="status" aria-live="polite" aria-atomic="true" aria-label={L("Stránka "+str.strana+" z "+str.pocet,"Page "+str.strana+" of "+str.pocet)} style={{fontVariantNumeric:"tabular-nums"}}>{str.strana} / {str.pocet}</span><span style={{display:"block",fontStyle:"italic"}}>{L("Klepnutím se vrátíš k psaní","Tap to go back to writing")}</span></span>
+        <button type="button" aria-label={L("Další stránka","Next page")} disabled={str.strana>=str.pocet} onClick={()=>str.jdi(str.strana)} style={{...iconBtn(t),width:44,height:44,flexShrink:0}}><FamilyIcon id="forward" size={16}/></button>
+      </div> : <div style={{ position: "absolute", left: 18, right: 18, bottom: "calc(16px + env(safe-area-inset-bottom))", display: "flex", alignItems: "center", gap: 12, fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, lineHeight: 1.5, color: hexA(t.textMuted, 0.75), pointerEvents: "none" }}>
         <span style={{ flex: 1, minWidth: 0, textAlign: "center" }}>{L("Klepnutím se vrátíš k psaní", "Tap to go back to writing")}</span>
         {stranky && <CisloStranky strana={str.strana} pocet={str.pocet} t={t} style={{ position: "static", flexShrink: 0, fontStyle: "normal", whiteSpace: "nowrap" }} />}
       </div>
-      {nastaveni && <NastaveniPoznamky entry={entry} kind={kind} tags={tags} onClose={() => setNastaveni(false)} onPryc={() => { setNastaveni(false); onZavri(); }} />}
+      }
+      {settings && nastaveni && <NastaveniPoznamky entry={entry} kind={kind} tags={tags} onClose={() => setNastaveni(false)} onPryc={() => { setNastaveni(false); onZavri(); }} />}
     </div>,
     document.body
   );
@@ -10031,6 +10036,7 @@ const { OriginBadge, ContentDetail, ContentRow, PageContent } = createSourcesUI(
   useT, useStore, L, LV, hexA, uid, getLang,
   Tag, Select, PropRow,
   PageTitle, Prazdno, CenterSheet, RichArea, AttachmentStrip, filesToAtts,
+  NotesReader: NahledPoznamky,
   ViewCycle, HdrIcon, HdrSearch, HdrLbl, FiltrPill, UndoBar, useHoldSelect, RoomView, TmIcFiltr, tmViewOk,
   useHoldReorder, PinDot, PinToggle, isEntryPinned, entryFileIds, imgSrc, r2Put, r2Del, resizeImageToBlob,
   TmIcPrameny, TmIcLupa, TmIcKniha, ClipIcon, TmArtKapka,
