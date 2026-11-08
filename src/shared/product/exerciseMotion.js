@@ -1,5 +1,93 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_py_sameleg_bound": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_sameleg_bound-d334cce362c2ad98.mp4",
+    "bytes": 20592,
+    "sha256": "d334cce362c2ad982a9adcf0929c7a6f30a0a8ff576be8c8da21951c10730e65",
+    "poster": "/exercise-motion/ex26_py_sameleg_bound-poster-1e30f0e645ab0389.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden velmi krátký skok vpřed na stejné noze se zastavením.",
+      "en": "Easier variation: one very short forward hop on the same leg followed by a stop."
+    }
+  },
+  "ex26_py_alternate_bound": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_alternate_bound-76b08103109c81ec.mp4",
+    "bytes": 25576,
+    "sha256": "76b08103109c81ecb86894efa6d5ebcd0a0aa08f8a92a8656fbaf57fdba89b50",
+    "poster": "/exercise-motion/ex26_py_alternate_bound-poster-f2d0e144e9db9c03.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden krátký přeskok vpřed na opačnou nohu se zastavením.",
+      "en": "Easier variation: one short forward leap onto the opposite leg followed by a stop."
+    }
+  },
+  "ex26_py_diagonal_bound": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_diagonal_bound-731f09004283d4c2.mp4",
+    "bytes": 31246,
+    "sha256": "731f09004283d4c22d764167f03d5ca92d2a8a4293ae4f16e80eb0af57372404",
+    "poster": "/exercise-motion/ex26_py_diagonal_bound-poster-09c122a6e07c44db.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden krátký přeskok šikmo vpřed na opačnou nohu se zastavením.",
+      "en": "Easier variation: one short diagonally forward leap onto the opposite leg followed by a stop."
+    }
+  },
+  "ex26_py_approach_double": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_approach_double-8cfcd7fb35ef2a8c.mp4",
+    "bytes": 20852,
+    "sha256": "8cfcd7fb35ef2a8c958f0e35ae86c4ba70d8706c941b6cb2efcae500078b7823",
+    "poster": "/exercise-motion/ex26_py_approach_double-poster-72d5f6e8bc39f061.webp",
+    "note": {
+      "cz": "Lehčí varianta: obounožný výskok z místa bez náběhu se zastavením.",
+      "en": "Easier variation: a standing two-foot jump without an approach, followed by a stop."
+    }
+  },
+  "ex26_py_box_lateral": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_box_lateral-005072301b006fe8.mp4",
+    "bytes": 27605,
+    "sha256": "005072301b006fe8792cc809b5314ffb3060e45bf7e526cfe929358036760159",
+    "poster": "/exercise-motion/ex26_py_box_lateral-poster-19083ccf20d60175.webp",
+    "note": {
+      "cz": "Lehčí varianta: boční skok snožmo na podlaze se zastavením. Směry střídej.",
+      "en": "Easier variation: a two-foot lateral floor jump followed by a stop. Alternate directions."
+    }
+  },
+  "ex26_py_lateral_bound_hop": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_lateral_bound_hop-4cad2af11c021913.mp4",
+    "bytes": 34359,
+    "sha256": "4cad2af11c0219138053819730b0913ec640ac8d4c47eaa09fe9d927dd75748c",
+    "poster": "/exercise-motion/ex26_py_lateral_bound_hop-poster-727db21f3d573bad.webp",
+    "note": {
+      "cz": "Lehčí varianta: samostatný boční přeskok na opačnou nohu se zastavením, bez navazujícího odrazu vzhůru.",
+      "en": "Easier variation: one lateral bound onto the opposite leg followed by a stop, without the subsequent upward hop."
+    }
+  },
+  "ex26_py_box_single": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_box_single-a81bedb9c1ecc1fc.mp4",
+    "bytes": 26240,
+    "sha256": "a81bedb9c1ecc1fc4110408835f487b50b1acbff2bd16fbdf296f5bf8b7bd3da",
+    "poster": "/exercise-motion/ex26_py_box_single-poster-da5d2aeb1bbf16bf.webp",
+    "note": {
+      "cz": "Lehčí varianta: malý poskok na stejné noze na podlaze se zastavením, bez bedny.",
+      "en": "Easier variation: one small same-leg floor hop followed by a stop, without a box."
+    }
+  },
+  "ex26_py_forward_bound_hop": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_forward_bound_hop-5713a314b9d10b10.mp4",
+    "bytes": 25235,
+    "sha256": "5713a314b9d10b10db24775f248ab68e81cc96110624f67488caf6a927a586c4",
+    "poster": "/exercise-motion/ex26_py_forward_bound_hop-poster-d40d1e035274fd45.webp",
+    "note": {
+      "cz": "Lehčí varianta: samostatný přeskok vpřed na opačnou nohu se zastavením, bez navazujícího odrazu vzhůru.",
+      "en": "Easier variation: one forward bound onto the opposite leg followed by a stop, without the subsequent upward hop."
+    }
+  },
   "ex26_py_pogo_backward": {
     "oneSide": false,
     "src": "/exercise-motion/ex26_py_pogo_backward-a269203881be4ca8.mp4",
