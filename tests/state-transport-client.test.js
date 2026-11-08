@@ -115,7 +115,8 @@ test('failed or aborted part upload never commits or acknowledges the local draf
     assert.deepEqual(s.value, original);
     assert.deepEqual(doc.coll.notes, 'č'.repeat(300000));
     assert.equal(s.calls.some(call => call.action === 'commit'), false);
-    assert.equal(s.calls.filter(call => call.action === 'part').length, 2);
+    assert.equal(s.calls.filter(call => call.action === 'part' && call.body.part === 0).length, 1);
+    assert.equal(s.calls.filter(call => call.action === 'part' && call.body.part === 1).length, mode === 'abort' ? 1 : 3);
   }
 });
 
@@ -160,7 +161,7 @@ test('malformed manifest fails before any part requests', async () => {
   }
 });
 
-test('failed parallel reads stop issuing more requests and settle before returning', async () => {
+test('parallel reads retry only the failed piece and settle before returning', async () => {
   let completed = 0;
   const s = server(document('x'.repeat(400000)), { intercept: async ({ action, url }) => {
     if (action !== 'read') return;
@@ -169,7 +170,12 @@ test('failed parallel reads stop issuing more requests and settle before returni
   } });
   await assert.rejects(stateTransportFetch('/api/state', {}, s.fetcher), { name: 'TypeError' });
   const count = s.calls.length; await pause();
-  assert.equal(s.calls.length, count); assert.equal(completed, 3); assert.equal(count, 5);
+  assert.equal(s.calls.length, count);
+  const reads = s.calls.filter(call => call.action === 'read');
+  const failed = reads.filter(call => new URL(call.path, 'https://example.test').searchParams.get('offset') === '1');
+  assert.equal(failed.length, 3);
+  assert.equal(completed, reads.length - failed.length);
+  assert.equal(new Set(reads.map(call => call.path)).size, reads.length - 2, 'successful pieces are never downloaded twice');
 });
 
 test('all transfer requests preserve account headers, credentials, redirect and abort signal', async () => {
@@ -181,7 +187,7 @@ test('all transfer requests preserve account headers, credentials, redirect and 
     const headers = new Headers(call.options.headers);
     assert.equal(headers.get('X-Tanmay-Owner'), 'isolated-owner'); assert.equal(headers.get('X-Custom'), 'keep');
     assert.equal(call.options.credentials, 'include'); assert.equal(call.options.redirect, 'manual');
-    assert.equal(call.options.signal, controller.signal); assert.ok(call.path.startsWith('https://example.test/'));
+    assert.ok(call.options.signal instanceof AbortSignal); assert.equal(call.options.signal.aborted, false); assert.ok(call.path.startsWith('https://example.test/'));
   }
 });
 
@@ -194,14 +200,14 @@ test('authentication, membership, proxy failure and opaque redirects remain clas
   ];
   for (const [expected, kind] of cases) {
     const response = await stateTransportFetch('/api/state', {}, async () => expected);
-    assert.equal(response, expected);
+    assert.equal(response.status, expected.status);
     const body = response.headers.get('Content-Type')?.includes('application/json') ? await response.json() : null;
     assert.equal(syncDruh(response, body, null), kind);
   }
 });
 
-test('unrelated requests and metadata keep their original input and options', async () => {
-  for (const path of ['/api/state?meta=1', '/api/files', '/api/state?transport=chunks&action=manifest']) {
+test('unrelated requests keep their original input and options', async () => {
+  for (const path of ['/api/files', '/api/state?transport=chunks&action=manifest']) {
     const options = { headers: { 'X-Test': 'yes' } }, expected = reply({ ok: true });
     const response = await stateTransportFetch(path, options, async (input, init) => { assert.equal(input, path); assert.equal(init, options); return expected; });
     assert.equal(response, expected);

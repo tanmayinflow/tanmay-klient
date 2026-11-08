@@ -159,7 +159,7 @@ import { TmIcTerminy, TmIcMemento } from "./shared/ui/icons.jsx";
 import { SHARED_CORE_VERSION } from "./shared/version.js";
 import { SYNC_OK, SYNC_SIT, SYNC_PRIHLASENI, syncDruh, syncHlaska, syncLzeZkusitZnovu } from "./shared/product/sync.js";
 import { stateTransportFetch } from "./shared/product/stateTransportClient.js";
-import { bootstrapSyncDecision } from "./shared/product/bootstrapSync.js";
+import { bootstrapSyncDecision, acknowledgedServerSnapshot } from "./shared/product/bootstrapSync.js";
 import { createClientSession } from "./clientSession.js";
 import { clientDataAccess, clientSyncStatus, buildClientBackup, readPracticeRecovery, changeClientPractice } from "./clientData.js";
 import { createClientStartupNavigation, clientHabitDefinitions, prepareClientUnusedHabitAdoption } from "./clientPreferences.js";
@@ -15392,6 +15392,23 @@ export default function App() {
   // Jedno odeslání. Vrátí true, když server dokument přijal. Bez kontroly
   // verze jen tehdy, když ji volající sám právě provedl (vědomé přepsání).
   const _documentSyncQueue = React.useRef(createDocumentSyncQueue());
+  const _pendingSyncSnapshot = React.useRef(null);
+  const _confirmSyncedSnapshot = (snapshot, ver) => {
+    _ver.current = Math.max(_ver.current, ver || 0);
+    _lastSynced.current = snapshot;
+    syncMarkSave(_ver.current, tmDocSig(snapshot));
+    _dirty.current = _serializeDoc(_collRef.current, _editsRef.current) !== snapshot;
+    _pendingSyncSnapshot.current = null;
+    setSyncErr(null); setSyncPending(_dirty.current); setSyncOdlozeno(false); _druhSelhani.current = null;
+  };
+  const _acknowledgeRemote = (sdoc, ver, readSnapshot = null) => {
+    if (!clientAccount.isCurrent(ownerId) || ver < _ver.current) return false;
+    const snapshot = acknowledgedServerSnapshot(sdoc, [_serializeDoc(_collRef.current, _editsRef.current), readSnapshot, _pendingSyncSnapshot.current]);
+    if (snapshot === null) return false;
+    _confirmSyncedSnapshot(snapshot, ver);
+    if (_dirty.current && _syncReady.current) setTimeout(() => _pushRef.current({ retry: true }), 0);
+    return true;
+  };
   const _push = (opts) => _documentSyncQueue.current(async () => {
     if (!_syncReady.current || !clientAccount.isCurrent(ownerId)) return false;
     const c = _collRef.current, e = _editsRef.current;
@@ -15400,10 +15417,12 @@ export default function App() {
     if (!(opts && opts.force)) {
       if (!opts?.retry && cur === _lastSynced.current) return true; // nic nového
       const m = await _readVer();
-      if (!m) return false;
+      if (!m || !clientAccount.isCurrent(ownerId)) return false;
       if (m && m.ver > baseVersion) {
         // Teprve teď stojí za to stáhnout celý dokument.
         const s = await _readServer();
+        if (!s?.doc?.coll || !clientAccount.isCurrent(ownerId)) return false;
+        if (_acknowledgeRemote(s.doc, s.ver, cur)) return true;
         if (s && s.doc && s.doc.coll && s.ver > baseVersion) { setConflict({ doc: s.doc, ver: s.ver }); return false; }
         if (s) baseVersion = Math.max(baseVersion, s.ver);
       } else if (m) {
@@ -15414,6 +15433,7 @@ export default function App() {
         return true;
       }
     }
+    _pendingSyncSnapshot.current = cur;
     const v = await syncFetch("/api/state", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -15421,20 +15441,18 @@ export default function App() {
     });
     // Stav 200 sám o sobě není potvrzení zápisu: přihlašovací stránka Accessu
     // i SPA fallback ho vrací taky. Rozhoduje tělo odpovědi.
+    if (!clientAccount.isCurrent(ownerId)) return false;
     if (v.stav === 409 && v.telo?.code === "conflict") {
       const remote = await _readServer();
+      if (!clientAccount.isCurrent(ownerId)) return false;
+      if (_acknowledgeRemote(remote?.doc, remote?.ver || 0, cur)) return true;
       if (remote?.doc?.coll) setConflict({ doc: remote.doc, ver: remote.ver });
       return false;
     }
     if (v.druh !== SYNC_OK) { oznamSelhani(v); return false; }
     const pv = (v.telo && v.telo.version) || 0;
     if (v.telo && v.telo.bytes) setDocBytes(v.telo.bytes); if (v.telo && v.telo.limit) setDocLimit(v.telo.limit);
-    _ver.current = Math.max(_ver.current, pv || baseVersion + 1);
-    _lastSynced.current = cur;
-    syncMarkSave(_ver.current, tmDocSig(cur));
-    _dirty.current = _serializeDoc(_collRef.current, _editsRef.current) !== cur;
-    setSyncErr(null); setSyncPending(_dirty.current);
-    setSyncOdlozeno(false); _druhSelhani.current = null; // prošlo · příští selhání je nová epizoda
+    _confirmSyncedSnapshot(cur, pv || baseVersion + 1);
     return true;
   });
   const _pushRef = React.useRef(_push); _pushRef.current = _push;
@@ -15470,6 +15488,7 @@ export default function App() {
       if (dead || reading || _syncReady.current) return;
       reading = true;
       try {
+        const readSnapshot = _serializeDoc(_collRef.current, _editsRef.current);
         // Přes syncFetch: 200 s HTML (přihlašovací stránka Accessu nebo SPA
         // fallback) se dřív dalo přečíst jako platnou odpověď.
         const v = await syncFetch("/api/state");
@@ -15478,7 +15497,7 @@ export default function App() {
         const sdoc = body && body.doc;
         const sver = (body && body.version) || 0;
         if (body && body.bytes) setDocBytes(body.bytes);
-        if (dead) return;
+        if (dead || !clientAccount.isCurrent(ownerId)) return;
         // Máme v úložišti práci, která se nahoru nikdy nedostala? Známka
         // synchronizace to pozná. Bez známky (první spuštění po této vlně)
         // se chováme jako dřív, aby se stará relace nepřepsala prázdnem.
@@ -15487,7 +15506,9 @@ export default function App() {
         const nepreneseno = !!mark && mark.sig !== tmDocSig(mine);
         const serverPosunut = !!mark && sver > (mark.v || 0);
         const decision = bootstrapSyncDecision({ hasRemote: !!(sdoc && typeof sdoc === "object" && sdoc.coll), changedDuringRead: _dirty.current, unsynced: nepreneseno, serverAdvanced: serverPosunut });
-        if (decision === "remote") {
+        if (_acknowledgeRemote(sdoc, sver, readSnapshot)) {
+          // Confirm the exact saved content without replacing a newer draft.
+        } else if (decision === "remote") {
           // server holds a real document AND we have no unsynced local work -> adopt it
           // Chybějící `edits` na serveru neznamená „smaž denní záznamy".
           const se = (sdoc.edits && typeof sdoc.edits === "object") ? sdoc.edits : _editsRef.current;
@@ -15508,30 +15529,35 @@ export default function App() {
           // no valid server document yet, OR we hold local work the server has
           // not seen -> keep local and push it (never clobber the user's writes)
           if (_dirty.current || nepreneseno || mine !== _serializeDoc(COLL_EMPTY(), {})) {
+            _pendingSyncSnapshot.current = mine;
             const pv0 = await syncFetch("/api/state", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ doc: { coll: _collRef.current, edits: _editsRef.current }, share: _shareOf(_collRef.current, _editsRef.current), baseVersion: sver }),
             });
+            if (dead || !clientAccount.isCurrent(ownerId)) return;
             if (pv0.stav === 409 && pv0.telo?.code === "conflict") {
               const remote = await _readServer();
+              if (dead || !clientAccount.isCurrent(ownerId)) return;
+              if (_acknowledgeRemote(remote?.doc, remote?.ver || 0, mine)) {
+                _syncReady.current = true; setStateHydrated(true);
+                if (_dirty.current) setTimeout(() => _pushRef.current({ retry: true }), 0);
+                return;
+              }
               if (remote?.doc?.coll) { setConflict({ doc: remote.doc, ver: remote.ver }); _syncReady.current = true; setStateHydrated(true); return; }
             }
             if (pv0.druh !== SYNC_OK) { oznamSelhani(pv0); throw new Error("state PUT " + pv0.stav); }
             const pv = (pv0.telo && pv0.telo.version) || 0;
             if (pv0.telo && pv0.telo.bytes) setDocBytes(pv0.telo.bytes);
-            _ver.current = pv || sver + 1;
-            syncMarkSave(_ver.current, tmDocSig(mine));
-            _dirty.current = _serializeDoc(_collRef.current, _editsRef.current) !== mine;
-            setSyncErr(null); setSyncPending(_dirty.current);
-            setSyncOdlozeno(false); _druhSelhani.current = null;
+            _confirmSyncedSnapshot(mine, pv || sver + 1);
           } else {
             _ver.current = sver;
+            _lastSynced.current = mine;
           }
-          _lastSynced.current = mine;
         }
         _syncReady.current = true;
         setStateHydrated(true);
+        if (_serializeDoc(_collRef.current, _editsRef.current) !== _lastSynced.current) setTimeout(() => _pushRef.current({ retry: true }), 0);
         // Safety-net garbage collection, once per load, in the background.
         // Respects the 24h age guard, so freshly-uploaded files are never touched.
         gc = setTimeout(() => { try { window.tmGcFiles && window.tmGcFiles(false); } catch (e) {} }, 8000);
@@ -15588,14 +15614,16 @@ export default function App() {
     const onVis = async () => {
       if (document.visibilityState !== "visible" || !_syncReady.current || conflict) return;
       return _documentSyncQueue.current(async () => {
+      const readSnapshot = _serializeDoc(_collRef.current, _editsRef.current);
       const s = await _readServer();
-      if (!s || !s.doc || !s.doc.coll) return;
+      if (!s || !s.doc || !s.doc.coll || !clientAccount.isCurrent(ownerId)) return;
       if (s.ver <= _ver.current) {
         if (_serializeDoc(_collRef.current, _editsRef.current) === _lastSynced.current) {
           setSyncErr(null); setSyncPending(false); setSyncOdlozeno(false); _druhSelhani.current = null;
         }
         return;
       }
+      if (_acknowledgeRemote(s.doc, s.ver, readSnapshot)) return;
       const mine = _serializeDoc(_collRef.current, _editsRef.current);
       if (mine === _lastSynced.current) {
         adoptServer(s.doc, s.ver);

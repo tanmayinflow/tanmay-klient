@@ -244,9 +244,11 @@ export function AppGuide({ t, lang = 'cs', role = 'client', currentRoom,
     : phase === 'covered' ? L('Zavři okno nad stránkou a pokračuj.', 'Close the window over the page to continue.')
     : !ready ? L('Posuň stránku zpět, nebo klepni na Zobrazit místo.', 'Scroll back or choose Show this place.')
     : step?.body;
-  const button = { background: 'transparent', color: t.text, border: 0, minHeight: 44, borderRadius: 0, padding: '7px 10px', font: 'inherit', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 };
+  // Website Burnt Earth (#754437), with a little of the page showing through.
+  const guideInk = '#F4F0EB', guideEarth = '#754437';
+  const button = { background: 'transparent', color: guideInk, border: 0, minHeight: 44, borderRadius: 0, padding: '7px 10px', font: 'inherit', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 };
   const quiet = { ...button, padding: '7px 8px' };
-  const primary = { ...button, color: t.accentInk || t.accent, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 5, textDecorationThickness: 1 };
+  const primary = { ...button, color: guideInk, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 5, textDecorationThickness: 1 };
   const move = delta => {
     setPaused(false);
     setIndex(value => Math.max(0, Math.min(value + delta, tour.steps.length - 1)));
@@ -255,45 +257,45 @@ export function AppGuide({ t, lang = 'cs', role = 'client', currentRoom,
   const retry = () => { setPaused(false); setAttempt(value => value + 1); };
   const choose = () => { setMode('choose'); setPaused(false); titleRef.current?.focus({ preventScroll: true }); };
   const start = picked => { if (!picked) return; setSelected(picked.room); setIndex(0); setPaused(false); setMode('tour'); titleRef.current?.focus({ preventScroll: true }); };
-  return createPortal(<div className="tm-app-guide" data-guide-layer="true" style={{ position: 'fixed', inset: 0, zIndex: 3100, pointerEvents: 'none', '--guide-accent': t.accent, '--guide-border': t.border, '--guide-text': t.text, '--guide-surface': t.card || t.bg }}>
-    <style>{`.tm-app-guide{font-family:var(--ff-body,"DM Sans",sans-serif);font-size:14px;line-height:1.55}.tm-app-guide button:focus-visible,.tm-app-guide summary:focus-visible{outline:2px solid var(--guide-accent);outline-offset:3px}.tm-app-guide button:hover:not(:disabled){text-decoration:underline;text-underline-offset:4px}.tm-app-guide button:disabled{opacity:.4;cursor:default}.tm-app-guide ::selection{background:var(--guide-accent);color:var(--guide-surface)}.tm-app-guide h2:focus{outline:none}.tm-guide-picker summary{cursor:pointer;min-height:44px;box-sizing:border-box;padding:12px 0}.tm-guide-picker summary::marker{color:var(--guide-accent)}.tm-app-guide-panel{background-image:var(--land-field,none);background-size:768px auto}`}</style>
+  return createPortal(<div className="tm-app-guide" data-guide-layer="true" style={{ position: 'fixed', inset: 0, zIndex: 3100, pointerEvents: 'none', '--guide-accent': guideInk, '--guide-text': guideInk, '--guide-surface': guideEarth }}>
+    <style>{`.tm-app-guide{font-family:var(--ff-body,"DM Sans",sans-serif);font-size:14px;line-height:1.55}.tm-app-guide button:focus-visible,.tm-app-guide summary:focus-visible{outline:2px solid var(--guide-accent);outline-offset:3px}.tm-app-guide button:hover:not(:disabled){text-decoration:underline;text-underline-offset:4px}.tm-app-guide button:disabled{opacity:.4;cursor:default}.tm-app-guide ::selection{background:var(--guide-accent);color:var(--guide-surface)}.tm-app-guide h2:focus{outline:none}.tm-guide-picker summary{cursor:pointer;min-height:44px;box-sizing:border-box;padding:12px 0}.tm-guide-picker summary::marker{color:var(--guide-accent)}`}</style>
     {ready && arrow && <svg aria-hidden="true" data-guide-arrow="true" style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}>
         <defs><marker id={`tm-guide-arrow-${uid}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M1 1 5 3 1 5" fill="none" stroke={t.accent} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></marker></defs>
         <path d={`M${arrow.x1},${arrow.y1} L${arrow.x2},${arrow.y2}`} fill="none" stroke={t.accent} strokeWidth="1.3" markerEnd={`url(#tm-guide-arrow-${uid})`}/>
       </svg>}
-    <section ref={panelRef} role="region" aria-label={L('Průvodce aplikací', 'App guide')} className="tm-app-guide-panel" style={{ position: 'fixed', left: placement.left, top: placement.top, width: placement.width, maxHeight, boxSizing: 'border-box', overflowY: 'auto', overscrollBehavior: 'contain', pointerEvents: 'auto', backgroundColor: t.bg, color: t.text, border: 0, borderRadius: 0, boxShadow: 'none', padding: '16px 18px', scrollbarWidth: 'thin', scrollbarColor: `${t.border} transparent` }}
+    <section ref={panelRef} role="region" aria-label={L('Průvodce aplikací', 'App guide')} className="tm-app-guide-panel" style={{ position: 'fixed', left: placement.left, top: placement.top, width: placement.width, maxHeight, boxSizing: 'border-box', overflowY: 'auto', overscrollBehavior: 'contain', pointerEvents: 'auto', backgroundColor: 'rgba(117,68,55,.94)', color: guideInk, border: 0, borderRadius: 0, boxShadow: 'none', padding: '16px 18px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(244,240,235,.48) transparent' }}
       onKeyDown={event => {
         if (mode !== 'tour' || event.target?.tagName === 'SELECT' || event.target?.tagName === 'INPUT' || event.target?.isContentEditable) return;
         if (event.key === 'ArrowRight' && index < tour.steps.length - 1) { event.preventDefault(); move(1); }
         if (event.key === 'ArrowLeft' && index > 0) { event.preventDefault(); move(-1); }
       }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <h2 id={titleId} ref={titleRef} tabIndex={-1} style={{ flex: 1, margin: '4px 0 12px', fontFamily: 'var(--ff-display,"EB Garamond",Georgia,serif)', fontWeight: 400, fontSize: 25, lineHeight: 1.16, color: t.heading || t.text }}>{mode === 'choose' ? L('Měj jasno, co dál', 'Know your next step') : step?.title || L('Průvodce aplikací', 'App guide')}</h2>
+        <h2 id={titleId} ref={titleRef} tabIndex={-1} style={{ flex: 1, margin: '4px 0 12px', fontFamily: 'var(--ff-display,"EB Garamond",Georgia,serif)', fontWeight: 400, fontSize: 25, lineHeight: 1.16, color: guideInk }}>{mode === 'choose' ? L('Měj jasno, co dál', 'Know your next step') : step?.title || L('Průvodce aplikací', 'App guide')}</h2>
         {mode === 'tour' && <button type="button" onClick={() => setPaused(value => !value)} aria-label={paused ? L('Pokračovat v průvodci', 'Resume guide') : L('Pozastavit průvodce', 'Pause guide')} style={{ ...quiet, width: 44, flexShrink: 0, marginTop: -6 }}><GuideIcon kind={paused ? 'next' : 'pause'}/></button>}
         <button type="button" onClick={close} aria-label={L('Zavřít průvodce', 'Close guide')} title="Esc" style={{ ...quiet, width: 44, flexShrink: 0, marginTop: -6, marginRight: -8 }}><GuideIcon kind="close"/></button>
       </div>
       {mode === 'choose' ? <>
         {tours.length ? <>
-          <p style={{ margin: '0 0 12px', color: t.textSec || t.text }}>{L('Najdi svůj plán a vrať se k tomu, co se ti daří.', 'Find your plan and see what is working for you.')}</p>
+          <p style={{ margin: '0 0 12px', color: guideInk }}>{L('Najdi svůj plán a vrať se k tomu, co se ti daří.', 'Find your plan and see what is working for you.')}</p>
           <button type="button" onClick={()=>start(starter)} style={{ ...primary, paddingLeft: 0 }}>{L('Ukázat první kroky', 'Show me the first steps')}<GuideIcon kind="next" size={15}/></button>
           <details className="tm-guide-picker" style={{ marginTop: 8 }}>
             <summary>{L('Chci najít něco konkrétního', 'I am looking for something specific')}</summary>
             <div role="group" aria-label={L('Části průvodce', 'Guide sections')}>
-              {[...tours].sort((a,b)=>Number(b.room===currentRoom)-Number(a.room===currentRoom)).map(item => <button key={item.room} type="button" onClick={()=>start(item)} style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', width: '100%', minHeight: 60, padding: '10px 0', border: 0, background: 'transparent', color: t.text, font: 'inherit', cursor: 'pointer' }}>
-                <span style={{ flex: 1 }}><span style={{ display: 'block' }}>{item.steps[0]?.title}</span><span style={{ display: 'block', color: t.textSec || t.text, fontSize: 12 }}>{item.label}</span></span>
+              {[...tours].sort((a,b)=>Number(b.room===currentRoom)-Number(a.room===currentRoom)).map(item => <button key={item.room} type="button" onClick={()=>start(item)} style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', width: '100%', minHeight: 60, padding: '10px 0', border: 0, background: 'transparent', color: guideInk, font: 'inherit', cursor: 'pointer' }}>
+                <span style={{ flex: 1 }}><span style={{ display: 'block' }}>{item.steps[0]?.title}</span><span style={{ display: 'block', color: guideInk, fontSize: 12 }}>{item.label}</span></span>
                 <GuideIcon kind="next" size={15}/>
               </button>)}
-              <button type="button" onClick={()=>start(combined)} style={{...quiet,paddingLeft:0,color:t.textSec||t.text}}>{L('Projít všechny části', 'Explore every section')}<GuideIcon kind="next" size={15}/></button>
+              <button type="button" onClick={()=>start(combined)} style={{...quiet,paddingLeft:0,color:guideInk}}>{L('Projít všechny části', 'Explore every section')}<GuideIcon kind="next" size={15}/></button>
             </div>
           </details>
         </> : <p role="status" style={{ margin: '0 0 6px' }}>{L('Průvodce tu zatím nemá dostupnou stránku.', 'There is no available page to guide you through yet.')}</p>}
       </> : <>
-        <div style={{ color: t.textSec || t.text, marginBottom: 7, fontSize: 12, fontVariantNumeric: 'tabular-nums' }} aria-live="polite">{Math.min(index + 1, tour?.steps.length || 0)} / {tour?.steps.length || 0}</div>
-        <p id={textId} role={!ready ? 'status' : undefined} style={{ margin: '0 0 9px', color: t.textSec || t.text }}>{body}</p>
-        {!ready && phase !== 'loading' && !contextBlocked && <button type="button" onClick={retry} style={{ ...quiet, color: t.accent, paddingLeft: 0 }}><GuideIcon kind="locate" size={17}/>{L('Zobrazit místo', 'Show this place')}</button>}
+        <div style={{ color: guideInk, marginBottom: 7, fontSize: 12, fontVariantNumeric: 'tabular-nums' }} aria-live="polite">{Math.min(index + 1, tour?.steps.length || 0)} / {tour?.steps.length || 0}</div>
+        <p id={textId} role={!ready ? 'status' : undefined} style={{ margin: '0 0 9px', color: guideInk }}>{body}</p>
+        {!ready && phase !== 'loading' && !contextBlocked && <button type="button" onClick={retry} style={{ ...quiet, color: guideInk, paddingLeft: 0 }}><GuideIcon kind="locate" size={17}/>{L('Zobrazit místo', 'Show this place')}</button>}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingTop: 3 }}>
           <button type="button" onClick={() => move(-1)} disabled={!tour || index === 0} aria-label={L('Předchozí krok', 'Previous step')} style={{...quiet,width:44,flexShrink:0}}><GuideIcon kind="back" size={14}/></button>
-          <button type="button" onClick={choose} style={{ ...quiet, marginRight: 'auto', color: t.textSec || t.text }}>{L('Jiná část', 'Other sections')}</button>
+          <button type="button" onClick={choose} style={{ ...quiet, marginRight: 'auto', color: guideInk }}>{L('Jiná část', 'Other sections')}</button>
           {index >= (tour?.steps.length || 0) - 1
             ? <button type="button" onClick={close} style={primary}>{L('Vyzkoušet', 'Try it now')}<GuideIcon kind="next" size={14}/></button>
             : <button type="button" onClick={() => move(1)} style={primary}>{L('Dál', 'Next')}<GuideIcon kind="next" size={14}/></button>}

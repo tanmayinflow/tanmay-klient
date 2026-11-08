@@ -97,8 +97,8 @@ export function syncHlaska(druh, L, info) {
   if (druh === SYNC_VELIKOST) {
     const b = info && info.bytes ? Math.round(info.bytes / 10000) / 100 : null;
     return L(
-      "Dokument přerostl strop úložiště" + (b ? " (" + b + " MB)" : "") + ", server ho nepřijme. Změny zůstávají jen v tomhle zařízení — stáhni si zálohu.",
-      "The document has outgrown the storage ceiling" + (b ? " (" + b + " MB)" : "") + " and the server will not take it. Changes stay on this device only — download a backup."
+      "Dokument přerostl strop úložiště" + (b ? " (" + b + " MB)" : "") + ", server ho nepřijme. Změny zůstávají jen v tomhle zařízení. Stáhni si zálohu.",
+      "The document has outgrown the storage ceiling" + (b ? " (" + b + " MB)" : "") + " and the server will not take it. Changes stay on this device only. Download a backup."
     );
   }
   if (druh === SYNC_SERVER) {
@@ -108,8 +108,8 @@ export function syncHlaska(druh, L, info) {
     );
   }
   return L(
-    "Změny jsou zatím jen v tomhle zařízení — na server se nedostaly. Na jiném zařízení je zatím neuvidíš.",
-    "Your changes are on this device only — they have not reached the server. Another device will not see them yet."
+    "Uložení na server se nepodařilo potvrdit. Změny máš v tomhle zařízení. Zkus přenos znovu, až bude spojení dostupné.",
+    "Saving to the server could not be confirmed. Your changes are on this device. Retry when the connection is available."
   );
 }
 

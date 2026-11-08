@@ -4,6 +4,8 @@ import { CLIENT_OPTIONAL } from './roles.js';
 // sees only a bounded piece; no draft is acknowledged before the atomic commit.
 export const STATE_TRANSFER_LIMIT = 10_000_000;
 export const STATE_TRANSFER_PART_BYTES = 192 * 1024;
+export const STATE_TRANSFER_REQUEST_TIMEOUT = 30_000;
+export const STATE_TRANSFER_RETRY_DELAYS = Object.freeze([300, 900]);
 const MAX_READ_PART_BYTES = 128 * 1024;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -18,7 +20,8 @@ function route(input, init) {
   if (typeof input !== 'string' && !(input instanceof URL)) return null;
   const url = new URL(String(input), globalThis.location?.href || 'http://localhost');
   const method = String(init?.method || 'GET').toUpperCase();
-  if (url.pathname !== '/api/state' || url.searchParams.has('meta') || url.searchParams.has('transport') || !['GET', 'PUT'].includes(method)) return null;
+  if (url.pathname !== '/api/state' || url.searchParams.has('transport') || !['GET', 'PUT'].includes(method)) return null;
+  if (url.searchParams.has('meta')) return method === 'GET' ? { method: 'META', url: String(input) } : null;
   const absolute = /^[a-z][a-z\d+.-]*:/i.test(String(input));
   const path = (action, values = {}) => {
     const next = new URL(url);
@@ -29,17 +32,103 @@ function route(input, init) {
   return { method, path, meta: absolute ? new URL('/api/state?meta=1', url).href : '/api/state?meta=1' };
 }
 
-// Failed HTTP responses (including opaque Access redirects) remain untouched so
-// existing callers retain their authentication, membership and retry handling.
-async function exchange(fetcher, path, options) {
+// A lost response does not prove that a write failed. Retry the same bounded
+// request, especially commit with its original uploadId and server receipt.
+// A deadline includes body consumption so a stalled mobile stream cannot hold
+// the document queue forever. Explicit caller cancellation always wins.
+async function exchangeAttempt(fetcher, path, options) {
   aborted(options.signal);
-  const response = await fetcher(path, options);
-  aborted(options.signal);
-  if (!response.ok || response.redirected || response.type === 'opaqueredirect' || !/application\/json/i.test(response.headers.get('content-type') || '')) return { response };
+  const controller = new AbortController();
+  let errorResponse = null;
+  const canRetry = response => response.status === 408 || response.status === 429 || response.status >= 500;
+  const bufferedError = (response, body) => {
+    const headers = new Headers(response.headers);
+    headers.delete('Content-Length'); headers.delete('Content-Encoding');
+    headers.set('Content-Type', 'application/json');
+    return { response: Response.json(body, { status: response.status, headers }), retryable: canRetry(response) };
+  };
+  let rejectDeadline;
+  const deadline = new Promise((_, reject) => { rejectDeadline = reject; });
+  const interrupt = reason => { controller.abort(reason); rejectDeadline(reason); };
+  const onAbort = () => interrupt(options.signal.reason || new DOMException('The operation was aborted', 'AbortError'));
+  options.signal?.addEventListener('abort', onAbort, { once: true });
+  const timer = setTimeout(() => interrupt(new DOMException('The state request timed out', 'TimeoutError')), STATE_TRANSFER_REQUEST_TIMEOUT);
   try {
-    const body = await response.json(); aborted(options.signal);
-    return body?.ok === true ? { body } : { response: json(body || { ok: false, code: 'state-transport-invalid' }, response.status) };
-  } catch { aborted(options.signal); return { response: invalid() }; }
+    return await Promise.race([(async () => {
+      const response = await fetcher(path, { ...options, signal: controller.signal });
+      aborted(controller.signal);
+      const isJson = /application\/json/i.test(response.headers.get('content-type') || '');
+      if (!response.ok && response.status > 0 && !response.redirected && response.type !== 'opaqueredirect' && isJson) {
+        errorResponse = response;
+        const body = await response.json();
+        aborted(controller.signal);
+        return bufferedError(response, body);
+      }
+      if (!response.ok || response.redirected || response.type === 'opaqueredirect' || !isJson) {
+        return { response, retryable: !response.redirected && response.type !== 'opaqueredirect' && canRetry(response) };
+      }
+      let body;
+      try { body = await response.json(); }
+      catch (error) {
+        aborted(controller.signal);
+        if (error instanceof SyntaxError || error?.name === 'SyntaxError') return { response: invalid() };
+        throw error;
+      }
+      aborted(controller.signal);
+      return body?.ok === true ? { body } : { response: json(body || { ok: false, code: 'state-transport-invalid' }, response.status) };
+    })(), deadline]);
+  } catch (error) {
+    aborted(options.signal);
+    // Even the final failed HTTP response must have a bounded, readable body.
+    // Its known status remains authoritative if its JSON stream never finishes.
+    if (errorResponse) return bufferedError(errorResponse, { ok: false, code: 'state-response-unavailable' });
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    options.signal?.removeEventListener('abort', onAbort);
+  }
+}
+
+function retryDelay(response, fallback) {
+  const header = response?.headers?.get('retry-after');
+  if (!header) return fallback;
+  const seconds = Number(header);
+  const delay = /^\d+(\.\d+)?$/.test(header.trim()) ? seconds * 1000 : Date.parse(header) - Date.now();
+  // A longer provider pause belongs to the existing foreground/manual recovery,
+  // not a tight retry loop that could consume the free request allowance.
+  if (Number.isFinite(delay) && delay > 5000) return null;
+  return Number.isFinite(delay) ? Math.max(fallback, delay, 0) : fallback;
+}
+
+function waitForRetry(delay, signal) {
+  aborted(signal);
+  return new Promise((resolve, reject) => {
+    const onAbort = () => { clearTimeout(timer); signal?.removeEventListener('abort', onAbort); reject(signal.reason || new DOMException('The operation was aborted', 'AbortError')); };
+    const timer = setTimeout(() => { signal?.removeEventListener('abort', onAbort); resolve(); }, delay);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+async function exchange(fetcher, path, options) {
+  for (let attempt = 0; ; attempt++) {
+    let result;
+    try { result = await exchangeAttempt(fetcher, path, options); }
+    catch (error) {
+      aborted(options.signal);
+      // Account guards may reject before fetch returns an HTTP response.
+      // Retrying cannot repair a changed identity or a refused request.
+      if (error?.code === 'changed' || [400, 401, 403, 409, 413].includes(error?.status)) throw error;
+      if (attempt >= STATE_TRANSFER_RETRY_DELAYS.length) throw error;
+    }
+    aborted(options.signal);
+    if (result && (!result.retryable || attempt >= STATE_TRANSFER_RETRY_DELAYS.length)) return result;
+    const delay = retryDelay(result?.response, STATE_TRANSFER_RETRY_DELAYS[attempt]);
+    if (delay === null) return result;
+    // Release an unsuccessful response before the next request. Do not await a
+    // potentially stalled response stream just to dispose of it.
+    try { result?.response?.body?.cancel().catch(() => {}); } catch {}
+    await waitForRetry(delay, options.signal);
+  }
 }
 
 function validManifest(manifest) {
@@ -139,5 +228,9 @@ export async function stateTransportFetch(input, init = {}, fetcher = (...args) 
   if (!target) return fetcher(input, init);
   const options = { cache: 'no-store', credentials: 'same-origin', redirect: 'manual', ...init };
   aborted(options.signal);
+  if (target.method === 'META') {
+    const result = await exchange(fetcher, target.url, options);
+    return result.response || json(result.body);
+  }
   return target.method === 'GET' ? readDocument(target, options, fetcher) : writeDocument(target, options, fetcher);
 }

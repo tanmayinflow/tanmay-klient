@@ -74,5 +74,6 @@ test("hláška řekne příčinu, ne jen následek", () => {
   assert.match(syncHlaska(SYNC_VELIKOST, L, { bytes: 2100000 }), /strop úložiště/);
   assert.match(syncHlaska(SYNC_VELIKOST, L, { bytes: 2100000 }), /2\.1 MB/);
   assert.match(syncHlaska(SYNC_SERVER, L, { stav: 500 }), /\(500\)/);
-  assert.match(syncHlaska(SYNC_SIT, L, {}), /jen v tomhle zařízení/);
+  assert.match(syncHlaska(SYNC_SIT, L, {}), /nepodařilo potvrdit/);
+  assert.doesNotMatch(syncHlaska(SYNC_SIT, L, {}), /na server se nedostaly/);
 });
