@@ -1,5 +1,89 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_py_pogo_backward": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_pogo_backward-a269203881be4ca8.mp4",
+    "bytes": 20138,
+    "sha256": "a269203881be4ca86e16ebee91bf4f26bf0b6c09887a0a8112f79354495de5c7",
+    "poster": "/exercise-motion/ex26_py_pogo_backward-poster-a209d19203020f46.webp",
+    "note": {
+      "cz": "Ukázka jednoho malého odrazu vzad se zastavením.",
+      "en": "One small backward hop followed by a stop is shown."
+    }
+  },
+  "gm_w_circles_side": {
+    "oneSide": true,
+    "src": "/exercise-motion/gm_w_circles_side-c6afa089bb95dfae.mp4",
+    "bytes": 32097,
+    "sha256": "c6afa089bb95dfae6a09e66daa46b0932520438d58c7ee597badf1f25d3198fe",
+    "poster": "/exercise-motion/gm_w_circles_side-poster-5a7f3256791a9e2c.webp",
+    "note": {
+      "en": "Two arm circles and two side bends on one side are shown.",
+      "cz": "Ukázka dvou kruhů paží a dvou úklonů na jednu stranu."
+    }
+  },
+  "gm_w_circles_bends": {
+    "oneSide": false,
+    "src": "/exercise-motion/gm_w_circles_bends-ce5ec06d9bb586ca.mp4",
+    "bytes": 28699,
+    "sha256": "ce5ec06d9bb586cad23daec435683fc49ad03654877a221bd1be628f0be5d73d",
+    "poster": "/exercise-motion/gm_w_circles_bends-poster-c5dc843a1155181e.webp"
+  },
+  "ex26_py_single_pogo_backward": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_single_pogo_backward-6067ba082e181854.mp4",
+    "bytes": 17929,
+    "sha256": "6067ba082e181854d2d492a727d01985406f797f892cc78d42a9052af7da96b9",
+    "poster": "/exercise-motion/ex26_py_single_pogo_backward-poster-3a575892007be4cc.webp",
+    "note": {
+      "en": "One small backward hop followed by a stop is shown.",
+      "cz": "Ukázka jednoho malého odrazu vzad se zastavením."
+    }
+  },
+  "ctwhspu": {
+    "oneSide": false,
+    "src": "/exercise-motion/ctwhspu-5a93aec09981fd09.mp4",
+    "bytes": 19066,
+    "sha256": "5a93aec09981fd09087c3b8d3c3989697a3064445f3a91861f6cf2311ae9125a",
+    "poster": "/exercise-motion/ctwhspu-poster-a3f4061254332dbb.webp",
+    "note": {
+      "cz": "Ukázka tlaku v omezeném rozsahu. Nástup a sestup ze stojky nejsou zobrazeny.",
+      "en": "A press through a limited range is shown. Entry to and exit from the handstand are not shown."
+    }
+  },
+  "ig26_reverse_plank_march": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig26_reverse_plank_march-26ca695d5de6b57c.mp4",
+    "bytes": 18665,
+    "sha256": "26ca695d5de6b57c41a1d84bb8b968f7df84b3002a0a4359a33c927016509715",
+    "poster": "/exercise-motion/ig26_reverse_plank_march-poster-ffc25978e65ee1fe.webp",
+    "note": {
+      "cz": "Ukázka střídání nohou. Nástup do vzporu a jeho ukončení nejsou zobrazeny.",
+      "en": "Alternating leg lifts are shown. Entry into and exit from the support are not shown."
+    }
+  },
+  "ig27_barbell_hack": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig27_barbell_hack-50e4b4fae886e748.mp4",
+    "bytes": 20100,
+    "sha256": "50e4b4fae886e74833930602eed6e3d8584d7fc60085beb2dd59e7f834c5b915",
+    "poster": "/exercise-motion/ig27_barbell_hack-poster-048d048e7553ce71.webp",
+    "note": {
+      "cz": "Lehčí varianta s lehkou tyčí a malým rozsahem dřepu.",
+      "en": "An easier version with a light training stick and a small squat range is shown."
+    }
+  },
+  "ig29_upper_arm_band_scap_retraction": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig29_upper_arm_band_scap_retraction-ac400ee69b03ef1d.mp4",
+    "bytes": 26869,
+    "sha256": "ac400ee69b03ef1d4fa0c1f9f7a7129bc887b85d1d6998903d07a677041be477",
+    "poster": "/exercise-motion/ig29_upper_arm_band_scap_retraction-poster-bbc4f292edcb3729.webp",
+    "note": {
+      "cz": "Detail malého pohybu lopatky s rukou opřenou o bok.",
+      "en": "Close view of a small shoulder-blade movement with the hand resting on the hip."
+    }
+  },
   "battlerope": {
     "oneSide": false,
     "src": "/exercise-motion/battlerope-f4c7703c5b31a63d.mp4",
