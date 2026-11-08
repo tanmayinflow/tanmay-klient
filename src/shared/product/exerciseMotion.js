@@ -1,5 +1,65 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "battlerope": {
+    "oneSide": false,
+    "src": "/exercise-motion/battlerope-f4c7703c5b31a63d.mp4",
+    "bytes": 21219,
+    "sha256": "f4c7703c5b31a63dfb72bf347f642184a126e1dacb53e60eb31ac8cba0609bfd",
+    "poster": "/exercise-motion/battlerope-poster-2cd536bc7dac138f.webp",
+    "note": {
+      "cz": "Ukázka souběžných vln oběma rukama.",
+      "en": "Simultaneous waves with both hands are shown."
+    }
+  },
+  "ig29_prone_w_to_forearm_plank": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig29_prone_w_to_forearm_plank-e8017657d4c1a897.mp4",
+    "bytes": 28441,
+    "sha256": "e8017657d4c1a89751b87032212c529a97b57780b8bbaa6d2dd41dcf65c89069",
+    "poster": "/exercise-motion/ig29_prone_w_to_forearm_plank-poster-3ed6d2f304c9f64f.webp"
+  },
+  "ex26_trx_lunge": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_trx_lunge-e80b48f9abde77a0.mp4",
+    "bytes": 24501,
+    "sha256": "e80b48f9abde77a0d57b72b2e84bf5beb9164da022015c4446af4b6bd979b573",
+    "poster": "/exercise-motion/ex26_trx_lunge-poster-160e020ab82c2931.webp"
+  },
+  "shinbox": {
+    "oneSide": false,
+    "src": "/exercise-motion/shinbox-096a052bc11a3f04.mp4",
+    "bytes": 37162,
+    "sha256": "096a052bc11a3f044b6e09a37d411d09d8dcb7cbb570424655519664bbb89013",
+    "poster": "/exercise-motion/shinbox-poster-b0422cd0f9c61c42.webp"
+  },
+  "dragonflag": {
+    "oneSide": false,
+    "src": "/exercise-motion/dragonflag-6899f2e9ff36b731.mp4",
+    "bytes": 16161,
+    "sha256": "6899f2e9ff36b731ad76c4e40b9b6e0ac8310a78a984189c0e9cebfcbb7c0d8c",
+    "poster": "/exercise-motion/dragonflag-poster-5d87bd20a9dbf881.webp"
+  },
+  "ex26_mob_wall_liftoff": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mob_wall_liftoff-f567979e07383a2f.mp4",
+    "bytes": 24529,
+    "sha256": "f567979e07383a2f24dae5f8a63ca77226720c6d9ae156781312cb3563442eec",
+    "poster": "/exercise-motion/ex26_mob_wall_liftoff-poster-4c5e8c4444acd214.webp"
+  },
+  "oapush": {
+    "oneSide": true,
+    "src": "/exercise-motion/oapush-cd314c85152ea356.mp4",
+    "bytes": 16209,
+    "sha256": "cd314c85152ea356f7f69999bcf32bd915a6ef110face8b0e0fc98d55fe96700",
+    "poster": "/exercise-motion/oapush-poster-dfaa6cb5edd03c5e.webp"
+  },
+  "planchepress": {
+    "oneSide": false,
+    "src": "/exercise-motion/planchepress-a5e3fd862fdca268.mp4",
+    "bytes": 13611,
+    "sha256": "a5e3fd862fdca2684a31fba85ef4aefc4c3b42864edc4ec6a1ab274d45b178e1",
+    "poster": "/exercise-motion/planchepress-poster-d20930c946b5c8b0.webp"
+  },
   "mbd_lunge_rocks": {
     "oneSide": true,
     "src": "/exercise-motion/mbd_lunge_rocks-e11277da31718573.mp4",
