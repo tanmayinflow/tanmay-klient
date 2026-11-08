@@ -1,5 +1,93 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "kb26_rack_stepup": {
+    "oneSide": true,
+    "src": "/exercise-motion/kb26_rack_stepup-3a3fb83747f77c91.mp4",
+    "bytes": 20557,
+    "sha256": "3a3fb83747f77c918b0a3f0e72eafc022248f2ba390860ba4f6957c0b098f22b",
+    "poster": "/exercise-motion/kb26_rack_stepup-poster-5fbcd55c4840b798.webp",
+    "note": {
+      "cz": "Lehčí varianta: výstup na nízký schod bez zátěže.",
+      "en": "Easier variation: an unloaded step-up onto a low step."
+    }
+  },
+  "ex26_py_crossover_hop": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_crossover_hop-36bba24d511fba34.mp4",
+    "bytes": 30968,
+    "sha256": "36bba24d511fba34f62ead4542fdc9e7fa3f6e8150c33b424a3df5dfb161fb68",
+    "poster": "/exercise-motion/ex26_py_crossover_hop-poster-0c3582336c47e8a9.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden malý poskok přes čáru na stejné noze se zastavením.",
+      "en": "Easier variation: one small same-leg hop across a line followed by a stop."
+    }
+  },
+  "ex26_py_hurdle_single_lateral": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_hurdle_single_lateral-d8797bb5d3a22779.mp4",
+    "bytes": 21452,
+    "sha256": "d8797bb5d3a22779c37996bafd837425f6549d75cb4d951f92f6c8b35abb0c1b",
+    "poster": "/exercise-motion/ex26_py_hurdle_single_lateral-poster-9513d1026e6cdfd0.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden malý boční poskok na stejné noze bez překážky, se zastavením.",
+      "en": "Easier variation: one small sideways same-leg hop without an obstacle, followed by a stop."
+    }
+  },
+  "ex26_py_quarter_broad": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_quarter_broad-f0996167a6124e7c.mp4",
+    "bytes": 29226,
+    "sha256": "f0996167a6124e7cca2f6159c8efcca69d3c96e1e9fdc6f537461f2157651aa9",
+    "poster": "/exercise-motion/ex26_py_quarter_broad-poster-f8113a1f21babc01.webp",
+    "note": {
+      "cz": "Krátký skok vpřed s otočením a zastavením; návrat krokem není zobrazen.",
+      "en": "A short forward jump with a turn and stop; the walk-back is not shown."
+    }
+  },
+  "ex26_py_single_quarter": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_single_quarter-2e6dce6fd5d0ff93.mp4",
+    "bytes": 29531,
+    "sha256": "2e6dce6fd5d0ff934c13ce2a9311a1fb3ec0a54963d7936774d68e4061d50022",
+    "poster": "/exercise-motion/ex26_py_single_quarter-poster-915675e00109b69a.webp",
+    "note": {
+      "cz": "Malý poskok na stejné noze s otočením a zastavením; návrat krokem není zobrazen.",
+      "en": "A small same-leg hop with a turn and stop; the walk-back is not shown."
+    }
+  },
+  "ex26_py_box_lateral_leap": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_box_lateral_leap-8e698acc907851c9.mp4",
+    "bytes": 33928,
+    "sha256": "8e698acc907851c957cc2a3816cdaf19a33b04454bbb1be6593c49a216ebffce",
+    "poster": "/exercise-motion/ex26_py_box_lateral_leap-poster-26c48b72d03e1b28.webp",
+    "note": {
+      "cz": "Lehčí varianta: krátký boční přeskok na opačnou nohu na podlaze se zastavením, bez bedny.",
+      "en": "Easier variation: a short lateral floor leap onto the opposite foot and stop, without a box."
+    }
+  },
+  "ex26_py_stairs_double": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_stairs_double-67e925dcb3b72d2e.mp4",
+    "bytes": 23538,
+    "sha256": "67e925dcb3b72d2ead7911e6e50ec05f4107ec34090b8033f5a6c55ffd528e52",
+    "poster": "/exercise-motion/ex26_py_stairs_double-poster-c2060111e891a548.webp",
+    "note": {
+      "cz": "Lehčí varianta: jediný nízký schod se zastavením; sestup krokem není zobrazen.",
+      "en": "Easier variation: a single low step and stop; the walk-down is not shown."
+    }
+  },
+  "ex26_py_zigzag_backward": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_zigzag_backward-d5fced3affbde770.mp4",
+    "bytes": 29153,
+    "sha256": "d5fced3affbde7700edb8eb827a2752143c727d8a4446195a2b30aef38ef782f",
+    "poster": "/exercise-motion/ex26_py_zigzag_backward-poster-be93457261147493.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden boční přeskok snožmo přes čáru se zastavením, bez postupu vzad.",
+      "en": "Easier variation: one two-foot sideways hop across a line and stop, without backward travel."
+    }
+  },
   "ex26_py_sameleg_bound": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_py_sameleg_bound-d334cce362c2ad98.mp4",
