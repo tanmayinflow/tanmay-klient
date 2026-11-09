@@ -1,4 +1,4 @@
-import { GUIDE_MATERIAL_BORDER, GUIDE_MATERIAL_SHADOW } from './guideMaterial.js';
+import { GUIDE_MATERIAL_SHADOW } from './guideMaterial.js';
 
 export function shellLayoutCss() {
   return `
@@ -8,11 +8,13 @@ export function shellLayoutCss() {
   :root body .tm-page { padding-inline: 24px !important; --land-bleed: 24px; }
   :root body .tm-sidebar {
     position: fixed !important; top: 12px !important; left: 12px;
-    margin: 0 !important; width: 268px !important; height: auto !important;
+    margin: 0 !important; width: 268px !important; height: calc(100dvh - 24px) !important;
     max-height: calc(100dvh - 24px); box-sizing: border-box;
+    display: flex; flex-direction: column;
     padding: 6px 14px 8px !important; z-index: 45 !important;
     overflow-y: auto; overscroll-behavior: contain;
   }
+  :root body .tm-sidebar > * { flex-shrink: 0; }
   :root body .tm-sidebar.collapsed { transform: translateX(calc(-100% - 24px)); }
   :root body .tm-sidebar ~ main { margin-left: 280px; }
   :root body .tm-sidebar.collapsed ~ main { margin-left: 0; }
@@ -24,28 +26,30 @@ export function shellLayoutCss() {
   :root body .tm-sidebar .tm-sidebar-search { margin-bottom: 4px !important; }
   :root body .tm-sidebar .tm-sidebar-group { margin-bottom: 2px !important; }
   :root body .tm-sidebar .tm-sidebar-group > div:first-child { padding-bottom: 0 !important; line-height: 1.2; }
-  :root body .tm-sidebar .tm-sbdno { margin-top: 12px !important; padding-top: 0 !important; }
+  :root body .tm-sidebar .tm-sbdno { margin-top: auto !important; padding-top: 12px !important; }
 }
 /* Compact laptop heights preserve all destinations. Exceptionally short
    viewports or enlarged text can still scroll rather than lose an action. */
 @media (min-width: 821px) and (max-height: 740px) {
   :root body .tm-sidebar .tm-nav-item { min-height: 36px; padding-block: 6px !important; }
   :root body .tm-sidebar .tm-sidebar-group { margin-bottom: 0 !important; }
-  :root body .tm-sidebar .tm-sbdno { margin-top: 6px !important; }
+  :root body .tm-sidebar .tm-sbdno { padding-top: 6px !important; }
 }
-/* Keep the texture behind the controls, never mask the controls themselves. */
+/* Match the website's translucent sandstone navigation surface. */
 html[data-frame-grammar] body .tm-topbar {
-  isolation: isolate; background: none !important; border: 0 !important;
-  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-  color: #f4f0eb;
+  background-color: rgba(229,216,196,.76) !important;
+  background-image: none !important;
+  border-bottom: 1px solid rgba(28,28,26,.055) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(15px) saturate(.9) !important;
+  -webkit-backdrop-filter: blur(15px) saturate(.9) !important;
+  color: #1c1c1a;
 }
 html[data-frame-grammar] body .tm-topbar::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  border-image: ${GUIDE_MATERIAL_BORDER}; opacity: .98;
-  filter: ${GUIDE_MATERIAL_SHADOW};
+  content: none;
 }
-html[data-frame-grammar] body .tm-topbar :is(button,span,div,[role="button"]) { color: #f4f0eb !important; }
-html[data-frame-grammar] body .tm-topbar button { border-color: rgba(244,240,235,.38) !important; }
+html[data-frame-grammar] body .tm-topbar :is(button,span,div,[role="button"]) { color: #1c1c1a !important; }
+html[data-frame-grammar] body .tm-topbar button { border-color: rgba(28,28,26,.14) !important; }
 :root body .tm-sidebar, :root body .tm-sidebar.open, :root body .tm-tabbar {
   box-shadow: none !important; filter: ${GUIDE_MATERIAL_SHADOW};
 }

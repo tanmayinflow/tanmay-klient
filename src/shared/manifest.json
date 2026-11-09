@@ -1,7 +1,7 @@
 {
   "generatedBy": "Shared/scripts/sync-product-core.mjs",
   "canonicalSource": "Work/web-application/Shared/product-core/",
-  "sharedCoreVersion": "1.33.136",
+  "sharedCoreVersion": "1.33.137",
   "note": "Zrcadlo sdíleného jádra. Needituj tyhle soubory v aplikačním repozitáři — `npm run shared:check` to pozná a build spadne.",
   "files": {
     "public/market-chart.css": "2a694f0d7edddfbb94bc40dd37ce3bee8e826cd43632f888fc0bf0f63236dec6",
@@ -210,7 +210,7 @@
     "src/shared/ui/roomArt.js": "cf388e3354c56f4d06a7cd6de113b73eb523a0549f5d032e964c327940206531",
     "src/shared/ui/settingsControls.jsx": "a199e80e77d43ddde1af6e5168b8084628ac4a678d2b1f0a5841d0fe309b23aa",
     "src/shared/ui/shell.jsx": "3caef0a6817cf2bbef857c349865b7ba041f1ef22bbfe71573ac471862563303",
-    "src/shared/ui/shellLayout.js": "132dce48e135c03df395d651c846bc7059e014d7f16c3f4c8f7e80d14949af53",
+    "src/shared/ui/shellLayout.js": "fccfbb5e8b03b036f28899690e52b1b5e1e715dacb4d2c4ad00a8502daf7ce69",
     "src/shared/ui/sidebarLines.jsx": "308083d0fc57484b40693bb5b8cd38bdb207dc0324c1c76df4190abe6223be99",
     "src/shared/ui/skyArchive.jsx": "9c21154fecd198afaa9cf2f5f35913d7222c4e8c61975132d6da8d4322d35f3e",
     "src/shared/ui/skyBody.jsx": "fdab8eb9ab4e5658dcfdec77c676d87c9f117f1d8edb21992bda83298e378d47",
@@ -267,7 +267,7 @@
     "src/shared/ui/typography.js": "7b001d164b74831d46a86f4c3554d05876cf042fa271362704331fa2bbcade3c",
     "src/shared/ui/typography.jsx": "4abd3f98e2b791ddc21c57760a9d7fc12e09c16de1706c25aa5adb0f15d28112",
     "src/shared/ui/wellbeingPalette.js": "b17a69043ff09cb4a33abbab2244a36b831efe6c6c9541793f20303d2bac295b",
-    "src/shared/version.js": "ce5c140a73c0abffcc90a8dfc65619c9b636a4a4a2e60f1f31ceb710e5d40a4e",
+    "src/shared/version.js": "6b37d3edaee9e4bfa2e7fc052f7fd519028209274f9e93bf5ce652d3d2487c57",
     "src/training/adapters.js": "46347ee58d25e50e03bcab2ecc82c4eddf1e048e7af041173bb008d34a20e6af",
     "src/training/atlasResolver.js": "7d656de854b93919676029fcf5fc7940bb86ceba5211521687f444d354858009",
     "src/training/carryProgressPolicy.js": "e59a02b57e134599c889a0e89e1774baf548cf847d04a1424c0d1dd9edb0b5cf",
