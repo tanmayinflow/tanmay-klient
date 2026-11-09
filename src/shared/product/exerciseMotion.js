@@ -1,5 +1,93 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_py_stairs_single": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_stairs_single-40a59d69056cf9db.mp4",
+    "bytes": 23501,
+    "sha256": "40a59d69056cf9db482688e8416da5bafc457c75c246ac6c30daed32f9290065",
+    "poster": "/exercise-motion/ex26_py_stairs_single-poster-8ab1ce40cefd8e09.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden malý poskok na stejné noze na podlaze se zastavením, bez schodů.",
+      "en": "Easier variation: one small same-leg floor hop and stop, without stairs."
+    }
+  },
+  "ex26_py_box_turn": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_box_turn-f03428e3f8a2fbaa.mp4",
+    "bytes": 33056,
+    "sha256": "f03428e3f8a2fbaa4f553312e6b38ee5717aaf89a3c90a3666c5dc5c70e06fc3",
+    "poster": "/exercise-motion/ex26_py_box_turn-poster-ceb9f264d0b12298.webp",
+    "note": {
+      "cz": "Lehčí varianta: obounožný výskok s čtvrtotáčkou na podlaze se zastavením, bez bedny.",
+      "en": "Easier variation: a two-foot quarter-turn floor jump and stop, without a box."
+    }
+  },
+  "ex26_py_single_halfturn": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_single_halfturn-6ca91d3b21dc71af.mp4",
+    "bytes": 28508,
+    "sha256": "6ca91d3b21dc71af4e90cf99f7be0a1d49825ed5da5b9e294a25c270b6b1e570",
+    "poster": "/exercise-motion/ex26_py_single_halfturn-poster-62a11b65ae4fa62c.webp",
+    "note": {
+      "cz": "Lehčí varianta: malý obrat na stejné noze s posunem a zastavením, s menším úhlem otočení.",
+      "en": "Easier variation: a small traveling same-leg turn and stop, using a smaller turning angle."
+    }
+  },
+  "ex26_py_halfturn_travel": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_halfturn_travel-167b408c9838e76f.mp4",
+    "bytes": 31071,
+    "sha256": "167b408c9838e76f0676f4a37ede52c7ba15c9fc7a1e0179e253087e2c051df0",
+    "poster": "/exercise-motion/ex26_py_halfturn_travel-poster-c5ae5469911c8cdb.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden obounožný obrat s posunem a zastavením, s menším úhlem otočení.",
+      "en": "Easier variation: one traveling two-foot turn and stop, using a smaller turning angle."
+    }
+  },
+  "ex26_py_drop_lateral_bound": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_drop_lateral_bound-2c354d5030cd04fa.mp4",
+    "bytes": 31670,
+    "sha256": "2c354d5030cd04fafd20bc14577b6a5ce4fa9e97906af676c77448eea93f94b9",
+    "poster": "/exercise-motion/ex26_py_drop_lateral_bound-poster-003244c26b60a9ef.webp",
+    "note": {
+      "cz": "Lehčí varianta: malý boční přeskok na opačnou nohu se zastavením na podlaze, bez seskoku z bedny.",
+      "en": "Easier variation: a small lateral floor bound onto the opposite foot and stop, without a box drop."
+    }
+  },
+  "ex26_py_drop_sprint": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_drop_sprint-0ed12629f3ca24a9.mp4",
+    "bytes": 26488,
+    "sha256": "0ed12629f3ca24a99aa49e40e541d36c24f6f70a918081d582eb2f9e80a6b843",
+    "poster": "/exercise-motion/ex26_py_drop_sprint-poster-3b0857c19448cf98.webp",
+    "note": {
+      "cz": "Lehčí varianta: samostatný nízký seskok s dopadem na obě nohy a zastavením, bez navazujícího běhu.",
+      "en": "Easier variation: a separate low step-off with a two-foot landing and stop, without the following run."
+    }
+  },
+  "ex26_py_hop_step_jump": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_hop_step_jump-c78102d9d5ba7139.mp4",
+    "bytes": 34459,
+    "sha256": "c78102d9d5ba71398187bac7b6fa7c29c3082e566f1b8039cfd1e40802ec10cf",
+    "poster": "/exercise-motion/ex26_py_hop_step_jump-poster-8ce67b6fa9ae6874.webp",
+    "note": {
+      "cz": "Lehčí varianta: samostatný závěrečný skok z jedné nohy na obě se zastavením, bez celého trojskoku.",
+      "en": "Easier variation: a separate final jump from one foot onto both feet and stop, without the full triple-jump sequence."
+    }
+  },
+  "ex26_py_hurdle_vertical": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_hurdle_vertical-325e7b8a592fbcd7.mp4",
+    "bytes": 19869,
+    "sha256": "325e7b8a592fbcd7bf329dd48823970fc9061605b0f9c2a28680f72bba4aaad1",
+    "poster": "/exercise-motion/ex26_py_hurdle_vertical-poster-564d8ef8af1b7cb3.webp",
+    "note": {
+      "cz": "Lehčí varianta: samostatný obounožný výskok se zastavením dopadu, bez předchozího přeskoku překážky.",
+      "en": "Easier variation: a separate two-foot vertical jump and landing stop, without the preceding hurdle jump."
+    }
+  },
   "kb26_rack_stepup": {
     "oneSide": true,
     "src": "/exercise-motion/kb26_rack_stepup-3a3fb83747f77c91.mp4",
