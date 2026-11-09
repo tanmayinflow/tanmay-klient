@@ -1,5 +1,89 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_mb_chestpass": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_mb_chestpass-b7e931910c6e369a.mp4",
+    "bytes": 54747,
+    "sha256": "b7e931910c6e369a30a709618f14b1db93029c5623f6f03ebdd31cc163bdbc15",
+    "poster": "/exercise-motion/ex26_mb_chestpass-poster-0da3ccefe7223a64.webp"
+  },
+  "ex26_py_hexagon_rebound": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_hexagon_rebound-6dbd8609e475eef4.mp4",
+    "bytes": 25396,
+    "sha256": "6dbd8609e475eef475a66c237c2795a5fec30f6d8ebe11bf1fc66caf9b3115f9",
+    "poster": "/exercise-motion/ex26_py_hexagon_rebound-poster-bc5ea2bd65da1789.webp",
+    "note": {
+      "cz": "Lehčí varianta: jednotlivý přeskok snožmo přes jednu stranu ven a zpět se zastavením; nejde o celý okruh.",
+      "en": "Easier variation: one two-foot out-and-back hop across a single edge with stops; not a full circuit."
+    }
+  },
+  "ex26_py_hurdle_broad": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_hurdle_broad-b84f24d61a2e8a8e.mp4",
+    "bytes": 24216,
+    "sha256": "b84f24d61a2e8a8e3b6196c020e8f66b8ae591581e48dbc68b3f88466ae45d11",
+    "poster": "/exercise-motion/ex26_py_hurdle_broad-poster-1d686cea5209d9ed.webp",
+    "note": {
+      "cz": "Lehčí varianta se zastavením mezi skoky. Ukázka začíná v letu přes překážku a končí zastaveným druhým dopadem.",
+      "en": "Easier variation with a pause between jumps. The demonstration starts in hurdle flight and ends with the second landing held."
+    }
+  },
+  "ex26_py_triangle_single": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_triangle_single-a33bea43c61d1c76.mp4",
+    "bytes": 80011,
+    "sha256": "a33bea43c61d1c7609545aca480738ef6f656e66c7f58078e945c8560faaab34",
+    "poster": "/exercise-motion/ex26_py_triangle_single-poster-f2f8f0a864941f9e.webp",
+    "note": {
+      "cz": "Lehčí varianta se zastavením každého dopadu. Ukázán jeden okruh na stejné noze; tři poskoky znamenají tři opakování.",
+      "en": "Easier variation with each landing paused. One circuit on the same leg is shown; three hops count as three repetitions."
+    }
+  },
+  "ex26_py_box_skip": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_box_skip-006c2964ba910329.mp4",
+    "bytes": 28039,
+    "sha256": "006c2964ba910329e3a48e4e2e3d0eb86fccf07d169765c66b79686a8c4d69cb",
+    "poster": "/exercise-motion/ex26_py_box_skip-poster-b495b857e900ca07.webp",
+    "note": {
+      "cz": "Ukázán jeden odraz z bedny a dopad na stejnou nohu. Spojovací krok a další bedny nejsou součástí ukázky.",
+      "en": "One box push-off and same-foot floor landing are shown. The connecting step and further boxes are not shown."
+    }
+  },
+  "ex26_py_hurdle_single_forward": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_hurdle_single_forward-77c28895c21540cf.mp4",
+    "bytes": 21106,
+    "sha256": "77c28895c21540cf2850d5f29550d313923e10fa8c75f6ccc5b3a8e095cf0678",
+    "poster": "/exercise-motion/ex26_py_hurdle_single_forward-poster-6ac29d6ce9a97fd4.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden malý poskok vpřed na stejné noze se zastavením, bez překážky.",
+      "en": "Easier variation: one small forward hop on the same leg with a stop, without an obstacle."
+    }
+  },
+  "ex26_py_broad_rebound": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_broad_rebound-3df27189eb8ea9d7.mp4",
+    "bytes": 26095,
+    "sha256": "3df27189eb8ea9d7a299908d6941bd13dddc0a4591947520d8e473213efb0382",
+    "poster": "/exercise-motion/ex26_py_broad_rebound-poster-0592c8b161db2572.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden samostatný skok snožmo vpřed se zastavením dopadu, bez navazovaného odrazu.",
+      "en": "Easier variation: one separate two-foot forward jump with a stopped landing, without a linked rebound."
+    }
+  },
+  "ig27_drop_vertical": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig27_drop_vertical-f66f45778ac3c837.mp4",
+    "bytes": 20652,
+    "sha256": "f66f45778ac3c8373dab43a5b6aa1ba935dd5130d7b6ff52cf20ecdf2552438e",
+    "poster": "/exercise-motion/ig27_drop_vertical-poster-e616cbc7d9dde5c1.webp",
+    "note": {
+      "cz": "Lehčí varianta: jeden samostatný výskok ze země se zastavením dopadu, bez bedny a úvodního seskoku.",
+      "en": "Easier variation: one separate floor jump with a stopped landing, without a box or initial drop."
+    }
+  },
   "ex26_py_stairs_single": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_py_stairs_single-40a59d69056cf9db.mp4",
