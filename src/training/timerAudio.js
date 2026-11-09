@@ -1,3 +1,4 @@
+import { createAudioContextManager } from "../shared/product/audioContext.js";
 // Shared synthesised timer sound sets. No recording or audio upload.
 export const TM_SOUND_SETS = [
   { k: "ton", cz: "Tón", en: "Tone", dcz: "Čisté pípnutí. Střídmé, jak bylo.", den: "A clean beep. Plain, as it was." },
@@ -8,47 +9,20 @@ export const TM_SOUND_SETS = [
   { k: "puls", cz: "Puls", en: "Pulse", dcz: "Elektronický, ostrý, do tempa.", den: "Electronic, sharp, on the beat." },
 ];
 export function createTimerAudio(host = typeof window === "undefined" ? null : window) {
-  let ctx = null, master = null, comp = null, vol = 0.7, on = true, set = "misa", previews = [];
-  const stopPreview = () => { previews.forEach(clearTimeout); previews = []; };
-  // PROČ DRUHÉ SPUŠTĚNÍ MLČELO. iOS zvukový kontext po skončení první session
-  // (ticho, zamknutý displej, hovor, hlasová syntéza) přepne do „interrupted"
-  // nebo „suspended". Starý `unlock()` křísil jen „suspended" a jen když ho
-  // někdo zavolal — a druhý start šel přes setTimeout, ne přes klepnutí, takže
-  // ho neoživil nikdo. Teď se kontext (1) křísí před KAŽDÝM zvukem, (2) křísí
-  // i z „interrupted", (3) znovu postaví, když ho systém zavřel, (4) probudí
-  // se, jakmile se stránka vrátí do popředí.
-  const wake = () => {
-    const c = ctx;
-    if (!c) return;
-    if (c.state === "suspended" || c.state === "interrupted") { try { c.resume().catch(() => {}); } catch (e) {} }
-  };
-  if (host?.document) {
-    try {
-      host.document.addEventListener("visibilitychange", () => { if (host.document.visibilityState === "visible") wake(); });
-      host.addEventListener("pageshow", wake);
-      host.addEventListener("focus", wake);
-    } catch (e) {}
-  }
-  const ensure = () => {
-    if (ctx && ctx.state === "closed") { ctx = null; master = null; comp = null; }
-    if (ctx) { wake(); return ctx; }
-    try {
-      const Ctx = host?.AudioContext || host?.webkitAudioContext;
-      if (!Ctx) return null;
-      ctx = new Ctx();
-      master = ctx.createGain();
-      comp = ctx.createDynamicsCompressor();
-      // Kompresor drží špičky; díky němu smí být hlavní hlasitost přes 1.
-      try { comp.threshold.value = -14; comp.knee.value = 18; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.18; } catch (e) {}
-      // a za ním limiter: tvrdý strop těsně pod plným výkonem, aby se na
-      // maximu nic nelámalo
+  let master = null, comp = null, vol = 0.7, on = true, set = "misa", previews = [];
+  const stopPreview = () => { previews.forEach(clearTimeout); previews = []; manager.cancel(); };
+  const manager = createAudioContextManager(host, {
+    onReset() { try { master?.disconnect(); comp?.disconnect(); } catch {} master = null; comp = null; },
+    onCreate(ctx) {
+      master = ctx.createGain(); comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -14; comp.knee.value = 18; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.18;
       const lim = ctx.createDynamicsCompressor();
-      try { lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.08; } catch (e) {}
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.08;
       master.gain.value = gainOf(vol);
       master.connect(comp); comp.connect(lim); lim.connect(ctx.destination);
-    } catch (e) { ctx = null; }
-    return ctx;
-  };
+    },
+  });
+  const ensure = () => manager.get();
   // 0–1 z posuvníku → zesílení. Křivka jde nahoru rychleji na konci, aby
   // spodní polovina zůstala jemná a horní opravdu zněla.
   const gainOf = (v) => Math.pow(Math.max(0, Math.min(1, v)), 1.4) * 2.7;
@@ -198,39 +172,30 @@ export function createTimerAudio(host = typeof window === "undefined" ? null : w
   const cur = () => SETS[set] || SETS.ton;
   return {
     sets: TM_SOUND_SETS,
-    // Odemknutí patří do klepnutí. Kromě resume() se přehraje jeden tichý
-    // vzorek — to je gesto, kterým iOS Safari opravdu pustí zvuk ven z ticha.
-    unlock() {
-      const c = ensure();
-      if (!c) return;
-      if (c.state !== "running") { try { c.resume().catch(() => {}); } catch (e) {} }
-      try {
-        const b = c.createBuffer(1, 1, c.sampleRate);
-        const src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0);
-      } catch (e) {}
-    },
-    state() { return ctx ? ctx.state : "none"; },
+    unlock: manager.unlock,
+    state: manager.state,
+    dispose() { stopPreview(); manager.dispose(); },
     set(enabled, volume, soundSet) {
       on = !!enabled;
+      if (!on) manager.cancel();
       vol = Math.max(0, Math.min(1, volume == null ? vol : volume));
       if (soundSet && SETS[soundSet]) set = soundSet;
       if (master) master.gain.value = gainOf(vol);
     },
     use(soundSet) { if (soundSet && SETS[soundSet]) set = soundSet; },
-    count(n) { cur().count(n); },
-    ten() { cur().ten(); },
-    half() { cur().half(); },
-    go() { cur().go(); },
-    rest() { cur().rest(); },
-    tick() { cur().tick(); },
-    finish() { cur().finish(); },
+    count(n) { if (on) manager.run(() => { if (on) cur().count(n); }); },
+    ten() { if (on) manager.run(() => { if (on) cur().ten(); }); },
+    half() { if (on) manager.run(() => { if (on) cur().half(); }); },
+    go() { if (on) manager.run(() => { if (on) cur().go(); }); },
+    rest() { if (on) manager.run(() => { if (on) cur().rest(); }); },
+    tick() { if (on) manager.run(() => { if (on) cur().tick(); }); },
+    finish() { if (on) manager.run(() => { if (on) cur().finish(); }); },
     // ukázka sady · odpočet 3-2-1 a „teď". Sada se nepřepíná, jen se zahraje.
     preview(soundSet) {
       stopPreview();
       const S = SETS[soundSet] || cur();
-      const c = ensure(); if (!c) return 0;
-      if (c.state === "suspended") c.resume().catch(() => {});
-      const sample = cue => { const was = on; on = true; try { cue(); } finally { on = was; } };
+      manager.unlock();
+      const sample = cue => manager.run(() => { const was = on; on = true; try { cue(); } finally { on = was; } });
       previews = [3, 2, 1].map((n, i) => setTimeout(() => sample(() => S.count(n)), i * 420));
       previews.push(setTimeout(() => sample(() => S.go()), 1260));
       return 2400;

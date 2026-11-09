@@ -1,3 +1,4 @@
+import { createAudioContextManager } from "../product/audioContext.js";
 // The same four synthesized voices in both apps. No audio files or continuous playback.
 export const TM_SOUNDS = [
   { k: "bowl", cz: "Tibetská mísa", en: "Singing bowl", cz2: "úder a dlouhý dozvuk", en2: "a strike and a long tail" },
@@ -5,17 +6,6 @@ export const TM_SOUNDS = [
   { k: "bell", cz: "Zvonky", en: "Tingsha bells", cz2: "dva čisté kovové tóny", en2: "two clean metal tones" },
   { k: "rain", cz: "Déšť", en: "Rain", cz2: "závoj šumu a tři kapky", en2: "a veil of noise, three drops" },
 ];
-function tmAudioCtx(extCtx) {
-  if (extCtx) return extCtx;
-  try {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return null;
-    if (!TM_AC) TM_AC = new Ctx();
-    if (TM_AC.state === "suspended") TM_AC.resume().catch(() => {});
-    return TM_AC;
-  } catch (e) { return null; }
-}
-let TM_AC = null;
 // měkký úder paličky · krátký šum, aby tón nezačínal z ničeho
 function tmMallet(ctx, t0, freq, amp, dur) {
   const n = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
@@ -81,17 +71,34 @@ function tmVoiceRain(ctx, t0, v) {
   src.start(t0); src.stop(t0 + dur);
   [[392.0, 0.2], [523.25, 0.85], [659.25, 1.5]].forEach(([f, dt]) => tmPartial(ctx, t0 + dt, f, 0.05 * v, 0.1, 1.8));
 }
-// jeden vstup pro celý dům · časovač i připomínky zvoní stejným hlasem
-export function tmPlaySound(name, extCtx, vol) {
-  try {
-    const ctx = tmAudioCtx(extCtx);
-    if (!ctx) return false;
+// One recoverable audio lifecycle for focus blocks, reminders and sound previews.
+export function createPomodoroAudio(host = typeof window === "undefined" ? null : window) {
+  const audio = createAudioContextManager(host);
+  const synthesize = (ctx, name, vol) => {
     const t0 = ctx.currentTime + 0.02;
     const v = vol == null ? 1 : Math.max(0, Math.min(1.4, vol));
     if (name === "gong") tmVoiceGong(ctx, t0, v);
     else if (name === "bell") tmVoiceBell(ctx, t0, v);
     else if (name === "rain") tmVoiceRain(ctx, t0, v);
     else tmVoiceBowl(ctx, t0, v);
-    return true;
-  } catch (e) { return false; }
+  };
+  return {
+    unlock: () => audio.unlock(),
+    state: () => audio.state(),
+    dispose: () => audio.dispose(),
+    play(name, extCtx, vol) {
+      try {
+        // External contexts are used by offline renders; do not take ownership.
+        if (extCtx) {
+          if (extCtx.state === "closed") return false;
+          synthesize(extCtx, name, vol);
+          return true;
+        }
+        return audio.run(ctx => synthesize(ctx, name, vol));
+      } catch { return false; }
+    },
+  };
 }
+const pomoAudio = createPomodoroAudio();
+export const tmUnlockSound = () => pomoAudio.unlock();
+export const tmPlaySound = (name, extCtx, vol) => pomoAudio.play(name, extCtx, vol);

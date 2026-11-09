@@ -4,7 +4,7 @@ import { TmIcon as FamilyIcon } from "./icons.jsx";
 import { useVrstva } from "./overlay.jsx";
 import { FONT_BODY, FONT_TAG, FONT_DISPLAY_EN as FONT_DISPLAY } from "./type.js";
 import { hexA } from "./color.js";
-import { TM_SOUNDS, tmPlaySound } from "./pomodoroSound.js";
+import { TM_SOUNDS, tmPlaySound, tmUnlockSound } from "./pomodoroSound.js";
 import { pomodoroPalette, pomodoroPickerPalette } from "./pomodoroPalette.js";
 import { createPomoStorage } from "../product/pomodoro.js";
 
@@ -431,6 +431,7 @@ function PomodoroTimer() {
      oznámení, nikdy při načtení aplikace. Odmítnutí nic nerozbije: časovač
      měří dál, jen mlčí. */
   const beginRun = (extra) => {
+    if (cfg.sound !== false) tmUnlockSound();
     pomoWake(true);
     try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {}); } catch (e) {}
     const ted = Date.now();
@@ -606,7 +607,7 @@ function PomodoroTimer() {
             {TM_SOUNDS.map((v) => {
               const on = (cfg.voice || "bowl") === v.k;
               return (
-                <button key={v.k} onClick={() => { st.setPomoSettings({ voice: v.k }); tmPlaySound(v.k, null, cfg.vol == null ? 1 : cfg.vol); }} className="tm-nav-item"
+                <button key={v.k} onClick={() => { st.setPomoSettings({ voice: v.k }); tmUnlockSound(); tmPlaySound(v.k, null, cfg.vol == null ? 1 : cfg.vol); }} className="tm-nav-item"
                   style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: on ? hexA(t.accent, 0.1) : "transparent", border: `1px solid ${on ? t.accent : t.borderSoft}`, borderRadius: 10, padding: "9px 12px", marginBottom: 6, cursor: "pointer", minHeight: 46 }}>
                   <span style={{ width: 9, height: 9, borderRadius: "50%", flexShrink: 0, background: on ? t.accent : "transparent", border: `1px solid ${on ? t.accent : t.border}` }} />
                   <span style={{ flex: 1, minWidth: 0 }}>
@@ -621,8 +622,8 @@ function PomodoroTimer() {
               <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, flexShrink: 0 }}>{L("Hlasitost", "Volume")}</span>
               <input type="range" min="0.2" max="1.4" step="0.1" value={cfg.vol == null ? 1 : cfg.vol}
                 onChange={(e) => st.setPomoSettings({ vol: +e.target.value })}
-                onMouseUp={() => tmPlaySound(cfg.voice || "bowl", null, cfg.vol == null ? 1 : cfg.vol)}
-                onTouchEnd={() => tmPlaySound(cfg.voice || "bowl", null, cfg.vol == null ? 1 : cfg.vol)}
+                onMouseUp={() => { tmUnlockSound(); tmPlaySound(cfg.voice || "bowl", null, cfg.vol == null ? 1 : cfg.vol); }}
+                onTouchEnd={() => { tmUnlockSound(); tmPlaySound(cfg.voice || "bowl", null, cfg.vol == null ? 1 : cfg.vol); }}
                 style={{ flex: 1, minWidth: 0, accentColor: t.accent }} />
             </div>
           </div>

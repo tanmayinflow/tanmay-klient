@@ -80,18 +80,19 @@ test('stopping speech cancels a countdown queued after browser cancellation', as
 });
 
 function audioPlatform() {
-  const sounds = [], contexts = [];
+  const sounds = [], contexts = []; let now = 0;
   const param = () => ({ value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} });
   class AudioContext {
-    constructor() { this.state = 'running'; this.currentTime = 0; this.sampleRate = 8000; this.destination = {}; contexts.push(this); }
+    constructor() { this.state = 'running'; this.currentTime = 0; this.sampleRate = 8000; this.destination = {}; this.gains = []; contexts.push(this); }
     resume() { this.state = 'running'; return Promise.resolve(); }
-    node() { return { gain: param(), frequency: param(), Q: param(), connect(to) { return to; }, start() { sounds.push('sound'); }, stop() {} }; }
-    createGain() { return this.node(); } createOscillator() { return this.node(); }
-    createBiquadFilter() { return this.node(); } createBufferSource() { return this.node(); }
-    createBuffer(_channels, length) { return { getChannelData: () => new Float32Array(length) }; }
+    close() { this.state = 'closed'; return Promise.resolve(); }
+    node(kind) { return { gain: param(), frequency: param(), Q: param(), connect(to) { return to; }, disconnect() {}, start() { if (kind !== 'buffer' || this.buffer?.length > 1) sounds.push('sound'); }, stop() {} }; }
+    createGain() { const node = this.node(); this.gains.push(node); return node; } createOscillator() { return this.node(); }
+    createBiquadFilter() { return this.node(); } createBufferSource() { return this.node('buffer'); }
+    createBuffer(_channels, length) { return { length, getChannelData: () => new Float32Array(length) }; }
     createDynamicsCompressor() { return { ...this.node(), threshold: param(), knee: param(), ratio: param(), attack: param(), release: param() }; }
   }
-  return { host: { AudioContext }, sounds, contexts };
+  return { host: { AudioContext, performance: { now: () => now } }, sounds, contexts, advance(ms) { now += ms; } };
 }
 
 test('each sound set produces every timer cue and mute suppresses later cues', () => {
@@ -105,7 +106,7 @@ test('each sound set produces every timer cue and mute suppresses later cues', (
   }
 });
 
-test('sound preview replaces previous pending cues and never changes the current mute setting', t => {
+test('sound preview replaces previous pending cues and never changes the current mute setting', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const p = audioPlatform();
   const audio = createTimerAudio(p.host); audio.set(false, .5, 'ton');
@@ -113,6 +114,52 @@ test('sound preview replaces previous pending cues and never changes the current
   audio.preview('ton'); audio.preview('ton'); t.mock.timers.tick(1300);
   assert.equal(p.sounds.length, 5); const before = p.sounds.length;
   audio.count(3); assert.equal(p.sounds.length, before);
-  audio.set(true); p.contexts[0].state = 'interrupted'; audio.go(); assert.equal(p.contexts[0].state, 'running');
-  p.contexts[0].state = 'closed'; audio.go(); assert.equal(p.contexts.length, 2);
+  audio.set(true); p.contexts[0].state = 'interrupted'; audio.go(); await Promise.resolve(); await Promise.resolve(); assert.equal(p.contexts[0].state, 'running');
+  p.contexts[0].state = 'closed'; audio.go(); assert.equal(p.contexts.length, 2); audio.dispose();
+});
+
+test('repeated training starts preserve volume and sound choice across fresh contexts', () => {
+  const p = audioPlatform(), audio = createTimerAudio(p.host);
+  try {
+    audio.set(true, .3, 'ton');
+    for (let cycle = 0; cycle < 4; cycle++) {
+      p.advance(5000); audio.unlock();
+      const context = p.contexts.at(-1), before = p.sounds.length;
+      assert.equal(context.gains[0].gain.value, Math.pow(.3, 1.4) * 2.7);
+      for (const cue of ['count', 'ten', 'half', 'go', 'rest', 'tick', 'finish']) audio[cue](3);
+      assert.equal(p.sounds.length - before, 12, 'the selected Tone set stays selected after each fresh context');
+    }
+    assert.equal(p.contexts.length, 4);
+    assert.ok(p.contexts.slice(0, -1).every(context => context.state === 'closed'));
+  } finally { audio.dispose(); }
+});
+
+test('muting while a training cue awaits resume prevents it from replaying later', async () => {
+  const p = audioPlatform(), audio = createTimerAudio(p.host);
+  try {
+    audio.set(true, .4, 'ton'); audio.unlock(); const context = p.contexts.at(-1);
+    let finishResume;
+    context.state = 'interrupted';
+    context.resume = () => new Promise(resolve => { finishResume = () => { context.state = 'running'; resolve(); }; });
+    const before = p.sounds.length;
+    audio.count(2); audio.set(false); finishResume();
+    await Promise.resolve(); await Promise.resolve();
+    assert.equal(p.sounds.length, before);
+    audio.set(true); audio.count(1); assert.equal(p.sounds.length, before + 1);
+  } finally { audio.dispose(); }
+});
+
+test('closing a sound preview also suppresses a cue already waiting for OS recovery', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const p = audioPlatform(), audio = createTimerAudio(p.host);
+  try {
+    audio.preview('ton'); const context = p.contexts.at(-1);
+    let finishResume;
+    context.state = 'interrupted';
+    context.resume = () => new Promise(resolve => { finishResume = () => { context.state = 'running'; resolve(); }; });
+    t.mock.timers.tick(1); audio.stopPreview(); finishResume();
+    await Promise.resolve(); await Promise.resolve();
+    assert.equal(p.sounds.length, 0);
+    t.mock.timers.tick(2000); assert.equal(p.sounds.length, 0);
+  } finally { audio.dispose(); }
 });

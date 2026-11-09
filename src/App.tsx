@@ -10107,6 +10107,8 @@ function useTmEngine(compiled, cfg, onFinish) {
 
   const play = (cues, el) => {
     const c = cfgRef.current;
+    tmAudio.set(c.sound, c.volume, c.soundSet);
+    tmVoice.set(c.voice, { rate: c.voiceRate, cs: c.voiceCs, en: c.voiceEn, lang: c.voiceLang });
     for (const q of cues) {
       // a tab that slept through ten beeps should not wake up and fire all ten
       if (el - q.at > 1.2 && q.c !== "finish") continue;
@@ -10184,7 +10186,7 @@ function useTmEngine(compiled, cfg, onFinish) {
   }, [status, compiled]);
 
   const startAt = (el) => {
-    tmAudio.unlock();
+    tmAudio.unlock(false);
     clock.current = { t0: Date.now(), pausedTotal: 0, pausedAt: 0, shift: el || 0 };
     cur.current = { idx: 0, segStart: 0, lastEl: el || 0 };
     setRounds(0); roundsRef.current = 0;
@@ -10209,7 +10211,7 @@ function useTmEngine(compiled, cfg, onFinish) {
     tmBuzz([15], cfgRef.current.haptics);
   };
   const toggle = () => (statusRef.current === "running" ? pause() : statusRef.current === "paused" ? resume() : start());
-  const restart = () => { tmVoice.stop(); start(); };
+  const restart = () => { tmAudio.unlock(); tmVoice.stop(); start(); };
   const stop = () => { tmVoice.stop(); setStatus("idle"); statusRef.current = "idle"; clock.current = { t0: 0, pausedTotal: 0, pausedAt: 0, shift: 0 }; cur.current = { idx: 0, segStart: 0, lastEl: 0 }; setRounds(0); };
 
   // Jumping is a seek, not a mutation of the program: we move the origin so the
@@ -10386,7 +10388,7 @@ function TmStage({ program, name, mode, onClose }) {
   const stageRef = React.useRef(null);
   const [full, toggleFull] = useFullscreen(stageRef);
 
-  const eng = useTmEngine(compiled, { ...cfg, sound: !muted }, (r) => setResult({ ...r, endedAt: Date.now() }));
+  const eng = useTmEngine(compiled, { ...cfg, sound: !muted && cfg.sound, voice: cfg.voice && !muted }, (r) => setResult({ ...r, endedAt: Date.now() }));
   useWakeLock(cfg.wake && eng.status === "running");
 
   React.useEffect(() => {
@@ -10813,7 +10815,7 @@ function TmHome({ onRun }) {
     if (JSON.stringify(stored) !== JSON.stringify(spec)) st.setTmSpec(mode, spec);
   }, [spec, mode]);
   React.useEffect(() => { if (cfg.lastMode !== mode) st.setTmCfg({ lastMode: mode }); }, [mode]);
-  const run = (m, s) => { st.setTmSpec(m, s); onRun({ mode: m, program: tmProgramOf(m, s), name: null }); };
+  const run = (m, s) => { tmAudio.unlock(); st.setTmSpec(m, s); onRun({ mode: m, program: tmProgramOf(m, s), name: null }); };
   const compiled = tmCompile(tmProgramOf(mode, spec), { countIn: cfg.countIn });
 
   const secFmt = (v) => tmFmt(v);
