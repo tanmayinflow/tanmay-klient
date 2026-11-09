@@ -5,6 +5,7 @@
 
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
+import { shellLayoutCss } from './shellLayout.js';
 
 // ----------------------------------------------------------------------
 // SKOŘÁPKA DOMU · jednotky, spodní prostor, mobil a dok
@@ -354,6 +355,7 @@ html:not(:is([data-surface-style="veil"],[data-surface-style="shadow"],[data-sur
   .tm-srow > *:nth-child(5) { grid-column: 2 / -1; grid-row: 3; }
 
 }
+${shellLayoutCss()}
 `;
 }
 

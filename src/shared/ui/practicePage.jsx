@@ -23,19 +23,11 @@ export function createPracticePage({useT,useStore,L,PageTitle,BufferedInput,TmIc
     const {t}=useT(); const st=useStore();
     const [prah,setPrah]=useState(tmPrahKlic),[calOpen,setCalOpen]=useState(false),[ovOpen,setOvOpen]=useState(false);
     useGuideAction("praxe",action=>{setOvOpen(false);setPrah(action==="praxe.evening"?"vecer":action==="praxe.habits"?"den":"rano");});
-    const intro=L("Ráno záměr. Přes den praxe. Večer ohlédnutí. Den po dni.","Intention in the morning. Practice through the day. Review at night. One day at a time.");
     return <>
-      <div className="tm-mhide" style={{borderRadius:16,overflow:"hidden",border:`1px solid ${t.borderSoft}`,marginBottom:26,boxShadow:t.shadow}}>
-        <div style={{background:t.hero,padding:"20px 24px 18px"}}>
-          <div style={{fontFamily:FONT_TAG,textTransform:"uppercase",letterSpacing:".26em",fontSize:15,color:t.heroInk,display:"flex",alignItems:"center",flexWrap:"wrap",gap:"0 14px"}}>{["Move","Practice","Listen"].map((word,i)=><React.Fragment key={word}>{i>0&&<span style={{width:5,height:5,borderRadius:"50%",background:t.heroInkSoft,display:"inline-block"}}/>}<span>{word}</span></React.Fragment>)}</div>
-          <div style={{width:44,height:1,background:t.heroLine,margin:"14px 0"}}/>
-          {st.editMode?<BufferedInput value={st.pageMetaOf("praxe").sub||intro} onCommit={sub=>st.setPageMeta("praxe",{sub})} style={{fontFamily:FONT_BODY,fontSize:13,color:t.heroInkSoft,lineHeight:1.65,maxWidth:520}}/>:<p style={{fontFamily:FONT_BODY,fontSize:13,color:t.heroInkSoft,margin:0,lineHeight:1.65,maxWidth:520}}>{st.pageMetaOf("praxe").sub||intro}</p>}
-        </div>
-      </div>
       <PageTitle pageKey="praxe" artKey={practiceArtKey} icon={<span style={{color:t.sand,display:"inline-flex"}}><TmIcPraxe size={42}/></span>} kicker={L("Drž svou praxi","Hold the practice")}>{L("Praxe","Practice")}</PageTitle>
       <p className="tm-prose" style={pProse(t)}>{L("Ráno záměr. Přes den praxe. Večer ohlédnutí.","Intention in the morning. Practice through the day. Review at night.")}</p>
       <div style={{height:6}}/>
-      <div style={{maxWidth:760}}>
+      <div className="tm-practice-day" style={{width:"100%",minWidth:0}}>
         <TmPasPrahu prah={prah} onPrah={setPrah}/>
         <DayView go={go} prah={prah} calOpen={calOpen} onCal={()=>setCalOpen(o=>!o)}/>
         {prah==="rano"&&<DailySource go={go}/>}
