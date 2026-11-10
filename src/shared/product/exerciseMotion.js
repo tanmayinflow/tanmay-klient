@@ -1,5 +1,93 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_mb_lunge_pass": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_mb_lunge_pass-777a7fdc960ecfa7.mp4",
+    "bytes": 42761,
+    "sha256": "777a7fdc960ecfa765f5b6fbb9b8022d28afea654abc4894d2a9fec34dfd6688",
+    "poster": "/exercise-motion/ex26_mb_lunge_pass-poster-668213b20eebb3a1.webp",
+    "note": {
+      "cz": "Připravený partner mimo záběr vpravo vrací míč. Přijmi jej až po návratu do stabilního stoje.",
+      "en": "A ready partner outside the frame on the right returns the ball. Receive it only after returning to a stable stance."
+    }
+  },
+  "ex26_py_ankling": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_ankling-877e21efa03cb577.mp4",
+    "bytes": 36415,
+    "sha256": "877e21efa03cb57711abaedbbaa7f786e601e8467fff110ae6f318fa88b0ab52",
+    "poster": "/exercise-motion/ex26_py_ankling-poster-541d041d1f1c402f.webp",
+    "note": {
+      "cz": "Lehčí varianta: krátké střídavé kroky v pomalé chůzi bez poskoků. Každý došlap počítej jako jedno opakování.",
+      "en": "Easier variation: short alternating steps in slow walking without hops. Count each foot contact as one repetition."
+    }
+  },
+  "ex26_py_double_contacts": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_double_contacts-03744462b64f06fe.mp4",
+    "bytes": 54552,
+    "sha256": "03744462b64f06fe64fdb72f2a3efab3733f41a7c3aa572daa2c55b92fca86c5",
+    "poster": "/exercise-motion/ex26_py_double_contacts-poster-4904d72143a31261.webp",
+    "note": {
+      "cz": "Lehčí varianta: malé jednotlivé poskoky vpřed v rytmu pravá–pravá–levá–levá. Po posledním dopadu zastav.",
+      "en": "Easier variation: separate small forward hops in a right–right–left–left rhythm. Stop after the final landing."
+    }
+  },
+  "ex26_py_foreaft_lateral": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_foreaft_lateral-7cc7a1d375e0f84b.mp4",
+    "bytes": 43758,
+    "sha256": "7cc7a1d375e0f84b8a30a1fe42b8c69086a0310b1c28303d8f639f72bd467fb0",
+    "poster": "/exercise-motion/ex26_py_foreaft_lateral-poster-803b49bcaf11155c.webp",
+    "note": {
+      "cz": "Lehčí varianta: přeskoky snožmo vpřed a vzad přes čáru bez bočního posunu. Po návratu zastav.",
+      "en": "Easier variation: two-foot forward and backward hops over a line without sideways travel. Stop after returning."
+    }
+  },
+  "ex26_py_knee_lateral_push": {
+    "oneSide": true,
+    "src": "/exercise-motion/ex26_py_knee_lateral_push-0dc1735112ace451.mp4",
+    "bytes": 46751,
+    "sha256": "0dc1735112ace4513ac22dbb682d8fcf829ca39566df5521fd95615cad95a423",
+    "poster": "/exercise-motion/ex26_py_knee_lateral_push-poster-69b3b5fe2c9e06ab.webp",
+    "note": {
+      "cz": "Lehčí varianta: běžný klik na kolenou bez letu, potom postupné malé kroky rukama do strany. Kolena zůstávají na podložce. Po přesunu zastav.",
+      "en": "Easier variation: a regular knee push-up without flight, followed by small sequential sideways hand steps. Keep the knees on the mat. Stop after the shift."
+    }
+  },
+  "bearcrawl": {
+    "oneSide": false,
+    "src": "/exercise-motion/bearcrawl-cd73e9a9c501ef3d.mp4",
+    "bytes": 47516,
+    "sha256": "cd73e9a9c501ef3d83a3b035bf44028f9812934257b29b72c8ff215081575ece",
+    "poster": "/exercise-motion/bearcrawl-poster-b50282a666601b1a.webp",
+    "note": {
+      "cz": "Ukázka dvou krátkých kroků vpřed se střídáním protilehlé ruky a nohy. Zapisuj dobu skutečného lezení, nikoli závěrečnou zastávku.",
+      "en": "Two short forward steps alternate opposite hand and foot. Record actual crawling time, excluding the final pause."
+    }
+  },
+  "ex26_py_scissors_travel": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_scissors_travel-c9106100f2b1acbf.mp4",
+    "bytes": 27430,
+    "sha256": "c9106100f2b1acbf344ee0c2bf2dcc69c3ec04d602539d019102799da28b03f1",
+    "poster": "/exercise-motion/ex26_py_scissors_travel-poster-94faae3859a7dca4.webp",
+    "note": {
+      "cz": "Lehčí přeskoky na místě bez bočního posunu. Každá výměna nohou s dopadem je jedno opakování; návrat do původního postoje jsou dvě. Poslední dopad zastav.",
+      "en": "Easier hops in place without sideways travel. Each foot switch and landing is one repetition; returning to the initial stance takes two. Stop the final landing."
+    }
+  },
+  "ex26_py_box_bound": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_py_box_bound-da43dea5cefe1dc5.mp4",
+    "bytes": 41279,
+    "sha256": "da43dea5cefe1dc5f37d6702696b2fff5b2a6b04b7793db6321b20f16cecc812",
+    "poster": "/exercise-motion/ex26_py_box_bound-poster-99475faf214ee5a3.webp",
+    "note": {
+      "cz": "Lehčí střídavé odrazy na podlaze bez beden. Každý let s dopadem na opačnou nohu je jedno opakování; ukázka obsahuje dvě. Poslední dopad zastav.",
+      "en": "Easier alternating floor bounds without boxes. Each flight and opposite-foot landing is one repetition; two are shown. Stop the final landing."
+    }
+  },
   "ex26_mb_chestpass": {
     "oneSide": false,
     "src": "/exercise-motion/ex26_mb_chestpass-b7e931910c6e369a.mp4",
