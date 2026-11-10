@@ -1,5 +1,73 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "ex26_lateral_crawl": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_lateral_crawl-d3f0746ee277ad4e.mp4",
+    "bytes": 35689,
+    "sha256": "d3f0746ee277ad4e01e28365e05b69522d43c0ce01c096c9b9d5c4e1222e26b8",
+    "poster": "/exercise-motion/ex26_lateral_crawl-poster-080155c94577081b.webp",
+    "note": {
+      "en": "Easier variation: one short step sideways and back, pausing in support. Move the trailing hand and foot separately without crossing.",
+      "cz": "Lehčí varianta: jeden krátký krok do strany a zpět s pauzou v opoře. Dobíhající ruku a nohu přesouvej postupně bez překřížení."
+    }
+  },
+  "ig28_crab_reach": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig28_crab_reach-aee563f83af7fb1f.mp4",
+    "bytes": 38717,
+    "sha256": "aee563f83af7fb1f914d2164bbc9258b16c0e77e806473e2d2cbbe927a4aced0",
+    "poster": "/exercise-motion/ig28_crab_reach-poster-42dd29c5dcee4917.webp"
+  },
+  "ig29_cross_squat_getup": {
+    "oneSide": true,
+    "src": "/exercise-motion/ig29_cross_squat_getup-921b03b165ae3b23.mp4",
+    "bytes": 48259,
+    "sha256": "921b03b165ae3b234ca3aa94c5afe856b5761c4ad8052eb28f2b88e09cbfa19b",
+    "poster": "/exercise-motion/ig29_cross_squat_getup-poster-b4aee8850483eb0f.webp",
+    "note": {
+      "cz": "Lehčí varianta: pouze přenos váhy vpřed z vyššího sedu s oporou rukou a návrat. Pánev zůstává na sedu; vystřídej přední kotník.",
+      "en": "Easier variation: only shift forward from a raised seat with hand support and return. Keep the hips seated; alternate the front ankle."
+    }
+  },
+  "ex26_hss_quad_drag": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_hss_quad_drag-22bbd298dc9c7675.mp4",
+    "bytes": 73811,
+    "sha256": "22bbd298dc9c7675c927b96ded4f6879818f8f9c2039b6779848da90647164e5",
+    "poster": "/exercise-motion/ex26_hss_quad_drag-poster-2e1b2ff0297c2240.webp"
+  },
+  "ig29_buttock_walk": {
+    "oneSide": false,
+    "src": "/exercise-motion/ig29_buttock_walk-bb1fe0fafbb1b9a9.mp4",
+    "bytes": 41777,
+    "sha256": "bb1fe0fafbb1b9a91be3776de6c6db9ddb564563892d80470838ac20d7d1d648",
+    "poster": "/exercise-motion/ig29_buttock_walk-poster-7521b4451976769d.webp",
+    "note": {
+      "cz": "Lehčí varianta: pouze střídavý přenos váhy na místě a návrat do středu. Ruce zůstávají volné; bez posunu vpřed.",
+      "en": "Easier variation: only alternate weight shifts in place and return to centre. Keep hands free; no forward steps."
+    }
+  },
+  "st26_barbell": {
+    "oneSide": true,
+    "src": "/exercise-motion/st26_barbell-1790d41e2754a4fc.mp4",
+    "bytes": 56896,
+    "sha256": "1790d41e2754a4fcb83583bf5900fcf752d7de4a455ed4bedd5757a8139f71e9",
+    "poster": "/exercise-motion/st26_barbell-poster-c630fdafe2710c82.webp"
+  },
+  "ex26_rope_lateral": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_rope_lateral-4b6a8c6f29963a6d.mp4",
+    "bytes": 42627,
+    "sha256": "4b6a8c6f29963a6d327c0ae8e1a66ea6216db14ba64c45a4ef62f4289a2b3fbb",
+    "poster": "/exercise-motion/ex26_rope_lateral-poster-fefaf11141854f97.webp"
+  },
+  "ex26_trx_rollout": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_trx_rollout-f908d94727d7c0cf.mp4",
+    "bytes": 22406,
+    "sha256": "f908d94727d7c0cfd44e524d5ff8a9309038410b53fb4a6797f16befa30ddb96",
+    "poster": "/exercise-motion/ex26_trx_rollout-poster-d3fd8b98a73a5cde.webp"
+  },
   "ex26_mb_lunge_pass": {
     "oneSide": true,
     "src": "/exercise-motion/ex26_mb_lunge_pass-777a7fdc960ecfa7.mp4",
