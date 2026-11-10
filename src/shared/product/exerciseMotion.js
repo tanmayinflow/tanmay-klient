@@ -1,5 +1,60 @@
 // Exact reviewed exercise ids only. No family/name/variant fallback.
 export const EXERCISE_MOTION = Object.freeze({
+  "dragonsquat": {
+    "oneSide": true,
+    "src": "/exercise-motion/dragonsquat-3ee6eb19bc179560.mp4",
+    "bytes": 18567,
+    "sha256": "3ee6eb19bc179560fca54c1f94b1e993c6e761cefd36c54058b795c1a0eb2e3d",
+    "poster": "/exercise-motion/dragonsquat-poster-45cf9dd173644f11.webp",
+    "note": {
+      "cz": "Menší rozsah: dřep na jedné noze s volnou nohou překříženou za stojnou a návrat vzhůru.",
+      "en": "Reduced range: single-leg squat with the free leg crossed behind the standing leg, then return upright."
+    }
+  },
+  "ex26_toe_pull": {
+    "oneSide": false,
+    "src": "/exercise-motion/ex26_toe_pull-1ee0c4575f208eef.mp4",
+    "bytes": 13923,
+    "sha256": "1ee0c4575f208eef96548c18461fcafca81c96e6b7176c3b3dabf220521521d4",
+    "poster": "/exercise-motion/ex26_toe_pull-poster-a4ba6012b3379fc6.webp",
+    "note": {
+      "cz": "Krátké odlepení obou špiček a jemný návrat ke zdi; dlaně zůstávají na místě, prsty směřují od zdi.",
+      "en": "Brief release of both toes and gentle return to the wall; palms remain fixed, fingers point away from the wall."
+    }
+  },
+  "pelican": {
+    "oneSide": false,
+    "src": "/exercise-motion/pelican-cd6263c1b12548ca.mp4",
+    "bytes": 22478,
+    "sha256": "cd6263c1b12548ca7bc79cccc66b456208308e9389b7dc9a103e7266fd8c4636",
+    "poster": "/exercise-motion/pelican-poster-85a481b82d9d5d98.webp",
+    "note": {
+      "cz": "S oporou špiček malý náklon vpřed při natahování loktů, poté pokrčením návrat ke kruhům u boků.",
+      "en": "With toe support, lean forward through a small range while extending the elbows, then bend them to return toward rings beside the hips."
+    }
+  },
+  "zenetti": {
+    "oneSide": false,
+    "src": "/exercise-motion/zenetti-5a63906200900f2f.mp4",
+    "bytes": 30530,
+    "sha256": "5a63906200900f2fac282c726d2d19516fce3f086a7f6bb55ec7883bd02007ca",
+    "poster": "/exercise-motion/zenetti-poster-b98f8c4e08c39d7d.webp",
+    "note": {
+      "cz": "Natažené paže vedou činky od boků přes polohu nad hrudníkem směrem nad hlavu a stejnou cestou zpět; hlava a trup zůstávají opřené.",
+      "en": "Straight arms sweep the dumbbells from beside the hips through the position over the chest toward overhead and back along the same path; head and torso stay supported."
+    }
+  },
+  "freehspu": {
+    "oneSide": false,
+    "src": "/exercise-motion/freehspu-4a503a23aedb0ce1.mp4",
+    "bytes": 22462,
+    "sha256": "4a503a23aedb0ce12bfb22267215d3a089708c51a0ec0e6da44e8800b473856b",
+    "poster": "/exercise-motion/freehspu-poster-23c9cc3705087741.webp",
+    "note": {
+      "cz": "Menší rozsah: mírně pokrč lokty a vrať se do volné stojky. Hlava zůstává nad zemí.",
+      "en": "Reduced range: bend the elbows slightly and return to a freestanding handstand. Keep the head off the floor."
+    }
+  },
   "ex26_lateral_crawl": {
     "oneSide": false,
     "src": "/exercise-motion/ex26_lateral_crawl-d3f0746ee277ad4e.mp4",
