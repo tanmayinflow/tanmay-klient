@@ -9611,7 +9611,7 @@ function TExDetail({ exId, onClose, onOpen }) {
   const load = tLoadOf(ex);
   const attach = async (fl) => { const added = await filesToAtts(fl, st.ask); if (added.length) patch(current => ({ att: [...(current.att || []), ...added] })); if (fileRef.current) fileRef.current.value = ""; };
   return (
-    <Drawer open onClose={onClose}>
+    <CenterSheet title={L("Cvik", "Exercise")} onClose={onClose} vrstva={190}>
       <TEditToggle on={localEdit} onToggle={() => setLocalEdit((x) => !x)} title={L("Upravit cvik", "Edit exercise")} />
       <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>
         <ExerciseTaxonomySummary taxonomyOf={exerciseTaxonomy} t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
@@ -9712,7 +9712,7 @@ function TExDetail({ exId, onClose, onOpen }) {
           onPick={(id) => { if (id !== ex.id) patch({ [pickChain]: id }); setPickChain(null); }}
         />
       )}
-    </Drawer>
+    </CenterSheet>
   );
 }
 

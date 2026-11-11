@@ -6,7 +6,7 @@ export const togetherTheme=t=>({
 
 // Same reading axis, field treatment and disclosure rhythm as Practice.
 export const togetherStyles=`
-.tm-together{max-width:760px;margin:0 auto;color:var(--tg-text);font-family:var(--tm-font-body);overflow-wrap:anywhere}
+.tm-together{width:100%;min-width:0;color:var(--tg-text);font-family:var(--tm-font-body);overflow-wrap:anywhere}
 .tm-together .tm-page-title{min-height:106px;padding-top:16px}
 .tm-together .tm-page-title::before{content:none!important}
 .tm-together .tm-page-title h1{padding-right:112px}
