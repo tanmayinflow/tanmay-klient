@@ -5,6 +5,13 @@ export function shellLayoutCss() {
 /* The room fills the available canvas; only a small reading inset remains. */
 :root body .tm-page { width: 100%; max-width: none !important; margin-inline: 0 !important; box-sizing: border-box; }
 @media (min-width: 821px) {
+  :root body .tm-cs-veil {
+    padding: calc(var(--tm-sheet-room-top, 0px) + 24px) 16px 24px calc(var(--tm-sheet-room-left, 0px) + 16px) !important;
+  }
+  :root body .tm-cs-veil > .tm-cs {
+    max-width: 100% !important; min-width: 0;
+    max-height: min(980px, calc(var(--tm-overlay-height, 100dvh) - var(--tm-sheet-room-top, 0px) - 48px)) !important;
+  }
   :root body .tm-page { padding-inline: 24px !important; --land-bleed: 24px; }
   :root body .tm-sidebar {
     position: fixed !important; top: 12px !important; left: 12px;

@@ -79,6 +79,25 @@ export function createOverlay(useT, L) {
   function CenterSheet({ title, onClose, children, center, naradi, vrstva = 80, className = "" }) {
     const { t } = useT();
     const korenRef = React.useRef(null);
+    const veilRef = React.useRef(null);
+    // Center desktop sheets in the visible room, outside navigation chrome.
+    // Measure the real shell so collapsed navigation, zoom and resize agree.
+    React.useLayoutEffect(() => {
+      const main = document.querySelector('.tm-sidebar ~ main');
+      const topbar = main?.querySelector('.tm-topbar');
+      const measure = () => {
+        const left = Math.max(0, main?.getBoundingClientRect().left || 0);
+        const top = Math.max(0, topbar?.getBoundingClientRect().bottom || 0);
+        veilRef.current?.style.setProperty('--tm-sheet-room-left', `${left}px`);
+        veilRef.current?.style.setProperty('--tm-sheet-room-top', `${top}px`);
+      };
+      measure();
+      const observer = new ResizeObserver(measure);
+      if (main) observer.observe(main);
+      if (topbar) observer.observe(topbar);
+      window.addEventListener('resize', measure);
+      return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
+    }, []);
     // zavření si vybere svých dvě stě milisekund · list odplouvá, neuteče
     const [out, setOut] = React.useState(false);
     const outRef = React.useRef(false);
@@ -93,13 +112,10 @@ export function createOverlay(useT, L) {
       ref: korenRef,
       escKdyz: React.useCallback(() => !document.querySelector(".tm-zen"), []),
     });
-    /* Závoj nese `tm-cs-veil` VŽDY. Na širokém okně to nic neznamená (pravidlo
-       žije jen v mobilním dotazu), na telefonu se tím list stane celou
-       stránkou — u vystředěného i u nevystředěného. Dřív se plná plocha
-       týkala jen nevystředěných listů, a tak měl zápisek v deníku pruh
-       ztmaveného pozadí pod sebou a poznámka v zápisníku ne. */
+    // The veil still covers the whole viewport for modal dismissal/focus.
+    // Desktop padding reserves the shell; mobile sheets keep their full area.
     return createPortal(
-      <div onClick={close} className={"tm-cs-veil tm-dim" + (out ? " tm-out" : "")} style={{ position: "fixed", inset: 0, zIndex: vrstva, background: t.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: "calc(4 * var(--tm-vh)) 16px", animation: "tmDim .25s ease both" }}>
+      <div ref={veilRef} onClick={close} className={"tm-cs-veil tm-dim" + (out ? " tm-out" : "")} style={{ position: "fixed", inset: 0, zIndex: vrstva, background: t.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: "calc(4 * var(--tm-vh)) 16px", animation: "tmDim .25s ease both" }}>
         <div
           ref={korenRef}
           role="dialog"
