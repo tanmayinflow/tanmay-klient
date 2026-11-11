@@ -2009,11 +2009,11 @@ function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat, 
       <div className="tm-nahled-head" style={{ position: "absolute", top: "calc(13px + env(safe-area-inset-top))", left: 18, right: 14, display: "flex", alignItems: "center", gap: 12, pointerEvents: "none" }}>
         <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nazev}</span>
         {!entry.zamek && <button type="button" className="tm-note-mode" onClick={()=>setEditing(v=>!v)} style={{...iconBtn(t),pointerEvents:"auto",width:"auto",padding:"6px 12px",minHeight:44,border:0,boxShadow:"none",color:t.accentInk||t.accent}}>{editing?L("Číst","Read"):L("Psát","Write")}</button>}
-        {settings && <button type="button" onClick={onZavri} aria-label={L("Zavřít zápisek","Close note")} style={{...iconBtn(t),pointerEvents:"auto",width:44,height:44,borderRadius:"50%",flexShrink:0}}><FamilyIcon id="close" size={16}/></button>}
+        {settings && <button type="button" onClick={onZavri} aria-label={L("Zavřít zápisek","Close note")} style={{...iconBtn(t),pointerEvents:"auto",width:44,height:44,border:0,boxShadow:"none",flexShrink:0}}><FamilyIcon id="close" size={16}/></button>}
         {settings ? <button onClick={(e) => { e.stopPropagation(); setNastaveni(true); }} title={L("Nastavení poznámky", "Note settings")}
           style={{ pointerEvents: "auto", flexShrink: 0, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 34, height: 34, cursor: "pointer", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
           <TmIcNastaveni size={16} />
-        </button> : <button type="button" autoFocus onClick={(e) => { e.stopPropagation(); onZavri(); }} title={L("Zavřít čtení", "Close reading")} aria-label={L("Zavřít čtení", "Close reading")} style={{...iconBtn(t),pointerEvents:"auto",width:44,height:44,flexShrink:0}}><FamilyIcon id="close" size={16}/></button>}
+        </button> : <button type="button" autoFocus onClick={(e) => { e.stopPropagation(); onZavri(); }} title={L("Zavřít čtení", "Close reading")} aria-label={L("Zavřít čtení", "Close reading")} style={{...iconBtn(t),pointerEvents:"auto",width:44,height:44,border:0,boxShadow:"none",flexShrink:0}}><FamilyIcon id="close" size={16}/></button>}
       </div>
       {/* Čtení sahá k malému zápatí a bezpečné hraně, bez rezervy na skrytý dok.
           Klepnutí do textu vrací zpátky k psaní. */}
@@ -4838,10 +4838,10 @@ function PageNotebook({ koren, korenNazev }) {
   /* Dokud je otevřená poznámka na celé ploše, tah prstem do strany nemá
      přepínat místnosti — prst tam patří textu. */
   React.useEffect(() => {
-    if (!full || wide) return;
+    if (!full) return;
     tmListovaniStuj();
     return () => tmListovaniJdi();
-  }, [full, wide]);
+  }, [full]);
   // přišlo se sem z hledání · otevři přesně tu poznámku
   React.useEffect(() => {
     /* Dřív si nález bral vždycky hlavní Zápisník. Od chvíle, kdy poznámky
@@ -5025,7 +5025,7 @@ function PageNotebook({ koren, korenNazev }) {
 
   return (
     <>
-      {fullEntry && !wide && !nahled && (
+      {fullEntry && !nahled && (
         /* V hlavě stojí MÍSTNOST. Jméno souboru je hned pod ní jako
            přepisovatelný nadpis — dvakrát totéž na jedné obrazovce jen
            zabíralo řádek a nic nepřidávalo. */
@@ -5034,7 +5034,7 @@ function PageNotebook({ koren, korenNazev }) {
           <NotebookCard entry={fullEntry} tags={tags} full onZmensit={() => setNahled(true)} />
         </CenterSheet>
       )}
-      {fullEntry && !wide && !nahled && nast && (
+      {fullEntry && !nahled && nast && (
         <NastaveniPoznamky entry={fullEntry} kind="notebook" tags={tags} onClose={() => setNast(false)} onPryc={() => { setNast(false); setFull(null); }} />
       )}
       {fullEntry && nahled && (
@@ -5158,30 +5158,17 @@ function PageNotebook({ koren, korenNazev }) {
         );
       })()}
 
-      {/* na široké obrazovce seznam a text vedle sebe · poznámka nezakrývá
-          to, z čeho jsi ji vybral, a dá se přeskakovat mezi nimi */}
-      <div className={wide ? "tm-2pane" : undefined} style={{ marginTop: 18 }}>
+      {/* Seznam zůstává v místnosti; zápisek se otevírá stejně jako Deník. */}
+      <div style={{ marginTop: 18 }}>
         <div ref={listRef} className="tm-scroll tm-dnolist" style={{ maxHeight: wide ? "min(720px, calc(70 * var(--tm-vh)))" : "min(620px, calc(62 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${holding ? t.accent : t.borderSoft}`, borderRadius: 20, boxShadow: "var(--tm-depth-panel-shadow, " + t.shadow + ")", padding: "4px 10px 10px", transition: "border-color .15s ease" }}>
           {vw === "rows" && shown.map((e) => (
-            <NotebookCard key={e.id} entry={e} tags={tags} selecting={selecting} selected={sel.includes(e.id)} onToggleSel={toggleSel} onDragSel={dragSel} noDrag={sortBy !== "manual"} onExpand={otevri} holdManaged current={wide && full === e.id} />
+            <NotebookCard key={e.id} entry={e} tags={tags} selecting={selecting} selected={sel.includes(e.id)} onToggleSel={toggleSel} onDragSel={dragSel} noDrag={sortBy !== "manual"} onExpand={otevri} holdManaged current={full === e.id} />
           ))}
           {vw !== "rows" && shown.length > 0 && (
-            <RoomView view={vw} items={shown.map(nItem)} selecting={selecting} selIds={sel} onToggleSel={toggleSel} onOpen={otevri} current={wide ? full : null} />
+            <RoomView view={vw} items={shown.map(nItem)} selecting={selecting} selIds={sel} onToggleSel={toggleSel} onOpen={otevri} current={full} />
           )}
           {shown.length === 0 && <Prazdno kind={all.length ? "nic" : "prvni"} plain={all.length > 0} compact={all.length > 0} mark={!all.length && <EmptyRoomArt room="zapisnik" color={t.sand} />} fakt={all.length ? L("V téhle kategorii zatím nic není.", "Nothing in this category yet.") : L("Prázdný zápisník.", "An empty notebook.")} pozvani={!all.length && L("Místo pro tvé vlastní poznámky.", "A place for your own notes.")} />}
         </div>
-        {wide && (
-          <div className="tm-scroll" style={{ maxHeight: "min(720px, calc(70 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, boxShadow: "var(--tm-depth-panel-shadow, " + t.shadow + ")", padding: fullEntry ? "4px 6px 10px" : 0, background: t.bg }}>
-            {fullEntry
-              ? <NotebookCard key={fullEntry.id} entry={fullEntry} tags={tags} full onZmensit={() => setNahled(true)} />
-              : (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", minHeight: 260, padding: "30px 20px", textAlign: "center" }}>
-                  <span style={{ color: t.sand, opacity: 0.35, display: "inline-flex" }}><TmIcZapisnik size={44} /></span>
-                  <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, margin: "14px 0 0", maxWidth: 260, lineHeight: 1.65 }}>{L("Vyber poznámku vlevo, nebo si novou založ ⌘N.", "Pick a note on the left, or start a new one with ⌘N.")}</p>
-                </div>
-              )}
-          </div>
-        )}
       </div>
 
       {selecting && (
