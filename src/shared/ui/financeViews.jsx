@@ -1,10 +1,12 @@
 import React,{useState,useEffect} from 'react';
+import { DateField } from './DateField.jsx';
 import {financeDays,marketSymbol,financeSignedValue} from '../product/financeViewsModel.js';
 export function createFinanceViews({useT,useStore,L,money,uid,todayISO}) {
   const flowAmount=(value,flow,compact=false)=>{const n=financeSignedValue(value,flow);return(n<0?'−':'+')+(compact?new Intl.NumberFormat(L('cs','en'),{notation:Math.abs(n)>=10000?'compact':'standard',maximumFractionDigits:0}).format(Math.abs(n)):money(Math.abs(n)));};
   function BufferedInput({value,onCommit,type='text',...props}) {
     const [draft,setDraft]=useState(String(value??''));
     useEffect(()=>setDraft(String(value??'')),[value]);
+    if(type==='date')return <DateField {...props} value={value||''} onChange={e=>onCommit(e.target.value)}/>;
     return <input {...props} type={type} step={type==='number'?'any':undefined} value={draft} onChange={e=>setDraft(e.target.value)} onBlur={()=>{if(draft!==String(value??''))onCommit(draft)}} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur()}}/>;
   }
   const button=t=>({background:'transparent',border:'1px solid '+t.border,borderRadius:8,color:t.text,padding:'9px 12px',minHeight:42,cursor:'pointer',fontFamily:'var(--tm-font-body)',fontSize:13});

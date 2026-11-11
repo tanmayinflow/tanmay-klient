@@ -1,3 +1,4 @@
+import { DateField } from './DateField.jsx';
 import React,{useEffect,useId,useState} from "react";
 import {TmIcon} from "./icons.jsx";
 import {FONT_BODY,FONT_TAG} from "./type.js";
@@ -78,7 +79,7 @@ export function createFinanceRoom({useT,useStore,L,PageTitle,CenterSheet,Select,
       <form id={id} onSubmit={save} noValidate>
         <label style={label(t)}>{L("Částka v Kč","Amount in CZK")}<input name="amount" inputMode="decimal" enterKeyHint="next" autoComplete="off" value={amount} onChange={event=>setAmount(event.target.value)} style={{...field(t),fontSize:24}}/></label>
         <label style={label(t)}>{L("Název","Name")}<input name="name" enterKeyHint="done" value={name} onChange={event=>setName(event.target.value)} style={field(t)}/></label>
-        <label style={label(t)}>{L("Datum","Date")}<input type="date" value={date} onChange={event=>setDate(event.target.value)} style={field(t)}/></label>
+        <label style={label(t)}>{L("Datum","Date")}<DateField type="date" value={date} onChange={event=>setDate(event.target.value)} style={field(t)}/></label>
         <details open={detailsOpen} onToggle={event=>setDetailsOpen(event.currentTarget.open)}>
         <summary>{incoming?L("Poznámka a podrobnosti","Note and details"):L("Kategorie a poznámka","Category and note")}</summary>
         {!incoming&&<label style={label(t)}>{categories.length?L("Sklenice","Jar"):L("Kategorie","Category")}{categories.length?<span role="group" aria-label={L("Sklenice","Jar")}><Select value={category} onChange={changeCategory} options={[{v:"",label:L("Bez kategorie","Uncategorized")},...categories.map(option=>({v:option.value,label:option.label}))]} style={{...field(t),cursor:"pointer"}}/></span>:<input name="category" value={category} onChange={event=>changeCategory(event.target.value)} placeholder={L("Například bydlení nebo jídlo","For example housing or food")} style={field(t)}/>}</label>}

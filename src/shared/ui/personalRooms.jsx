@@ -1,3 +1,4 @@
+import { DateField } from './DateField.jsx';
 import React, {useState} from "react";
 import {TmIcon} from "./icons.jsx";
 import {FONT_BODY, FONT_TAG} from "./type.js";
@@ -22,7 +23,7 @@ export function createPersonalRoomsUI({useT, useStore, L, PageTitle, CenterSheet
       <form onSubmit={save} noValidate>
         <label style={label(t)}>{L("Název","Name")}<input autoFocus value={name} onChange={e=>setName(e.target.value)} style={field(t)}/></label>
         <label style={label(t)}>{L("Částka v Kč","Amount in CZK")}<input inputMode="decimal" value={amount} onChange={e=>setAmount(e.target.value)} style={field(t)}/></label>
-        <label style={label(t)}>{L("Datum","Date")}<input type="date" value={date} onChange={e=>setDate(e.target.value)} style={field(t)}/></label>
+        <label style={label(t)}>{L("Datum","Date")}<DateField type="date" value={date} onChange={e=>setDate(e.target.value)} style={field(t)}/></label>
         {error&&<p role="alert" style={{color:t.accentInk||t.accent,fontFamily:FONT_BODY,fontSize:13}}>{error}</p>}
         <div style={{display:"flex",flexWrap:"wrap",gap:8}}><button type="submit" style={button(t)}>{L("Uložit","Save")}</button><button type="button" onClick={onClose} style={button(t)}>{L("Zpět","Back")}</button>{entry&&<button type="button" onClick={()=>{st.removeEntry(kind,entry.id);onClose();}} style={{...button(t),marginLeft:"auto"}}>{L("Přesunout do koše","Move to trash")}</button>}</div>
       </form>
@@ -51,7 +52,7 @@ export function createPersonalRoomsUI({useT, useStore, L, PageTitle, CenterSheet
     return <CenterSheet title={entry?L("Upravit obsah","Edit content"):L("Nový nápad","New idea")} onClose={onClose} naradi={saveAction(t,save)}><form onSubmit={save} noValidate>
       <label style={label(t)}>{L("Název","Title")}<input autoFocus style={field(t)} value={title} onChange={e=>setTitle(e.target.value)}/></label>
       <label style={label(t)}>{L("Stav","Stage")}<select aria-label={L("Stav","Stage")} style={field(t)} value={status} onChange={e=>setStatus(e.target.value)}>{CONTENT_STAGES.map(([key,cs,en])=><option key={key} value={key}>{L(cs,en)}</option>)}</select></label>
-      <label style={label(t)}>{L("Datum publikace","Publication date")}<input type="date" style={field(t)} value={postDate} onChange={e=>setDate(e.target.value)}/></label>
+      <label style={label(t)}>{L("Datum publikace","Publication date")}<DateField type="date" style={field(t)} value={postDate} onChange={e=>setDate(e.target.value)}/></label>
       <fieldset style={{border:0,padding:0,margin:"0 0 18px"}}><legend style={{fontFamily:FONT_BODY,fontSize:13,color:t.textSec,marginBottom:8}}>{L("Kanály","Channels")}</legend><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{CONTENT_CHANNELS.map(channel=><button key={channel} type="button" aria-pressed={platforms.includes(channel)} onClick={()=>setPlatforms(old=>old.includes(channel)?old.filter(x=>x!==channel):[...old,channel])} style={{...button(t),borderColor:platforms.includes(channel)?t.accent:t.border,color:platforms.includes(channel)?t.accentInk||t.accent:t.text}}>{channel}</button>)}</div></fieldset>
       <div style={{...label(t),marginBottom:24}}><span>{L("Text a podklady","Draft and resources")}</span><RichArea value={text} onChange={setText}/></div>
       {error&&<p role="alert">{error}</p>}<div style={{display:"flex",gap:8,flexWrap:"wrap",paddingBottom:86}}><button type="button" onClick={onClose} style={button(t)}>{L("Zpět","Back")}</button>{entry&&<button type="button" onClick={()=>{st.removeEntry("socItems",entry.id);onClose();}} style={{...button(t),marginLeft:"auto"}}>{L("Přesunout do koše","Move to trash")}</button>}</div>

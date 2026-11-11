@@ -18,7 +18,7 @@ const module = { exports: {} };
 vm.runInNewContext(compile(source), { module, exports: module.exports, require: id => {
   if (id === 'react') return React;
   if (id.endsWith('/sources.js')) return sourcePolicy;
-  return { SourceLinks: noop, TmIcon: noop, SourceCover: noop };
+  return { SourceLinks: noop, TmIcon: noop, SourceCover: noop, DateField: noop };
 } });
 
 function detail(entry, study = false) {
@@ -97,4 +97,25 @@ test('the existing reader exposes accessible page controls without notebook muta
   assert.match(html, /aria-label="Předchozí stránka"/); assert.match(html, /aria-label="Další stránka"/);
   assert.match(html, /aria-label="Zavřít čtení"/); assert.match(html, /aria-label="Stránka 2 z 4"/);
   assert.ok(!html.includes('Nastavení poznámky'));
+});
+
+test('expanded editing saves through the owning collection or the explicit private-note callback', () => {
+  const start=app.indexOf('function NahledPoznamky('), end=app.indexOf('function NastaveniPoznamky(',start);
+  const writes=[]; let editor;
+  const Reader=vm.runInNewContext(compile(app.slice(start,end))+'\nNahledPoznamky;',{
+    React,useState:React.useState,useT:()=>({t:theme}),useStore:()=>({updateEntry:(...args)=>writes.push(args)}),L,
+    useStranky:()=>({strana:1,pocet:1,jdi:noop}),mdToHtml:text=>text,createPortal:value=>value,document:{body:{}},hexA:value=>value,
+    FONT_TAG:'sans-serif',FONT_BODY:'sans-serif',FamilyIcon:noop,TmIcNastaveni:noop,iconBtn:()=>({}),CisloStranky:noop,NastaveniPoznamky:noop,
+    RichArea:props=>{editor=props;return React.createElement('div',null,props.value);},
+  });
+  for(const kind of ['notebook','journal']){
+    const html=renderToStaticMarkup(React.createElement(Reader,{entry:{id:'own',title:'Test',text:'Before'},kind,onZavri:noop}));
+    assert.equal((html.match(/aria-label="Zavřít zápisek"/g)||[]).length,1);
+    editor.onChange('After');assert.deepEqual(writes.at(-1).slice(0,2),[kind,'own']);assert.equal(writes.at(-1)[2].text,'After');
+  }
+  let privateText='';const before=writes.length;
+  renderToStaticMarkup(React.createElement(Reader,{entry:{id:'shared',title:'Test',text:'Private'},settings:false,onZavri:noop,onChange:v=>{privateText=v;}}));
+  editor.onChange('Private update');assert.equal(privateText,'Private update');assert.equal(writes.length,before);
+  renderToStaticMarkup(React.createElement(Reader,{entry:{id:'locked',title:'Test',text:'Locked',zamek:true},onZavri:noop}));
+  assert.equal(editor.zamek,true);
 });

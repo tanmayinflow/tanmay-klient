@@ -1,3 +1,4 @@
+import { DateField } from './DateField.jsx';
 import React, {useState} from 'react';
 import {TmIcon as FamilyIcon} from './icons.jsx';
 import {FONT_BODY,FONT_TAG,FONT_DISPLAY_CS as FONT_DISPLAY} from './type.js';
@@ -645,7 +646,7 @@ function SocDetail({ i, onClose }) {
         {[["doDate", "natáčení", "filming"], ["postDate", "publikace", "posting"]].map(([k, cz, en]) => (
           <label key={k} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>
             {L(cz, en)}
-            <input type="date" value={i[k] || ""} onChange={(e) => up({ [k]: e.target.value })}
+            <DateField type="date" value={i[k] || ""} onChange={(e) => up({ [k]: e.target.value })}
               style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 13, padding: "4px 7px", colorScheme: t.mode }} />
           </label>
         ))}

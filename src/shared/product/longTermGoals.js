@@ -17,14 +17,14 @@ export function normalizeLongTermGoals(value) {
     if (!id || !name || seen.has(id)) return [];
     seen.add(id);
     return [{ id, name, note: text(item.note, 4000), target: date(item.target),
-      completed: item.completed === true, archivedAt: timestamp(item.archivedAt),
+      completed: item.completed === true, archivedAt: timestamp(item.archivedAt), deletedAt: timestamp(item.deletedAt),
       createdAt: timestamp(item.createdAt), updatedAt: timestamp(item.updatedAt) }];
   });
 }
 
-export function landscapeLongTermGoals(coll, area, { includeArchived = false } = {}) {
+export function landscapeLongTermGoals(coll, area, { includeArchived = false, includeDeleted = false } = {}) {
   const goals = normalizeLongTermGoals(record(record(coll?.areaMeta)[area]).longTermGoals);
-  return includeArchived ? goals : goals.filter(goal => !goal.archivedAt);
+  return goals.filter(goal => (includeDeleted || !goal.deletedAt) && (includeArchived || !goal.archivedAt));
 }
 
 export function saveLongTermGoal(coll, area, input, now = Date.now()) {
@@ -50,6 +50,13 @@ export function archiveLongTermGoal(coll, area, id, archived, now = Date.now()) 
 
 export function goalLandscape(goal) {
   return text(goal?.area, 240) || (Array.isArray(goal?.areas) ? text(goal.areas[0], 240) : "");
+}
+
+// Reversible removal preserves links and original fields for restoration.
+export function deleteLongTermGoal(coll, area, id, deleted = true, now = Date.now()) {
+  const goal = landscapeLongTermGoals(coll, area, { includeArchived: true, includeDeleted: true }).find(item => item.id === id);
+  if (!goal || !timestamp(now)) return coll;
+  return saveLongTermGoal(coll, area, { ...goal, deletedAt: deleted ? now : 0 }, now);
 }
 
 export function goalLongTermGoal(coll, goal, areas) {

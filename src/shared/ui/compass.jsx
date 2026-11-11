@@ -1,3 +1,4 @@
+import { DateField } from './DateField.jsx';
 import {useGuideAction} from "./guideNavigation.jsx";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
 import { EmptyRoomArt } from "./states.jsx";
@@ -22,7 +23,7 @@ import React, { useState } from "react";
 import { TmIcon, tmIconId, createIconUI } from "./icons.jsx";
 import { GOAL_OWNER, TM_UTEK, tmOtocFor, mayEditGoalField, goalOwnerLabel, G_VIEWS } from "../product/compass.js";
 import { areaReviewWeek, areaReviewWeekEnd, shiftAreaReviewWeek, areaReviewFor, areaReviewDraft, areaReviewWeeks, canSaveAreaReview, saveAreaReview } from "../product/areaReviews.js";
-import { landscapeLongTermGoals, saveLongTermGoal, archiveLongTermGoal, goalLandscape, goalLongTermGoal, linkGoalToLongTerm } from "../product/longTermGoals.js";
+import { landscapeLongTermGoals, saveLongTermGoal, archiveLongTermGoal, deleteLongTermGoal, goalLandscape, goalLongTermGoal, linkGoalToLongTerm } from "../product/longTermGoals.js";
 
 export function createCompassUI(deps) {
   const {
@@ -48,6 +49,11 @@ export function createCompassUI(deps) {
 
   // Ikonový systém · glyfy cílů a krajin, výběr vlastní ikony
   const { TmObjIcon, TmIconPickerButton } = createIconUI({ useT, L });
+
+  function CompassDetailSheet({open,onClose,children}) {
+    if (!open) return null;
+    return <CenterSheet className="tm-compass-surface" title={L("Kompas", "Compass")} vrstva={190} onClose={onClose}>{children}</CenterSheet>;
+  }
 
   const lang = () => (getLang ? getLang() : "cs");
 
@@ -123,6 +129,7 @@ export function createCompassUI(deps) {
           <span style={{ color: t.textMuted, fontSize: 13, lineHeight: "20px" }}>◎</span>
           <span style={{ flex: 1, minWidth: 0, fontFamily: "var(--tm-font-body)", fontSize: 15, fontWeight: 500, color: g.status === "Completed" ? t.textMuted : t.heading, textDecoration: g.status === "Completed" ? "line-through" : "none", lineHeight: 1.4 }}>{g.name}</span>
           <OwnerBadge g={g} />
+          {smim(g, "id") && <button type="button" aria-label={`${L("Přesunout cíl do koše", "Move goal to trash")}: ${g.name}`} title={L("Do koše", "To trash")} onClick={event => { event.stopPropagation(); st.ask(L(`Přesunout „${g.name}" do koše?`, `Move "${g.name}" to trash?`), () => { if (g.user) st.removeUserGoal(g.id); else st.trashBuiltinGoal(g.name); }); }} style={{ ...iconBtn(t), minWidth: 40, minHeight: 40, border: "none", color: t.textMuted, flexShrink: 0 }}><FamilyIcon id="trash" size={16}/></button>}
         </div>
         {g.area && (
           <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
@@ -228,7 +235,7 @@ export function createCompassUI(deps) {
               jakými se jmenují na Kompasu. */}
           <Select value={area} onChange={setArea} style={{ maxWidth: 220, width: 220 }} options={areas.map((a) => ({ v: a.name, label: areaLabel(a.name) }))} />
           <Select value={prio} onChange={setPrio} style={{ maxWidth: 130, width: 130 }} options={PRIOS.map((x) => ({ v: x, label: PL(x) }))} />
-          <input type="date" value={target} onChange={(e) => setTarget(e.target.value)} style={{ ...fieldStyle(t), maxWidth: 170, colorScheme: t.mode === "light" ? "light" : "dark" }} />
+          <DateField type="date" value={target} onChange={(e) => setTarget(e.target.value)} style={{ ...fieldStyle(t), maxWidth: 170, colorScheme: t.mode === "light" ? "light" : "dark" }} />
         </div>
         {TM_UTEK.test(name) && (
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", margin: "-4px 0 12px" }}>
@@ -471,8 +478,8 @@ export function createCompassUI(deps) {
     const { t } = useT();
     const st = useStore();
     const [draft, setDraft] = useState(null);
-    const all = landscapeLongTermGoals(st.coll, area, { includeArchived: true });
-    const active = all.filter(item => !item.archivedAt), archived = all.filter(item => item.archivedAt);
+    const all = landscapeLongTermGoals(st.coll, area, { includeArchived: true, includeDeleted: true });
+    const active = all.filter(item => !item.archivedAt && !item.deletedAt), archived = all.filter(item => item.archivedAt && !item.deletedAt), deleted = all.filter(item => item.deletedAt);
     const areas = st.listAreas();
     const button = { background: "transparent", border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-sm)", color: t.text, cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13, minHeight: 44, padding: "7px 12px" };
     const field = { ...fieldStyle(t), width: "100%", boxSizing: "border-box", fontSize: 16 };
@@ -500,6 +507,7 @@ export function createCompassUI(deps) {
               <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 12, color: t.textMuted, marginTop: 6 }}>{L("Přiřazené cíle", "Linked goals")}: {linked.length ? `${linked.filter(goal => goal.status === "Completed").length} / ${linked.length} ${L("hotovo", "complete")}` : L("zatím žádné", "none yet")}</div>
             </div>
             <button style={{ ...button, border: "none", padding: "7px 4px", flexShrink: 0 }} aria-label={`${L("Upravit dlouhodobý cíl", "Edit long-term goal")}: ${item.name}`} onClick={() => setDraft(item)}>{L("Upravit", "Edit")}</button>
+            <button type="button" style={{ ...button, border: "none", padding: "7px 8px", flexShrink: 0 }} aria-label={`${L("Smazat dlouhodobý cíl", "Delete long-term goal")}: ${item.name}`} title={L("Smazat", "Delete")} onClick={() => st.ask(L(`Smazat „${item.name}"? Obnovíš ho v sekci Smazané dlouhodobé cíle. Přiřazené cíle zůstanou.`, `Delete "${item.name}"? You can restore it under Deleted long-term goals. Linked goals will stay.`), () => { st.persistColl(coll => deleteLongTermGoal(coll, area, item.id)); if (draft?.id === item.id) setDraft(null); })}><FamilyIcon id="trash" size={16}/></button>
           </div>
           {linked.length > 0 && <details style={{ marginLeft: 33, fontFamily: "var(--tm-font-body)", fontSize: 13 }}><summary style={{ cursor: "pointer", minHeight: 44, alignContent: "center", color: t.textMuted }}>{L("Zobrazit přiřazené cíle", "Show linked goals")}</summary>{linked.map(goal => <button key={goal.id || goal.name} onClick={() => openGoal?.(goal.name)} style={{ ...button, display: "block", width: "100%", border: "none", textAlign: "left", overflowWrap: "anywhere", color: goal.status === "Completed" ? t.textMuted : t.text }}>{goal.name}</button>)}</details>}
         </div>;
@@ -507,7 +515,7 @@ export function createCompassUI(deps) {
       {draft ? <form onSubmit={save} aria-label={draft.id ? L("Upravit dlouhodobý cíl", "Edit long-term goal") : L("Nový dlouhodobý cíl", "New long-term goal")} style={{ marginTop: 14 }}>
         <label style={{ display: "block", fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, marginBottom: 10 }}>{L("Název dlouhodobého cíle", "Long-term goal name")}<input autoFocus required maxLength={240} value={draft.name} onChange={event => setDraft({ ...draft, name: event.target.value })} style={{ ...field, marginTop: 5 }} /></label>
         <label style={{ display: "block", fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, marginBottom: 10 }}>{L("Co pro tebe znamená (nepovinné)", "What it means to you (optional)")}<textarea maxLength={4000} rows={3} value={draft.note || ""} onChange={event => setDraft({ ...draft, note: event.target.value })} style={{ ...field, marginTop: 5, resize: "vertical" }} /></label>
-        <label style={{ display: "block", fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, marginBottom: 12 }}>{L("Termín (nepovinný)", "Target date (optional)")}<input type="date" value={draft.target || ""} onChange={event => setDraft({ ...draft, target: event.target.value })} style={{ ...field, marginTop: 5, colorScheme: t.mode === "light" ? "light" : "dark" }} /></label>
+        <label style={{ display: "block", fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.textSec, marginBottom: 12 }}>{L("Termín (nepovinný)", "Target date (optional)")}<DateField type="date" value={draft.target || ""} onChange={event => setDraft({ ...draft, target: event.target.value })} style={{ ...field, marginTop: 5, colorScheme: t.mode === "light" ? "light" : "dark" }} /></label>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button type="submit" disabled={!draft.name.trim()} style={{ ...button, color: t.inkSand || t.accent, opacity: draft.name.trim() ? 1 : 0.5 }}>{L("Uložit dlouhodobý cíl", "Save long-term goal")}</button>
           <button type="button" style={button} onClick={() => setDraft(null)}>{L("Zrušit", "Cancel")}</button>
@@ -515,6 +523,7 @@ export function createCompassUI(deps) {
         </div>
       </form> : <button style={{ ...button, border: "none", color: t.inkSand || t.accent, display: "inline-flex", alignItems: "center", gap: 7, marginTop: 8 }} onClick={() => setDraft({ name: "", note: "", target: "" })}><FamilyIcon id="add" size={16} />{L("Přidat dlouhodobý cíl", "Add a long-term goal")}</button>}
       {archived.length > 0 && <details style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, marginTop: 8 }}><summary style={{ minHeight: 44, alignContent: "center", cursor: "pointer", color: t.textMuted }}>{L("Archiv dlouhodobých cílů", "Archived long-term goals")} · {archived.length}</summary>{archived.map(item => <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0" }}><span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere", color: t.textMuted }}>{item.name}</span><button style={button} onClick={() => st.persistColl(coll => archiveLongTermGoal(coll, area, item.id, false))}>{L("Obnovit", "Restore")}</button></div>)}</details>}
+      {deleted.length > 0 && <details style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, marginTop: 8 }}><summary style={{ minHeight: 44, alignContent: "center", cursor: "pointer", color: t.textMuted }}>{L("Smazané dlouhodobé cíle", "Deleted long-term goals")} · {deleted.length}</summary>{deleted.map(item => <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0" }}><span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere", color: t.textMuted }}>{item.name}</span><button type="button" style={button} onClick={() => st.persistColl(coll => deleteLongTermGoal(coll, area, item.id, false))}>{L("Obnovit", "Restore")}</button></div>)}</details>}
     </section>;
   }
 
@@ -591,7 +600,7 @@ export function createCompassUI(deps) {
         <LongTermGoalField goal={g} openArea={openArea} />
         <PropRow icon={TmGeoTerm(15)} label={L("Termín", "Target date")}>
           {smim(g, "target")
-            ? <input type="date" value={g.target || ""} onChange={(e) => st.editGoal(g.name, { target: e.target.value })} aria-label={L("Termín", "Target date")} style={{ background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none", colorScheme: t.mode === "light" ? "light" : "dark" }} />
+            ? <DateField type="date" value={g.target || ""} onChange={(e) => st.editGoal(g.name, { target: e.target.value })} aria-label={L("Termín", "Target date")} style={{ background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none", colorScheme: t.mode === "light" ? "light" : "dark" }} />
             : <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: g.target ? t.text : t.textMuted }}>{g.target ? fmtCZ(g.target) : "—"}</span>}
         </PropRow>
         {odTanmaye && (
@@ -632,7 +641,7 @@ export function createCompassUI(deps) {
               {g.requestDone ? L("✓ označeno jako hotové · čeká na Kryštofa", "✓ marked done · waiting for Kryštof") : L("Označit jako hotové", "Mark as done")}
             </button>
           )}
-          {st.editMode && smiSmazat && (
+          {smiSmazat && (
             <button
               onClick={() => st.ask(L(`Přesunout „${g.name}" do koše?`, `Move "${g.name}" to trash?`), () => { if (g.user) st.removeUserGoal(g.id); else st.trashBuiltinGoal(g.name); onClose && onClose(); })}
               style={{ marginLeft: 12, background: "transparent", border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-pill)", padding: "6px 14px", minHeight: 38, cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12 }}
@@ -827,10 +836,10 @@ export function createCompassUI(deps) {
         {view === "Completed" && (completed.length ? <div style={grid}>{completed.map((g) => <GoalCard key={g.name} g={g} onOpen={openGoal} />)}</div> : <Prazdno kind="hotovo" plain compact fakt={L("V tomhle výběru zatím nic dokončeného.", "Nothing completed in this selection yet.")} />)}
         {view === "Archiv" && (archived.length ? <div style={grid}>{archived.map((g) => <GoalCard key={g.name} g={g} onOpen={openGoal} />)}</div> : <Prazdno kind="hotovo" plain compact fakt={L("Archiv je prázdný.", "The archive is empty.")} />)}
 
-        <Drawer className="tm-compass-surface" open={!!sel} onClose={() => setSel(null)}>
+        <CompassDetailSheet open={!!sel} onClose={() => setSel(null)}>
           {sel && sel.type === "goal" && <GoalDetail name={sel.id} openArea={openArea} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
           {sel && sel.type === "area" && <AreaDetail initialWeek={sel.week} name={sel.id} openGoal={openGoal} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
-        </Drawer>
+        </CompassDetailSheet>
       </>
     );
   }
@@ -948,10 +957,10 @@ export function createCompassUI(deps) {
             <GoalWorkspace withAreas />
           </CenterSheet>
         )}
-        <Drawer className="tm-compass-surface" open={!!sel} onClose={() => setSel(null)}>
+        <CompassDetailSheet open={!!sel} onClose={() => setSel(null)}>
           {sel && sel.type === "goal" && <GoalDetail name={sel.id} openArea={(n) => setSel({ type: "area", id: n })} onClose={() => setSel(null)} />}
           {sel && sel.type === "area" && <AreaDetail initialWeek={sel.week} name={sel.id} openGoal={(n) => setSel({ type: "goal", id: n })} onClose={() => setSel(null)} />}
-        </Drawer>
+        </CompassDetailSheet>
       </>
     );
   }
@@ -984,10 +993,10 @@ export function createCompassUI(deps) {
           <button onClick={() => setAdding(true)} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: "var(--tm-r-sm)", padding: "11px 13px", minHeight: 40, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nová krajina", "New landscape")}</button>
         )}
         <AreaTable guide="oblasti.overview" onOpen={(name, week) => setSel({ type: "area", id: name, week })} />
-        <Drawer className="tm-compass-surface" open={!!sel} onClose={() => setSel(null)}>
+        <CompassDetailSheet open={!!sel} onClose={() => setSel(null)}>
           {sel && sel.type === "area" && <AreaDetail initialWeek={sel.week} name={sel.id} openGoal={(n) => setSel({ type: "goal", id: n })} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
           {sel && sel.type === "goal" && <GoalDetail name={sel.id} openArea={(n) => setSel({ type: "area", id: n })} onClose={() => setSel(null)} onExpand={() => { setFull(sel); setSel(null); }} />}
-        </Drawer>
+        </CompassDetailSheet>
       </>
     );
   }

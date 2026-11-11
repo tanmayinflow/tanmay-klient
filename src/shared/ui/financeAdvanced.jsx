@@ -1,3 +1,4 @@
+import { DateField } from './DateField.jsx';
 import React,{useState} from 'react';
 import {TmIcon as FamilyIcon} from './icons.jsx';
 import {FONT_BODY,FONT_TAG} from './type.js';
@@ -483,7 +484,7 @@ function BillEditor({ b, onClose }) {
         <FinNum value={b.amount || ""} onCommit={(n) => set({ amount: n })} />
         <Select value={freqVal} onChange={(v) => set({ freq: v === freqOpts[1] ? "year" : v === freqOpts[2] ? "once" : "month", ...(v === freqOpts[2] && !b.date ? {date:todayISO()} : {}) })} options={freqOpts} style={{ width: 128 }} />
         {b.freq === "once"
-          ? <input type="date" value={b.date || todayISO()} onChange={(e) => set({ date: e.target.value })} style={{ ...fieldStyle(t), width: 158, padding: "5px 8px", colorScheme: t.mode === "light" ? "light" : "dark" }} />
+          ? <DateField type="date" value={b.date || todayISO()} onChange={(e) => set({ date: e.target.value })} style={{ ...fieldStyle(t), width: 158, padding: "5px 8px", colorScheme: t.mode === "light" ? "light" : "dark" }} />
           : <>
               {b.freq === "year" ? <Select value={MONTHS_CZ()[(Number(b.month) || 1) - 1]} onChange={(v) => set({ month: MONTHS_CZ().indexOf(v) + 1 })} options={MONTHS_CZ()} style={{ width: 126 }} /> : null}
               <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
@@ -543,7 +544,7 @@ function BillRow({ occ, po, onPaid, onMove, onUndo, onEdit, editing }) {
       )}
       {rezim === "move" && !zaplaceno && (
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8, paddingLeft: 55 }}>
-          <input type="date" value={kdy} onChange={(e) => setKdy(e.target.value)} style={{ ...fieldStyle(t), width: 158, padding: "5px 8px", colorScheme: t.mode === "light" ? "light" : "dark" }} />
+          <DateField type="date" value={kdy} onChange={(e) => setKdy(e.target.value)} style={{ ...fieldStyle(t), width: 158, padding: "5px 8px", colorScheme: t.mode === "light" ? "light" : "dark" }} />
           <button onClick={() => { onMove(occ, kdy); setRezim(""); }} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 12, padding: "4px 13px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}>{L("Na nové datum", "To the new date")}</button>
         </div>
       )}

@@ -1,3 +1,4 @@
+import { DateField } from './DateField.jsx';
 import React,{useEffect,useRef,useState} from "react";
 import {validTimeZone} from "../product/skyJournal.js";
 import {SKY_TRADITIONS,skyZodiac} from "../product/skyTraditions.js";
@@ -40,7 +41,7 @@ export function SkySettings({journal,update,ready,lang="cs",onOpen}){
         <SkyPlacePicker key={`location-${placeEpoch}`} value={draft.location} onChange={changeLocation} onPending={value=>placePending("location",value)} label={L("Místo pozorování","Observing location")} lang={lang}/>
       </section>
       <section className="sky-setting" id="sky-birth-settings"><SkyHeading id="S07" onOpen={onOpen} lang={lang}>{L("Údaje narození","Birth details")}</SkyHeading><div className="sky-settings-grid">
-        <label>{L("Datum narození","Birth date")}<input type="date" min="1900-01-01" max="2100-12-31" value={draft.birth.date} onInput={e=>field("birth","date",e.target.value)} onChange={e=>field("birth","date",e.target.value)}/></label>
+        <label>{L("Datum narození","Birth date")}<DateField type="date" min="1900-01-01" max="2100-12-31" value={draft.birth.date} onInput={e=>field("birth","date",e.target.value)} onChange={e=>field("birth","date",e.target.value)}/></label>
         <label>{L("Čas narození","Birth time")}<input type="time" disabled={!draft.birth.timeKnown} value={draft.birth.time} onInput={e=>field("birth","time",e.target.value)} onChange={e=>field("birth","time",e.target.value)}/></label>
         <label className="sky-check wide"><input type="checkbox" checked={draft.birth.timeKnown} onChange={e=>field("birth","timeKnown",e.target.checked)}/><span>{L("Znám přesný čas narození","I know the exact birth time")}</span></label>
         <label className="sky-check wide"><input type="checkbox" checked={!sameBirthPlace} onChange={e=>separateBirth(e.target.checked)}/><span>{L("Jiné místo narození","Different birthplace")}</span></label>

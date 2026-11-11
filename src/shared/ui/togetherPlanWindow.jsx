@@ -1,3 +1,4 @@
+import { DateField } from './DateField.jsx';
 import React from "react";
 import {TogetherText} from "./togetherElements.jsx";
 import {togetherTheme} from "./togetherStyles.js";
@@ -15,7 +16,7 @@ export function TogetherPlanWindow({Sheet,t,lang="cs",plan,onChange,onClose,onSa
         <fieldset disabled={busy||!available} className="tg-entry-fields">
           <label>{L("Co podnikneme","What shall we do")}<input required className="tm-navod" placeholder={L("Na co se spolu těšíme…","What we look forward to together…")} value={plan.title} maxLength={120} onChange={e=>field("title",e.target.value)}/></label>
           <div className="fields">
-            <label>{L("Datum","Date")}<input required type="date" value={plan.date} onChange={e=>field("date",e.target.value)}/></label>
+            <label>{L("Datum","Date")}<DateField required type="date" value={plan.date} onChange={e=>field("date",e.target.value)}/></label>
             <label>{L("Čas","Time")}<input required type="time" value={plan.time} onChange={e=>field("time",e.target.value)}/></label>
           </div>
           <label>{L("Délka v minutách","Duration in minutes")}<input required type="number" inputMode="numeric" min="10" max="1440" step="1" value={plan.minutes} onChange={e=>field("minutes",e.target.value===""?"":Number(e.target.value))}/></label>

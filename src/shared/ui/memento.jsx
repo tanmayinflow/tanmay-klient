@@ -1,3 +1,4 @@
+import { DateField } from './DateField.jsx';
 import React, { useState } from "react";
 import { LifeDots } from "./lifeDots.jsx";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
@@ -50,7 +51,7 @@ return function PageMemento({ go }) {
         <div style={{ maxWidth: 380, margin: "0 auto", background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "18px 20px" }}>
           <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, lineHeight: 1.65, marginBottom: 14 }}>{L("Aby místnost věděla, kolik dní neseš.", "So the room knows how many days you carry.")}</div>
           <div style={{ ...subLabel(t), marginBottom: 4 }}>{L("Datum narození", "Date of birth")}</div>
-          <input type="date" value={birthDraft} onChange={(e) => setBirthDraft(e.target.value)} style={{ ...fieldStyle(t), width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", WebkitAppearance: "none", appearance: "none", padding: "7px 10px", fontSize: 13, marginBottom: 12 }} />
+          <DateField type="date" value={birthDraft} onChange={(e) => setBirthDraft(e.target.value)} style={{ ...fieldStyle(t), width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", WebkitAppearance: "none", appearance: "none", padding: "7px 10px", fontSize: 13, marginBottom: 12 }} />
           <div style={{ ...subLabel(t), marginBottom: 4 }}>{L("Délka života · roky", "Life span · years")}</div>
           <input type="number" min={30} max={120} value={spanDraft} onChange={(e) => setSpanDraft(e.target.value)} style={{ ...fieldStyle(t), width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "7px 10px", fontSize: 13, marginBottom: 16 }} />
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>

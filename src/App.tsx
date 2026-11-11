@@ -1,3 +1,4 @@
+import { DateField, DateFieldContext } from './shared/ui/DateField.jsx';
 import { MediaPreparationStatus } from "./shared/ui/MediaPreparationStatus.jsx";
 import { prepareNewAttachment, mediaPreparationMessage } from "./shared/product/mediaPreparation.js";
 import { compressPhoto } from "./shared/product/imageCompression.js";
@@ -1987,11 +1988,13 @@ function CisloStranky({ strana, pocet, t, style }) {
   );
 }
 
-function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat, settings = true, pagingControls = false }) {
+function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat, settings = true, pagingControls = false, onChange }) {
   const { t } = useT();
   const st = useStore();
   const [nastaveni, setNastaveni] = useState(false);
-  const stranky = entry.rezim === "stranky";
+  const [editing, setEditing] = useState(!pagingControls);
+  const stranky = !editing && entry.rezim === "stranky";
+  const saveText = onChange || (value => st.updateEntry(kind, entry.id, {text:value}));
   React.useEffect(() => { tmZamkniStranku(); tmListovaniStuj(); return () => { tmOdemkniStranku(); tmListovaniJdi(); }; }, []);
   React.useEffect(() => tmEscVrstva(() => onZavri()), [onZavri]);
   const teloRef = React.useRef(null);
@@ -1999,12 +2002,14 @@ function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat, 
   const nazev = entry.title || (entry.date ? fmtCZ(entry.date) : L("Bez názvu", "Untitled"));
   const html = React.useMemo(() => mdToHtml(entry.text || "", t), [entry.text, t.mode]);
   return createPortal(
-    <div className="tm-nahled" onClick={() => onZavri()}
+    <div className="tm-nahled" onClick={e => e.stopPropagation()}
       style={{ position: "fixed", inset: 0, zIndex: 92, background: hexA(t.bg, 0.86), backdropFilter: "blur(13px) saturate(1.05)", WebkitBackdropFilter: "blur(13px) saturate(1.05)", animation: "tmDim .22s ease both" }}>
       {/* PEVNÝ NÁZEV · stojí, i když text pod ním jede. Je to jméno souboru,
           ne nadpis textu — proto verzálky a prostrkání jako u listů. */}
       <div className="tm-nahled-head" style={{ position: "absolute", top: "calc(13px + env(safe-area-inset-top))", left: 18, right: 14, display: "flex", alignItems: "center", gap: 12, pointerEvents: "none" }}>
         <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nazev}</span>
+        {!entry.zamek && <button type="button" onClick={()=>setEditing(v=>!v)} style={{...iconBtn(t),pointerEvents:"auto",width:"auto",padding:"6px 12px",minHeight:44}}>{editing?L("Číst","Read"):L("Psát","Write")}</button>}
+        {settings && <button type="button" onClick={onZavri} aria-label={L("Zavřít zápisek","Close note")} style={{...iconBtn(t),pointerEvents:"auto",width:44,height:44}}><FamilyIcon id="close" size={16}/></button>}
         {settings ? <button onClick={(e) => { e.stopPropagation(); setNastaveni(true); }} title={L("Nastavení poznámky", "Note settings")}
           style={{ pointerEvents: "auto", flexShrink: 0, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 34, height: 34, cursor: "pointer", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
           <TmIcNastaveni size={16} />
@@ -2012,20 +2017,20 @@ function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat, 
       </div>
       {/* Čtení sahá k malému zápatí a bezpečné hraně, bez rezervy na skrytý dok.
           Klepnutí do textu vrací zpátky k psaní. */}
-      <div ref={teloRef} onClick={(e) => { e.stopPropagation(); if (onPsat) onPsat(); }} className={"tm-scroll tm-nahled-telo" + (stranky ? " tm-stranky" : "")}
-        style={{ position: "absolute", left: 0, right: 0, top: "calc(64px + env(safe-area-inset-top))", bottom: "calc(64px + env(safe-area-inset-bottom))", overflowY: stranky ? "hidden" : "auto", overflowX: "hidden", overscrollBehavior: "contain", padding: "0 18px", cursor: "pointer" }}>
-        {stranky
+      <div ref={teloRef} onClick={e=>e.stopPropagation()} className={"tm-scroll tm-nahled-telo" + (stranky ? " tm-stranky" : "")}
+        style={{ position: "absolute", left: 0, right: 0, top: "calc(64px + env(safe-area-inset-top))", bottom: "calc(64px + env(safe-area-inset-bottom))", overflowY: stranky ? "hidden" : "auto", overflowX: "hidden", overscrollBehavior: "contain", padding: "0 18px", cursor: editing ? "text" : "auto" }}>
+        {editing ? <div style={{maxWidth:640,margin:"0 auto"}}><RichArea value={entry.text||""} onChange={saveText} zamek={!!entry.zamek} zen={false}/></div> : stranky
           ? <div className="tm-strcol"><div className="tm-rich" dangerouslySetInnerHTML={{ __html: html }} /></div>
           : <div className="tm-rich" style={{ maxWidth: 640, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: html }} />}
       </div>
       {/* Nápověda i počet stránek mají společné malé zápatí. Text může
           zalomit a číslo zůstává vedle něj, nikdy přes poslední řádek čtení. */}
-      {pagingControls && stranky ? <div onClick={e=>e.stopPropagation()} style={{position:"absolute",left:18,right:18,bottom:"calc(8px + env(safe-area-inset-bottom))",display:"flex",alignItems:"center",gap:12,fontFamily:FONT_BODY,fontSize:12,lineHeight:1.5,color:t.textSec}}>
+      {editing ? null : pagingControls && stranky ? <div onClick={e=>e.stopPropagation()} style={{position:"absolute",left:18,right:18,bottom:"calc(8px + env(safe-area-inset-bottom))",display:"flex",alignItems:"center",gap:12,fontFamily:FONT_BODY,fontSize:12,lineHeight:1.5,color:t.textSec}}>
         <button type="button" aria-label={L("Předchozí stránka","Previous page")} disabled={str.strana<=1} onClick={()=>str.jdi(str.strana-2)} style={{...iconBtn(t),width:44,height:44,flexShrink:0}}><FamilyIcon id="back" size={16}/></button>
-        <span style={{flex:1,minWidth:0,textAlign:"center"}}><span role="status" aria-live="polite" aria-atomic="true" aria-label={L("Stránka "+str.strana+" z "+str.pocet,"Page "+str.strana+" of "+str.pocet)} style={{fontVariantNumeric:"tabular-nums"}}>{str.strana} / {str.pocet}</span><span style={{display:"block",fontStyle:"italic"}}>{L("Klepnutím se vrátíš k psaní","Tap to go back to writing")}</span></span>
+        <span style={{flex:1,minWidth:0,textAlign:"center"}}><span role="status" aria-live="polite" aria-atomic="true" aria-label={L("Stránka "+str.strana+" z "+str.pocet,"Page "+str.strana+" of "+str.pocet)} style={{fontVariantNumeric:"tabular-nums"}}>{str.strana} / {str.pocet}</span><span style={{display:"block",fontStyle:"italic"}}>{L("Text můžeš upravit tlačítkem Psát","Use Write to edit this text")}</span></span>
         <button type="button" aria-label={L("Další stránka","Next page")} disabled={str.strana>=str.pocet} onClick={()=>str.jdi(str.strana)} style={{...iconBtn(t),width:44,height:44,flexShrink:0}}><FamilyIcon id="forward" size={16}/></button>
       </div> : <div style={{ position: "absolute", left: 18, right: 18, bottom: "calc(16px + env(safe-area-inset-bottom))", display: "flex", alignItems: "center", gap: 12, fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, lineHeight: 1.5, color: hexA(t.textMuted, 0.75), pointerEvents: "none" }}>
-        <span style={{ flex: 1, minWidth: 0, textAlign: "center" }}>{L("Klepnutím se vrátíš k psaní", "Tap to go back to writing")}</span>
+        <span style={{ flex: 1, minWidth: 0, textAlign: "center" }}>{L("Text můžeš upravit tlačítkem Psát", "Use Write to edit this text")}</span>
         {stranky && <CisloStranky strana={str.strana} pocet={str.pocet} t={t} style={{ position: "static", flexShrink: 0, fontStyle: "normal", whiteSpace: "nowrap" }} />}
       </div>
       }
@@ -2101,7 +2106,7 @@ function NastaveniPoznamky({ entry, kind = "notebook", tags = [], onClose, onPry
         <div style={{ ...radek, cursor: "default" }}>
           <span style={{ width: 18, flexShrink: 0, color: t.textMuted, display: "inline-flex", justifyContent: "center", fontSize: 13 }}>◷</span>
           <span style={{ flex: 1 }}>{L("Datum poznámky", "Note date")}</span>
-          <input type="date" value={entry.date || ""} onChange={(e) => up({ date: e.target.value })}
+          <DateField type="date" value={entry.date || ""} onChange={(e) => up({ date: e.target.value })}
             style={{ background: "transparent", border: "none", color: entry.date ? t.textSec : t.textMuted, fontFamily: FONT_BODY, fontSize: 13, outline: "none", padding: 0, colorScheme: t.mode === "light" ? "light" : "dark", width: 118 }} />
         </div>
         <div style={{ ...radek, cursor: "default" }}>
@@ -4650,7 +4655,7 @@ function NotebookCard({ entry, tags, selecting, selected, onToggleSel, onDragSel
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <input data-guide={full ? (kind === "journal" ? "denik.write" : "zapisnik.write") : undefined} value={entry.title} onChange={(e) => st.updateEntry(kind, entry.id, { title: e.target.value })} placeholder={kind === "journal" ? L("Název (nepovinný)…", "Title (optional)…") : L("Název…", "Title…")} style={{ flex: 1, minWidth: 160, background: "transparent", border: "none", borderBottom: `1px solid transparent`, fontFamily: FONT_DISPLAY, fontSize: full ? 26 : 18, color: t.heading, outline: "none", padding: "0 0 2px" }} />
               <button onClick={() => setTagPick((x) => !x)} title={L("Změnit kategorie", "Change categories")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", gap: 5, flexWrap: "wrap" }}>{selTags.length ? selTags.map((n) => <Tag key={n} label={n} color={colorOf(n)} />) : <Tag label={L("+ štítek", "+ tag")} color="default" />}</button>
-              <input type="date" value={entry.date || ""} onChange={(e) => st.updateEntry(kind, entry.id, { date: e.target.value })} title={L("Datum poznámky: podle něj se řadí", "Note date: used for sorting")} style={{ background: "transparent", border: "none", color: entry.date ? t.textMuted : hexA(t.textMuted, 0.5), fontFamily: FONT_BODY, fontSize: 12, outline: "none", padding: 0, colorScheme: t.mode === "light" ? "light" : "dark", width: 110 }} />
+              <DateField type="date" value={entry.date || ""} onChange={(e) => st.updateEntry(kind, entry.id, { date: e.target.value })} title={L("Datum poznámky: podle něj se řadí", "Note date: used for sorting")} style={{ background: "transparent", border: "none", color: entry.date ? t.textMuted : hexA(t.textMuted, 0.5), fontFamily: FONT_BODY, fontSize: 12, outline: "none", padding: 0, colorScheme: t.mode === "light" ? "light" : "dark", width: 110 }} />
             </div>
             {tagPick && (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
@@ -5156,7 +5161,7 @@ function PageNotebook({ koren, korenNazev }) {
       {/* na široké obrazovce seznam a text vedle sebe · poznámka nezakrývá
           to, z čeho jsi ji vybral, a dá se přeskakovat mezi nimi */}
       <div className={wide ? "tm-2pane" : undefined} style={{ marginTop: 18 }}>
-        <div ref={listRef} className="tm-scroll tm-dnolist" style={{ maxHeight: wide ? "min(720px, calc(70 * var(--tm-vh)))" : "min(620px, calc(62 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${holding ? t.accent : t.borderSoft}`, borderRadius: 20, padding: "4px 10px 10px", transition: "border-color .15s ease" }}>
+        <div ref={listRef} className="tm-scroll tm-dnolist" style={{ maxHeight: wide ? "min(720px, calc(70 * var(--tm-vh)))" : "min(620px, calc(62 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${holding ? t.accent : t.borderSoft}`, borderRadius: 20, boxShadow: "var(--tm-depth-panel-shadow, " + t.shadow + ")", padding: "4px 10px 10px", transition: "border-color .15s ease" }}>
           {vw === "rows" && shown.map((e) => (
             <NotebookCard key={e.id} entry={e} tags={tags} selecting={selecting} selected={sel.includes(e.id)} onToggleSel={toggleSel} onDragSel={dragSel} noDrag={sortBy !== "manual"} onExpand={otevri} holdManaged current={wide && full === e.id} />
           ))}
@@ -5166,7 +5171,7 @@ function PageNotebook({ koren, korenNazev }) {
           {shown.length === 0 && <Prazdno kind={all.length ? "nic" : "prvni"} plain={all.length > 0} compact={all.length > 0} mark={!all.length && <EmptyRoomArt room="zapisnik" color={t.sand} />} fakt={all.length ? L("V téhle kategorii zatím nic není.", "Nothing in this category yet.") : L("Prázdný zápisník.", "An empty notebook.")} pozvani={!all.length && L("Místo pro tvé vlastní poznámky.", "A place for your own notes.")} />}
         </div>
         {wide && (
-          <div className="tm-scroll" style={{ maxHeight: "min(720px, calc(70 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: fullEntry ? "4px 6px 10px" : 0, background: t.bg }}>
+          <div className="tm-scroll" style={{ maxHeight: "min(720px, calc(70 * var(--tm-vh)))", overflowY: "auto", border: `1px solid ${t.borderSoft}`, borderRadius: 12, boxShadow: "var(--tm-depth-panel-shadow, " + t.shadow + ")", padding: fullEntry ? "4px 6px 10px" : 0, background: t.bg }}>
             {fullEntry
               ? <NotebookCard key={fullEntry.id} entry={fullEntry} tags={tags} full onZmensit={() => setNahled(true)} />
               : (
@@ -13360,7 +13365,7 @@ function TvClientPlan({ onRun }) {
                     <button onClick={() => setOpen(open === s.id ? null : s.id)} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: isDone ? t.textMuted : t.heading, fontFamily: FONT_BODY, fontSize: 14.5, gridColumn:"2 / -1", textDecoration: isDone ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {tpl ? L(tpl.cz, tpl.en) : L("Trénink", "Workout")}
                     </button>
-                    <input type="date" value={d} disabled={!!rec} onChange={(e) => {if(!rec)st.tvSetSched(p.id, s.id, e.target.value);}}
+                    <DateField type="date" value={d} disabled={!!rec} onChange={(e) => {if(!rec)st.tvSetSched(p.id, s.id, e.target.value);}}
                       aria-label={rec?L("Datum zaznamenaného tréninku", "Recorded workout date"):L("Kdy to uděláš", "When you will do it")}
                       style={{ gridColumn:2,width:"100%",minWidth:0,boxSizing:"border-box", background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 7, padding: "6px", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12.5, minHeight: 36 }} />
                     <button onClick={() => start(p, s)} style={{ background: isDone ? "transparent" : t.accent, color: isDone ? t.textSec : t.onAccent, border: isDone ? `1px solid ${t.borderSoft}` : "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, minHeight: 38 }}>
@@ -16966,7 +16971,7 @@ export default function App() {
   };
 
   return (
-    <ThemeCtx.Provider value={{ t, tags }}>
+    <ThemeCtx.Provider value={{ t, tags }}><DateFieldContext.Provider value={{t,L}}>
       <StoreCtx.Provider value={store}><GuideNavigationProvider request={guideRequest}>
         <MediaPreparationStatus key={ownerId || "anonymous"} t={t} lang={lang} namespace={tmFileNamespace()}/>
         <OfflineBadge />
@@ -17572,6 +17577,6 @@ export default function App() {
         )}
       </div>
       </GuideNavigationProvider></StoreCtx.Provider>
-    </ThemeCtx.Provider>
+    </DateFieldContext.Provider></ThemeCtx.Provider>
   );
 }

@@ -874,17 +874,6 @@ export function createPracticeUI(deps) {
     const bezVyberu = { userSelect: "none", WebkitUserSelect: "none", MozUserSelect: "none", WebkitTouchCallout: "none" };
     return (
       <div style={bezVyberu} onContextMenu={(e) => { if (pisu == null) e.preventDefault(); }} onCopy={(e) => { if (pisu == null) e.preventDefault(); }}>
-        {(drzi || vybrany) && (
-          <div style={{ position: "sticky", top: 0, zIndex: 3, display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.accentInk || t.accent, background: t.card, padding: "4px 0 6px" }}>
-            <span style={{ flex: 1, minWidth: 0 }}>{drzi && drzi.mode === "resize" ? L("Táhni dolů a roztáhni…", "Drag down to stretch…") : drzi ? L("Táhni na jinou hodinu…", "Drag to another hour…") : L("Blok je chycený · táhni ho, nebo dole ťukni na šipku", "Block is held · drag it, or tap an arrow below")}</span>
-            {!drzi && vybrany && (
-              <>
-                {spanOf(vybrany) > 1 && <button onClick={() => { set(vybrany, { span: 1 }); }} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 999, padding: "3px 10px", minHeight: 30, cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12 }}>{L("Na hodinu", "One hour")}</button>}
-                <button onClick={() => setVybrany(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15, minHeight: 30, width: 26 }}><FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
-              </>
-            )}
-          </div>
-        )}
         {bloky.map(([cz, en, od, doH]) => (
           <div key={cz} style={{ marginBottom: 14 }}>
             <div style={{ ...subLabel(t), marginBottom: 4 }}>{L(cz, en)}</div>

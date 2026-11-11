@@ -30,7 +30,7 @@ const module = {exports: {}};
 vm.runInNewContext(compile(rowSource), {module, exports: module.exports, require: id => {
   if (id === 'react') return React;
   if (id.endsWith('/sources.js')) return sourcePolicy;
-  return {SourceLinks: noop, TmIcon: noop, SourceCover: noop};
+  return {SourceLinks: noop, TmIcon: noop, SourceCover: noop, DateField: noop};
 }});
 const {ContentRow} = module.exports.createSourcesUI({
   useT, useStore: () => ({reorderEntry: noop}), L, LV: value => value, hexA: value => value,

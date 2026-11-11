@@ -1,3 +1,4 @@
+import { DateField } from './DateField.jsx';
 import { SourceLinks } from "./sourceLinks.jsx";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
 import { SourceCover } from "./sourceCover.jsx";
@@ -116,7 +117,7 @@ export function createSourcesUI(deps) {
     };
     const scoreN = e.score === "" || e.score == null ? null : +e.score;
     const noteText = odTanmaye ? (e.note || "") : (e.text || "");
-    const reader = reading && NotesReader ? <NotesReader entry={{id:e.id,title:e.title,text:noteText,rezim:"stranky"}} settings={false} pagingControls onZavri={()=>setReading(false)} onPsat={()=>setReading(false)}/> : null;
+    const reader = reading && NotesReader ? <NotesReader entry={{id:e.id,title:e.title,text:noteText,rezim:"stranky"}} settings={false} pagingControls onChange={v=>upd(odTanmaye?{note:v}:{text:v})} onZavri={()=>setReading(false)} onPsat={()=>setReading(false)}/> : null;
     const readButton = NotesReader && noteText.trim() ? <button type="button" onClick={()=>setReading(true)} style={{...iconBtn(t),width:"auto",minHeight:44,padding:"6px 10px",gap:6,fontFamily:"var(--tm-font-body)",fontSize:12}}><FamilyIcon id="book" size={15}/>{L("Číst po stránkách", "Read by page")}</button> : null;
     if (study) return <>{reader}<article style={{maxWidth:720,margin:"0 auto",paddingBottom:80}}><h1 style={{fontFamily:"var(--tm-font-display)",fontWeight:400,fontSize:30,lineHeight:1.2}}>{e.title}</h1><p style={{color:t.textSec,fontFamily:"var(--tm-font-body)",fontSize:13}}>{[e.author,L("Postřehy ke studiu","Study notes")].filter(Boolean).join(" · ")}</p>{readButton}<RichArea value={noteText} onChange={v=>upd(odTanmaye?{note:v}:{text:v})} placeholder={L("Co si z toho odnáším…","What I take from it…")}/></article></>;
     return (
@@ -153,7 +154,7 @@ export function createSourcesUI(deps) {
           </span>
         </PropRow>}
         <details style={{marginTop:12}}><summary style={{cursor:"pointer",fontFamily:"var(--tm-font-body)",fontSize:13,padding:"10px 0",color:t.textSec}}>{L("Další údaje a možnosti", "More details and options")}</summary>
-        {!odTanmaye && <PropRow icon={<FamilyIcon id="calendar" size={16} />} label={L("Dokončeno dne", "Date finished")}><input type="date" aria-label={L("Dokončeno dne", "Date finished")} value={e.dateFinished || ""} onChange={(ev) => upd({ dateFinished: ev.target.value })} style={{ background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none", colorScheme: t.mode === "light" ? "light" : "dark" }} /></PropRow>}
+        {!odTanmaye && <PropRow icon={<FamilyIcon id="calendar" size={16} />} label={L("Dokončeno dne", "Date finished")}><DateField type="date" aria-label={L("Dokončeno dne", "Date finished")} value={e.dateFinished || ""} onChange={(ev) => upd({ dateFinished: ev.target.value })} style={{ background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none", colorScheme: t.mode === "light" ? "light" : "dark" }} /></PropRow>}
         <PropRow icon={<FamilyIcon id="quote" size={16} />} label={L("Věta, kterou si nesu", "A line I carry")}><input value={e.carry || ""} onChange={(ev) => upd({ carry: ev.target.value })} placeholder={L("jedna věta z tohoto pramene…", "one line from this source…")} style={{ width: "100%", background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none" }} /></PropRow>
         {!odTanmaye && <PropRow icon={React.createElement(glyfTypu(e.type), { size: 16 })} label={L("Typ", "Type")}><button onClick={() => cycle(C_TYPES, e.type, "type")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Tag label={e.type ? C_TYPE_LABEL(e.type) : "—"} color={C_TYPE_COLOR[e.type] || "default"} /></button></PropRow>}
         {!odTanmaye && <PropRow icon={<FamilyIcon id="folder" size={16} />} label={L("Žánr", "Genre")}><Select small value={e.category || ""} onChange={(v) => upd({ category: v })} placeholder="—" style={{ maxWidth: 170, width: 170 }} options={(C_CATS_BY_TYPE[e.type] || C_CATS).map((c) => ({ v: c, label: C_CAT_LABEL(c) }))} /></PropRow>}

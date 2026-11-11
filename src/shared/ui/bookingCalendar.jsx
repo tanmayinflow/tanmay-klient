@@ -1,3 +1,4 @@
+import { DateField } from './DateField.jsx';
 import { NumberField } from "./NumberField.jsx";
 import { ChoiceField } from "./ChoiceField.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -124,7 +125,7 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
           <button type="button" style={{ ...btn, border: 0, padding: "8px" }} aria-label={L("Předchozí období", "Previous period")} onClick={() => setDate(B.shiftDateISO(date, view === "week" ? -7 : -1))}><TmIcon id="back" size={14}/></button>
           <label style={{ position: "relative", minHeight: 44, display: "inline-flex", alignItems: "center", padding: "6px 5px", fontFamily: DISPLAY_FONT, fontSize: 21, cursor: "pointer" }}>
             {date === B.localDateISO(Date.now(), ZONE) ? L("Dnes", "Today") : dayLabel(date)}
-            <input aria-label={L("Vybraný den", "Selected date")} type="date" onClick={e => e.currentTarget.showPicker?.()} value={date} onChange={e => { if (B.isDateISO(e.target.value)) setDate(e.target.value); }} style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}/>
+            <DateField aria-label={L("Vybraný den", "Selected date")} type="date" value={date} onChange={e => { if (B.isDateISO(e.target.value)) setDate(e.target.value); }} style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}/>
           </label>
           <button type="button" style={{ ...btn, border: 0, padding: "8px" }} aria-label={L("Další období", "Next period")} onClick={() => setDate(B.shiftDateISO(date, view === "week" ? 7 : 1))}><TmIcon id="forward" size={14}/></button>
           {date !== B.localDateISO(Date.now(), ZONE) && <button type="button" style={{ ...btn, border: 0, padding: "8px", fontSize: 12 }} onClick={() => setDate(B.localDateISO(Date.now(), ZONE))}>{L("Dnes", "Today")}</button>}
