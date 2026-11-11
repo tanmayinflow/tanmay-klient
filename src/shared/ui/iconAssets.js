@@ -1,5 +1,6 @@
 // Public artwork only; exact original files, checked in both application repositories.
 export const ICON_ASSET_HASHES = {
+  "training-equipment-v13.png": "7ad40a888c67a0a972aad28abd58d02916d2dc7ad8824e8e2dc4046141667724",
   "training-equipment-v11.png": "469288c2b2c354bad9e11ed00a22760afde6d7fe449c5259a6c9f21158f0f62c",
   "training-equipment-v10.png": "fe22cab6ca17fa62d91cc3268aec90819dfdbcf41d806c987d8b5419b0182634",
   "training-equipment-v9.png": "cce497a8b2e278457a801c088c011c2ab2c0ef7045a5eb2f5fbe30263593c42b",
