@@ -68,6 +68,7 @@ ${s} :is(.tm-cs-head,.tm-nahled-head)::after { content: none; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) :is(button,span,svg) { color: var(--tm-text) !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) button { background: transparent !important; border-color: currentColor !important; }
 ${s} :is(.tm-cs-head,.tm-nahled-head) button:focus-visible { outline-color: var(--tm-link) !important; }
+${s} .tm-nahled-head button.tm-note-mode { color: var(--tm-link) !important; border: 0 !important; box-shadow: none !important; }
 ${s} .tm-cs { --land-sheet-pad: clamp(18px, calc(3 * var(--tm-vw)), 34px); padding: 0 !important; }
 ${s} .tm-cs-head { top: 0 !important; margin: 0 !important; padding: 18px var(--land-sheet-pad) 12px !important; }
 ${s} .tm-cs-body { padding: 40px var(--land-sheet-pad) 34px !important; }

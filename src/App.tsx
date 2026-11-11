@@ -2008,8 +2008,8 @@ function NahledPoznamky({ entry, kind = "notebook", tags = [], onZavri, onPsat, 
           ne nadpis textu — proto verzálky a prostrkání jako u listů. */}
       <div className="tm-nahled-head" style={{ position: "absolute", top: "calc(13px + env(safe-area-inset-top))", left: 18, right: 14, display: "flex", alignItems: "center", gap: 12, pointerEvents: "none" }}>
         <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nazev}</span>
-        {!entry.zamek && <button type="button" onClick={()=>setEditing(v=>!v)} style={{...iconBtn(t),pointerEvents:"auto",width:"auto",padding:"6px 12px",minHeight:44}}>{editing?L("Číst","Read"):L("Psát","Write")}</button>}
-        {settings && <button type="button" onClick={onZavri} aria-label={L("Zavřít zápisek","Close note")} style={{...iconBtn(t),pointerEvents:"auto",width:44,height:44}}><FamilyIcon id="close" size={16}/></button>}
+        {!entry.zamek && <button type="button" className="tm-note-mode" onClick={()=>setEditing(v=>!v)} style={{...iconBtn(t),pointerEvents:"auto",width:"auto",padding:"6px 12px",minHeight:44,border:0,boxShadow:"none",color:t.accentInk||t.accent}}>{editing?L("Číst","Read"):L("Psát","Write")}</button>}
+        {settings && <button type="button" onClick={onZavri} aria-label={L("Zavřít zápisek","Close note")} style={{...iconBtn(t),pointerEvents:"auto",width:44,height:44,borderRadius:"50%",flexShrink:0}}><FamilyIcon id="close" size={16}/></button>}
         {settings ? <button onClick={(e) => { e.stopPropagation(); setNastaveni(true); }} title={L("Nastavení poznámky", "Note settings")}
           style={{ pointerEvents: "auto", flexShrink: 0, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 34, height: 34, cursor: "pointer", color: t.textMuted, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
           <TmIcNastaveni size={16} />
