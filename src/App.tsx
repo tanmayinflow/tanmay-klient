@@ -118,6 +118,7 @@ import {
   ROLES, deriveCapabilities, roomVisible,
   CLIENT_ALWAYS, CLIENT_OPTIONAL, migrateClientModules,
 } from "./shared/product/roles.js";
+import { applyClientModuleCommands, moduleCommandRevisions } from "./shared/product/clientModules.js";
 import { habitSummary, goalSummary, validateShareSnapshot, SHARE_WINDOW_DAYS } from "./shared/product/visibility.js";
 
 import { useVrstva, createOverlay } from "./shared/ui/overlay.jsx";
@@ -162,6 +163,7 @@ import { SYNC_OK, SYNC_SIT, SYNC_PRIHLASENI, syncDruh, syncHlaska, syncLzeZkusit
 import { stateTransportFetch } from "./shared/product/stateTransportClient.js";
 import { bootstrapSyncDecision, acknowledgedServerSnapshot } from "./shared/product/bootstrapSync.js";
 import { createClientSession } from "./clientSession.js";
+import { prepareClientAccountExit, navigateClientAccountExit } from "./clientAccountExit.js";
 import { clientDataAccess, clientSyncStatus, buildClientBackup, readPracticeRecovery, changeClientPractice } from "./clientData.js";
 import { createClientStartupNavigation, clientHabitDefinitions, prepareClientUnusedHabitAdoption } from "./clientPreferences.js";
 import { scopeLegacyClientPins } from "./clientPinned.js";
@@ -14919,6 +14921,7 @@ export default function App() {
   const [ownerId, setOwnerId] = useState(null);
   const [ownerSwitched, setOwnerSwitched] = useState(false);
   const [accountStatus, setAccountStatus] = useState("loading");
+  const [accountEmail, setAccountEmail] = useState("");
   const [stateHydrated, setStateHydrated] = useState(false);
   React.useEffect(() => {
     let dead = false;
@@ -14944,6 +14947,7 @@ export default function App() {
     const reflect = state => {
       if (dead) return;
       setAccountStatus(state.status);
+      setAccountEmail(state.email || "");
       if (typeof state.member === "boolean") { setMember(state.member); setMemberName(state.name); }
       if (state.owner && ["ready", "membership"].includes(state.status)) setOwnerId(state.owner);
     };
@@ -15084,7 +15088,7 @@ export default function App() {
   // do dneška rychle po sobě by se jinak přepsaly — druhý zápis by četl
   // zastaralý snímek a první by z něj vypadl.
   const updateDay = (date, patch) => setEdits((prev) => {
-    if (clientAccount.getSnapshot().status === "changed") return prev;
+    if (["changed", "signed-out"].includes(clientAccount.getSnapshot().status)) return prev;
     const stary = prev[date] || {};
     const p = typeof patch === "function" ? patch(stary) : patch;
     const next = { ...prev, [date]: { ...stary, ...p } };
@@ -15127,7 +15131,7 @@ export default function App() {
      pořád přijme, ale ohlásí se — a test hlídá, že ve zdroji žádné takové
      volání není. */
   const persistColl = (updater) => setColl((prev) => {
-    if (clientAccount.getSnapshot().status === "changed") return prev;
+    if (["changed", "signed-out"].includes(clientAccount.getSnapshot().status)) return prev;
     if (typeof updater !== "function" && typeof console !== "undefined") {
       try { console.error("persistColl dostal hotový objekt místo aktualizace — hrozí přepsání cizího zápisu", updater); } catch (e) {}
     }
@@ -15594,7 +15598,10 @@ export default function App() {
       if (jina === moje) return;
       if (moje === _lastSynced.current || !_dirty.current) {
         setColl(c); setEdits(ed);            // v úložišti to už je, zapisovat netřeba
-        _lastSynced.current = jina;
+        // Another tab may close before sending this local draft. Only a
+        // server receipt can acknowledge it; the normal debounce must retry.
+        _dirty.current = true;
+        setSyncPending(true);
       } else if (!conflict) {
         setConflict({ doc: { coll: c, edits: ed }, ver: _ver.current, karta: true });
       }
@@ -16759,6 +16766,31 @@ export default function App() {
   // Uložená volba modulů z verze V1 se převede: vždy dostupné místnosti ze
   // seznamu zmizí (drží je CLIENT_ALWAYS) a nic,
   // co si člověk nezapnul, se nezapne.
+  // Coach commands change availability once, then remain the client's choice.
+  React.useEffect(() => {
+    if (!stateHydrated || member !== true || conflict || !ownerId) return;
+    let stopped = false, running = false;
+    const current = () => !stopped && clientAccount.isCurrent(ownerId) && ownerLoad() === ownerId;
+    const receive = async () => {
+      if (!current() || running || !_syncReady.current) return;
+      running = true;
+      const baseline = moduleCommandRevisions(_collRef.current?.moduleCommandRevisions);
+      try {
+        const response = await clientFetch("/api/modules", { cache: "no-store" });
+        if (!response.ok || !current()) return;
+        const body = await response.json();
+        if (body.ok && current()) persistColl(c => current() ? applyClientModuleCommands(c, body.commands, baseline) : c);
+      } catch { /* Existing modules remain available offline; retry on return. */ }
+      finally { running = false; }
+    };
+    const visible = () => { if (document.visibilityState === "visible") receive(); };
+    receive();
+    const timer = window.setInterval(receive, 60000);
+    window.addEventListener("focus", receive);
+    window.addEventListener("online", receive);
+    document.addEventListener("visibilitychange", visible);
+    return () => { stopped = true; window.clearInterval(timer); window.removeEventListener("focus", receive); window.removeEventListener("online", receive); document.removeEventListener("visibilitychange", visible); };
+  }, [stateHydrated, member, !!conflict, ownerId]);
   const storedModules = migrateClientModules(coll.modules || null);
   const enabledModules = storedModules; // null = první spuštění → uvítání s výběrem
   React.useEffect(() => {
@@ -16862,6 +16894,44 @@ export default function App() {
       if (!_syncReady.current) { if (_syncOnceRef.current) await _syncOnceRef.current(); }
       else await _pushRef.current({ retry: true });
     } finally { manualSyncLock.current = false; setManualSyncBusy(false); }
+  };
+  const [accountExitBusy, setAccountExitBusy] = useState(false);
+  const [accountExitMessage, setAccountExitMessage] = useState("");
+  const accountExitLock = React.useRef(false);
+  const leaveAccount = async (switchAccount = false) => {
+    if (accountExitLock.current) return;
+    accountExitLock.current = true; setAccountExitBusy(true); setAccountExitMessage("");
+    try {
+      const result = await prepareClientAccountExit({
+        current: () => clientAccount.isCurrent(ownerId) && ownerLoad() === ownerId,
+        online: () => navigator.onLine !== false,
+        canLeave: () => window.dispatchEvent(new Event("beforeunload", { cancelable: true })),
+        saveLocal: () => { saveColl(_collRef.current); saveEdits(_editsRef.current); },
+        writer: TM_LOCAL_WRITER,
+        pending: () => {
+          const attachments = new Map();
+          tmMistniPrilohy(_collRef.current, attachments); tmMistniPrilohy(_editsRef.current, attachments);
+          return !_syncReady.current || !!settingsDataState.current?.conflict || attachments.size > 0 || _serializeDoc(_collRef.current, _editsRef.current) !== _lastSynced.current;
+        },
+        sync: async () => {
+          if (settingsDataState.current?.conflict) return;
+          await window.tmPrilohyNahoru?.();
+          // Media promotion updates React state before its document can be sent.
+          await new Promise(resolve => window.setTimeout(resolve, 0));
+          await _retrySyncRef.current();
+        },
+      });
+      if (result === "ready") { navigateClientAccountExit({ win: window, session: clientAccount, switchAccount }); return; }
+      setAccountExitMessage({
+        changed: L("Účet se mezitím změnil. Nejdřív aplikaci znovu načti.", "The account changed. Reload the app first."),
+        recording: L("Nejdřív dokonči a ulož rozpracovanou nahrávku. Potom se můžeš odhlásit.", "Finish and save your recording before signing out."),
+        "local-error": L("Poslední změny se nepodařilo uložit v zařízení. Zůstaň přihlášený a v části Data zkus uložení znovu nebo stáhni zálohu.", "Your latest changes could not be saved on this device. Stay signed in and retry saving or download a backup under Data."),
+        offline: L("Pro odhlášení se připoj k internetu. Místní zápisy zůstávají zachované.", "Connect to the internet to sign out. Your local entries are preserved."),
+        pending: L("Některé zápisy nebo přílohy zatím nejsou uložené online. Nejdřív dokonči synchronizaci nebo vyřeš rozdílné verze, ať po změně účtu zůstane vše dostupné.", "Some entries or attachments are not saved online yet. Finish syncing or resolve the version conflict first so everything stays available after changing accounts."),
+      }[result] || "");
+    } catch {
+      setAccountExitMessage(L("Odhlášení se nepodařilo připravit. Zápisy zůstávají zachované; zkus to znovu.", "Sign-out could not be prepared. Your entries are preserved; try again."));
+    } finally { accountExitLock.current = false; setAccountExitBusy(false); }
   };
   const downloadClientBackup = () => {
     if (!settingsDataState.current?.canExport || !clientAccount.isCurrent(ownerId) || ownerLoad() !== ownerId) return;
@@ -17256,10 +17326,10 @@ export default function App() {
             <button onClick={keepMine} style={{ background: "transparent", color: t.text, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Nechat moji", "Keep mine")}</button>
           </div>
         )}
-        {accountStatus === "changed" && createPortal(
+        {["changed", "signed-out"].includes(accountStatus) && createPortal(
           <div role="alertdialog" aria-modal="true" aria-labelledby="tm-account-changed-title" style={{ position:"fixed", inset:0, zIndex:10010, background:t.bg, display:"grid", placeItems:"center", padding:24 }}>
             <div style={{maxWidth:440,color:t.text,fontFamily:FONT_BODY,lineHeight:1.6}}>
-              <h2 id="tm-account-changed-title" style={{fontFamily:FONT_DISPLAY,fontWeight:400}}>{L("V prohlížeči je přihlášen jiný účet", "A different account is signed in")}</h2>
+              <h2 id="tm-account-changed-title" style={{fontFamily:FONT_DISPLAY,fontWeight:400}}>{accountStatus === "signed-out" ? L("Přihlášení bylo ukončeno", "Your session has ended") : L("V prohlížeči je přihlášen jiný účet", "A different account is signed in")}</h2>
               <p>{L("Původní zápisy zůstávají uložené v tomto zařízení. Aplikaci znovu načti, aby se otevřel prostor přihlášeného člověka.", "The original entries remain saved on this device. Reload to open the signed-in person's workspace.")}</p>
               <button onClick={()=>location.reload()} style={{...tmButton(t),minHeight:44}}>{L("Načíst přihlášený účet", "Load the signed-in account")}</button>
             </div>
@@ -17476,6 +17546,22 @@ export default function App() {
               <SetSwitch label={L("Odezva dotykem","Haptic response")} on={uiCfg().haptics!==false} onChange={haptics=>setUiCfg({haptics})}/>
             </SetSection>
             <SetSection title={L("Účet","Account")} id="account" open={settingsSection==="account"} onOpen={setSettingsSection}>
+              <div style={{ margin: "0 8px 18px", fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6 }}>
+                <div style={{ color: t.textSec }}>{["ready", "membership"].includes(accountStatus) ? L("Přihlášený e-mail", "Signed-in email") : L("Poslední ověřený e-mail", "Last verified email")}</div>
+                <div data-testid="client-account-email" style={{ fontSize: 15, color: t.text, overflowWrap: "anywhere", margin: "3px 0 12px" }}>{accountEmail || L("E-mail se zatím nepodařilo ověřit.", "Your email has not been verified yet.")}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <button type="button" disabled={accountExitBusy} onClick={()=>leaveAccount(false)} style={{ ...tmButton(t), minHeight: 44 }}>{accountExitBusy ? L("Kontroluji uložení…", "Checking saved data…") : L("Odhlásit se", "Sign out")}</button>
+                  <button type="button" disabled={accountExitBusy} onClick={()=>leaveAccount(true)} style={{ ...tmButton(t), minHeight: 44 }}>{L("Přihlásit se jiným účtem", "Sign in with another account")}</button>
+                </div>
+                <p style={{ color: t.textSec, margin: "10px 0 0" }}>{L("Odhlášení ukončí i ostatní přihlášení Tanmay v tomto prohlížeči. Tvoje uložené zápisy zůstanou zachované.", "Signing out also ends other Tanmay sessions in this browser. Your saved entries are preserved.")}</p>
+                {accountExitMessage && <div role="status" aria-live="polite" style={{ marginTop: 12 }}>
+                  <p style={{ margin: "0 0 8px", color: t.accent }}>{accountExitMessage}</p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button type="button" onClick={()=>setSettingsSection("sync")} style={{ ...tmButton(t), minHeight: 44 }}>{L("Otevřít synchronizaci", "Open sync")}</button>
+                    <button type="button" onClick={()=>setSettingsSection("data")} style={{ ...tmButton(t), minHeight: 44 }}>{L("Data a zálohy", "Data and backups")}</button>
+                  </div>
+                </div>}
+              </div>
               <PersonalSettingsSections t={t} lang={lang} section="profile" togetherEnabled={isEnabled("spolu")}/>
             </SetSection>
             <CalSettings settingsId="calendar" open={settingsSection==="calendar"} onOpen={setSettingsSection} togetherEnabled={isEnabled("spolu")}/>

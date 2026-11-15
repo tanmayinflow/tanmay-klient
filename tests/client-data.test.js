@@ -80,8 +80,19 @@ test('corrupt recovery is not replaced by a new reset',()=>{
 test('export and reset guards distinguish unsent backup from safe destructive action',()=>{
   const ready={owner:OWNER,storedOwner:OWNER,current:true,hydrated:true,member:true,status:'ready'};
   assert.deepEqual(clientDataAccess(ready),{canExport:true,canReset:true});
-  for(const patch of [{hydrated:false},{conflict:{}},{storedOwner:'other'},{current:false},{member:false}])assert.deepEqual(clientDataAccess({...ready,...patch}),{canExport:false,canReset:false});
-  for(const patch of [{pending:true},{error:{}},{status:'offline'},{status:'checking'}])assert.deepEqual(clientDataAccess({...ready,...patch}),{canExport:true,canReset:false});
+  for(const patch of [{hydrated:false},{storedOwner:'other'},{current:false},{member:false}])assert.deepEqual(clientDataAccess({...ready,...patch}),{canExport:false,canReset:false});
+  for(const patch of [{conflict:{}},{pending:true},{error:{}},{status:'offline'},{status:'checking'}])assert.deepEqual(clientDataAccess({...ready,...patch}),{canExport:true,canReset:false});
+});
+
+test('a verified account can back up its exact local conflict draft while offline without permitting a reset',()=>{
+  const conflict={doc:{coll:{notebook:[{text:'remote alternative'}]},edits:{}}};
+  const access={owner:OWNER,storedOwner:OWNER,current:true,hydrated:true,member:true,status:'offline',conflict};
+  assert.deepEqual(clientDataAccess(access),{canExport:true,canReset:false});
+  const files=buildClientBackup(coll,edits,{date:'2026-11-15',safeName:s=>String(s),bodyOut:s=>String(s||'')});
+  assert.deepEqual(JSON.parse(files.find(file=>file.path==='_data/coll.json').text),coll);
+  assert.deepEqual(JSON.parse(files.find(file=>file.path==='_data/edits.json').text),edits);
+  assert.doesNotMatch(JSON.stringify(files),/remote alternative/);
+  assert.deepEqual(clientDataAccess({...access,storedOwner:'another-owner'}),{canExport:false,canReset:false});
 });
 
 test('sync never claims saved while unhydrated, offline, conflicted or waiting',()=>{

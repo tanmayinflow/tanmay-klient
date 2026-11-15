@@ -2,14 +2,14 @@
 // to the verified account that owns the mounted document, including uploads.
 // A temporary network error locks network work without clearing local drafts.
 export function createClientSession(fetcher = (...args) => fetch(...args)) {
-  let state = { status: 'loading', owner: null, member: null, name: '' };
+  let state = { status: 'loading', owner: null, member: null, name: '', email: '' };
   let pending = null, initialize = null, generation = 0;
   const listeners = new Set();
   const publish = patch => { state = { ...state, ...patch }; for (const listener of listeners) listener(state); };
   const denied = (code, status = 401) => Object.assign(new Error(code), { code, status });
   const changed = () => { generation++; publish({ status: 'changed' }); };
   async function verify() {
-    if (state.status === 'changed') return false;
+    if (['changed', 'signed-out'].includes(state.status)) return false;
     if (pending) return pending;
     if (!initialize) return false;
     const version = generation;
@@ -25,7 +25,7 @@ export function createClientSession(fetcher = (...args) => fetch(...args)) {
         if (state.owner && state.owner !== data.owner) { changed(); return false; }
         if (!state.owner) { try { await initialize(data); } catch { throw denied('storage', 0); } }
         if (version !== generation) return false;
-        publish({ status: data.member ? 'ready' : 'membership', owner: data.owner, member: data.member, name: data.name || '' });
+        publish({ status: data.member ? 'ready' : 'membership', owner: data.owner, member: data.member, name: data.name || '', email: typeof data.email === 'string' ? data.email : '' });
         return data.member;
       } catch (error) {
         if (version === generation) publish({ status: ['sign-in', 'storage'].includes(error.code) ? error.code : 'offline' });
@@ -57,7 +57,8 @@ export function createClientSession(fetcher = (...args) => fetch(...args)) {
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     initializeWith(callback) { initialize = callback; },
     verify, request,
+    beginSignOut() { generation++; pending = null; publish({ status: 'signed-out', email: '', name: '' }); },
     localOwnerChanged(owner) { if (state.owner && owner && state.owner !== owner) changed(); },
-    isCurrent(owner) { return !!owner && owner === state.owner && state.status !== 'changed'; },
+    isCurrent(owner) { return !!owner && owner === state.owner && !['changed', 'signed-out'].includes(state.status); },
   };
 }

@@ -5,8 +5,10 @@ const EDITS_KEY = 'tanmay_edits_v1';
 const recoveryKey = owner => 'tanmay_practice_recovery_v1__owner_' + owner;
 
 export function clientDataAccess({ owner, storedOwner, current, hydrated, member, conflict, pending, error, status }) {
-  const canExport = !!owner && owner === storedOwner && current && hydrated && member === true && !conflict;
-  return { canExport, canReset: canExport && !pending && !error && status === 'ready' };
+  // A conflict is exactly when the user may need a copy of this device's
+  // draft. Export is read-only; replacing/resetting data still waits.
+  const canExport = !!owner && owner === storedOwner && current && hydrated && member === true;
+  return { canExport, canReset: canExport && !conflict && !pending && !error && status === 'ready' };
 }
 
 export function clientSyncStatus({ status, hydrated, conflict, pending, error, busy }) {
