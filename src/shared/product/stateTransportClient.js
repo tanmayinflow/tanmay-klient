@@ -1,3 +1,4 @@
+import { moduleCommandRevisions } from './clientModules.js';
 import { CLIENT_OPTIONAL } from './roles.js';
 
 // Large documents are prepared and checked in the browser. Each Worker request
@@ -205,7 +206,7 @@ async function writeDocument(target, options, fetcher) {
   const send = (action, value) => exchange(fetcher, target.path(action), { ...options, method: 'PUT', headers, body: JSON.stringify(value) });
   const modules = Array.isArray(body.doc?.coll?.modules) ? body.doc.coll.modules.filter(value => CLIENT_OPTIONAL.includes(value)) : [];
   if (body.doc?.coll?.memento?.zapnuto && !modules.includes('memento')) modules.push('memento');
-  const started = await send('start', { baseVersion, rev: Number(body.doc?.rev) || 0, bytes: bytes.length, sha256, parts: parts.length, modules, ...(Object.hasOwn(body, 'share') ? { share: body.share } : {}) });
+  const started = await send('start', { baseVersion, rev: Number(body.doc?.rev) || 0, bytes: bytes.length, sha256, parts: parts.length, modules, moduleCommands: moduleCommandRevisions(body.doc?.coll?.moduleCommandRevisions), ...(Object.hasOwn(body, 'share') ? { share: body.share } : {}) });
   if (started.response) return started.response;
   const uploadId = started.body.uploadId;
   if (typeof uploadId !== 'string' || !uploadId || uploadId.length > 128) return invalid();

@@ -1,3 +1,5 @@
+import { handleClientModules, ensureClientModuleCommands, moduleCommandAckStatements } from "../src/shared/product/clientModulesServer.js";
+import { moduleCommandRevisions } from "../src/shared/product/clientModules.js";
 import { mediaUploadLimit, audioPlaybackMime } from "../src/shared/product/mediaLimits.js";
 import { guardedStorage, handleStorageBudget, storageBudgetFailure } from "../src/shared/product/storageBudgetServer.js";
 import { handleAccountBackup } from "../src/shared/product/accountBackup.js";
@@ -60,8 +62,8 @@ async function identityConflict(env, userId, email) {
 }
 
 // OTISK VLASTNÍKA · prohlížeč si potřebuje pamatovat, komu místní úložiště
-// patří, aby ho po přihlášení jiného člověka neotevřel. Adresu mu k tomu
-// nedáváme — jen neobrátitelný otisk, který stačí na porovnání.
+// patří, aby ho po přihlášení jiného člověka neotevřel. Pro toto porovnání
+// používá neobrátitelný otisk; ověřený e-mail se vrací zvlášť jen pro Účet.
 const OWNER_SALT = "tanmay-klient/owner/v1";
 async function ownerTag(userId) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(OWNER_SALT + ":" + userId));
@@ -176,11 +178,11 @@ async function isMember(env, userId) {
   return !!row;
 }
 
-async function handleMe(env, userId) {
+async function handleMe(env, userId, email) {
   await ensureSchema(env);
   const row = await env.DB.prepare("SELECT name FROM members WHERE user_id = ?").bind(userId).first();
   const personal = row ? await clientProfile(env.DB, userId) : null;
-  return Response.json({ member: !!row, name: personal?.profile.name || "", owner: await ownerTag(userId) });
+  return Response.json({ member: !!row, name: personal?.profile.name || "", email, owner: await ownerTag(userId) }, { headers: { "Cache-Control": "no-store, private" } });
 }
 
 async function handleJoin(request, env, userId) {
@@ -217,19 +219,21 @@ function transportClientMetadata(body) {
     if (raw.length <= 100000) shareValue = raw;
   }
   const modules = Array.isArray(body.modules) ? [...new Set(body.modules.filter(key => CLIENT_OPTIONAL.includes(key) || key === "memento"))] : null;
-  return { hasShare, shareValue, modulesValue: modules ? JSON.stringify(modules) : null };
+  return { hasShare, shareValue, modulesValue: modules ? JSON.stringify(modules) : null, moduleCommands: moduleCommandRevisions(body.moduleCommands) };
 }
 async function handleState(request, env, userId) {
 
   try {
     await ensureSchema(env);
     await ensureStateStorage(env.DB);
+    await ensureClientModuleCommands(env.DB);
     if (new URL(request.url).searchParams.get("transport") === "chunks") {
       return handleStateTransport(request, {
         db: env.DB, userId, checkRev: false, prepareMetadata: transportClientMetadata,
         extraStatements: (metadata, guard, id, token) => [
           ...(metadata.hasShare ? [env.DB.prepare("UPDATE members SET share=? WHERE user_id=? AND " + guard).bind(metadata.shareValue, userId, id, token)] : []),
           env.DB.prepare("UPDATE members SET modules=? WHERE user_id=? AND " + guard).bind(metadata.modulesValue, userId, id, token),
+          ...moduleCommandAckStatements(env.DB, userId, metadata.moduleCommands, guard, id, token),
         ],
       });
     }
@@ -287,6 +291,7 @@ async function handleState(request, env, userId) {
       extraStatements: (guard, id, token) => [
         ...(shareValue !== undefined ? [env.DB.prepare("UPDATE members SET share = ? WHERE user_id = ? AND " + guard).bind(shareValue, userId, id, token)] : []),
         env.DB.prepare("UPDATE members SET modules = ? WHERE user_id = ? AND " + guard).bind(modulesValue, userId, id, token),
+        ...moduleCommandAckStatements(env.DB, userId, doc?.coll?.moduleCommandRevisions, guard, id, token),
       ],
     });
     return Response.json({ ok: true, ...receipt, limit: STATE_LIMIT, safe: STATE_LIMIT });
@@ -497,7 +502,7 @@ const worker = {
       }
 
       if (url.pathname === "/api/me") {
-        return handleMe(env, userId);
+        return handleMe(env, userId, accessEmail(request));
       }
       if (url.pathname === "/api/join") {
         return handleJoin(request, env, userId);
@@ -508,6 +513,7 @@ const worker = {
       if (!(await isMember(env, userId))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
+      if (url.pathname === "/api/modules") return handleClientModules(request, { db: env.DB, userId });
       if (url.pathname === "/api/storage") return handleStorageBudget(request,{db:env.DB,files:env.FILES,role:"client",userId});
       if (url.pathname === "/api/backup") return handleAccountBackup(request, {db:env.DB,actor:`client:${userId}`,userId,role:"client"});
       if (url.pathname === "/api/calendar/config") return calendarConfigResponse(request,env);
