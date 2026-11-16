@@ -50,6 +50,8 @@ export const CONFIRMATION_COPY = Object.freeze({
 // never says anything about the inside of the system.
 export const ERROR_COPY = Object.freeze({
   [ERR.SLOT_TAKEN]: { cs: "Tenhle čas už není volný. Vyber jiný.", en: "This time is no longer free. Choose another." },
+  [ERR.BOOKING_CHANGED]: { cs: "Termín se mezitím změnil. Načti aktuální stav a zkus to znovu.", en: "The booking changed. Reload it and try again." },
+  [ERR.BLOCK_CHANGED]: { cs: "Volno se mezitím změnilo. Načti aktuální stav a zkus to znovu.", en: "This time off changed. Reload it and try again." },
   [ERR.GOOGLE_UNAVAILABLE]: { cs: "Dostupnost se teď nepodařila ověřit. Zkus to za chvíli znovu.", en: "Availability could not be checked right now. Try again in a moment." },
   [ERR.INSUFFICIENT_CREDIT]: { cs: "Na rezervaci nemáš dost volných kreditů.", en: "You do not have enough free credits for this booking." },
   [ERR.PACKAGE_EXPIRED]: { cs: "Balíček už není platný.", en: "The package is no longer valid." },

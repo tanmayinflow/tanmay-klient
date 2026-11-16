@@ -145,8 +145,9 @@ async function bookingView(db, b, opts = {}) {
     workoutTemplateId: b.workout_template_id || null,
     sessionInstanceId: b.session_instance_id || null,
     version: Number(b.version),
+    updatedAt: Number(b.updated_at),
     service: service ? { id: service.id, nameCs: service.name_cs, nameEn: service.name_en,
-      durationMin: service.duration_min, cancelBeforeMin: service.cancel_before_min,
+      durationMin: (Number(b.ends_at_utc) - Number(b.starts_at_utc)) / MS_PER_MIN, slotIntervalMin: Number(service.slot_interval_min) || SLOT_GRID_MIN, cancelBeforeMin: service.cancel_before_min,
       creditUnits: service.credit_cost_units, priceMinor: service.price_minor, currency: service.currency } : null,
     location: location ? { id: location.id, type: location.type, nameCs: location.name_cs, nameEn: location.name_en,
       // The exact place is shown once the booking exists, not while browsing.
@@ -245,7 +246,7 @@ export async function handleCoach(request, env, url, ctx) {
         // Google's windows travel as "busy" and nothing else. There is no
         // title here to show because this app never asked for one.
         blocks: blocks.filter((k) => k.source !== "GOOGLE").map((k) => ({
-          id: k.id, startsAt: Number(k.starts_at_utc), endsAt: Number(k.ends_at_utc), source: k.source, note: k.note })),
+          id: k.id, startsAt: Number(k.starts_at_utc), endsAt: Number(k.ends_at_utc), source: k.source, note: k.note, updatedAt: Number(k.updated_at) })),
         googleBusy: busy.windows.map((w) => ({ startsAt: w.s, endsAt: w.e })),
         googleConnected: !!busy.connected,
         googleBusyKnown: !busy.connected || !busy.stale,
@@ -331,14 +332,16 @@ export async function handleCoach(request, env, url, ctx) {
       }
 
       if (action === "reschedule" && method === "POST") {
-        const { body, invalid } = await readBody(request);
-        if (invalid) return bad(ERR.VALIDATION_ERROR, "json");
+        const { body, invalid, tooBig } = await readBody(request);
+        if (tooBig) return bad(ERR.VALIDATION_ERROR, "body too large", 413);
+        if (invalid || !body || typeof body !== "object" || Array.isArray(body)) return bad(ERR.VALIDATION_ERROR, "json");
         const startsAt = Number(body.startsAt);
         if (!Number.isFinite(startsAt)) return bad(ERR.VALIDATION_ERROR, "startsAt");
         const fresh = await googleBusy(db, env, startsAt - 6 * 3600000, startsAt + 6 * 3600000, !body.adminOverride);
         const after = await E.rescheduleBooking(db, id, {
           startsAt, locationId: body.locationId, now, actor: ACTOR.COACH, actorId,
           adminOverride: !!body.adminOverride, googleBusy: fresh.windows,
+          expectedVersion: body.expectedVersion, expectedStartsAt: body.expectedStartsAt, expectedUpdatedAt: body.expectedUpdatedAt,
         });
         drainSoon(ctx, db, env);
         return ok({ booking: await bookingView(db, after, { coach: true, withClient: true }) });
@@ -577,8 +580,9 @@ export async function handleCoach(request, env, url, ctx) {
         return ok({ blocks: list.filter((b) => b.source !== "GOOGLE") });
       }
       if (method === "POST") {
-        const { body, invalid } = await readBody(request);
-        if (invalid) return bad(ERR.VALIDATION_ERROR, "json");
+        const { body, invalid, tooBig } = await readBody(request);
+        if (tooBig) return bad(ERR.VALIDATION_ERROR, "body too large", 413);
+        if (invalid || !body || typeof body !== "object" || Array.isArray(body)) return bad(ERR.VALIDATION_ERROR, "json");
         const s0 = Number(body.startsAt), e0 = Number(body.endsAt);
         if (!Number.isFinite(s0) || !Number.isFinite(e0) || e0 <= s0) return bad(ERR.VALIDATION_ERROR, "range");
         if (e0 - s0 > 366 * 86400000) return bad(ERR.VALIDATION_ERROR, "range too long");
@@ -586,11 +590,36 @@ export async function handleCoach(request, env, url, ctx) {
         await db.prepare(`INSERT INTO booking_blocks (id, starts_at_utc, ends_at_utc, source, google_calendar_id, note, fetched_at, created_at, updated_at)
                           VALUES (?,?,?,?,NULL,?,NULL,?,?)`)
           .bind(id, s0, e0, body.source === "RECURRING" ? "RECURRING" : "MANUAL", str(body.note, 200), now, now).run();
-        return ok({ id });
+        return ok({ id, block: { id, startsAt: s0, endsAt: e0, source: body.source === "RECURRING" ? "RECURRING" : "MANUAL", note: str(body.note, 200), updatedAt: now } });
       }
       return methodNotAllowed();
     }
     const mBlock = path.match(/^\/api\/booking\/blocks\/([A-Za-z0-9_-]{1,64})$/);
+    if (mBlock && method === "PATCH") {
+      const { body, invalid, tooBig } = await readBody(request);
+      if (tooBig) return bad(ERR.VALIDATION_ERROR, "body too large", 413);
+      if (invalid || !body || typeof body !== "object" || Array.isArray(body)) return bad(ERR.VALIDATION_ERROR, "json");
+      const current = await db.prepare("SELECT * FROM booking_blocks WHERE id = ? AND source != 'GOOGLE'").bind(mBlock[1]).first();
+      if (!current) return bad(ERR.NOT_FOUND);
+      if (body.startsAt === undefined && body.endsAt === undefined && body.note === undefined) return bad(ERR.VALIDATION_ERROR, "nothing to change");
+      for (const [field, column] of [["expectedUpdatedAt", "updated_at"], ["expectedStartsAt", "starts_at_utc"]]) {
+        if (body[field] === undefined) continue;
+        if (!Number.isFinite(body[field])) return bad(ERR.VALIDATION_ERROR, field);
+        if (body[field] !== Number(current[column])) return bad(ERR.BLOCK_CHANGED, "reload block");
+      }
+      const start = body.startsAt === undefined ? Number(current.starts_at_utc) : Number(body.startsAt);
+      const end = body.endsAt === undefined ? Number(current.ends_at_utc) : Number(body.endsAt);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || end - start > 366 * 86400000) return bad(ERR.VALIDATION_ERROR, "range");
+      const note = body.note === undefined ? current.note : str(body.note, 200);
+      const revision = Math.max(now, Number(current.updated_at) + 1);
+      // Keep existing bookings intact. Time off closes future availability; it
+      // does not cancel sessions. Compare and edit the one block atomically.
+      const changed = await db.prepare(`UPDATE booking_blocks SET starts_at_utc = ?, ends_at_utc = ?, note = ?, updated_at = ?
+        WHERE id = ? AND source != 'GOOGLE' AND updated_at = ? AND starts_at_utc = ?`)
+        .bind(start, end, note, revision, current.id, current.updated_at, current.starts_at_utc).run();
+      if (!changed.meta?.changes) return bad(ERR.BLOCK_CHANGED, "reload block");
+      return ok({ block: { id: current.id, startsAt: start, endsAt: end, source: current.source, note, updatedAt: revision } });
+    }
     if (mBlock && method === "DELETE") {
       await db.prepare("DELETE FROM booking_blocks WHERE id = ? AND source != 'GOOGLE'").bind(mBlock[1]).run();
       return ok({ removed: true });
@@ -970,14 +999,16 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       if (action === "reschedule" && method === "POST") {
         const gate = await R.rateLimit(db, "move:" + accountUserId, 20, 60000);
         if (!gate.ok) return bad(ERR.RATE_LIMITED);
-        const { body, invalid } = await readBody(request);
-        if (invalid) return bad(ERR.VALIDATION_ERROR, "json");
+        const { body, invalid, tooBig } = await readBody(request);
+        if (tooBig) return bad(ERR.VALIDATION_ERROR, "body too large", 413);
+        if (invalid || !body || typeof body !== "object" || Array.isArray(body)) return bad(ERR.VALIDATION_ERROR, "json");
         const startsAt = Number(body.startsAt);
         if (!Number.isFinite(startsAt)) return bad(ERR.VALIDATION_ERROR, "startsAt");
         const fresh = await googleBusy(db, env, startsAt - 6 * 3600000, startsAt + 6 * 3600000, true);
         const after = await E.rescheduleBooking(db, id, {
           startsAt, locationId: body.locationId ? str(body.locationId, 64) : undefined,
           now, actor: ACTOR.CLIENT, actorId: accountUserId, googleBusy: fresh.windows,
+          expectedVersion: body.expectedVersion, expectedStartsAt: body.expectedStartsAt, expectedUpdatedAt: body.expectedUpdatedAt,
         });
         drainSoon(ctx, db, env);
         return ok({ booking: await bookingView(db, after, {}) });

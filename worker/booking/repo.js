@@ -214,14 +214,15 @@ export const stOutboxIfState = (db, o, version, status) =>
 // credit walks away with three bookings and a balance of minus two. So the
 // hold is written first, conditional on the balance inside the transaction,
 // and everything else is conditional on the hold.
-export const stHoldIfBalance = (db, l, needUnits) =>
+export const stHoldIfBalance = (db, l, needUnits, blockFreeWindow = null) =>
   db.prepare(`INSERT INTO credit_ledger
                 (id, client_id, client_package_id, booking_id, kind, units, reason, created_by, created_at, idempotency_key)
               SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-               WHERE (SELECT COALESCE(SUM(units), 0) FROM credit_ledger WHERE client_id = ?) >= ?`)
+               WHERE (SELECT COALESCE(SUM(units), 0) FROM credit_ledger WHERE client_id = ?) >= ?
+               ${blockFreeWindow ? "AND NOT EXISTS (SELECT 1 FROM booking_blocks WHERE ends_at_utc > ? AND starts_at_utc < ?)" : ""}`)
     .bind(l.id, l.client_id, l.client_package_id || null, l.booking_id || null, l.kind, l.units,
           l.reason || "", l.created_by || "SYSTEM", l.created_at, l.idempotency_key,
-          l.client_id, needUnits);
+          l.client_id, needUnits, ...(blockFreeWindow ? [blockFreeWindow.s, blockFreeWindow.e] : []));
 
 export const stInsertEventIfMoved = (db, e, version, startsAt) =>
   db.prepare(`INSERT INTO booking_events (id, booking_id, type, actor_type, actor_id, payload_json, created_at)

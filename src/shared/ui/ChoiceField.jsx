@@ -68,6 +68,7 @@ export function ChoiceField({ theme: t, L, value, onChange, options, placeholder
   return <div style={{ display: "inline-block", minWidth: 0, maxWidth: "100%", width: style?.width || "auto" }}>
     {editable ? <input {...aria} ref={trigger} type="text" inputMode={inputMode} autoComplete="off" value={value}
       placeholder={placeholder} onFocus={() => setOpen(true)} onClick={() => setOpen(true)} onKeyDown={keys}
+      onBlur={e => { if (!panel.current?.contains(e.relatedTarget)) setOpen(false); }}
       onChange={e => onChange(e.target.value)} data-tm-surface="control" style={fieldStyle}/>
       : <button {...aria} ref={trigger} type="button" className="tm-select-trigger" data-tm-surface={ghost ? undefined : "control"}
         onClick={() => setOpen(x => !x)} onKeyDown={keys} style={fieldStyle}>

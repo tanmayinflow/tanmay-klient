@@ -171,6 +171,8 @@ export const ACTOR = Object.freeze({
 // and the tests can assert on the reason instead of on a sentence.
 export const ERR = Object.freeze({
   SLOT_TAKEN: "SLOT_TAKEN",
+  BOOKING_CHANGED: "BOOKING_CHANGED",
+  BLOCK_CHANGED: "BLOCK_CHANGED",
   GOOGLE_UNAVAILABLE: "GOOGLE_UNAVAILABLE",
   INSUFFICIENT_CREDIT: "INSUFFICIENT_CREDIT",
   PACKAGE_EXPIRED: "PACKAGE_EXPIRED",
@@ -192,6 +194,8 @@ export const ERR = Object.freeze({
 // conflict, not a server fault, and the client app retries on exactly that.
 export const ERR_HTTP = Object.freeze({
   SLOT_TAKEN: 409,
+  BOOKING_CHANGED: 409,
+  BLOCK_CHANGED: 409,
   GOOGLE_UNAVAILABLE: 503,
   INSUFFICIENT_CREDIT: 409,
   PACKAGE_EXPIRED: 409,

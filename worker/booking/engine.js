@@ -91,8 +91,15 @@ export async function busyIntervals(db, fromMs, toMs, opts = {}) {
  * good enough (listing) or a live check is required (committing).
  */
 export async function availability(db, input) {
-  const service = await R.getService(db, input.serviceId);
+  let service = await R.getService(db, input.serviceId);
   if (!service || !service.active) fail(ERR.NOT_FOUND, "service");
+  const excluded = input.excludeBookingId ? await R.getBooking(db, input.excludeBookingId) : null;
+  const moving = excluded && excluded.service_id === service.id &&
+    [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.REQUESTED].includes(excluded.status) ? excluded : null;
+  if (moving) {
+    const duration = (Number(moving.ends_at_utc) - Number(moving.starts_at_utc)) / MS_PER_MIN;
+    if (Number.isFinite(duration) && duration > 0) service = { ...service, duration_min: duration };
+  }
   const location = input.locationId ? await R.getLocation(db, input.locationId) : null;
   if (input.locationId && (!location || !location.active)) fail(ERR.NOT_FOUND, "location");
   if (!(await R.serviceAllowsLocation(db, service.id, input.locationId || null))) fail(ERR.VALIDATION_ERROR, "location");
@@ -109,7 +116,7 @@ export async function availability(db, input) {
   const [rules, overrides, busy] = await Promise.all([
     R.listRules(db),
     R.listOverrides(db, shiftDateISO(fromDate, -1), shiftDateISO(toDate, 1)),
-    busyIntervals(db, fromMs, toMs, { excludeBookingId: input.excludeBookingId, extraBusy: input.googleBusy }),
+    busyIntervals(db, fromMs, toMs, { excludeBookingId: moving?.id, extraBusy: input.googleBusy }),
   ]);
 
   // Per-day and per-week counts, for the limits.
@@ -117,12 +124,13 @@ export async function availability(db, input) {
   if (service.daily_limit || service.weekly_limit) {
     for (let i = 0; i < days; i++) {
       const d = shiftDateISO(fromDate, i);
-      if (service.daily_limit) countsByDate[d] = await R.countActiveOnDate(db, d, service.id);
+      if (service.daily_limit) countsByDate[d] = Math.max(0, await R.countActiveOnDate(db, d, service.id) - (moving?.local_date === d ? 1 : 0));
       if (service.weekly_limit) {
         const wk = startOfISOWeek(d);
         if (countsByWeek[wk] == null) {
-          countsByWeek[wk] = await R.countActiveBetween(
-            db, startOfLocalDay(wk, tz), endOfLocalDay(shiftDateISO(wk, 6), tz), service.id);
+          countsByWeek[wk] = Math.max(0, await R.countActiveBetween(
+            db, startOfLocalDay(wk, tz), endOfLocalDay(shiftDateISO(wk, 6), tz), service.id) -
+            (moving && localDateISO(Number(moving.starts_at_utc), tz) >= wk && localDateISO(Number(moving.starts_at_utc), tz) <= shiftDateISO(wk, 6) ? 1 : 0));
         }
       }
     }
@@ -258,18 +266,18 @@ export async function createBooking(db, input) {
   // on the hold having landed, so a client with one credit cannot end up with
   // three bookings and a balance of minus two by tapping twice.
   const holdKey = id + ":hold:1";
-  const stmts = [];
+  const stmts = [db.prepare("SELECT EXISTS (SELECT 1 FROM booking_blocks WHERE ends_at_utc > ? AND starts_at_utc < ?) AS blocked").bind(prot.s, prot.e)];
   if (holdUnits > 0) {
     stmts.push(R.stHoldIfBalance(db, makeEntry({
       id: R.newId("cl"), client_id: client.id, client_package_id: pkg.id, booking_id: id,
       kind: LEDGER_KIND.HOLD, units: holdUnits, reason: "", created_by: actor, created_at: at,
       idempotency_key: holdKey,
-    }), holdUnits));
+    }), holdUnits, override ? null : prot));
   }
   const heldGuard = holdUnits > 0
     ? " WHERE EXISTS (SELECT 1 FROM credit_ledger WHERE idempotency_key = ?)"
-    : "";
-  const heldArgs = holdUnits > 0 ? [holdKey] : [];
+    : override ? "" : " WHERE NOT EXISTS (SELECT 1 FROM booking_blocks WHERE ends_at_utc > ? AND starts_at_utc < ?)";
+  const heldArgs = holdUnits > 0 ? [holdKey] : override ? [] : [prot.s, prot.e];
 
   stmts.push(
     db.prepare(`INSERT INTO bookings
@@ -292,18 +300,18 @@ export async function createBooking(db, input) {
       .bind(id, RESOURCE_KEY, c, id));
   }
 
-  stmts.push(R.stInsertEvent(db, {
+  stmts.push(R.stInsertEventIfState(db, {
     id: R.newId("ev"), booking_id: id, type: BOOKING_EVENT.CREATED,
     actor_type: actor, actor_id: input.actorId || "", created_at: at,
     payload: { status, startsAt: startMs, serviceId: service.id, locationId: booking.location_id,
       override: override || undefined, reason: override ? String(input.overrideReason).slice(0, 300) : undefined },
-  }));
+  }, 1, status));
   if (override) {
-    stmts.push(R.stInsertEvent(db, {
+    stmts.push(R.stInsertEventIfState(db, {
       id: R.newId("ev"), booking_id: id, type: BOOKING_EVENT.ADMIN_OVERRIDE,
       actor_type: actor, actor_id: input.actorId || "", created_at: at,
       payload: { reason: String(input.overrideReason).slice(0, 300) },
-    }));
+    }, 1, status));
   }
   stmts.push(R.stOutboxIfState(db, {
     id: R.newId("ob"), booking_id: id, action: OUTBOX_ACTION.CREATE,
@@ -313,8 +321,9 @@ export async function createBooking(db, input) {
     booking_version: 1, next_attempt_at: Date.now(), created_at: at,
   }, 1, status));
 
+  let result;
   try {
-    await db.batch(stmts);
+    result = await db.batch(stmts);
   } catch (e) {
     if (isLockConflict(e)) fail(ERR.SLOT_TAKEN);
     throw e;
@@ -322,7 +331,7 @@ export async function createBooking(db, input) {
   // The batch succeeds either way; whether the booking exists is the answer to
   // "was there still enough credit at that exact moment".
   const written = await R.getBooking(db, id);
-  if (!written) fail(ERR.INSUFFICIENT_CREDIT);
+  if (!written) fail(!override && result[0]?.results?.[0]?.blocked ? ERR.SLOT_TAKEN : ERR.INSUFFICIENT_CREDIT);
   return { ...booking };
 }
 
@@ -339,6 +348,11 @@ export async function rescheduleBooking(db, id, input) {
   const actor = input.actor || ACTOR.CLIENT;
   const b = await R.getBooking(db, id);
   if (!b) fail(ERR.NOT_FOUND, "booking");
+  for (const [field, column] of [["expectedVersion", "version"], ["expectedStartsAt", "starts_at_utc"], ["expectedUpdatedAt", "updated_at"]]) {
+    if (input[field] === undefined) continue;
+    if (!Number.isFinite(input[field])) fail(ERR.VALIDATION_ERROR, field);
+    if (input[field] !== Number(b[column])) fail(ERR.BOOKING_CHANGED, "reload booking");
+  }
 
   const rule = transitionFor(b.status, "reschedule", actor);
   if (!rule) fail(ERR.INVALID_TRANSITION);
@@ -361,7 +375,11 @@ export async function rescheduleBooking(db, id, input) {
   const startMs = Number(input.startsAt);
   if (!Number.isFinite(startMs)) fail(ERR.VALIDATION_ERROR, "startsAt");
   if (startMs % (SLOT_GRID_MIN * MS_PER_MIN) !== 0) fail(ERR.VALIDATION_ERROR, "startsAt");
-  const endMs = startMs + Math.max(5, Number(service.duration_min) || 60) * MS_PER_MIN;
+  // Moving an existing appointment preserves what was booked. Editing the
+  // service duration changes future bookings, not an existing client's time.
+  const storedDuration = (Number(b.ends_at_utc) - Number(b.starts_at_utc)) / MS_PER_MIN;
+  const duration = Number.isFinite(storedDuration) && storedDuration > 0 ? storedDuration : Math.max(5, Number(service.duration_min) || 60);
+  const endMs = startMs + duration * MS_PER_MIN;
   const localDate = localDateISO(startMs, tz);
 
   const [rules, overrides, busy] = await Promise.all([
@@ -384,25 +402,27 @@ export async function rescheduleBooking(db, id, input) {
     const weekCount = service.weekly_limit
       ? Math.max(0, await R.countActiveBetween(db, startOfLocalDay(weekStart, tz),
           endOfLocalDay(shiftDateISO(weekStart, 6), tz), service.id) - (movingWithinWeek ? 1 : 0)) : 0;
-    const bad = validateStart(startMs, { now, tz, service, location, rules, overrides, busy, dayCount, weekCount });
+    const bad = validateStart(startMs, { now, tz, service: { ...service, duration_min: duration }, location, rules, overrides, busy, dayCount, weekCount });
     if (bad) fail(bad);
   }
 
   const prot = protectedInterval(startMs, endMs, service, location);
   const cells = gridCells(prot.s, prot.e);
-  const at = now;
+  const at = Math.max(now, Number(b.updated_at) + 1);
   const nextVersion = Number(b.version) + 1;
 
   const stmts = [
+    db.prepare("SELECT EXISTS (SELECT 1 FROM booking_blocks WHERE ends_at_utc > ? AND starts_at_utc < ?) AS blocked").bind(prot.s, prot.e),
     // Guarded by the version we read: if anything else moved this booking
     // between the read and the batch, no row matches and the reschedule is
     // rejected instead of silently applied to a booking that changed.
     db.prepare(`UPDATE bookings SET starts_at_utc = ?, ends_at_utc = ?, local_date = ?, timezone = ?,
                   location_id = ?, meeting_url = ?, sync_status = 'PENDING', version = version + 1, updated_at = ?
-                WHERE id = ? AND version = ? AND status = ?`)
+                WHERE id = ? AND version = ? AND status = ? AND updated_at = ?
+                ${override ? "" : "AND NOT EXISTS (SELECT 1 FROM booking_blocks WHERE ends_at_utc > ? AND starts_at_utc < ?)"}`)
       .bind(startMs, endMs, localDate, tz, locationId || null,
             location && location.online_url ? location.online_url : b.meeting_url,
-            at, id, b.version, b.status),
+            at, id, b.version, b.status, b.updated_at, ...(override ? [] : [prot.s, prot.e])),
     // Both guarded on the version the UPDATE above is creating: if it matched
     // nothing, the old lock survives and no new one is taken, so a failed
     // reschedule leaves the booking exactly where it was.
@@ -419,15 +439,17 @@ export async function rescheduleBooking(db, id, input) {
     booking_version: nextVersion, next_attempt_at: Date.now(), created_at: at,
   }, nextVersion, startMs));
 
+  let result;
   try {
-    await db.batch(stmts);
+    result = await db.batch(stmts);
   } catch (e) {
     if (isLockConflict(e)) fail(ERR.SLOT_TAKEN);
     throw e;
   }
   const after = await R.getBooking(db, id);
   if (!after || Number(after.version) !== nextVersion || Number(after.starts_at_utc) !== startMs) {
-    fail(ERR.INVALID_TRANSITION);
+    if (!override && result[0]?.results?.[0]?.blocked) fail(ERR.SLOT_TAKEN);
+    fail(input.expectedVersion !== undefined || input.expectedStartsAt !== undefined || input.expectedUpdatedAt !== undefined ? ERR.BOOKING_CHANGED : ERR.INVALID_TRANSITION);
   }
   return after;
 }

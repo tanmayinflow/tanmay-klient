@@ -100,3 +100,42 @@ export function calendarSelectionInstant(date, minute, selected) {
   if (Number.isFinite(selected) && choices.includes(selected)) return selected;
   return choices.length === 1 ? choices[0] : null;
 }
+
+// Week overview shares a wall-clock axis. Exact DST occurrences stay available
+// in the day view and editor; repeated wall times must never hide one another.
+export function calendarWallRange(date, startsAt, endsAt) {
+  const start = startOfLocalDay(date, COACH_CALENDAR_ZONE), end = endOfLocalDay(date, COACH_CALENDAR_ZONE);
+  const from = startsAt <= start ? 0 : localMinuteOfDay(startsAt, COACH_CALENDAR_ZONE);
+  let to = endsAt >= end ? 1440 : localMinuteOfDay(endsAt, COACH_CALENDAR_ZONE);
+  if (to <= from) to = Math.min(1440, from + (Math.min(end, endsAt) - Math.max(start, startsAt)) / 60000);
+  return { from, to };
+}
+export function calendarWeekRange(days, data, serviceId = null, locationId = null) {
+  let from = 480, to = 1080;
+  for (const date of days) {
+    const items = [...calendarDayItems(date, data), ...calendarDayWindows(date, data, serviceId, locationId).map(w => ({ startsAt: w.s, endsAt: w.e }))];
+    for (const item of items) {
+      const range = calendarWallRange(date, item.startsAt, item.endsAt);
+      from = Math.min(from, Math.floor(range.from / 60) * 60);
+      to = Math.max(to, Math.ceil(range.to / 60) * 60);
+    }
+  }
+  return { from, to };
+}
+export function calendarWeekLanes(date, items) {
+  const visual = items.map(item => { const range = calendarWallRange(date, item.startsAt, item.endsAt); return { item, startsAt: range.from, endsAt: range.to }; });
+  return calendarEventLanes(visual).map(v => ({ ...v.item, lane: v.lane, lanes: v.lanes, visualFrom: v.startsAt, visualTo: v.endsAt }));
+}
+// A free tile represents one start, so 60-minute sessions offered every 30
+// minutes have distinct 30-minute click targets rather than overlapping tiles.
+// The reservation keeps the complete startsAt/endsAt pair from the server.
+export function calendarSlotCells(date, slots = [], step = 30) {
+  const groups = new Map();
+  for (const slot of slots) {
+    const range = calendarWallRange(date, slot.startsAt, slot.endsAt);
+    const key = range.from;
+    if (!groups.has(key)) groups.set(key, { from: range.from, to: Math.min(range.to, range.from + Math.max(5, Number(step) || 30)), choices: [] });
+    groups.get(key).choices.push(slot);
+  }
+  return [...groups.values()].sort((a, b) => a.from - b.from);
+}
