@@ -80,23 +80,23 @@ export function calendarEventLanes(items) {
   }
   flush(); return list;
 }
-export function strictCalendarInstant(date, minute) {
-  if (!isDateISO(date) || !Number.isInteger(minute) || minute < 0 || minute > 1440 || minute % 5 !== 0) return null;
-  if (minute === 1440) return endOfLocalDay(date, COACH_CALENDAR_ZONE);
-  const at = zonedToUtc(date, minute, COACH_CALENDAR_ZONE);
+export function strictCalendarInstant(date, minute, zone = COACH_CALENDAR_ZONE) {
+  if (!isDateISO(date) || !Number.isInteger(minute) || minute < 0 || minute > 1440) return null;
+  if (minute === 1440) return endOfLocalDay(date, zone);
+  const at = zonedToUtc(date, minute, zone);
   // Never silently save a nonexistent spring-forward wall time.
-  return localDateISO(at, COACH_CALENDAR_ZONE) === date && localMinuteOfDay(at, COACH_CALENDAR_ZONE) === minute ? at : null;
+  return localDateISO(at, zone) === date && localMinuteOfDay(at, zone) === minute ? at : null;
 }
 
-export function calendarWallInstants(date, minute) {
-  const at = strictCalendarInstant(date, minute);
+export function calendarWallInstants(date, minute, zone = COACH_CALENDAR_ZONE) {
+  const at = strictCalendarInstant(date, minute, zone);
   if (at == null) return [];
   if (minute === 1440) return [at];
-  // This calendar is fixed to Prague. Its repeated hour is exactly one hour.
-  return [at - 3600000, at, at + 3600000].filter(value => localDateISO(value, COACH_CALENDAR_ZONE) === date && localMinuteOfDay(value, COACH_CALENDAR_ZONE) === minute);
+  // Prague is the default; legacy entry points may supply their browser zone.
+  return [-4,-3,-2,-1,0,1,2,3,4].map(n => at + n * 1800000).filter(value => localDateISO(value, zone) === date && localMinuteOfDay(value, zone) === minute);
 }
-export function calendarSelectionInstant(date, minute, selected) {
-  const choices = calendarWallInstants(date, minute);
+export function calendarSelectionInstant(date, minute, selected, zone = COACH_CALENDAR_ZONE) {
+  const choices = calendarWallInstants(date, minute, zone);
   if (Number.isFinite(selected) && choices.includes(selected)) return selected;
   return choices.length === 1 ? choices[0] : null;
 }

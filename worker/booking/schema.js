@@ -373,8 +373,72 @@ const M1 = [
    ) STRICT`,
 ];
 
+// Additive migration: historical bookings and their ledger keep their identities.
+const M2 = [
+  `ALTER TABLE bookings ADD COLUMN mutation_token TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE booking_services ADD COLUMN capacity INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE booking_services ADD COLUMN min_participants INTEGER NOT NULL DEFAULT 1`,
+  `CREATE TABLE IF NOT EXISTS booking_participants (
+    booking_id TEXT NOT NULL REFERENCES bookings(id), client_id TEXT NOT NULL REFERENCES booking_clients(id),
+    status TEXT NOT NULL, credit_cost_units INTEGER NOT NULL DEFAULT 0,
+    client_package_id TEXT REFERENCES client_packages(id), price_minor INTEGER NOT NULL DEFAULT 0,
+    currency TEXT NOT NULL DEFAULT 'CZK', payment_status TEXT NOT NULL DEFAULT 'OPEN',
+    payment_method TEXT NOT NULL DEFAULT '', client_note TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL,
+    PRIMARY KEY(booking_id, client_id)
+  ) STRICT`,
+  `CREATE INDEX IF NOT EXISTS ix_bp_client ON booking_participants(client_id, booking_id)`,
+  `INSERT OR IGNORE INTO booking_participants
+    (booking_id,client_id,status,credit_cost_units,client_package_id,price_minor,currency,payment_status,payment_method,client_note,updated_at)
+    SELECT id,client_id,status,credit_cost_units,client_package_id,price_minor,currency,payment_status,payment_method,client_note,updated_at FROM bookings`,
+];
+// During the two-app rolling deployment the previous Client worker may
+// still write a single-person booking. Keep its participant projection true.
+// Old code cannot mutate a group: it does not understand separate credit holds.
+M2.push(`CREATE TRIGGER IF NOT EXISTS booking_legacy_group_guard
+  BEFORE UPDATE OF status,starts_at_utc,ends_at_utc,service_id,location_id,client_id ON bookings
+  WHEN NEW.mutation_token=OLD.mutation_token AND (
+    (SELECT capacity FROM booking_services WHERE id=OLD.service_id)>1 OR
+    (SELECT capacity FROM booking_services WHERE id=NEW.service_id)>1 OR
+    (SELECT COUNT(*) FROM booking_participants WHERE booking_id=OLD.id AND status IN ('REQUESTED','CONFIRMED'))>1)
+  BEGIN SELECT RAISE(ABORT,'booking group requires current client version'); END`);
+for (const operation of ['INSERT','UPDATE']) {
+  M2.push(`CREATE TRIGGER IF NOT EXISTS booking_primary_projection_${operation.toLowerCase()}
+    AFTER ${operation} ON bookings
+    ${operation==='UPDATE' ? "WHEN (SELECT capacity FROM booking_services WHERE id=NEW.service_id)=1 AND (SELECT COUNT(*) FROM booking_participants WHERE booking_id=NEW.id AND status IN ('REQUESTED','CONFIRMED'))<=1" : ''}
+    BEGIN
+      INSERT INTO booking_participants
+        (booking_id,client_id,status,credit_cost_units,client_package_id,price_minor,currency,payment_status,payment_method,client_note,updated_at)
+      VALUES (NEW.id,NEW.client_id,NEW.status,NEW.credit_cost_units,NEW.client_package_id,NEW.price_minor,NEW.currency,NEW.payment_status,NEW.payment_method,NEW.client_note,NEW.updated_at)
+      ON CONFLICT(booking_id,client_id) DO UPDATE SET status=excluded.status,credit_cost_units=excluded.credit_cost_units,
+        client_package_id=excluded.client_package_id,price_minor=excluded.price_minor,currency=excluded.currency,
+        payment_status=excluded.payment_status,payment_method=excluded.payment_method,client_note=excluded.client_note,updated_at=excluded.updated_at;
+    END`);
+}
+
+// Exact half-open protected intervals, checked INSIDE SQLite's serial write
+// transaction. Adjacent 10:03–10:47 / 10:47–11:19 bookings remain adjacent;
+// rounding both to five-minute cells would invent a collision.
+for (const operation of ['INSERT', 'UPDATE OF starts_at_utc, ends_at_utc, service_id, location_id, status']) {
+  M2.push(`CREATE TRIGGER IF NOT EXISTS booking_exact_${operation === 'INSERT' ? 'insert' : 'update'}
+    BEFORE ${operation} ON bookings WHEN NEW.status IN ('REQUESTED','CONFIRMED')
+    BEGIN
+      SELECT RAISE(ABORT, 'booking_slot_locks exact interval conflict') WHERE EXISTS (
+        SELECT 1 FROM bookings b JOIN booking_services s ON s.id=b.service_id
+        LEFT JOIN booking_locations l ON l.id=b.location_id
+        JOIN booking_services ns ON ns.id=NEW.service_id
+        LEFT JOIN booking_locations nl ON nl.id=NEW.location_id
+        WHERE b.id != NEW.id AND b.status IN ('REQUESTED','CONFIRMED')
+          AND b.ends_at_utc + MAX(COALESCE(s.buffer_after_min,0),COALESCE(l.buffer_after_min,0))*60000
+            > NEW.starts_at_utc - MAX(COALESCE(ns.buffer_before_min,0),COALESCE(nl.buffer_before_min,0))*60000
+          AND b.starts_at_utc - MAX(COALESCE(s.buffer_before_min,0),COALESCE(l.buffer_before_min,0))*60000
+            < NEW.ends_at_utc + MAX(COALESCE(ns.buffer_after_min,0),COALESCE(nl.buffer_after_min,0))*60000
+      );
+    END`);
+}
+
 export const MIGRATIONS = [
   { version: 1, name: "client operations v1", statements: M1 },
+  { version: 2, name: "exact coach times and individual group participants", statements: M2 },
 ];
 
 const applied = new WeakMap(); // per-isolate memo: the runner is cheap, not free
@@ -401,7 +465,14 @@ export async function ensureBookingSchema(db) {
 
   for (const m of MIGRATIONS) {
     if (m.version <= at) continue;
-    for (const sql of m.statements) await db.prepare(sql).run();
+    for (const sql of m.statements) {
+      const add = sql.match(/^ALTER TABLE (\w+) ADD COLUMN (\w+)/);
+      if (add && (await db.prepare(`PRAGMA table_info(${add[1]})`).all()).results.some(c => c.name === add[2])) continue;
+      try { await db.prepare(sql).run(); } catch (error) {
+        // Another isolate may have applied the same additive column since our read.
+        if (!add || !(await db.prepare(`PRAGMA table_info(${add[1]})`).all()).results.some(c => c.name === add[2])) throw error;
+      }
+    }
     await db.prepare(
       "INSERT INTO booking_schema_migrations (version, name, applied_at) VALUES (?, ?, ?) ON CONFLICT(version) DO NOTHING"
     ).bind(m.version, m.name, Date.now()).run();

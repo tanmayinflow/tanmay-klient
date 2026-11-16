@@ -25,17 +25,25 @@ export async function exportAccountRecords({ db, actor, userId, role }) {
   for (const table of ['plans', 'goals', 'sources']) select(table, table, `SELECT * FROM ${table}` + (role === 'client' ? ' WHERE user_id = ?' : ''), role === 'client' ? [userId] : []);
   select('members', 'members', 'SELECT user_id,email,joined_at,name,share,modules FROM members' + (role === 'client' ? ' WHERE user_id = ?' : ''), role === 'client' ? [userId] : []);
   if (role === 'main') {
-    for (const table of ['booking_clients', 'booking_services', 'booking_locations', 'booking_service_locations', 'booking_availability_rules', 'booking_availability_overrides', 'booking_blocks', 'bookings', 'package_definitions', 'package_definition_services', 'client_packages', 'client_package_services', 'credit_ledger']) {
+    for (const table of ['booking_clients', 'booking_services', 'booking_locations', 'booking_service_locations', 'booking_availability_rules', 'booking_availability_overrides', 'booking_blocks', 'bookings', 'booking_participants', 'package_definitions', 'package_definition_services', 'client_packages', 'client_package_services', 'credit_ledger']) {
       select(table, table, `SELECT * FROM ${table}`);
     }
   } else if (names.has('booking_clients')) {
     select('booking_clients', 'booking_clients', 'SELECT id,account_user_id,name,email,timezone,active FROM booking_clients WHERE account_user_id = ?', [userId]);
     for (const [table, columns] of [['bookings', CLIENT_BOOKING_COLUMNS], ['client_packages', CLIENT_PACKAGE_COLUMNS], ['credit_ledger', 'id,client_id,client_package_id,booking_id,kind,units,created_at']]) {
-      select(table, table, `SELECT ${columns} FROM ${table} WHERE client_id IN (SELECT id FROM booking_clients WHERE account_user_id = ?)`, [userId]);
+      if (table==='bookings' && names.has('booking_participants')) {
+        const ownFields=new Set(['client_id','status','credit_cost_units','client_note']);
+        const fields=columns.split(',').map(k=>ownFields.has(k)?`COALESCE(p.${k},b.${k}) AS ${k}`:`b.${k}`).join(',');
+        select(table,table,`SELECT ${fields} FROM bookings b JOIN booking_clients c ON c.account_user_id=?
+          LEFT JOIN booking_participants p ON p.booking_id=b.id AND p.client_id=c.id
+          WHERE p.client_id IS NOT NULL OR b.client_id=c.id`,[userId]);
+      } else select(table, table, `SELECT ${columns} FROM ${table} WHERE client_id IN (SELECT id FROM booking_clients WHERE account_user_id = ?)`, [userId]);
     }
     if (names.has('bookings')) {
-      select('booking_services', 'booking_services', 'SELECT id,name_cs,name_en,duration_min,cancel_before_min,credit_cost_units,price_minor,currency FROM booking_services WHERE id IN (SELECT service_id FROM bookings WHERE client_id IN (SELECT id FROM booking_clients WHERE account_user_id = ?))', [userId]);
-      select('booking_locations', 'booking_locations', 'SELECT id,type,name_cs,name_en,address,map_url,instructions_cs,instructions_en FROM booking_locations WHERE id IN (SELECT location_id FROM bookings WHERE client_id IN (SELECT id FROM booking_clients WHERE account_user_id = ?))', [userId]);
+      const assigned = `SELECT b.service_id,b.location_id FROM bookings b JOIN booking_clients c ON c.account_user_id=?
+        WHERE b.client_id=c.id ${names.has('booking_participants') ? 'OR EXISTS(SELECT 1 FROM booking_participants p WHERE p.booking_id=b.id AND p.client_id=c.id)' : ''}`;
+      select('booking_services','booking_services',`SELECT id,name_cs,name_en,duration_min,cancel_before_min,credit_cost_units,price_minor,currency FROM booking_services WHERE id IN (SELECT service_id FROM (${assigned}))`,[userId]);
+      select('booking_locations','booking_locations',`SELECT id,type,name_cs,name_en,address,map_url,instructions_cs,instructions_en FROM booking_locations WHERE id IN (SELECT location_id FROM (${assigned}))`,[userId]);
     }
   }
   // D1 executes the reads as a single batch. Any failure fails the whole export;

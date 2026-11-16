@@ -168,7 +168,7 @@ test('time off winning the reschedule race leaves the old booking, locks and cre
  const locks=await db.prepare('SELECT * FROM booking_slot_locks ORDER BY slot_cell').all();
  const batch=db.batch.bind(db);let inserted=false;
  db.batch=async statements=>{
-  if(!inserted&&statements.some(s=>/UPDATE bookings SET starts_at_utc/.test(s._sql))){
+  if(!inserted&&statements.some(s=>/UPDATE bookings SET .*starts_at_utc/.test(s._sql))){
    inserted=true;await coach(db,'/blocks',{startsAt:at(DATE,'13:00'),endsAt:at(DATE,'14:00')});
   }
   return batch(statements);

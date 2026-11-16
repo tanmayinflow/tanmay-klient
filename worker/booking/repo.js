@@ -70,10 +70,10 @@ export const activeBookingsBetween = (db, fromMs, toMs) => rows(db,
     ORDER BY b.starts_at_utc`, [...ACTIVE_STATUSES, fromMs, toMs]);
 
 export const bookingsForClient = (db, clientId, opts = {}) => rows(db,
-  `SELECT * FROM bookings WHERE client_id = ?` +
+  `SELECT b.* FROM bookings b WHERE (b.client_id = ? OR EXISTS (SELECT 1 FROM booking_participants p WHERE p.booking_id=b.id AND p.client_id=?))` +
   (opts.fromMs != null ? " AND starts_at_utc >= ?" : "") +
   ` ORDER BY starts_at_utc ${opts.desc ? "DESC" : "ASC"} LIMIT ?`,
-  opts.fromMs != null ? [clientId, opts.fromMs, opts.limit || 200] : [clientId, opts.limit || 200]);
+  opts.fromMs != null ? [clientId, clientId, opts.fromMs, opts.limit || 200] : [clientId, clientId, opts.limit || 200]);
 
 export const bookingsBetween = (db, fromMs, toMs) => rows(db,
   `SELECT * FROM bookings WHERE ends_at_utc > ? AND starts_at_utc < ? ORDER BY starts_at_utc`, [fromMs, toMs]);
@@ -100,8 +100,8 @@ export const syncErrorBookings = (db) => rows(db,
   "SELECT * FROM bookings WHERE sync_status = 'ERROR' ORDER BY starts_at_utc DESC LIMIT 50", []);
 export const unpaidBookings = (db, beforeMs) => rows(db,
   `SELECT * FROM bookings
-    WHERE payment_status IN ('OPEN','UNKNOWN') AND price_minor > 0
-      AND status IN ('COMPLETED','NO_SHOW','LATE_CANCEL') AND starts_at_utc < ?
+    WHERE ((payment_status IN ('OPEN','UNKNOWN') AND price_minor > 0 AND status IN ('COMPLETED','NO_SHOW','LATE_CANCEL'))
+      OR EXISTS (SELECT 1 FROM booking_participants p WHERE p.booking_id=bookings.id AND p.payment_status IN ('OPEN','UNKNOWN') AND p.price_minor>0 AND p.status IN ('COMPLETED','NO_SHOW','LATE_CANCEL'))) AND starts_at_utc < ?
     ORDER BY starts_at_utc DESC LIMIT 100`, [beforeMs]);
 
 // ---- Packages and ledger --------------------------------------------------
@@ -192,21 +192,21 @@ export const stInsertLedgerIfState = (db, l, bookingId, version, status) =>
 // queued a CANCEL against the winner's version — and because the outbox
 // de-duplicates on (booking, action, version), that job was live. The
 // confirmed session then vanished from the calendar it had just appeared in.
-export const stInsertEventIfState = (db, e, version, status) =>
+export const stInsertEventIfState = (db, e, version, status, token = null) =>
   db.prepare(`INSERT INTO booking_events (id, booking_id, type, actor_type, actor_id, payload_json, created_at)
-              SELECT ?, ?, ?, ?, ?, ?, ? WHERE ${guardSql("status")}
+              SELECT ?, ?, ?, ?, ?, ?, ? WHERE ${guardSql("status")}${token ? " AND EXISTS (SELECT 1 FROM bookings WHERE id=? AND mutation_token=?)" : ""}
               ON CONFLICT(id) DO NOTHING`)
     .bind(e.id, e.booking_id, e.type, e.actor_type, e.actor_id || "", JSON.stringify(e.payload || {}), e.created_at,
-          e.booking_id, version, status);
+          e.booking_id, version, status, ...(token ? [e.booking_id, token] : []));
 
-export const stOutboxIfState = (db, o, version, status) =>
+export const stOutboxIfState = (db, o, version, status, token = null) =>
   db.prepare(`INSERT INTO calendar_outbox
                 (id, booking_id, action, booking_version, payload_hash, attempts, next_attempt_at, status, last_error, created_at, updated_at)
               SELECT ?, ?, ?, ?, '', 0, ?, 'PENDING', '', ?, ?
-               WHERE ${guardSql("status")}
+               WHERE ${guardSql("status")}${token ? " AND EXISTS (SELECT 1 FROM bookings WHERE id=? AND mutation_token=?)" : ""}
               ON CONFLICT(booking_id, action, booking_version) DO NOTHING`)
     .bind(o.id, o.booking_id, o.action, o.booking_version, o.next_attempt_at, o.created_at, o.created_at,
-          o.booking_id, version, status);
+          o.booking_id, version, status, ...(token ? [o.booking_id, token] : []));
 
 // The credit hold decides whether the booking exists at all. Reading the
 // balance before the batch is not enough: two requests a millisecond apart
@@ -313,3 +313,10 @@ export async function rateLimit(db, bucket, limit, windowMs) {
   await db.prepare("UPDATE booking_rate SET count = ? WHERE bucket = ?").bind(n, bucket).run();
   return { ok: n <= limit, remaining: Math.max(0, limit - n) };
 }
+
+export async function participantsForBooking(db, booking) {
+  const list = await rows(db, 'SELECT * FROM booking_participants WHERE booking_id=? ORDER BY rowid', [booking.id]);
+  return list.length ? list : [{ ...booking, booking_id: booking.id }];
+}
+export const participantForClient = (db, id, clientId) => one(db,
+  'SELECT * FROM booking_participants WHERE booking_id=? AND client_id=?', [id, clientId]);

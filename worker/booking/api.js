@@ -21,13 +21,16 @@ import {
   SLOT_GRID_MIN, MS_PER_MIN, PACKAGE_STATUS,
 } from "../../src/booking/types.js";
 import { localDateISO, shiftDateISO, startOfLocalDay, endOfLocalDay, isDateISO } from "../../src/booking/time.js";
-import { balanceOf } from "../../src/booking/credits.js";
+import { allocatePackage, balanceOf } from "../../src/booking/credits.js";
 import { ensureBookingSchema } from "./schema.js";
 import * as R from "./repo.js";
 import * as E from "./engine.js";
 import * as G from "./google.js";
 import { migrateLegacy, migrationState, seedDefaults } from "./migrate.js";
 import { replaceDayAvailability, replaceWeekAvailability } from "./dayAvailability.js";
+import { groupSlots } from "./managedBookings.js";
+import { seedPublicOffer, REGULAR_PACKAGE_ID } from "./publicOffer.js";
+import { calendarMonthExpiry } from "./packageValidity.js";
 
 const MAX_BODY = 128 * 1024;
 
@@ -76,6 +79,8 @@ function validateService(b) {
   const v = {
     name_cs: str(b.name_cs, 80), name_en: str(b.name_en, 80),
     description_cs: str(b.description_cs, 600), description_en: str(b.description_en, 600),
+    capacity: b.capacity === undefined ? 1 : int(b.capacity),
+    min_participants: b.min_participants === undefined ? 1 : int(b.min_participants),
     duration_min: int(b.duration_min), credit_cost_units: int(b.credit_cost_units),
     price_minor: int(b.price_minor), currency: str(b.currency, 8) || "CZK",
     min_notice_min: int(b.min_notice_min), booking_horizon_days: int(b.booking_horizon_days),
@@ -90,10 +95,12 @@ function validateService(b) {
     sort_order: int(b.sort_order) || 0,
   };
   if (!v.name_cs && !v.name_en) errs.push("name");
+  if (v.capacity !== undefined && (!Number.isInteger(v.capacity) || v.capacity < 1 || v.capacity > 30)) errs.push("capacity");
   for (const k of ["duration_min", "buffer_before_min", "buffer_after_min", "slot_interval_min"]) {
     if (!gridOk(v[k])) errs.push(k + " must be a whole multiple of " + SLOT_GRID_MIN);
   }
   if (!v.duration_min || v.duration_min > 8 * 60) errs.push("duration_min");
+  if (!Number.isInteger(v.min_participants) || v.min_participants < 1 || v.min_participants > v.capacity) errs.push("min_participants");
   if (v.credit_cost_units == null || v.credit_cost_units < 0 || v.credit_cost_units > 20) errs.push("credit_cost_units");
   if (v.price_minor == null || v.price_minor < 0) errs.push("price_minor");
   for (const k of ["min_notice_min", "booking_horizon_days", "cancel_before_min"]) {
@@ -129,12 +136,20 @@ function validateLocation(b) {
 
 // ---- Shared reads ----------------------------------------------------------
 async function bookingView(db, b, opts = {}) {
+  const participants = await R.participantsForBooking(db, b);
+  const mine = opts.clientId ? participants.find(p => p.client_id === opts.clientId) : null;
+  if (mine) b = {...b, status:mine.status, credit_cost_units:mine.credit_cost_units, client_package_id:mine.client_package_id,
+    price_minor:mine.price_minor, payment_status:mine.payment_status, payment_method:mine.payment_method, client_note:mine.client_note};
   const [service, location, client] = await Promise.all([
     R.getService(db, b.service_id),
     b.location_id ? R.getLocation(db, b.location_id) : Promise.resolve(null),
     opts.withClient ? R.getClient(db, b.client_id) : Promise.resolve(null),
   ]);
   const view = {
+    participantCount: participants.filter(p => p.status === BOOKING_STATUS.REQUESTED || p.status === BOOKING_STATUS.CONFIRMED).length,
+    group: Number(service?.capacity) > 1,
+    capacity: Number(service?.capacity) || 1,
+    paymentStatus: b.payment_status, paymentMethod: b.payment_method, priceMinor: Number(b.price_minor) || 0, currency: b.currency,
     id: b.id, startsAt: Number(b.starts_at_utc), endsAt: Number(b.ends_at_utc),
     timezone: b.timezone, localDate: b.local_date, status: b.status,
     confirmationMode: b.confirmation_mode,
@@ -147,7 +162,7 @@ async function bookingView(db, b, opts = {}) {
     version: Number(b.version),
     updatedAt: Number(b.updated_at),
     service: service ? { id: service.id, nameCs: service.name_cs, nameEn: service.name_en,
-      durationMin: (Number(b.ends_at_utc) - Number(b.starts_at_utc)) / MS_PER_MIN, slotIntervalMin: Number(service.slot_interval_min) || SLOT_GRID_MIN, cancelBeforeMin: service.cancel_before_min,
+      capacity: Number(service.capacity) || 1, durationMin: (Number(b.ends_at_utc) - Number(b.starts_at_utc)) / MS_PER_MIN, slotIntervalMin: Number(service.slot_interval_min) || SLOT_GRID_MIN, cancelBeforeMin: service.cancel_before_min,
       creditUnits: service.credit_cost_units, priceMinor: service.price_minor, currency: service.currency } : null,
     location: location ? { id: location.id, type: location.type, nameCs: location.name_cs, nameEn: location.name_en,
       // The exact place is shown once the booking exists, not while browsing.
@@ -155,6 +170,12 @@ async function bookingView(db, b, opts = {}) {
       instructionsCs: location.instructions_cs, instructionsEn: location.instructions_en } : null,
   };
   if (opts.coach) {
+    view.participants = await Promise.all(participants.map(async p => {
+      const person = await R.getClient(db, p.client_id);
+      return {clientId:p.client_id, name:person?.name || '', email:person?.email || '', status:p.status,
+        creditUnits:Number(p.credit_cost_units)||0, clientPackageId:p.client_package_id||null, priceMinor:Number(p.price_minor)||0,
+        currency:p.currency, paymentStatus:p.payment_status, paymentMethod:p.payment_method};
+    }));
     view.clientId = b.client_id;
     view.clientName = client ? client.name : "";
     view.clientEmail = client ? client.email : "";
@@ -299,6 +320,14 @@ export async function handleCoach(request, env, url, ctx) {
         const { body, invalid, tooBig } = await readBody(request);
         if (tooBig) return bad(ERR.VALIDATION_ERROR, "body too large", 413);
         if (invalid) return bad(ERR.VALIDATION_ERROR, "json");
+        const targetClientId = body.participantClientId ? str(body.participantClientId,64) : b.client_id;
+        const targetParticipant = (await R.participantsForBooking(db,b)).find(p=>p.client_id===targetClientId);
+        if (!targetParticipant) return bad(ERR.NOT_FOUND,'participant');
+        if ((body.paymentStatus!==undefined || body.paymentMethod!==undefined) && (Number(targetParticipant.credit_cost_units)>0 || body.paymentStatus===PAYMENT_STATUS.FROM_PACKAGE || body.paymentMethod===PAYMENT_METHOD.PACKAGE)) return bad(ERR.VALIDATION_ERROR,'package payments follow the credit ledger');
+        const participantSets=[],participantArgs=[];
+        for (const [field,col,max] of [['clientNote','client_note',1000],['paymentStatus','payment_status',30],['paymentMethod','payment_method',30]]) {
+          if(body[field]!==undefined){participantSets.push(col+'=?');participantArgs.push(str(body[field],max));}
+        }
         const sets = [], args = [];
         if (body.coachNote !== undefined) { sets.push("coach_note_private = ?"); args.push(str(body.coachNote, 4000)); }
         if (body.clientNote !== undefined) { sets.push("client_note = ?"); args.push(str(body.clientNote, 1000)); }
@@ -319,15 +348,22 @@ export async function handleCoach(request, env, url, ctx) {
         if (body.planId !== undefined) { sets.push("plan_id = ?"); args.push(body.planId ? str(body.planId, 64) : null); }
         if (body.workoutTemplateId !== undefined) { sets.push("workout_template_id = ?"); args.push(body.workoutTemplateId ? str(body.workoutTemplateId, 64) : null); }
         if (body.sessionInstanceId !== undefined) { sets.push("session_instance_id = ?"); args.push(body.sessionInstanceId ? str(body.sessionInstanceId, 64) : null); }
-        if (!sets.length) return bad(ERR.VALIDATION_ERROR, "nothing to change");
-        sets.push("updated_at = ?"); args.push(now);
-        await db.batch([
-          db.prepare("UPDATE bookings SET " + sets.join(", ") + " WHERE id = ?").bind(...args, id),
-          R.stInsertEvent(db, { id: R.newId("ev"), booking_id: id,
+        if (targetClientId !== b.client_id) {
+          for(let i=sets.length-1;i>=0;i--)if(/^(client_note|payment_status|payment_method|paid_at) =/.test(sets[i])) {sets.splice(i,1);args.splice(i,1);}
+        }
+        if (!sets.length && !participantSets.length) return bad(ERR.VALIDATION_ERROR, "nothing to change");
+        const revision=Math.max(now,Number(b.updated_at)+1),version=Number(b.version)+1,token=R.newId('mutation');
+        sets.push("updated_at = ?","version = ?","mutation_token = ?"); args.push(revision,version,token);
+        const results=await db.batch([
+          db.prepare("UPDATE bookings SET " + sets.join(", ") + " WHERE id = ? AND version=? AND updated_at=?").bind(...args,id,b.version,b.updated_at),
+          db.prepare('SELECT changes() AS changed'),
+          ...(participantSets.length ? [db.prepare('UPDATE booking_participants SET '+participantSets.join(',')+',updated_at=? WHERE booking_id=? AND client_id=? AND EXISTS(SELECT 1 FROM bookings WHERE id=? AND mutation_token=?)').bind(...participantArgs,revision,id,targetClientId,id,token)] : []),
+          R.stInsertEventIfState(db, { id: R.newId("ev"), booking_id: id,
             type: body.paymentStatus !== undefined ? "PAYMENT_CHANGED" : "NOTE_CHANGED",
-            actor_type: ACTOR.COACH, actor_id: actorId, created_at: now,
-            payload: { fields: Object.keys(body) } }),
+            actor_type: ACTOR.COACH, actor_id: actorId, created_at: revision,
+            payload: { fields: Object.keys(body), clientId:targetClientId } },version,b.status,token),
         ]);
+        if (!results[1]?.results?.[0]?.changed) return bad(ERR.BOOKING_CHANGED);
         return ok({ booking: await bookingView(db, await R.getBooking(db, id), { coach: true, withClient: true }) });
       }
 
@@ -337,10 +373,11 @@ export async function handleCoach(request, env, url, ctx) {
         if (invalid || !body || typeof body !== "object" || Array.isArray(body)) return bad(ERR.VALIDATION_ERROR, "json");
         const startsAt = Number(body.startsAt);
         if (!Number.isFinite(startsAt)) return bad(ERR.VALIDATION_ERROR, "startsAt");
-        const fresh = await googleBusy(db, env, startsAt - 6 * 3600000, startsAt + 6 * 3600000, !body.adminOverride);
+        const fresh = await googleBusy(db, env, startsAt - 12 * 3600000, startsAt + 24 * 3600000, !body.adminOverride);
         const after = await E.rescheduleBooking(db, id, {
           startsAt, locationId: body.locationId, now, actor: ACTOR.COACH, actorId,
-          adminOverride: !!body.adminOverride, googleBusy: fresh.windows,
+          serviceId: body.serviceId, durationMin: body.durationMin, clientIds: body.clientIds,
+          adminOverride: !!body.adminOverride, overrideReason: str(body.overrideReason,300), googleBusy: fresh.windows,
           expectedVersion: body.expectedVersion, expectedStartsAt: body.expectedStartsAt, expectedUpdatedAt: body.expectedUpdatedAt,
         });
         drainSoon(ctx, db, env);
@@ -377,8 +414,9 @@ export async function handleCoach(request, env, url, ctx) {
       if (seen) return ok(seen);
       const startsAt = Number(body.startsAt);
       if (!Number.isFinite(startsAt)) return bad(ERR.VALIDATION_ERROR, "startsAt");
-      const fresh = await googleBusy(db, env, startsAt - 6 * 3600000, startsAt + 6 * 3600000, !body.adminOverride);
+      const fresh = await googleBusy(db, env, startsAt - 12 * 3600000, startsAt + 24 * 3600000, !body.adminOverride);
       const b = await E.createBooking(db, {
+        clientIds: body.clientIds, durationMin: body.durationMin,
         clientId: str(body.clientId, 64), serviceId: str(body.serviceId, 64),
         locationId: body.locationId ? str(body.locationId, 64) : null,
         startsAt, now, actor: ACTOR.COACH, actorId,
@@ -394,6 +432,17 @@ export async function handleCoach(request, env, url, ctx) {
       return ok(result);
     }
 
+    if (path === "/api/booking/public-offer" && method === "POST") {
+      return ok(await seedPublicOffer(db, now));
+    }
+    if (path === "/api/booking/package-definitions" && method === "GET") {
+      const definitions = (await db.prepare("SELECT * FROM package_definitions WHERE active = 1 ORDER BY sort_order, name_cs").all()).results || [];
+      const links = (await db.prepare("SELECT * FROM package_definition_services").all()).results || [];
+      return ok({ definitions: definitions.map(d => ({...d,
+        serviceIds: links.filter(l => l.package_definition_id === d.id).map(l => l.service_id),
+        validityMonths: d.id === REGULAR_PACKAGE_ID ? 1 : null,
+      })) });
+    }
     // ---- services ---------------------------------------------------------
     if (path === "/api/booking/services") {
       if (method === "GET") {
@@ -681,7 +730,12 @@ export async function handleCoach(request, env, url, ctx) {
         const paid = body.paymentStatus === PAYMENT_STATUS.PAID;
         const id = R.newId("cp");
         const validDays = int(body.validDays);
-        const expiresAt = validDays ? now + validDays * 86400000 : null;
+        const monthly = body.packageDefinitionId === REGULAR_PACKAGE_ID || body.validityMonths != null;
+        const firstSessionAt = Number(body.firstSessionAt);
+        if (monthly && (body.validityMonths !== undefined && body.validityMonths !== 1 || !calendarMonthExpiry(firstSessionAt))) return bad(ERR.VALIDATION_ERROR, "firstSessionAt / validityMonths");
+        if (validDays != null && (!Number.isInteger(validDays) || validDays < 0 || validDays > 3650)) return bad(ERR.VALIDATION_ERROR, "validDays");
+        const validFrom = monthly ? firstSessionAt : now;
+        const expiresAt = monthly ? calendarMonthExpiry(firstSessionAt) : validDays ? now + validDays * 86400000 : null;
         const stmts = [
           db.prepare(`INSERT INTO client_packages
               (id, client_id, package_definition_id, name_snapshot, purchased_units, price_minor, currency,
@@ -692,7 +746,7 @@ export async function handleCoach(request, env, url, ctx) {
                   str(body.name, 80) || "Balíček", units, int(body.priceMinor) || 0, str(body.currency, 8) || "CZK",
                   paid ? PAYMENT_STATUS.PAID : PAYMENT_STATUS.OPEN,
                   Object.values(PAYMENT_METHOD).includes(body.paymentMethod) ? body.paymentMethod : PAYMENT_METHOD.NONE,
-                  now, now, expiresAt, PACKAGE_STATUS.ACTIVE, str(body.note, 300), now, now),
+                  now, validFrom, expiresAt, PACKAGE_STATUS.ACTIVE, str(body.note, 300), now, now),
           R.stInsertLedger(db, {
             id: R.newId("cl"), client_id: clientId, client_package_id: id, booking_id: null,
             kind: paid ? LEDGER_KIND.PURCHASE : LEDGER_KIND.MANUAL_ADD, units,
@@ -700,7 +754,8 @@ export async function handleCoach(request, env, url, ctx) {
             idempotency_key: id + ":purchase",
           }),
         ];
-        for (const sid of (Array.isArray(body.serviceIds) ? body.serviceIds.slice(0, 50) : [])) {
+        const grantServices = body.packageDefinitionId === REGULAR_PACKAGE_ID ? ['web-individual'] : (Array.isArray(body.serviceIds) ? body.serviceIds.slice(0, 50) : []);
+        for (const sid of grantServices) {
           stmts.push(db.prepare("INSERT INTO client_package_services (client_package_id, service_id) VALUES (?, ?) ON CONFLICT DO NOTHING")
             .bind(id, str(sid, 64)));
         }
@@ -872,10 +927,16 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       const withLocations = [];
       for (const s2 of visible) {
         const locs = await R.locationsForService(db, s2.id);
+        const paidPackages = summary.packages.filter(p=>p.package_definition_id!==REGULAR_PACKAGE_ID || p.payment_status===PAYMENT_STATUS.PAID);
+        const packages = Number(s2.capacity)>1 ? paidPackages.filter(p=>p.eligible_service_ids?.includes(s2.id)) : paidPackages;
+        const futurePackage = packages.some(p=>p.package_definition_id===REGULAR_PACKAGE_ID && p.valid_from>now && p.balance.available>=s2.credit_cost_units && p.eligible_service_ids.includes(s2.id));
+        const packageChoice = allocatePackage(packages, await R.ledgerAll(db,client.id), {now,units:s2.credit_cost_units,serviceId:s2.id});
         withLocations.push({
           id: s2.id, nameCs: s2.name_cs, nameEn: s2.name_en,
           descriptionCs: s2.description_cs, descriptionEn: s2.description_en,
-          durationMin: s2.duration_min, creditUnits: s2.credit_cost_units,
+          minParticipants: Number(s2.min_participants) || 1, capacity: Number(s2.capacity) || 1,
+          creditAvailable: Number(s2.credit_cost_units)>0 && !!packageChoice, futureCreditAvailable:futurePackage,
+          paymentRoute: Number(s2.credit_cost_units)>0 && packageChoice ? 'CREDIT' : 'PAYMENT', durationMin: s2.duration_min, creditUnits: s2.credit_cost_units,
           priceMinor: s2.price_minor, currency: s2.currency,
           confirmationMode: s2.confirmation_mode,
           cancelBeforeMin: s2.cancel_before_min, minNoticeMin: s2.min_notice_min,
@@ -887,7 +948,7 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       }
       // A service the client has no credit for and cannot pay for outside a
       // package is not offered — an empty calendar explains nothing.
-      const bookable = withLocations.filter((s2) => summary.balance.available >= (s2.creditUnits || 0) || s2.priceMinor > 0);
+      const bookable = withLocations.filter((s2) => s2.creditAvailable || !s2.creditUnits || s2.priceMinor > 0);
       return ok({
         enabled: bookable.length > 0,
         reason: bookable.length ? null : (summary.balance.available > 0 ? "NO_SERVICE" : "NO_CREDIT"),
@@ -933,15 +994,19 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       const chce = url.searchParams.get("reschedule") ? str(url.searchParams.get("reschedule"), 64) : null;
       if (chce) {
         const moje = await R.getBooking(db, chce);
-        if (moje && moje.client_id === client.id) vynech = chce;
+        if (moje && Number((await R.getService(db,moje.service_id))?.capacity || 1) === 1) {
+          const participant=(await R.participantsForBooking(db,moje)).find(p=>p.client_id===client.id);
+          if(participant && [BOOKING_STATUS.REQUESTED,BOOKING_STATUS.CONFIRMED].includes(participant.status)) vynech=chce;
+        }
       }
       const av = await E.availability(db, {
         serviceId, locationId, now, fromDate: base, days,
         excludeBookingId: vynech, googleBusy: busy.windows,
       });
+      await groupSlots(db,{serviceId,locationId,now,clientId:client.id,googleBusy:busy.windows,excludeBookingId:vynech},av);
       return ok({
         timezone: av.timezone, from: av.from, to: av.to,
-        days: av.days.map((d) => ({ date: d.date, slots: d.slots.map((s2) => ({ startsAt: s2.start, endsAt: s2.end })) })),
+        days: av.days.map((d) => ({ date: d.date, slots: d.slots.map((s2) => ({ startsAt: s2.start, endsAt: s2.end, ...(s2.groupBookingId ? {groupBookingId:s2.groupBookingId,remainingCapacity:s2.remainingCapacity} : {}) })) })),
         googleChecked: !!busy.connected,
       });
     }
@@ -951,8 +1016,8 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       const list = await R.bookingsForClient(db, client.id, { desc: true, limit: 100 });
       const upcoming = [], past = [];
       for (const b of list) {
-        const v = await bookingView(db, b, {});
-        (Number(b.starts_at_utc) >= now && (b.status === BOOKING_STATUS.CONFIRMED || b.status === BOOKING_STATUS.REQUESTED)
+        const v = await bookingView(db, b, {clientId:client.id});
+        (Number(b.starts_at_utc) >= now && (v.status === BOOKING_STATUS.CONFIRMED || v.status === BOOKING_STATUS.REQUESTED)
           ? upcoming : past).push(v);
       }
       upcoming.sort((a, b) => a.startsAt - b.startsAt);
@@ -972,14 +1037,15 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       if (!Number.isFinite(startsAt)) return bad(ERR.VALIDATION_ERROR, "startsAt");
       // The last check before committing is live, and if Google cannot answer
       // nothing is booked.
-      const fresh = await googleBusy(db, env, startsAt - 6 * 3600000, startsAt + 6 * 3600000, true);
+      const fresh = await googleBusy(db, env, startsAt - 12 * 3600000, startsAt + 24 * 3600000, true);
       const b = await E.createBooking(db, {
+        groupBookingId: body.groupBookingId ? str(body.groupBookingId,64) : undefined,
         clientId: client.id, serviceId: str(body.serviceId, 64),
         locationId: body.locationId ? str(body.locationId, 64) : null,
         startsAt, now, actor: ACTOR.CLIENT, actorId: accountUserId,
         clientNote: str(body.note, 1000), googleBusy: fresh.windows,
       });
-      const result = { booking: await bookingView(db, b, {}) };
+      const result = { booking: await bookingView(db, b, {clientId:client.id}) };
       await R.rememberIdempotent(db, key, "client:create:" + accountUserId, result);
       drainSoon(ctx, db, env);
       return ok(result);
@@ -992,11 +1058,13 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       const b = await R.getBooking(db, id);
       // Ownership is checked before anything at all is said about the row —
       // including whether it exists.
-      if (!b || b.client_id !== client.id) return bad(ERR.NOT_AUTHORIZED);
+      if (!b || !(b.client_id === client.id || await R.participantForClient(db,id,client.id))) return bad(ERR.NOT_AUTHORIZED);
 
-      if (!action && method === "GET") return ok({ booking: await bookingView(db, b, {}) });
+      if (!action && method === "GET") return ok({ booking: await bookingView(db, b, {clientId:client.id}) });
 
       if (action === "reschedule" && method === "POST") {
+        const participant=(await R.participantsForBooking(db,b)).find(p=>p.client_id===client.id);
+        if(!participant || ![BOOKING_STATUS.REQUESTED,BOOKING_STATUS.CONFIRMED].includes(participant.status)) return bad(ERR.NOT_AUTHORIZED);
         const gate = await R.rateLimit(db, "move:" + accountUserId, 20, 60000);
         if (!gate.ok) return bad(ERR.RATE_LIMITED);
         const { body, invalid, tooBig } = await readBody(request);
@@ -1004,18 +1072,18 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
         if (invalid || !body || typeof body !== "object" || Array.isArray(body)) return bad(ERR.VALIDATION_ERROR, "json");
         const startsAt = Number(body.startsAt);
         if (!Number.isFinite(startsAt)) return bad(ERR.VALIDATION_ERROR, "startsAt");
-        const fresh = await googleBusy(db, env, startsAt - 6 * 3600000, startsAt + 6 * 3600000, true);
+        const fresh = await googleBusy(db, env, startsAt - 12 * 3600000, startsAt + 24 * 3600000, true);
         const after = await E.rescheduleBooking(db, id, {
           startsAt, locationId: body.locationId ? str(body.locationId, 64) : undefined,
-          now, actor: ACTOR.CLIENT, actorId: accountUserId, googleBusy: fresh.windows,
+          now, actor: ACTOR.CLIENT, clientId:client.id, actorId: accountUserId, googleBusy: fresh.windows,
           expectedVersion: body.expectedVersion, expectedStartsAt: body.expectedStartsAt, expectedUpdatedAt: body.expectedUpdatedAt,
         });
         drainSoon(ctx, db, env);
-        return ok({ booking: await bookingView(db, after, {}) });
+        return ok({ booking: await bookingView(db, after, {clientId:client.id}) });
       }
 
       if (action === "cancel-preview" && method === "GET") {
-        return ok({ preview: await E.cancelPreview(db, id, { now, byCoach: false }) });
+        return ok({ preview: await E.cancelPreview(db, id, { now, byCoach: false, clientId:client.id }) });
       }
 
       if (action === "cancel" && method === "POST") {
@@ -1024,10 +1092,10 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
         const { body, invalid } = await readBody(request);
         if (invalid) return bad(ERR.VALIDATION_ERROR, "json");
         const after = await E.transitionBooking(db, id, "cancel", {
-          now, actor: ACTOR.CLIENT, actorId: accountUserId, reason: str(body.reason, 300),
+          now, actor: ACTOR.CLIENT, clientId:client.id, actorId: accountUserId, reason: str(body.reason, 300),
         });
         drainSoon(ctx, db, env);
-        return ok({ booking: await bookingView(db, after, {}),
+        return ok({ booking: await bookingView(db, after, {clientId:client.id}),
           credits: (await E.creditSummary(db, client.id)).balance });
       }
       return methodNotAllowed();

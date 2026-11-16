@@ -8,14 +8,11 @@
 
 // Schema version of the booking subtree in D1. Bumped only when a migration
 // changes the shape, never when a row is added.
-export const BOOKING_SCHEMA_VERSION = 1;
+export const BOOKING_SCHEMA_VERSION = 2;
 
-// The whole domain is computed on a fixed grid. Durations, buffers, slot
-// intervals and availability windows are validated to be multiples of it, so
-// a lock segment can never straddle a boundary and reject a legal
-// back-to-back booking. Five minutes is small enough to express every real
-// session shape and large enough that a two-hour protected interval is
-// twenty-four rows, not a hundred and twenty.
+// Offered client slots and weekly availability stay on a five-minute grid.
+// Coach appointments may use exact minutes; database interval guards protect
+// those without rounding adjacent sessions into conflicting lock cells.
 export const SLOT_GRID_MIN = 5;
 export const MS_PER_MIN = 60000;
 

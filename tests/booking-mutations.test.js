@@ -78,6 +78,8 @@ test("failed reschedule preserves the original time, slot and credit balance", a
   assert.notEqual(rejected.status, 200);
   assert.equal((await call("/api/client/bookings")).body.upcoming[0].startsAt, original.startsAt);
   assert.deepEqual((await call("/api/client/credits")).body.balance, before);
-  assert.ok((await env.DB.prepare("SELECT COUNT(*) n FROM booking_slot_locks WHERE booking_id = ?").bind(original.id).first()).n > 0);
+  const duplicate = await call('/api/client/bookings', {method:'POST',body:{serviceId:'svc_pt',locationId:'loc_studio',startsAt:original.startsAt,idempotencyKey:'other-intent'}});
+  assert.equal(duplicate.status,409,'original interval remains protected from another booking');
+  assert.equal(duplicate.body.error,'SLOT_TAKEN');
   env.DB._raw.close();
 });

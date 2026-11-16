@@ -71,10 +71,22 @@ test('booking backup uses the real schema and never exports a coach private note
     await db.prepare('INSERT INTO booking_clients(id,account_user_id,name,created_at,updated_at) VALUES (?,?,?,1,1)').bind(id,id,'Client '+id).run();
   }
   await db.prepare("INSERT INTO booking_services(id,name_cs,created_at,updated_at) VALUES ('service','Session',1,1)").run();
-  for (const id of ['a','b']) await db.prepare("INSERT INTO bookings(id,client_id,service_id,starts_at_utc,ends_at_utc,local_date,status,client_note,coach_note_private,created_at,updated_at) VALUES (?,?,'service',1,2,'2026-11-06','CONFIRMED',?,?,1,1)").bind('booking-'+id,id,'OWN '+id,'PRIVATE COACH '+id).run();
+  for (const id of ['a','b']) await db.prepare("INSERT INTO bookings(id,client_id,service_id,starts_at_utc,ends_at_utc,local_date,status,client_note,coach_note_private,created_at,updated_at) VALUES (?,?,'service',?,?,'2026-11-06','CONFIRMED',?,?,1,1)").bind('booking-'+id,id,id==='a'?1:3,id==='a'?2:4,'OWN '+id,'PRIVATE COACH '+id).run();
   const own = await exportAccountRecords({db,actor:'client:a',userId:'a',role:'client'});
   assert.equal(own.sections.bookings.length,1); assert.equal(own.sections.bookings[0].id,'booking-a');
   assert.doesNotMatch(JSON.stringify(own),/PRIVATE COACH|booking-b|Client b/);
   const coach = await exportAccountRecords({db,actor:'coach:tanmay',userId:'primary',role:'main'});
   assert.equal(coach.sections.bookings.length,2); assert.match(JSON.stringify(coach),/PRIVATE COACH a/);
+});
+
+test('group backup projects only own participant fields and includes shared service',async()=>{
+ const db=makeD1();await ensureBookingSchema(db);
+ for(const id of ['a','b'])await db.prepare('INSERT INTO booking_clients(id,account_user_id,name,created_at,updated_at) VALUES(?,?,?,1,1)').bind(id,id,'Client '+id).run();
+ await db.prepare("INSERT INTO booking_services(id,name_cs,capacity,created_at,updated_at) VALUES('group','Group',2,1,1)").run();
+ await db.prepare("INSERT INTO bookings(id,client_id,service_id,starts_at_utc,ends_at_utc,local_date,status,client_note,coach_note_private,created_at,updated_at) VALUES('shared','a','group',1,2,'2026-11-06','CONFIRMED','A private note','COACH PRIVATE',1,1)").run();
+ await db.prepare("INSERT INTO booking_participants(booking_id,client_id,status,credit_cost_units,client_note,updated_at) VALUES('shared','b','CANCELLED_CLIENT',0,'B own note',1)").run();
+ const own=await exportAccountRecords({db,actor:'client:b',userId:'b',role:'client'});
+ assert.equal(own.sections.bookings.length,1);assert.equal(own.sections.bookings[0].client_id,'b');assert.equal(own.sections.bookings[0].client_note,'B own note');assert.equal(own.sections.bookings[0].status,'CANCELLED_CLIENT');
+ assert.equal(own.sections.booking_services[0].id,'group');assert.doesNotMatch(JSON.stringify(own),/A private|COACH PRIVATE|Client a/);
+ const coach=await exportAccountRecords({db,actor:'coach:tanmay',userId:'primary',role:'main'});assert.equal(coach.sections.booking_participants.length,2);
 });

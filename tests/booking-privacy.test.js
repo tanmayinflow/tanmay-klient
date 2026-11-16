@@ -74,7 +74,9 @@ test("klient nevidí soukromou poznámku trenéra", async () => {
   assert.equal(r.ok, true);
   assert.ok(!JSON.stringify(r).includes("rameno"), "poznámka se z klientské cesty nikdy nevrátí");
   assert.equal(r.booking.coachNote, undefined);
-  assert.equal(r.booking.paymentStatus, undefined, "ani stav platby není klientova věc");
+  assert.equal(r.booking.paymentStatus, "FROM_PACKAGE", "vlastní platební cesta odpovídá vlastnímu čerpání");
+  assert.equal(r.booking.participants, undefined, "platební údaje ostatních účastníků nejsou součástí klientské odpovědi");
+  assert.equal(r.booking.clientEmail, undefined);
 });
 
 test("klient nevidí názvy obsazeného času z Googlu", async () => {

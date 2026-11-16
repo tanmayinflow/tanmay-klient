@@ -428,7 +428,7 @@ export async function ensureBookingCalendar(db, env, name) {
  * the client's profile. A calendar entry is not a client record.
  */
 export function eventBodyFor(booking, ctx) {
-  const generic = ctx.titleMode === CALENDAR_TITLE_MODE.GENERIC;
+  const generic = !!ctx.group || ctx.titleMode === CALENDAR_TITLE_MODE.GENERIC;
   const who = String(ctx.clientName || "").trim();
   const service = String(ctx.serviceName || "").trim();
   const summary = generic ? "Sezení" : ([who, service].filter(Boolean).join(" · ") || "Sezení");
@@ -453,7 +453,8 @@ export function eventBodyFor(booking, ctx) {
     },
   };
   if (booking.meeting_url) body.description = (body.description + "\n" + booking.meeting_url).trim();
-  if (ctx.inviteClient && ctx.clientEmail) body.attendees = [{ email: ctx.clientEmail }];
+  if (ctx.group) body.attendees = [];
+  else if (ctx.inviteClient && ctx.clientEmail) body.attendees = [{ email: ctx.clientEmail }];
   return body;
 }
 
@@ -513,6 +514,7 @@ export async function runOutboxJob(db, env, job) {
       booking.location_id ? R.getLocation(db, booking.location_id) : Promise.resolve(null),
     ]);
     body = eventBodyFor(booking, {
+      group: Number(service?.capacity)>1,
       titleMode: conn.title_mode,
       clientName: client && client.name,
       clientEmail: client && client.email,

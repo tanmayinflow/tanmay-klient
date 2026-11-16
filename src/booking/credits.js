@@ -143,7 +143,7 @@ export function cancellationPreview(booking, service, opts) {
   const units = Math.max(0, n(booking.credit_cost_units));
   const cancelBefore = Math.max(0, n(service && service.cancel_before_min));
   const deadline = n(booking.starts_at_utc) - cancelBefore * 60000;
-  const late = !byCoach && nowMs > deadline;
+  const late = !byCoach && booking.status !== "REQUESTED" && nowMs > deadline;
   // The coach cancelling always returns the credit. Late cancellation follows
   // the service policy, and the safe default returns nothing.
   const refunded = byCoach ? units : (late ? (service && service.late_cancel_refunds ? units : 0) : units);
