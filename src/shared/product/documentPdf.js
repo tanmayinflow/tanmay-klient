@@ -17,6 +17,6 @@ export async function openDocumentPdf(buffer, signal) {
     const doc = await task.promise;
     signal?.throwIfAborted();
     if (doc.numPages > 2000) throw new Error('document-limit');
-    return { doc, dispose };
+    return { doc, dispose, TextLayer: pdfjs.TextLayer, pageRatios: new Map() };
   } catch (error) { dispose(); throw error; }
 }

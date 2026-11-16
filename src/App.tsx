@@ -1,4 +1,5 @@
 import { AppNotices } from "./shared/ui/AppNotices.jsx";
+import { TextSelectionActions } from "./shared/ui/TextSelectionActions.jsx";
 import { beginNavigationSwipe, navigationSwipeBlocked, navigationSwipeDirection, hasTextSelection, watchNavigationSelection } from "./shared/ui/navigationGesture.js";
 import { createScreenWakeController, observeReadingScreen } from "./shared/ui/screenWake.js";
 import { attachInlineImageControls } from "./shared/ui/inlineImageControls.js";
@@ -3463,7 +3464,7 @@ function RichText({ text, style }) {
   const { t } = useT();
   const lines = String(text || "").split("\n");
   return (
-    <div style={{ fontFamily: FONT_BODY, fontSize: "calc(15px * var(--tm-read, 1))", lineHeight: 1.6, color: t.textSec, maxWidth: "32em", ...style }}>
+    <div data-tm-select-text style={{ fontFamily: FONT_BODY, fontSize: "calc(15px * var(--tm-read, 1))", lineHeight: 1.6, color: t.textSec, maxWidth: "32em", ...style }}>
       {lines.map((cely, i) => {
         // stejné zarovnání jako v editoru a v náhledu · jeden zdroj pravdy
         const { al, text: ln } = tmZarov(cely);
@@ -17459,6 +17460,7 @@ export default function App() {
 
         <TmNovaVerze />
         {member === false && <InviteGate />}
+        <TextSelectionActions t={t} L={L}/>
         <AppNotices>
         {saveErr && (
           <div role="status" aria-live="polite" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 400, background: t.accent, color: t.onAccent || t.bg, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>

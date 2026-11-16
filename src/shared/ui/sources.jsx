@@ -75,7 +75,16 @@ export function createSourcesUI(deps) {
     const [gdOpen, setGdOpen] = useState(false);
     const [gdUrl, setGdUrl] = useState("");
     const [reading, setReading] = useState(false);
-    React.useEffect(() => { setReading(false); }, [id]);
+    const [coverMenuOpen, setCoverMenuOpen] = useState(false);
+    const coverMenu = React.useRef(null);
+    React.useEffect(() => { setReading(false); setCoverMenuOpen(false); }, [id]);
+    React.useEffect(() => {
+      if (!coverMenuOpen) return;
+      const outside = ev => { if (!coverMenu.current?.contains(ev.target)) setCoverMenuOpen(false); };
+      const escape = ev => { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); setCoverMenuOpen(false); coverMenu.current?.querySelector("button")?.focus(); } };
+      document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape, true);
+      return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape, true); };
+    }, [coverMenuOpen]);
     if (!e) return null;
     const odTanmaye = e.origin === SOURCE_ORIGIN.COACH;
     // Zápis prochází jedinou tabulkou pravomocí (product/sources.js). Kanonický
@@ -118,7 +127,8 @@ export function createSourcesUI(deps) {
     const scoreN = e.score === "" || e.score == null ? null : +e.score;
     const noteText = odTanmaye ? (e.note || "") : (e.text || "");
     const reader = reading && NotesReader ? <NotesReader entry={{id:e.id,title:e.title,text:noteText,rezim:"stranky"}} settings={false} pagingControls onChange={v=>upd(odTanmaye?{note:v}:{text:v})} onZavri={()=>setReading(false)} onPsat={()=>setReading(false)}/> : null;
-    const readButton = NotesReader && noteText.trim() ? <button type="button" onClick={()=>setReading(true)} style={{...iconBtn(t),width:"auto",minHeight:44,padding:"6px 10px",gap:6,fontFamily:"var(--tm-font-body)",fontSize:12}}><FamilyIcon id="book" size={15}/>{L("Číst po stránkách", "Read by page")}</button> : null;
+    const readingActionStyle = {...iconBtn(t),width:"auto",padding:"6px 10px",gap:6,fontFamily:"var(--tm-font-body)",fontSize:12};
+    const readButton = NotesReader && noteText.trim() ? <button type="button" onClick={()=>setReading(true)} style={readingActionStyle}><FamilyIcon id="book" size={15}/>{L("Číst po stránkách", "Read by page")}</button> : null;
     if (study) return <>{reader}<article style={{maxWidth:720,margin:"0 auto",paddingBottom:80}}><h1 style={{fontFamily:"var(--tm-font-display)",fontWeight:400,fontSize:30,lineHeight:1.2}}>{e.title}</h1><p style={{color:t.textSec,fontFamily:"var(--tm-font-body)",fontSize:13}}>{[e.author,L("Postřehy ke studiu","Study notes")].filter(Boolean).join(" · ")}</p>{readButton}<RichArea value={noteText} onChange={v=>upd(odTanmaye?{note:v}:{text:v})} placeholder={L("Co si z toho odnáším…","What I take from it…")}/></article></>;
     return (
       <div data-tm-reading="source" style={wide ? { maxWidth: 640 } : undefined}>
@@ -142,13 +152,14 @@ export function createSourcesUI(deps) {
           </div>
         </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 }}>
-          {!odTanmaye && <>
-            <button onClick={() => coverRef.current?.click()} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textSec, fontFamily: "var(--tm-font-body)", fontSize: 12, minHeight: 32 }}>{L("Nahrát obálku", "Upload cover")}</button>
-            <button onClick={findCover} title={L("Otevře Google obrázky s názvem", "Opens Google Images for the title")} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textSec, fontFamily: "var(--tm-font-body)", fontSize: 12, minHeight: 32 }}>{L("Najít obálku", "Find cover")}</button>
-          </>}
-          {e.icon && !odTanmaye && <button onClick={() => { if (e.icon && e.icon.r2id) r2Del(e.icon.r2id); upd({ icon: null }); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{L("Odebrat", "Remove")}</button>}
-        </div>
+        {!odTanmaye && <div ref={coverMenu} className="tm-source-cover-actions" style={{ position:"relative", width:"fit-content", marginBottom:12 }}>
+          <button type="button" aria-expanded={coverMenuOpen} onClick={()=>setCoverMenuOpen(open=>!open)} style={{ background:"transparent",border:"none",cursor:"pointer",color:t.textSec,fontFamily:"var(--tm-font-body)",fontSize:12,minHeight:32,display:"inline-flex",alignItems:"center",gap:6,padding:"4px 6px" }}>{L("Obálka", "Cover")}<FamilyIcon id="expand" size={12}/></button>
+          {coverMenuOpen && <div role="group" aria-label={L("Možnosti obálky", "Cover options")} style={{position:"absolute",zIndex:5,top:"100%",left:0,minWidth:180,padding:4,border:`1px solid ${t.borderSoft}`,borderRadius:10,background:t.bg,boxShadow:t.shadowSheet||"0 5px 18px #0002",display:"flex",flexDirection:"column"}}>
+            <button type="button" onClick={()=>{setCoverMenuOpen(false);coverRef.current?.click();}} style={{background:"transparent",border:0,cursor:"pointer",color:t.text,textAlign:"left",padding:"10px 12px",minHeight:44,fontFamily:"var(--tm-font-body)",fontSize:13}}>{L("Nahrát obálku", "Upload cover")}</button>
+            <button type="button" onClick={()=>{setCoverMenuOpen(false);findCover();}} title={L("Otevře Google obrázky s názvem", "Opens Google Images for the title")} style={{background:"transparent",border:0,cursor:"pointer",color:t.text,textAlign:"left",padding:"10px 12px",minHeight:44,fontFamily:"var(--tm-font-body)",fontSize:13}}>{L("Najít obálku", "Find cover")}</button>
+            {e.icon && <button type="button" onClick={()=>{setCoverMenuOpen(false);if(e.icon.r2id)r2Del(e.icon.r2id);upd({icon:null});}} style={{background:"transparent",border:0,cursor:"pointer",color:t.textSec,textAlign:"left",padding:"10px 12px",minHeight:44,fontFamily:"var(--tm-font-body)",fontSize:13}}>{L("Odebrat obálku", "Remove cover")}</button>}
+          </div>}
+        </div>}
         <PropRow icon={<FamilyIcon id="progress" size={16} />} label={L("Stav", "Progress")}><button onClick={() => cycle(C_PROGRESS, e.progress, "progress")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Tag label={C_PROG_LABEL(e.progress, e.type)} color={C_PROG_COLOR[e.progress] || "default"} /></button></PropRow>
         {!odTanmaye && <PropRow icon={<FamilyIcon id="star" size={16} />} label={L("Skóre /10", "Score /10")}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -199,7 +210,7 @@ export function createSourcesUI(deps) {
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
             <div style={{ flex: 1, fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.sage }}>{L("Postřehy", "Notes")}</div>
             {readButton}
-            {onStudy && <button type="button" onClick={onStudy} style={{...iconBtn(t),width:"auto",padding:"6px 10px",fontFamily:"var(--tm-font-body)",fontSize:12}}><FamilyIcon id="expand" size={15}/>{L("Studovat", "Study")}</button>}
+            {onStudy && <button type="button" onClick={onStudy} style={readingActionStyle}><FamilyIcon id="expand" size={15}/>{L("Studovat", "Study")}</button>}
             {ExportBtn && <ExportBtn small doc={() => ({
               title: e.title || L("Titul", "Title"),
               sub: [e.author, C_TYPE_LABEL(e.type)].filter(Boolean).join(" · "),

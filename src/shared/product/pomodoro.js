@@ -1,6 +1,42 @@
 // Timer preferences and completed blocks belong to the current account.
 export const POMO_DEFAULTS = Object.freeze({ focus: 25, short: 5, long: 15, every: 4, sound: true, bg: null, voice: "bowl", vol: 1 });
 
+export function pomoDurationMinutes(mode, cfg = {}) {
+  const fallback = mode === "custom" ? 45 : POMO_DEFAULTS[mode] || POMO_DEFAULTS.focus;
+  const value = Number(cfg[mode]);
+  return Number.isFinite(value) && value >= 1 ? Math.min(180, value) : fallback;
+}
+
+// The saved deadline is the clock. Background throttling must not add time or
+// stop a completed break. Work is bounded per tick so a very old saved run can
+// catch up in batches without freezing the interface or dropping its log.
+export function advancePomoRun(run, now = Date.now(), limit = 256) {
+  let next = run;
+  const blocks = [];
+  let boundary = null, count = 0;
+  const cfg = run?.cfg || {};
+  const every = Number.isFinite(Number(cfg.every)) && Number(cfg.every) >= 1 ? Math.floor(Number(cfg.every)) : POMO_DEFAULTS.every;
+  while (next?.running && Number.isFinite(next.endAt) && next.endAt > 0 && now >= next.endAt && count < limit) {
+    const mode = next.mode || "focus";
+    const at = next.endAt;
+    const id = mode + "@" + at;
+    const focus = mode === "focus" || mode === "custom";
+    const cycle = Math.max(0, Number(next.cycle) || 0) + (focus ? 1 : 0);
+    const focusMode = focus ? mode : next.focusMode === "custom" ? "custom" : "focus";
+    const nextMode = focus ? cycle % every === 0 ? "long" : "short" : focusMode;
+    if (focus) {
+      const d = new Date(at);
+      const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      blocks.push({ id: "pomo:" + id, d: date, ts: at, min: pomoDurationMinutes(mode, cfg), cat: next.cat || "ostatni", note: next.note || "" });
+    }
+    const duration = pomoDurationMinutes(nextMode, cfg) * 60;
+    next = { ...next, cycle, focusMode, mode: nextMode, startAt: at, endAt: at + duration * 1000, remaining: duration, running: true };
+    boundary = { bid: id, konec: mode, zacatek: nextMode, kdy: at };
+    count += 1;
+  }
+  return { run: next, blocks, boundary, count, catchingUp: !!(next?.running && Number.isFinite(next.endAt) && now >= next.endAt) };
+}
+
 // Only an identity verified in this mounted session can own a timer. A brief
 // recheck or lost connection must not interrupt that owner's local controls.
 export function pomoAccountScope(session, localOwner) {

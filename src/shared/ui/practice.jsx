@@ -227,22 +227,7 @@ export function createPracticeUI(deps) {
     return <textarea ref={drz} value={value} {...zbytek} onInput={dorovnej} style={{ ...style, overflow: "hidden", resize: "none" }} />;
   }
 
-  /* VEČERNÍ OHLÉDNUTÍ.
-     Otázka a odpověď se dřív lišily jen barvou — obojí třináctka, obojí
-     kurzíva, obojí u kraje. Oko mezi nimi nemělo o co zavadit a celý oddíl
-     splýval v jeden šedý sloupec.
-
-     Linka pod psaním zůstává, ta byla dobrá. Rozdíl nese písmo — a kurzíva
-     z toho vypadla: nakloněný řez u otázek za sebou působí uječeně a hůř se
-     čte. Stojaté serifové písmo udrží důstojnost i klid.
-       PÍSMO    otázka důstojným řezem, stojatě · odpověď běžným textovým
-       VELIKOST otázka 19, odpověď 15 — otázka je zřetelně nadpis toho, co jde po ní
-       BARVA    otázka mědí, odpověď plným inkoustem
-
-     ZAVŘENO JE VÝCHOZÍ. Pět otevřených polí naráz je večer výkaz; zavřené
-     řádky jsou nabídka. Že je otázka zodpovězená, se pozná jediným tichým
-     způsobem — pod ní leží první řádek odpovědi. Žádná fajfka, žádné 3/5,
-     žádná barva výkonu. */
+  // Answers keep the same serif italic typography as their placeholder prompts.
   /* OTÁZKA UŽ NENÍ DVEŘE.
      Každá otázka byla vlastní harmonika: šipka, vlastní stav, náhled odpovědi,
      vlastní skok zaostření. Večer se tím z ohlédnutí stalo pět rozkliknutí —
@@ -276,7 +261,7 @@ export function createPracticeUI(deps) {
             background: "transparent", color: t.text,
             border: "none", borderBottom: `1px solid ${fokus ? t.accent : t.borderSoft}`,
             padding: "3px 2px 8px",
-            fontFamily: "var(--tm-font-body)", fontSize: 15, lineHeight: 1.62,
+            fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontWeight: 400, fontSize: 17, lineHeight: 1.45,
             outline: "none", transition: "border-color .16s ease",
           }}
         />
@@ -455,7 +440,7 @@ export function createPracticeUI(deps) {
           </div>
           {/* Vyhrazený řádek nápovědy · má svou výšku pořád, i když mlčí,
               takže znamení ani motiv dne nikdy neposkočí. */}
-          <span data-pv="znameni-napoveda" aria-hidden="true" style={{ display: "block", minHeight: 33, margin: "0 0 6px", fontFamily: "var(--tm-font-body)", fontSize: 12, lineHeight: 1.35, color: t.textMuted, opacity: napoveda ? 0.9 : 0, transition: "opacity .18s ease" }}>{napoveda}</span>
+          <span data-pv="znameni-napoveda" aria-hidden="true" style={{ display: "block", minHeight: 33, margin: "0 0 6px", fontFamily: "var(--tm-font-body)", fontSize: 12, lineHeight: 1.35, color: t.textMuted, opacity: napoveda ? 1 : 0, transition: "opacity .18s ease" }}>{napoveda && <>{napoveda.split(/(vděčnost|soucit|čin|gratitude|compassion|action)/gi).map((part, i) => /^(vděčnost|soucit|čin|gratitude|compassion|action)$/i.test(part) ? <strong key={i} style={{ fontWeight: 600, color: t.accentInk || t.accent }}>{part}</strong> : part)}</>}</span>
           <input data-pv="motiv" value={cur.theme || ""} onChange={(e) => set({ theme: e.target.value })} placeholder={L("Motiv dne. Jméno, které dnešek dostal…", "The day's motif. The name this day earned…")} style={{ width: "100%", background: "transparent", border: "none", borderBottom: `1px solid ${t.border}`, color: t.sand, fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 17, padding: "3px 2px 6px", outline: "none" }} />
         </div>
       </div>

@@ -6,7 +6,7 @@ import { FONT_BODY, FONT_TAG, FONT_DISPLAY_EN as FONT_DISPLAY } from "./type.js"
 import { hexA } from "./color.js";
 import { TM_SOUNDS, tmPlaySound, tmUnlockSound } from "./pomodoroSound.js";
 import { pomodoroPalette, pomodoroPickerPalette } from "./pomodoroPalette.js";
-import { createPomoStorage } from "../product/pomodoro.js";
+import { advancePomoRun, createPomoStorage, pomoDurationMinutes } from "../product/pomodoro.js";
 
 // Shared Main/Client timer. Only dependencies and account storage scope differ.
 export function createPomodoroUI({ useT, useStore, L, uid, todayISO, fmtSize,
@@ -89,15 +89,22 @@ async function pomoOznamHranici(konec, zacatek) {
   await tmNotify("tanmay", { body: nadpis, tag: "tm-pomo", renotify: true, requireInteraction: false, badge: "/icon-192.png", icon: "/icon-192.png", data: { kind: "pomo" } });
 }
 
-let POMO_WAKE = null;
+let POMO_WAKE = null, POMO_WAKE_PENDING = false, POMO_WAKE_WANTED = false;
 async function pomoWake(on) {
+  POMO_WAKE_WANTED = on;
+  let requested = false;
   try {
     if (on) {
-      if (POMO_WAKE || !navigator.wakeLock || document.hidden || !allowWake()) return;
-      POMO_WAKE = await navigator.wakeLock.request("screen");
-      POMO_WAKE.addEventListener("release", () => { POMO_WAKE = null; });
+      if (POMO_WAKE || POMO_WAKE_PENDING || !navigator.wakeLock || document.hidden || !allowWake()) return;
+      POMO_WAKE_PENDING = true;
+      requested = true;
+      const lock = await navigator.wakeLock.request("screen");
+      if (!POMO_WAKE_WANTED || document.hidden || !allowWake()) { await lock.release(); return; }
+      POMO_WAKE = lock;
+      lock.addEventListener("release", () => { if (POMO_WAKE === lock) POMO_WAKE = null; });
     } else if (POMO_WAKE) { const w = POMO_WAKE; POMO_WAKE = null; await w.release(); }
   } catch (e) { POMO_WAKE = null; }
+  finally { if (requested) POMO_WAKE_PENDING = false; }
 }
 /* TICHO NA POZADÍ.
    Tady stály dvě věci, které držely aplikaci vzhůru zvukem: nekonečná smyčka
@@ -116,7 +123,6 @@ const pomoRunLoad = () => runtime.read("tmPomoRun");
 const pomoRunSave = (rt) => saveRuntime("tmPomoRun", rt);
 const pomoQueueLoad = () => runtime.read("tmPomoQueue", []);
 const pomoQueueSave = (q) => saveRuntime("tmPomoQueue", q);
-const pomoIsoOf = (ts) => { const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const POMO_LS = new Set();
 /* FRONTA SE VYPRAZDŇUJE V DOMĚ, NE NA STRÁNCE ČASOVAČE.
    Běžec žije v modulu a dopočítá blok, i když je člověk jinde nebo aplikaci
@@ -153,13 +159,15 @@ function TmPomoFronta() {
     };
     pomoAdvance();
     const saved = pomoRunLoad();
-    if (saved?.running) pomoEnsureTicker();
+    if (saved?.running) { pomoWake(true); pomoEnsureTicker(); }
     vysyp();
     POMO_LS.add(vysyp);
     const iv = window.setInterval(vysyp, 2000);
     const vis = () => { try { if (!document.hidden) { pomoAdvance(); if (pomoRunLoad()?.running) { pomoWake(true); pomoEnsureTicker(); } } } catch (e) {} vysyp(); };
     document.addEventListener("visibilitychange", vis);
-    return () => { POMO_LS.delete(vysyp); window.clearInterval(iv); clearInterval(POMO_IV); POMO_IV = null; pomoWake(false); document.removeEventListener("visibilitychange", vis); };
+    window.addEventListener("pageshow", vis);
+    window.addEventListener("focus", vis);
+    return () => { POMO_LS.delete(vysyp); window.clearInterval(iv); clearInterval(POMO_IV); POMO_IV = null; pomoWake(false); document.removeEventListener("visibilitychange", vis); window.removeEventListener("pageshow", vis); window.removeEventListener("focus", vis); };
   }, []);
   return null;
 }
@@ -172,46 +180,29 @@ function TmPomoFronta() {
 const POMO_ZVON_OKNO = 20000;
 const TM_POMO_ZMESKANO = "tmPomoZmeskano";
 function pomoAdvance() {
-  let rt = pomoRunLoad();
+  const rt = pomoRunLoad();
   if (!rt || !rt.running || !rt.endAt) return;
   const c = rt.cfg || {};
-  const durMin = (m) => ((m === "focus" ? c.focus : m === "custom" ? (c.custom || 45) : m === "short" ? c.short : c.long) || 25);
-  let guard = 0, changed = false;
-  let posledni = null;   // { bid, konec, zacatek, kdy }
-  let hranic = 0;
-  while (rt.running && rt.endAt && Date.now() >= rt.endAt && guard++ < 60) {
-    changed = true;
-    hranic += 1;
-    const focusType = rt.mode === "focus" || rt.mode === "custom";
-    const bid = rt.mode + "@" + rt.endAt;
-    const kdy = rt.endAt;
-    const konec = rt.mode;
-    if (focusType) {
-      const q = pomoQueueLoad();
-      const id = "pomo:" + bid;
-      if (!q.some(block => block.id === id)) q.unshift({ id, d: pomoIsoOf(rt.endAt), ts: rt.endAt, min: durMin(rt.mode), cat: rt.cat || "ostatni", note: rt.note || "" });
-      if (!pomoQueueSave(q)) return;
-      const cyc = (rt.cycle || 0) + 1;
-      const nextMode = cyc % (c.every || 4) === 0 ? "long" : "short";
-      rt = { ...rt, cycle: cyc, mode: nextMode, startAt: rt.endAt, endAt: rt.endAt + durMin(nextMode) * 60000, running: true };
-      posledni = { bid, konec, zacatek: nextMode, kdy };
-    } else {
-      rt = { ...rt, mode: "focus", running: false, startAt: null, endAt: null, remaining: durMin("focus") * 60 };
-      posledni = { bid, konec, zacatek: null, kdy };
-    }
+  const advanced = advancePomoRun(rt);
+  if (!advanced.count) return;
+  const posledni = advanced.boundary;
+  if (advanced.blocks.length) {
+    const q = pomoQueueLoad();
+    const seen = new Set(q.map(block => block.id));
+    const fresh = advanced.blocks.filter(block => !seen.has(block.id));
+    if (!pomoQueueSave([...fresh.reverse(), ...q])) return;
   }
-  if (!changed) return;
-  if (!pomoRunSave(rt)) return;
-  if (posledni && !pomoHraniceHotova(posledni.bid)) {
+  if (!pomoRunSave(advanced.run)) return;
+  if (posledni && !advanced.catchingUp && !pomoHraniceHotova(posledni.bid)) {
     // ID se zapíše PŘED zvoněním · kdyby cokoli spadlo, radši mlčky než dvakrát
     pomoHraniceZapis(posledni.bid);
     const cerstve = Date.now() - posledni.kdy <= POMO_ZVON_OKNO;
     if (cerstve) {
       try { if (c.sound !== false) tmPlaySound(c.voice || "bowl", null, c.vol == null ? 1 : c.vol); } catch (e) {}
-      try { if (tmNotifLoad().pomo !== false) pomoOznamHranici(posledni.konec, posledni.zacatek); } catch (e) {}
+      try { if (tmNotifLoad().pomo !== false) pomoOznamHranici(posledni.konec, posledni.zacatek).catch(() => {}); } catch (e) {}
     } else {
       // proběhlo to na pozadí a dávno · aplikace to řekne jednou větou, až se otevře
-      try { runtime.write(TM_POMO_ZMESKANO, { n: hranic, konec: posledni.konec, zacatek: posledni.zacatek, kdy: posledni.kdy }); } catch (e) {}
+      try { runtime.write(TM_POMO_ZMESKANO, { n: advanced.count, konec: posledni.konec, zacatek: posledni.zacatek, kdy: posledni.kdy }); } catch (e) {}
     }
   }
   POMO_LS.forEach((f) => { try { f(); } catch (e) {} });
@@ -393,7 +384,7 @@ function PomodoroTimer() {
   const zavriZmeskano = () => { try { runtime.write(TM_POMO_ZMESKANO, null); } catch (e) {} setZmeskano(null); };
 
   const isFocusMode = (m) => m === "focus" || m === "custom";
-  const durOf = (m) => (m === "focus" ? cfg.focus : m === "custom" ? (cfg.custom || 45) : m === "short" ? cfg.short : cfg.long) * 60;
+  const durOf = (m) => pomoDurationMinutes(m, cfg) * 60;
   const snap = () => ({ focus: cfg.focus, short: cfg.short, long: cfg.long, custom: cfg.custom || 45, every: cfg.every, sound: cfg.sound, voice: cfg.voice || "bowl", vol: cfg.vol == null ? 1 : cfg.vol });
   const defRt = () => ({ mode: "focus", running: false, startAt: null, endAt: null, remaining: durOf("focus"), cycle: 0, cat: null, note: "", cfg: snap() });
   const rt = rtv || defRt();
@@ -406,8 +397,8 @@ function PomodoroTimer() {
   const setNote = (v) => patchRt({ note: v });
 
   const secsLeft = running && rt.endAt ? Math.max(0, Math.round((rt.endAt - Date.now()) / 1000)) : (rt.remaining != null ? rt.remaining : durOf(mode));
-  const total = durOf(mode);
-  const p = 1 - secsLeft / Math.max(1, total);
+  const total = running ? pomoDurationMinutes(mode, rt.cfg) * 60 : durOf(mode);
+  const p = Math.max(0, Math.min(1, 1 - secsLeft / Math.max(1, total)));
 
   // Dům běží i bez této stránky — komponenta jen poslouchá modulového běžce.
   React.useEffect(() => {
@@ -441,14 +432,19 @@ function PomodoroTimer() {
     const bid = "start:" + (px.mode || mode) + "@" + px.endAt;
     if (!pomoHraniceHotova(bid)) {
       pomoHraniceZapis(bid);
-      try { if (tmNotifLoad().pomo !== false) pomoOznamHranici(null, px.mode || mode); } catch (e) {}
+      try { if (tmNotifLoad().pomo !== false) pomoOznamHranici(null, px.mode || mode).catch(() => {}); } catch (e) {}
     }
     pomoEnsureTicker();
   };
   const start = () => { if (isFocusMode(mode) && !cat) { setPickOpen(true); return; } beginRun(); };
   const pickCat = (k) => { setPickOpen(false); beginRun({ cat: k }); };
-  const pause = () => { patchRt({ running: false, remaining: secsLeft, endAt: null }); pomoWake(false); };
-  const reset = (m) => { const mmx = m || mode; patchRt({ mode: mmx, running: false, startAt: null, endAt: null, remaining: durOf(mmx) }); pomoWake(false); };
+  const pause = () => {
+    pomoAdvance();
+    const current = pomoRunLoad() || rt;
+    const left = current.endAt ? Math.max(0, Math.round((current.endAt - Date.now()) / 1000)) : current.remaining;
+    patchRt({ running: false, remaining: left, endAt: null }); pomoWake(false);
+  };
+  const reset = (m) => { const mmx = m || mode; patchRt({ mode: mmx, focusMode: mmx === "custom" ? "custom" : "focus", running: false, startAt: null, endAt: null, remaining: durOf(mmx) }); pomoWake(false); };
   const giveUp = () => st.ask(L("Přerušit soustředění? Tento blok se nezapočítá.", "Interrupt focus? This block won't count."), () => reset("focus"));
 
   const mm = String(Math.floor(secsLeft / 60)).padStart(2, "0");
@@ -595,6 +591,7 @@ function PomodoroTimer() {
         {numField(L("Dlouhá pauza", "Long break"), "long", 10, 60)}
         {numField(L("Vlastní blok", "Custom block"), "custom", 15, 180)}
         {numField(L("Dlouhá pauza po", "Long break after"), "every", 2, 8)}
+        <p style={{ fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6, color: t.textSec, margin: "8px 0 14px" }}>{L("Pauza i další blok navazují automaticky, dokud časovač nepozastavíš.", "Breaks and the next focus block start automatically until you pause the timer.")}</p>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderTop: `1px solid ${t.borderSoft}`, marginTop: 8 }}>
           <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{L("Zvukové upozornění", "Sound alert")}</span>
           <button onClick={() => st.setPomoSettings({ sound: !cfg.sound })} style={{ background: cfg.sound ? t.accent : "transparent", border: `1px solid ${cfg.sound ? t.accent : t.border}`, borderRadius: 14, width: 42, height: 22, cursor: "pointer", position: "relative" }}>
@@ -603,6 +600,7 @@ function PomodoroTimer() {
         </div>
         {cfg.sound && (
           <div style={{ margin: "2px 0 14px" }}>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, lineHeight: 1.6, color: t.textSec, margin: "0 0 12px" }}>{L("Pro zvonění nech aplikaci otevřenou. Při ručním zamčení iPhonu může systém zvuk pozastavit. Po návratu se časovač srovná podle uplynulého času.", "Keep the app open for sound alerts. Locking an iPhone can suspend audio. When you return, the timer catches up with elapsed time.")}</p>
             <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, color: t.sage, marginBottom: 7 }}>{L("Hlas zvonu · klepnutím uslyšíš", "The voice of the bell · tap to hear it")}</div>
             {TM_SOUNDS.map((v) => {
               const on = (cfg.voice || "bowl") === v.k;

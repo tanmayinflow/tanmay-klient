@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { deflateRawSync } from 'node:zlib';
 import { readDocumentArchive, archivePath, ARCHIVE_LIMITS } from '../src/shared/product/documentArchive.js';
 import { documentKind, documentMarkdownHtml } from '../src/shared/product/documentContent.js';
+import { collectPdfText, pdfPageText } from '../src/shared/product/documentText.js';
 
 function zip(entries) {
   const local = [], central = []; let offset = 0;
@@ -55,4 +56,26 @@ test('encrypted ZIPs and cancelled loads do not render', async () => {
   await assert.rejects(readDocumentArchive(zip([{ name: 'a', body: 'x', flags: 1 }])), /archive-encrypted/);
   const controller = new AbortController(); controller.abort();
   await assert.rejects(readDocumentArchive(zip([{ name: 'a', body: 'x' }]), () => true, controller.signal), { name: 'AbortError' });
+});
+
+test('whole-document PDF selection preserves page order, line breaks and excludes marked-content tokens', async () => {
+  const requested = [];
+  const pdf = { numPages: 2, async getPage(number) { requested.push(number); return { async getTextContent() { return { items: number === 1 ? [{ type: 'beginMarkedContent' }, { str: 'First line', hasEOL: true }, { str: 'Second line', hasEOL: true }] : [{ str: 'Last page' }] }; } }; } };
+  assert.equal(await collectPdfText(pdf), 'First line\nSecond line\n\nLast page');
+  assert.deepEqual(requested, [1, 2]);
+  assert.equal(pdfPageText({ items: [{ str: '' }, { type: 'endMarkedContent' }] }), '');
+});
+test('whole-document PDF selection rejects oversized or incomplete text instead of returning a partial selection', async () => {
+  const requested = [];
+  const pdf = { numPages: 3, async getPage(number) { requested.push(number); return { async getTextContent() { return { items: [{ str: 'long page text' }] }; } }; } };
+  await assert.rejects(collectPdfText(pdf, { limit: 20 }), /document-text-limit/);
+  assert.deepEqual(requested, [1, 2]);
+  const broken = { numPages: 2, async getPage(number) { if (number === 2) throw new Error('unreadable-page'); return { async getTextContent() { return { items: [{ str: 'Valid first page' }] }; } }; } };
+  await assert.rejects(collectPdfText(broken), /unreadable-page/);
+});
+test('whole-document PDF selection stops after cancellation and never requests the next page', async () => {
+  const controller = new AbortController(), requested = [];
+  const pdf = { numPages: 3, async getPage(number) { requested.push(number); return { async getTextContent() { controller.abort(); return { items: [{ str: 'Page' }] }; } }; } };
+  await assert.rejects(collectPdfText(pdf, { signal: controller.signal }), { name: 'AbortError' });
+  assert.deepEqual(requested, [1]);
 });
