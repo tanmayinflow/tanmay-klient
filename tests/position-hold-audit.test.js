@@ -8,6 +8,7 @@ import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as TV from '../src/training/index.js';
+import {historyChartPoints} from '../src/training/historyChart.js';
 import {POSITION_HOLD_AUDIT_CONTEXT as context} from '../src/data/positionHoldAuditContext.js';
 import {LANDING_AUDIT_CONTEXT} from '../src/data/landingAuditContext.js';
 import {POSITION_HOLD_AUDIT_ENTRIES as publicEntries} from '../src/training/catalogPositionHoldAuditData.js';
@@ -122,7 +123,17 @@ test('actual series and history render stored split sides read-only without assi
  const accessNode=ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='tvLandingAccess');assert.ok(accessNode,'Actual landing accessor');
  const getAccess=vm.runInNewContext(accessNode.getText(ast)+';tvLandingAccess;',{TV,LANDING_AUDIT_CONTEXT,tMetaOf:r=>meta[r?.id]});
  const st={coll:after,tvExerciseOf:()=>null},tvLanding=createLandingRecordingUiBridge({getAccess});
- const History=vm.runInNewContext(histCode+';TvLocoHistory;',{...env,useStore:()=>st,tvLanding,useState:()=>['unspecified',()=>{}],LANG:'cs',tvLocoVariant:()=>false,TvLocoLegacy:()=>null});
+ // Compile the actual shared chart factory, including its real data adapter.
+ // Only its browser stylesheet import is excluded by selecting the AST node.
+ const progressSource=readFileSync(new URL('../src/shared/ui/trainingProgress.jsx',import.meta.url),'utf8');
+ const progressAst=ts.createSourceFile('trainingProgress.jsx',progressSource,ts.ScriptTarget.Latest,true,ts.ScriptKind.JSX);
+ const progressNode=progressAst.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='createTrainingProgressUI');assert.ok(progressNode,'Actual shared history UI');
+ const progressCode=ts.transpileModule(progressNode.getText(progressAst).replace(/^export\s+/,''),{compilerOptions:{jsx:ts.JsxEmit.React}}).outputText;
+ const createProgress=vm.runInNewContext(progressCode+';createTrainingProgressUI;',{React,historyChartPoints});
+ const {TrainingHistoryChart}=createProgress({...env,FONT_TAG:'sans-serif'});
+ const chartHtml=renderToStaticMarkup(React.createElement(TrainingHistoryChart,{type:'DURATION',series:[{date:'2026-10-24',at:1,value:32,raw:32}]}));
+ assert.ok(chartHtml.includes('data-training-history-chart'));assert.ok(chartHtml.includes('2026-10-24'));assert.ok(chartHtml.includes('32'));
+ const History=vm.runInNewContext(histCode+';TvLocoHistory;',{...env,useStore:()=>st,tvLanding,TrainingHistoryChart,useState:React.useState,LANG:'cs',tvLocoVariant:()=>false,TvLocoLegacy:()=>null});
  const history=[{side:'L',at:1,sessionId:'synthetic',date:'2026-10-24',measurementType:'DURATION',actual:{durationSec:32}}];
  const html=renderToStaticMarkup(React.createElement(History,{policy:p,history,type:'DURATION'}));assert.ok(html.includes('Levá'));assert.ok(html.includes('32'));assert.ok(!html.includes('<select'));assert.equal(history[0].side,'L');
  const withBlock=[{...history[0],auditBlock:{...block('frontsplit'),sets:[{id:'s',side:'L',actual:{durationSec:32}}]}}],saved=structuredClone(withBlock);

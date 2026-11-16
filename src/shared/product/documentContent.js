@@ -72,12 +72,14 @@ export function documentHtml(root, { image = () => '', base = '' } = {}) {
       return src ? `<img src="${esc(src)}" alt="${esc(attr(node, 'alt'))}" loading="lazy" decoding="async">` : '';
     }
     const inner = [...node.childNodes].map(c => walk(c, depth + 1)).join('');
+    const sourceId = node.nodeType === 1 ? attr(node, 'id') || (tag === 'a' ? attr(node, 'name') : '') : '';
+    const sourceAnchor = sourceId && sourceId.length <= 240 ? ` data-document-source-id="${esc(sourceId)}"` : '';
     if (tag === 'a') {
       const href = attr(node, 'href');
-      return /^https?:\/\//i.test(href) ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : inner;
+      return /^https?:\/\//i.test(href) ? `<a${sourceAnchor} href="${esc(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : sourceAnchor ? `<span${sourceAnchor}>${inner}</span>` : inner;
     }
     if (!allowed.has(tag)) return inner;
-    let extra = '';
+    let extra = sourceAnchor;
     for (const name of ['colspan', 'rowspan', 'start']) {
       const value = attr(node, name);
       if (/^\d{1,3}$/.test(value) && +value > 0) extra += ` ${name}="${value}"`;
@@ -105,7 +107,7 @@ async function epub(buffer, signal) {
       }
     }
     const opf = xml(enc.decode(files[opfPath]));
-    const manifest = new Map(nodes(opf, 'item').map(n => [attr(n, 'id'), { path: archivePath(opfPath, attr(n, 'href')), type: attr(n, 'media-type') }]));
+    const manifest = new Map(nodes(opf, 'item').map(n => [attr(n, 'id'), { path: archivePath(opfPath, attr(n, 'href')), type: attr(n, 'media-type'), properties: attr(n, 'properties') }]));
     const sections = []; let total = 0;
     for (const reference of nodes(opf, 'itemref')) {
       signal?.throwIfAborted();
@@ -119,10 +121,27 @@ async function epub(buffer, signal) {
         doc = template.content; body = doc;
       } else { doc = xml(text); body = nodes(doc, 'body')[0] || doc.documentElement; }
       const html = documentHtml(body, { image: media.image, base: item.path });
-      if (html.trim()) sections.push({ title: (body.querySelector('h1,h2') || doc.querySelector('title'))?.textContent?.trim() || '', html });
+      if (html.trim()) sections.push({ title: (body.querySelector('h1,h2') || doc.querySelector('title'))?.textContent?.trim() || '', path: item.path, html });
     }
     if (!sections.length) throw new Error('document-empty');
-    return { sections, dispose: media.dispose };
+    const navigation = [];
+    const nav = [...manifest.values()].find(item => /(?:^|\s)nav(?:\s|$)/.test(item.properties));
+    const ncx = [...manifest.values()].find(item => item.type === 'application/x-dtbncx+xml');
+    const pushEntry = (base, href, title, level) => {
+      const path = archivePath(base, href); if (!path || navigation.length >= 500) return;
+      let fragment = href.includes('#') ? href.slice(href.indexOf('#') + 1) : ''; try { fragment = decodeURIComponent(fragment); } catch { /* keep literal */ }
+      navigation.push({ path, fragment, title: String(title || '').trim().slice(0, 240), level });
+    };
+    try {
+      if (nav && files[nav.path]) {
+        const navDoc = xml(enc.decode(files[nav.path])), toc = nodes(navDoc, 'nav').find(node => /(?:^|\s)toc(?:\s|$)/.test(attr(node, 'type'))) || nodes(navDoc, 'nav')[0];
+        for (const link of nodes(toc || navDoc, 'a').slice(0, 500)) { let level = -1; for (let p = link.parentElement; p && p !== toc; p = p.parentElement) if (p.localName === 'ol') level++; pushEntry(nav.path, attr(link, 'href'), link.textContent, Math.max(0, level)); }
+      } else if (ncx && files[ncx.path]) {
+        const navDoc = xml(enc.decode(files[ncx.path]));
+        for (const point of nodes(navDoc, 'navPoint').slice(0, 500)) { let level = 0; for (let p = point.parentElement; p; p = p.parentElement) if (p.localName === 'navPoint') level++; pushEntry(ncx.path, attr(child(point, 'content'), 'src'), child(point, 'navLabel')?.textContent, level); }
+      }
+    } catch { /* Malformed optional navigation cannot prevent reading the book. */ }
+    return { sections, navigation, dispose: media.dispose };
   } catch (error) { media.dispose(); throw error; }
 }
 

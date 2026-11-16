@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { guideSteps, setSeconds, completeGuidedSet } from '../src/training/guide.js';
+import { guideSteps, setSeconds, completeGuidedSet, GUIDE_PREPARATION_SEC, guidedWorkElapsed } from '../src/training/guide.js';
 import { makeBlock } from '../src/training/sessionModel.js';
 import { restAfterSet } from '../src/training/sessionEngine.js';
 
@@ -8,6 +8,16 @@ function block(id, patch = {}) {
   return makeBlock({ id, exId: id, measurementType: 'WEIGHT_REPS', restSec: 90,
     sets: [0, 1].map(i => ({ id: `${id}${i}`, planned: { targetRepsMin: 8, targetRepsMax: 12, targetWeight: 20 } })), ...patch });
 }
+
+test('guided timer excludes five-second preparation from actual work, including early finish',()=>{
+  assert.equal(GUIDE_PREPARATION_SEC,5);
+  assert.equal(guidedWorkElapsed(0,30),0);
+  assert.equal(guidedWorkElapsed(4,30),0);
+  assert.equal(guidedWorkElapsed(5,30),0);
+  assert.equal(guidedWorkElapsed(17,30),12);
+  assert.equal(guidedWorkElapsed(35,30),30);
+  assert.equal(guidedWorkElapsed(500,30),30);
+});
 
 test('guided supersets and circuits follow rounds and group order, including unequal set counts', () => {
   const session = { blocks: [block('solo'), block('b', { groupId: 'g', groupOrder: 2 }), block('a', { groupId: 'g', groupOrder: 1, sets: [{ id: 'a0' }] }), block('tail', { sets: [] })] };

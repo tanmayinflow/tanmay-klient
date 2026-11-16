@@ -33,3 +33,27 @@ export function documentReadingPalette(pref, theme) {
   if (p.background === 'paper') return { background: '#f2e8d7', ink: '#29251f', accent: '#743627', border: '#c9bba5', pdf: 'sepia(.14)' };
   return { background: theme.bg, ink: theme.text, accent: theme.accentInk || theme.accent, border: theme.borderSoft, pdf: 'none' };
 }
+
+// Only location/scale are stored: never document text, titles, or remote URLs.
+// Entries are bounded and separated by the attachment's opaque owner/id pair.
+export const DOCUMENT_POSITIONS_KEY = 'tm-document-positions-v1';
+export function documentPositionKey(attachment) {
+  return attachment?.id ? JSON.stringify([String(attachment.owner || attachment.ownerId || ''), String(attachment.id), Number(attachment.size) || 0]) : null;
+}
+export function normalizeDocumentPosition(value) {
+  if (!value || typeof value !== 'object') return null;
+  return { section: bounded(value.section, 0, 100000, 0), fraction: typeof value.fraction === 'number' && Number.isFinite(value.fraction) ? Math.max(0, Math.min(.999999, value.fraction)) : 0, zoom: typeof value.zoom === 'number' && Number.isFinite(value.zoom) ? Math.max(1, Math.min(2.5, value.zoom)) : 1 };
+}
+function savedPositions(store) {
+  try { const value = JSON.parse(store?.getItem(DOCUMENT_POSITIONS_KEY) || '[]'); return Array.isArray(value) ? value.filter(entry => Array.isArray(entry) && typeof entry[0] === 'string' && normalizeDocumentPosition(entry[1])).slice(-200) : []; }
+  catch { return []; }
+}
+export function readDocumentPosition(attachment, store) {
+  const key = documentPositionKey(attachment);
+  return key ? normalizeDocumentPosition(savedPositions(localStore(store)).find(entry => entry[0] === key)?.[1]) : null;
+}
+export function writeDocumentPosition(attachment, value, store) {
+  const key = documentPositionKey(attachment), clean = normalizeDocumentPosition(value), storage = localStore(store);
+  if (!key || !clean || !storage) return;
+  try { storage.setItem(DOCUMENT_POSITIONS_KEY, JSON.stringify([...savedPositions(storage).filter(entry => entry[0] !== key), [key, clean]].slice(-200))); } catch { /* Reading continues when device storage is unavailable. */ }
+}

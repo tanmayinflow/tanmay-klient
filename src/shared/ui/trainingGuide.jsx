@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { guideSteps, setSeconds, completeGuidedSet } from '../../training/guide.js';
+import { guideSteps, setSeconds, completeGuidedSet, GUIDE_PREPARATION_SEC, guidedWorkElapsed } from '../../training/guide.js';
 
 // Shared visual/session flow; adapters supply the role-safe exercise catalog,
 // existing clock engine and write only the current person's actual session.
@@ -7,7 +7,7 @@ export function createTrainingGuideUI(deps) {
   const { useT, useStore, L, TL, TV, FONT_BODY, FONT_TAG, FONT_DISPLAY,
     hexA, tvQuiet, FamilyIcon, TrainingSourceText, TExArt, TvField,
     tmCompile, useTmEngine, useWakeLock, tmAudio,
-    exerciseRow, exerciseRecord, exercisePolicy, TvLocoSide, TvLocoLegacy, blockName, isCzech, landingRecording, TvLandingNotice, TvLandingSet } = deps;
+    exerciseRow, exercisePolicy, TvLocoSide, TvLocoLegacy, blockName, isCzech, landingRecording, TvLandingNotice, TvLandingSet } = deps;
   const tvCz = isCzech;
   const tvFmtA = (mt, a) => TV.fmtActual(mt, a, tvCz());
   const tvFmtP = (mt, p) => TV.fmtPlanned(mt, p, tvCz());
@@ -121,13 +121,14 @@ function TvSetClock({ sec, autoStart, onDone, onCancel }) {
   const { t } = useT();
   const st = useStore();
   const cfg = st.tmCfg();
-  const compiled = React.useMemo(() => tmCompile([{ id: "tv_set", k: "work", dur: Math.max(1, sec) }], { countIn: 0, endCue: "go" }), [sec]);
+  const compiled = React.useMemo(() => tmCompile([{ id: "tv_set", k: "work", dur: Math.max(1, sec) }], { countIn: GUIDE_PREPARATION_SEC, endCue: "go" }), [sec]);
   const fired = React.useRef(false);
   const eng = useTmEngine(compiled, cfg, () => { if (!fired.current) { fired.current = true; onDone?.(sec); } });
   React.useEffect(() => { if (autoStart) eng.start(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useWakeLock(cfg.wake && eng.status === "running");
-  const left = eng.status === "idle" ? sec : Math.max(0, Math.ceil(eng.left == null ? sec : eng.left));
-  const pct = eng.status === "idle" ? 0 : Math.min(1, eng.progress);
+  const preparing = eng.status !== "idle" && eng.seg?.kind === "prep";
+  const left = eng.status === "idle" ? sec : Math.max(0, Math.ceil(eng.segLeft == null ? sec : eng.segLeft));
+  const pct = eng.status === "idle" ? 0 : Math.min(1, eng.segProgress);
   const R = 54, C = 2 * Math.PI * R;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "10px 12px", border: `1px solid ${hexA(t.accent, 0.35)}`, borderRadius: 14, background: hexA(t.accent, 0.06) }}>
@@ -143,7 +144,7 @@ function TvSetClock({ sec, autoStart, onDone, onCancel }) {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted }}>
-          {eng.status === "idle" ? L("Výdrž · odpočet", "Hold · countdown") : eng.status === "paused" ? L("Pozastaveno", "Paused") : L("Drž", "Hold")}
+          {eng.status === "idle" ? L("Výdrž · odpočet", "Hold · countdown") : eng.status === "paused" ? L("Pozastaveno", "Paused")  : preparing ? L("Připrav se", "Get ready") : L("Drž", "Hold")}
         </div>
         {eng.status === "idle" ? (
           <button onClick={() => { tmAudio.unlock(); eng.start(); }} className="tm-cta"
@@ -153,7 +154,7 @@ function TvSetClock({ sec, autoStart, onDone, onCancel }) {
         ) : (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <button onClick={() => { tmAudio.unlock(); eng.toggle(); }} style={tvQuiet(t)}>{eng.status === "paused" ? L("Pokračovat", "Resume") : L("Pozastavit", "Pause")}</button>
-            <button onClick={() => { fired.current = true; onDone?.(Math.max(0, Math.min(sec, Math.round(eng.elapsed || 0)))); }} style={tvQuiet(t)}>{L("Hotovo dřív", "Done early")}</button>
+            <button disabled={preparing} onClick={() => { fired.current = true; onDone?.(guidedWorkElapsed(eng.elapsed, sec)); }} style={tvQuiet(t)}>{L("Hotovo dřív", "Done early")}</button>
             <button onClick={() => { eng.stop(); onCancel?.(); }} style={tvQuiet(t)}>{L("Zrušit", "Cancel")}</button>
           </div>
         )}
@@ -264,7 +265,6 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
   const m = block ? TV.measurementOf(block.measurementType) : null;
   const policy = block && exercisePolicy ? exercisePolicy(st,block.exId,block) : null;
   const fields = m ? m.fields.concat(m.secondary && !policy?.noAddedWeight ? [m.secondary] : []) : [];
-  const rec = block ? exerciseRecord(st, block.exId) : null;
   const row = block ? exerciseRow(st, block.exId) : null;
   const prev = block && prevFor ? prevFor(block.exId) : null;
   const sideOf = x => x?.side === "L" ? "L" : x?.side === "R" ? "R" : "unspecified";
@@ -403,9 +403,8 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
         </button>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
           {labels[block.id] ? <span style={{ fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.12em", color: block.groupId ? t.accent : t.textMuted }}>{labels[block.id]}</span> : null}
-          <span style={{ fontFamily: FONT_DISPLAY, fontSize: 26, color: t.heading, lineHeight: 1.15 }}>{blockName(block, st)}</span>
+          <button onClick={() => onOpenEx && onOpenEx(block.exId)} style={{ background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: FONT_DISPLAY, fontSize: 26, color: t.heading, lineHeight: 1.15 }}>{blockName(block, st)}</button>
         </div>
-        {rec && rec.focus ? <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, lineHeight: 1.5, color: t.sand, maxWidth: 480 }}>{TL(rec.focus)}</div> : null}
         {TL(block.coachNote) ? <div style={{ borderLeft: `2px solid ${t.accent}`, paddingLeft: 9, textAlign: "left", fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.5, color: t.textSec, maxWidth: 480 }}><TrainingSourceText text={TL(block.coachNote)} color={t.accentInk || t.accent}/></div> : null}
       </div>
 
@@ -464,7 +463,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
           ) : null}
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>
-          {policy?.sideMode === "perSide" || policy?.noAddedWeight ? L("Prázdné pole = podle plánu. Minulé hodnoty se u tohoto provedení automaticky nekopírují.", "Empty field = as planned. Previous values are not copied automatically for this setup.") : L("Prázdné pole = podle plánu, bez plánu jako minule. Přepiš jen to, co bylo jinak.", "Empty field = as planned, or as last time where there is no plan. Change only what was different.")}
+          {policy?.sideMode === "perSide" || policy?.noAddedWeight ? L("Prázdné pole = podle plánu.", "Empty field = as planned.") : L("Prázdné pole = podle plánu, bez plánu jako minule. Přepiš jen to, co bylo jinak.", "Empty field = as planned, or as last time where there is no plan. Change only what was different.")}
         </div>
       </div>
 

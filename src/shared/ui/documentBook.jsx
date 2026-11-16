@@ -60,7 +60,13 @@ export const DocumentBookText = React.forwardRef(function DocumentBookText({ sec
     location.current = currentLocation(); progressRef.current(state.current);
   }, [currentLocation]);
   useDocumentBookGestures(viewport, navigationEnabled, direction => go(state.current.index + direction));
-  React.useImperativeHandle(ref, () => ({ go, location: () => location.current, viewport: () => viewport.current }), [go]);
+  const goLocation = React.useCallback(target => {
+    const root = viewport.current; if (!root) return;
+    const node = target.anchor && columns.current?.querySelector(`[data-document-anchor="${target.anchor}"]`);
+    const range = rangeFor(target.section), left = node ? node.getBoundingClientRect().left - root.getBoundingClientRect().left + root.scrollLeft : range.start + (range.end - range.start) * (target.fraction || 0);
+    go(Math.floor(Math.max(0, left) / root.clientWidth), false);
+  }, [go, rangeFor]);
+  React.useImperativeHandle(ref, () => ({ go, goLocation, location: () => location.current, viewport: () => viewport.current }), [go, goLocation]);
   React.useLayoutEffect(() => {
     const root = viewport.current; if (!root) return;
     let gone = false;

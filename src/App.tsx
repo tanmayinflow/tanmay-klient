@@ -63,6 +63,7 @@ import { MorningSpells } from "./shared/ui/morningSpells.jsx";
 import { ANTI_DOOM_SPELLS } from "./shared/product/antiDoomSpells.js";
 import { readClientAttachmentBlob } from "./clientAttachments.js";
 import { createTrainingGuideUI } from "./shared/ui/trainingGuide.jsx";
+import { createTrainingProgressUI, useTrainingRunnerEscape } from "./shared/ui/trainingProgress.jsx";
 import { TRAINING_TIMER_MODES as TM_MODES, TRAINING_FLOWS as TM_FLOWS, TRAINING_TIMER_NOTE, trainingTimerSegmentCount } from "./shared/product/trainingTimerCopy.js";
 import { ClientSearch } from "./ClientSearch.jsx";
 import { writerFolders, addWriterFolder, moveWriterFolder, removeWriterFolder, restoreWriterEntries } from "./writerRecords.js";
@@ -8950,16 +8951,15 @@ function tvLocoPlanned(type, before, patch, policy) {
 }
 function TvLocoHistory({ policy, history, type, onOpenSession }) {
   const st=useStore();
-  const {t}=useT();const [side,setSide]=useState("unspecified");
+  const {t}=useT();const [side,setSide]=useState(() => history.some(e=>tvLocoSideOf(e)==="unspecified") ? "unspecified" : history.some(e=>tvLocoSideOf(e)==="L") ? "L" : history.some(e=>tvLocoSideOf(e)==="R") ? "R" : "unspecified");
   const perSide=policy?.sideMode === "perSide";
   const selected=perSide?history.filter(e=>tvLocoSideOf(e)===side):history;
   const current=selected.filter(e=>(!e.auditBlock||((policy.auditKind!=="landing"||TV.landingBlockCompatible(policy,e.auditBlock))&&TV.complexTaskBlockCompatible(policy,e.auditBlock)&&TV.throwBlockCompatible(policy,e.auditBlock)&&TV.breathingBlockCompatible(policy,e.auditBlock)&&TV.positionHoldBlockCompatible(policy,e.auditBlock)&&TV.elbowHandBlockCompatible(policy,e.auditBlock)&&TV.shoulderBlockCompatible(policy,e.auditBlock)&&TV.hipBlockCompatible(policy,e.auditBlock)&&TV.lowerLegBlockCompatible(policy,e.auditBlock)))&&!tvLocoVariant(e.auditVariant)&&(!Object.prototype.hasOwnProperty.call(e,"measurementType")||e.measurementType===type)&&(!policy.noAddedWeight||!["addedWeight","weight"].some(k=>Object.prototype.hasOwnProperty.call(e.actual||{},k)&&e.actual[k]!==0)));
   const records=TV.recordsFor(type,current,TV.locomotionRecordOptions(policy));
-  const series=TV.seriesFor(type,current,TV.locomotionRecordOptions(policy)),max=Math.max(1,...series.map(e=>e.value)),min=Math.min(0,...series.map(e=>e.value));
-  const pts=series.map((p,i)=>`${series.length>1?i/(series.length-1)*320:160},${70-(p.value-min)/(max-min||1)*62}`).join(" ");
+  const series=TV.seriesFor(type,current,TV.locomotionRecordOptions(policy));
   return <div style={{display:"flex",flexDirection:"column",gap:10,fontFamily:FONT_BODY,color:t.textSec}}>
     {perSide?<label style={{fontSize:13}}>{L("Zobrazit záznamy", "Show records")} <select aria-label={L("Strana v historii", "History side")} value={side} onChange={e=>setSide(e.target.value)} style={{fontFamily:FONT_BODY,fontSize:16,minHeight:40,background:"transparent",color:t.text,border:`1px solid ${t.borderSoft}`,borderRadius:8}}>{["L","R","unspecified"].map(s=><option key={s} value={s}>{TV.locomotionSideLabel(s,LANG!=="cs")}</option>)}</select></label>:null}
-    {series.length>1?<svg viewBox="0 0 320 74" width="100%" height="74" role="img" aria-label={L("Vývoj stejného provedení", "Progress for the same setup")}><polyline points={pts} fill="none" stroke={t.accent} strokeWidth="1.6"/></svg>:null}
+    <TrainingHistoryChart series={series} type={type}/>
     {Object.values(records).map(r=><div key={r.k} style={{display:"flex",gap:8,fontSize:13,flexWrap:"wrap"}}><span>{TL(TV.RECORD_LABEL[r.k])}</span><strong style={{fontWeight:500}}>{TV.fmtRecord(type,r,LANG==="cs")}</strong><span>{r.date}</span></div>)}
     {(policy.allowComparableRecords===false||!current.length)?<div style={{fontSize:13}}>{policy.allowComparableRecords===false?L("Záznamy slouží ke sledování praxe; samotné hodnoty zde nestačí k posouzení progresu.","These entries track practice; the values alone are not enough to assess progress."):L("Pro toto provedení zatím není srovnatelný záznam.", "No comparable record for this setup yet.")}</div>:null}
     {selected.length?<details><summary style={{fontSize:13,cursor:"pointer"}}>{L("Všechny uložené série", "All stored sets")} · {selected.length}</summary><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:8}}>{selected.map((e,i)=><div key={`${e.sessionId}-${i}`} style={{fontSize:13}}>{onOpenSession?<button onClick={()=>onOpenSession(e.sessionId)} style={{background:"transparent",border:0,color:t.accent,textDecoration:"underline",fontFamily:FONT_BODY,cursor:"pointer"}}>{e.date||L("bez data","undated")}</button>:<span>{e.date||L("bez data","undated")}</span>} · {TV.fmtActual(e.measurementType||type,e.actual,LANG==="cs")||L("hodnota neuvedena","value unspecified")}{perSide||TV.positionHoldStoredSide(policy,e)?` · ${e.auditBlock ? (tvLanding.sideSummary(st,e.auditBlock,e,policy,LANG==="cs"?"cs":"en") || tvLocoSideText(e)) : tvLocoSideText(e)}`:""}{tvLocoVariant(e.auditVariant)?<span style={{display:"block"}}>{L("Uložená varianta", "Stored variation")}: {Array.isArray(e.auditVariant)?e.auditVariant.join(", "):String(e.auditVariant)}</span>:null}<TvLocoLegacy set={e} policy={policy}/></div>)}</div></details>:null}
@@ -9602,7 +9602,7 @@ function TExShelfPanel({ ex, all, onOpen }) {
   const line = { fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6, color: t.textSec, marginTop: 4 };
   const head = { fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 10.5, color: t.sage };
   const link = { background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "2px 10px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
-  if (!pc.length && !alias && !siblings.length && tTierOf(ex) === "extended") return null;
+  if (!pc.length && !alias && !siblings.length && !tIsArchived(ex) && !tIsProgramOnly(ex) && !tRequiresCoach(ex) && tCtxOf(ex) !== "inversion") return null;
   return (
     <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -9747,6 +9747,7 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag,
 }
 
 // ---- exercise detail · illustration, muscle map, the four quiet sections ----
+const { TrainingDetailTabs, TrainingHistoryChart } = createTrainingProgressUI({ useT, L, FONT_BODY, FONT_TAG, TV });
 function TExDetail({ exId, onClose, onOpen }) {
   const { t } = useT();
   const st = useStore();
@@ -9754,31 +9755,23 @@ function TExDetail({ exId, onClose, onOpen }) {
   const ex = all.find((x) => x.id === exId);
   const fileRef = React.useRef(null);
   const [localEdit, setLocalEdit] = useState(false);
-  const [pickChain, setPickChain] = useState(null); // "ez" | "hd"
+  const [pickChain, setPickChain] = useState(null);
+  const [detailTab, setDetailTab] = useState("overview");
+  React.useEffect(() => setDetailTab("overview"), [exId]); // "ez" | "hd"
   React.useEffect(() => {
     const x = (st.coll.tEx || []).find((y) => y.id === exId);
-    setLocalEdit(!!x && !TL(x.foc) && !TL(x.exe) && !(x.mp || []).length);
+    const empty = !!x && !TL(x.foc) && !TL(x.exe) && !(x.mp || []).length;
+    setLocalEdit(empty);
+    if (empty) setDetailTab("technique");
   }, [exId]);
   if (!ex) return null;
   const edit = st.editMode || localEdit;
   const patch = (p) => st.updateEntry("tEx", ex.id, p);
-  // Vlastní historie tohoto cviku, ze skutečných sérií — ne z odděleného seznamu
-  // rekordů, který se s tréninkem mohl rozejít.
-  const exRecords = (() => {
-    const delivered = (TV.POSITION_HOLD_AUDIT_ENTRIES[ex.id] || TV.ELBOW_HAND_AUDIT_ENTRIES[ex.id] || TV.SHOULDER_AUDIT_ENTRIES[ex.id] || TV.HIP_AUDIT_ENTRIES[ex.id] || TV.LOWER_LEG_AUDIT_ENTRIES[ex.id] || TV.LOCOMOTION_AUDIT_ENTRIES[ex.id]) ? st.tvExerciseOf?.(ex.id) : null;
-    const rec = delivered ? tvClientRec(st,ex.id) : tvOf(ex);
-    if (!rec) return { kinds: [], recs: {}, mt: "REPS_ONLY" };
-    const policy=tvLocoClientPolicy(st,ex.id);
-    const hist = tvLocoHistoryOf(st.tvSessions ? st.tvSessions() : [], ex.id, {preserveSide:true});
-    if(policy?.measurementType===rec.measurementType)return {kinds:[],recs:{},mt:rec.measurementType,policy,hist};
-    const recs = TV.recordsFor(rec.measurementType, hist, { allowEstimatedMax: rec.measurementType === "WEIGHT_REPS" ? (delivered ? policy?.allowEstimatedMax : TV.libraryAuditedAllowsEstimatedMax(ex)) : undefined });
-    return { kinds: TV.recordKindsFor(rec.measurementType).filter((k) => recs[k]), recs, mt: rec.measurementType };
-  })();
   const load = tLoadOf(ex);
   const attach = async (fl) => { const added = await filesToAtts(fl, st.ask); if (added.length) patch(current => ({ att: [...(current.att || []), ...added] })); if (fileRef.current) fileRef.current.value = ""; };
   return (
     <CenterSheet title={L("Cvik", "Exercise")} onClose={onClose} vrstva={190}>
-      <TEditToggle on={localEdit} onToggle={() => setLocalEdit((x) => !x)} title={L("Upravit cvik", "Edit exercise")} />
+      <TEditToggle on={localEdit} onToggle={() => { setLocalEdit((x) => !x); setDetailTab("technique"); }} title={L("Upravit cvik", "Edit exercise")} />
       <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>
         <ExerciseTaxonomySummary taxonomyOf={exerciseTaxonomy} t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
         <span>{L(T_DEMAND(tLvlOf(ex)).cz, T_DEMAND(tLvlOf(ex)).en)}</span>
@@ -9800,6 +9793,8 @@ function TExDetail({ exId, onClose, onOpen }) {
         <Bindu size={7} style={{ marginTop: 6, flexShrink: 0 }} />
         <span style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: t.textMuted }}><span style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 10.5, color: t.sage, marginRight: 8 }}>{L("bod pozornosti", "focus point")}</span><span style={{ fontStyle: "italic", color: t.sand, fontSize: 14.5 }}>{TL(ex.foc)}</span></span>
       </div>
+      <TrainingDetailTabs value={detailTab} onChange={setDetailTab}>
+        {detailTab === "overview" ? <TvClientExerciseHistory exId={ex.id} /> : <>
       {edit ? (
         <>
           <TPairEdit label={L("Bod pozornosti", "Focus point")} val={ex.foc} onPatch={(v) => patch({ foc: v })} />
@@ -9854,18 +9849,8 @@ function TExDetail({ exId, onClose, onOpen }) {
         {load !== "none" && <Tag label={load === "ext" ? L("váha je cvik", "the weight is the lift") : L("lze přidat váhu", "takes added weight")} color="brown" />}
         <Tag label={L(T_POP(ex.pop || 2).cz, T_POP(ex.pop || 2).en)} color={(ex.pop || 2) === 3 ? "orange" : "brown"} />
       </div>
-      {exRecords.policy ? <TvLocoHistory key={ex.id} policy={exRecords.policy} history={exRecords.hist} type={exRecords.mt}/> : exRecords.kinds.length ? (
-        <div style={{ background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
-          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 11, color: t.sage, marginBottom: 6 }}>{L("Progres", "Progress")}</div>
-          {exRecords.kinds.map((k) => (
-            <div key={k} style={{ display: "flex", gap: 10, alignItems: "baseline", fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec, padding: "2px 0" }}>
-              <span style={{ minWidth: 150, fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted }}>{TL(TV.RECORD_LABEL[k])}</span>
-              <span style={{ color: t.heading }}>{TV.fmtRecord(exRecords.mt, exRecords.recs[k], LANG === "cs")}</span>
-              <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, color: t.textMuted }}>{exRecords.recs[k].date}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
+        </>}
+      </TrainingDetailTabs>
       <div>
         <input ref={fileRef} type="file" multiple onChange={(e) => attach(e.target.files)} style={{ display: "none" }} />
         {edit && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: t.sand, fontFamily: FONT_BODY, fontSize: 12.5 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Přiložit foto / video", "Attach photo / video")}</button>}
@@ -13075,16 +13060,16 @@ function TvNumInput({ value, onChange, disabled, style, ...rest }) {
   return <input data-tm-surface="control" {...rest} inputMode="decimal" disabled={disabled} value={txt} onChange={onInput} onBlur={onBlur} style={style} />;
 }
 
-function TvField({ field, value, onChange, disabled, label }) {
+function TvField({ field, value, onChange, disabled, label, inline = false }) {
   const { t } = useT();
   const spec = TV.FIELD[field] || TV.FIELD.reps;
   const unit = spec.unit[tvCz() ? 0 : 1];
   return (
-    <label style={{ display: "inline-flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+    <label className={inline ? "tm-tvfield-inline" : undefined} style={{ display: "inline-flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
       <span style={{ fontFamily: FONT_TAG, fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted }}>
         {(label || (tvCz() ? spec.cz : spec.en)) + (unit ? " · " + unit : "")}
       </span>
-      <TvNumInput disabled={disabled} value={value} onChange={onChange}
+      <TvNumInput aria-label={(label || (tvCz() ? spec.cz : spec.en)) + (unit ? " · " + unit : "")} disabled={disabled} value={value} onChange={onChange}
         style={{ width: 62, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "8px", color: t.heading, fontFamily: FONT_BODY, fontSize: 15, fontVariantNumeric: "tabular-nums", textAlign: "center", minHeight: 40 }} />
     </label>
   );
@@ -13112,7 +13097,7 @@ function tvLandingCanCopy(st,block,prev,policy) {
     : TV.locomotionCanCopyPrevious(prev,block,policy);
 }
 
-function TvClientBlock({ block, prev, onSession, onRest }) {
+function TvClientBlock({ block, prev, onSession, onRest, onOpenEx }) {
   const { t } = useT();
   const st = useStore();
   const rec = tvClientRec(st, block.exId);
@@ -13123,6 +13108,7 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   const [extraLoad, setExtraLoad] = useState((block.sets || []).some(s => s.actual?.addedWeight > 0));
   const fields = m.fields.concat(m.secondary && extraLoad && !policy?.noAddedWeight ? [m.secondary] : []);
   const [open, setOpen] = useState(false);
+  const columns = `30px minmax(64px,1fr) repeat(${fields.length},minmax(44px,.8fr)) ${block.rirEnabled ? "42px " : ""}44px`;
   const complete = (sid) => onSession((s) => {
     const done = tvLanding.completeSet(st,s,block.id,sid,Date.now(),(...args)=>TV.locomotionCompleteSet(...args,policy));
     if (done !== s && TV.findSet(done,block.id,sid)?.completed && onRest) onRest(TV.restAfterSet(done, block.id, sid));
@@ -13131,12 +13117,9 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
   return (
     <div style={{ border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        {atlas ? <button aria-label={L("Zobrazit provedení cviku", "Show exercise instructions")} onClick={()=>setOpen(!open)} style={{padding:0,border:0,background:"transparent",width:64,flexShrink:0,cursor:"pointer"}}><ExerciseAtlasImage background={t.bg} entry={atlas} alt={tvName(rec) || TL(block.name)} size={64} dark={t.mode==="dark"}/></button> : null}
+        {atlas ? <button aria-label={L("Zobrazit provedení cviku", "Show exercise instructions")} onClick={()=>onOpenEx?.(block.exId)} style={{padding:0,border:0,background:"transparent",width:64,flexShrink:0,cursor:"pointer"}}><ExerciseAtlasImage background={t.bg} entry={atlas} alt={tvName(rec) || TL(block.name)} size={64} dark={t.mode==="dark"}/></button> : null}
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 21, color: t.heading, lineHeight: 1.2 }}>{tvName(rec) || TL(block.name)}</div>
-          {rec && rec.focus ? (
-            <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13.5, lineHeight: 1.55, color: t.sand, marginTop: 4 }}>{TL(rec.focus)}</div>
-          ) : null}
+          <button onClick={() => onOpenEx?.(block.exId)} style={{ background: "transparent", border: 0, padding: 0, textAlign: "left", cursor: "pointer", fontFamily: FONT_DISPLAY, fontSize: 21, color: t.heading, lineHeight: 1.2 }}>{tvName(rec) || TL(block.name)}</button>
           {TL(block.coachNote) ? (
             <div style={{ marginTop: 6, borderLeft: `2px solid ${t.accent}`, paddingLeft: 9, fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.55, color: t.textSec }}><TrainingSourceText text={TL(block.coachNote)} color={t.accentInk || t.accent}/></div>
           ) : null}
@@ -13152,36 +13135,28 @@ function TvClientBlock({ block, prev, onSession, onRest }) {
         </div>
       ) : null}
 
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        {(block.sets || []).map((sset, i) => (
-          <div key={sset.id} style={{ display: "grid", gridTemplateColumns: "26px minmax(0,1fr) minmax(0,1.5fr) 40px", gap: 8, alignItems: "center", padding: "6px 2px", borderBottom: `1px solid ${t.borderSoft}` }}>
-            <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, color: sset.type === "warmup" ? t.sage : t.textMuted }}>
-              {TV.SET_TYPE_MARK[sset.type] || (i + 1)}
+      <div className="tm-tvsets" style={{ "--tv-columns": columns, "--tv-border": t.borderSoft }}>
+        <div className="tm-tvhead" style={{ fontFamily: FONT_TAG, fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase", color: t.textMuted }}>
+          <span>{L("Série", "Set")}</span><span>{L("Minule", "Previous")}</span>
+          {fields.map(f => <span key={f}>{tvLanding.fieldLabel(st,block,f,LANG) || L(TV.FIELD[f]?.cz || f,TV.FIELD[f]?.en || f)}{TV.FIELD[f]?.unit?.[tvCz()?0:1] ? " · " + TV.FIELD[f].unit[tvCz()?0:1] : ""}</span>)}
+          {block.rirEnabled && <span>RIR</span>}<span><FamilyIcon id="check" size={14} label={L("Hotovo", "Done")}/></span>
+        </div>
+        {(block.sets || []).map((sset, i) => {
+          const previous = !tvLanding.canCopy(st,block,prev) ? null : policy?.sideMode === "perSide" ? (prev?.sets||[]).filter(v => tvLocoSideOf(v) === tvLocoSideOf(sset))[(block.sets||[]).slice(0,i).filter(v => tvLocoSideOf(v) === tvLocoSideOf(sset)).length] : prev?.sets?.[i];
+          const planned = tvFmtP(block.measurementType,sset.planned) || "—";
+          return <div key={sset.id} className="tm-tvset" data-set-id={sset.id} style={{ borderBottom: `1px solid ${t.borderSoft}` }}>
+            <span style={{ fontFamily: FONT_TAG, fontSize: 12, color: sset.type === "warmup" ? t.sage : t.textMuted }} title={TL(TV.SET_TYPE_LABEL[sset.type])}>{TV.SET_TYPE_MARK[sset.type] || (i+1)}</span>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }} title={(previous ? tvFmtA(block.measurementType,previous.actual) : "—") + " · " + planned}>
+              <span className="tm-tvprevious">{previous ? tvFmtA(block.measurementType,previous.actual) : "—"}</span><span className="tm-tvplanned">{L("Plán", "Plan")}: {planned}</span>
             </span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.sand, fontVariantNumeric: "tabular-nums" }}>
-              {tvFmtP(block.measurementType, sset.planned) || "—"}
-            </span>
-            <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {['none','legacy'].includes(tvLanding.view(st,block,sset).kind)?<TvLocoSide set={sset} policy={tvLanding.sidePolicy(st,block,policy)} onChange={side=>onSession(x=>TV.locomotionSetSide(x,block.id,sset.id,side,policy))}/>:null}<TvLandingSet st={st} block={block} set={sset} onChange={p=>onSession(x=>tvLanding.setParameters(st,x,block.id,sset.id,p))}/><TvLocoLegacy set={sset} policy={policy}/>{fields.map((f) => (
-                <TvField key={f} field={f} label={tvLanding.fieldLabel(st,block,f,LANG)} disabled={!tvLanding.canRecord(st,block,sset)||tvLanding.protectedActual(st,block).includes(f)} value={sset.actual[f] == null ? null : sset.actual[f]}
-                  onChange={(v) => onSession((x) => tvLanding.setActual(st,x,block.id,sset.id,{[f]:v},(...args)=>TV.locomotionSetActual(...args,policy)))} />
-              ))}
-            </span>
-            <span style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button disabled={!sset.completed&&!tvLanding.canRecord(st,block,sset)} onClick={() => (sset.completed ? onSession((x) => TV.reopenSet(x, block.id, sset.id)) : complete(sset.id))}
-                aria-label={sset.completed ? L("Znovu otevřít sérii", "Reopen the set") : L("Série hotová", "Set done")}
-                style={{ width: 36, height: 36, borderRadius: 999, border: `1.5px solid ${sset.completed ? t.accent : t.borderSoft}`, background: sset.completed ? t.accent : "transparent", color: sset.completed ? t.onAccent : t.textMuted, cursor: "pointer", padding: 0 }}>
-                {sset.completed ? <FamilyIcon id="check" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /> : ""}
-              </button>
-            </span>
-            {block.rirEnabled && sset.type !== "warmup" ? <label style={{gridColumn:"2 / -1",fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,display:"flex",alignItems:"center",gap:8}}>
-              {L("Rezerva po této sérii", "Reserve after this set")}
-              <select aria-label={L("Rezerva série ", "Set reserve ")+(i+1)} value={sset.rir??""} onChange={e=>onSession(x=>TV.setRir(x,block.id,sset.id,e.target.value===""?null:Number(e.target.value)))} style={{...tvQuiet(t),minHeight:40}}>
-                <option value="">—</option>{[0,1,2,3,4,5].map(v=><option key={v} value={v}>{v===5?"5+":v}</option>)}
-              </select>
-            </label> : null}
-          </div>
-        ))}
+            {fields.map(f => <TvField inline key={f} field={f} label={tvLanding.fieldLabel(st,block,f,LANG)} disabled={!tvLanding.canRecord(st,block,sset)||tvLanding.protectedActual(st,block).includes(f)} value={sset.actual[f] == null ? null : sset.actual[f]}
+              onChange={v => onSession(x => tvLanding.setActual(st,x,block.id,sset.id,{[f]:v},(...args)=>TV.locomotionSetActual(...args,policy)))} />)}
+            {block.rirEnabled && <span data-c="rir">{sset.type !== "warmup" ? <select aria-label={L("Rezerva série ", "Set reserve ")+(i+1)} value={sset.rir??""} onChange={e=>onSession(x=>TV.setRir(x,block.id,sset.id,e.target.value===""?null:Number(e.target.value)))} style={{ width: "100%", minHeight: 44, border: 0, borderBottom: `1px solid ${t.borderSoft}`, background: "transparent", color: t.text, fontFamily: FONT_BODY, fontSize: 16 }}><option value="">—</option>{[0,1,2,3,4,5].map(v=><option key={v} value={v}>{v===5?"5+":v}</option>)}</select> : null}</span>}
+            <span data-c="done"><button disabled={!sset.completed&&!tvLanding.canRecord(st,block,sset)} onClick={() => sset.completed ? onSession(x=>TV.reopenSet(x,block.id,sset.id)) : complete(sset.id)} aria-label={sset.completed ? L("Znovu otevřít sérii", "Reopen the set") : L("Série hotová", "Set done")}
+              style={{ width: 44, height: 44, borderRadius: 999, border: `1.5px solid ${sset.completed ? t.accent : t.borderSoft}`, background: sset.completed ? t.accent : "transparent", color: sset.completed ? t.onAccent : t.textMuted, cursor: "pointer", padding: 0 }}>{sset.completed ? <FamilyIcon id="check" size={16}/> : null}</button></span>
+            <div data-c="parameters">{['none','legacy'].includes(tvLanding.view(st,block,sset).kind)?<TvLocoSide set={sset} policy={tvLanding.sidePolicy(st,block,policy)} onChange={side=>onSession(x=>TV.locomotionSetSide(x,block.id,sset.id,side,policy))}/>:null}<TvLandingSet st={st} block={block} set={sset} onChange={p=>onSession(x=>tvLanding.setParameters(st,x,block.id,sset.id,p))}/><TvLocoLegacy set={sset} policy={policy}/></div>
+          </div>;
+        })}
       </div>
       {block.rirEnabled?<p style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,margin:0}}>{L("Rezerva = kolik dalších čistých opakování ještě zvládneš. Cílovou rezervu drž podle předpisu, obvykle 2.", "Reserve = how many more clean repetitions you could do. Follow the prescribed reserve, usually 2.")}</p>:null}
       {m.secondary && !policy?.noAddedWeight?<label style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted}}><input type="checkbox" checked={extraLoad} onChange={e=>setExtraLoad(e.target.checked)}/>{L("Cvičím s přidanou zátěží", "I am adding extra load")}</label>:null}
@@ -13324,13 +13299,28 @@ function tvHipClientMotionAllowed(st, id, row) {
   const view = TV.hipDeliveredViewPolicy(delivered);
   return !!view && !(view.blockedMotionSources || []).includes(motion?.src);
 }
+function TvClientExerciseHistory({ exId }) {
+  const {t}=useT(), st=useStore();
+  const rec=tvClientRec(st,exId), policy=tvLocoClientPolicy(st,exId);
+  const history=tvLocoHistoryOf(st.tvSessions?.() || [],exId,{who:"",preserveSide:true});
+  if(!rec)return null;
+  if(policy?.measurementType===rec.measurementType)return <TvLocoHistory key={exId} policy={policy} history={history} type={rec.measurementType}/>;
+  const row=st.tvExerciseOf?.(exId)||(st.coll.tEx||[]).find(e=>e.id===exId);
+  const records=TV.recordsFor(rec.measurementType,history,{allowEstimatedMax:rec.measurementType==="WEIGHT_REPS"?(st.tvExerciseOf?.(exId)?policy?.allowEstimatedMax:TV.libraryAuditedAllowsEstimatedMax(row)):undefined});
+  return <div style={{display:"flex",flexDirection:"column",gap:14}}>
+    <TrainingHistoryChart series={TV.seriesFor(rec.measurementType,history)} type={rec.measurementType}/>
+    {Object.values(records).map(r=><div key={r.k} style={{display:"flex",gap:8,fontFamily:FONT_BODY,fontSize:13,color:t.textSec,flexWrap:"wrap"}}><span>{TL(TV.RECORD_LABEL[r.k])}</span><strong style={{fontWeight:500}}>{TV.fmtRecord(rec.measurementType,r,tvCz())}</strong><span>{r.date}</span></div>)}
+    {history.length ? [...history].reverse().map((entry,i)=><div key={`${entry.sessionId}-${i}`} style={{display:"flex",justifyContent:"space-between",gap:12,fontFamily:FONT_BODY,fontSize:13,color:t.textSec,borderBottom:`1px solid ${t.borderSoft}`,paddingBottom:8}}><span>{entry.date}</span><span>{tvFmtA(entry.measurementType||rec.measurementType,entry.actual)}</span></div>) : <p style={{fontFamily:FONT_BODY,fontSize:14,color:t.textMuted}}>{L("Zatím bez záznamu. První dokončený trénink se zobrazí tady.", "No records yet. Your first completed workout will appear here.")}</p>}
+  </div>;
+}
 function TvClientExerciseDetail({ exId, onClose }) {
   const { t } = useT();
   const st = useStore();
+  const [detailTab, setDetailTab] = useState("overview");
+  React.useEffect(() => setDetailTab("overview"), [exId]);
   const rec = tvClientRec(st, exId);
   const row = st.tvExerciseOf(exId) || (st.coll.tEx || []).find(ex => ex.id === exId);
   const sections = [
-    ["focus", L("Bod pozornosti", "Focus point")],
     ["startPosition", L("Výchozí pozice", "Starting position")],
     ["execution", L("Provedení", "Execution")],
     ["watchFor", L("Na co dát pozor", "Watch for")],
@@ -13339,11 +13329,16 @@ function TvClientExerciseDetail({ exId, onClose }) {
   return <CenterSheet title={tvName(rec) || L("Cvik", "Exercise")} onClose={onClose} vrstva={280}>
     {row && <div style={{color:t.text,display:"flex",justifyContent:"center",margin:"10px 0 20px"}}><TvClientGuideArt ex={row} size={200}/></div>}
     {(!tvLandingClientMotionAllowed(st,exId,row)||!tvPositionHoldClientMotionAllowed(st,exId,row)||!tvElbowHandClientMotionAllowed(st,exId,row)||!tvShoulderClientMotionAllowed(st,exId,row)||!tvHipClientMotionAllowed(st,exId,row)||tvLocoClientPolicy(st,exId)?.allowMotion===false||(tvLocoClientPolicy(st,exId)?.blockedMotionSources||[]).includes(hipCurrentMotionFor(row||{id:exId})?.src))?null:<ExerciseMotion key={exId} exercise={row || { id: exId }} theme={t} L={L} autoPlay />}
+    {TL(rec?.focus) && <p style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 14, lineHeight: 1.6, color: t.sand }}>{L("Bod pozornosti", "Focus point")} · {TL(rec.focus)}</p>}
+    <TrainingDetailTabs value={detailTab} onChange={setDetailTab}>
+      {detailTab === "overview" ? <TvClientExerciseHistory exId={exId}/> : <>
     {sections.map(([key,label])=><section key={key} style={{marginBottom:20}}>
       <h3 style={{fontFamily:FONT_TAG,fontSize:12,letterSpacing:".12em",textTransform:"uppercase",fontWeight:500,color:t.accentInk||t.accent,margin:"0 0 7px"}}>{label}</h3>
       <div style={{fontFamily:FONT_BODY,fontSize:15,lineHeight:1.7,color:t.textSec,whiteSpace:"pre-wrap"}}><TrainingSourceText text={TL(rec[key])} color={t.accentInk||t.accent}/></div>
     </section>)}
     {!sections.length&&<p style={{fontFamily:FONT_BODY,color:t.textSec,lineHeight:1.65}}>{L("K tomuto cviku zatím nejsou připojené podrobné pokyny.", "Detailed instructions have not been attached to this exercise yet.")}</p>}
+      </>}
+    </TrainingDetailTabs>
   </CenterSheet>;
 }
 const { TvPlanOverview: TvClientPlanOverview, TvGuide: TvClientGuidedSession } = createTrainingGuideUI({
@@ -13371,7 +13366,7 @@ function TvClientRunner({ sessionId, onClose, onOpenEx }) {
   const [technique,setTechnique]=useState((ses?.blocks||[]).filter(b=>b.techniqueFlagged).map(b=>b.id));
   const [note, setNote] = useState(ses?.note || "");
   const nonce = React.useRef(0);
-  React.useEffect(() => tmEscVrstva(onClose), [onClose]);
+  useTrainingRunnerEscape(onClose, tmEscVrstva);
   if (!ses) return null;
   const counts = TV.countSets(ses);
   const patch = (fn) => st.tvEditSession(sessionId, fn);
@@ -13432,7 +13427,7 @@ function TvClientRunner({ sessionId, onClose, onOpenEx }) {
         ) : (
           <>
             {(ses.blocks || []).map((b) => (
-              <TvClientBlock key={b.id} block={b} onSession={patch}
+              <TvClientBlock key={b.id} block={b} onOpenEx={onOpenEx} onSession={patch}
                 prev={TV.lastUseOf(all, b.exId, { exceptSessionId: sessionId })}
                 onRest={(r) => { if (r && r.sec > 0) { nonce.current += 1; setRest({ sec: r.sec, nonce: nonce.current }); } }} />
             ))}
@@ -14401,7 +14396,7 @@ function BkcRezervace({ ctx, onClose, onDone }) {
   const posli = () => {
     setPosilam(true); setChyba(null);
     bkcFetch("/bookings", { method: "POST", idempotencyKey: klic.current,
-      body: { serviceId: sid, locationId: misto ? misto.id : null, startsAt: cas.startsAt } }).then(
+      body: { serviceId: sid, locationId: misto ? misto.id : null, startsAt: cas.startsAt, groupBookingId: cas.groupBookingId || undefined } }).then(
       () => { setPosilam(false); onDone(); },
       (e) => {
         setPosilam(false); setChyba(e);
@@ -14427,7 +14422,7 @@ function BkcRezervace({ ctx, onClose, onDone }) {
               cursor: "pointer", color: t.text, fontFamily: FONT_BODY, minHeight: 44 }}>
             <span style={{ display: "block", fontSize: 15.5 }}>{bkcName(s)}</span>
             <span style={{ display: "block", fontSize: 12.5, color: t.textMuted, marginTop: 2 }}>
-              {s.durationMin + " min" + (s.creditUnits ? " · " + bkcCredits(s.creditUnits) : "") + (s.priceMinor && !s.creditUnits ? " · " + BK.money(s.priceMinor, s.currency, LANG) : "")}
+              {s.durationMin + " min" + (s.priceMinor ? " · " + BK.money(s.priceMinor, s.currency, LANG) + (s.capacity > 1 ? L(" za osobu", " per person") : "") : "") + (s.creditUnits ? " · " + bkcCredits(s.creditUnits) : "")}
             </span>
             {(LANG === "cs" ? s.descriptionCs : s.descriptionEn)
               ? <span style={{ display: "block", fontSize: 13, color: t.textSec, marginTop: 5, lineHeight: 1.55 }}>{LANG === "cs" ? s.descriptionCs : s.descriptionEn}</span> : null}
@@ -14460,10 +14455,10 @@ function BkcRezervace({ ctx, onClose, onDone }) {
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading, margin: "4px 0" }}>{bkcWhen(cas.startsAt, cas.timezone)}</div>
             <div style={{ fontSize: 12.5, color: t.textMuted }}>{cas.timezone}</div>
             <div style={{ marginTop: 8, color: t.textSec }}>
-              {sluzba.creditUnits ? bkcCredits(sluzba.creditUnits) : (sluzba.priceMinor ? BK.money(sluzba.priceMinor, sluzba.currency, LANG) : L("bez kreditu", "no credit"))}
+              {sluzba.paymentRoute === "CREDIT" ? bkcCredits(sluzba.creditUnits) : (sluzba.priceMinor ? BK.money(sluzba.priceMinor, sluzba.currency, LANG) + (sluzba.capacity > 1 ? L(" za osobu", " per person") : "") : sluzba.creditUnits ? bkcCredits(sluzba.creditUnits) : L("bez platby", "no payment"))}
             </div>
             <div style={{ fontSize: 12.5, color: t.textMuted, marginTop: 6, lineHeight: 1.6 }}>
-              {L("Zrušit nebo přesunout jde do ", "You can cancel or move it up to ") + Math.round((sluzba.cancelBeforeMin || 0) / 60) + L(" hodin předem.", " hours beforehand.")}
+              {(sluzba.capacity > 1 ? L("Svoji účast můžeš zrušit do ", "You can cancel your attendance up to ") : L("Zrušit nebo přesunout jde do ", "You can cancel or move it up to ")) + Math.round((sluzba.cancelBeforeMin || 0) / 60) + L(" hodin předem.", " hours beforehand.")}
               {sluzba.lateCancelRefunds ? "" : L(" Později už se kredit nevrací.", " After that the credit is not returned.")}
               <span style={{ display: "block" }}>{LANG === "cs" ? BK.CONFIRMATION_COPY[sluzba.confirmationMode].cs : BK.CONFIRMATION_COPY[sluzba.confirmationMode].en}</span>
             </div>
@@ -14532,6 +14527,7 @@ function BkcSloty({ serviceId, locationId, vybrany, onPick, excludeBooking }) {
                 borderRadius: 12, padding: "12px 16px", cursor: "pointer", color: je ? (t.accentInk || t.accent) : t.text,
                 fontFamily: FONT_BODY, fontSize: 15.5, minWidth: 84, minHeight: 46 }}>
               {bkcTime(s.startsAt, data.timezone)}
+              {s.groupBookingId && <span style={{ display: "block", fontSize: 11, marginTop: 3 }}>{L("Volná místa", "Open places")}: {s.remainingCapacity}</span>}
             </button>
           );
         })}
@@ -14624,7 +14620,7 @@ function BkcDetail({ b, onClose, onChanged }) {
             </span>
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button disabled={prace} onClick={zrus} style={bkcBtn(t, true)}>{L("Zrušit termín", "Cancel the session")}</button>
+            <button disabled={prace} onClick={zrus} style={bkcBtn(t, true)}>{b.group ? L("Zrušit moji účast", "Cancel my attendance") : L("Zrušit termín", "Cancel the session")}</button>
             <button onClick={() => setRusim(null)} style={bkcBtn(t)}>{L("Nechat být", "Leave it")}</button>
           </div>
         </div>
@@ -14642,10 +14638,11 @@ function BkcDetail({ b, onClose, onChanged }) {
         </div>
       )}
 
+      {b.group && !zavreno && <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{L("Skupinový termín přesouvá trenér společně pro všechny. Zrušením odebereš pouze svoji účast.", "The coach moves a group session for everyone. Cancelling removes only your attendance.")}</p>}
       {!zavreno && !rusim && !presun && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => setPresun(true)} style={bkcBtn(t)}>{L("Přesunout termín", "Reschedule")}</button>
-          <button onClick={zeptejSeNaZruseni} style={bkcBtn(t)}>{L("Zrušit termín", "Cancel")}</button>
+          {!b.group && <button onClick={() => setPresun(true)} style={bkcBtn(t)}>{L("Přesunout termín", "Reschedule")}</button>}
+          <button onClick={zeptejSeNaZruseni} style={bkcBtn(t)}>{b.group ? L("Zrušit moji účast", "Cancel my attendance") : L("Zrušit termín", "Cancel")}</button>
         </div>
       )}
     </CenterSheet>

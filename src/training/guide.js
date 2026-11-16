@@ -1,6 +1,11 @@
 import { measurementOf } from './measurements.js';
 import { setActual, findBlock, findSet } from './sessionEngine.js';
 
+export const GUIDE_PREPARATION_SEC = 5;
+export function guidedWorkElapsed(elapsed, duration) {
+  return Math.max(0, Math.min(duration, Math.round((Number(elapsed) || 0) - GUIDE_PREPARATION_SEC)));
+}
+
 export function guideSteps(session) {
   const blocks = session && session.blocks ? session.blocks : [];
   const steps = [];

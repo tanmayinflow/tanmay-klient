@@ -44,9 +44,9 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
       : errorCopy(err);
     useEffect(() => {
       let current = true;
-      Promise.all([fetchBooking("/services"), fetchBooking("/locations")]).then(([a, b]) => {
+      Promise.all([fetchBooking("/services"), fetchBooking("/locations"), fetchBooking("/clients")]).then(([a, b, c]) => {
         if (!current) return;
-        setCatalog({ services: a.services || [], locations: b.locations || [] });
+        setCatalog({ services: a.services || [], locations: b.locations || [], clients: c.clients || [] });
         setServiceId(id => a.services?.some(s => s.active && s.id === id) ? id : a.services?.find(s => s.active)?.id || "");
         setLocationId(id => b.locations?.some(l => l.active && l.id === id) ? id : "");
       }).catch(e => { if (current) { setError(e); setLoading(false); } });
@@ -155,6 +155,8 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
       const endsAt = startsAt == null ? undefined : startsAt + duration * 60000;
       const midnightEnd = endsAt === B.endOfLocalDay(d, ZONE);
       openEditor({ type: item.kind, item, date: d, start, startText: calendarTime(start), startsAt,
+        duration, serviceId: item.service?.id,
+        clientIds: item.participants?.filter(p => ["REQUESTED", "CONFIRMED"].includes(p.status)).map(p => p.clientId) || (item.clientId ? [item.clientId] : []),
         endDate: endsAt ? (midnightEnd ? d : B.localDateISO(endsAt, ZONE)) : d,
         end: endsAt ? (midnightEnd ? 1440 : B.localMinuteOfDay(endsAt, ZONE)) : Math.min(1440, start + duration),
         endsAt, note: item.note || "", proposed: !!proposed });
@@ -163,7 +165,9 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
       if (selectedStart == null) invalid(L("Vyber platné datum a čas. U opakované hodiny zvol konkrétní výskyt.", "Choose a valid date and time. For a repeated hour select its occurrence."));
       const item = editor.item;
       if (editor.type === "booking") {
-        await fetchBooking(`/bookings/${encodeURIComponent(item.id)}/reschedule`, { method: "POST", body: { startsAt: selectedStart, expectedVersion: item.version, expectedStartsAt: item.startsAt, expectedUpdatedAt: item.updatedAt } });
+        const selectedService = catalog.services.find(s => s.id === editor.serviceId);
+        if (!Number.isInteger(editor.duration) || editor.duration < 1 || editor.duration > 720 || !editor.clientIds.length || editor.clientIds.length > (selectedService?.capacity || 1)) invalid(L("Zkontroluj délku, službu a počet účastníků.", "Check the duration, service and number of participants."));
+        await fetchBooking(`/bookings/${encodeURIComponent(item.id)}/reschedule`, { method: "POST", body: { startsAt: selectedStart, durationMin: editor.duration, serviceId: editor.serviceId, clientIds: editor.clientIds, adminOverride: true, overrideReason: L("Úprava rezervace trenérem", "Booking edited by coach"), expectedVersion: item.version, expectedStartsAt: item.startsAt, expectedUpdatedAt: item.updatedAt } });
       } else {
         if (selectedEnd == null || selectedEnd <= selectedStart) invalid(L("Konec volna musí být později než začátek.", "Time off must end after it starts."));
         await fetchBooking(`/blocks/${encodeURIComponent(item.id)}`, { method: "PATCH", body: { startsAt: selectedStart, endsAt: selectedEnd, note: editor.note, expectedStartsAt: item.startsAt, expectedUpdatedAt: item.updatedAt } });
@@ -272,7 +276,7 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
               const short = compact && view === "week";
               return <section key={d} ref={node => { dayRefs.current[d] = node; }} data-calendar-day={d} aria-label={dayLabel(d)} style={{ position: "relative", height, minWidth: 0, borderLeft: `1px solid ${t.borderSoft}`, background: `repeating-linear-gradient(to bottom, transparent 0, transparent ${30 * scale - 1}px, ${t.borderSoft} ${30 * scale - 1}px, ${t.borderSoft} ${30 * scale}px)` }}>
                 <div role="button" tabIndex={0} aria-label={`${dayLabel(d)} ${L("přidat volno nebo termín", "add time off or a session")}`}
-                  onClick={e => { if (e.target !== e.currentTarget || Date.now() < skipClick.current) return; const r = e.currentTarget.getBoundingClientRect(); const minute = Math.max(0, Math.min(1435, Math.round((range.from + (e.clientY - r.top) / scale) / 5) * 5)); selectTime(d, minute, Math.min(1440, minute + (service?.duration_min || 60))); }}
+                  onClick={e => { if (e.target !== e.currentTarget || Date.now() < skipClick.current) return; const r = e.currentTarget.getBoundingClientRect(); const elapsed = Math.round((e.clientY - r.top) / scale / 5) * 5; if (view === "day") { const at = Math.min(end - 60000, Math.max(begin, begin + elapsed * 60000)), until = Math.min(nextMidnight, at + (service?.duration_min || 60) * 60000); selectTime(d, B.localMinuteOfDay(at, ZONE), until === nextMidnight ? 1440 : B.localMinuteOfDay(until, ZONE), at, until); } else { const minute = Math.max(0, Math.min(1435, range.from + elapsed)); selectTime(d, minute, Math.min(1440, minute + (service?.duration_min || 60))); } }}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectTime(d, 540, 600); } }} style={{ position: "absolute", inset: 0, cursor: "pointer" }}/>
                 {windows.map((w, i) => <div key={`work-${i}`} aria-hidden="true" style={{ pointerEvents: "none", position: "absolute", top: top(w.s), height: size(w.s, w.e), left: 0, right: 0, background: `color-mix(in srgb, ${t.sage} 8%, transparent)` }}/>) }
                 {view === "day" && marks.map(at => <span key={at} aria-hidden="true" style={{ pointerEvents: "none", position: "absolute", top: top(at) + 4, right: 3, fontSize: 10, color: t.textSec }}>{B.hhmm(at, ZONE)}</span>)}
@@ -331,6 +335,13 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
               {onOpen && <button type="button" style={btn} onClick={() => { const item = editor.item; setEditor(null); onOpen(item); }}>{L("Podrobnosti rezervace", "Booking details")}</button>}
               {onOpenClient && editor.item.clientId && <button type="button" style={btn} onClick={() => { const id = editor.item.clientId; setEditor(null); onOpenClient(id); }}>{L("Karta klienta", "Client card")}</button>}
             </div>
+            <label style={{ ...label, marginBottom: 14 }}>{L("Typ rezervace", "Booking type")}<ChoiceField theme={t} L={L} label={L("Typ rezervace", "Booking type")} style={input} value={editor.serviceId} options={(catalog?.services || []).filter(s => s.active || s.id === editor.item.service?.id).map(s => ({ v: s.id, label: name(s) + ` · ${s.duration_min} min` }))} onChange={value => setEditor(x => ({ ...x, serviceId: value, duration: catalog.services.find(s => s.id === value)?.duration_min || x.duration }))}/></label>
+            <div style={{ marginBottom: 18 }}>
+              <span style={label}>{L("Účastníci", "Participants")} · {editor.clientIds.length}/{catalog?.services.find(s => s.id === editor.serviceId)?.capacity || 1}</span>
+              {editor.clientIds.map(id => { const c = catalog?.clients.find(c => c.id === id) || editor.item.participants?.find(c => c.clientId === id); return <div key={id} style={{ ...row, minHeight: 44, borderBottom: `1px solid ${t.borderSoft}`, flexWrap: "nowrap" }}><button type="button" style={{ ...btn, border: 0, padding: "6px 0", textAlign: "left", flex: 1, overflowWrap: "anywhere" }} disabled={!onOpenClient} onClick={() => { setEditor(null); onOpenClient?.(id); }}>{c?.name || c?.email || id}</button><button type="button" aria-label={`${L("Odebrat účastníka", "Remove participant")} ${c?.name || c?.email || id}`} style={{ ...btn, border: 0, padding: 8 }} onClick={() => setEditor(x => ({ ...x, clientIds: x.clientIds.filter(value => value !== id) }))}><TmIcon id="close" size={15}/></button></div>; })}
+              {editor.clientIds.length < (catalog?.services.find(s => s.id === editor.serviceId)?.capacity || 1) && <ChoiceField searchable theme={t} L={L} label={L("Přidat účastníka", "Add participant")} style={{ ...input, marginTop: 8 }} value="" placeholder={L("Přidat účastníka…", "Add participant…")} options={(catalog?.clients || []).filter(c => !editor.clientIds.includes(c.id)).map(c => ({ v: c.id, label: c.name || c.email || c.id, search: `${c.name || ""} ${c.email || ""}` }))} onChange={value => { if (value) setEditor(x => ({ ...x, clientIds: [...new Set([...x.clientIds, value])] })); }}/>}
+              <p style={notice}>{L("Každý účastník má vlastní kredit nebo platbu. Změna služby se přepočítá při uložení.", "Each participant has their own credit or payment. A service change is recalculated on save.")}</p>
+            </div>
           </>}
           {editor.proposed && <p style={notice}>{L("Zkontroluj nový čas a potvrď přesun.", "Check the new time and confirm the move.")}</p>}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -338,7 +349,7 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
             <label style={label}>{L("Začátek", "Start")}<ChoiceField theme={t} L={L} editable label={L("Čas přesunu", "Move time")} inputMode="text" options={timeOptions.filter(v => v !== "24:00")} style={input} value={editor.startText ?? calendarTime(editor.start)} onChange={value => setEditor(x => ({ ...x, start: parseCalendarTime(value), startText: value, startsAt: undefined }))}/></label>
           </div>
           {calendarWallInstants(editor.date, editor.start).length > 1 && <div style={{ ...row, marginTop: 10 }}>{calendarWallInstants(editor.date, editor.start).map(instant => <button type="button" key={instant} style={btn} aria-pressed={selectedStart === instant} onClick={() => setEditor(x => ({ ...x, startsAt: instant }))}>{offsetLabel(instant)}</button>)}</div>}
-          {editor.type === "booking" ? <p style={notice}>{L("Délka rezervace zůstane", "Booking duration stays")} {(editor.item.endsAt - editor.item.startsAt) / 60000} min. {selectedStart != null && `${L("Nový konec", "New end")}: ${dayLabel(B.localDateISO(selectedStart + editor.item.endsAt - editor.item.startsAt, ZONE))} ${B.hhmm(selectedStart + editor.item.endsAt - editor.item.startsAt, ZONE)}`}</p> : <>
+          {editor.type === "booking" ? <><label style={{ ...label, marginTop: 10 }}>{L("Délka v minutách", "Duration in minutes")}<NumberField theme={t} L={L} aria-label={L("Délka rezervace", "Booking duration")} min="1" max="720" step="1" style={input} value={editor.duration} onChange={e => setEditor(x => ({ ...x, duration: Number(e.target.value) }))}/></label><p style={notice}>{selectedStart != null && `${L("Nový konec", "New end")}: ${dayLabel(B.localDateISO(selectedStart + editor.duration * 60000, ZONE))} ${B.hhmm(selectedStart + editor.duration * 60000, ZONE)}`}</p></> : <>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
               <label style={label}>{L("Datum konce", "End date")}<DateField aria-label={L("Datum konce volna", "Time-off end date")} type="date" value={editor.endDate} style={input} onChange={e => setEditor(x => ({ ...x, endDate: e.target.value, endsAt: undefined }))}/></label>
               <label style={label}>{L("Konec", "End")}<ChoiceField theme={t} L={L} editable label={L("Konec volna", "Time-off end")} inputMode="text" options={timeOptions} style={input} value={editor.endText ?? calendarTime(editor.end)} onChange={value => setEditor(x => ({ ...x, end: parseCalendarTime(value), endText: value, endsAt: undefined }))}/></label>
@@ -347,7 +358,7 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
             <label style={{ ...label, marginTop: 10 }}>{L("Poznámka jen pro tebe", "Private note")}<input maxLength={200} style={input} value={editor.note} onChange={e => setEditor(x => ({ ...x, note: e.target.value }))}/></label>
             <p style={notice}>{L("Volno zablokuje nové rezervace klientů. Stávající rezervace zůstávají zachované.", "Time off blocks new client bookings. Existing bookings remain.")}</p>
           </>}
-          <div style={{ ...row, marginTop: 18 }}><button type="button" style={primary} disabled={saving || (editor.type === "booking" && selectedStart === editor.item.startsAt)} onClick={saveMove}>{editor.type === "booking" ? L("Potvrdit přesun", "Confirm move") : L("Uložit volno", "Save time off")}</button>
+          <div style={{ ...row, marginTop: 18 }}><button type="button" style={primary} disabled={saving} onClick={saveMove}>{editor.type === "booking" ? L("Uložit rezervaci", "Save booking") : L("Uložit volno", "Save time off")}</button>
             {editor.type === "block" && <button type="button" style={btn} disabled={saving} onClick={() => perform(() => fetchBooking(`/blocks/${encodeURIComponent(editor.item.id)}`, { method: "DELETE" }))}>{L("Znovu nabídnout tento čas", "Make this time available again")}</button>}
           </div>
         </>}

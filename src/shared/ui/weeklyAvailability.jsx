@@ -39,9 +39,10 @@ export function createWeeklyAvailabilityUI({ useT, L, fetchBooking, errorCopy, C
       fontSize: 16, color: t.text, background: t.input, border: `1px solid ${t.border}`, borderRadius: 10 };
     const label = { display: "grid", gap: 6, fontFamily: BODY, fontSize: 13, color: t.textSec };
     const row = { display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 };
-    const min = wholeDay ? 0 : Math.min(360, ...windows.map(w => Math.floor(w.start_minute / 60) * 60));
-    const max = wholeDay ? 1440 : Math.max(1320, ...windows.map(w => Math.ceil(w.end_minute / 60) * 60));
+    const min = wholeDay ? 0 : Math.min(480, ...windows.map(w => Math.floor(w.start_minute / 60) * 60));
+    const max = wholeDay ? 1440 : Math.max(1080, ...windows.map(w => Math.ceil(w.end_minute / 60) * 60));
     const span = max - min;
+    const scale = compact ? 1 : 1.2;
     const hours = Array.from({ length: span / 60 + 1 }, (_, i) => min + i * 60);
     const displayWindows = preview ? [...windows.filter(w => w.key !== preview.window.key), preview.window] : windows;
     const dayWindows = windows.filter(w => w.weekday === selectedDay).sort((a, b) => a.start_minute - b.start_minute);
@@ -97,7 +98,7 @@ export function createWeeklyAvailabilityUI({ useT, L, fetchBooking, errorCopy, C
       const track = tracks.current[day];
       if (!track) return;
       const rect = track.getBoundingClientRect();
-      const start = snapMinute(min + (e.clientX - rect.left) / rect.width * span);
+      const start = snapMinute(min + (e.clientY - rect.top) / rect.height * span);
       const g = { pointerId: e.pointerId, pointerType: e.pointerType, x: e.clientX, y: e.clientY,
         rect, min, span, day, window, mode: window ? mode : "create", start, ready: e.pointerType === "mouse",
         moved: false, snapshot: windows, target: e.currentTarget };
@@ -121,16 +122,16 @@ export function createWeeklyAvailabilityUI({ useT, L, fetchBooking, errorCopy, C
         e.preventDefault(); g.moved = true;
         let window;
         if (g.mode === "create") {
-          const end = snapMinute(g.min + (e.clientX - g.rect.left) / g.rect.width * g.span);
+          const end = snapMinute(g.min + (e.clientY - g.rect.top) / g.rect.height * g.span);
           const start_minute = Math.min(g.start, end, 1435);
           window = { key: "drawing", weekday: g.day, start_minute, end_minute: Math.max(start_minute + 5, g.start, end) };
         } else {
           let day = g.day;
-          if (g.pointerType === "mouse" && g.mode === "move") for (const [wd, node] of Object.entries(tracks.current)) {
+          if (g.mode === "move") for (const [wd, node] of Object.entries(tracks.current)) {
             const r = node?.getBoundingClientRect();
-            if (r && e.clientY >= r.top && e.clientY <= r.bottom) { day = Number(wd); break; }
+            if (r && e.clientX >= r.left && e.clientX <= r.right) { day = Number(wd); break; }
           }
-          window = shiftWeeklyWindow(g.window, Math.round(dx / g.rect.width * g.span / 15) * 15, g.mode, day);
+          window = shiftWeeklyWindow(g.window, Math.round(dy / g.rect.height * g.span / 15) * 15, g.mode, day);
         }
         g.next = window;
         g.valid = !!replaceWeeklyWindow(g.snapshot, window);
@@ -150,6 +151,8 @@ export function createWeeklyAvailabilityUI({ useT, L, fetchBooking, errorCopy, C
         else { actions.current.apply(replaceWeeklyWindow(g.snapshot, g.next)); setSelectedDay(g.next.weekday); }
       };
       const key = e => { if (e.key === "Escape" && gesture.current) { suppressClick.current = Date.now() + 600; cancel(); } };
+      const touchMove = e => { if (gesture.current?.ready && gesture.current.pointerType !== "mouse") e.preventDefault(); };
+      window.addEventListener("touchmove", touchMove, { passive: false });
       window.addEventListener("pointermove", move, { passive: false });
       window.addEventListener("pointerup", up); window.addEventListener("pointercancel", cancel);
       window.addEventListener("blur", cancel); window.addEventListener("keydown", key);
@@ -157,12 +160,16 @@ export function createWeeklyAvailabilityUI({ useT, L, fetchBooking, errorCopy, C
         clearTimeout(gesture.current?.timer); gesture.current = null;
         window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
         window.removeEventListener("pointercancel", cancel); window.removeEventListener("blur", cancel); window.removeEventListener("keydown", key);
+        window.removeEventListener("touchmove", touchMove);
       };
     }, []);
     const keyboard = (e, w, mode = "move") => {
-      if (saving || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+      if (saving || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
       e.preventDefault(); e.stopPropagation();
-      apply(replaceWeeklyWindow(windows, shiftWeeklyWindow(w, (e.key === "ArrowRight" ? 1 : -1) * (e.shiftKey ? 60 : 15), mode)));
+      if (["ArrowLeft", "ArrowRight"].includes(e.key) && mode === "move") {
+        const index = WEEKDAYS.indexOf(w.weekday), nextDay = WEEKDAYS[index + (e.key === "ArrowRight" ? 1 : -1)];
+        if (nextDay !== undefined) apply(replaceWeeklyWindow(windows, shiftWeeklyWindow(w, 0, mode, nextDay)));
+      } else if (["ArrowUp", "ArrowDown"].includes(e.key)) apply(replaceWeeklyWindow(windows, shiftWeeklyWindow(w, (e.key === "ArrowDown" ? 1 : -1) * (e.shiftKey ? 60 : 15), mode)));
     };
     const commitEditor = e => {
       e.preventDefault();
@@ -184,54 +191,44 @@ export function createWeeklyAvailabilityUI({ useT, L, fetchBooking, errorCopy, C
         <button type="button" disabled={saving || loading} style={button} onClick={() => dirty ? setEditor({ type: "reload" }) : load()}>{L("Načíst aktuální týden", "Load current week")}</button>
       </div>}
       {original !== null && <>
-        {compact && <div style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", gap: 3, marginBottom: 12 }} aria-label={L("Den v týdnu", "Weekday")}>
-          {WEEKDAYS.map(day => <button type="button" key={day} aria-label={dayName(day)} aria-pressed={selectedDay === day}
-            disabled={saving} onClick={() => setSelectedDay(day)} style={{ ...button, padding: "8px 2px", borderRadius: 20,
-              color: selectedDay === day ? t.onAccent : t.text, background: selectedDay === day ? t.accent : "transparent" }}>{dayName(day).slice(0, 2)}</button>)}
-        </div>}
         <div style={{ ...row, justifyContent: "space-between", marginBottom: 10, fontSize: 12, color: t.textSec }}>
-          <span>{L("Blok = čas pro rezervace", "Block = bookable hours")}</span>
+          <span>{L("Pracovní doba pro rezervace", "Bookable working hours")}</span>
           <button type="button" aria-pressed={wholeDay} onClick={() => setWholeDay(!wholeDay)} style={{ ...button, border: 0, padding: "4px 0", minHeight: 36, color: t.accentInk || t.accent }}>{wholeDay ? L("Pracovní rozsah", "Working range") : L("Celých 24 hodin", "Full 24 hours")}</button>
         </div>
-        <div data-tm-weekly-scroll style={{ overflowX: "auto", overscrollBehaviorX: "contain", border: `1px solid ${t.borderSoft}`, borderRadius: 14, "--wa-accent": t.accent }}>
-          <div style={{ minWidth: (compact ? 0 : 112) + Math.max(720, span / 60 * 48) }}>
-            <div style={{ display: "flex", height: 36, paddingLeft: compact ? 0 : 112, borderBottom: `1px solid ${t.borderSoft}` }}>
-              <div style={{ position: "relative", flex: 1, margin: "0 14px", fontSize: 11, color: t.textSec }}>
-                {hours.map((hour, i) => (!compact || i === 0 || i === hours.length - 1 || (i % 2 === 0 && i < hours.length - 2)) && <span key={hour} style={{ position: "absolute", top: 10, left: `${(hour - min) / span * 100}%`, transform: `translateX(${i === 0 ? 0 : i === hours.length - 1 ? -100 : -50}%)`, fontVariantNumeric: "tabular-nums" }}>{calendarTime(hour)}</span>)}
-              </div>
+        <div data-tm-weekly-scroll style={{ borderTop: `1px solid ${t.borderSoft}`, borderBottom: `1px solid ${t.borderSoft}` }}>
+          <div data-tm-weekly-head style={{ display: "grid", gridTemplateColumns: `${compact ? 34 : 46}px repeat(7,minmax(0,1fr))`, borderBottom: `1px solid ${t.borderSoft}` }}>
+            <span aria-hidden="true" />
+            {WEEKDAYS.map(day => <button key={day} type="button" onClick={() => setSelectedDay(day)} aria-pressed={selectedDay === day} aria-label={dayName(day)} disabled={saving}
+              style={{ ...button, minWidth: 0, border: 0, borderRadius: 0, padding: "10px 1px", fontSize: compact ? 11 : 13, borderBottom: `2px solid ${selectedDay === day ? t.accent : "transparent"}`, color: selectedDay === day ? t.accentInk || t.accent : t.text }}>{compact ? dayName(day).slice(0, 2) : dayName(day)}</button>)}
+          </div>
+          <div data-tm-weekly-grid style={{ display: "grid", gridTemplateColumns: `${compact ? 34 : 46}px repeat(7,minmax(0,1fr))`, height: span * scale, position: "relative" }}>
+            <div aria-hidden="true" style={{ position: "relative", fontSize: compact ? 9 : 11, color: t.textSec, fontVariantNumeric: "tabular-nums" }}>
+              {hours.slice(0, -1).map(hour => <span key={hour} style={{ position: "absolute", top: (hour - min) * scale + 3, left: 0 }}>{calendarTime(hour)}</span>)}
             </div>
-            {(compact ? [selectedDay] : WEEKDAYS).map(day => <div key={day} style={{ display: "flex", borderBottom: day === 0 || compact ? 0 : `1px solid ${t.borderSoft}` }}>
-              {!compact && <button type="button" onClick={() => setSelectedDay(day)} aria-pressed={selectedDay === day} style={{ ...button, width: 112, flexShrink: 0, border: 0, borderRadius: 0, textAlign: "left", position: "sticky", left: 0, zIndex: 2, background: t.card, color: selectedDay === day ? t.accentInk || t.accent : t.text, boxShadow: `1px 0 0 ${t.borderSoft}` }}>{dayName(day)}</button>}
-              <div ref={node => { tracks.current[day] = node; }} data-weekday={day} className="tm-weekly-track" onPointerDown={e => begin(e, day)}
-                onClick={e => { if (e.target !== e.currentTarget || Date.now() < suppressClick.current || saving) return; const r = e.currentTarget.getBoundingClientRect(); add(day, Math.min(1435, snapMinute(min + (e.clientX - r.left) / r.width * span))); }}
-                style={{ flex: 1, position: "relative", minWidth: 0, height: compact ? 100 : 78, margin: "0 14px", cursor: "crosshair", backgroundImage: `linear-gradient(to right, ${t.borderSoft} 1px, transparent 1px)`, backgroundSize: `${60 / span * 100}% 100%` }}>
-                {displayWindows.filter(w => w.weekday === day).map(w => {
-                  const currentPreview = preview?.window.key === w.key;
-                  const invalid = currentPreview && !preview.valid;
-                  return <div key={w.key} className="tm-weekly-block" data-weekly-block={w.key} style={{ position: "absolute", left: `${(w.start_minute - min) / span * 100}%`, top: compact ? 20 : 12,
-                    width: `${(w.end_minute - w.start_minute) / span * 100}%`, minWidth: 6, height: 54, border: `1px ${invalid ? "dashed" : "solid"} ${invalid ? t.danger || t.accent : t.accent}`, borderRadius: 9,
-                    background: `color-mix(in srgb, ${t.accent} ${currentPreview ? 22 : 12}%, ${t.card})`, boxSizing: "border-box", zIndex: currentPreview ? 3 : 1, boxShadow: `0 2px 6px color-mix(in srgb, ${t.text} 9%, transparent)` }}>
-                    <button type="button" disabled={saving || w.key === "drawing"} onPointerDown={e => begin(e, day, w)}
-                      onClick={() => { if (Date.now() >= suppressClick.current) openWindow(w); }} onKeyDown={e => keyboard(e, w)}
-                      aria-label={`${dayName(day)} ${calendarTime(w.start_minute)}–${calendarTime(w.end_minute)}, ${L("upravit blok", "edit block")}`}
-                      title={`${calendarTime(w.start_minute)}–${calendarTime(w.end_minute)}`}
-                      style={{ width: "100%", height: "100%", overflow: "hidden", padding: "0 17px", border: 0, borderRadius: 8, background: "transparent", color: t.text, fontFamily: BODY, fontSize: 12, whiteSpace: "nowrap", cursor: currentPreview ? "grabbing" : "grab", touchAction: "pan-y" }}>
-                      {calendarTime(w.start_minute)}–{calendarTime(w.end_minute)}
-                    </button>
-                    {w.end_minute - w.start_minute >= 60 && ["start", "end"].map(mode => <button key={mode} type="button" className="tm-weekly-grip" disabled={saving || w.key === "drawing"}
-                      aria-label={`${L(mode === "start" ? "Posunout začátek" : "Posunout konec", mode === "start" ? "Move start" : "Move end")} ${dayName(day)} ${calendarTime(w.start_minute)}–${calendarTime(w.end_minute)}`}
-                      onPointerDown={e => begin(e, day, w, mode)} onKeyDown={e => keyboard(e, w, mode)} onClick={() => { if (Date.now() >= suppressClick.current) openWindow(w); }}
-                      style={{ position: "absolute", [mode === "start" ? "left" : "right"]: 0, top: 0, bottom: 0, width: 16, padding: 0, color: t.accentInk || t.accent, border: 0, background: "transparent", borderRadius: 8, cursor: "ew-resize" }} aria-description={L("Šipky doleva a doprava mění čas o 15 minut.", "Left and right arrows change time by 15 minutes.")}>│</button>)}
-                  </div>;
-                })}
-                {!displayWindows.some(w => w.weekday === day) && <span style={{ pointerEvents: "none", position: "absolute", left: 18, top: compact ? 38 : 27, color: t.textSec, fontSize: 13 }}>{L("Volno · klepni pro nový blok", "Off · tap to add a block")}</span>}
-              </div>
+            {WEEKDAYS.map(day => <div key={day} ref={node => { tracks.current[day] = node; }} data-weekday={day} className="tm-weekly-track" onPointerDown={e => begin(e, day)}
+              onClick={e => { if (e.target !== e.currentTarget || Date.now() < suppressClick.current || saving) return; const r = e.currentTarget.getBoundingClientRect(); setSelectedDay(day); add(day, Math.min(1435, snapMinute(min + (e.clientY - r.top) / r.height * span))); }}
+              style={{ position: "relative", minWidth: 0, borderLeft: `1px solid ${t.borderSoft}`, cursor: "crosshair", backgroundImage: `linear-gradient(to bottom, ${t.borderSoft} 1px, transparent 1px)`, backgroundSize: `100% ${60 * scale}px` }}>
+              {displayWindows.filter(w => w.weekday === day).map(w => {
+                const currentPreview = preview?.window.key === w.key, invalid = currentPreview && !preview.valid;
+                return <div key={w.key} className="tm-weekly-block" data-weekly-block={w.key} style={{ position: "absolute", left: 2, right: 2, top: (w.start_minute - min) * scale,
+                  height: (w.end_minute - w.start_minute) * scale, minHeight: 6, border: `1px ${invalid ? "dashed" : "solid"} ${invalid ? t.danger || t.accent : t.accent}`, borderRadius: 5,
+                  background: `color-mix(in srgb, ${t.accent} ${currentPreview ? 22 : 12}%, ${t.card})`, boxSizing: "border-box", zIndex: currentPreview ? 3 : 1 }}>
+                  <button type="button" disabled={saving || w.key === "drawing"} onPointerDown={e => begin(e, day, w)}
+                    onClick={() => { if (Date.now() >= suppressClick.current) { setSelectedDay(day); openWindow(w); } }} onKeyDown={e => keyboard(e, w)}
+                    aria-label={`${dayName(day)} ${calendarTime(w.start_minute)}–${calendarTime(w.end_minute)}, ${L("upravit blok", "edit block")}`}
+                    style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", gap: 3, width: "100%", height: "100%", overflow: "hidden", padding: "14px 1px", border: 0, borderRadius: 4, background: "transparent", color: t.text, fontFamily: BODY, fontSize: compact ? 9 : 12, fontVariantNumeric: "tabular-nums", cursor: currentPreview ? "grabbing" : "grab", touchAction: "pan-y" }}>
+                    <span>{calendarTime(w.start_minute)}</span><span aria-hidden="true">–</span><span>{calendarTime(w.end_minute)}</span>
+                  </button>
+                  {w.end_minute - w.start_minute >= 30 && ["start", "end"].map(mode => <button key={mode} type="button" className="tm-weekly-grip" disabled={saving || w.key === "drawing"}
+                    aria-label={`${L(mode === "start" ? "Posunout začátek" : "Posunout konec", mode === "start" ? "Move start" : "Move end")} ${dayName(day)} ${calendarTime(w.start_minute)}–${calendarTime(w.end_minute)}`}
+                    onPointerDown={e => begin(e, day, w, mode)} onKeyDown={e => keyboard(e, w, mode)} onClick={() => { if (Date.now() >= suppressClick.current) openWindow(w); }}
+                    style={{ position: "absolute", [mode === "start" ? "top" : "bottom"]: 0, left: 0, right: 0, width: "100%", height: 13, padding: 0, color: t.accentInk || t.accent, border: 0, background: "transparent", borderRadius: 4, cursor: "ns-resize" }} aria-description={L("Šipky nahoru a dolů mění čas o 15 minut.", "Up and down arrows change time by 15 minutes.")}><span style={{ display: "block", margin: "auto", width: 14, borderTop: "1px solid currentColor" }} /></button>)}
+                </div>;
+              })}
             </div>)}
           </div>
         </div>
-        <p style={{ fontSize: 12, color: t.textSec, lineHeight: 1.6, margin: "10px 0 18px" }}>{compact
-          ? L("Časovou osu posuneš do stran. Blok podrž a posuň, okrajem změníš délku. Klepnutím zadáš přesný čas.", "Scroll the timeline sideways. Hold a block to move it, or its edge to resize. Tap to enter an exact time.")
-          : L("Táhni v prázdném místě pro nový blok. Blok přesuneš, okrajem změníš délku. Klepnutím zadáš přesný čas; šipky posouvají po 15 minutách.", "Drag empty space to draw a block. Move blocks or resize their edges. Click for exact times; arrow keys move by 15 minutes.")}</p>
+        <p style={{ fontSize: 12, color: t.textSec, lineHeight: 1.6, margin: "10px 0 18px" }}>{L("Klepnutím přidáš nebo upravíš blok. Podrž a přesuň ho, horním či dolním okrajem změníš délku. Mimo bloky se termíny nenabízejí.", "Tap to add or edit a block. Hold to move it, or resize its top or bottom edge. No appointments are offered outside working blocks.")}</p>
         {preview && <p role="status" style={{ color: preview.valid ? t.text : t.danger || t.accent }}>{dayName(preview.window.weekday)} · {calendarTime(preview.window.start_minute)}–{calendarTime(preview.window.end_minute)}{!preview.valid && ` · ${L("překryv nebo limit bloků", "overlap or block limit")}`}</p>}
         <div style={{ ...row, justifyContent: "space-between", borderTop: `1px solid ${t.borderSoft}`, paddingTop: 14 }}>
           <h4 style={{ fontFamily: DISPLAY, fontWeight: 400, fontSize: 23, margin: 0 }}>{dayName(selectedDay)}</h4>
