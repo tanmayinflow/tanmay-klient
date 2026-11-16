@@ -36,7 +36,8 @@
     "@breezystack/lamejs": "1.2.7",
     "astronomy-engine": "2.1.19",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "pdfjs-dist": "6.5.438"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",

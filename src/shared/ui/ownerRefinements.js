@@ -2,6 +2,20 @@
 export function ownerRefinementsCss() {
   return `
 :root { --tm-earth: #754437; --tm-on-earth: #F4F0EB; --tm-earth-nav-ink: #D69E87; }
+/* The notebook branch extends below the title. Reserve its actual height
+   before the search line, rather than drawing a panel over the artwork. */
+html[data-appearance] .tm-page-title[data-art-room="zapisnik"]:has(+ .tm-hdr-search) { min-height: 148px; }
+html[data-appearance] .tm-hdr-search, html[data-appearance] .tm-hdr-search > input,
+html[data-appearance] .tm-hdr-search > button { background: transparent !important; box-shadow: none !important; }
+html[data-appearance] .tm-hdr-search > input { border: 0 !important; border-radius: 0 !important; }
+.tm-hdr-search:focus-within { border-bottom-color: var(--tm-link) !important; }
+@media(max-width:370px) { html[data-appearance] .tm-page-title[data-art-room="zapisnik"]:has(+ .tm-hdr-search) { min-height: 112px; } }
+.tm-rich figure[data-img] { -webkit-touch-callout: none; }
+figure.tm-fig[data-img] .tm-fig-tools { display: none !important; }
+.tm-rich figure[data-img][data-tools-open="true"] .tm-fig-tools { display: flex !important; flex-wrap: wrap; max-width: calc(100% - 12px); }
+.tm-rich figure[data-img] .tm-fig-tools button { min-width: 40px !important; min-height: 40px !important; box-sizing: border-box !important; display: inline-grid !important; place-items: center; padding: 0 !important; }
+.tm-rich figure[data-img]:focus-visible { outline: 2px solid var(--tm-link); outline-offset: 4px; }
+.tm-rich figure[data-img] .tm-fig-tools button:focus-visible { outline: 2px solid #F4F0EB; outline-offset: -4px; }
 .tm-sidebar { isolation: isolate; overflow-x: hidden !important; scrollbar-width: none; scrollbar-gutter: auto !important; }
 .tm-sidebar .tm-gear { position: relative; left: var(--tm-gear-shift, -32px); transform: none !important; z-index: 2; }
 .tm-sidebar .tm-sidebar-search { width: var(--tm-search-width, calc(100% - 48px)); box-sizing: border-box; }

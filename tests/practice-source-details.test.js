@@ -76,7 +76,11 @@ test('source detail properties render small canonical icons with labels for ever
     };
     const { ContentDetail } = createSourcesUI(deps);
     const html = renderToStaticMarkup(React.createElement(ContentDetail, { id: entry.id }));
-    const expected = origin === 'coach' ? ['progress', 'people', 'quote'] : ['progress', 'people', 'star', 'calendar', 'quote', typeIcon, 'folder', 'archive'];
+    // Author now lives beside the cover and title, rather than in the property list.
+    assert.ok(html.includes('tm-source-heading'));
+    assert.ok(html.includes('Synthetic author'));
+    if (origin !== 'coach') assert.ok(html.includes(`aria-label="${L('Autor', 'Author')}"`));
+    const expected = origin === 'coach' ? ['progress', 'quote'] : ['progress', 'star', 'calendar', 'quote', typeIcon, 'folder', 'archive'];
     assert.equal(rows.length, expected.length, `${lang}/${type}/${origin}`);
     for (const [index, row] of rows.entries()) {
       const art = renderToStaticMarkup(row.icon);

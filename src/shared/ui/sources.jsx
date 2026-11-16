@@ -71,7 +71,7 @@ export function createSourcesUI(deps) {
     const fileRef = React.useRef(null);
     const taRef = React.useRef(null);
     const autosize = () => { const el = taRef.current; if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + 2 + "px"; } };
-    React.useEffect(() => { autosize(); }, [id]);
+    React.useEffect(() => { autosize(); }, [id, e?.title, st.editMode]);
     const [gdOpen, setGdOpen] = useState(false);
     const [gdUrl, setGdUrl] = useState("");
     const [reading, setReading] = useState(false);
@@ -121,15 +121,27 @@ export function createSourcesUI(deps) {
     const readButton = NotesReader && noteText.trim() ? <button type="button" onClick={()=>setReading(true)} style={{...iconBtn(t),width:"auto",minHeight:44,padding:"6px 10px",gap:6,fontFamily:"var(--tm-font-body)",fontSize:12}}><FamilyIcon id="book" size={15}/>{L("Číst po stránkách", "Read by page")}</button> : null;
     if (study) return <>{reader}<article style={{maxWidth:720,margin:"0 auto",paddingBottom:80}}><h1 style={{fontFamily:"var(--tm-font-display)",fontWeight:400,fontSize:30,lineHeight:1.2}}>{e.title}</h1><p style={{color:t.textSec,fontFamily:"var(--tm-font-body)",fontSize:13}}>{[e.author,L("Postřehy ke studiu","Study notes")].filter(Boolean).join(" · ")}</p>{readButton}<RichArea value={noteText} onChange={v=>upd(odTanmaye?{note:v}:{text:v})} placeholder={L("Co si z toho odnáším…","What I take from it…")}/></article></>;
     return (
-      <div style={wide ? { maxWidth: 640 } : undefined}>
+      <div data-tm-reading="source" style={wide ? { maxWidth: 640 } : undefined}>
         {reader}
         <input ref={coverRef} type="file" accept="image/*" onChange={(ev) => pickCover(ev.target.files && ev.target.files[0])} style={{ display: "none" }} />
         {odTanmaye && <div style={{ marginBottom: 10 }}><OriginBadge s={e} /></div>}
-        <button title={L("Nahrát obálku", "Upload cover")} disabled={odTanmaye} onClick={() => { if (!odTanmaye && coverRef.current) coverRef.current.click(); }} style={{ background: "transparent", border: "none", cursor: odTanmaye ? "default" : "pointer", padding: 0, marginBottom: 12, display: "block" }}>
-          <span style={{ width: 92, height: 128, borderRadius: 8, border: `1px solid ${t.border}`, display: "block", overflow: "hidden" }}>
+        <div className="tm-source-heading" style={{ display: "grid", gridTemplateColumns: "clamp(72px, 22vw, 92px) minmax(0, 1fr)", gap: 16, alignItems: "start", marginBottom: 12 }}>
+        <button title={L("Nahrát obálku", "Upload cover")} disabled={odTanmaye} onClick={() => { if (!odTanmaye && coverRef.current) coverRef.current.click(); }} style={{ background: "transparent", border: "none", cursor: odTanmaye ? "default" : "pointer", padding: 0, display: "block" }}>
+          <span style={{ width: "100%", aspectRatio: "92 / 128", borderRadius: 8, border: `1px solid ${t.border}`, display: "block", overflow: "hidden" }}>
             <SourceCover src={imgSrc(e.icon)} category={e.category} type={e.type} theme={t} glyph={glyfTypu(e.type)} variant="detail" />
           </span>
         </button>
+        <div style={{ minWidth: 0, paddingTop: 2 }}>
+          {st.editMode && !odTanmaye
+            ? <textarea ref={taRef} rows={1} value={e.title} aria-label={L("Název pramene", "Source title")} onChange={(ev) => { upd({ title: ev.target.value }); autosize(); }} placeholder={L("Název…", "Title…")} style={{ width: "100%", boxSizing: "border-box", resize: "none", overflow: "hidden", background: "transparent", border: "none", fontFamily: "var(--tm-font-display)", fontSize: "clamp(22px, 4vw, 28px)", fontWeight: 500, color: t.heading, padding: 0, lineHeight: 1.2 }} />
+            : (() => { const s = sourceLink(); return <a href={e.title ? s.url : undefined} target="_blank" rel="noopener noreferrer" title={e.title ? L("Vyhledat · ", "Search · ") + s.label : ""} onMouseOver={(ev) => { if (e.title) ev.currentTarget.style.color = t.accent; }} onMouseOut={(ev) => { ev.currentTarget.style.color = t.heading; }} style={{ display: "block", overflowWrap: "anywhere", fontFamily: "var(--tm-font-display)", fontSize: "clamp(22px, 4vw, 28px)", fontWeight: 500, color: t.heading, lineHeight: 1.2, textDecoration: "none", cursor: e.title ? "pointer" : "default", transition: "color .18s ease" }}>{e.title || L("Bez názvu", "Untitled")}</a>; })()}
+          <div style={{ marginTop: 10, color: t.textSec }}>
+            {odTanmaye
+              ? <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 15, overflowWrap: "anywhere" }}>{e.author || "—"}</span>
+              : <input value={e.author || ""} onChange={(ev) => upd({ author: ev.target.value })} placeholder={L("Autor", "Author")} aria-label={L("Autor", "Author")} style={{ width: "100%", minWidth: 0, boxSizing: "border-box", background: "transparent", border: "none", padding: "6px 0", color: t.textSec, fontFamily: "var(--tm-font-body)", fontSize: 16 }} />}
+          </div>
+        </div>
+        </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 12 }}>
           {!odTanmaye && <>
             <button onClick={() => coverRef.current?.click()} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textSec, fontFamily: "var(--tm-font-body)", fontSize: 12, minHeight: 32 }}>{L("Nahrát obálku", "Upload cover")}</button>
@@ -137,15 +149,7 @@ export function createSourcesUI(deps) {
           </>}
           {e.icon && !odTanmaye && <button onClick={() => { if (e.icon && e.icon.r2id) r2Del(e.icon.r2id); upd({ icon: null }); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-body)", fontSize: 12 }}>{L("Odebrat", "Remove")}</button>}
         </div>
-        <div style={{ marginBottom: 14 }}>
-          {st.editMode && !odTanmaye
-            ? <input value={e.title} onChange={(ev) => upd({ title: ev.target.value })} placeholder={L("Název…", "Title…")} style={{ width: "100%", background: "transparent", border: "none", fontFamily: "var(--tm-font-display)", fontSize: 28, fontWeight: 500, color: t.heading, outline: "none", padding: 0, lineHeight: 1.2 }} />
-            : (() => { const s = sourceLink(); return <a href={e.title ? s.url : undefined} target="_blank" rel="noopener noreferrer" title={e.title ? L("Vyhledat · ", "Search · ") + s.label : ""} onMouseOver={(ev) => { if (e.title) ev.currentTarget.style.color = t.accent; }} onMouseOut={(ev) => { ev.currentTarget.style.color = t.heading; }} style={{ display: "block", fontFamily: "var(--tm-font-display)", fontSize: 28, fontWeight: 500, color: t.heading, lineHeight: 1.2, textDecoration: "none", cursor: e.title ? "pointer" : "default", transition: "color .18s ease" }}>{e.title || L("Bez názvu", "Untitled")}</a>; })()}
-        </div>
         <PropRow icon={<FamilyIcon id="progress" size={16} />} label={L("Stav", "Progress")}><button onClick={() => cycle(C_PROGRESS, e.progress, "progress")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}><Tag label={C_PROG_LABEL(e.progress, e.type)} color={C_PROG_COLOR[e.progress] || "default"} /></button></PropRow>
-        <PropRow icon={<FamilyIcon id="people" size={16} />} label={L("Autor", "Author")}>{odTanmaye
-          ? <span style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: e.author ? t.text : t.textMuted }}>{e.author || "—"}</span>
-          : <input value={e.author || ""} onChange={(ev) => upd({ author: ev.target.value })} placeholder="—" aria-label={L("Autor", "Author")} style={{ width: "100%", background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 13, outline: "none" }} />}</PropRow>
         {!odTanmaye && <PropRow icon={<FamilyIcon id="star" size={16} />} label={L("Skóre /10", "Score /10")}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <button onClick={() => upd({ score: String(Math.max(0, (scoreN == null ? 5 : scoreN) - 1)) })} aria-label={L("Ubrat bod", "Remove a point")} style={{ ...iconBtn(t), width: 26, height: 26 }}>−</button>
@@ -173,7 +177,7 @@ export function createSourcesUI(deps) {
           </div>
         )}
         <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px 0 6px", flexWrap: "wrap" }}>
-          <input ref={fileRef} type="file" multiple accept=".pdf,audio/*,.opus,.ogg,.oga,image/*,.doc,.docx,.txt" onChange={(ev) => attach(ev.target.files)} style={{ display: "none" }} />
+          <input ref={fileRef} type="file" multiple accept=".pdf,.epub,.docx,.txt,.md,.markdown,.html,.htm,.csv,.json,audio/*,.opus,.ogg,.oga,image/*,.doc" onChange={(ev) => attach(ev.target.files)} style={{ display: "none" }} />
           {!odTanmaye && <button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "8px 12px", minHeight: 38, cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 7 }}><ClipIcon size={13} />{L("PDF · audio shrnutí · soubor", "PDF · audio summary · file")}</button>}
           {gdEmbed && !odTanmaye && <button onClick={() => setGdOpen(!gdOpen)} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: 8, padding: "8px 12px", minHeight: 38, cursor: "pointer", color: gdOpen ? (t.accentInk || t.accent) : (t.inkSand || t.sand), fontFamily: "var(--tm-font-body)", fontSize: 12 }}>Google Drive</button>}
           <PinToggle entry={e} />

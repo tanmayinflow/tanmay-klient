@@ -1,3 +1,7 @@
+import { AppNotices } from "./shared/ui/AppNotices.jsx";
+import { beginNavigationSwipe, navigationSwipeBlocked, navigationSwipeDirection, hasTextSelection, watchNavigationSelection } from "./shared/ui/navigationGesture.js";
+import { createScreenWakeController, observeReadingScreen } from "./shared/ui/screenWake.js";
+import { attachInlineImageControls } from "./shared/ui/inlineImageControls.js";
 import { DateField, DateFieldContext } from './shared/ui/DateField.jsx';
 import { MediaPreparationStatus } from "./shared/ui/MediaPreparationStatus.jsx";
 import { prepareNewAttachment, mediaPreparationMessage } from "./shared/product/mediaPreparation.js";
@@ -131,6 +135,10 @@ import { createAtoms } from "./shared/ui/atoms.jsx";
 import { createCompassUI } from "./shared/ui/compass.jsx";
 import { createListUI } from "./shared/ui/lists.jsx";
 import { createSourcesUI } from "./shared/ui/sources.jsx";
+import { createDocumentReader } from "./shared/ui/documentReader.jsx";
+import { documentKind } from "./shared/product/documentContent.js";
+import { tmSazec } from "./typesetter.js";
+import { tmHtmlToMd, tmTextToMd, tmMdNormalize, tmFileToMd, tmImportKind, TM_IMPORT_ACCEPT, tmPdfFromMemory, tmPdfFragmentToMd, tmPdfFileModel } from "./textImport.js";
 import { tmPlain } from "./shared/lang/text.js";
 import { GOAL_OWNER, mergeGoals, mayEditGoalField, sanitizeClientProgress, coachGoalsForClient } from "./shared/product/compass.js";
 import { reconcileGoalLongTermLink, renamedGoalLandscapeEdits } from "./shared/product/longTermGoals.js";
@@ -755,6 +763,7 @@ function MiniCallout({ icon, children }) {
 // zásobník, stránka pod ním se rolovala a focus po zavření skončil na
 // začátku dokumentu. Teď to obojí drží src/shared/ui/overlay.jsx.
 const { CenterSheet, Drawer, TmSipka } = createOverlay(useT, L);
+const DocumentReader = createDocumentReader({ useT, L, CenterSheet, getBlob: attBlob });
 const Toggle = createDisclosure({ useT, TmSipka });
 const { Prazdno, TmArtKapka } = createStates(useT, L);
 // VZHLED · týž oddíl jako v osobní aplikaci. Jeden zdroj, dvě role.
@@ -1063,10 +1072,11 @@ function useAttSrc(a) {
   return src;
 }
 
-async function attBlob(a) {
+async function attBlob(a, signal) {
   return readClientAttachmentBlob(a, {
-    session: clientAccount, local: idbGet, url: attUrl, request: clientFetch,
-    fetch: (...args) => fetch(...args),
+    session: clientAccount, local: idbGet, url: attUrl,
+    request: (url, init) => clientFetch(url, { ...init, signal }),
+    fetch: (url, init) => fetch(url, { ...init, signal }),
     pinned: async url => typeof caches === "undefined" ? null : (await caches.open("pinned")).match(url),
   });
 }
@@ -1097,14 +1107,18 @@ function ObrazekPrilohy({ a, zoom, setZoom, onRemove, sdilPril }) {
 function SouborPrilohy({ a, onRemove, sdilPril }) {
   const { t } = useT();
   const src = useAttSrc(a);
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${t.border}`, borderRadius: 20, padding: "4px 12px", background: t.card }}>
-      <a href={src || undefined} download={a.name} style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.sand, textDecoration: "none" }}>📎 {a.name}</a>
-      <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{fmtSize(a.size)}</span>
-      <button title={L("Sdílet soubor", "Share the file")} onClick={() => sdilPril(a)} style={{ background: "transparent", border: "none", color: t.sand, cursor: "pointer", padding: 0, display: "inline-flex" }}><TmIcSdilet size={13} /></button>
-      {onRemove && <button title="Odebrat" onClick={() => { onRemove(a.id); }} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 12, padding: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+  const [open, setOpen] = useState(false);
+  const readable = !!documentKind(a);
+  const action = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, minHeight: 44, minWidth: 44, padding: "6px 9px", border: 0, borderRadius: 8, background: "transparent", color: t.accentInk || t.accent, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 };
+  return <>
+    <span style={{ display: "inline-flex", alignItems: "center", flexWrap: "wrap", gap: 2, maxWidth: "100%", border: `1px solid ${t.border}`, borderRadius: 14, padding: "2px 4px", background: t.card }}>
+      {readable ? <button type="button" onClick={() => setOpen(true)} title={L("Otevřít dokument", "Open document")} style={{ ...action, textAlign: "left", justifyContent: "flex-start", minWidth: 0, flex: "1 1 120px", overflowWrap: "anywhere" }}><FamilyIcon id="attach" size={16}/>{a.name}</button> : <a href={src || undefined} download={a.name} style={{ ...action, minWidth: 0, overflowWrap: "anywhere", textDecoration: "none" }}>{a.name}</a>}
+      <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, padding: "0 4px" }}>{fmtSize(a.size)}</span>
+      <button type="button" aria-label={L("Sdílet soubor", "Share file")} onClick={() => sdilPril(a)} style={action}><TmIcSdilet size={16}/></button>
+      {onRemove && <button type="button" aria-label={L("Odebrat přílohu", "Remove attachment")} onClick={() => { onRemove(a.id); }} style={{ ...action, color: t.textMuted }}><FamilyIcon id="close" size={16}/></button>}
     </span>
-  );
+    {open && <DocumentReader attachment={a} fallbackUrl={src} onClose={() => setOpen(false)}/>}
+  </>;
 }
 
 function AudioRow({ a, onRemove }) {
@@ -1898,7 +1912,7 @@ function useStranky(ref, on, opts) {
        utišení se dorovná na nejbližší celou stránku. Text nesmí zůstat
        rozpůlený v půli řádku. */
     const dorovnej = () => {
-      if (tah) return;
+      if (tah || hasTextSelection()) return;
       const w = krok();
       const cil = Math.round(el.scrollLeft / w) * w;
       if (Math.abs(cil - el.scrollLeft) > 1) { try { el.scrollTo({ left: cil, behavior: "smooth" }); } catch (err) { el.scrollLeft = cil; } }
@@ -1907,18 +1921,18 @@ function useStranky(ref, on, opts) {
     el.addEventListener("scroll", priRolovani, { passive: true });
     window.addEventListener("resize", prepocti);
 
-    // ——— tah prstem · jeden přejezd = jedna stránka ———
-    let x0 = 0, y0 = 0, l0 = 0, osa = "", cas = 0;
+    // One deliberate swipe advances one page. A hold or selection stays native.
+    let swipe = null, l0 = 0, osa = "";
     const dolu = (ev) => {
-      const p = ev.touches ? ev.touches[0] : ev;
-      x0 = p.clientX; y0 = p.clientY; l0 = el.scrollLeft; osa = ""; cas = Date.now(); tah = false;
+      swipe = beginNavigationSwipe(ev, { reader: true });
+      l0 = el.scrollLeft; osa = ""; tah = false;
     };
     const posun = (ev) => {
-      const p = ev.touches ? ev.touches[0] : ev;
-      const dx = p.clientX - x0, dy = p.clientY - y0;
+      if (navigationSwipeBlocked(swipe, ev)) { if (tah) el.scrollLeft = l0; osa = ""; tah = false; return; }
+      const p = ev.touches[0], dx = p.clientX - swipe.x, dy = p.clientY - swipe.y;
       if (!osa) {
-        if (Math.abs(dx) > 9 && Math.abs(dx) > Math.abs(dy) + 2) osa = "x";
-        else if (Math.abs(dy) > 9) osa = "y";
+        if (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy) * 2.2) osa = "x";
+        else if (Math.abs(dy) > 16) { swipe.blocked = true; osa = "y"; }
       }
       if (osa !== "x") return;
       if (ev.cancelable) ev.preventDefault();
@@ -1926,22 +1940,22 @@ function useStranky(ref, on, opts) {
       el.scrollLeft = l0 - dx;
     };
     const nahoru = (ev) => {
-      if (osa !== "x") { osa = ""; return; }
-      osa = "";
-      const p = ev.changedTouches ? ev.changedTouches[0] : ev;
-      const dx = p.clientX - x0;
-      const w = krok();
-      const rychlost = Math.abs(dx) / Math.max(1, Date.now() - cas);
-      const dost = Math.abs(dx) > w * 0.16 || rychlost > 0.4;
-      tah = false;
-      jdi(Math.round(l0 / w) + (dost ? (dx < 0 ? 1 : -1) : 0));
-      zamek = true;
-      window.setTimeout(() => { zamek = false; }, 300);
+      const dragged = tah;
+      const dir = navigationSwipeDirection(swipe, ev, { width: krok() });
+      const blocked = navigationSwipeBlocked(swipe, ev);
+      swipe = null; osa = ""; tah = false;
+      if (blocked) { if (dragged) el.scrollLeft = l0; return; }
+      if (dragged) {
+        jdi(Math.round(l0 / krok()) + dir);
+        zamek = true;
+        window.setTimeout(() => { zamek = false; }, 300);
+      }
     };
-    const zrus = () => { osa = ""; tah = false; };
+    const zrus = () => { if (tah) el.scrollLeft = l0; swipe = null; osa = ""; tah = false; };
     // klepnutí, které vzniklo z tahu, není klepnutí
     const klik = (ev) => { if (tah || zamek) { ev.stopPropagation(); ev.preventDefault(); } };
     const kolo = (ev) => {
+      if (hasTextSelection()) return;
       const d = Math.abs(ev.deltaX) > Math.abs(ev.deltaY) ? ev.deltaX : (ev.shiftKey ? ev.deltaY : 0);
       if (!d) return;
       if (ev.cancelable) ev.preventDefault();
@@ -1957,6 +1971,7 @@ function useStranky(ref, on, opts) {
     el.addEventListener("wheel", kolo, { passive: false });
     const klavesa = (ev) => {
       if (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
+      if (ev.shiftKey || hasTextSelection()) return;
       const a = document.activeElement;
       if (a && (a.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(a.tagName))) return;
       ev.preventDefault();
@@ -2182,81 +2197,8 @@ function gdFigHtml(url, h, t) {
     + '</span></figure>';
 }
 
-const SAZEC_HOTOVE = /^(#{1,3}\s|[-*]\s|\d{1,3}\.\s|>\s|!img\(|!gd\(|- \[[ x]\]|-{3,}\s*$)/;
 
-function tmSazec(md) {
-  const znacka = (l) => { const m = l.match(/^\{\^[crj]\}/); return m ? m[0] : ""; };
-  const cisty = (l) => l.replace(/^\{\^[crj]\}/, "");
-  const hotove = (l) => SAZEC_HOTOVE.test(cisty(l));
-  // 0 · normalizace: konce řádků, ocasní mezery, tři a víc prázdných → jeden
-  let lines = String(md || "").replace(/\r\n?/g, "\n").split("\n").map((l) => l.replace(/[ \t]+$/, ""));
-  const uhlad = (arr) => { const o = []; let pz = 0; arr.forEach((l) => { if (cisty(l).trim() === "") { pz++; if (pz <= 1) o.push(""); } else { pz = 0; o.push(l); } }); return o; };
-  lines = uhlad(lines);
-  // 1 · sjednocení odrážek, číslování a oddělovníků
-  lines = lines.map((l) => {
-    const z = znacka(l); const c = cisty(l);
-    if (SAZEC_HOTOVE.test(c)) return l;
-    let m = c.match(/^\s*[•▪‣·]\s+(.*)$/); if (m) return z + "- " + m[1];
-    m = c.match(/^\s*[–—]\s+(.*)$/); if (m) return z + "- " + m[1];
-    m = c.match(/^\s*(\d{1,3})\)\s+(.*)$/); if (m) return z + m[1] + ". " + m[2];
-    if (/^[-_*━―—=]{3,}$/.test(c.trim())) return "---";
-    return l;
-  });
-  // 2 · verše: běh tří a víc „holých" řádků bez prázdných, všechny krátké → nesahat
-  const holy = (l) => cisty(l).trim() !== "" && !hotove(l);
-  const vers = new Array(lines.length).fill(false);
-  for (let i = 0; i < lines.length; ) {
-    if (!holy(lines[i])) { i++; continue; }
-    let j = i; while (j < lines.length && holy(lines[j])) j++;
-    if (j - i >= 3 && lines.slice(i, j).every((l) => cisty(l).length <= 56)) for (let k = i; k < j; k++) vers[k] = true;
-    i = j;
-  }
-  // 3 · scelení zalomené prózy: dlouhý řádek bez koncové interpunkce
-  //     + pokračování malým písmenem = jeden odstavec
-  const l3 = []; const v3 = [];
-  for (let k = 0; k < lines.length; k++) {
-    const l = lines[k];
-    const p = l3.length - 1;
-    if (p >= 0 && !vers[k] && !v3[p] && holy(l) && !znacka(l) && l3[p] !== "" && holy(l3[p])
-      && cisty(l3[p]).length >= 60 && !/[.!?:;…"“)\]]$/.test(cisty(l3[p]))
-      && /^[a-záčďéěíňóřšťúůýž]/.test(cisty(l).trim())) {
-      l3[p] = l3[p] + " " + cisty(l).trim();
-    } else { l3.push(l); v3.push(vers[k]); }
-  }
-  lines = l3;
-  // 4 · titulek, nadpisy, podnadpisy, citace
-  const out = [];
-  let titulekVolny = true;
-  for (let k = 0; k < lines.length; k++) {
-    const l = lines[k];
-    const z = znacka(l); const txt = cisty(l).trim();
-    if (txt === "") { out.push(""); continue; }
-    if (hotove(l) || v3[k]) { out.push(l); titulekVolny = false; continue; }
-    const kratky = txt.length <= 56;
-    const predPrazdny = k === 0 || cisty(lines[k - 1]).trim() === "";
-    const dalsiText = (k + 1 < lines.length && cisty(lines[k + 1]).trim() !== "")
-      || (k + 2 < lines.length && cisty(lines[k + 1]).trim() === "" && cisty(lines[k + 2]).trim() !== "");
-    const zaPrazdny = k + 1 >= lines.length || cisty(lines[k + 1]).trim() === "";
-    const velkymi = txt.length >= 3 && txt.length <= 64 && txt === txt.toUpperCase() && /[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{2}/.test(txt);
-    const bezKonce = !/[.!?…;,]$/.test(txt);
-    if (titulekVolny && kratky && bezKonce && !/:$/.test(txt)) { out.push(z + "# " + txt); titulekVolny = false; continue; }
-    titulekVolny = false;
-    if (velkymi) { out.push(z + "## " + txt); continue; }
-    if (/^[„"].*[“”"]$/.test(txt) && txt.length <= 160 && predPrazdny && zaPrazdny) { out.push(z + "> " + txt); continue; }
-    if (kratky && /:$/.test(txt) && predPrazdny && dalsiText) { out.push(z + "### " + txt); continue; }
-    if (kratky && bezKonce && predPrazdny && dalsiText && !(v3[k + 1] && cisty(lines[k + 1] || "").trim() !== "") && txt.split(/\s+/).length <= 7) { out.push(z + "## " + txt); continue; }
-    out.push(l);
-  }
-  // 5 · dech: prázdný řádek před nadpisem a za titulkem
-  const fin = [];
-  out.forEach((l) => {
-    const c = cisty(l);
-    if (/^#{2,3}\s/.test(c) && fin.length && cisty(fin[fin.length - 1]).trim() !== "") fin.push("");
-    fin.push(l);
-    if (/^#\s/.test(c)) fin.push("");
-  });
-  return uhlad(fin).join("\n").replace(/\n+$/, "");
-}
+
 
 let TM_GESTURE = 0;
 
@@ -2649,7 +2591,7 @@ const TM_LISTA_V = 52;
 
 function TmIcZarovnat({ typ, size = 14 }) { return <FamilyIcon id={({l:"align-left",c:"align-center",r:"align-right",j:"align-justify"})[typ] || "align-left"} size={size} />; }
 
-function PsaciLista({ exec, onImage, onZen, zen, focused, blockOf, setBlock, insertHr, sazec, undo, redo, canUndo, canRedo, naPrilohu, onZmensit, recordingStatus }) {
+function PsaciLista({ exec, onImage, onZen, zen, focused, blockOf, setBlock, insertHr, sazec, zeSouboru, undo, redo, canUndo, canRedo, naPrilohu, onZmensit, recordingStatus }) {
   const { t } = useT();
   const [, force] = useState(0);
   const [sheet, setSheet] = useState(null);    // null | "styl" | "znak" | "seznam"
@@ -2896,6 +2838,16 @@ function PsaciLista({ exec, onImage, onZen, zen, focused, blockOf, setBlock, ins
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontFamily: FONT_DISPLAY, fontSize: 15 }}>{L("Sazeč · rozsadit text", "Typesetter · lay the text out")}</span>
                 <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, lineHeight: 1.4, color: t.textMuted, marginTop: 1 }}>{L("Nadpisy, odstavce a seznamy podle významu. Offline, nic neposílá. Vrátit lze hned.", "Headings, paragraphs and lists by meaning. Offline, sends nothing. Undo is right there.")}</span>
+              </span>
+            </button>
+          )}
+          {sheet === "sazec" && sazec && zeSouboru && (
+            <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={(e) => { e.preventDefault(); setSheet(null); zeSouboru(); }}
+              style={{ display: "flex", alignItems: "flex-start", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderRadius: 10, cursor: "pointer", padding: "9px 10px 10px", minHeight: 48, color: t.text, touchAction: "manipulation" }}>
+              <span aria-hidden="true" style={{ width: 22, flexShrink: 0, marginTop: 2, color: t.sand, display: "inline-flex" }}><FamilyIcon id="article" size={18} /></span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontFamily: FONT_DISPLAY, fontSize: 15 }}>{L("Ze souboru · převést na text", "From a file · turn it into text")}</span>
+                <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, lineHeight: 1.4, color: t.textMuted, marginTop: 1 }}>{L("PDF, Word nebo text. Nadpisy, odstavce a seznamy zůstanou. Čte se v tomhle zařízení.", "PDF, Word or text. Headings, paragraphs and lists stay. Read on this device.")}</span>
               </span>
             </button>
           )}
@@ -3691,7 +3643,7 @@ function tmHilite(name, theme) {
     if (!mark) { tmToggleWrap("mark", "tm-hl"); mark = tmMarkAncestor(["MARK"]); }
     if (mark) { mark.setAttribute("data-highlight", name); mark.style.background = editorHighlight(name, theme); }
   }
-function MdToolbar({ exec, onImage, onZen, zen, blockOf, setBlock, insertHr, sazec, zarovnej, undo, redo, canUndo, canRedo }) {
+function MdToolbar({ exec, onImage, onZen, zen, blockOf, setBlock, insertHr, sazec, zeSouboru, zarovnej, undo, redo, canUndo, canRedo }) {
   const { t } = useT();
   const [, force] = useState(0);
   const [palOpen, setPalOpen] = useState(false);
@@ -3826,6 +3778,8 @@ function MdToolbar({ exec, onImage, onZen, zen, blockOf, setBlock, insertHr, saz
       {sazec && !canRedo && <>{sep}
       <button type="button" title={L("Sazeč · rozsadí celý text podle významu (offline)", "Typesetter · lays the text out by meaning (offline)")} onPointerDown={(e) => { e.preventDefault(); sazec(); }}
         style={{ ...btn(false), padding: "2px 9px", fontFamily: FONT_BODY, fontSize: 12 }}>{L("Sazeč", "Typeset")}</button>
+      {zeSouboru && <button type="button" title={L("Ze souboru · převede PDF, Word nebo text na poznámku (čte se v tomhle zařízení)", "From a file · turns a PDF, Word file or text into the note (read on this device)")} onPointerDown={(e) => { e.preventDefault(); }} onClick={(e) => { e.preventDefault(); zeSouboru(); }}
+        style={{ ...btn(false), padding: "2px 9px", fontFamily: FONT_BODY, fontSize: 12 }}>{L("Ze souboru", "From file")}</button>}
       </>}
       {canRedo && redo && <>{sep}
       <button type="button" title={L("Znovu", "Redo")} aria-label={L("Znovu", "Redo")} onPointerDown={(e) => { e.preventDefault(); redo(); }}
@@ -3862,6 +3816,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
   // Přesun do portálu znamená pro React nové připojení uzlu, takže si po
   // přepnutí necháme text natéct znovu (last.current = null).
   const [zen, setZen] = useState(false);
+  React.useEffect(() => attachInlineImageControls(ref.current, { isLocked: () => richLockedRef.current, label: L("Upravit obrázek", "Edit image") }), [zen, zamek]);
   const imgRef = React.useRef(null);
   const [focused, setFocused] = useState(false);
   /* PSANÍ PO STRÁNKÁCH
@@ -3900,7 +3855,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     if (!box || !pole) return;
     const w = box.clientWidth; if (!w) return;
     const s = window.getSelection();
-    if (!s || !s.rangeCount || !pole.contains(s.anchorNode)) return;
+    if (!s || !s.isCollapsed || !s.rangeCount || !pole.contains(s.anchorNode)) return;
     let r = null;
     try { r = s.getRangeAt(0).getBoundingClientRect(); } catch (err) { return; }
     if (!r || (!r.width && !r.height && !r.left)) {
@@ -4107,7 +4062,7 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     if (po === md) setSazecZpet("nic");
     else { el.innerHTML = mdToHtml(po, t); sync(); setSazecZpet(pred); }
     if (sazecTm.current) clearTimeout(sazecTm.current);
-    sazecTm.current = setTimeout(() => setSazecZpet(null), 9000);
+    sazecTm.current = setTimeout(() => setSazecZpet(null), 20000);
   };
   const sazecVratit = () => {
     if (richLockedRef.current) return;
@@ -4273,25 +4228,115 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     sync();
   };
   const onInput = () => { if (richLockedRef.current) return; let did = false; try { did = autoFormat(); } catch (err) {} if (!did) lastAuto.current = null; sync(); try { checkLink(); } catch (err) {} try { checkSlash(); } catch (err) {} if (strankyOn) requestAnimationFrame(naKurzor); };
-  // vložení textu · když v něm jsou značky, rovnou z nich udělej bloky
+  // VLOŽENÍ ZE SCHRÁNKY · text si přinese tvar, který měl jinde.
+  //   schránka s formátem (web, Word, Dokumenty, jiná poznámka) → nadpisy,
+  //     seznamy, tučné a kurzíva se převedou na bloky poznámky
+  //   holý text o více řádcích (typicky z PDF) → Sazeč slepí zalomené řádky
+  //     a pozná nadpisy a seznamy
+  //   jedno slovo nebo řádek → vloží se do věty, žádný nový blok
+  //   text z PDF → schránka nese jen holý text. Formát leží v souboru: když
+  //     aplikace to PDF zná (už z něj jednou četla), najde v něm vložený kus
+  //     a vezme si nadpisy, tučné a odstavce odtamtud. Když ho nezná, nabídne
+  //     jeho výběr (doplnZPdf).
+  //   Ctrl+Shift+V → holý text beze změny
+  //   soubor PDF nebo Word ve schránce → převod souboru
+  const holyVloz = React.useRef(0);
   const onPaste = (e) => {
     e.preventDefault();
     if (richLockedRef.current) return;
-    const raw = e.clipboardData ? e.clipboardData.getData("text/plain") : "";
-    if (!raw) return;
-    const txt = raw.replace(/\r\n?/g, "\n").replace(/^\*\s/gm, "- ").replace(/^(\d{1,3})\)\s/gm, "$1. ");
+    const cd = e.clipboardData; if (!cd) return;
+    const holy = Date.now() - holyVloz.current < 1500;
+    holyVloz.current = 0;
+    const soubor = cd.files && cd.files.length ? Array.prototype.find.call(cd.files, (x) => { const k = tmImportKind(x); return k === "pdf" || k === "docx"; }) : null;
+    if (soubor) { prevedSoubor(soubor); return; }
+    const raw = (cd.getData("text/plain") || "").replace(/\r\n?/g, "\n");
+    // Bloky se vkládají vlastní rukou, ne přes execCommand("insertHTML"):
+    // ten je v prohlížeči zanoří do bloku pod kurzorem (nadpis v odstavci)
+    // a z vložené stavby zbude jeden slitý řádek.
+    const vlozBloky = (md) => {
+      const el = ref.current; if (!el) return;
+      const tmp = document.createElement("div");
+      tmp.innerHTML = mdToHtml(md, t);
+      const nove = Array.prototype.slice.call(tmp.childNodes);
+      if (!nove.length) return;
+      const s = window.getSelection();
+      let r = s && s.rangeCount ? s.getRangeAt(0) : null;
+      if (r && !el.contains(r.startContainer)) r = null;
+      if (r && !r.collapsed) {
+        r.deleteContents();
+        // po smazání výběru zbydou úplně prázdné obaly bloků · ven s nimi
+        Array.prototype.slice.call(el.children).forEach((c) => { if (!c.firstChild && c.tagName !== "FIGURE") c.remove(); });
+        if (!el.contains(r.startContainer)) r = null;
+      }
+      const blk = r ? tmBlockOfNode(el, r.startContainer) : null;
+      const jeObsah = (n) => n.tagName === "FIGURE" || n.getAttribute("data-hr") != null || tmBlockText(n).trim() !== "";
+      let pred = null;          // před tenhle uzel se vkládá · null = na konec
+      if (!blk) {
+        if (!Array.prototype.some.call(el.children, jeObsah)) el.innerHTML = "";
+      } else if (!jeObsah(blk)) { pred = blk.nextSibling; blk.remove(); }
+      else if (blk.tagName === "FIGURE" || blk.getAttribute("data-hr") != null) pred = blk.nextSibling;
+      else {
+        const off = tmCaretOffset(blk);
+        if (off === 0) pred = blk;
+        else if (off == null || off >= tmBlockText(blk).length) pred = blk.nextSibling;
+        else pred = tmSplitBlock(el, blk, tmBlockKind(blk));
+      }
+      nove.forEach((n) => el.insertBefore(n, pred));
+      const posl = nove[nove.length - 1];
+      try { if (posl.nodeType === 1) tmSetCaret(posl, null); } catch (err) {}
+      return nove;
+    };
+    const vloz = (md, bloky) => {
+      let uzly = null;
+      if (bloky) uzly = vlozBloky(md);
+      else if (/\*\*|~~|==|\*[^*\s]|\{[ch]\|/.test(md)) document.execCommand("insertHTML", false, mdToHtml(md, t).replace(/^<div[^>]*>([\s\S]*)<\/div>$/, "$1"));
+      else document.execCommand("insertText", false, md);
+      lastAuto.current = null;
+      sync();
+      return uzly;
+    };
+    if (holy) { if (raw) vloz(raw, false); return; }
     // Odkaz na Google Drive / Dokumenty vložený samotný → rovnou vestavěný náhled
-    const jedno = txt.trim();
+    const jedno = raw.trim();
     if (/^https?:\/\/(?:drive|docs)\.google\.com\/\S+$/.test(jedno) && tmGdEmbed(jedno)) {
       document.execCommand("insertHTML", false, "<div><br></div>" + gdFigHtml(jedno, 340, t) + "<div><br></div>");
       lastAuto.current = null;
       sync();
       return;
     }
-    if (/^(#{1,2}\s|[-*•]\s|\d{1,3}\.\s|>\s|-{3,}$)/m.test(txt)) document.execCommand("insertHTML", false, mdToHtml(txt, t));
-    else document.execCommand("insertText", false, txt);
-    lastAuto.current = null;
-    sync();
+    let md = "";
+    const html = cd.getData("text/html") || "";
+    if (html) {
+      try { md = tmHtmlToMd(html); } catch (err) { md = ""; }
+      // schránka občas nese formát, který přišel o řádky · pak je věrnější holý text
+      const rH = md.split("\n").filter((x) => x.trim()).length;
+      const rT = raw.split("\n").filter((x) => x.trim()).length;
+      if (md && rT >= 3 && rH < rT / 2) md = "";
+      // jediný řádek patří do věty, kde stojí kurzor · značka bloku i tučnost celého kusu jdou pryč
+      if (md && md.indexOf("\n") < 0 && !/^!(img|gd)\(/.test(md)) md = md.replace(/^(#{1,3}\s|- \[[ xX]\]\s|-\s|\d{1,3}\.\s|>\s)/, "").replace(/^\*\*([^*]+)\*\*$/, "$1");
+    }
+    let zPdf = null, nabidni = false;
+    const viceRadku = /\n/.test(jedno);
+    // schránka bez stavby (holý text, nebo formát, který nic nenese) · zkus PDF, která aplikace zná
+    const maStavbu = !!md && (/^(#{1,3}\s|[-•]\s|\d{1,3}\.\s|>\s)/m.test(md) || /\*\*|~~|==/.test(md));
+    if (raw && !maStavbu) { try { zPdf = tmPdfFromMemory(raw); } catch (err) { zPdf = null; } }
+    if (zPdf) {
+      md = zPdf.md;
+      if (!viceRadku && md.indexOf("\n") < 0) md = md.replace(/^(#{1,3}\s|- \[[ xX]\]\s|-\s|\d{1,3}\.\s|>\s)/, "");
+    } else if (!md) {
+      if (!raw) return;
+      md = viceRadku ? tmTextToMd(raw, { cast: true }) : tmMdNormalize(raw);
+      // holý text o více řádcích bez formátu ve schránce · takhle vypadá kopie z PDF
+      nabidni = viceRadku && !html && jedno.length >= 80;
+    }
+    if (!md) return;
+    const elP = ref.current; const predP = elP ? elP.innerHTML : null;
+    const uzly = vloz(md, nabidni || /\n/.test(md) || /^(#{1,3}\s|[-•]\s|\d{1,3}\.\s|>\s|-{3,}$|!img\(|!gd\()/.test(md));
+    if (zPdf && uzly && predP != null) prevodHlas({ stav: "hotovo", text: L(`Formát je doplněný podle „${zPdf.jmeno}“.`, `The format was filled in from "${zPdf.jmeno}".`), zpet: predP }, 20000);
+    else if (nabidni && uzly) {
+      pdfCeka.current = { raw, uzly };
+      prevodHlas({ stav: "nabidka", text: L("Schránka z PDF nese jen holý text. Vyber to PDF a doplním nadpisy, tučné a odstavce.", "A PDF's clipboard carries plain text only. Pick that PDF and I will fill in headings, bold and paragraphs.") }, 30000);
+    }
   };
   // Otevření systémového dialogu vezme zaostření a s ním i kurzor v textu.
   // Rozsah si proto schováme dopředu a po návratu ho posadíme zpátky —
@@ -4327,6 +4372,110 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
     } catch (err) {}
     imgRange.current = null;
     if (imgRef.current) imgRef.current.value = "";
+  };
+  // ——— PŘEVOD SOUBORU · PDF, Word, text → bloky poznámky. Čte se v tomhle
+  //     zařízení, soubor nikam neodchází. Vrátit drží snímek jako u Sazeče. ———
+  const souborRef = React.useRef(null);
+  const pdfRef = React.useRef(null);
+  const pdfCeka = React.useRef(null);                   // { raw, uzly } · vložený holý text, který čeká na své PDF
+  const [prevod, setPrevod] = React.useState(null);     // { stav: "cte" | "hotovo" | "chyba" | "nabidka", text, zpet }
+  const prevodZije = React.useRef(true);
+  const prevodTm = React.useRef(null);
+  React.useEffect(() => { prevodZije.current = true; return () => { prevodZije.current = false; if (prevodTm.current) clearTimeout(prevodTm.current); }; }, []);
+  // hlášení pod lištou · s časem samo zmizí, bez času čeká na zavření
+  const prevodHlas = (h, ms) => {
+    if (prevodTm.current) { clearTimeout(prevodTm.current); prevodTm.current = null; }
+    setPrevod(h);
+    if (ms) prevodTm.current = setTimeout(() => { if (prevodZije.current) setPrevod(null); }, ms);
+  };
+  const pdfDeps = (hlaska) => ({
+    pdfPages: async (buffer, onProgress) => (await import("./pdfText.js")).tmPdfPages(buffer, onProgress),
+    onProgress: (n, z) => { if (prevodZije.current && z > 3) setPrevod({ stav: "cte", text: hlaska(n, z) }); },
+  });
+  const ctuStranku = (n, z) => L(`Čtu stránku ${n} z ${z}…`, `Reading page ${n} of ${z}…`);
+  // DOPLNĚNÍ FORMÁTU Z PDF · vložený holý text se v souboru najde a vymění
+  // za tentýž kus se stavbou. PDF si aplikace pamatuje, dokud běží.
+  const otevriPdf = () => {
+    if (richLockedRef.current) return;
+    if (pdfRef.current) { pdfRef.current.value = ""; pdfRef.current.click(); }
+  };
+  const doplnZPdf = async (file) => {
+    const ceka = pdfCeka.current;
+    if (!file || !ceka || richLockedRef.current) return;
+    prevodHlas({ stav: "cte", text: L("Čtu PDF…", "Reading the PDF…") });
+    try {
+      const m = await tmPdfFileModel(file, pdfDeps(ctuStranku));
+      if (!prevodZije.current || richLockedRef.current) return;
+      const md = tmPdfFragmentToMd(m, ceka.raw);
+      if (!md) { prevodHlas({ stav: "chyba", text: L("Vložený text jsem v tomhle PDF nenašel. Zůstal, jak byl.", "I did not find the pasted text in this PDF. It stays as it was.") }); return; }
+      const el = ref.current; if (!el) return;
+      const uzly = (ceka.uzly || []).filter((n) => n.parentNode === el);
+      if (!uzly.length) { prevodHlas({ stav: "chyba", text: L("Vložený text už není na svém místě. Vlož ho znovu, formát se teď doplní sám.", "The pasted text is no longer in place. Paste it again, the format will now fill in by itself.") }); return; }
+      const pred = el.innerHTML;
+      const tmp = document.createElement("div");
+      tmp.innerHTML = mdToHtml(md, t);
+      const nove = Array.prototype.slice.call(tmp.childNodes);
+      nove.forEach((n) => el.insertBefore(n, uzly[0]));
+      uzly.forEach((n) => { if (n.parentNode === el) el.removeChild(n); });
+      pdfCeka.current = null;
+      lastAuto.current = null;
+      sync();
+      prevodHlas({ stav: "hotovo", text: L(`Formát je doplněný podle „${m.jmeno}“. Další kusy z něj už vložím rovnou s formátem.`, `The format was filled in from "${m.jmeno}". Further pieces from it will paste with their format.`), zpet: pred });
+    } catch (err) {
+      if (prevodZije.current) prevodHlas({ stav: "chyba", text: prevodChyba(err) });
+    }
+  };
+  const otevriSoubor = () => {
+    if (richLockedRef.current) return;
+    if (souborRef.current) { souborRef.current.value = ""; souborRef.current.click(); }
+  };
+  const prevodChyba = (err) => {
+    const kod = err && err.kod; const info = (err && err.info) || {};
+    if (kod === "format") return /\.doc$/i.test(info.jmeno || "")
+      ? L("Starý formát .doc převést neumím. Ulož soubor ve Wordu jako .docx nebo PDF.", "I cannot read the old .doc format. Save the file from Word as .docx or PDF.")
+      : L("Tenhle typ souboru převést neumím. Umím PDF, Word (.docx), text, Markdown a HTML.", "I cannot convert this file type. I read PDF, Word (.docx), text, Markdown and HTML.");
+    if (kod === "velky") return L("Soubor je větší než 40 MB. Tak velký nepřevedu.", "The file is larger than 40 MB. That is too big to convert.");
+    if (kod === "sken") return L("V tomhle PDF není text, jen obrázky stránek (sken). Takové PDF přečíst neumím.", "This PDF holds no text, only page images (a scan). I cannot read that.");
+    if (kod === "heslo") return L("PDF je zamčené heslem.", "The PDF is locked with a password.");
+    if (kod === "prazdny") return L("V souboru jsem nenašel žádný text.", "I found no text in the file.");
+    if (kod === "dlouhy") return info.stran
+      ? L(`PDF má ${info.stran} stran. Převedu nejvýš ${info.maxStran}.`, `The PDF has ${info.stran} pages. I convert ${info.maxStran} at most.`)
+      : L(`Text je na jednu poznámku moc dlouhý (${info.znaku} znaků, vejde se ${info.max}). Rozděl soubor na části.`, `The text is too long for one note (${info.znaku} characters, ${info.max} fit). Split the file into parts.`);
+    if (kod === "prohlizec") return L("Tenhle prohlížeč převod neumí. Zkus aktuální Chrome, Edge nebo Safari.", "This browser cannot convert files. Try a current Chrome, Edge or Safari.");
+    return L("Soubor se nepodařilo přečíst. Možná je poškozený.", "The file could not be read. It may be damaged.");
+  };
+  const prevedSoubor = async (file) => {
+    if (!file || richLockedRef.current) return;
+    prevodHlas({ stav: "cte", text: L("Čtu soubor…", "Reading the file…") });
+    try {
+      const { md } = await tmFileToMd(file, pdfDeps(ctuStranku));
+      if (!prevodZije.current || richLockedRef.current) return;
+      const el = ref.current; if (!el) return;
+      const pred = el.innerHTML;
+      if ((el.textContent || "").trim() === "" && !el.querySelector("figure,[data-hr]")) el.innerHTML = mdToHtml(md, t);
+      else {
+        // za blok, ve kterém naposledy stál kurzor · jinak na konec textu
+        const r = rozsahRef.current;
+        const blk = r && el.contains(r.startContainer) ? tmBlockOfNode(el, r.startContainer) : null;
+        const kam = blk || el.lastElementChild;
+        const prazdnyBlok = (n) => !n || (n.nodeType === 1 && n.tagName !== "FIGURE" && n.getAttribute("data-hr") == null && (n.textContent || "").trim() === "");
+        const tmp = document.createElement("div");
+        tmp.innerHTML = (prazdnyBlok(kam) ? "" : "<div><br></div>") + mdToHtml(md, t) + (kam && !prazdnyBlok(kam.nextElementSibling) && kam.nextElementSibling ? "<div><br></div>" : "");
+        const za = kam ? kam.nextSibling : null;
+        while (tmp.firstChild) el.insertBefore(tmp.firstChild, za);
+      }
+      lastAuto.current = null;
+      sync();
+      prevodHlas({ stav: "hotovo", text: L("Soubor je převedený na text poznámky.", "The file is now text in the note."), zpet: pred });
+    } catch (err) {
+      if (prevodZije.current) prevodHlas({ stav: "chyba", text: prevodChyba(err) });
+    }
+  };
+  const prevodVratit = () => {
+    if (richLockedRef.current) return;
+    const el = ref.current;
+    if (el && prevod && prevod.zpet != null) { el.innerHTML = prevod.zpet; sync(); }
+    prevodHlas(null);
   };
   const figAction = (e) => {
     const tgt0 = e.target && (e.target.nodeType === 1 ? e.target : e.target.parentElement);
@@ -4379,8 +4528,8 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
           neuteče a klávesnice nic nezakrývá. */}
       {siroko && recordingStatus}
       {!zamek && (focused || zen || recordingStatus) && (siroko
-        ? <MdToolbar exec={exec} onImage={openImage} onZen={zenAllowed ? () => setZen((z) => !z) : null} zen={zen} blockOf={blockOf} setBlock={setBlock} insertHr={insertHr} sazec={sazec} zarovnej={zarovnej} undo={stx && stx.undo} redo={stx && stx.redo} canUndo={!!(stx && stx.canUndo)} canRedo={!!(stx && stx.canRedo)} />
-        : <PsaciLista recordingStatus={recordingStatus} exec={exec} onImage={openImage} naPrilohu={naPrilohu} onZmensit={onZmensit} onZen={zenAllowed ? () => setZen((z) => !z) : null} zen={zen} focused={focused} blockOf={blockOf} setBlock={setBlock} insertHr={insertHr} sazec={sazec} undo={stx && stx.undo} redo={stx && stx.redo} canUndo={!!(stx && stx.canUndo)} canRedo={!!(stx && stx.canRedo)} />)}
+        ? <MdToolbar exec={exec} onImage={openImage} onZen={zenAllowed ? () => setZen((z) => !z) : null} zen={zen} blockOf={blockOf} setBlock={setBlock} insertHr={insertHr} sazec={sazec} zeSouboru={otevriSoubor} zarovnej={zarovnej} undo={stx && stx.undo} redo={stx && stx.redo} canUndo={!!(stx && stx.canUndo)} canRedo={!!(stx && stx.canRedo)} />
+        : <PsaciLista recordingStatus={recordingStatus} exec={exec} onImage={openImage} naPrilohu={naPrilohu} onZmensit={onZmensit} onZen={zenAllowed ? () => setZen((z) => !z) : null} zen={zen} focused={focused} blockOf={blockOf} setBlock={setBlock} insertHr={insertHr} sazec={sazec} zeSouboru={otevriSoubor} undo={stx && stx.undo} redo={stx && stx.redo} canUndo={!!(stx && stx.canUndo)} canRedo={!!(stx && stx.canRedo)} />)}
       {posloucham && (
         <div style={{ display: "flex", alignItems: "center", gap: 9, background: t.callout, border: `1px solid ${hexA(t.accent, 0.35)}`, borderRadius: 8, padding: "6px 12px", margin: "6px 0" }}>
           <span aria-hidden="true" className="tm-pulz" style={{ width: 8, height: 8, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />
@@ -4395,7 +4544,18 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
           <button onClick={() => setSazecZpet(null)} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 13, padding: "2px 4px", flexShrink: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         </div>
       )}
+      {!zamek && prevod && (
+        <div role="status" data-tm-prevod={prevod.stav} style={{ display: "flex", alignItems: "center", gap: 10, background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${prevod.stav === "chyba" ? t.textMuted : t.accent}`, borderRadius: 8, padding: "7px 12px", margin: "6px 0" }}>
+          {prevod.stav === "cte" && <span aria-hidden="true" className="tm-pulz" style={{ width: 8, height: 8, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />}
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, flex: 1, lineHeight: 1.5 }}>{prevod.text}</span>
+          {prevod.stav === "nabidka" && <button onClick={otevriPdf} style={{ background: "transparent", border: `1px solid ${t.accent}`, borderRadius: 8, color: t.accentInk || t.accent, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, padding: "4px 12px", flexShrink: 0 }}>{L("Vybrat PDF", "Pick the PDF")}</button>}
+          {prevod.stav === "hotovo" && prevod.zpet != null && <button onClick={prevodVratit} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.textSec, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, padding: "4px 12px", flexShrink: 0 }}>{L("Vrátit", "Undo")}</button>}
+          {prevod.stav !== "cte" && <button onClick={() => prevodHlas(null)} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 13, padding: "2px 4px", flexShrink: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+        </div>
+      )}
       <input ref={imgRef} type="file" accept="image/*" onChange={(e) => insertImage(e.target.files && e.target.files[0])} style={{ display: "none" }} />
+      <input ref={pdfRef} type="file" data-tm-pdf="1" accept=".pdf,application/pdf" onChange={(e) => doplnZPdf(e.target.files && e.target.files[0])} style={{ display: "none" }} />
+      <input ref={souborRef} type="file" data-tm-soubor="1" accept={TM_IMPORT_ACCEPT} onChange={(e) => prevedSoubor(e.target.files && e.target.files[0])} style={{ display: "none" }} />
       <div className={strankyOn ? "tm-strwrap" : undefined}>
       <div ref={strRef} className={strankyOn ? "tm-stranky tm-psstranky" : undefined}>
       <div className={strankyOn ? "tm-strcol" : undefined}>
@@ -4406,16 +4566,19 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
         suppressContentEditableWarning
         data-placeholder={placeholder}
         spellCheck={zen && spellOn}
-        onMouseDown={figAction}
+        onMouseDown={(e) => { if (e.target?.closest?.(".tm-fig-tools,.tm-chk")) e.preventDefault(); }}
+        onClick={figAction}
         onInput={onInput}
         onFocus={() => { setFocused(true); try { document.execCommand("styleWithCSS", false, true); } catch (err) {} }}
         onBlur={() => { setFocused(false); setTimeout(() => { setLk(null); setSl(null); }, 120); }}
         onPaste={onPaste}
         onKeyDown={(e) => {
+          if (e.target?.closest?.(".tm-fig-tools")) return;
           if (richLockedRef.current) return;
           const el = ref.current; if (!el) return;
           // zkratky pro bloky · stejná řada jako v jiných editorech
           if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+            if (e.key === "V" || e.key === "v") holyVloz.current = Date.now();   // vložit bez formátu · řeší onPaste
             const K = { "1": "h1", "2": "h2", "3": "h3", "0": "p", "8": "ul", "7": "ol", "9": "chk" };
             const k = K[e.key];
             if (k) { e.preventDefault(); tmSetBlock(el, k, true); sync(); return; }
@@ -10044,19 +10207,10 @@ const { OriginBadge, ContentDetail, ContentRow, PageContent } = createSourcesUI(
 
 // ---- keep the screen awake · released the moment the timer stops ------------
 function useWakeLock(active) {
-  const ref = React.useRef(null);
   React.useEffect(() => {
-    let dead = false;
-    const acquire = async () => {
-      if (!active || dead) return;
-      try {
-        if (navigator.wakeLock && document.visibilityState === "visible") ref.current = await navigator.wakeLock.request("screen");
-      } catch (e) {}
-    };
-    const release = () => { const s = ref.current; ref.current = null; if (s) { try { s.release(); } catch (e) {} } };
-    const onVis = () => { if (document.visibilityState === "visible") acquire(); };
-    if (active) { acquire(); document.addEventListener("visibilitychange", onVis); }
-    return () => { dead = true; document.removeEventListener("visibilitychange", onVis); release(); };
+    const wake = createScreenWakeController();
+    wake.setActive(active);
+    return () => wake.dispose();
   }, [active]);
 }
 
@@ -14971,6 +15125,16 @@ export default function App() {
   const [setsOpen, setSetsOpen] = useState(false);
   const [slideDir, setSlideDir] = useState(null);
   const pswipeRef = React.useRef(null);
+  const swipeNavigationEnabled = (coll.ui?.swipeNavigation ?? coll.uiCfg?.swipeNavigation) !== false;
+  const readingWakeEnabled = (coll.ui?.readingWake ?? coll.uiCfg?.readingWake) !== false;
+  React.useEffect(() => watchNavigationSelection(), []);
+  React.useEffect(() => {
+    document.documentElement.setAttribute("data-tm-swipe-navigation", swipeNavigationEnabled ? "on" : "off");
+  }, [swipeNavigationEnabled]);
+  React.useEffect(() => {
+    if (!readingWakeEnabled) return;
+    return observeReadingScreen();
+  }, [readingWakeEnabled]);
   const tabScrollRef = React.useRef(null);
   const touchArmedRef = React.useRef(false);
   React.useEffect(() => {
@@ -15069,17 +15233,19 @@ export default function App() {
 
   const swipeRef = React.useRef(null);
   const rootTouchStart = (e) => {
-    if (window.innerWidth > 820) { swipeRef.current = null; return; } // desktop: no gesture, no overlay
-    const p = e.touches[0];
-    swipeRef.current = (menuOpen || p.clientX <= 28) ? { x: p.clientX, y: p.clientY } : null;
+    if (window.innerWidth > 820) { swipeRef.current = null; return; }
+    const gesture = beginNavigationSwipe(e);
+    swipeRef.current = gesture && (menuOpen || gesture.x <= 28) ? gesture : null;
   };
   const rootTouchMove = (e) => {
-    const s = swipeRef.current; if (!s) return;
-    const p = e.touches[0]; const dx = p.clientX - s.x; const dy = Math.abs(p.clientY - s.y);
-    if (dy > 46) { swipeRef.current = null; return; }
-    if (!menuOpen && dx > 64) { setMenuOpen(true); swipeRef.current = null; }
-    else if (menuOpen && dx < -56) { setMenuOpen(false); swipeRef.current = null; }
+    const gesture = swipeRef.current;
+    if (navigationSwipeBlocked(gesture, e)) { swipeRef.current = null; return; }
+    const dir = navigationSwipeDirection(gesture, e, { width: window.innerWidth });
+    if ((!menuOpen && dir === -1) || (menuOpen && dir === 1)) {
+      setMenuOpen(!menuOpen); swipeRef.current = null;
+    }
   };
+
   const t = makeThemeFor(appearance.preset, sysDark);
   const tags = makeTagsFor(appearance.preset, sysDark);
   const [edits, setEdits] = useState(() => (typeof window !== "undefined" ? loadEdits() : {}));
@@ -16010,7 +16176,7 @@ export default function App() {
   const readScale = () => { const v = +(coll.readScale || 1); return v >= 0.85 && v <= 1.45 ? v : 1; };
   const setReadScale = (v) => persistColl((c) => ({ ...c, readScale: Math.max(0.85, Math.min(1.45, +v || 1)) }));
   React.useEffect(()=>{TM_HAPTICS=coll.ui?.haptics!==false;document.documentElement.setAttribute("data-tm-motion",coll.ui?.motion||"full");},[coll.ui]);
-  const uiCfg = () => ({ spell: true, home: "praxe", motion: "full", haptics: true, askTrash: true, ...(coll.uiCfg || {}), ...(coll.ui || {}) });
+  const uiCfg = () => ({ spell: true, home: "praxe", motion: "full", haptics: true, askTrash: true, readingWake: true, swipeNavigation: true, ...(coll.uiCfg || {}), ...(coll.ui || {}) });
   const setUiCfg = (patch) => persistColl((c) => ({ ...c, ui: { ...(c.uiCfg || {}), ...(c.ui || {}), ...patch } }));
   const recentIds = () => coll.recent || [];
   const pushRecent = (id) => setColl((cur) => {
@@ -17034,7 +17200,7 @@ export default function App() {
         <OfflineBadge />
         {stateHydrated && pomoAccountScope({ status: accountStatus, owner: ownerId, member }, ownerLoad()) && <TmPomoFronta key={ownerId} />}
         {stateHydrated && pomoAccountScope({ status: accountStatus, owner: ownerId, member }, ownerLoad()) && <CalAuto key={"calendar:"+ownerId} />}
-      <div onTouchStart={rootTouchStart} onTouchMove={rootTouchMove} style={{ minHeight: "100vh", background: t.bg, color: t.text, display: "flex", position: "relative" }}>
+      <div onTouchStart={rootTouchStart} onTouchMove={rootTouchMove} onTouchEnd={() => { swipeRef.current = null; }} onTouchCancel={() => { swipeRef.current = null; }} style={{ minHeight: "100vh", background: t.bg, color: t.text, display: "flex", position: "relative" }}>
         <style>{`
           /* Řezy podle typografické specifikace V2: Cormorant 300/400/500 (+ kurzíva),
    EB Garamond POUZE 400 — těžší požadavek pak sedne na Regular, přesně jak to
@@ -17293,6 +17459,7 @@ export default function App() {
 
         <TmNovaVerze />
         {member === false && <InviteGate />}
+        <AppNotices>
         {saveErr && (
           <div role="status" aria-live="polite" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 400, background: t.accent, color: t.onAccent || t.bg, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
             <span style={{ flex: 1, minWidth: 200 }}>{localSaveMessage(saveErr, L)}<details style={{ fontSize: 11 }}><summary>{L("Podrobnosti chyby", "Error details")}</summary>{localSaveDiagnostic(saveErr, L)}</details></span>
@@ -17355,6 +17522,8 @@ export default function App() {
             <button onClick={() => setOwnerSwitched(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
           </div>
         )}
+        </AppNotices>
+
         {member === true && stateHydrated && !conflict && (pickerOpen || !enabledModules) && (
           <ModulePicker
             t={t}
@@ -17443,8 +17612,8 @@ export default function App() {
         {menuOpen && <div className="tm-menu-dim" onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, background: t.overlay, zIndex: 55, animation: "tmDim .25s ease both" }} />}
 
         <main
-          onTouchStart={(e) => { const p0 = e.touches[0]; let n = e.target, hs = false; while (n && n !== document.body) { if (n.scrollWidth - n.clientWidth > 8) { const o = getComputedStyle(n).overflowX; if (o === "auto" || o === "scroll") { hs = true; break; } } n = n.parentElement; } pswipeRef.current = { x: p0.clientX, y: p0.clientY, blocked: p0.clientX < 28 || hs }; }}
-          onTouchEnd={(e) => { const st0 = pswipeRef.current; pswipeRef.current = null; if (!st0 || st0.blocked || touchArmedRef.current || TM_GESTURE || tmListovaniSpi()) return; const p1 = e.changedTouches[0]; const dx = p1.clientX - st0.x, dy = Math.abs(p1.clientY - st0.y); if (Math.abs(dx) < 64 || Math.abs(dx) < dy * 1.4) return; const TABS = dockTabs; if (TABS.length < 2) return; const cur = TABS.indexOf(page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page); if (cur === -1) return; const nx = (cur + (dx < 0 ? 1 : -1) + TABS.length) % TABS.length; setSlideDir(dx < 0 ? "left" : "right"); setPage(TABS[nx]); if (typeof window !== "undefined") window.scrollTo(0, 0); }}
+          onTouchStart={(e) => { const gesture = beginNavigationSwipe(e); let n = e.target, hs = false; while (n && n !== document.body) { if (n.scrollWidth - n.clientWidth > 8) { const o = getComputedStyle(n).overflowX; if (o === "auto" || o === "scroll") { hs = true; break; } } n = n.parentElement; } pswipeRef.current = gesture && gesture.x >= 28 && !hs ? gesture : null; }}
+          onTouchEnd={(e) => { const st0 = pswipeRef.current; pswipeRef.current = null; if (touchArmedRef.current || TM_GESTURE || tmListovaniSpi()) return; const direction = navigationSwipeDirection(st0, e, { width: window.innerWidth }); if (!direction) return; const TABS = dockTabs; if (TABS.length < 2) return; const cur = TABS.indexOf(page === "atomic" ? "praxe" : (page === "oblasti" || page === "cile") ? "kompas" : page); if (cur === -1) return; const nx = (cur + direction + TABS.length) % TABS.length; setSlideDir(direction > 0 ? "left" : "right"); setPage(TABS[nx]); if (typeof window !== "undefined") window.scrollTo(0, 0); }}
           style={{ flex: 1, minWidth: 0, position: "relative", zIndex: 1 }}>
           <div className="tm-topbar" style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderBottom: `1px solid ${t.borderSoft}` }}>
             <button className="tm-sidetoggle" onClick={toggleSide} title={sideHidden ? L("Zobrazit panel", "Show panel") : L("Schovat panel", "Hide panel")} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 6, color: t.textMuted, cursor: "pointer", padding: "6px 10px", fontSize: 13, lineHeight: 1 }}>{sideHidden ? "»" : "«"}</button>
@@ -17538,11 +17707,13 @@ export default function App() {
             <SetSection title={L("Čtení a psaní","Reading and writing")} id="reading" open={settingsSection==="reading"} onOpen={setSettingsSection}>
               <TypographyChoice value={uiCfg().typography} onChange={typography=>setUiCfg({typography})} t={t} lang={lang}/>
               <SetChoice label={L("Velikost textu","Text size")} value={String(readScale())} options={[{v:"0.92",label:"A−"},{v:"1",label:L("výchozí","default")},{v:"1.12",label:"A+"},{v:"1.28",label:"A++"}]} onChange={v=>setReadScale(+v)}/>
+              <SetSwitch label={L("Nechat displej svítit při čtení", "Keep the screen awake while reading")} hint={L("U otevřené poznámky, pramene a dokumentu. Ruční zamčení má přednost; úsporný režim může svícení omezit.", "For an open note, source or document. Manual locking takes priority; battery-saving mode may limit it.")} on={uiCfg().readingWake !== false} onChange={readingWake => setUiCfg({ readingWake })} />
               <SetSwitch label={L("Kontrola pravopisu při psaní","Spell check while writing")} on={uiCfg().spell!==false} onChange={v=>setUiCfg({spell:v})}/>
               <SetChoice label={L("Kam se otevírá dům","Which room opens first")} value={uiCfg().home||"praxe"} options={CLIENT_ROOMS.filter(k=>k!=="kos"&&isEnabled(k)&&!roomPlacement(navConfig,k,navDefaults).hidden).map(k=>({v:k,label:navigationLabel(k,lang)}))} onChange={home=>setUiCfg({home})}/>
             </SetSection>
             <SetSection title={L("Pohyb a dotyk","Motion and touch")} id="motion" open={settingsSection==="motion"} onOpen={setSettingsSection}>
               <SetChoice label={L("Přechody","Transitions")} value={uiCfg().motion||"full"} options={[{v:"full",label:L("plné","full")},{v:"calm",label:L("tlumené","calm")},{v:"off",label:L("žádné","none")}]} onChange={motion=>setUiCfg({motion})}/>
+              <SetSwitch label={L("Přepínání stránek tahem", "Swipe between pages")} hint={L("Delší vodorovný tah. Při psaní, výběru textu nebo podržení se nepřepíná. Tlačítka fungují i po vypnutí.", "A longer horizontal swipe. Disabled while writing, selecting text or holding. Buttons remain available when off.")} on={uiCfg().swipeNavigation !== false} onChange={swipeNavigation => setUiCfg({ swipeNavigation })} />
               <SetSwitch label={L("Odezva dotykem","Haptic response")} on={uiCfg().haptics!==false} onChange={haptics=>setUiCfg({haptics})}/>
             </SetSection>
             <SetSection title={L("Účet","Account")} id="account" open={settingsSection==="account"} onOpen={setSettingsSection}>

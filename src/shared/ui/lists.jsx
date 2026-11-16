@@ -136,15 +136,15 @@ export function createListUI(deps) {
         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 36, height: 38, flexShrink: 0, background: on ? hexA(t.accent, 0.12) : "transparent", border: "none", borderRadius: 9, cursor: "pointer", color: on ? t.accent : t.textMuted }}>{children}</button>
     );
   }
-  // řádek hledání pod nadpisem · v prototypu je to karta na celou šířku
+  // Quiet search line, with no second card around the field.
   function HdrSearch({ value, onChange, onClose, placeholder }) {
     const { t } = useT();
     return (
-      <div data-tm-surface="control" data-tm-surface-active={value ? "true" : undefined} style={{ display: "flex", alignItems: "center", gap: 10, background: t.card, border: `1px solid ${value ? t.accent : t.border}`, borderRadius: 12, padding: "10px 14px", margin: "0 0 12px" }}>
+      <div className="tm-hdr-search" role="search" style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: `1px solid ${t.border}`, minHeight: 44, margin: "4px 0 16px", maxWidth: 640 }}>
         <span style={{ color: t.sand, display: "inline-flex", flexShrink: 0 }}><TmIcLupa size={15} /></span>
-        <input autoFocus value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { if (value) onChange(""); else onClose(); } }} placeholder={placeholder}
-          style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 15, outline: "none" }} />
-        <button onClick={() => { onChange(""); onClose(); }} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, flexShrink: 0, minHeight: 30 }}>{L("Zavřít", "Close")}</button>
+        <input type="search" aria-label={placeholder} autoFocus value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { if (value) onChange(""); else onClose(); } }} placeholder={placeholder}
+          style={{ flex: 1, minWidth: 0, minHeight: 44, padding: "6px 0", background: "transparent", border: "none", borderRadius: 0, color: t.text, fontFamily: "var(--tm-font-body)", fontSize: 16 }} />
+        <button type="button" aria-label={L("Zavřít hledání", "Close search")} onClick={() => { onChange(""); onClose(); }} style={{ display: "grid", placeItems: "center", background: "transparent", border: "none", cursor: "pointer", color: t.accentInk || t.accent, flexShrink: 0, width: 44, height: 44 }}><FamilyIcon id="close" size={18} /></button>
       </div>
     );
   }
