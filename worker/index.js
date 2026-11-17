@@ -1,3 +1,5 @@
+import { handleExercisePolicy, handleCustomExercises } from "../src/shared/product/exercisePolicyServer.js";
+import { ensureClientIdentities, clientIdentityConflict, registerClientIdentity } from "../src/shared/product/clientIdentityServer.js";
 import { handleClientModules, ensureClientModuleCommands, moduleCommandAckStatements } from "../src/shared/product/clientModulesServer.js";
 import { moduleCommandRevisions } from "../src/shared/product/clientModules.js";
 import { mediaUploadLimit, audioPlaybackMime } from "../src/shared/product/mediaLimits.js";
@@ -57,8 +59,7 @@ function userIdFrom(request) {
 // jako druhý, nesmí dostat prostor prvního. Odvození neměníme (to by osiřela
 // data, která už v D1 leží); místo toho hlídáme, že id patří téže adrese.
 async function identityConflict(env, userId, email) {
-  const row = await env.DB.prepare("SELECT email FROM members WHERE user_id = ?").bind(userId).first();
-  return !!(row && row.email && row.email !== email);
+  return clientIdentityConflict(env.DB, userId, email);
 }
 
 // OTISK VLASTNÍKA · prohlížeč si potřebuje pamatovat, komu místní úložiště
@@ -138,6 +139,7 @@ async function initializeSchema(env) {
   // otevřené, aby uměl poradit — ale jeho dotaz kvůli tomu nesmí sahat do
   // `state.doc`, kde leží Deník a Zápisník. Klient je sem zapisuje sám.
   try { await env.DB.prepare("ALTER TABLE members ADD COLUMN modules TEXT").run(); } catch (e) {}
+  await ensureClientIdentities(env.DB);
 }
 
 // ---- Plán od Tanyho · jen ke čtení ----------------------------------------
@@ -172,15 +174,15 @@ async function handleKlientDoc(request, env, userId, jmeno) {
 // ---- ale prostor se otevře až vstupním slovem od Tanyho. Jednou provždy.
 const normWord = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
 
-async function isMember(env, userId) {
+async function isMember(env, userId, email) {
   await ensureSchema(env);
-  const row = await env.DB.prepare("SELECT 1 AS ok FROM members WHERE user_id = ?").bind(userId).first();
+  const row = await env.DB.prepare("SELECT 1 AS ok FROM members m JOIN client_identity_bindings i ON i.user_id=m.user_id WHERE m.user_id=? AND lower(trim(m.email))=? AND i.email=?").bind(userId,email,email).first();
   return !!row;
 }
 
 async function handleMe(env, userId, email) {
   await ensureSchema(env);
-  const row = await env.DB.prepare("SELECT name FROM members WHERE user_id = ?").bind(userId).first();
+  const row = await env.DB.prepare("SELECT m.name FROM members m JOIN client_identity_bindings i ON i.user_id=m.user_id WHERE m.user_id=? AND lower(trim(m.email))=? AND i.email=?").bind(userId,email,email).first();
   const personal = row ? await clientProfile(env.DB, userId) : null;
   return Response.json({ member: !!row, name: personal?.profile.name || "", email, owner: await ownerTag(userId) }, { headers: { "Cache-Control": "no-store, private" } });
 }
@@ -202,9 +204,7 @@ async function handleJoin(request, env, userId) {
   // Vstupní slovo nesmí být cesta do cizího prostoru: když id už drží jiná
   // adresa, členství nevzniká.
   if (await identityConflict(env, userId, email)) return identityConflictResponse();
-  await env.DB.prepare(
-    "INSERT INTO members (user_id, email, joined_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO NOTHING"
-  ).bind(userId, email, Date.now()).run();
+  if (!(await registerClientIdentity(env.DB, userId, email, {files:env.FILES}))) return identityConflictResponse();
   return Response.json({ ok: true });
 }
 
@@ -510,9 +510,12 @@ const worker = {
 
       // Všechno ostatní je jen pro členy — cizí příchozí nemůže zapisovat
       // do D1 ani plnit R2, dokud nezadá vstupní slovo.
-      if (!(await isMember(env, userId))) {
+      if (!(await isMember(env, userId, accessEmail(request)))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
+      if(url.pathname==="/api/exercise-policy")return handleExercisePolicy(request,{db:env.DB,userId});
+      if(url.pathname==="/api/custom-exercises")return handleCustomExercises(request,{db:env.DB,userId});
+      if(url.pathname.startsWith("/api/custom-exercises/"))return handleCustomExercises(request,{db:env.DB,userId,id:decodePathId(url.pathname.slice("/api/custom-exercises/".length))});
       if (url.pathname === "/api/modules") return handleClientModules(request, { db: env.DB, userId });
       if (url.pathname === "/api/storage") return handleStorageBudget(request,{db:env.DB,files:env.FILES,role:"client",userId});
       if (url.pathname === "/api/backup") return handleAccountBackup(request, {db:env.DB,actor:`client:${userId}`,userId,role:"client"});

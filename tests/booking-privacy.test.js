@@ -15,13 +15,14 @@ beforeEach((t) => t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-09-
 
 async function stage() {
   const env = makeEnv({ INVITE_WORD: "prah" });
+  // obě adresy musí být členy, jinak je klientská aplikace nepustí dál
+  for (const email of [A, B]) {
+    assert.equal((await worker.fetch(req("/api/join", { email, method: "POST", body: { word: "prah" } }), env, {})).status,200);
+  }
+  // Only verified members are linked to booking records and credits.
   await seedBooking(env.DB);
   await givePackage(env.DB, "cl_a", 10);
   await givePackage(env.DB, "cl_b", 10);
-  // obě adresy musí být členy, jinak je klientská aplikace nepustí dál
-  for (const email of [A, B]) {
-    await worker.fetch(req("/api/join", { email, method: "POST", body: { word: "prah" } }), env, {});
-  }
   const b = await E.createBooking(env.DB, {
     clientId: "cl_a", serviceId: "svc_pt", locationId: "loc_studio",
     startsAt: NOW_BOOK, now: at("2026-08-24", "07:00"), actor: "CLIENT",

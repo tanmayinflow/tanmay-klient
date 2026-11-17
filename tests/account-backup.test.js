@@ -9,6 +9,20 @@ import worker from '../worker/index.js';
 import { ensureBookingSchema } from '../worker/booking/schema.js';
 
 const main = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).name === 'tanmay-web';
+test('custom exercise backup keeps active and archived own records private from other accounts and coach', async () => {
+  const db=makeD1();
+  await db.exec('CREATE TABLE client_custom_exercises(user_id TEXT,id TEXT,doc TEXT,archived INTEGER,updated_at INTEGER); CREATE TABLE client_exercise_policy(user_id TEXT,enabled INTEGER,updated_at INTEGER);');
+  for(const user of ['a','b']) {
+    for(const archived of [0,1])await db.prepare('INSERT INTO client_custom_exercises VALUES(?,?,?,?,1)').bind(user,`custom_ex_${user}${archived}`,JSON.stringify({name:`PRIVATE ${user}`,foto:'r2:photo-'+user}),archived).run();
+    await db.prepare('INSERT INTO client_exercise_policy VALUES(?,0,1)').bind(user).run();
+  }
+  const own=await exportAccountRecords({db,actor:'client:a',userId:'a',role:'client'});
+  assert.equal(own.sections.client_custom_exercises.length,2);
+  assert.equal(own.sections.client_exercise_policy[0].enabled,0);
+  assert.doesNotMatch(JSON.stringify(own),/PRIVATE b|photo-b/);
+  const coach=await exportAccountRecords({db,actor:'coach:tanmay',userId:'primary',role:'main'});
+  assert.doesNotMatch(JSON.stringify(coach),/PRIVATE|photo-a|photo-b/);
+});
 test('account backup exports only own private data and owned deliveries; no credentials or foreign state', async () => {
   const db = makeD1(); await ensureTogether(db); await ensurePersonalProfiles(db);
   await db.exec("CREATE TABLE state(user_id TEXT,doc TEXT); CREATE TABLE plans(user_id TEXT,doc TEXT); CREATE TABLE google_connections(refresh_token TEXT);");

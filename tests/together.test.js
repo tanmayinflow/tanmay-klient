@@ -5,6 +5,7 @@ import { handleTogether } from '../src/shared/product/togetherApi.js';
 import { cleanTogether,emptyTogether,readTogether,cycleSummary,addDays,validDate,togetherProjection } from '../src/shared/product/together.js';
 import { navigationRooms,updatePlacement,MAIN_ROOMS,CLIENT_ROOMS } from '../src/shared/product/navigation.js';
 import worker from '../worker/index.js';
+import {makeEnv} from './helpers/env.js';
 import {cyclePhase} from '../src/shared/product/togetherGuidance.js';
 import {moonToday} from '../src/shared/product/togetherMoon.js';
 import {cleanPartnerPages} from '../src/shared/product/togetherPages.js';
@@ -257,8 +258,8 @@ test('navigation allows an empty dock and every available room, with preserved p
   assert.equal(navigationRooms({order:['klienti'],rooms:{klienti:{dock:true}}},CLIENT_ROOMS,defaults,'dock').includes('klienti'),false);
 });
 test('real Worker route requires authenticated membership/owner before pairing',async()=>{
-  const {db}=fixture();const request=email=>new Request('https://test.local/api/together',{headers:email?{'cf-access-authenticated-user-email':email}:{}});
-  const env={DB:db,KLIENT_DB:db,OWNER_EMAIL:'owner@example.test'};
+  const env=makeEnv({OWNER_EMAIL:'owner@example.test'}),db=env.DB;
+  const request=email=>new Request('https://test.local/api/together',{headers:email?{'cf-access-authenticated-user-email':email}:{}});
   assert.equal((await worker.fetch(request(),env,{})).status,401);
   assert.equal((await worker.fetch(request('unknown@example.test'),env,{})).status,403);
   // Main requires OWNER_EMAIL; Client requires membership. Neither accepts a guessed actor.

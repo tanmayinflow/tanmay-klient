@@ -24,6 +24,10 @@ export async function exportAccountRecords({ db, actor, userId, role }) {
   }
   for (const table of ['plans', 'goals', 'sources']) select(table, table, `SELECT * FROM ${table}` + (role === 'client' ? ' WHERE user_id = ?' : ''), role === 'client' ? [userId] : []);
   select('members', 'members', 'SELECT user_id,email,joined_at,name,share,modules FROM members' + (role === 'client' ? ' WHERE user_id = ?' : ''), role === 'client' ? [userId] : []);
+  if (role === 'client') {
+    select('client_custom_exercises', 'client_custom_exercises', 'SELECT id,doc,archived,updated_at FROM client_custom_exercises WHERE user_id = ?', [userId]);
+    select('client_exercise_policy', 'client_exercise_policy', 'SELECT enabled,updated_at FROM client_exercise_policy WHERE user_id = ?', [userId]);
+  }
   if (role === 'main') {
     for (const table of ['booking_clients', 'booking_services', 'booking_locations', 'booking_service_locations', 'booking_availability_rules', 'booking_availability_overrides', 'booking_blocks', 'bookings', 'booking_participants', 'package_definitions', 'package_definition_services', 'client_packages', 'client_package_services', 'credit_ledger']) {
       select(table, table, `SELECT * FROM ${table}`);

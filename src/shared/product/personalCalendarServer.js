@@ -1,6 +1,7 @@
 // Personal Calendar authorization. Refresh tokens stay in this Worker's D1,
 // encrypted with a Worker-only key. Booking's single-owner grant is separate.
 import {personalProfileAccountKey} from './personalProfile.js';
+import {ensureClientIdentities} from './clientIdentityServer.js';
 
 const API='https://www.googleapis.com/calendar/v3';
 const TOKEN='https://oauth2.googleapis.com/token';
@@ -76,6 +77,9 @@ function forget(db,actor) {
 export async function removeClientCalendarMembership(db,userId,{now=Date.now}={}) {
   const actor=`client:${userId}`;
   await schema(db);
+  // Install/backfill the permanent address binding before membership disappears.
+  // The DELETE trigger records it in the same transaction as access removal.
+  await ensureClientIdentities(db);
   await db.batch([
     db.prepare("UPDATE personal_calendar_connections SET generation = ?, token_ciphertext = '', token_iv = '', scopes_json = '[]', status = 'DISCONNECTED', updated_at = ? WHERE actor = ?")
       .bind(random(),now(),actor),

@@ -8,13 +8,14 @@ const email = "a@example.test";
 beforeEach(t => t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-09-01T08:00:00Z") }));
 async function stage() {
   const env = makeEnv();
-  await seedBooking(env.DB);
-  await givePackage(env.DB, "cl_a", 4);
   const call = async (path, options = {}) => {
     const response = await worker.fetch(req(path, { email, ...options }), env, {});
     return { status: response.status, body: await response.json() };
   };
-  await call("/api/join", { method: "POST", body: { word: env.INVITE_WORD } });
+  assert.equal((await call("/api/join", { method: "POST", body: { word: env.INVITE_WORD } })).status,200);
+  // Booking links belong to an already verified member, never an unbound slug.
+  await seedBooking(env.DB);
+  await givePackage(env.DB, "cl_a", 4);
   return { env, call };
 }
 const create = call => call("/api/client/bookings", { method: "POST", body: {

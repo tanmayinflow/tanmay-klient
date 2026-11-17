@@ -256,9 +256,10 @@ test('membership removal clears only that member grant and pending consent; a re
   assert.equal(await f.db.prepare('SELECT * FROM members WHERE user_id = ?').bind(userId).first(),null);
   assert.equal((await f.db.prepare('SELECT COUNT(*) AS n FROM personal_calendar_nonces WHERE actor = ?').bind(actor).first()).n,0);
   assert.equal((await row(f,B)).generation,other.generation);assert.equal((await row(f,B)).status,'CONNECTED');
-  // Both addresses collapse to the existing membership id. The new one must
-  // still start without any retained Google authority.
-  await member(f,userId,'a+b@example.test');
+  // The legacy slug cannot be reassigned; the original member may return,
+  // but even they must grant Google access again.
+  await assert.rejects(member(f,userId,'a+b@example.test'),/client_identity_conflict/);
+  await member(f,userId,'a.b@example.test');
   assert.equal((await (await f.request('status',undefined,actor)).json()).connected,false);
   assert.equal((await f.request('connect',{nonce:start.nonce,code:'old-code'},actor)).status,400);
   assert.equal((await f.request('request',apiBody(connection),actor)).status,401);
@@ -301,8 +302,9 @@ test('actual Worker membership removal and rejoining cannot retain a prior Googl
     const env=makeEnv({...config,DB:f.db}),userId='a-b-example-test',actor=`client:${userId}`;
     assert.equal((await worker.fetch(req('/api/join',{email:'a.b@example.test',method:'POST',body:{word:'otevri se'}}),env)).status,200);
     await f.connect(actor);await removeClientCalendarMembership(f.db,userId);
-    assert.equal((await worker.fetch(req('/api/join',{email:'a+b@example.test',method:'POST',body:{word:'otevri se'}}),env)).status,200);
-    const status=await worker.fetch(req('/api/calendar/status',{email:'a+b@example.test'}),env);
+    assert.equal((await worker.fetch(req('/api/join',{email:'a+b@example.test',method:'POST',body:{word:'otevri se'}}),env)).status,409);
+    assert.equal((await worker.fetch(req('/api/join',{email:'a.b@example.test',method:'POST',body:{word:'otevri se'}}),env)).status,200);
+    const status=await worker.fetch(req('/api/calendar/status',{email:'a.b@example.test'}),env);
     assert.equal(status.status,200);assert.equal((await status.json()).connected,false);
   }
 });

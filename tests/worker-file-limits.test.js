@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../worker/index.js';
 import { MEDIA_MAX_BYTES } from '../src/shared/product/mediaSafety.js';
-import { makeEnv, req } from './helpers/env.js';
+import { makeEnv, makeR2, req } from './helpers/env.js';
 
 const EMAIL = 'storage-audit@example.test';
 async function setup(extra = {}) {
-  const env = makeEnv({ OWNER_EMAIL: EMAIL, ...extra });
+  const env = makeEnv({ OWNER_EMAIL: EMAIL, ...extra, ...(extra.FILES?{FILES:{...makeR2(),...extra.FILES}}:{}) });
   assert.equal((await worker.fetch(req('/api/join', { email: EMAIL, method: 'POST', body: { word: 'otevri se' } }), env)).status, 200);
   return env;
 }
