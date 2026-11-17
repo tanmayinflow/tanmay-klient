@@ -48,6 +48,16 @@ export function createRecordingDraftStore({ namespace, database = globalThis.ind
       };
     }),
     list: () => transaction(false, (drafts, _chunks, done) => { drafts.getAll().onsuccess = event => done(event.target.result); }),
+    update: (id, patch) => transaction(true, (drafts, _chunks, done) => {
+      const request = drafts.get(id);
+      request.onsuccess = () => {
+        const row = request.result;
+        if (!row) { done(null); return; }
+        // Metadata can evolve, but never replace the durable audio journal.
+        const { id: _id, bytes: _bytes, segments: _segments, type: _type, createdAt: _createdAt, ...metadata } = patch || {};
+        const next = { ...row, ...metadata }; drafts.put(next); done(next);
+      };
+    }),
     read: id => transaction(false, (drafts, chunks, done, tx) => {
       const request = drafts.get(id);
       request.onsuccess = () => {

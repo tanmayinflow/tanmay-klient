@@ -181,7 +181,7 @@ export function createSourcesUI(deps) {
         <SourceLinks key={e.id} entry={e} onUpdate={upd} theme={t} L={L} readOnly={odTanmaye}/>
         </details>
         {odTanmaye && (e.why || e.instruction || e.excerpt) && (
-          <div style={{ borderLeft: `2px solid ${hexA(t.accent, 0.4)}`, paddingLeft: 12, margin: "14px 0 4px" }}>
+          <div style={{ margin: "14px 0 4px" }}>
             {e.why && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 14, color: t.textSec, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{e.why}</div>}
             {e.instruction && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 13, color: t.text, lineHeight: 1.6, whiteSpace: "pre-wrap", marginTop: 8 }}>{e.instruction}</div>}
             {e.excerpt && <div style={{ fontFamily: "var(--tm-font-display)", fontStyle: "italic", fontSize: 16, color: t.heading, lineHeight: 1.6, whiteSpace: "pre-wrap", marginTop: 10 }}>{e.excerpt}</div>}

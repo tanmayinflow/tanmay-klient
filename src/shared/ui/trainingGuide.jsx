@@ -7,7 +7,7 @@ export function createTrainingGuideUI(deps) {
   const { useT, useStore, L, TL, TV, FONT_BODY, FONT_TAG, FONT_DISPLAY,
     hexA, tvQuiet, FamilyIcon, TrainingSourceText, TExArt, TvField,
     tmCompile, useTmEngine, useWakeLock, tmAudio,
-    exerciseRow, exercisePolicy, TvLocoSide, TvLocoLegacy, blockName, isCzech, landingRecording, TvLandingNotice, TvLandingSet } = deps;
+    exerciseRow, exercisePolicy, GuideMedia, allowsAddedWeight, TvLocoSide, TvLocoLegacy, blockName, isCzech, landingRecording, TvLandingNotice, TvLandingSet } = deps;
   const tvCz = isCzech;
   const tvFmtA = (mt, a) => TV.fmtActual(mt, a, tvCz());
   const tvFmtP = (mt, p) => TV.fmtPlanned(mt, p, tvCz());
@@ -252,6 +252,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
   const [rest, setRest] = useState(null);           // { sec, reason, nonce, next }
   const [clock, setClock] = useState(null);         // { nonce, auto } · běžící odpočet série
   const [auto, setAuto] = useState(!!cfg.guideAuto);
+  const [navigation, setNavigation] = useState(false);
   const nonce = React.useRef(0);
   const [pending, setPending] = useState(null);
   const pendingRef = React.useRef(null);
@@ -264,7 +265,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
   const set = step ? step.set : null;
   const m = block ? TV.measurementOf(block.measurementType) : null;
   const policy = block && exercisePolicy ? exercisePolicy(st,block.exId,block) : null;
-  const fields = m ? m.fields.concat(m.secondary && !policy?.noAddedWeight ? [m.secondary] : []) : [];
+  const fields = m ? m.fields.concat(m.secondary && !policy?.noAddedWeight && (!allowsAddedWeight || allowsAddedWeight(st, block)) ? [m.secondary] : []) : [];
   const row = block ? exerciseRow(st, block.exId) : null;
   const prev = block && prevFor ? prevFor(block.exId) : null;
   const sideOf = x => x?.side === "L" ? "L" : x?.side === "R" ? "R" : "unspecified";
@@ -340,7 +341,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
   const skip = () => { cancelPending(); setClock(null); setRest(null); if (pos + 1 < steps.length) setPos(pos + 1); else onFinish(); };
   const back = () => { cancelPending(); setClock(null); setRest(null); setPos(Math.max(0, pos - 1)); };
   const jump = (blockId) => {
-    cancelPending(); setClock(null); setRest(null);
+    cancelPending(); setClock(null); setRest(null); setNavigation(false);
     const i = steps.findIndex((x) => x.block.id === blockId && !x.set.completed);
     const j = i >= 0 ? i : steps.findIndex((x) => x.block.id === blockId);
     if (j >= 0) setPos(j);
@@ -365,14 +366,14 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
   const header = (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <button onClick={onClose} aria-label={L("Zavřít průvodce", "Close the guide")} style={{ ...tvQuiet(t), padding: "6px 10px" }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
-      <div style={{ minWidth: 0, flex: 1, textAlign: "center" }}>
+      <button onClick={() => setNavigation(v => !v)} aria-expanded={navigation} aria-label={L("Cviky v tréninku", "Exercises in this workout")} style={{ minWidth: 0, flex: 1, textAlign: "center", background: "transparent", border: 0, padding: "4px 0", cursor: "pointer" }}>
         <div style={{ fontFamily: FONT_TAG, fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: t.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {L(session.cz, session.en) || L("Trénink", "Workout")}
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textSec, fontVariantNumeric: "tabular-nums" }}>
           {doneSteps}/{steps.length} {L("sérií", "sets")}
         </div>
-      </div>
+      </button>
       <button onClick={onList} style={{ ...tvQuiet(t), padding: "6px 10px" }} aria-label={L("Seznam", "List")}><FamilyIcon id="menu" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
     </div>
   );
@@ -392,24 +393,24 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="tm-guide" style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minHeight: "calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom))" }}>
       {header}{bar}
-      <TvExStrip session={session} currentBlockId={block.id} onJump={jump} />
+      {navigation && <TvExStrip session={session} currentBlockId={block.id} onJump={jump} />}
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center" }}>
-        <button onClick={() => onOpenEx && onOpenEx(block.exId)} aria-label={blockName(block, st)}
-          style={{ background: "transparent", border: "none", padding: 0, cursor: onOpenEx ? "pointer" : "default", color: t.sand, width: "min(46vw, 200px)" }}>
+      <div className="tm-guide-hero" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center", marginTop: "auto" }}>
+        {GuideMedia ? <GuideMedia exercise={row} block={block} /> : <button onClick={() => onOpenEx && onOpenEx(block.exId)} aria-label={blockName(block, st)}
+          style={{ background: "transparent", border: "none", padding: 0, cursor: onOpenEx ? "pointer" : "default", color: t.sand, width: "min(78vw, 330px)" }}>
           {row ? <TExArt ex={row} fluid stroke="currentColor" showDot={false} /> : null}
-        </button>
+        </button>}
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
           {labels[block.id] ? <span style={{ fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.12em", color: block.groupId ? t.accent : t.textMuted }}>{labels[block.id]}</span> : null}
           <button onClick={() => onOpenEx && onOpenEx(block.exId)} style={{ background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: FONT_DISPLAY, fontSize: 26, color: t.heading, lineHeight: 1.15 }}>{blockName(block, st)}</button>
         </div>
-        {TL(block.coachNote) ? <div style={{ borderLeft: `2px solid ${t.accent}`, paddingLeft: 9, textAlign: "left", fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.5, color: t.textSec, maxWidth: 480 }}><TrainingSourceText text={TL(block.coachNote)} color={t.accentInk || t.accent}/></div> : null}
+        {TL(block.coachNote) ? <div style={{ textAlign: "center", fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.5, color: t.textSec, maxWidth: 480 }}><TrainingSourceText text={TL(block.coachNote)} color={t.accentInk || t.accent}/></div> : null}
       </div>
 
-      <div style={{ border: `1px solid ${t.border}`, borderRadius: 16, background: t.card, padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+      <div className="tm-guide-series" style={{ padding: "0 0 10px", display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
           <span style={{ fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: t.accent }}>
             {L("Série", "Set")} {step.setIndex + 1} {L("z", "of")} {setsInBlock}{landingRecording ? (()=>{const label=landingRecording.sideSummary(st,block,set,policy,tvCz()?"cs":"en");return label?" · "+label:"";})() : set.side === "L" ? L(" · Levá strana", " · Left side") : set.side === "R" ? L(" · Pravá strana", " · Right side") : ""}
           </span>
@@ -418,7 +419,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
         </div>
 
         {TvLandingNotice?<TvLandingNotice st={st} block={block} policy={policy}/>:null}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="tm-guide-comparison" style={{ display: "flex", justifyContent: "center", gap: 28, alignItems: "baseline", textAlign: "center" }}>
           <div>
             <div style={{ fontFamily: FONT_TAG, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: t.textMuted }}>{L("Cíl", "Target")}</div>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: t.heading, fontVariantNumeric: "tabular-nums", lineHeight: 1.15, marginTop: 2 }}>{tvFmtP(block.measurementType, set.planned) || "—"}</div>
@@ -458,26 +459,24 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
               <span style={{ fontFamily: FONT_TAG, fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted }}>RIR</span>
               <input inputMode="numeric" aria-label="RIR" value={set.rir == null ? "" : String(set.rir)}
                 onChange={(e) => patchActual(null, e.target.value === "" ? null : Number(e.target.value))}
-                style={{ width: 56, background: t.inputBg || "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: 8, color: t.heading, fontFamily: FONT_BODY, fontSize: 16, textAlign: "center", minHeight: 40 }} />
+                style={{ width: 56, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: 8, color: t.heading, fontFamily: FONT_BODY, fontSize: 16, textAlign: "center", minHeight: 40 }} />
             </label>
           ) : null}
         </div>
-        <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>
-          {policy?.sideMode === "perSide" || policy?.noAddedWeight ? L("Prázdné pole = podle plánu.", "Empty field = as planned.") : L("Prázdné pole = podle plánu, bez plánu jako minule. Přepiš jen to, co bylo jinak.", "Empty field = as planned, or as last time where there is no plan. Change only what was different.")}
-        </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 8, alignItems: "stretch" }}>
+      <div className="tm-guide-footer" style={{ position: "sticky", bottom: 0, marginTop: "auto", padding: "12px 0 0", background: t.bg, zIndex: 2 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "44px 1fr auto", gap: 8, alignItems: "stretch" }}>
         <button onClick={back} disabled={pos === 0} aria-label={L("Předchozí série", "Previous set")}
           style={{ ...tvQuiet(t), minHeight: 56, fontSize: 18, opacity: pos === 0 ? 0.4 : 1 }}><FamilyIcon id="back" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         {set.completed ? (
-          <button onClick={() => { if (pos + 1 < steps.length) setPos(pos + 1); else onFinish(); }} className="tm-cta"
-            style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 14, padding: "14px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 56 }}>
+          <button onClick={() => { if (pos + 1 < steps.length) setPos(pos + 1); else onFinish(); }}
+            style={{ background: hexA(t.accent, 0.14), color: t.accentInk || t.accent, border: "none", borderRadius: 14, padding: "14px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 56 }}>
             {pos + 1 < steps.length ? L("Další série", "Next set") : L("Dokončit trénink", "Finish the workout")}
           </button>
         ) : (
-          <button disabled={!!pending||!!landingRecording&&!landingRecording.canRecord(st,block,set)} onClick={() => complete()} className="tm-cta" aria-label={L("Série hotová", "Set done")}
-            style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 14, padding: "14px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 56 }}>
+          <button disabled={!!pending||!!landingRecording&&!landingRecording.canRecord(st,block,set)} onClick={() => complete()} aria-label={L("Série hotová", "Set done")}
+            style={{ background: hexA(t.accent, 0.14), color: t.accentInk || t.accent, border: "none", borderRadius: 14, padding: "14px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 56 }}>
             {L("Hotovo", "Done")}{pos + 1 < steps.length ? " · " + L("další", "next") : ""}
           </button>
         )}
@@ -498,6 +497,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
           </button>
         ) : null}
         {counts.completed > 0 ? <button onClick={onFinish} style={tvQuiet(t)}>{L("Ukončit dřív", "Finish early")}</button> : null}
+      </div>
       </div>
     </div>
   );

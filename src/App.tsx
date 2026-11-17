@@ -62,6 +62,7 @@ import { createMandalaUI } from "./shared/ui/mandala.jsx";
 import { MorningSpells } from "./shared/ui/morningSpells.jsx";
 import { ANTI_DOOM_SPELLS } from "./shared/product/antiDoomSpells.js";
 import { readClientAttachmentBlob } from "./clientAttachments.js";
+import { createCustomExerciseUI, useCustomExercisePermission } from "./shared/ui/customExercises.jsx";
 import { createTrainingGuideUI } from "./shared/ui/trainingGuide.jsx";
 import { createTrainingProgressUI, useTrainingRunnerEscape } from "./shared/ui/trainingProgress.jsx";
 import { TRAINING_TIMER_MODES as TM_MODES, TRAINING_FLOWS as TM_FLOWS, TRAINING_TIMER_NOTE, trainingTimerSegmentCount } from "./shared/product/trainingTimerCopy.js";
@@ -1113,7 +1114,7 @@ function SouborPrilohy({ a, onRemove, sdilPril }) {
   const readable = !!documentKind(a);
   const action = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, minHeight: 44, minWidth: 44, padding: "6px 9px", border: 0, borderRadius: 8, background: "transparent", color: t.accentInk || t.accent, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 };
   return <>
-    <span style={{ display: "inline-flex", alignItems: "center", flexWrap: "wrap", gap: 2, maxWidth: "100%", border: `1px solid ${t.border}`, borderRadius: 14, padding: "2px 4px", background: t.card }}>
+    <span style={{ display: "inline-flex", alignItems: "center", flexWrap: "wrap", gap: 2, maxWidth: "100%", border: "none", borderRadius: 14, padding: "2px 4px", background: "rgba(0,0,0,0.045)" }}>
       {readable ? <button type="button" onClick={() => setOpen(true)} title={L("Otevřít dokument", "Open document")} style={{ ...action, textAlign: "left", justifyContent: "flex-start", minWidth: 0, flex: "1 1 120px", overflowWrap: "anywhere" }}><FamilyIcon id="attach" size={16}/>{a.name}</button> : <a href={src || undefined} download={a.name} style={{ ...action, minWidth: 0, overflowWrap: "anywhere", textDecoration: "none" }}>{a.name}</a>}
       <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, padding: "0 4px" }}>{fmtSize(a.size)}</span>
       <button type="button" aria-label={L("Sdílet soubor", "Share file")} onClick={() => sdilPril(a)} style={action}><TmIcSdilet size={16}/></button>
@@ -4540,14 +4541,14 @@ function RichArea({ value, onChange, placeholder = L("Piš…", "Write…"), zen
         </div>
       )}
       {!zamek && sazecZpet && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 8, padding: "7px 12px", margin: "6px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "7px 12px", margin: "6px 0" }}>
           <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, flex: 1, lineHeight: 1.5 }}>{sazecZpet === "nic" ? L("Sazeč prošel text. Už je vysázený.", "The typesetter read the text. It is already set.") : L("Sazeč rozsadil text podle významu.", "The typesetter laid the text out by meaning.")}</span>
           {sazecZpet !== "nic" && <button onClick={sazecVratit} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.textSec, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, padding: "4px 12px", flexShrink: 0 }}>{L("Vrátit", "Undo")}</button>}
           <button onClick={() => setSazecZpet(null)} title={L("Zavřít", "Close")} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 13, padding: "2px 4px", flexShrink: 0 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
         </div>
       )}
       {!zamek && prevod && (
-        <div role="status" data-tm-prevod={prevod.stav} style={{ display: "flex", alignItems: "center", gap: 10, background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${prevod.stav === "chyba" ? t.textMuted : t.accent}`, borderRadius: 8, padding: "7px 12px", margin: "6px 0" }}>
+        <div role="status" data-tm-prevod={prevod.stav} style={{ display: "flex", alignItems: "center", gap: 10, background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "7px 12px", margin: "6px 0" }}>
           {prevod.stav === "cte" && <span aria-hidden="true" className="tm-pulz" style={{ width: 8, height: 8, borderRadius: "50%", background: t.accent, flexShrink: 0 }} />}
           <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, flex: 1, lineHeight: 1.5 }}>{prevod.text}</span>
           {prevod.stav === "nabidka" && <button onClick={otevriPdf} style={{ background: "transparent", border: `1px solid ${t.accent}`, borderRadius: 8, color: t.accentInk || t.accent, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, padding: "4px 12px", flexShrink: 0 }}>{L("Vybrat PDF", "Pick the PDF")}</button>}
@@ -6768,8 +6769,14 @@ const tExOnShelf = (ex, extra) => tExOnDefaultShelf(ex)
 // Approved exercise illustrations; a missing plate reserves an empty area.
 const tmAtlas = ex => ex && (TV.landingArtworkFor(ex,tMetaOf(ex),LANDING_AUDIT_CONTEXT) || TV.complexTaskArtworkFor(ex,tMetaOf(ex),COMPLEX_TASK_AUDIT_CONTEXT) || TV.throwArtworkFor(ex,tMetaOf(ex),THROW_AUDIT_CONTEXT) || TV.breathingArtworkFor(ex,tMetaOf(ex),BREATHING_AUDIT_CONTEXT) || TV.positionHoldArtworkFor(ex,tMetaOf(ex),POSITION_HOLD_AUDIT_CONTEXT) || TV.elbowHandArtworkFor(ex,tMetaOf(ex),ELBOW_HAND_AUDIT_CONTEXT) || TV.shoulderArtworkFor(ex,tMetaOf(ex),SHOULDER_AUDIT_CONTEXT) || TV.hipArtworkFor(ex,tMetaOf(ex),HIP_AUDIT_CONTEXT) || TV.lowerLegArtworkFor(ex,tMetaOf(ex),LOWER_LEG_AUDIT_CONTEXT) || TV.locomotionArtworkFor(ex,LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(ex,BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(ex,MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(ex,TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(ex) || TV.verticalAuditArtworkFor(ex) || TV.auditBatchArtworkFor(ex) || TV.stepArtworkFor(ex) || TV.lungeArtworkFor(ex) || TV.EXPANSION_ART[ex.id] || UNIFIED_ART[ex.id] || SUPPLEMENT_ART[ex.id] || CREATOR_ART[ex.id] || MOBILITY_ART[ex.id] || MOVEMENT_ATLAS[ex.id]);
 
+function CustomExercisePhoto({ ex, size = 120, fluid = false }) {
+  const photo = (ex?.att || []).find(a => (a.type || a.mime || "").startsWith("image/"));
+  const src = useAttSrc(photo);
+  return src ? <img src={src} alt={ex.cz || ex.en || ""} style={{ display: "block", width: fluid ? "100%" : size, maxHeight: fluid ? 330 : size, height: fluid ? "auto" : size, objectFit: "contain", borderRadius: 12, margin: "0 auto" }}/> : null;
+}
 function TExArt({ ex, size = 120, fluid = false }) {
   const { t } = useT();
+  if (ex?.custom && (ex.att || []).some(a => (a.type || a.mime || "").startsWith("image/"))) return <CustomExercisePhoto ex={ex} size={size} fluid={fluid}/>;
   if (isUnverifiedIllustration(ex)) return <UnverifiedExerciseImage message={L("Ověřená ilustrace této pozice zatím chybí.", "A verified illustration of this pose is not yet available.")} size={size} fluid={fluid} color={t.textMuted} />;
   const atlas = tmAtlas(ex);
   if (atlas) return <ExerciseAtlasImage background={t.bg} entry={atlas} alt={ex.cz || ex.en || ""} size={size} fluid={fluid} dark={t.mode === "dark"}/>;
@@ -9747,6 +9754,8 @@ function TExCard({ ex, onOpen, onDelete, selecting, selected, onToggleSel, drag,
 }
 
 // ---- exercise detail · illustration, muscle map, the four quiet sections ----
+const prepareCustomExerciseAttachments = async att => { const scope = tmMediaScope(); return Promise.all(att.map(async a => { if (a.r2) return a; const blob = a.idb ? await idbGet(a.id, scope.namespace) : a.data ? await _dataUrlToBlob(a.data) : null; if (!blob || !scope.current()) throw new Error("attachment-unavailable"); await r2Put(a.id, blob, a.name); if (!scope.current()) throw new Error("account-changed"); const {idb,data,...rest} = a; return {...rest,r2:true}; })); };
+const { CustomExerciseEditor, CustomExerciseImports, useClientCustomExercises } = createCustomExerciseUI({ useT, useStore, L, CenterSheet, FONT_BODY, FONT_DISPLAY, filesToAtts, PhotoPreview: CustomExercisePhoto, MultiSelect: TMultiSel, muscles: T_MUSCLES, equipment: T_EQUIP, prepareAttachments: prepareCustomExerciseAttachments, request: clientFetch, captureScope: tmMediaScope });
 const { TrainingDetailTabs, TrainingHistoryChart } = createTrainingProgressUI({ useT, L, FONT_BODY, FONT_TAG, TV });
 function TExDetail({ exId, onClose, onOpen }) {
   const { t } = useT();
@@ -9755,6 +9764,8 @@ function TExDetail({ exId, onClose, onOpen }) {
   const ex = all.find((x) => x.id === exId);
   const fileRef = React.useRef(null);
   const [localEdit, setLocalEdit] = useState(false);
+  const [customEdit, setCustomEdit] = useState(false);
+  const permission = useCustomExercisePermission(true, { request: clientFetch, captureScope: tmMediaScope });
   const [pickChain, setPickChain] = useState(null);
   const [detailTab, setDetailTab] = useState("overview");
   React.useEffect(() => setDetailTab("overview"), [exId]); // "ez" | "hd"
@@ -9765,13 +9776,15 @@ function TExDetail({ exId, onClose, onOpen }) {
     if (empty) setDetailTab("technique");
   }, [exId]);
   if (!ex) return null;
-  const edit = st.editMode || localEdit;
+  const isCustom = ex.id?.startsWith("custom_ex_");
+  const edit = !isCustom && (st.editMode || localEdit);
   const patch = (p) => st.updateEntry("tEx", ex.id, p);
   const load = tLoadOf(ex);
   const attach = async (fl) => { const added = await filesToAtts(fl, st.ask); if (added.length) patch(current => ({ att: [...(current.att || []), ...added] })); if (fileRef.current) fileRef.current.value = ""; };
   return (
     <CenterSheet title={L("Cvik", "Exercise")} onClose={onClose} vrstva={190}>
-      <TEditToggle on={localEdit} onToggle={() => { setLocalEdit((x) => !x); setDetailTab("technique"); }} title={L("Upravit cvik", "Edit exercise")} />
+      {(!isCustom || permission.enabled) && <TEditToggle on={isCustom ? customEdit : localEdit} onToggle={() => { if (isCustom) setCustomEdit(true); else { setLocalEdit((x) => !x); setDetailTab("technique"); } }} title={L("Upravit cvik", "Edit exercise")} />}
+      {customEdit && <CustomExerciseEditor client exercise={ex} onClose={() => setCustomEdit(false)} onCreated={() => {}}/>}
       <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>
         <ExerciseTaxonomySummary taxonomyOf={exerciseTaxonomy} t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
         <span>{L(T_DEMAND(tLvlOf(ex)).cz, T_DEMAND(tLvlOf(ex)).en)}</span>
@@ -13069,7 +13082,7 @@ function TvField({ field, value, onChange, disabled, label, inline = false }) {
       <span style={{ fontFamily: FONT_TAG, fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted }}>
         {(label || (tvCz() ? spec.cz : spec.en)) + (unit ? " · " + unit : "")}
       </span>
-      <TvNumInput aria-label={(label || (tvCz() ? spec.cz : spec.en)) + (unit ? " · " + unit : "")} disabled={disabled} value={value} onChange={onChange}
+      <TvNumInput data-tm-surface="none" aria-label={(label || (tvCz() ? spec.cz : spec.en)) + (unit ? " · " + unit : "")} disabled={disabled} value={value} onChange={onChange}
         style={{ width: 62, background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "8px", color: t.heading, fontFamily: FONT_BODY, fontSize: 15, fontVariantNumeric: "tabular-nums", textAlign: "center", minHeight: 40 }} />
     </label>
   );
@@ -13106,7 +13119,7 @@ function TvClientBlock({ block, prev, onSession, onRest, onOpenEx }) {
   const atlas = tvLandingDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.landingArtworkFor(localArtRow,tMetaOf(localArtRow),LANDING_AUDIT_CONTEXT)) || tvComplexTaskDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.complexTaskArtworkFor(localArtRow,tMetaOf(localArtRow),COMPLEX_TASK_AUDIT_CONTEXT)) || tvThrowDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.throwArtworkFor(localArtRow,tMetaOf(localArtRow),THROW_AUDIT_CONTEXT)) || tvBreathingDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.breathingArtworkFor(localArtRow,tMetaOf(localArtRow),BREATHING_AUDIT_CONTEXT)) || tvPositionHoldDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.positionHoldArtworkFor(localArtRow,tMetaOf(localArtRow),POSITION_HOLD_AUDIT_CONTEXT)) || tvElbowHandDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.elbowHandArtworkFor(localArtRow,tMetaOf(localArtRow),ELBOW_HAND_AUDIT_CONTEXT)) || tvShoulderDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.shoulderArtworkFor(localArtRow,tMetaOf(localArtRow),SHOULDER_AUDIT_CONTEXT)) || tvHipDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.hipArtworkFor(localArtRow,tMetaOf(localArtRow),HIP_AUDIT_CONTEXT)) || tvLowerDeliveredArt(st.tvExerciseOf(block.exId), true) || (!st.tvExerciseOf(block.exId)&&TV.lowerLegArtworkFor(localArtRow,tMetaOf(localArtRow),LOWER_LEG_AUDIT_CONTEXT)) || TV.locomotionDeliveredArtworkFor(st.tvExerciseOf(block.exId)) || TV.locomotionArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },LOCOMOTION_AUDIT_CONTEXT) || TV.balanceArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },BALANCE_AUDIT_CONTEXT) || TV.movementArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },MOVEMENT_AUDIT_CONTEXT) || TV.trunkArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment },TRUNK_AUDIT_CONTEXT) || TV.carryArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.verticalAuditArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.auditBatchArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.stepArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.lungeArtworkFor(rec && { id: rec.id, cz: rec.displayCz, en: rec.displayEn, pos: rec.startPosition, exe: rec.execution, eq: rec.equipment }) || TV.EXPANSION_ART[block.exId] || UNIFIED_ART[block.exId] || SUPPLEMENT_ART[block.exId] || CREATOR_ART[block.exId] || MOBILITY_ART[block.exId] || MOVEMENT_ATLAS[block.exId];
   const m = TV.measurementOf(block.measurementType);
   const [extraLoad, setExtraLoad] = useState((block.sets || []).some(s => s.actual?.addedWeight > 0));
-  const fields = m.fields.concat(m.secondary && extraLoad && !policy?.noAddedWeight ? [m.secondary] : []);
+  const fields = m.fields.concat(m.secondary && extraLoad && !policy?.noAddedWeight && rec?.loadMode !== "none" ? [m.secondary] : []);
   const [open, setOpen] = useState(false);
   const columns = `30px minmax(64px,1fr) repeat(${fields.length},minmax(44px,.8fr)) ${block.rirEnabled ? "42px " : ""}44px`;
   const complete = (sid) => onSession((s) => {
@@ -13121,7 +13134,7 @@ function TvClientBlock({ block, prev, onSession, onRest, onOpenEx }) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <button onClick={() => onOpenEx?.(block.exId)} style={{ background: "transparent", border: 0, padding: 0, textAlign: "left", cursor: "pointer", fontFamily: FONT_DISPLAY, fontSize: 21, color: t.heading, lineHeight: 1.2 }}>{tvName(rec) || TL(block.name)}</button>
           {TL(block.coachNote) ? (
-            <div style={{ marginTop: 6, borderLeft: `2px solid ${t.accent}`, paddingLeft: 9, fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.55, color: t.textSec }}><TrainingSourceText text={TL(block.coachNote)} color={t.accentInk || t.accent}/></div>
+            <div style={{ marginTop: 6, fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.55, color: t.textSec }}><TrainingSourceText text={TL(block.coachNote)} color={t.accentInk || t.accent}/></div>
           ) : null}
         </div>
       </div>
@@ -13159,7 +13172,7 @@ function TvClientBlock({ block, prev, onSession, onRest, onOpenEx }) {
         })}
       </div>
       {block.rirEnabled?<p style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted,margin:0}}>{L("Rezerva = kolik dalších čistých opakování ještě zvládneš. Cílovou rezervu drž podle předpisu, obvykle 2.", "Reserve = how many more clean repetitions you could do. Follow the prescribed reserve, usually 2.")}</p>:null}
-      {m.secondary && !policy?.noAddedWeight?<label style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted}}><input type="checkbox" checked={extraLoad} onChange={e=>setExtraLoad(e.target.checked)}/>{L("Cvičím s přidanou zátěží", "I am adding extra load")}</label>:null}
+      {m.secondary && !policy?.noAddedWeight && rec?.loadMode !== "none"?<label style={{fontFamily:FONT_BODY,fontSize:12,color:t.textMuted}}><input type="checkbox" checked={extraLoad} onChange={e=>setExtraLoad(e.target.checked)}/>{L("Cvičím s přidanou zátěží", "I am adding extra load")}</label>:null}
 
       {rec && (rec.execution || rec.watchFor) ? (
         <>
@@ -13341,6 +13354,12 @@ function TvClientExerciseDetail({ exId, onClose }) {
     </TrainingDetailTabs>
   </CenterSheet>;
 }
+function TvGuideMedia({ exercise, block }) {
+  const { t } = useT();
+  const st = useStore();
+  const showMotion = !!exercise && !!hipCurrentMotionFor(exercise) && !(!tvLandingClientMotionAllowed(st,block.exId,exercise)||!tvPositionHoldClientMotionAllowed(st,block.exId,exercise)||!tvElbowHandClientMotionAllowed(st,block.exId,exercise)||!tvShoulderClientMotionAllowed(st,block.exId,exercise)||!tvHipClientMotionAllowed(st,block.exId,exercise)||tvLocoClientPolicy(st,block.exId)?.allowMotion===false||(tvLocoClientPolicy(st,block.exId)?.blockedMotionSources||[]).includes(hipCurrentMotionFor(exercise||{id:block.exId})?.src));
+  return <div style={{ width: "min(78vw, 330px)", margin: "0 auto", color: t.heading }}>{showMotion ? <ExerciseMotion key={exercise.id} exercise={exercise} theme={t} L={L} autoPlay/> : exercise ? <TvClientGuideArt ex={exercise} fluid/> : null}</div>;
+}
 const { TvPlanOverview: TvClientPlanOverview, TvGuide: TvClientGuidedSession } = createTrainingGuideUI({
   useT, useStore, L, TL, TV, FONT_BODY, FONT_TAG, FONT_DISPLAY,
   hexA, tvQuiet, FamilyIcon, TrainingSourceText, TExArt: TvClientGuideArt, TvField,
@@ -13348,7 +13367,8 @@ const { TvPlanOverview: TvClientPlanOverview, TvGuide: TvClientGuidedSession } =
   exerciseRow: (st, id) => st.tvExerciseOf(id) || (st.coll.tEx || []).find(ex => ex.id === id),
   exerciseRecord: (st, id) => tvClientRec(st, id),
   exercisePolicy: (st,id,block) => tvLocoClientPolicy(st,id,block), TvLocoSide, TvLocoLegacy,
-  landingRecording:tvLanding, TvLandingNotice, TvLandingSet,
+  landingRecording:tvLanding, TvLandingNotice, TvLandingSet, GuideMedia: TvGuideMedia,
+  allowsAddedWeight: (st, block) => tvClientRec(st, block.exId)?.loadMode !== "none",
   blockName: (block, st) => tvName(tvClientRec(st, block.exId)) || TL(block.name),
 });
 
@@ -13621,6 +13641,9 @@ function PageTrenink() {
   const [run, setRun] = useState(null);
   const [clock, setClock] = useState(null);
   const [openEx, setOpenEx] = useState(null);
+  const [newExercise, setNewExercise] = useState(false);
+  const customPermission = useCustomExercisePermission(true, { request: clientFetch, captureScope: tmMediaScope });
+  useClientCustomExercises();
   useGuideAction("trenink",action=>{setRun(null);setClock(null);setOpenEx(null);setDaysResetKey((key)=>key+1);setTab(action==="trenink.library"?"knihovna":action==="trenink.results"?"zaznam":"dnes");});
 
   const exs = st.coll.tEx || [];
@@ -13707,6 +13730,8 @@ function PageTrenink() {
 
       {tab === "knihovna" && (
         <>
+          <CustomExerciseImports/>
+          {customPermission.enabled && <button onClick={() => setNewExercise(true)} style={{ ...tvQuiet(t), border: 0, color: t.accentInk || t.accent, marginBottom: 12 }}>＋ {L("Vlastní cvik", "Custom exercise")}</button>}
           <div data-guide="trenink.library">
             <ExerciseLibraryFilters t={t} renderBodyMap={props => <TMuscleMap {...props} />} renderMovementIllustration={movement => { const ex = movementIllustrationExercise(exerciseIndex, movement, { artOf: tmAtlas, isUnverified: isUnverifiedIllustration }); return ex ? <TExArt ex={ex} size={80} /> : null; }} L={L} lang={LANG} filters={exerciseFilters} onChange={setExerciseFilters}
               view={exerciseView} onViewChange={setExerciseView} sort={exerciseSort} onSort={setExerciseSort} count={sorted.length} hiddenCount={hiddenCount}
@@ -13737,6 +13762,7 @@ function PageTrenink() {
         </>
       )}
 
+      {newExercise && <CustomExerciseEditor client onClose={() => setNewExercise(false)} onCreated={setOpenEx}/>}
       {run && <TvClientRunner sessionId={run} onClose={() => setRun(null)} onOpenEx={setOpenEx} />}
       {clock && <TmStage program={clock.program} name={clock.name} mode={clock.mode} onClose={() => setClock(null)} />}
       {openEx && (run ? <TvClientExerciseDetail exId={openEx} onClose={() => setOpenEx(null)} /> : <TExDetail exId={openEx} onClose={() => setOpenEx(null)} onOpen={(id) => setOpenEx(id)} />)}
@@ -15543,6 +15569,8 @@ export default function App() {
   const adoptServer = (sdoc, ver) => {
     // Chybějící `edits` na druhé straně neznamená „smaž denní záznamy".
     const se = (sdoc.edits && typeof sdoc.edits === "object") ? sdoc.edits : _editsRef.current;
+    // Autosave may run before React commits these setters; publish the adopted draft first.
+    _collRef.current = sdoc.coll; _editsRef.current = se;
     setColl(sdoc.coll); saveColl(sdoc.coll);
     setEdits(se); saveEdits(se);
     _ver.current = ver || 0;
@@ -15674,6 +15702,8 @@ export default function App() {
           // server holds a real document AND we have no unsynced local work -> adopt it
           // Chybějící `edits` na serveru neznamená „smaž denní záznamy".
           const se = (sdoc.edits && typeof sdoc.edits === "object") ? sdoc.edits : _editsRef.current;
+          // Autosave may run before React commits these setters; publish the adopted draft first.
+          _collRef.current = sdoc.coll; _editsRef.current = se;
           setColl(sdoc.coll); saveColl(sdoc.coll);
           setEdits(se); saveEdits(se);
           const cur = _serializeDoc(sdoc.coll, se);
@@ -16415,9 +16445,25 @@ export default function App() {
     return next;
   };
   const trashList = () => coll.trash || [];
-  const restoreTrash = (tid) => {
+  const restoreTrash = async (tid) => {
     const item = (coll.trash || []).find((x) => x.tid === tid);
     if (!item) return;
+    if (item.entryKind === "tEx" && item.data?.id?.startsWith("custom_ex_")) {
+      const scope = tmMediaScope();
+      try {
+        const exercise = { ...item.data, custom: true, att: await prepareCustomExerciseAttachments(item.data.att || []) };
+        if (!scope.current()) return;
+        const response = await clientFetch("/api/custom-exercises", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ exercise }) });
+        if (!response.ok) throw new Error("restore-access");
+        if (!scope.current()) return;
+        persistColl(c => {
+          if (!scope.current() || !(c.trash || []).some(x => x.tid === tid)) return c;
+          return restoreCascade({ ...c, trash: (c.trash || []).filter(x => x.tid !== tid), tEx: [...(c.tEx || []).filter(x => x.id !== exercise.id), exercise] }, item.cx);
+        });
+        window.dispatchEvent(new Event("tm-custom-exercises"));
+      } catch { if (scope.current()) ask(L("Cvik zůstává v koši. Obnovení vyžaduje připojení a povolené vlastní cviky.", "The exercise remains in trash. Restoring requires a connection and custom exercise access."), null); }
+      return;
+    }
     let next = { ...coll, trash: (coll.trash || []).filter((x) => x.tid !== tid) };
     if (item.kind === "entry") {
       const list = [...(next[item.entryKind] || [])];

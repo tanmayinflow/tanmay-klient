@@ -13,7 +13,7 @@ const newKey = () => `weekly-${globalThis.crypto?.randomUUID?.() || Math.random(
 // Mounted only by the coach shell. The existing owner-only availability route
 // remains the authority; this component never stores bookings or client details.
 export function createWeeklyAvailabilityUI({ useT, L, fetchBooking, errorCopy, CenterSheet }) {
-  return function WeeklyAvailability() {
+  return function WeeklyAvailability({ onSaved } = {}) {
     const { t } = useT();
     const [original, setOriginal] = useState(null), [windows, setWindows] = useState([]);
     const [loading, setLoading] = useState(true), [saving, setSaving] = useState(false);
@@ -34,7 +34,7 @@ export function createWeeklyAvailabilityUI({ useT, L, fetchBooking, errorCopy, C
       : errorCopy(e);
     const button = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: BODY, fontSize: 13, minHeight: 44, padding: "8px 14px", borderRadius: 12,
       color: t.text, border: `1px solid ${t.border}`, background: "transparent", cursor: "pointer" };
-    const primary = { ...button, color: t.onAccent, background: t.accent, borderColor: t.accent };
+    const primary = { ...button, color: t.accentInk || t.accent, background: `color-mix(in srgb, ${t.accent} 13%, transparent)`, borderColor: "transparent" };
     const input = { width: "100%", minHeight: 44, boxSizing: "border-box", padding: "8px 10px", fontFamily: BODY,
       fontSize: 16, color: t.text, background: t.input, border: `1px solid ${t.border}`, borderRadius: 10 };
     const label = { display: "grid", gap: 6, fontFamily: BODY, fontSize: 13, color: t.textSec };
@@ -88,6 +88,7 @@ export function createWeeklyAvailabilityUI({ useT, L, fetchBooking, errorCopy, C
         if (!mounted.current) return;
         setOriginal(data.rules); setWindows(weeklyDraft(data.rules)); setHistory([]);
         setMessage(L("Týden je uložený. Klienti už vidí novou dostupnost.", "Week saved. Clients can now see the updated availability."));
+        onSaved?.();
       } catch (e) { if (mounted.current) setError(e); }
       finally { if (mounted.current) setSaving(false); }
     };

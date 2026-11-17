@@ -555,7 +555,7 @@ export function createCompassUI(deps) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}><OwnerBadge g={g} /></div>
         <h2 style={{ fontFamily: "var(--tm-font-display)", fontSize: wide ? 34 : 30, fontWeight: 500, color: t.heading, margin: "0 0 18px", lineHeight: 1.2, maxWidth: wide ? 720 : "none" }}>{g.name}</h2>
         {odTanmaye && (g.intent || g.target) && (
-          <div style={{ borderLeft: `2px solid ${hexA(t.accent, 0.4)}`, paddingLeft: 12, margin: "0 0 16px" }}>
+          <div style={{ margin: "0 0 16px" }}>
             {g.intent && <div style={{ fontFamily: "var(--tm-font-body)", fontSize: 14, color: t.textSec, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{g.intent}</div>}
             <div style={{ fontFamily: "var(--tm-font-body)", fontStyle: "italic", fontSize: 12, color: t.textMuted, marginTop: 6 }}>{L("Zadání píše Kryštof. Postup, krok a poznámka jsou tvoje.", "Kryštof writes the assignment. The progress, the step and the note are yours.")}</div>
           </div>

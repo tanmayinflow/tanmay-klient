@@ -250,7 +250,7 @@ function FinCoverage() {
   const jednotka = cekaNaUdaj || dlouho ? "" : vMesicich ? L("měsíce", "months") : L("dní", "days");
   // Rámečková dieta · skupinu drží vlas a vzduch, ne karta se stínem.
   return (
-    <div style={{ borderLeft: `2px solid ${hexA(t.accent, 0.5)}`, padding: "2px 0 2px 14px", margin: "16px 0 18px" }}>
+    <div style={{ padding: "2px 0", margin: "16px 0 18px" }}>
       <div style={{ ...subLabel(t), marginBottom: 10 }}>{L("Krytí", "Coverage")}</div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 400, fontSize: 46, lineHeight: 1, color: t.heading, ...numTab }}>{hlavni}</span>
@@ -761,7 +761,7 @@ function FinReserve() {
 
 function FinancePlans({month}){
  const {t}=useT(),st=useStore();
- const sectionStyle={borderBottom:'1px solid '+t.borderSoft,padding:'10px 0',margin:'8px 0'},summaryStyle={cursor:'pointer',fontFamily:FONT_DISPLAY,fontSize:22,padding:'12px 0',color:t.heading};
+ const sectionStyle={padding:'10px 0',margin:'8px 0'},summaryStyle={cursor:'pointer',fontFamily:FONT_DISPLAY,fontSize:22,padding:'12px 0',color:t.heading};
  return <>
  <details style={sectionStyle}><summary style={summaryStyle}>{L('Šest sklenic','Six jars')}</summary><Jars month={month}/></details>
  <details style={sectionStyle}><summary style={summaryStyle}>{L('Přání','Wishes')}</summary><Wishlist/></details>

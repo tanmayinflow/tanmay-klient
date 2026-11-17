@@ -139,7 +139,7 @@ export function createOverlay(useT, L) {
               style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: "none", padding: 0, margin: 0, minHeight: 30, cursor: "pointer", fontFamily: "var(--tm-font-tag)", textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, lineHeight: 1.5, color: t.accentInk || t.accent, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
             >{title}</button>
             {naradi}
-            <button onClick={close} title="Esc" aria-label={L("Zavřít", "Close")} style={{ flexShrink: 0, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 999, width: 34, height: 34, cursor: "pointer", color: t.textMuted, fontSize: 15, lineHeight: 1 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+            <button onClick={close} title="Esc" aria-label={L("Zavřít", "Close")} style={{ flexShrink: 0, background: "transparent", border: "none", borderRadius: 8, width: 44, height: 44, cursor: "pointer", color: t.text, fontSize: 15, lineHeight: 1 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
           </div>
           <div className="tm-cs-body">{children}</div>
         </div>

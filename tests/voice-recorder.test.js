@@ -40,6 +40,13 @@ test('permission rejection and save failure report recovery and clear busy state
 function journal() {
   const rows=new Map();return {rows,create:async row=>{rows.set(row.id,{...row,chunks:[]});return row;},append:async(id,index,blob)=>{assert.equal(rows.get(id).chunks.length,index);rows.get(id).chunks.push(blob);},remove:async id=>rows.delete(id)};
 }
+
+test('conversation mode retains its full durable recording beyond attachment size',async()=>{
+  const drafts=journal(),sizes=[],f=fixture({drafts,id:()=> 'conversation',retainDraft:true,stopBytes:Infinity,onSave:async blob=>sizes.push(blob.size)});
+  await f.controller.start();f.rec.ondataavailable({data:new Blob([new Uint8Array(RECORDING_STOP_BYTES+1)])});
+  assert.equal(f.rec.state,'recording');f.controller.stop();await new Promise(r=>setImmediate(r));
+  assert.ok(drafts.rows.has('conversation'));assert.equal(sizes[0],RECORDING_STOP_BYTES+6);assert.equal(f.states.at(-1),null);
+});
 test('audio checkpoints survive editor disposal and are scoped to the original draft',async()=>{
   const drafts=journal(),f=fixture({drafts,id:()=> 'recording',metadata:{entryId:'note-a'}});
   await f.controller.start();f.rec.ondataavailable({data:new Blob(['first'])});await new Promise(r=>setImmediate(r));

@@ -528,7 +528,7 @@ function PomodoroTimer() {
       </div>
 
       {zmeskano && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: t.callout, border: `1px solid ${t.borderSoft}`, borderLeft: `3px solid ${t.accent}`, borderRadius: 8, padding: "8px 12px", margin: "10px 0 0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: t.callout, border: `1px solid ${t.borderSoft}`, borderRadius: 8, padding: "8px 12px", margin: "10px 0 0" }}>
           <span style={{ flex: 1, fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, lineHeight: 1.5 }}>
             {zmeskano.n > 1
               ? L(`Zatímco byl telefon zamčený, doběhly ${zmeskano.n} segmenty. Časovač je srovnaný.`, `${zmeskano.n} segments finished while the phone was locked. The timer is caught up.`)

@@ -139,3 +139,16 @@ export function calendarSlotCells(date, slots = [], step = 30) {
   }
   return [...groups.values()].sort((a, b) => a.from - b.from);
 }
+
+// Coach-editable working cells remain visible even when public booking is closed
+// (past starts, notice periods, or horizon). Public offers are separate overlays.
+// Iterate instants so both occurrences of an autumn DST hour remain editable.
+export function calendarWorkingCells(windows = [], step = 30) {
+  const interval = Math.max(5, Math.min(480, Number(step) || 30)) * 60000;
+  return windows.flatMap(window => {
+    if (!Number.isFinite(window.s) || !Number.isFinite(window.e) || window.e <= window.s) return [];
+    const cells = [];
+    for (let at = window.s; at < window.e; at += interval) cells.push({ startsAt: at, endsAt: Math.min(window.e, at + interval) });
+    return cells;
+  });
+}

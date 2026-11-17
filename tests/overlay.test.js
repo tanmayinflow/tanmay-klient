@@ -69,6 +69,7 @@ beforeEach(async () => {
       _stack: [{ state: null }],
       state: null,
       pushState(st) { this._stack.push({ state: st }); this.state = st; },
+      replaceState(st) { this._stack[this._stack.length - 1] = { state: st }; this.state = st; },
       back() {
         this._stack.pop();
         const top = this._stack[this._stack.length - 1];
@@ -288,6 +289,7 @@ test("zavření křížkem si svůj záznam vezme zpátky", async () => {
   const off = m.tmHistorieVrstva(() => {});
   assert.equal(window.history._stack.length, hloubka + 1);
   off();
+  await Promise.resolve();
   assert.equal(window.history._stack.length, hloubka, "jinak by zpět bylo napodruhé mrtvé");
 });
 
@@ -302,4 +304,39 @@ test("gesto zpět zavře jen horní vrstvu", async () => {
   window.history.back();
   assert.deepEqual(poradi, ["b", "a"]);
   offA(); offB();
+});
+
+
+test("replacing an editor with its detail reuses history and survives asynchronous back", async () => {
+  const m = await load(), closed = [], pending = [];
+  const originalBack = window.history.back.bind(window.history);
+  window.history.back = () => pending.push(originalBack);
+  const editor = m.tmHistorieVrstva(() => closed.push("editor"));
+  const depth = window.history._stack.length;
+  editor();
+  const detail = m.tmHistorieVrstva(() => closed.push("detail"));
+  await Promise.resolve();
+  assert.equal(pending.length, 0, "departing editor must not queue a back that closes the detail");
+  assert.equal(window.history._stack.length, depth, "replacement must not leave a dead Back entry");
+  assert.equal(m.tmHistoriePocet(), 1);
+  assert.deepEqual(closed, []);
+  window.history.back(); pending.shift()();
+  assert.deepEqual(closed, ["detail"], "a real browser Back still closes the replacement");
+  detail(); await Promise.resolve();
+  assert.equal(pending.length, 0, "gesture dismissal must not trigger another Back");
+  assert.equal(window.history._stack.length, depth - 1);
+});
+
+test("replacing a nested sheet preserves its parent and closes normally by cross", async () => {
+  const m = await load(), closed=[];
+  const parent=m.tmHistorieVrstva(()=>closed.push("parent"));
+  const editor=m.tmHistorieVrstva(()=>closed.push("editor"));
+  editor();
+  const detail=m.tmHistorieVrstva(()=>closed.push("detail"));
+  await Promise.resolve();
+  assert.equal(m.tmHistoriePocet(),2);
+  detail(); await Promise.resolve();
+  assert.equal(m.tmHistoriePocet(),1);assert.deepEqual(closed,[]);
+  window.history.back();assert.deepEqual(closed,["parent"]);
+  parent();await Promise.resolve();assert.equal(m.tmHistoriePocet(),0);
 });

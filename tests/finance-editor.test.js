@@ -45,7 +45,7 @@ function editor(kind="expenses",entry=null,categories=[]){
   render();
   return {changes,get closed(){return closed;},get savedMonth(){return savedMonth;},get tree(){return tree;},get all(){return nodes(tree);},
     edit(key,value){const node=nodes(tree).find(n=>n.type==="input"&&(n.props.name===key||n.props.type===key));assert.ok(node,key);node.props.onChange({target:{value}});render();},
-    category(value){const node=nodes(tree).find(n=>Array.isArray(n.props?.options));assert.ok(node,"Category selector");node.props.onChange(value);render();},
+    category(value){const node=nodes(tree).find(n=>n.type==="button"&&n.props["data-finance-category"]===value);assert.ok(node,"Category tag");node.props.onClick();render();},
     save(){nodes(tree).find(node=>node.type==="form").props.onSubmit({preventDefault(){}});render();},
     toggle(open){nodes(tree).find(node=>node.type==="details").props.onToggle({currentTarget:{open}});render();},
   };

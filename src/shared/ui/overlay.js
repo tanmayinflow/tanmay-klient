@@ -204,8 +204,15 @@ export function tmHistorieVrstva(close) {
   const pod = TM_HIST.length ? TM_HIST[TM_HIST.length - 1].klic : null;
   const v = { klic, close, zvenku: false, pod };
   if (!TM_HIST.length) window.addEventListener("popstate", tmHistPop);
+  // React may replace one sheet with another in the same commit. Reuse the
+  // departing sheet's history entry before its deferred cleanup can go back.
+  const stale = window.history.state?.tmOverlay && !TM_HIST.some(x => x.klic === window.history.state.tmOverlay);
   TM_HIST.push(v);
-  try { window.history.pushState({ tmOverlay: klic, tmPod: pod }, ""); } catch (e) {}
+  try {
+    const state = { tmOverlay: klic, tmPod: pod };
+    if (stale && window.history.replaceState) window.history.replaceState(state, "");
+    else window.history.pushState(state, "");
+  } catch (e) {}
   return () => {
     const i = TM_HIST.indexOf(v);
     if (i < 0) return;
@@ -215,10 +222,14 @@ export function tmHistorieVrstva(close) {
     // Vrstvu zavřelo gesto · záznam je pryč a sahat na historii by
     // odneslo o krok navíc.
     if (v.zvenku) return;
-    try {
-      const st = window.history.state;
-      if (st && st.tmOverlay === klic) window.history.back();
-    } catch (e) {}
+    // Let the rest of this commit mount a replacement. A synchronous back()
+    // completes asynchronously in browsers and would close that new sheet.
+    queueMicrotask(() => {
+      try {
+        const st = window.history.state;
+        if (st && st.tmOverlay === klic) window.history.back();
+      } catch (e) {}
+    });
   };
 }
 

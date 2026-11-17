@@ -4,6 +4,7 @@ export const RECORDING_STOP_BYTES = 14_500_000;
 // Closing the editor preserves the account-scoped journal. Explicit cancel discards it.
 export function createVoiceRecorder({ mediaDevices, Recorder, onState, onSave, onError,
   drafts, metadata = {}, audioBitsPerSecond = () => 64000, now = Date.now, id = () => 'rec' + crypto.randomUUID().replaceAll('-', ''),
+  stopBytes = RECORDING_STOP_BYTES, retainDraft = false,
   doc = globalThis.document, win = globalThis.window }) {
   let active = null, pending = false, disposed = false, generation = 0, failed = null;
   const tracks = stream => stream?.getTracks().forEach(track => track.stop());
@@ -44,7 +45,7 @@ export function createVoiceRecorder({ mediaDevices, Recorder, onState, onSave, o
             }
           });
         }
-        if (!session.limitReached && session.bytes >= RECORDING_STOP_BYTES) {
+        if (!session.limitReached && session.bytes >= stopBytes) {
           session.limitReached = true;
           emit({ phase:'saving', limitReached:true });
           if(rec.state!=='inactive')rec.stop();
@@ -61,7 +62,7 @@ export function createVoiceRecorder({ mediaDevices, Recorder, onState, onSave, o
         const blob = new Blob(session.chunks, { type: rec.mimeType || 'audio/webm' });
         try {
           if (blob.size) await onSave(blob, draft);
-          if (draft) await drafts.remove(draft.id);
+          if (draft && !retainDraft) await drafts.remove(draft.id);
         failed = null; emit(session.limitReached ? {phase:'limit',bytes:blob.size} : null);
         } catch { failed = { blob, draft }; emit({ phase: 'failed' }); onError('save'); }
         finally { pending = false; }
@@ -90,7 +91,7 @@ export function createVoiceRecorder({ mediaDevices, Recorder, onState, onSave, o
     async retry() {
       if (!failed || pending) return;
       pending = true; emit({ phase: 'saving' }); const saved = failed;
-      try { await onSave(saved.blob, saved.draft); if (saved.draft) await drafts.remove(saved.draft.id); failed = null; emit(null); }
+      try { await onSave(saved.blob, saved.draft); if (saved.draft && !retainDraft) await drafts.remove(saved.draft.id); failed = null; emit(null); }
       catch { emit({ phase: 'failed' }); onError('save'); }
       finally { pending = false; }
     },

@@ -7,7 +7,7 @@ import * as B from "../../booking/index.js";
 import { COACH_CALENDAR_ZONE as ZONE, calendarTime, parseCalendarTime, validCalendarWindows,
   genericDayOverrides, calendarDayWindows, editableDayWindows, calendarDayItems,
   calendarEventLanes, calendarWallInstants, calendarSelectionInstant, calendarServiceLocations,
-  calendarWallRange, calendarWeekRange, calendarWeekLanes, calendarSlotCells } from "../../booking/calendar.js";
+  calendarWallRange, calendarWeekRange, calendarWeekLanes, calendarSlotCells, calendarWorkingCells } from "../../booking/calendar.js";
 
 const PX = 1.5;
 const BODY_FONT = 'var(--tm-font-body, var(--ff-body, "DM Sans", sans-serif))';
@@ -16,7 +16,7 @@ const genericWeekly = (r, wd) => Number(r.weekday) === wd && !r.service_id && !r
 
 // Coach only. Authentication stays in the existing owner Worker routes.
 // Inject the existing fetch/error/theme functions, never account or seed data.
-export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorCopy, CenterSheet, renderNewBooking }) {
+export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorCopy, CenterSheet, renderNewBooking, renderExceptions, renderWeekly }) {
   return function BookingAvailabilityCalendar({ onOpen, onNew, onOpenClient, onServices, refreshToken = 0 }) {
     const { t } = useT();
     const language = getLang();
@@ -84,7 +84,7 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
 
     const btn = { minHeight: 44, border: `1px solid ${t.borderSoft}`, borderRadius: 12, background: "transparent", padding: "8px 12px", color: t.text, font: "inherit", cursor: "pointer" };
     const input = { ...btn, width: "100%", minWidth: 0, boxSizing: "border-box", background: t.input || t.card, fontSize: 16, colorScheme: t.mode === "dark" ? "dark" : "light" };
-    const primary = { ...btn, background: t.accent, borderColor: t.accent, color: t.onAccent };
+    const primary = { ...btn, background: `color-mix(in srgb, ${t.accent} 13%, transparent)`, borderColor: "transparent", color: t.accentInk || t.accent };
     const row = { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" };
     const label = { display: "grid", gap: 5, minWidth: 0, fontSize: 12, color: t.textSec };
     const notice = { fontSize: 12, lineHeight: 1.55, color: t.textSec, margin: "9px 0" };
@@ -272,14 +272,20 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
               const top = at => view === "week" ? (calendarWallRange(d, at, at + 60000).from - range.from) * scale : (Math.max(begin, at) - begin) / 60000 * scale;
               const size = (s, e) => view === "week" ? Math.max(3, (calendarWallRange(d, s, e).to - calendarWallRange(d, s, e).from) * scale) : Math.max(3, (Math.min(end, e) - Math.max(begin, s)) / 60000 * scale);
               const cells = calendarSlotCells(d, daySlots, service?.slot_interval_min);
-              const marks = Array.from({ length: Math.ceil((end - begin) / 1800000) }, (_, i) => begin + i * 1800000);
+              const workCells = calendarWorkingCells(windows, service?.slot_interval_min);
+
               const short = compact && view === "week";
               return <section key={d} ref={node => { dayRefs.current[d] = node; }} data-calendar-day={d} aria-label={dayLabel(d)} style={{ position: "relative", height, minWidth: 0, borderLeft: `1px solid ${t.borderSoft}`, background: `repeating-linear-gradient(to bottom, transparent 0, transparent ${30 * scale - 1}px, ${t.borderSoft} ${30 * scale - 1}px, ${t.borderSoft} ${30 * scale}px)` }}>
                 <div role="button" tabIndex={0} aria-label={`${dayLabel(d)} ${L("přidat volno nebo termín", "add time off or a session")}`}
                   onClick={e => { if (e.target !== e.currentTarget || Date.now() < skipClick.current) return; const r = e.currentTarget.getBoundingClientRect(); const elapsed = Math.round((e.clientY - r.top) / scale / 5) * 5; if (view === "day") { const at = Math.min(end - 60000, Math.max(begin, begin + elapsed * 60000)), until = Math.min(nextMidnight, at + (service?.duration_min || 60) * 60000); selectTime(d, B.localMinuteOfDay(at, ZONE), until === nextMidnight ? 1440 : B.localMinuteOfDay(until, ZONE), at, until); } else { const minute = Math.max(0, Math.min(1435, range.from + elapsed)); selectTime(d, minute, Math.min(1440, minute + (service?.duration_min || 60))); } }}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectTime(d, 540, 600); } }} style={{ position: "absolute", inset: 0, cursor: "pointer" }}/>
                 {windows.map((w, i) => <div key={`work-${i}`} aria-hidden="true" style={{ pointerEvents: "none", position: "absolute", top: top(w.s), height: size(w.s, w.e), left: 0, right: 0, background: `color-mix(in srgb, ${t.sage} 8%, transparent)` }}/>) }
-                {view === "day" && marks.map(at => <span key={at} aria-hidden="true" style={{ pointerEvents: "none", position: "absolute", top: top(at) + 4, right: 3, fontSize: 10, color: t.textSec }}>{B.hhmm(at, ZONE)}</span>)}
+                {workCells.map(cell => <button type="button" key={`work-cell-${cell.startsAt}`} data-working-start={cell.startsAt}
+                  aria-label={`${dayLabel(d)} ${B.hhmm(cell.startsAt, ZONE)}–${B.hhmm(cell.endsAt, ZONE)} ${L("upravit čas", "edit time")}`}
+                  onClick={() => selectTime(d, B.localMinuteOfDay(cell.startsAt, ZONE), cell.endsAt === nextMidnight ? 1440 : B.localMinuteOfDay(cell.endsAt, ZONE), cell.startsAt, cell.endsAt)}
+                  style={{ position: "absolute", top: top(cell.startsAt) + 1, height: Math.max(8, size(cell.startsAt, cell.endsAt) - 2), left: 1, width: "calc(100% - 2px)", minHeight: 0, border: `1px solid ${t.borderSoft}`, borderRadius: short ? 3 : 6, background: "transparent", color: t.textSec, font: "inherit", fontSize: short ? 9 : 11, padding: short ? "1px 0" : "3px 6px", textAlign: short ? "center" : "left", overflow: "hidden", cursor: "pointer" }}>
+                  {short ? "" : B.hhmm(cell.startsAt, ZONE)}
+                </button>)}
                 {cells.map(cell => {
                   const slot = cell.choices[0];
                   const cellTop = view === "week" ? (cell.from - range.from) * scale : top(slot.startsAt);
@@ -364,12 +370,17 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
         </>}
         {editor.type === "work" && <>
           <div style={{ ...row, marginBottom: 12 }}><button type="button" style={btn} disabled={saving} aria-pressed={!editor.weekly} onClick={() => editWork(editor.date, false)}>{L("Jen tento den", "Only this date")}</button><button type="button" style={btn} disabled={saving} aria-pressed={editor.weekly} onClick={() => editWork(editor.date, true)}>{L("Každý tento den v týdnu", "Every same weekday")}</button></div>
+          {editor.weekly && <div role="group" aria-label={L("Den pravidelného týdne", "Regular weekday")} style={{ ...row, marginBottom: 16 }}>
+            {Array.from({ length: 7 }, (_, i) => B.shiftDateISO(B.startOfISOWeek(editor.date), i)).map(d => <button key={d} type="button" style={{ ...btn, borderColor: d === editor.date ? t.accent : t.borderSoft, flex: 1, padding: "6px 3px", fontSize: 12 }} disabled={saving} aria-pressed={d === editor.date} onClick={() => editWork(d, true)}>{new Date(`${d}T12:00:00Z`).toLocaleDateString(language === "cs" ? "cs-CZ" : "en-GB", { weekday: "short", timeZone: "UTC" })}</button>)}
+          </div>}
           {editor.windows.map((w, i) => <div key={i} style={{ ...row, flexWrap: "nowrap", marginBottom: 10 }}><label style={{ ...label, flex: 1 }}>{L("Od", "From")}<input type="time" step="300" aria-label={`${L("Začátek okna", "Window start")} ${i + 1}`} style={input} data-tm-surface="control" value={w.startText ?? calendarTime(w.start_minute)} onChange={e => setEditor(x => ({ ...x, windows: x.windows.map((v, j) => j === i ? { ...v, start_minute: parseCalendarTime(e.target.value), startText: e.target.value } : v) }))}/></label><label style={{ ...label, flex: 1 }}>{L("Do", "To")}<input type="text" inputMode="numeric" placeholder="17:00" aria-label={`${L("Konec okna", "Window end")} ${i + 1}`} style={input} data-tm-surface="control" value={w.endText ?? calendarTime(w.end_minute)} key={`${editor.date}-${editor.weekly}-${i}`} onChange={e => setEditor(x => ({ ...x, windows: x.windows.map((v, j) => j === i ? { ...v, end_minute: parseCalendarTime(e.target.value), endText: e.target.value } : v) }))}/></label><button type="button" style={{ ...btn, marginTop: 21 }} disabled={saving} aria-label={`${L("Odebrat okno", "Remove window")} ${i + 1}`} onClick={() => setEditor(x => ({ ...x, windows: x.windows.filter((_, j) => j !== i) }))}><TmIcon id="close" size={16}/></button></div>)}
           {!editor.windows.length && <p style={notice}>{L("Celý den bude bez nabízených termínů.", "No appointments will be offered on this day.")}</p>}
           <button type="button" style={btn} disabled={saving || editor.windows.length >= 16} onClick={() => setEditor(x => ({ ...x, windows: [...x.windows, { start_minute: 540, end_minute: 1020 }] }))}>{L("Přidat pracovní okno", "Add working window")}</button>
           <p style={notice}>{L("Existující rezervace zůstávají zachované. Zvláštní pravidla služeb a míst platí dál. Konec dne můžeš zapsat jako 24:00.", "Existing bookings remain. Service and location exceptions still apply. Use 24:00 for the end of the day.")}</p>
           <div style={row}><button type="button" style={primary} disabled={saving} onClick={() => saveWork()}>{L("Uložit pracovní dobu", "Save working hours")}</button>{!editor.weekly && editor.expectedIds.length > 0 && <button type="button" style={btn} disabled={saving} onClick={() => saveWork(true)}>{L("Vrátit pravidelný týden", "Use regular week")}</button>}</div>
         </>}
+        {editor.type === "work" && renderWeekly && <details style={{ marginTop: 24 }}><summary style={{ cursor: "pointer", color: t.accentInk || t.accent, minHeight: 44 }}>{L("Upravit celý pravidelný týden", "Edit the whole recurring week")}</summary>{renderWeekly(() => { setEditor(null); refresh(); })}</details>}
+        {editor.type === "work" && renderExceptions && <details style={{ marginTop: 24 }}><summary style={{ cursor: "pointer", color: t.accentInk || t.accent, minHeight: 44 }}>{L("Volno a změny pro více dnů", "Time off and changes over several days")}</summary>{renderExceptions(() => { setEditor(null); refresh(); })}</details>}
         {editor.type === "time" && <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}><label style={label}>{L("Od", "From")}<ChoiceField theme={t} L={L} editable label={L("Od", "From")} inputMode="text" options={timeOptions.filter(v => v !== "24:00")} style={input} value={editor.startText ?? calendarTime(editor.start)} onChange={value => setEditor(x => ({ ...x, start: parseCalendarTime(value), startText: value, startsAt: undefined }))}/></label><label style={label}>{L("Do", "To")}<ChoiceField theme={t} L={L} editable label={L("Do", "To")} inputMode="text" options={timeOptions} style={input} value={editor.endText ?? calendarTime(editor.end)} onChange={value => setEditor(x => ({ ...x, end: parseCalendarTime(value), endText: value, endsAt: undefined }))}/></label></div>
           {[["start", "startsAt", selectedStart, L("Začátek při změně času", "Start when clocks change")], ["end", "endsAt", selectedEnd, L("Konec při změně času", "End when clocks change")]].map(([field, raw, selected, caption]) => {

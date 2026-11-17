@@ -26,6 +26,7 @@ import { PracticeCalendarExport } from "./practiceCalendar.jsx";
 import { wellbeingPalette } from "./wellbeingPalette.js";
 import { TmIcon, tmIconId, createIconUI } from "./icons.jsx";
 import { restorePracticeHabitDefaults, keepRestoredHabitTranslations } from "../product/practice.js";
+import { practiceReviewSummary } from "../product/practiceReview.js";
 
 export function createPracticeUI(deps) {
   const {
@@ -1197,6 +1198,30 @@ export function createPracticeUI(deps) {
     );
   }
 
+  function ReviewBodyOverview() {
+    const {t}=useT(),st=useStore();
+    const questions=[...PLAN_QS,...PLAN_QS_HLOUBKA,...PLAN_QS_STARE];
+    const dates=Array.from(new Set([...Object.keys(st.edits||{}),...tmWbDates(st)]));
+    const records=dates.map(date=>({date,wb:tmWbOf(st,date),plan:Object.fromEntries(questions.map(q=>[q.key,tmPlain(st.getDay(date).plan?.[q.key]||'')]))}));
+    const summary=practiceReviewSummary(records,todayISO(),questions.map(q=>q.key));
+    const metricNames={sleep:L("Spánek","Sleep"),mood:L("Nálada","Mood"),energy:L("Energie","Energy"),well:L("Potenciál dne","Daily potential")};
+    const number=value=>new Intl.NumberFormat(L("cs-CZ","en-GB"),{maximumFractionDigits:1}).format(value);
+    const energy=summary.metrics.energy;
+    return <section data-practice-review-overview style={{marginTop:30,fontFamily:"var(--tm-font-body)"}}>
+      <Eyebrow>{L("Ohlédnutí a tělo","Review and body")}</Eyebrow>
+      <p style={{fontFamily:"var(--tm-font-body)",fontSize:13,color:t.textSec,lineHeight:1.65}}>{L("Posledních 30 dní","Last 30 days")} · {L("ohlédnutí","reviews")} {summary.reflectionDays}/30 · {L("tělo","body")} {summary.bodyDays}/30</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:"16px 20px",margin:"20px 0"}}>{Object.entries(summary.metrics).map(([key,metric])=><div key={key}>
+        <div style={subLabel(t)}>{metricNames[key]}</div>
+        <div style={{fontFamily:"var(--tm-font-display)",fontSize:26,color:t.text}}>{metric.average===null?"—":number(metric.average)+(key==="sleep"?" h":" / 5")}</div>
+        <div style={{fontSize:12,color:t.textMuted}}>{metric.count?L(`Průměr · záznamů: ${metric.count}`,`Average · records: ${metric.count}`):L("Bez záznamu","No record")}</div>
+      </div>)}</div>
+      {energy.recentCount>=2&&energy.earlierCount>=2&&<p style={{fontSize:13,lineHeight:1.7,color:t.textSec}}>{L(`Průměr energie za posledních 15 dní je ${number(energy.recent)}/5 (${energy.recentCount} záznamů), v předchozích 15 dnech ${number(energy.earlier)}/5 (${energy.earlierCount} záznamů).`,`Average energy in the last 15 days is ${number(energy.recent)}/5 (${energy.recentCount} records), compared with ${number(energy.earlier)}/5 in the preceding 15 days (${energy.earlierCount} records).`)}</p>}
+      {summary.bodyDays>0&&<div style={{display:"flex",gap:"8px 18px",flexWrap:"wrap",fontSize:13,color:t.textSec,marginBottom:16}}>{WB_ZNAMENI.map(({k,cz,en,Ic})=><span key={k} style={{display:"inline-flex",alignItems:"center",gap:6}}><Ic size={15}/>{L(cz,en)} {summary.seals[k]}</span>)}</div>}
+      <p style={{fontSize:13,lineHeight:1.7,color:t.textMuted}}>{L("Prázdné dny se nepočítají jako nula. Porovnej si energii a spánek se svými zápisy; samotná čísla neříkají, co změnu způsobilo.","Empty days do not count as zero. Compare energy and sleep with your notes; the numbers alone do not explain what caused a change.")}</p>
+      {summary.reflections.length>0?<div style={{marginTop:20}}><div style={subLabel(t)}>{L("Poslední ohlédnutí","Recent reviews")}</div>{summary.reflections.slice(0,5).map(row=><details key={row.date} style={{margin:"10px 0"}}><summary style={{cursor:"pointer",minHeight:44,display:"flex",alignItems:"center",gap:8,color:t.text}}><TmIcon id="forward" size={13}/>{fmtCZ(row.date)}<span style={{fontSize:12,color:t.textMuted}}>{row.answers.length} {L(row.answers.length===1?"odpověď":row.answers.length<5?"odpovědi":"odpovědí",row.answers.length===1?"answer":"answers")}</span></summary>{row.answers.map(answer=>{const q=questions.find(item=>item.key===answer.key);return <div key={answer.key} style={{margin:"8px 0 18px"}}><div style={{fontFamily:"var(--tm-font-display)",fontSize:18,color:t.accentInk||t.accent}}>{q?L(q.cz,q.en):answer.key}</div><p style={{fontFamily:"var(--tm-font-display)",fontStyle:"italic",fontSize:18,lineHeight:1.6,whiteSpace:"pre-wrap",overflowWrap:"anywhere",margin:"6px 0"}}>{answer.text}</p></div>;})}</details>)}</div>:<p style={{fontSize:13,color:t.textMuted}}>{L("Až vyplníš večerní Ohlédnutí, najdeš tu své odpovědi vedle přehledu těla.","When you fill in an evening review, your answers will appear here alongside your body overview.")}</p>}
+    </section>;
+  }
+
   function PraxeOverview({ go }) {
     const { t } = useT();
     const st = useStore();
@@ -1205,9 +1230,9 @@ export function createPracticeUI(deps) {
     const nejdelsi = sloty.length ? Math.max(...sloty.map((j) => streaks[j] || 0)) : 0;
     if (!days) {
       return (
-        <Prazdno kind="prvni" plain
-          fakt={L("Zatím tu není zaznamenaný žádný den.", "No day is recorded here yet.")}
-          pozvani={L("Odškrtni dnes první návyk. Přehled začne od něj.", "Tick your first habit today. The overview starts there.")} />
+        <><Prazdno kind="prvni" plain
+          fakt={L("Zatím tu není zaznamenaný žádný návyk.", "No habit is recorded here yet.")}
+          pozvani={L("Odškrtni dnes první návyk. Přehled začne od něj.", "Tick your first habit today. The overview starts there.")} /><ReviewBodyOverview/></>
       );
     }
     return (
@@ -1240,6 +1265,7 @@ export function createPracticeUI(deps) {
         <div style={{ display: "flex", gap: 10, alignItems: "center", margin: "4px 0 4px" }}>
           <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><BookIcon size={13} /></span>} label={L("Atomic Habits · výpisek", "Atomic Habits · notes")} onClick={() => go("atomic")} />
         </div>
+        <ReviewBodyOverview/>
       </>
     );
   }

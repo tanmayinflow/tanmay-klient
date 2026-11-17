@@ -10,10 +10,20 @@
 .tm-tvset [data-c="parameters"]:empty { display: none; }
 .tm-tvset [data-c="type"] { gap: 0 !important; }
 .tm-tvset [data-c="type"] button { min-width: 22px; padding: 0; }
-.tm-tvset [data-c="done"] button { min-width: 44px; min-height: 44px; }
+.tm-tvset [data-c="done"] button, .tm-tvset [data-c="act"] > button:first-child { min-width: 32px !important; min-height: 32px !important; width: 32px !important; height: 32px !important; border-radius: 9px !important; margin: 6px; }
 .tm-tvprevious, .tm-tvplanned { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-tvplanned { font-size: 10px; line-height: 1.5; }
 .tm-tvset input { box-sizing: border-box; max-width: 100%; font-variant-numeric: tabular-nums; }
 .tm-tvset .tm-tvfield-inline { display: block !important; }
 .tm-tvset .tm-tvfield-inline > span, .tm-tvset .tm-set-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.tm-tvset .tm-tvfield-inline input, .tm-tvset [data-c="rir"] input { width: 100% !important; min-height: 44px !important; padding: 6px 2px !important; font-size: 16px !important; border: 0 !important; border-bottom: 1px solid var(--tv-border, currentColor) !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+.tm-tvset .tm-tvfield-inline input, .tm-tvset [data-c="rir"] input, .tm-tvset [data-c="rir"] select { width: 100% !important; min-height: 40px !important; padding: 6px 2px !important; font-size: 16px !important; border: 1px solid var(--tv-border, currentColor) !important; border-radius: 11px !important; background: transparent !important; box-shadow: none !important; }
+.tm-guide-series input { background: transparent !important; box-shadow: none !important; border-radius: 12px !important; }
+.tm-guide-series > div:has(> label) { justify-content: center; }
+.tm-guide .tm-exercise-motion { margin: 0; width: 100%; }
+.tm-guide .tm-motion-stage { max-height: 34dvh; overflow: hidden; }
+.tm-guide .tm-motion-stage canvas { max-height: 34dvh; object-fit: contain; }
+.tm-guide .tm-motion-heading { font-size: 11px; margin: 0; }
+.tm-guide .tm-motion-controls { margin-top: 0; }
+.tm-guide .tm-motion-controls button { min-height: 32px; padding: 3px 8px; font-size: 11px; }
+.tm-guide .tm-exercise-motion input[type=range] { min-height: 22px; margin: 0; }
+.tm-guide-hero > div:first-child > img, .tm-guide-hero > button:first-child img { max-height: 34dvh; object-fit: contain; }

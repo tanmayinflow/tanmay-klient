@@ -1,4 +1,5 @@
-import React,{useId,useRef,useState} from 'react';
+import React,{useEffect,useId,useRef,useState} from 'react';
+import {createScreenWakeController} from './screenWake.js';
 
 const choices=[
   {id:'daily',name:['Otázka dne','Today’s question'],title:['Otázka pro dnešek','One question for today']},
@@ -19,13 +20,14 @@ function ConversationMark({kind}){
  * `panel` + `onPanelChange` may control selection; otherwise it is local.
  * Supply plain content, without the old outer disclosure, in each named slot.
  */
-export function TogetherConversationMap({lang='cs',slots,children,initialPanel='daily',panel,onPanelChange,onOverview}){
+export function TogetherConversationMap({lang='cs',slots,children,initialPanel='daily',panel,onPanelChange,onOverview,visible=true}){
   const L=v=>v[lang==='en'?1:0],id=useId(),buttons=useRef({});
   const artMask=`tg-conversation-art-${id.replace(/:/g,'')}`;
   const content=slots||children||{};
   const available=choices.filter(choice=>content[choice.id]!==undefined&&content[choice.id]!==null);
   const [localPanel,setLocalPanel]=useState(initialPanel);
   const selected=available.some(choice=>choice.id===(panel??localPanel))?(panel??localPanel):available[0]?.id;
+  useEffect(()=>{const wake=createScreenWakeController();wake.setActive(visible&&selected==='weekly');return()=>wake.dispose();},[visible,selected]);
   const select=next=>{setLocalPanel(next);onPanelChange?.(next);};
   const move=(event,current)=>{
     const index=choices.findIndex(choice=>choice.id===current);

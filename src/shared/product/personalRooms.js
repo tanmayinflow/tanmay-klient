@@ -4,7 +4,7 @@ export const CONTENT_STAGES = Object.freeze([
   ["natocit", "Vytvořit", "To create"], ["strih", "Zpracování", "In post"],
   ["publikovat", "K publikaci", "To publish"], ["vysledky", "Vyhodnocení", "Reviewed"],
 ]);
-export const CONTENT_CHANNELS = Object.freeze(["Instagram", "YouTube", "TikTok", "E-mail"]);
+export const CONTENT_CHANNELS = Object.freeze(["Instagram", "YouTube", "Facebook", "E-mail"]);
 // Existing notebook folders remain accessible until the optional destination is available.
 export function personalNotebookRoom(entry, contentAvailable = false) {
   const folder = String(entry?.folder || "");

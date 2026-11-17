@@ -9,7 +9,7 @@ export const SOC_STAVY = [
 ];
 export const socStav = (k) => SOC_STAVY.find((s) => s.k === k) || SOC_STAVY[0];
 
-export const SOC_PLATFORMY = ["Instagram", "YouTube", "TikTok", "E-mail"];
+export const SOC_PLATFORMY = ["Instagram", "YouTube", "Facebook", "E-mail"];
 
 // Checklisty přesně podle šablon z Notionu (IG Carousel / IG Reel / TikTok /
 // YouTube / Email Newsletter) · každý formát má i osnovu polí v detailu.

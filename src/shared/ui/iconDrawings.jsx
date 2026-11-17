@@ -8,7 +8,7 @@ export const ICON_DRAWINGS = {
 "notebook": {regular: "/media/icons/notebook-icon-v5.png", small: "/media/icons/notebook-icon-small-v5.png"},
 "sources": {regular: "/media/icons/sources-icon-v1.png", small: "/media/icons/sources-icon-v1.png"},
 "clients": {regular: "/media/icons/clients-icon-v1.png", small: "/media/icons/clients-icon-v1.png"},
-"stewardship": {regular: "/media/icons/finance-diamond-v2.png", small: "/media/icons/finance-diamond-small-v2.png"},
+"stewardship": {regular: <><path d="M3 11V8a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v3M3 11h18v9H3zM7 11V5M17 11V5M7 14v6M17 14v6"/><rect x="10" y="10" width="4" height="5" rx="1"/></>, small: <><path d="M3 11V8a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v3M3 11h18v9H3z"/><rect x="10" y="10" width="4" height="5" rx="1"/></>},
 "voice": {regular: "/media/icons/content-icon-v1.png", small: "/media/icons/content-icon-small-v1.png"},
 "basket": {regular: "/media/icons/basket-icon-v1.png", small: "/media/icons/basket-icon-v1.png"},
 "add": {regular: <><path d="M12 4.5V19.5M4.5 12H19.5"/></>, small: <><path d="M12 4.5V19.5M4.5 12H19.5"/></>},
