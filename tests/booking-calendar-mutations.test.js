@@ -9,7 +9,14 @@ import {hhmm} from '../src/booking/time.js';
 
 const DATE='2026-09-07', TZ='Europe/Prague';
 beforeEach(t=>t.mock.timers.enable({apis:['Date'],now:new Date('2026-09-01T08:00:00Z')}));
-async function setup(){const db=makeD1();await seedBooking(db);await givePackage(db,'cl_a',10);return db;}
+async function setup(){
+ const db=makeD1();await seedBooking(db);await givePackage(db,'cl_a',10);
+ // Direct handler tests include the membership that the real Client Worker
+ // establishes before entering booking routes.
+ await db.prepare('CREATE TABLE members(user_id TEXT PRIMARY KEY,email TEXT)').run();
+ await db.prepare("INSERT INTO members VALUES('a-example-test','a@example.test'),('b-example-test','b@example.test')").run();
+ return db;
+}
 async function coach(db,path,body,method='POST'){
  const url=new URL('https://example.test/api/booking'+path);
  const response=await handleCoach(new Request(url,{method,...(body===undefined?{}:{headers:{'content-type':'application/json'},body:JSON.stringify(body)})}),{KLIENT_DB:db},url,{});

@@ -16,6 +16,13 @@ const placeholders = a => a.map(() => '?').join(',');
 const primaryFields = p => ({client_id:p.client_id, credit_cost_units:p.credit_cost_units, client_package_id:p.client_package_id,
   price_minor:p.price_minor, currency:p.currency, payment_status:p.payment_status, payment_method:p.payment_method});
 
+async function assertClientAccess(db,input) {
+  if((input.actor||ACTOR.CLIENT)!==ACTOR.CLIENT || !input.clientId)return;
+  const client=await R.getClient(db,input.clientId);
+  if(!client?.active)fail(ERR.NOT_AUTHORIZED,'inactive booking client');
+  if(input.actorId && (client.account_user_id!==input.actorId || !await db.prepare('SELECT 1 FROM members WHERE user_id=?').bind(input.actorId).first()))fail(ERR.NOT_AUTHORIZED);
+}
+
 async function money(db, clientId, service, actor, now, previous, selectedPackage, sessionAt = now) {
   const client = await R.getClient(db, clientId);
   if (!client || !client.active) fail(ERR.NOT_FOUND, 'client');
@@ -41,8 +48,13 @@ async function money(db, clientId, service, actor, now, previous, selectedPackag
 
 // Both the account and selected package balances are checked in the write
 // transaction. A stale preflight may never overdraw a shared package.
-function moneyGuards(plans) {
+function moneyGuards(plans,input) {
   const sql=[], args=[];
+  if((input.actor||ACTOR.CLIENT)===ACTOR.CLIENT && input.clientId){
+    sql.push('EXISTS(SELECT 1 FROM booking_clients WHERE id=? AND active=1'+(input.actorId?' AND account_user_id=?':'')+')');
+    args.push(input.clientId);if(input.actorId)args.push(input.actorId);
+    if(input.actorId){sql.push('EXISTS(SELECT 1 FROM members WHERE user_id=?)');args.push(input.actorId);}
+  }
   for (const p of plans) {
     if (!p.credit_cost_units || p.retain) continue;
     const old=p.previous, refund=p.refundAvailable ?? (Number(old?.credit_cost_units)||0);
@@ -137,6 +149,7 @@ function idsFor(input,previous) {
   return ids;
 }
 export async function createManagedBooking(db,input) {
+  await assertClientAccess(db,input);
   if(input.groupBookingId) return joinGroup(db,input);
   const x=await spec(db,input),ids=idsFor(input);
   if(ids.length>capacity(x.service)) fail(ERR.VALIDATION_ERROR,'capacity');
@@ -149,15 +162,16 @@ export async function createManagedBooking(db,input) {
     status:x.service.confirmation_mode==='AUTO'&&ids.length>=(Number(x.service.min_participants)||1)?S.CONFIRMED:S.REQUESTED,confirmation_mode:x.service.confirmation_mode,
     client_note:p.client_note,coach_note_private:x.actor===ACTOR.COACH?String(input.coachNote||'').slice(0,4000):'',meeting_url:x.location?.online_url||'',
     plan_id:input.planId||null,workout_template_id:input.workoutTemplateId||null,sync_status:'PENDING',version:1,mutation_token:R.newId('mutation'),created_by:x.actor,created_at:at,updated_at:at};
-  const g=moneyGuards(plans),keys=Object.keys(b);
+  const g=moneyGuards(plans,input),keys=Object.keys(b);
   const stmts=[db.prepare(`INSERT INTO bookings (${keys.join(',')}) SELECT ${placeholders(keys)} WHERE NOT EXISTS
     (SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?)${g.sql}`).bind(...keys.map(k=>b[k]),prot.s,prot.e,...g.args),...await changesAfter(db,b,plans,[],x.actor)];
   if(x.override) stmts.push(R.stInsertEventIfState(db,{id:R.newId('ev'),booking_id:b.id,type:'ADMIN_OVERRIDE',actor_type:x.actor,actor_id:input.actorId||'',created_at:at,payload:{reason:String(input.overrideReason).slice(0,300)}},b.version,b.status,b.mutation_token));
   let result;try {stmts.splice(1,0,db.prepare("SELECT changes() AS changed"),db.prepare("SELECT EXISTS(SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?) AS blocked").bind(prot.s,prot.e)); result=await db.batch(stmts);} catch(e){if(isSlotConflict(e)) fail(ERR.SLOT_TAKEN);throw e;}
-  if(!result[1]?.results?.[0]?.changed) fail(result[2]?.results?.[0]?.blocked ? ERR.SLOT_TAKEN : ERR.INSUFFICIENT_CREDIT);
+  if(!result[1]?.results?.[0]?.changed){await assertClientAccess(db,input);fail(result[2]?.results?.[0]?.blocked ? ERR.SLOT_TAKEN : ERR.INSUFFICIENT_CREDIT);}
   return R.getBooking(db,b.id);
 }
 export async function rescheduleManagedBooking(db,id,input) {
+  await assertClientAccess(db,input);
   const old=await R.getBooking(db,id);if(!old)fail(ERR.NOT_FOUND);
   for(const [f,col] of [['expectedVersion','version'],['expectedStartsAt','starts_at_utc'],['expectedUpdatedAt','updated_at']]) if(input[f]!==undefined){if(!Number.isFinite(input[f]))fail(ERR.VALIDATION_ERROR,f);if(input[f]!==Number(old[col]))fail(ERR.BOOKING_CHANGED);}
   const actor=input.actor||ACTOR.CLIENT, participants=await R.participantsForBooking(db,old);
@@ -166,6 +180,7 @@ export async function rescheduleManagedBooking(db,id,input) {
   if(actor===ACTOR.CLIENT && (participants.filter(active).length>1 || capacity(await R.getService(db,old.service_id))>1))fail(ERR.NOT_AUTHORIZED,'group time is managed by coach');
   const x=await spec(db,input,old),ids=idsFor(input,participants);
   if(ids.length>capacity(x.service))fail(ERR.VALIDATION_ERROR,'capacity');
+  if(old.status===S.CONFIRMED && ids.length<(Number(x.service.min_participants)||1))fail(ERR.VALIDATION_ERROR,'min_participants');
   const prot=await checkTime(db,x,input,old),plans=[];
   for(const clientId of ids) {
     const previous=participants.find(p=>p.client_id===clientId&&active(p));
@@ -182,12 +197,12 @@ export async function rescheduleManagedBooking(db,id,input) {
   const b={...old,mutation_token:R.newId('mutation'),...primaryFields(plans[0]),service_id:x.service.id,location_id:x.locationId,starts_at_utc:x.startsAt,ends_at_utc:x.endsAt,
     client_note:plans[0].client_note||'',local_date:x.date,timezone:x.tz,meeting_url:x.location?.online_url||old.meeting_url,sync_status:'PENDING',version:Number(old.version)+1,updated_at:Math.max(x.now,Number(old.updated_at)+1)};
   const keys=['client_id','credit_cost_units','client_package_id','price_minor','currency','payment_status','payment_method','service_id','location_id','starts_at_utc','ends_at_utc','client_note','local_date','timezone','meeting_url','sync_status','version','updated_at','mutation_token'];
-  const g=moneyGuards(plans),stmts=[db.prepare(`UPDATE bookings SET ${keys.map(k=>k+'=?').join(',')} WHERE id=? AND version=? AND updated_at=? AND status=?
+  const g=moneyGuards(plans,input),stmts=[db.prepare(`UPDATE bookings SET ${keys.map(k=>k+'=?').join(',')} WHERE id=? AND version=? AND updated_at=? AND status=?
     AND NOT EXISTS(SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?)${g.sql}`).bind(...keys.map(k=>b[k]),id,old.version,old.updated_at,old.status,prot.s,prot.e,...g.args),
     db.prepare(`DELETE FROM booking_slot_locks WHERE booking_id=? AND ${guard}`).bind(id,id,b.version,b.updated_at,b.mutation_token),...await changesAfter(db,b,plans,participants,actor)];
   if(x.override)stmts.push(R.stInsertEventIfState(db,{id:R.newId('ev'),booking_id:id,type:'ADMIN_OVERRIDE',actor_type:actor,created_at:b.updated_at,payload:{reason:String(input.overrideReason).slice(0,300)}},b.version,b.status,b.mutation_token));
   let result;try{stmts.splice(1,0,db.prepare("SELECT changes() AS changed"),db.prepare("SELECT EXISTS(SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?) AS blocked").bind(prot.s,prot.e)); result=await db.batch(stmts);}catch(e){if(isSlotConflict(e))fail(ERR.SLOT_TAKEN);throw e;}
-  if(!result[1]?.results?.[0]?.changed){const current=await R.getBooking(db,id);if(current.version!==old.version||current.updated_at!==old.updated_at)fail(ERR.BOOKING_CHANGED);fail(result[2]?.results?.[0]?.blocked ? ERR.SLOT_TAKEN : ERR.INSUFFICIENT_CREDIT);}
+  if(!result[1]?.results?.[0]?.changed){await assertClientAccess(db,input);const current=await R.getBooking(db,id);if(current.version!==old.version||current.updated_at!==old.updated_at)fail(ERR.BOOKING_CHANGED);fail(result[2]?.results?.[0]?.blocked ? ERR.SLOT_TAKEN : ERR.INSUFFICIENT_CREDIT);}
   return R.getBooking(db,id);
 }
 
@@ -198,7 +213,7 @@ export async function groupSlots(db,input,regular) {
   for(const b of await R.bookingsBetween(db,from,to)) {
     if(!active(b)||b.service_id!==service.id||(b.location_id||null)!==(input.locationId||null))continue;
     const members=await R.participantsForBooking(db,b);
-    if(members.filter(active).length>=capacity(service)||members.some(p=>p.client_id===input.clientId))continue;
+    if(members.filter(active).length>=capacity(service)||members.some(p=>p.client_id===input.clientId&&p.status!==S.CANCELLED_CLIENT))continue;
     // Joining is still limited to currently offered slots, notice and rules.
     const x=await spec(db,{...input,startsAt:b.starts_at_utc,actor:ACTOR.CLIENT},null);
     if(x.endsAt!==b.ends_at_utc)continue;
@@ -214,20 +229,20 @@ async function joinGroup(db,input) {
   const b=await R.getBooking(db,input.groupBookingId);
   if(!b||!active(b)||b.service_id!==input.serviceId||(b.location_id||null)!==(input.locationId||null)||b.starts_at_utc!==Number(input.startsAt))fail(ERR.SLOT_TAKEN);
   const members=await R.participantsForBooking(db,b),x=await spec(db,input);
-  if(capacity(x.service)<=1||x.endsAt!==b.ends_at_utc||members.some(p=>p.client_id===input.clientId))fail(ERR.SLOT_TAKEN);
+  if(capacity(x.service)<=1||x.endsAt!==b.ends_at_utc||members.some(p=>p.client_id===input.clientId&&p.status!==S.CANCELLED_CLIENT))fail(ERR.SLOT_TAKEN);
   const prot=await checkTime(db,x,{...input,joinGroup:true},b),p=await money(db,input.clientId,x.service,ACTOR.CLIENT,x.now,undefined,undefined,x.startsAt);
   p.client_note=String(input.clientNote||'').slice(0,1000);
-  const next={...b,mutation_token:R.newId('mutation'),version:b.version+1,updated_at:Math.max(x.now,b.updated_at+1),status:x.service.confirmation_mode==='AUTO'&&members.filter(active).length+1>=(Number(x.service.min_participants)||1)?S.CONFIRMED:b.status},g=moneyGuards([p]);
+  const next={...b,mutation_token:R.newId('mutation'),version:b.version+1,updated_at:Math.max(x.now,b.updated_at+1),status:x.service.confirmation_mode==='AUTO'&&members.filter(active).length+1>=(Number(x.service.min_participants)||1)?S.CONFIRMED:b.status},g=moneyGuards([p],input);
   const stmts=[db.prepare(`UPDATE bookings SET version=?,updated_at=?,mutation_token=?,status=?,sync_status='PENDING' WHERE id=? AND version=? AND status=?
     AND (SELECT COUNT(*) FROM booking_participants WHERE booking_id=? AND status IN ('REQUESTED','CONFIRMED')) < (SELECT capacity FROM booking_services WHERE id=?)
-    AND NOT EXISTS(SELECT 1 FROM booking_participants WHERE booking_id=? AND client_id=?)
+    AND NOT EXISTS(SELECT 1 FROM booking_participants WHERE booking_id=? AND client_id=? AND status<>'CANCELLED_CLIENT')
     AND NOT EXISTS(SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?)${g.sql}`)
     .bind(next.version,next.updated_at,next.mutation_token,next.status,b.id,b.version,b.status,b.id,x.service.id,b.id,input.clientId,prot.s,prot.e,...g.args),participantStmt(db,next,p)];
   if(p.credit_cost_units>0)stmts.push(ledgerStmt(db,next,p,LEDGER_KIND.HOLD,p.credit_cost_units,'hold',ACTOR.CLIENT,next.updated_at));
   stmts.push(R.stInsertEventIfState(db,{id:R.newId('ev'),booking_id:b.id,type:'PARTICIPANT_ADDED',actor_type:ACTOR.CLIENT,actor_id:input.actorId||'',created_at:next.updated_at,payload:{clientId:input.clientId}},next.version,next.status,next.mutation_token));
   stmts.push(db.prepare(`UPDATE booking_participants SET status=?,updated_at=? WHERE booking_id=? AND status='REQUESTED' AND ${guard}`).bind(next.status,next.updated_at,b.id,b.id,next.version,next.updated_at,next.mutation_token));
   stmts.push(R.stOutboxIfState(db,{id:R.newId('ob'),booking_id:b.id,action:'UPDATE',booking_version:next.version,next_attempt_at:Date.now(),created_at:next.updated_at},next.version,next.status,next.mutation_token));
-  stmts.splice(1,0,db.prepare("SELECT changes() AS changed")); const result=await db.batch(stmts);if(!result[1]?.results?.[0]?.changed)fail(ERR.SLOT_TAKEN);
+  stmts.splice(1,0,db.prepare("SELECT changes() AS changed")); const result=await db.batch(stmts);if(!result[1]?.results?.[0]?.changed){await assertClientAccess(db,input);fail(ERR.SLOT_TAKEN);}
   return R.getBooking(db,b.id);
 }
 

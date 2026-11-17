@@ -948,10 +948,10 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       }
       // A service the client has no credit for and cannot pay for outside a
       // package is not offered — an empty calendar explains nothing.
-      const bookable = withLocations.filter((s2) => s2.creditAvailable || !s2.creditUnits || s2.priceMinor > 0);
+      const bookable = client.active ? withLocations.filter((s2) => s2.creditAvailable || !s2.creditUnits || s2.priceMinor > 0) : [];
       return ok({
         enabled: bookable.length > 0,
-        reason: bookable.length ? null : (summary.balance.available > 0 ? "NO_SERVICE" : "NO_CREDIT"),
+        reason: !client.active ? "INACTIVE_CLIENT" : bookable.length ? null : (summary.balance.available > 0 ? "NO_SERVICE" : "NO_CREDIT"),
         timezone: client.timezone || "Europe/Prague",
         services: bookable,
         credits: {
@@ -967,6 +967,9 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
     }
 
     if (!client) return bad(ERR.NOT_AUTHORIZED, "no booking client");
+    // Existing appointments, cancellation and credit history remain readable.
+    // Inactive clients cannot take or move coach time, including retained holds.
+    if(!client.active && (path==='/api/client/booking/slots' || (method==='POST' && (path==='/api/client/bookings' || path.endsWith('/reschedule')))))return bad(ERR.NOT_AUTHORIZED,'inactive booking client');
 
     // ---- slots ------------------------------------------------------------
     if (path === "/api/client/booking/slots" && method === "GET") {
