@@ -27,3 +27,6 @@
 .tm-guide .tm-motion-controls button { min-height: 32px; padding: 3px 8px; font-size: 11px; }
 .tm-guide .tm-exercise-motion input[type=range] { min-height: 22px; margin: 0; }
 .tm-guide-hero > div:first-child > img, .tm-guide-hero > button:first-child img { max-height: 34dvh; object-fit: contain; }
+
+/* User-created names may contain no spaces; keep the full name readable. */
+.tm-exercise-title { overflow-wrap: anywhere; min-width: 0; max-width: 100%; }

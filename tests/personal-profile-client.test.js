@@ -66,3 +66,22 @@ test('late profile saves cannot revive an invalidated identity',async()=>{
   await assert.rejects(save,/account-changed/);
   assert.equal(client.getSnapshot().accountKey,'account-b');
 });
+
+test('retained local capture survives offline verification without authorizing new network writes',async()=>{
+  const {client,pending,respond}=fixture();
+  assert.equal(client.current('account-a'),false);
+  let task=client.refresh();respond();await task;
+  assert.equal(client.current('account-a'),true);
+  task=client.verify();assert.equal(client.current('account-a'),true);
+  pending.shift().reject(new Error('offline'));await task;
+  assert.equal(client.current('account-a'),true,'existing local audio can still checkpoint and export');
+  assert.equal(client.current('account-b'),false);
+  assert.equal(client.verified('account-a'),false,'new starts and network writes stay locked');
+  await assert.rejects(client.update({name:'offline write'}),/unauthorized/);
+  client.invalidate();assert.equal(client.current('account-a'),false,'logout immediately revokes the local guard');
+  task=client.refresh();respond(payload('account-b'));await task;
+  assert.equal(client.current('account-a'),false,'old audio cannot follow a new login');
+  assert.equal(client.current('account-b'),true);
+  task=client.verify();respond({ok:false,error:'unauthorized'},401);await task;
+  assert.equal(client.current('account-b'),false,'explicit authentication loss revokes local access');
+});

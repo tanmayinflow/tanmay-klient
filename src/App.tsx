@@ -9351,10 +9351,10 @@ function TMultiSel({ label, values, onChange, options }) {
 }
 
 
-function TEditToggle({ on, onToggle, title }) {
+function TEditToggle({ on, onToggle, title, always = false }) {
   const { t } = useT();
   const st = useStore();
-  if (st.editMode) return null;
+  if (st.editMode && !always) return null;
   return (
     <button onClick={onToggle} title={on ? L("Hotovo: zpět ke čtení", "Done: back to reading") : (title || L("Upravit", "Edit"))} style={{ float: "right", marginRight: 8, marginTop: 2, background: on ? t.activeNav : "transparent", border: `1px solid ${on ? t.accent : t.borderSoft}`, borderRadius: 14, color: on ? t.accent : t.textMuted, cursor: "pointer", padding: "3px 11px", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 10, whiteSpace: "nowrap" }}>
       {on ? "✓ " + L("Hotovo", "Done") : "✎ " + L("Upravit", "Edit")}
@@ -9783,7 +9783,7 @@ function TExDetail({ exId, onClose, onOpen }) {
   const attach = async (fl) => { const added = await filesToAtts(fl, st.ask); if (added.length) patch(current => ({ att: [...(current.att || []), ...added] })); if (fileRef.current) fileRef.current.value = ""; };
   return (
     <CenterSheet title={L("Cvik", "Exercise")} onClose={onClose} vrstva={190}>
-      {(!isCustom || permission.enabled) && <TEditToggle on={isCustom ? customEdit : localEdit} onToggle={() => { if (isCustom) setCustomEdit(true); else { setLocalEdit((x) => !x); setDetailTab("technique"); } }} title={L("Upravit cvik", "Edit exercise")} />}
+      {(!isCustom || permission.enabled) && <TEditToggle always={isCustom} on={isCustom ? customEdit : localEdit} onToggle={() => { if (isCustom) setCustomEdit(true); else { setLocalEdit((x) => !x); setDetailTab("technique"); } }} title={L("Upravit cvik", "Edit exercise")} />}
       {customEdit && <CustomExerciseEditor client exercise={ex} onClose={() => setCustomEdit(false)} onCreated={() => {}}/>}
       <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: 11, color: t.accent, marginBottom: 8 }}>
         <ExerciseTaxonomySummary taxonomyOf={exerciseTaxonomy} t={t} L={L} lang={LANG} exercise={ex} meta={tMetaOf(ex)} compact />
@@ -9796,8 +9796,8 @@ function TExDetail({ exId, onClose, onOpen }) {
         </div>
       ) : (
         <>
-          <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, lineHeight: 1.15, color: t.heading, margin: "0 0 2px" }}>{tExName(ex)}</h2>
-          <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, marginBottom: 12 }}>{LANG === "cs" ? ex.en : ex.cz}</div>
+          <h2 className="tm-exercise-title" style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, lineHeight: 1.15, color: t.heading, margin: "0 0 2px" }}>{tExName(ex)}</h2>
+          <div className="tm-exercise-title" style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 13, color: t.textMuted, marginBottom: 12 }}>{LANG === "cs" ? ex.en : ex.cz}</div>
         </>
       )}
       <TMuscleMap ex={ex} meta={tMetaOf(ex)} mp={ex.mp} ms={ex.ms} fluid illustration={<TExArt ex={ex} fluid stroke={t.mode === "dark" ? t.text : t.heading} />} />
@@ -14353,7 +14353,9 @@ function PageTerminy() {
               fakt={L("Rezervace pro tebe zatím nejsou otevřené.", "Booking is not open for you yet.")}
               pozvani={L("Domluv se s Kryštofem.", "Talk to Kryštof.")} />
           ) : <p className="tm-prose" style={pProse(t)}>
-            {c.reason === "NO_CREDIT"
+            {c.reason === "INACTIVE_CLIENT"
+              ? L("Nové rezervace pro tebe teď nejsou otevřené. Domluvené termíny a kredity zůstávají v přehledu.", "New bookings are not open for you right now. Your existing sessions and credits remain in the overview.")
+              : c.reason === "NO_CREDIT"
               ? L("Nemáš teď aktivní kredit pro rezervaci. Domluv se s Kryštofem.", "You have no active credit for booking right now. Talk to Kryštof.")
               : L("Zatím tu pro tebe není otevřená žádná služba. Domluv se s Kryštofem.", "No service is open for you yet. Talk to Kryštof.")}
           </p>}
@@ -14382,7 +14384,7 @@ function PageTerminy() {
         </div>
       )}
 
-      {accountReady && otevreny && <BkcDetail b={otevreny} onClose={() => setOtevreny(null)} onChanged={() => { setOtevreny(null); znovu(); }} />}
+      {accountReady && otevreny && <BkcDetail b={otevreny} canReschedule={c.reason !== "INACTIVE_CLIENT"} onClose={() => setOtevreny(null)} onChanged={() => { setOtevreny(null); znovu(); }} />}
     </>
   );
 }
@@ -14564,7 +14566,7 @@ function BkcSloty({ serviceId, locationId, vybrany, onPick, excludeBooking }) {
 }
 
 /* ════════ DETAIL TERMÍNU ═══════════════════════════════════════════════ */
-function BkcDetail({ b, onClose, onChanged }) {
+function BkcDetail({ b, onClose, onChanged, canReschedule = true }) {
   const { t } = useT();
   const [presun, setPresun] = useState(false);
   const [cas, setCas] = useState(null);
@@ -14667,7 +14669,7 @@ function BkcDetail({ b, onClose, onChanged }) {
       {b.group && !zavreno && <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{L("Skupinový termín přesouvá trenér společně pro všechny. Zrušením odebereš pouze svoji účast.", "The coach moves a group session for everyone. Cancelling removes only your attendance.")}</p>}
       {!zavreno && !rusim && !presun && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {!b.group && <button onClick={() => setPresun(true)} style={bkcBtn(t)}>{L("Přesunout termín", "Reschedule")}</button>}
+          {!b.group && canReschedule && <button onClick={() => setPresun(true)} style={bkcBtn(t)}>{L("Přesunout termín", "Reschedule")}</button>}
           <button onClick={zeptejSeNaZruseni} style={bkcBtn(t)}>{b.group ? L("Zrušit moji účast", "Cancel my attendance") : L("Zrušit termín", "Cancel")}</button>
         </div>
       )}
@@ -15679,6 +15681,7 @@ export default function App() {
       reading = true;
       try {
         const readSnapshot = _serializeDoc(_collRef.current, _editsRef.current);
+        const readMark = syncMarkLoad();
         // Přes syncFetch: 200 s HTML (přihlašovací stránka Accessu nebo SPA
         // fallback) se dřív dalo přečíst jako platnou odpověď.
         const v = await syncFetch("/api/state");
@@ -15695,7 +15698,8 @@ export default function App() {
         const mine = _serializeDoc(_collRef.current, _editsRef.current);
         const nepreneseno = !!mark && mark.sig !== tmDocSig(mine);
         const serverPosunut = !!mark && sver > (mark.v || 0);
-        const decision = bootstrapSyncDecision({ hasRemote: !!(sdoc && typeof sdoc === "object" && sdoc.coll), changedDuringRead: _dirty.current, unsynced: nepreneseno, serverAdvanced: serverPosunut });
+        const sameAcknowledgedServer = !!(readMark?.sig && sdoc?.coll && sdoc?.edits && readMark.v === sver && readMark.sig === tmDocSig(_serializeDoc(sdoc.coll, sdoc.edits)));
+        const decision = bootstrapSyncDecision({ hasRemote: !!(sdoc && typeof sdoc === "object" && sdoc.coll), changedDuringRead: _dirty.current, unsynced: nepreneseno, serverAdvanced: serverPosunut, sameAcknowledgedServer });
         if (_acknowledgeRemote(sdoc, sver, readSnapshot)) {
           // Confirm the exact saved content without replacing a newer draft.
         } else if (decision === "remote") {

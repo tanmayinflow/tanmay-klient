@@ -46,7 +46,7 @@ function editor(kind="expenses",entry=null,categories=[]){
   return {changes,get closed(){return closed;},get savedMonth(){return savedMonth;},get tree(){return tree;},get all(){return nodes(tree);},
     edit(key,value){const node=nodes(tree).find(n=>n.type==="input"&&(n.props.name===key||n.props.type===key));assert.ok(node,key);node.props.onChange({target:{value}});render();},
     category(value){const node=nodes(tree).find(n=>n.type==="button"&&n.props["data-finance-category"]===value);assert.ok(node,"Category tag");node.props.onClick();render();},
-    save(){nodes(tree).find(node=>node.type==="form").props.onSubmit({preventDefault(){}});render();},
+    save(valid=true){nodes(tree).find(node=>node.type==="form").props.onSubmit({preventDefault(){},currentTarget:{checkValidity:()=>valid}});render();},
     toggle(open){nodes(tree).find(node=>node.type==="details").props.onToggle({currentTarget:{open}});render();},
   };
 }
@@ -72,6 +72,13 @@ test("income uses its own source field and an invalid amount cannot write or clo
   assert.equal(e.changes.length,0);assert.equal(e.closed,0);assert.ok(e.all.find(node=>node.props?.role==="alert"));
   e.edit("amount","250,75");e.save();
   assert.equal(e.changes[0].value.source,"Konzultace");assert.equal(e.changes[0].value.item,undefined);assert.equal(e.changes[0].value.jar,undefined);
+});
+
+test("invalid visible date cannot save using its previous valid ISO value",()=>{
+  const e=editor();e.edit("name","A dated expense");e.edit("amount","123,50");
+  e.save(false);
+  assert.equal(e.changes.length,0);assert.equal(e.closed,0);assert.ok(e.all.find(node=>node.props?.role==="alert"));
+  e.save(true);assert.equal(e.changes.length,1);assert.equal(e.closed,1);
 });
 
 test("editing and collapsing details preserves the existing note and category without replacing unknown fields",()=>{

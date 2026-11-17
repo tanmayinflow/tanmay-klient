@@ -85,10 +85,27 @@ async function harness({ metaFailure = false, fullReadFailure = false, lostAckno
   return { run, retry, coll, release, firstRead, writes, localWriter, reads: () => metadataReads, conflict: () => conflict, api,
     recover: () => client ? ctx._pushRef.current({ retry: true }) : retry(),
     foreground, beforeRead: hook => { readHook = hook; }, mark: () => mark, dirty: () => ctx._dirty.current, adopted: () => adopted,
+    normalizeDuringRead: value => { readHook = () => { coll.current = value; ctx._dirty.current = true; }; },
     flushFollowups: async () => { for (let i = 0; timers.length && i < 8; i++) await timers.shift()(); assert.equal(timers.length, 0); },
     bootstrap: async () => { pendingSnapshot.current = null; ctx._syncReady.current = false; ctx._dirty.current = false; await bootstrap(); return ctx._syncReady.current; },
     adoptedRevision: value => { ctx._rev.current = value; ctx._ver.current = value; } };
 }
+
+for (const otherDevice of [false,true]) test(`${client ? 'Client' : 'Main'}: startup normalization ${otherDevice ? 'preserves a real remote conflict' : 'does not invent a conflict with the acknowledged server'}`, async () => {
+  const h = await harness(); h.release();
+  if (otherDevice) assert.equal((await h.api('/api/state','PUT',{doc:{coll:{draft:'other device'},edits:{},rev:2},baseVersion:1})).status,200);
+  h.normalizeDuringRead({draft:'offline work',nbSorted:true,nbFolders:[]});
+  await h.bootstrap(); await h.flushFollowups();
+  if (otherDevice) {
+    assert.ok(h.conflict()); assert.deepEqual(h.writes,[]);
+    assert.equal((await h.api('/api/state')).body.doc.coll.draft,'other device');
+  } else {
+    assert.equal(h.conflict(),null);
+    assert.equal((await h.api('/api/state')).body.doc.coll.draft,'offline work');
+    assert.equal((await h.api('/api/state')).body.doc.coll.nbSorted,true);
+    assert.deepEqual(h.writes,[200]);
+  }
+});
 
 for (const next of ['run', 'retry']) test(`${client ? 'Client' : 'Main'}: delayed metadata cannot let an older write replace a newer ${next}`, async () => {
   const h = await harness();

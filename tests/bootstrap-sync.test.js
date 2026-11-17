@@ -16,6 +16,14 @@ test('offline edits resume only against their last acknowledged remote generatio
   assert.equal(bootstrapSyncDecision({ hasRemote: true, changedDuringRead: false, unsynced: true, serverAdvanced: true }), 'conflict');
 });
 
+test('local normalization during reload can continue only against the same acknowledged server document', () => {
+  for (const unsynced of [false, true]) {
+    assert.equal(bootstrapSyncDecision({ hasRemote: true, changedDuringRead: true, unsynced, serverAdvanced: false, sameAcknowledgedServer: true }), 'local');
+    assert.equal(bootstrapSyncDecision({ hasRemote: true, changedDuringRead: true, unsynced, serverAdvanced: false, sameAcknowledgedServer: false }), 'conflict');
+    assert.equal(bootstrapSyncDecision({ hasRemote: true, changedDuringRead: true, unsynced, serverAdvanced: true, sameAcknowledgedServer: true }), 'conflict');
+  }
+});
+
 test('lost acknowledgements compare full content and ignore only the transport revision', () => {
   const local = JSON.stringify({ coll: { draft: 'saved', archive: ['one', 'two'] }, edits: { today: 'entry' } });
   assert.equal(acknowledgedServerSnapshot({ ...JSON.parse(local), rev: 9 }, [null, local]), local);

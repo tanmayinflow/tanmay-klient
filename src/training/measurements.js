@@ -165,8 +165,8 @@ export function fmtWeight(kg, cz) {
 export function fmtPace(distanceM, durationSec, cz) {
   const d = Number(distanceM) || 0, t = Number(durationSec) || 0;
   if (d <= 0 || t <= 0) return "";
-  const secPerKm = t / (d / 1000);
-  const m = Math.floor(secPerKm / 60), s = Math.round(secPerKm % 60);
+  const secPerKm = Math.round(t / (d / 1000));
+  const m = Math.floor(secPerKm / 60), s = secPerKm % 60;
   return m + ":" + String(s).padStart(2, "0") + (cz ? " /km" : " /km");
 }
 

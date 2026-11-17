@@ -8,6 +8,9 @@ export function createPersonalProfileClient(fetcher=(...args)=>fetch(...args)){
   const subscribers=new Set();
   const publish=next=>{state={...state,...next};for(const callback of subscribers)callback();};
   const verified=accountKey=>Boolean(accountKey&&state.accountKey===accountKey&&state.status==='ready');
+  // Local capture may finish under its retained identity during an offline check.
+  // Server writes and new recording starts still require verified().
+  const current=accountKey=>Boolean(accountKey&&state.accountKey===accountKey&&['ready','checking','error'].includes(state.status));
   async function request(method='GET',body){
     const response=await fetcher('/api/personal-profile',{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});
     let data;try{data=await response.json();}catch{throw new Error('unavailable');}
@@ -36,5 +39,5 @@ export function createPersonalProfileClient(fetcher=(...args)=>fetch(...args)){
     if(version!==generation||!verified(accountKey)||data.accountKey!==accountKey)throw new Error('account-changed');
     publish({...data,status:'ready',error:''});return data.profile;
   }
-  return {getSnapshot:()=>state,subscribe:callback=>{subscribers.add(callback);return()=>subscribers.delete(callback);},refresh,verify,invalidate,update,verified};
+  return {getSnapshot:()=>state,subscribe:callback=>{subscribers.add(callback);return()=>subscribers.delete(callback);},refresh,verify,invalidate,update,verified,current};
 }

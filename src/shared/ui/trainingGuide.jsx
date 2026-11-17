@@ -402,9 +402,9 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
           style={{ background: "transparent", border: "none", padding: 0, cursor: onOpenEx ? "pointer" : "default", color: t.sand, width: "min(78vw, 330px)" }}>
           {row ? <TExArt ex={row} fluid stroke="currentColor" showDot={false} /> : null}
         </button>}
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "center", flexWrap: "wrap", maxWidth: "100%" }}>
           {labels[block.id] ? <span style={{ fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.12em", color: block.groupId ? t.accent : t.textMuted }}>{labels[block.id]}</span> : null}
-          <button onClick={() => onOpenEx && onOpenEx(block.exId)} style={{ background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: FONT_DISPLAY, fontSize: 26, color: t.heading, lineHeight: 1.15 }}>{blockName(block, st)}</button>
+          <button className="tm-exercise-title" onClick={() => onOpenEx && onOpenEx(block.exId)} style={{ background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: FONT_DISPLAY, fontSize: 26, color: t.heading, lineHeight: 1.15 }}>{blockName(block, st)}</button>
         </div>
         {TL(block.coachNote) ? <div style={{ textAlign: "center", fontFamily: FONT_BODY, fontSize: 13.5, lineHeight: 1.5, color: t.textSec, maxWidth: 480 }}><TrainingSourceText text={TL(block.coachNote)} color={t.accentInk || t.accent}/></div> : null}
       </div>

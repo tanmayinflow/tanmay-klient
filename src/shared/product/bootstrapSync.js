@@ -1,8 +1,11 @@
 // A local write during the first read must never silently replace a real
 // document from another device. Offline edits may resume only from their
 // last acknowledged server generation.
-export function bootstrapSyncDecision({ hasRemote, changedDuringRead, unsynced, serverAdvanced }) {
+export function bootstrapSyncDecision({ hasRemote, changedDuringRead, unsynced, serverAdvanced, sameAcknowledgedServer = false }) {
   if (!hasRemote) return 'local';
+  // Local normalization or typing during a reload is not another device.
+  // The caller must verify both the original receipt and the returned content.
+  if (sameAcknowledgedServer && !serverAdvanced) return changedDuringRead || unsynced ? 'local' : 'remote';
   if (changedDuringRead || (unsynced && serverAdvanced)) return 'conflict';
   return unsynced ? 'local' : 'remote';
 }

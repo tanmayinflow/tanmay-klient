@@ -8,7 +8,7 @@ export const invalidatePersonalProfile=client.invalidate;
 export const isPersonalProfileVerified=client.verified;
 // Captured local audio may checkpoint while the same identity is being checked.
 // This does not authorize network writes or a different account.
-export const isPersonalProfileCurrent=key=>Boolean(key&&client.getSnapshot().accountKey===key&&['ready','checking'].includes(client.getSnapshot().status));
+export const isPersonalProfileCurrent=client.current;
 export function PersonalProfileLifecycle(){
   const {profile,accountKey}=usePersonalProfile();
   useEffect(()=>{

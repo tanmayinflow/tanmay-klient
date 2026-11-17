@@ -89,7 +89,7 @@ export function createFinanceRoom({useT,useStore,L,PageTitle,CenterSheet,uid,tod
     const changeCategory=value=>{setCategory(value);setCategoryChanged(true);};
     const save=event=>{
       event.preventDefault();const parsed=financeAmount(amount);
-      if(!name.trim()||parsed===null||!validPersonalDate(date)){setError(L("Doplň název, platné datum a nenulovou částku nejvýše na dvě desetinná místa.","Enter a name, a valid date and a nonzero amount with at most two decimal places."));return;}
+      if(event.currentTarget?.checkValidity?.()===false||!name.trim()||parsed===null||!validPersonalDate(date)){setError(L("Doplň název, platné datum a nenulovou částku nejvýše na dvě desetinná místa.","Enter a name, a valid date and a nonzero amount with at most two decimal places."));return;}
       // Preserve untouched legacy fields. An explicit choice must also clear
       // the other historical alias, which otherwise wins the jar || category fallback.
       const categoryPatch=incoming||(entry&&!categoryChanged)?{}:categories.length
