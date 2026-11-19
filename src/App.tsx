@@ -13358,7 +13358,7 @@ function TvGuideMedia({ exercise, block }) {
   const { t } = useT();
   const st = useStore();
   const showMotion = !!exercise && !!hipCurrentMotionFor(exercise) && !(!tvLandingClientMotionAllowed(st,block.exId,exercise)||!tvPositionHoldClientMotionAllowed(st,block.exId,exercise)||!tvElbowHandClientMotionAllowed(st,block.exId,exercise)||!tvShoulderClientMotionAllowed(st,block.exId,exercise)||!tvHipClientMotionAllowed(st,block.exId,exercise)||tvLocoClientPolicy(st,block.exId)?.allowMotion===false||(tvLocoClientPolicy(st,block.exId)?.blockedMotionSources||[]).includes(hipCurrentMotionFor(exercise||{id:block.exId})?.src));
-  return <div style={{ width: "min(78vw, 330px)", margin: "0 auto", color: t.heading }}>{showMotion ? <ExerciseMotion key={exercise.id} exercise={exercise} theme={t} L={L} autoPlay/> : exercise ? <TvClientGuideArt ex={exercise} fluid/> : null}</div>;
+  return <div style={{ width: "min(78vw, 330px, 30dvh)", margin: "0 auto", color: t.heading }}>{showMotion ? <ExerciseMotion key={exercise.id} exercise={exercise} theme={t} L={L} autoPlay/> : exercise ? <TvClientGuideArt ex={exercise} fluid/> : null}</div>;
 }
 const { TvPlanOverview: TvClientPlanOverview, TvGuide: TvClientGuidedSession } = createTrainingGuideUI({
   useT, useStore, L, TL, TV, FONT_BODY, FONT_TAG, FONT_DISPLAY,
@@ -13489,6 +13489,17 @@ function TvClientPlan({ onRun }) {
   const dateOf = (p, s) => recordFor(p, s)?.date || (((sched[p.id] || {})[s.id]) ?? s.date ?? "");
   const recordFor = (p, s) => sessions.find((x) => x.planId === p.id && x.planSessionId === s.id) || null;
 
+  // Rozvrhne všechny ještě neodcvičené lekce od dneška podle počtu tréninků
+  // v týdnu. Klient nemusí vybírat datum u každé lekce zvlášť; jednotlivé
+  // dny si pak může dál přepsat.
+  const autoSchedule = (p) => {
+    const ss = p.sessions || [];
+    const firstWeek = (ss[0] || {}).w || 1;
+    const perWeek = Math.max(1, ss.filter((s) => (s.w || 1) === firstWeek).length);
+    const OFF = ({ 1: [0], 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 4, 5], 6: [0, 1, 2, 3, 4, 5] })[Math.min(6, perWeek)] || [0, 2, 4];
+    ss.filter((s) => !recordFor(p, s)).forEach((s, i) => st.tvSetSched(p.id, s.id, shiftISO(todayISO(), Math.floor(i / OFF.length) * 7 + OFF[i % OFF.length])));
+  };
+
   const start = (p, s) => {
     const existing = recordFor(p, s);
     if (existing) { onRun(existing.id); return; }
@@ -13512,6 +13523,7 @@ function TvClientPlan({ onRun }) {
               <div style={{ flex: 1 }}><ProgressBar value={ss.length ? done / ss.length : 0} /></div>
               <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted }}>{done}/{ss.length}</span>
             </div>
+            {ss.some((s) => !recordFor(p, s)) ? <div style={{ marginTop: 10 }}><button data-tv-autoschedule onClick={() => autoSchedule(p)} style={tvQuiet(t)}>{L("Rozvrhnout zbytek od dneška", "Schedule the rest from today")}</button></div> : null}
             <div style={{ marginTop: 10 }}>
               {ss.map((s, i) => {
                 const tpl = st.tvTemplateOf(s.templateId);
@@ -13519,7 +13531,9 @@ function TvClientPlan({ onRun }) {
                 const isDone = rec && rec.state === "done";
                 const d = dateOf(p, s);
                 return (
-                  <div key={s.id} style={{ display: "grid", gridTemplateColumns: "26px minmax(0,1fr) auto", gap: 8, alignItems: "center", padding: "8px 2px", borderTop: `1px solid ${t.borderSoft}` }}>
+                  <React.Fragment key={s.id}>
+                  {s.w && (i === 0 || s.w !== (ss[i - 1] || {}).w) ? <div data-tv-plan-week={s.w} style={{ fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: t.accent, padding: i === 0 ? "4px 2px 6px" : "16px 2px 6px" }}>{L("Týden", "Week")} {s.w}</div> : null}
+                  <div style={{ display: "grid", gridTemplateColumns: "26px minmax(0,1fr) auto", gap: 8, alignItems: "center", padding: "8px 2px", borderTop: `1px solid ${t.borderSoft}` }}>
                     <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, color: t.textMuted }}>{s.w || i + 1}</span>
                     <button onClick={() => setOpen(open === s.id ? null : s.id)} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: isDone ? t.textMuted : t.heading, fontFamily: FONT_BODY, fontSize: 14.5, gridColumn:"2 / -1", textDecoration: isDone ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {tpl ? L(tpl.cz, tpl.en) : L("Trénink", "Workout")}
@@ -13545,6 +13559,7 @@ function TvClientPlan({ onRun }) {
                       </div>
                     ) : null}
                   </div>
+                  </React.Fragment>
                 );
               })}
             </div>

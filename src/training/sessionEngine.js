@@ -242,8 +242,12 @@ export function restAfterSet(session, blockId, setId, opts) {
     if (pos >= 0 && pos < group.length - 1) return { sec: 0, reason: "group-transition" };
   }
   if (b.groupId && next != null) {
-    const group = blocksOf(session).filter((x) => x.groupId === b.groupId);
-    if (group.length > 1) return { sec: 0, reason: "group-transition" };
+    // Kolo končí posledním cvikem skupiny. Teprve po něm běží pauza; do té
+    // doby se mezi cviky jen přechází.
+    const group = blocksOf(session).filter((x) => x.groupId === b.groupId).sort((x, y) => x.groupOrder - y.groupOrder);
+    const pos = group.findIndex((x) => x.id === b.id);
+    if (group.length > 1 && pos >= 0 && pos < group.length - 1) return { sec: 0, reason: "group-transition" };
+    if (group.length > 1) return { sec: blockRest(b, s), reason: "set" };
   }
 
   if (next) return { sec: blockRest(b, s), reason: "set" };

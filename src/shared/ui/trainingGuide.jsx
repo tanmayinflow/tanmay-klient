@@ -399,7 +399,7 @@ function TvGuide({ session, onSession, onOpenEx, onFinish, onList, onClose, prev
 
       <div className="tm-guide-hero" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center", marginTop: "auto" }}>
         {GuideMedia ? <GuideMedia exercise={row} block={block} /> : <button onClick={() => onOpenEx && onOpenEx(block.exId)} aria-label={blockName(block, st)}
-          style={{ background: "transparent", border: "none", padding: 0, cursor: onOpenEx ? "pointer" : "default", color: t.sand, width: "min(78vw, 330px)" }}>
+          style={{ background: "transparent", border: "none", padding: 0, cursor: onOpenEx ? "pointer" : "default", color: t.sand, width: "min(78vw, 330px, 30dvh)" }}>
           {row ? <TExArt ex={row} fluid stroke="currentColor" showDot={false} /> : null}
         </button>}
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "center", flexWrap: "wrap", maxWidth: "100%" }}>

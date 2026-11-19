@@ -268,6 +268,9 @@ export function sessionTiming(session) {
       else work += Math.max(20, (Number(s.actual.reps) || 8) * 3);
     }
   }
+  // Práce i pauzy jsou odhad ze sérií a plánu. Změřený čas tréninku nesmějí
+  // přerůst: kdo odklikal trénink za minutu, neodpočíval čtyřicet minut.
+  if (total > 0 && work + rest > total) { work = Math.min(work, total); rest = total - work; }
   return { totalSec: total, workSec: Math.round(work), restSec: Math.round(rest) };
 }
 
