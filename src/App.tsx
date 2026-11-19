@@ -13472,6 +13472,7 @@ function TvClientPlan({ onRun }) {
   const sessions = st.tvSessions();
   const plans = (del && del.plans) || [];
   const [open, setOpen] = useState(null);
+  const [weekOpen, setWeekOpen] = useState({}); // týdny plánu · otevřený je ten, kde právě jsi
   const [detailEx, setDetailEx] = useState(null);
 
   if (!del || !plans.length) {
@@ -13526,13 +13527,28 @@ function TvClientPlan({ onRun }) {
             {ss.some((s) => !recordFor(p, s)) ? <div style={{ marginTop: 10 }}><button data-tv-autoschedule onClick={() => autoSchedule(p)} style={tvQuiet(t)}>{L("Rozvrhnout zbytek od dneška", "Schedule the rest from today")}</button></div> : null}
             <div style={{ marginTop: 10 }}>
               {ss.map((s, i) => {
+                // Dvanáct týdnů naráz je zeď řádků. Vidět je týden, ve kterém právě jsi; ostatní se rozbalí klepnutím.
+                const multi = ss.some((x) => (x.w || 0) !== (ss[0].w || 0));
+                const curW = (ss.find((x) => { const r = recordFor(p, x); return !(r && r.state === "done"); }) || {}).w || 0;
+                const wKey = p.id + ":" + (s.w || 0);
+                const wShown = !multi || (weekOpen[wKey] == null ? (s.w || 0) === curW : !!weekOpen[wKey]);
+                const wRows = ss.filter((x) => (x.w || 0) === (s.w || 0));
+                const wDone = wRows.filter((x) => { const r = recordFor(p, x); return r && r.state === "done"; }).length;
+                const head = s.w && (i === 0 || s.w !== (ss[i - 1] || {}).w) ? (
+                  <button data-tv-plan-week={s.w} aria-expanded={wShown} onClick={() => setWeekOpen({ ...weekOpen, [wKey]: !wShown })} className="tm-tap-c" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: "none", borderTop: i === 0 ? "none" : `1px solid ${t.borderSoft}`, cursor: "pointer", padding: "10px 2px", minHeight: 44 }}>
+                    <span style={{ fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: s.w === curW ? t.accent : t.textSec }}>{L("Týden", "Week")} {s.w}</span>
+                    {s.w === curW && wDone < wRows.length ? <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.sand }}>{L("teď", "now")}</span> : null}
+                    <span style={{ marginLeft: "auto", fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted }}>{wDone}/{wRows.length}</span>
+                  </button>
+                ) : null;
+                if (!wShown) return head ? <React.Fragment key={s.id}>{head}</React.Fragment> : null;
                 const tpl = st.tvTemplateOf(s.templateId);
                 const rec = recordFor(p, s);
                 const isDone = rec && rec.state === "done";
                 const d = dateOf(p, s);
                 return (
                   <React.Fragment key={s.id}>
-                  {s.w && (i === 0 || s.w !== (ss[i - 1] || {}).w) ? <div data-tv-plan-week={s.w} style={{ fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: t.accent, padding: i === 0 ? "4px 2px 6px" : "16px 2px 6px" }}>{L("Týden", "Week")} {s.w}</div> : null}
+                  {head}
                   <div style={{ display: "grid", gridTemplateColumns: "26px minmax(0,1fr) auto", gap: 8, alignItems: "center", padding: "8px 2px", borderTop: `1px solid ${t.borderSoft}` }}>
                     <span style={{ fontFamily: FONT_TAG, fontSize: 10.5, color: t.textMuted }}>{s.w || i + 1}</span>
                     <button onClick={() => setOpen(open === s.id ? null : s.id)} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: isDone ? t.textMuted : t.heading, fontFamily: FONT_BODY, fontSize: 14.5, gridColumn:"2 / -1", textDecoration: isDone ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
