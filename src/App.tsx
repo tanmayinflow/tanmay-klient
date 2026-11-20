@@ -5598,7 +5598,7 @@ function PageJournal() {
               některá z večerních otázek z Praxe — jenže ty patří k reflexi dne,
               ne do deníku, a hlavně: kdo podnět odklidí, chce ticho, ne jinou
               otázku na jeho místě. */}
-          <RichArea key={todayEntry ? todayEntry.id : "novy"} value={todayEntry ? todayEntry.text || "" : ""} onChange={writeToday} placeholder={L("Piš…", "Write…")} />
+          <RichArea key={today} value={todayEntry ? todayEntry.text || "" : ""} onChange={writeToday} placeholder={L("Piš…", "Write…")} />
           {/* „ZAPSAT DEN BEZ PSANÍ" ZRUŠENO. Zakládalo to zápisek s textem
               „— beze slov", aby den nevypadal jako vynechaný. Jenže tím do
               deníku přibyl záznam, který nic neříká a v archivu pak navždycky
