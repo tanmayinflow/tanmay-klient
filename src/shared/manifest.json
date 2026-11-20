@@ -1,7 +1,7 @@
 {
   "generatedBy": "Shared/scripts/sync-product-core.mjs",
   "canonicalSource": "Work/web-application/Shared/product-core/",
-  "sharedCoreVersion": "1.33.153",
+  "sharedCoreVersion": "1.33.154",
   "note": "Zrcadlo sdíleného jádra. Needituj tyhle soubory v aplikačním repozitáři — `npm run shared:check` to pozná a build spadne.",
   "files": {
     "public/market-chart.css": "2a694f0d7edddfbb94bc40dd37ce3bee8e826cd43632f888fc0bf0f63236dec6",
@@ -300,7 +300,7 @@
     "src/shared/ui/typography.jsx": "4abd3f98e2b791ddc21c57760a9d7fc12e09c16de1706c25aa5adb0f15d28112",
     "src/shared/ui/weeklyAvailability.jsx": "183f934fff6ba15608d18502e8201d156c14eb3c5cfcbb1e38008af884306e74",
     "src/shared/ui/wellbeingPalette.js": "b17a69043ff09cb4a33abbab2244a36b831efe6c6c9541793f20303d2bac295b",
-    "src/shared/version.js": "3d6cee222ead1168c9cd547750c9fbbc7bb64709150d09fdbabfe2d6fa7f845d",
+    "src/shared/version.js": "50e434462337cb0f76b469948f98773e3b41ca90c459a822d2c9a2c034ea0355",
     "src/training/adapters.js": "46347ee58d25e50e03bcab2ecc82c4eddf1e048e7af041173bb008d34a20e6af",
     "src/training/atlasResolver.js": "7d656de854b93919676029fcf5fc7940bb86ceba5211521687f444d354858009",
     "src/training/carryProgressPolicy.js": "e59a02b57e134599c889a0e89e1774baf548cf847d04a1424c0d1dd9edb0b5cf",
@@ -422,7 +422,7 @@
     "src/training/stepArt.js": "c080064f8b6524ca71a22fa2ee46e68c1e85aa3b0cc242c9d5fb3c5adff9b532",
     "src/training/stepArtwork.js": "7e21f977d89be9b83eeb4e9f92aa0f04deb5025a635108c070620549a7a03a1d",
     "src/training/storage.js": "93e8decf042c2fe30256ebd7336c4303fa57875aa9a20fd9670f2335b8f13149",
-    "src/training/templateSummary.js": "586af18b5c06ef983253dec604da542435ffb8625d63466c2e4b38017c8fa4a0",
+    "src/training/templateSummary.js": "1ddb28ab19de369531bdb918fb2b9a2dc0c36eac05cf89885f9bb29f5d263e10",
     "src/training/templates.js": "c40dd3475043cbd32639a11e08beda53a78fd59ae76e3ed36daa4e87efe53cc3",
     "src/training/timerAudio.js": "92c1e9e19a33e040f395463d4a14d45a0633e63354910aeacd490f24aa07d9fc",
     "src/training/timerVoice.js": "e51cd0007d193b584187e434e6754de696f3eefe34776494e389c39bf2f6ffae",
