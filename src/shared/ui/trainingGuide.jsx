@@ -77,9 +77,11 @@ function TvPlanOverview({ session, onStart, onList, onClose, onOpenEx }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {blocks.map((b) => {
+        {blocks.map((b, bi) => {
           const row = exerciseRow(st, b.exId);
           const plan = tvPlanText(b);
+          // Série bez pracovní zátěže před první prací jsou příprava, po ní závěr.
+          const afterWork = blocks.slice(0, bi).some((x) => (x.sets || []).some((s) => TV.isWorkingSet(s)));
           const done = (b.sets || []).filter((s) => s.completed).length;
           return (
             <button key={b.id} type="button" className="tm-tvplan tm-exercise-list" onClick={() => onOpenEx && onOpenEx(b.exId)} aria-label={blockName(b, st)} style={{ display: "grid", width: "100%", textAlign: "left", gridTemplateColumns: "64px minmax(0,1fr) auto", alignItems: "center", gap: 14, border: 0, background: "transparent", padding: "10px 0", minHeight: 84, cursor: onOpenEx ? "pointer" : "default" }}>
@@ -96,7 +98,7 @@ function TvPlanOverview({ session, onStart, onList, onClose, onOpenEx }) {
                   {plan.main}
                 </span>
                 <span style={{ display: "block", fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted, marginTop: 3 }}>
-                  {plan.prep && !b.restSec ? L("příprava", "preparation") : <>{plan.warm ? `${plan.warm} ${L("rozehř.", "warm-up")}${b.restSec ? " · " : ""}` : ""}{b.restSec ? L("pauza ", "rest ") + TV.fmtDuration(b.restSec, tvCz()) : ""}</>}
+                  {plan.prep && !b.restSec ? (afterWork ? L("závěr", "finish") : L("příprava", "preparation")) : <>{plan.warm ? `${plan.warm} ${L("rozehř.", "warm-up")}${b.restSec ? " · " : ""}` : ""}{b.restSec ? L("pauza ", "rest ") + TV.fmtDuration(b.restSec, tvCz()) : ""}</>}
                   {done ? ` · ${done}/${(b.sets || []).length} ${L("hotovo", "done")}` : ""}
                 </span>
               </span>
