@@ -55,7 +55,7 @@ export function shoulderResolvedRefusal(record,ctx){const p=resolvedShoulderPoli
 export function shoulderArtworkFor(row,meta,context){return shoulderEntryFor(row,meta,context)?.art||null;}
 
 export function shoulderDeliveryStamp(record,payload){const p=resolvedViews.get(record),e=p&&SHOULDER_AUDIT_ENTRIES[p.id];if(!e||p.stage!=='after')return undefined;const pair=Object.entries(e.deliveryProfiles||{}).find(([,v])=>Object.keys(v.fields).every(k=>shoulderSameField(payload,v.fields,k))&&(payload.progression===null||shoulderSame(payload.progression,v.progression)));return pair?{v:1,profile:pair[0]}:undefined;}
-export function shoulderDeliveredViewPolicy(payload){const stamp=payload?.shoulderAudit,e=SHOULDER_AUDIT_ENTRIES[payload?.id],profile=stamp?.v===1&&e?.deliveryProfiles?.[stamp.profile];return profile&&Object.keys(profile.fields).every(k=>shoulderSameField(payload,profile.fields,k))&&(payload.progression===null||shoulderSame(payload.progression,profile.progression))?{...e.policy,stage:'after',auditKind:'shoulder'}:null;}
+export function shoulderDeliveredViewPolicy(payload){const stamp=payload?.shoulderAudit,e=SHOULDER_AUDIT_ENTRIES[payload?.id],profile=stamp?.v===1&&e?.deliveryProfiles?.[stamp.profile];return profile&&Object.keys(profile.fields).every(k=>shoulderSameField(payload,profile.fields,k))&&(payload.progression===null||shoulderSame(payload.progression,profile.progression))?{...(profile.policy || e.policy),stage:'after',auditKind:'shoulder'}:null;}
 export const shoulderDeliveredArtworkFor=payload=>shoulderDeliveredViewPolicy(payload)?SHOULDER_AUDIT_ENTRIES[payload.id].art:null;
 
 

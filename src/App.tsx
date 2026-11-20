@@ -13026,7 +13026,7 @@ function tvClientRec(st, exId) {
   const d = st.tvExerciseOf(exId);
   if (d) {
     return {
-      id: d.id, displayCz: d.cz, displayEn: d.en,
+      id: d.id, displayCz: TV.reviewedDipName(d.id, d.cz), displayEn: d.en,
       measurementType: d.measurementType || "REPS_ONLY",
       defaultRestSec: d.defaultRestSec == null ? 90 : d.defaultRestSec,
       focus: d.focus || null, startPosition: d.startPosition || null,
@@ -13434,7 +13434,7 @@ function TvClientRunner({ sessionId, onClose, onOpenEx }) {
             </div>
             <label style={{fontFamily:FONT_BODY,color:t.textSec}}><input type="checkbox" checked={pain} onChange={e=>{const value=e.target.checked;setPain(value);patch(s=>({...s,painJoints:value?["reported"]:[]}));}}/>{L("Při cvičení se objevila bolest", "I experienced pain while exercising")}</label>
             {pain?<p>{L("Bolestivý cvik neopakuj. Do poznámky napiš, kde a při čem se bolest objevila, a domluv úpravu s trenérem.", "Do not repeat the painful exercise. Note where and when it occurred and agree on an adjustment with your coach.")}</p>:null}
-            <details><summary>{L("Technika k probrání", "Technique to discuss")}</summary>{ses.blocks.map(b=><label key={b.id} style={{display:"block",padding:"7px 0"}}><input type="checkbox" checked={technique.includes(b.id)} onChange={()=>{const next=technique.includes(b.id)?technique.filter(id=>id!==b.id):[...technique,b.id];setTechnique(next);patch(s=>({...s,blocks:s.blocks.map(x=>({...x,techniqueFlagged:next.includes(x.id)}))}));}}/>{TL(b.name)}</label>)}</details>
+            <details><summary>{L("Technika k probrání", "Technique to discuss")}</summary>{ses.blocks.map(b=><label key={b.id} style={{display:"block",padding:"7px 0"}}><input type="checkbox" checked={technique.includes(b.id)} onChange={()=>{const next=technique.includes(b.id)?technique.filter(id=>id!==b.id):[...technique,b.id];setTechnique(next);patch(s=>({...s,blocks:s.blocks.map(x=>({...x,techniqueFlagged:next.includes(x.id)}))}));}}/>{tvName(tvClientRec(st, b.exId)) || TL(b.name)}</label>)}</details>
             <textarea value={note} onChange={(e) => {const value=e.target.value;setNote(value);patch(s=>({...s,note:value}));}} rows={2} aria-label={L("Poznámka k tréninku", "Workout note")} aria-describedby="tv-client-note-sharing" placeholder={L("Poznámka k tréninku", "Workout note")}
               style={{ width: "100%", background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 10, color: t.textSec, fontFamily: FONT_BODY, fontSize: 14 }} />
             <p id="tv-client-note-sharing" style={{ margin: 0, color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5, lineHeight: 1.6 }}>{st.coll.share?.training
@@ -13596,9 +13596,9 @@ function TvClientHistory({ onRun }) {
   const [visibleCount, setVisibleCount] = useState(30);
   const opts = React.useMemo(() => {
     const set = new Map();
-    for (const s of sessions) for (const b of s.blocks || []) if (!set.has(b.exId)) set.set(b.exId, TL(b.name));
+    for (const s of sessions) for (const b of s.blocks || []) if (!set.has(b.exId)) set.set(b.exId, tvName(tvClientRec(st, b.exId)) || TL(b.name));
     return [...set.entries()].map(([v, label]) => ({ v, label }));
-  }, [sessions]);
+  }, [sessions, st]);
   const rec = exId ? tvClientRec(st, exId) : null;
   const policy=exId?tvLocoClientPolicy(st,exId):null;
   const hist = exId && rec ? tvLocoHistoryOf(sessions, exId, {preserveSide:true}) : [];

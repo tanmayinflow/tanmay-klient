@@ -29,7 +29,10 @@ export const ORIGINAL_MASTER_COUNT = 485;
 // are merged in here because there is still only ONE overlay to read.
 import { TRAINING_V2_OVERLAY } from "./catalogV2.js";
 
+import { STRETCH_SIDES } from "./stretchSides.js";
+
 const BASE = {
+  ...STRETCH_SIDES,
   // ---- corrections to the audited table ------------------------------
   // A knee-flexion machine was filed under the biceps-curl family, which
   // is a word collision, not a shared stimulus. Left alone, a generated

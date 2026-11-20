@@ -105,7 +105,7 @@ export const STARTER_PATHS = [
   },
   {
     id: "path_zaklady_fitka",
-    cz: "Základy fitka", en: "Learning the gym",
+    cz: "Základy tréninku v gymu", en: "Learning the gym",
     forWhom: ["Pro někoho, kdo do posilovny teprve chodí a chce vědět, co se kterým strojem dělá.", "For somebody new to a gym who wants to know what each machine is for."],
     builds: ["Orientaci v posilovně, techniku na strojích a první sílu.", "Confidence in the room, technique on the machines, and a first base of strength."],
     weeks: 6, daysPerWeek: 3, minutes: 45,

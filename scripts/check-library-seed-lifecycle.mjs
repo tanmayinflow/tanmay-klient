@@ -75,6 +75,7 @@ function loadConstant(name) {
   throw Error(`Declaration dependency limit for ${name}`);
 }
 for (const name of new Set(callback.getText(ast).match(/\b(?:TEX|TSER|TWO|TPL)_[A-Z0-9_]+\b/g) || [])) loadConstant(name);
+if (role === 'main') loadConstant('LIB_AUDIT_OPTIONS');
 const auditFunction = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'tExAuditFix');
 if (!auditFunction) throw Error('Actual tExAuditFix function not found');
 vm.runInContext(auditFunction.getText(ast), sandbox);

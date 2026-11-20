@@ -54,7 +54,7 @@ export function hipResolvedRefusal(record,ctx){const p=resolvedHipPolicy(record)
 export function hipArtworkFor(row,meta,context){return hipEntryFor(row,meta,context)?.art||null;}
 
 export function hipDeliveryStamp(record,payload){const p=resolvedViews.get(record),e=p&&HIP_AUDIT_ENTRIES[p.id];if(!e||p.stage!=='after')return undefined;const pair=Object.entries(e.deliveryProfiles||{}).find(([,v])=>Object.keys(v.fields).every(k=>hipSameField(payload,v.fields,k))&&(payload.progression===null||hipSame(payload.progression,v.progression)));return pair?{v:1,profile:pair[0]}:undefined;}
-export function hipDeliveredViewPolicy(payload){const stamp=payload?.hipAudit,e=HIP_AUDIT_ENTRIES[payload?.id],profile=stamp?.v===1&&e?.deliveryProfiles?.[stamp.profile];return profile&&Object.keys(profile.fields).every(k=>hipSameField(payload,profile.fields,k))&&(payload.progression===null||hipSame(payload.progression,profile.progression))?{...e.policy,stage:'after',auditKind:'hip'}:null;}
+export function hipDeliveredViewPolicy(payload){const stamp=payload?.hipAudit,e=HIP_AUDIT_ENTRIES[payload?.id],profile=stamp?.v===1&&e?.deliveryProfiles?.[stamp.profile];return profile&&Object.keys(profile.fields).every(k=>hipSameField(payload,profile.fields,k))&&(payload.progression===null||hipSame(payload.progression,profile.progression))?{...(profile.policy || e.policy),stage:'after',auditKind:'hip'}:null;}
 export const hipDeliveredArtworkFor=payload=>hipDeliveredViewPolicy(payload)?HIP_AUDIT_ENTRIES[payload.id].art:null;
 
 

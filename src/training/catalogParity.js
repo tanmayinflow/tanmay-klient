@@ -1,3 +1,4 @@
+import {seedCoachStyleExercises} from './catalogCoachStyles.js';
 import {seedExerciseExpansion} from './catalogExpansion.js';
 import {LIBRARY_PARITY_ADDITIONS,LIBRARY_PARITY_CORRECTIONS,LIBRARY_PARITY_META} from './catalogParityData.js';
 export {LIBRARY_PARITY_ADDITIONS,LIBRARY_PARITY_META};
@@ -24,5 +25,5 @@ export function applyLibraryParity(collection,role){
 
 export function seedCompleteExerciseLibrary(role,collection,seedRows,options={}){
   const audited=seedExerciseExpansion(collection,seedRows,{...options,auditMetadata:{...LIBRARY_PARITY_META,...options.auditMetadata}});
-  return applyLibraryParity(audited,role);
+  return seedCoachStyleExercises(applyLibraryParity(audited,role),seedRows);
 }

@@ -208,7 +208,7 @@ export function clientBundle(plans, templates, resolve, opts) {
         const hipPolicy=resolvedHipDeliveryPolicy(rec);
         if(hipPolicy&&!hipBlockCompatible(hipPolicy,b))hipIncompatibleExercises.add(b.exId);
         return {
-          id: b.id, exId: b.exId, name: b.name, measurementType: b.measurementType, ...publicLandingRecording(b),
+          id: b.id, exId: b.exId, name: rec ? [rec.displayCz, rec.displayEn] : b.name, measurementType: b.measurementType, ...publicLandingRecording(b),
           restSec: b.restSec, groupId: b.groupId, groupMode: b.groupMode, groupOrder: b.groupOrder,
           rirEnabled: b.rirEnabled, variant: b.variant ?? null,
           // The coach note travels. The private note never does.

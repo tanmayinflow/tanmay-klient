@@ -223,7 +223,8 @@ test('Main canonical fresh templates retain old doses, own copies and hidden rou
  const missing=adapter(MOBILITY_TEMPLATES,creators,after.tEx.filter(r=>r.id!=='wristcars'),meta,ctx);for(const t of missing.creator)for(const b of t.blocks)if(b.exId==='wristcars')assert.equal(b,blocks(creators).get(t.id+'/'+b.id));
  // Real App projection/merge/edit functions, with the same canonical factories.
  const canon=TV.separateWarmupTemplates([...MOBILITY_TEMPLATES,...creators]);
- const env={TV,makePositionHoldFreshTemplateAdapter,POSITION_HOLD_AUDIT_CONTEXT,makeShoulderFreshTemplateAdapter,makeElbowHandFreshTemplateAdapter,MOBILITY_TEMPLATES,MOBILITY_SOURCE_POSITIONS,CREATOR_TEMPLATES:creators,ELBOW_HAND_AUDIT_CONTEXT:context,SHOULDER_AUDIT_CONTEXT,TEX_META:meta,LIB_TEMPLATES:canon,WeakMap};
+ const tvOf=TV.makeResolver(meta,undefined,...previousContexts,context);
+ const env={TV,tvOf,LIB_RESOLVE:id=>tvOf(library.byId[id]),makePositionHoldFreshTemplateAdapter,POSITION_HOLD_AUDIT_CONTEXT,makeShoulderFreshTemplateAdapter,makeElbowHandFreshTemplateAdapter,MOBILITY_TEMPLATES,MOBILITY_SOURCE_POSITIONS,CREATOR_TEMPLATES:creators,ELBOW_HAND_AUDIT_CONTEXT:context,SHOULDER_AUDIT_CONTEXT,TEX_META:meta,LIB_TEMPLATES:canon,WeakMap};
  const project=vm.runInNewContext(body('../src/App.tsx','const tvShoulderFresh=','const LIB_PLANS_V2 =')+'\ntvElbowHandFreshLibrary',env);
  const collection={...after},projected=project(collection);assert.notEqual(projected,canon);assert.equal(project(collection),projected);
  const template=projected.find(t=>t.blocks.some(b=>b.exId==='wristcars'));assert.ok(template);

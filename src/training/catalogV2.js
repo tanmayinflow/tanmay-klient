@@ -21,6 +21,7 @@
 // ======================================================================
 
 // ---- LOWER BODY · GYM ------------------------------------------------
+import { COACH_STYLE_EXERCISES, COACH_STYLE_META } from './catalogCoachStyles.js';
 import { EXPANSION_EXERCISES, EXPANSION_META } from './catalogExpansion.js';
 import { SQUAT_EXERCISES, SQUAT_META } from './catalogSquatAudit.js';
 import { KETTLEBELL_EXERCISES, KETTLEBELL_META } from './catalogKettlebell.js';
@@ -345,13 +346,14 @@ const ACT = [
     wat: ["Nedrž se madel křečovitě. Ruce mají pracovat, nebo být volně.", "Do not grip the handles hard. The arms either work or hang free."] },
 ];
 
-export const TRAINING_V2_EXERCISES = [...LOWER, ...UPPER, ...CARRY, ...KB, ...ACT, ...EXPANSION_EXERCISES, ...KETTLEBELL_EXERCISES, ...INSTAGRAM_EXERCISES, ...INSTAGRAM_CONTINUATION_EXERCISES, ...INSTAGRAM_CLIENT_NEXT_EXERCISES, ...INSTAGRAM_DEEP_REVIEW_EXERCISES, ...SQUAT_EXERCISES];
+export const TRAINING_V2_EXERCISES = [...LOWER, ...UPPER, ...CARRY, ...KB, ...ACT, ...EXPANSION_EXERCISES, ...KETTLEBELL_EXERCISES, ...INSTAGRAM_EXERCISES, ...INSTAGRAM_CONTINUATION_EXERCISES, ...INSTAGRAM_CLIENT_NEXT_EXERCISES, ...INSTAGRAM_DEEP_REVIEW_EXERCISES, ...SQUAT_EXERCISES, ...COACH_STYLE_EXERCISES];
 
 // The audit record for each new row, in the same short-key vocabulary the
 // 485-row table uses. `src: "tanmay"` is provenance and says nothing about
 // quality; `ev` says what the claim rests on.
 export const TRAINING_V2_META = {
   ...EXPANSION_META,
+  ...COACH_STYLE_META,
   ...SQUAT_META,
   ...KETTLEBELL_META,
   ...INSTAGRAM_META,
