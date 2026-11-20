@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {existsSync} from 'node:fs';
+import {LOWER_LEG_AUDIT_CONTEXT} from '../src/data/lowerLegAuditContext.js';
 import {loadLibrary} from '../scripts/lib/exercise-library.mjs';
 import * as TV from '../src/training/index.js';
 import {seedCoachStyleExercises} from '../src/training/catalogCoachStyles.js';
@@ -69,5 +71,30 @@ test('stretch prescriptions preserve the recording convention of earlier deliver
     const previous = {...old.fields,progression:old.progression,[stamp]:{v:1,profile:oldId}};
     assert.equal(policyOf(previous)?.sideMode,'none',id);
     assert.equal(policyOf({...sent,sideMode:'none'}),null,id);
+  }
+});
+
+test('both roles carry six artwork derivatives for each new card and the two-machine leg curl comparison', () => {
+  const original = all.find(row => row.id === 'legcurl');
+  const collection = TV.seedCompleteExerciseLibrary(LOWER_LEG_AUDIT_CONTEXT.role,{tEx:[original]},undefined,{
+    auditMetadata:meta, lowerLegAuditContext:LOWER_LEG_AUDIT_CONTEXT
+  });
+  const row = collection.tEx.find(r => r.id === 'legcurl');
+  const record = TV.resolveExercise(row,meta.legcurl,undefined,undefined,LOWER_LEG_AUDIT_CONTEXT);
+  const art = TV.lowerLegArtworkFor(row,meta.legcurl,LOWER_LEG_AUDIT_CONTEXT);
+  assert.equal(TV.lowerLegPolicyFor(row,meta.legcurl,LOWER_LEG_AUDIT_CONTEXT).unknown,true);
+  const b = {id:'b',exId:'legcurl',measurementType:record.measurementType,sets:[]};
+  const sent = TV.clientBundle([{id:'p',sessions:[{templateId:'t'}]}],[{id:'t',blocks:[b]}],()=>record).exercises[0];
+  assert.deepEqual(TV.lowerLegDeliveredArtworkFor(sent),art);
+  assert.equal(TV.lowerLegDeliveredArtworkFor({...sent,cz:'Personal'}),null);
+  for (const id of ['legcurl', ...Object.values(expected).flat()]) {
+    const entry = id === 'legcurl' ? art : TV.EXPANSION_ART[id];
+    assert.equal(entry.appId,id);
+    assert.ok(!entry.suppress,id);
+    for (const kind of ['thumb','detail','inkThumb','inkDetail','fillThumb','fillDetail']) {
+      const file = entry.primary[kind];
+      assert.ok(file.startsWith('/coach-style-atlas/'),id+' '+kind);
+      assert.ok(existsSync(new URL('../public'+file,import.meta.url)),file);
+    }
   }
 });
