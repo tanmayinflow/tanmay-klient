@@ -17,10 +17,12 @@ function tvPlanText(block) {
   const sets = block.sets || [];
   const work = sets.filter((s) => TV.isWorkingSet(s));
   const warm = sets.filter((s) => s.type === "warmup");
-  const texts = work.map((s) => tvPlanShort(block.measurementType, s.planned) || "—");
+  // Příprava nemá pracovní série, ale předpis má: „1 × 60 s", ne „bez plánu".
+  const prep = !work.length ? sets.filter((s) => s.type === "technique") : [];
+  const texts = (work.length ? work : prep).map((s) => tvPlanShort(block.measurementType, s.planned) || "—");
   const same = texts.length && texts.every((x) => x === texts[0]);
   const main = !texts.length ? L("bez plánu", "no plan") : same ? `${texts.length} × ${texts[0]}` : texts.join(" · ");
-  return { main, warm: warm.length, work: work.length };
+  return { main, warm: warm.length, work: work.length, prep: prep.length > 0 };
 }
 
 // Krátký zápis cíle bez úvodního „×": „10", „8–10 · 60 kg", „40 s", „+10 kg × 8".
@@ -94,7 +96,7 @@ function TvPlanOverview({ session, onStart, onList, onClose, onOpenEx }) {
                   {plan.main}
                 </span>
                 <span style={{ display: "block", fontFamily: FONT_TAG, fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: t.textMuted, marginTop: 3 }}>
-                  {plan.warm ? `${plan.warm} ${L("rozehř.", "warm-up")} · ` : ""}{L("pauza ", "rest ")}{TV.fmtDuration(b.restSec || 0, tvCz())}
+                  {plan.prep && !b.restSec ? L("příprava", "preparation") : <>{plan.warm ? `${plan.warm} ${L("rozehř.", "warm-up")}${b.restSec ? " · " : ""}` : ""}{b.restSec ? L("pauza ", "rest ") + TV.fmtDuration(b.restSec, tvCz()) : ""}</>}
                   {done ? ` · ${done}/${(b.sets || []).length} ${L("hotovo", "done")}` : ""}
                 </span>
               </span>
