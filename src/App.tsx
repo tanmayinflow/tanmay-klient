@@ -5029,7 +5029,28 @@ function PageNotebook({ koren, korenNazev }) {
 
   // složka zúží, štítek zúží dál · počty na dlaždicích ukazují, co je v této složce
   const inFolder = all.filter((e) => tmInFolder(e, folder));
+  const noteFolder = folder === "__none__" ? "" : folder;
+  const draft = !koren && inFolder.find((e) => e.notebookDraft && !e.zamek && (e.folder || "") === noteFolder);
+  const draftTag = view === "Vše" ? (tags[0]?.[0] || "Poznámky") : view;
+  const draftFile = React.useRef(null);
+  const attachToDraft = async (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!draft || !files.length) return;
+    const added = await filesToAtts(files, st.ask);
+    if (added.length) st.updateEntry("notebook", draft.id, (current) => ({ att: [...(current.att || []), ...added] }));
+  };
+  const writeDraft = (text) => {
+    const firstLine = tmPlain(text).trim().split("\n")[0];
+    const title = firstLine.length > 46 ? firstLine.slice(0, 44).trimEnd() + "…" : firstLine;
+    if (draft) {
+      st.updateEntry("notebook", draft.id, { text, title });
+    } else if (text.trim()) {
+      st.addEntry("notebook", { id: uid(), date: todayISO(), folder: noteFolder, tag: draftTag, tags: [draftTag], title, text, notebookDraft: true });
+    }
+  };
   let shown = view === "Vše" ? inFolder : inFolder.filter((e) => entryTags(e).includes(view));
+  if (draft && !selecting) shown = shown.filter((e) => e.id !== draft.id);
   if (q.trim()) { const nq = tmNorm(q); shown = shown.filter((e) => tmNorm((e.title || "") + " " + (e.text || "")).includes(nq)); }
   if (sortBy === "dateDesc") shown = [...shown].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   if (sortBy === "dateAsc") shown = [...shown].sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999"));
@@ -5213,9 +5234,26 @@ function PageNotebook({ koren, korenNazev }) {
 
       {qOpen && <HdrSearch value={q} onChange={setQ} onClose={() => setQOpen(false)} placeholder={L("Hledat v zápisníku…", "Search the notebook…")} />}
 
+      {!koren && !selecting && (
+        <div data-guide="zapisnik.write" style={{ margin: "12px 0 6px" }}>
+          <div style={{ ...subLabel(t), minHeight: 44, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+            {(draft ? entryTags(draft) : [draftTag]).map((name) => <Tag key={name} label={name} color={colorOfTag(name)} />)}
+            <span style={{ flex: 1 }} />
+            {draft && <>
+              <input ref={draftFile} type="file" multiple hidden onChange={attachToDraft} />
+              <HdrIcon title={L("Přiložit soubor", "Attach file")} onClick={() => draftFile.current?.click()}><ClipIcon size={14} /></HdrIcon>
+              {(draft.text?.trim() || draft.att?.length > 0) && <button onClick={() => st.updateEntry("notebook", draft.id, { notebookDraft: false })} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "4px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}>{L("Uložit", "Save")}</button>}
+              <HdrIcon title={L("Otevřít jako stránku", "Open as page")} onClick={() => { st.updateEntry("notebook", draft.id, { notebookDraft: false }); otevri(draft.id); }}>⤢</HdrIcon>
+              <HdrIcon title={L("Zahodit poznámku", "Discard note")} onClick={() => st.ask(L("Přesunout rozepsanou poznámku do koše?", "Move this draft to trash?"), () => st.removeEntry("notebook", draft.id))}><TrashIcon size={13} /></HdrIcon>
+            </>}
+          </div>
+          <RichArea key={noteFolder} value={draft?.text || ""} onChange={writeDraft} placeholder={L("Piš…", "Write…")} />
+          {draft?.att?.length > 0 && <AttachmentStrip att={draft.att} />}
+        </div>
+      )}
       {/* jeden řádek, dvě cesty · pero je rychlá poznámka, zbytek řádku
           otevře plný formulář. Dva řádky pro dvě verze téhož byly navíc. */}
-      {!selecting && (
+      {koren && !selecting && (
         quickOpen ? (
           <div style={{ display: "flex", gap: 10, alignItems: "center", background: t.card, border: `1px solid ${t.accent}`, borderRadius: 22, padding: "10px 16px", marginBottom: 14 }}>
             <span key={qSaved ? "b" : "p"} className="tm-turn" style={{ color: t.sand, display: "inline-flex", width: 15, justifyContent: "center" }}>{qSaved ? <Bindu size={7} /> : <PenIcon size={14} />}</span>
@@ -5305,7 +5343,7 @@ function PageNotebook({ koren, korenNazev }) {
       )}
 
       {managing && <NbTagManager onDone={() => setManaging(false)} ops={{ list: tags, add: (n, c) => st.addNbTag(n, c, koren ? "soc" : "nb"), rename: st.renameNbTag, reorder: st.reorderNbTag, remove: st.removeNbTag, protectedName: koren ? null : "Poznámky", attr: "data-nbtag" }} />}
-      {!selecting && <AddEntry kind="notebook" tags={tags} label={L("Nová poznámka", "New note")} folder={folder && folder !== "__none__" ? folder : (koren || "")} openSignal={newSignal} hideButton />}
+      {!selecting && <AddEntry kind="notebook" tags={tags} label={L("Nová poznámka", "New note")} folder={folder && folder !== "__none__" ? folder : (koren || "")} openSignal={newSignal} hideButton={!!koren} />}
 
       {/* naposledy otevřené · krátká paměť na to, kde jsem byl. Ukáže se jen
           v čistém pohledu — jinak by lezla do cesty tomu, co člověk hledá. */}
