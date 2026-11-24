@@ -6,6 +6,7 @@ import { FONT_BODY, FONT_TAG, FONT_DISPLAY_EN as FONT_DISPLAY } from "./type.js"
 import { hexA } from "./color.js";
 import { TM_SOUNDS, tmPlaySound, tmUnlockSound } from "./pomodoroSound.js";
 import { pomodoroPalette, pomodoroPickerPalette } from "./pomodoroPalette.js";
+import { createScreenWakeController } from "./screenWake.js";
 import { advancePomoRun, createPomoStorage, pomoDurationMinutes } from "../product/pomodoro.js";
 
 // Shared Main/Client timer. Only dependencies and account storage scope differ.
@@ -23,12 +24,31 @@ export function createPomodoroUI({ useT, useStore, L, uid, todayISO, fmtSize,
     try { return runtime.write(name, value); } catch { onStorageFailure("pomodoro"); return false; }
   };
 
-  function PomodoroFullscreen({ children, onClose, photo, background }) {
+  function PomodoroFullscreen({ children, onClose, photo, background, obscured }) {
     const ref = React.useRef(null);
     useVrstva({ close: onClose, ref });
     return createPortal(<div ref={ref} className="tm-pomo-full" data-photo={photo ? "true" : "false"}
-      role="dialog" aria-modal="true" aria-label={L("Soustředění", "Focus")} tabIndex={-1}
+      role="dialog" aria-modal="true" inert={obscured || undefined} aria-hidden={obscured || undefined} aria-label={L("Soustředění", "Focus")} tabIndex={-1}
       style={{ position: "fixed", inset: 0, zIndex: 120, overflowY: "auto", background }}>{children}</div>, document.body);
+  }
+
+  function BlackScreen({ onRestore }) {
+    const ref = React.useRef(null);
+    useVrstva({ close: onRestore, ref });
+    React.useEffect(() => {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (!meta) return;
+      const previous = meta.content;
+      meta.content = "#000000";
+      return () => { if (meta.content === "#000000") meta.content = previous; };
+    }, []);
+    const label = L("Zobrazit běžící časovač", "Show the running timer");
+    return createPortal(
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={L("Černá obrazovka", "Black screen")}
+        style={{ position: "fixed", inset: 0, zIndex: 2147483647, background: "black", colorScheme: "dark" }}>
+        <button type="button" aria-label={label} onClick={onRestore}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", background: "black", border: 0, borderRadius: 0, margin: 0, padding: 0, boxShadow: "none", outline: "none", WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }} />
+      </div>, document.body);
   }
 const POMO_CATS = [
   { k: "prace", cz: "Práce", en: "Work" },
@@ -89,23 +109,26 @@ async function pomoOznamHranici(konec, zacatek) {
   await tmNotify("tanmay", { body: nadpis, tag: "tm-pomo", renotify: true, requireInteraction: false, badge: "/icon-192.png", icon: "/icon-192.png", data: { kind: "pomo" } });
 }
 
-let POMO_WAKE = null, POMO_WAKE_PENDING = false, POMO_WAKE_WANTED = false;
-async function pomoWake(on) {
-  POMO_WAKE_WANTED = on;
-  let requested = false;
-  try {
-    if (on) {
-      if (POMO_WAKE || POMO_WAKE_PENDING || !navigator.wakeLock || document.hidden || !allowWake()) return;
-      POMO_WAKE_PENDING = true;
-      requested = true;
-      const lock = await navigator.wakeLock.request("screen");
-      if (!POMO_WAKE_WANTED || document.hidden || !allowWake()) { await lock.release(); return; }
-      POMO_WAKE = lock;
-      lock.addEventListener("release", () => { if (POMO_WAKE === lock) POMO_WAKE = null; });
-    } else if (POMO_WAKE) { const w = POMO_WAKE; POMO_WAKE = null; await w.release(); }
-  } catch (e) { POMO_WAKE = null; }
-  finally { if (requested) POMO_WAKE_PENDING = false; }
+let wakeController, wakePreference, wakeWanted = false, wakeStatus = "idle";
+const wakeListeners = new Set();
+const subscribePomoWake = listener => { wakeListeners.add(listener); return () => wakeListeners.delete(listener); };
+const getPomoWakeStatus = () => wakeStatus;
+function reportPomoWake(next) {
+  if (next === wakeStatus) return;
+  wakeStatus = next;
+  wakeListeners.forEach(listener => listener());
 }
+function pomoWake(on) {
+  wakeWanted = !!on;
+  if (!on || (wakePreference ?? allowWake()) === false) {
+    wakeController?.setActive(false);
+    reportPomoWake(on ? "disabled" : "idle");
+    return;
+  }
+  wakeController ??= createScreenWakeController({ onStatus: reportPomoWake });
+  wakeController.setActive(true);
+}
+function retryPomoWake() { if (wakeWanted) wakeController?.retry(); }
 /* TICHO NA POZADÍ.
    Tady stály dvě věci, které držely aplikaci vzhůru zvukem: nekonečná smyčka
    „téměř ticha" (střídavé vzorky ±1 při 8 kHz, což je čtyřkilohertzový
@@ -132,6 +155,12 @@ const POMO_LS = new Set();
    návratu z pozadí a jednou za dvě vteřiny — a co v ní najde, zapíše. */
 function TmPomoFronta() {
   const st = useStore();
+  const keepAwake = st.uiCfg?.().wake;
+  React.useEffect(() => {
+    wakePreference = keepAwake ?? allowWake();
+    pomoWake(wakeWanted);
+    return () => { wakePreference = undefined; };
+  }, [keepAwake]);
   const cekaRef = React.useRef(false);
   const stRef = React.useRef(st); stRef.current = st;
   React.useEffect(() => {
@@ -219,9 +248,9 @@ function pomoEnsureTicker() {
     pomoAdvance();
     POMO_LS.forEach((f) => { try { f(); } catch (e) {} });
     const rt = pomoRunLoad();
-    if ((!rt || !rt.running) && pomoQueueLoad().length === 0) {
-      clearInterval(POMO_IV); POMO_IV = null;
-      try { pomoWake(false); } catch (e) {}
+    if (!rt?.running) {
+      pomoWake(false);
+      if (pomoQueueLoad().length === 0) { clearInterval(POMO_IV); POMO_IV = null; }
     }
   }, 500);
 }
@@ -378,6 +407,8 @@ function PomodoroTimer() {
   const [pickOpen, setPickOpen] = useState(false); // výběr kategorie před startem
   const [ovOpen, setOvOpen] = useState(false);     // přehledy
   const [fs, setFs] = useState(false);             // celá obrazovka
+  const [blackScreen, setBlackScreen] = useState(false);
+  const wakeStatus = React.useSyncExternalStore(subscribePomoWake, getPomoWakeStatus, getPomoWakeStatus);
   /* Když se hranice minula na pozadí a byla už stará, běžec mlčel a zapsal,
      co se stalo. Tady se to řekne — jednou, klidně, a dá se to zavřít. */
   const [zmeskano, setZmeskano] = useState(() => { try { return runtime.read(TM_POMO_ZMESKANO); } catch (e) { return null; } });
@@ -390,6 +421,14 @@ function PomodoroTimer() {
   const rt = rtv || defRt();
   const mode = rt.mode || "focus";
   const running = !!rt.running;
+  // If the system withdraws an active lock, make the warning visible again.
+  const previousWake = React.useRef(wakeStatus);
+  React.useEffect(() => {
+    const lostLock = previousWake.current !== wakeStatus &&
+      ["denied", "released", "disabled", "unavailable"].includes(wakeStatus);
+    previousWake.current = wakeStatus;
+    if (!fs || !running || lostLock) setBlackScreen(false);
+  }, [fs, running, wakeStatus]);
   const cycle = rt.cycle || 0;
   const cat = rt.cat || null;
   const note = rt.note || "";
@@ -541,7 +580,7 @@ function PomodoroTimer() {
       {/* Přehled · stejné slovo, stejné místo a stejná barva jako na Praxi */}
       <button onClick={() => setOvOpen(true)} className="tm-tap-c" style={{ display: "block", marginLeft: "auto", marginTop: 16, background: "transparent", border: "none", boxShadow: "none", padding: "8px 0", minHeight: 34, cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.22em", fontSize: 12, color: t.accent }}>{L("Přehled", "Overview")}</button>
 
-      {fs && <PomodoroFullscreen onClose={() => { setPickOpen(false); setFs(false); }} photo={!!bg} background={full.background}>
+      {fs && <PomodoroFullscreen onClose={() => { setPickOpen(false); setFs(false); }} photo={!!bg} background={full.background} obscured={running && blackScreen}>
           {bg && <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" }} />}
           <div className="tm-pomo-backdrop" style={{ position: "absolute", inset: 0, background: bg ? "linear-gradient(180deg, rgba(28,28,26,0.68) 0%, rgba(28,28,26,0.86) 100%)" : POMO_DUSK }} />
           {pickOpen && <div style={{ position: "relative", minHeight: "100%", display: "grid", alignItems: "center", boxSizing: "border-box", padding: "calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))" }}>{renderPicker()}</div>}
@@ -575,8 +614,23 @@ function PomodoroTimer() {
                 </>
               )}
             </div>
+            {running && <div style={{ marginTop: 20, fontFamily: FONT_BODY, fontSize: 13, color: full.secondary }}>
+              <button type="button" onClick={() => setBlackScreen(true)} style={{ minHeight: 44, padding: "6px 16px", background: "transparent", color: full.ink, border: `1px solid ${full.line}`, borderRadius: 22, font: "inherit", cursor: "pointer" }}>
+                {L("Zčernit obrazovku", "Black out screen")}
+              </button>
+              <p style={{ margin: "8px 0 4px" }}>{L("Klepnutím kamkoli znovu uvidíš čas.", "Tap anywhere to see the timer again.")}</p>
+              <div role="status">
+                {wakeStatus === "active" ? L("Automatické zamknutí je pozastavené.", "Auto-lock is paused.")
+                  : wakeStatus === "requesting" ? L("Žádám o ponechání displeje vzhůru…", "Requesting to keep the screen awake…")
+                  : wakeStatus === "disabled" ? L("Proti zamknutí zapni v Nastavení „Nechat displej svítit při soustředění“.", "To prevent auto-lock, turn on “Keep the screen awake during focus” in Settings.")
+                  : L("Zařízení se může automaticky zamknout.", "Your device may still auto-lock.")}
+                {(wakeStatus === "released" || wakeStatus === "denied") && <button type="button" onClick={retryPomoWake} style={{ minHeight: 44, color: full.ink, marginLeft: 6, font: "inherit", background: "transparent", border: 0, textDecoration: "underline", cursor: "pointer" }}>{L("Zkusit znovu", "Try again")}</button>}
+              </div>
+              {rt.cfg?.sound === false && <p style={{ margin: "4px 0" }}>{L("Zvonění je vypnuté.", "The bell is off.")}</p>}
+            </div>}
           </div>
         </PomodoroFullscreen>}
+      {fs && running && blackScreen && <BlackScreen onRestore={() => setBlackScreen(false)} />}
 
       {ovOpen && (
         <CenterSheet center title={L("Soustředění · přehledy", "Focus · overview")} onClose={() => setOvOpen(false)}>

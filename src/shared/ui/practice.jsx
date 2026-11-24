@@ -1124,7 +1124,7 @@ export function createPracticeUI(deps) {
         ) : (
         <div className="tm-habitgrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px,1fr))", gap: 8, marginTop: prah === "rano" ? 4 : 0 }}>
           {st.activeHabits().map(({ icon, iconId, name, slot: j }, habitIndex) => (
-            <button data-guide={habitIndex===0?"praxe.habits":undefined} key={j} aria-pressed={day.h[j] === 1} aria-label={day.h[j] === 2 ? name + L(" · odloženo", " · set aside") : name} onClick={() => toggle(j)} onPointerDown={() => dolu(j)} onPointerUp={pust} onPointerLeave={pust} onPointerCancel={pust}
+            <button data-guide={habitIndex===0?"praxe.habits":undefined} key={j} onClick={() => toggle(j)} onPointerDown={() => dolu(j)} onPointerUp={pust} onPointerLeave={pust} onPointerCancel={pust}
               onContextMenu={(e) => e.preventDefault()} className="tm-nav-item tm-hbtn"
               title={day.h[j] === 2 ? L("Dnes ne, schválně · podrž a vrátí se", "Not today, on purpose · hold to undo") : L("Klepni · drž a odlož na dnešek", "Tap · hold to set aside for today")}
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", minHeight: 48, borderRadius: 8, background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
@@ -1142,13 +1142,6 @@ export function createPracticeUI(deps) {
           ))}
         </div>
         )}
-
-        {!st.editMode && !editingHabits && HTOT > 0 && <details key={date} style={{ margin: "6px 0", color: t.textSec, fontSize: 13 }}>
-          <summary style={{ padding: "8px 0", cursor: "pointer" }}>{L("Odložit nebo vrátit návyk", "Set aside or restore a habit")}</summary>
-          {st.activeHabits().map(({ slot, name }) => <button type="button" key={slot} onClick={() => uloz(slot, day.h[slot] === 2 ? 0 : 2)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", minHeight: 44, background: "transparent", border: 0, color: t.text, cursor: "pointer" }}>
-            <span>{name}</span><span>{day.h[slot] === 2 ? L("Vrátit", "Restore") : L("Odložit", "Set aside")}</span>
-          </button>)}
-        </details>}
 
         {/* TICHÝ UKAZATEL · postup jako záznam dole, ne měřidlo u dveří. */}
         {/* JEDNA ČÁRA, NE DVĚ.

@@ -10202,7 +10202,7 @@ const { PomodoroTimer, TmPomoFronta } = createPomodoroUI({
   CenterSheet, Drawer, Prazdno, Eyebrow, ArrowOutIcon, TmIcNastaveni,
   storageScope: () => pomoAccountScope(clientAccount.getSnapshot(), ownerLoad()),
   readPersistedBlocks: () => loadColl().pomoLog || [],
-  allowWake: () => loadColl().ui?.wake !== false, onStorageFailure: tmSaveFailed,
+  allowWake: () => { const coll = loadColl(); return (coll.ui?.wake ?? coll.uiCfg?.wake) !== false; }, onStorageFailure: tmSaveFailed,
 });
 
 const {
@@ -17886,6 +17886,7 @@ export default function App() {
             <SetSection title={L("Čtení a psaní","Reading and writing")} id="reading" open={settingsSection==="reading"} onOpen={setSettingsSection}>
               <TypographyChoice value={uiCfg().typography} onChange={typography=>setUiCfg({typography})} t={t} lang={lang}/>
               <SetChoice label={L("Velikost textu","Text size")} value={String(readScale())} options={[{v:"0.92",label:"A−"},{v:"1",label:L("výchozí","default")},{v:"1.12",label:"A+"},{v:"1.28",label:"A++"}]} onChange={v=>setReadScale(+v)}/>
+              <SetSwitch label={L("Nechat displej svítit při soustředění", "Keep the screen awake during focus")} hint={L("Během časovače může displej zůstat rozsvícený. Úsporný režim nebo prohlížeč to mohou omezit.", "While the timer runs, the screen can stay on. Your browser or battery saver may limit this.")} on={uiCfg().wake !== false} onChange={wake => setUiCfg({ wake })} />
               <SetSwitch label={L("Nechat displej svítit při čtení", "Keep the screen awake while reading")} hint={L("U otevřené poznámky, pramene a dokumentu. Ruční zamčení má přednost; úsporný režim může svícení omezit.", "For an open note, source or document. Manual locking takes priority; battery-saving mode may limit it.")} on={uiCfg().readingWake !== false} onChange={readingWake => setUiCfg({ readingWake })} />
               <SetSwitch label={L("Kontrola pravopisu při psaní","Spell check while writing")} on={uiCfg().spell!==false} onChange={v=>setUiCfg({spell:v})}/>
               <SetChoice label={L("Kam se otevírá dům","Which room opens first")} value={uiCfg().home||"praxe"} options={CLIENT_ROOMS.filter(k=>k!=="kos"&&isEnabled(k)&&!roomPlacement(navConfig,k,navDefaults).hidden).map(k=>({v:k,label:navigationLabel(k,lang)}))} onChange={home=>setUiCfg({home})}/>

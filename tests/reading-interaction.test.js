@@ -104,6 +104,34 @@ test('system release or permission refusal is respected without repeated request
   assert.equal(h.requests.length, 2); controller.dispose();
 });
 
+test('wake status follows the current visible lock and retries only on request or return', async () => {
+  const h = wakeHarness(), states = [];
+  const controller = createScreenWakeController({...h, onStatus: state => states.push(state)});
+  controller.setActive(true); await flush();
+  assert.deepEqual(states, ['requesting']);
+  h.requests[0].reject(new Error('denied')); await flush();
+  controller.setActive(true); h.doc.emit('visibilitychange'); await flush();
+  assert.equal(states.at(-1), 'denied'); assert.equal(h.requests.length, 1);
+  controller.retry(); await flush();
+  const lock = h.lock(); h.requests[1].resolve(lock); await flush();
+  assert.equal(states.at(-1), 'active');
+  lock.emit('release'); assert.equal(states.at(-1), 'released');
+  h.doc.visibilityState = 'hidden'; h.doc.emit('visibilitychange');
+  assert.equal(states.at(-1), 'hidden');
+  h.doc.visibilityState = 'visible'; h.doc.emit('visibilitychange'); await flush();
+  assert.equal(states.at(-1), 'requesting');
+  controller.setActive(false); h.requests[2].reject(new Error('obsolete')); await flush();
+  assert.equal(states.at(-1), 'idle'); controller.dispose();
+});
+
+test('unsupported browser reports unavailable; a request never implies an active lock', async () => {
+  const h = wakeHarness(), states = [];
+  const controller = createScreenWakeController({doc:h.doc, nav:{}, onStatus: state => states.push(state)});
+  controller.setActive(true); controller.retry(); await flush();
+  assert.deepEqual(states, ['unavailable']);
+  controller.dispose(); assert.equal(states.at(-1), 'idle');
+});
+
 test('reading observer requests only for visible reading surfaces and releases when closed', async () => {
   const h = wakeHarness(); let elements = [], listener, disconnected = false;
   h.doc.body = {}; h.doc.querySelectorAll = () => elements;

@@ -1,20 +1,31 @@
 // Wake locks are advisory: the OS may refuse/release them for battery or privacy.
 // Never retry immediately after system release; resume only on a visible page or
 // a new explicit active session, so a manual lock always wins.
-export function createScreenWakeController({ doc = globalThis.document, nav = globalThis.navigator } = {}) {
+export function createScreenWakeController({ doc = globalThis.document, nav = globalThis.navigator, onStatus = () => {} } = {}) {
   let active = false, disposed = false, pending = null, sentinel = null, epoch = 0;
+  let status = 'idle';
+  const report = next => { if (status !== next) { status = next; onStatus(next); } };
   const release = (lock) => { try { Promise.resolve(lock?.release()).catch(() => {}); } catch {} };
   const visible = () => doc?.visibilityState === 'visible';
   const acquire = () => {
-    if (!active || disposed || !visible() || sentinel || pending || !nav?.wakeLock?.request) return;
+    if (!active || disposed || sentinel || pending) return;
+    if (!visible()) { report('hidden'); return; }
+    if (!nav?.wakeLock?.request) { report('unavailable'); return; }
     const token = epoch;
+    report('requesting');
     const request = Promise.resolve().then(() => nav.wakeLock.request('screen'));
     pending = request;
     request.then(lock => {
       if (disposed || token !== epoch || !active || !visible()) { release(lock); return; }
+      if (lock.released) { report('released'); return; }
       sentinel = lock;
-      lock.addEventListener?.('release', () => { if (sentinel === lock) sentinel = null; }, { once: true });
-    }).catch(() => {}).finally(() => {
+      lock.addEventListener?.('release', () => {
+        if (sentinel === lock) { sentinel = null; report(visible() ? 'released' : 'hidden'); }
+      }, { once: true });
+      report('active');
+    }).catch(() => {
+      if (!disposed && token === epoch && active) report(visible() ? 'denied' : 'hidden');
+    }).finally(() => {
       if (pending === request) pending = null;
       // An earlier request can resolve after a hide/resume or off/on change.
       // Its obsolete sentinel was released; the new visible session may acquire.
@@ -22,11 +33,23 @@ export function createScreenWakeController({ doc = globalThis.document, nav = gl
     });
   };
   const drop = () => { epoch++; const old = sentinel; sentinel = null; if (old) release(old); };
-  const visibility = () => { if (!visible()) drop(); else acquire(); };
+  let wasVisible = visible();
+  const visibility = () => {
+    const isVisible = visible();
+    if (isVisible === wasVisible) return;
+    wasVisible = isVisible;
+    if (!active) return;
+    if (!isVisible) { drop(); report('hidden'); } else acquire();
+  };
   doc?.addEventListener?.('visibilitychange', visibility);
   return {
-    setActive(value) { const next = !!value; if (active === next || disposed) return; active = next; if (active) acquire(); else drop(); },
-    dispose() { disposed = true; active = false; drop(); doc?.removeEventListener?.('visibilitychange', visibility); },
+    setActive(value) {
+      const next = !!value; if (active === next || disposed) return;
+      active = next;
+      if (active) acquire(); else { drop(); report('idle'); }
+    },
+    retry() { if (status === 'denied' || status === 'released') acquire(); },
+    dispose() { disposed = true; active = false; drop(); report('idle'); doc?.removeEventListener?.('visibilitychange', visibility); },
   };
 }
 
