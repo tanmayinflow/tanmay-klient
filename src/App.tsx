@@ -6787,8 +6787,8 @@ const tTargetEligible = (ex) => !!ex && tStatusOf(ex) === "active"
 // the Movement Atlas keys its production documents on those two strings in the Main
 // App, and the two libraries must not drift apart. So the same override, resolved
 // the same way, and no second system of names anywhere.
-const tExNameCz = (ex) => (ex ? ((tMetaOf(ex) || {}).dcz || ex.cz || "") : "").replace(/\s*\(Bikram\)/gi, "");
-const tExNameEn = (ex) => (ex ? ((tMetaOf(ex) || {}).den || ex.en || ex.cz || "") : "");
+const tExNameCz = (ex) => (ex ? (ex.displayCz || (tMetaOf(ex) || {}).dcz || ex.cz || "") : "").replace(/\s*\(Bikram\)/gi, "");
+const tExNameEn = (ex) => (ex ? (ex.displayEn || (tMetaOf(ex) || {}).den || ex.en || ex.cz || "") : "");
 // Every string a search must match: both display names, both catalogue names, the
 // Sanskrit, and the legacy id itself.
 const tExSearchText = (ex) => {
@@ -9829,8 +9829,8 @@ function TExDetail({ exId, onClose, onOpen }) {
       </div>
       {edit ? (
         <div style={{ marginBottom: 6 }}>
-          <BufferedInput value={ex.cz} onCommit={(v) => patch({ cz: v })} placeholder="Název CZ…" style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, color: t.heading, borderBottom: `1px solid transparent` }} />
-          <BufferedInput value={ex.en} onCommit={(v) => patch({ en: v })} placeholder="Name EN…" style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, borderBottom: `1px solid transparent`, marginTop: 4 }} />
+          <BufferedInput value={ex.displayCz || ex.cz} onCommit={(v) => patch({ cz: v, displayCz: "" })} placeholder="Název CZ…" style={{ fontFamily: FONT_DISPLAY, fontWeight: 300, fontSize: 30, color: t.heading, borderBottom: `1px solid transparent` }} />
+          <BufferedInput value={ex.displayEn || ex.en} onCommit={(v) => patch({ en: v, displayEn: "" })} placeholder="Name EN…" style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textMuted, borderBottom: `1px solid transparent`, marginTop: 4 }} />
         </div>
       ) : (
         <>
