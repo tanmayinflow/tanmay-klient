@@ -10190,7 +10190,7 @@ const personalCalendar = createGoogleCalendar({role:"client",L,todayISO,BRAND,
   verifyAccount:()=>clientAccount.verify()});
 const {SetSection,SetSwitch,SetChoice}=createSettingsUI({useT,L});
 const {CalAuto,CalSettings}=createCalendarUI({useT,useStore,L,getLang:()=>LANG,fmtCZ,engine:personalCalendar,SetSection,SetSwitch,SetChoice,PersonalSettingsSections});
-const PageHabit = createPracticePage({useT,useStore,L,PageTitle,practiceArtKey:"praxe-client",BufferedInput,TmIcPraxe,TmIcPrameny,TmPasPrahu,DayView,PraxeOverview,CenterSheet,pProse,SourceMorning:()=> <MorningSpells items={ANTI_DOOM_SPELLS} L={L}/>});
+const PageHabit = createPracticePage({useT,L,PageTitle,practiceArtKey:"praxe-client",TmIcPraxe,TmPasPrahu,DayView,PraxeOverview,CenterSheet,pProse,SourceMorning:()=> <MorningSpells items={ANTI_DOOM_SPELLS} L={L}/>});
 
 // ---- KOMPAS · sdílená orientace ------------------------------------------
 // Týž soubor jako v osobní aplikaci (src/shared/ui/compass.jsx). Klientský

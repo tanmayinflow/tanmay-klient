@@ -320,7 +320,7 @@ export function createPracticeUI(deps) {
   }
 
   // ---- Journal of the day · read-through from Journal card ----
-  function JournalOfDay({ date, go, sectionRef }) {
+  function JournalOfDay({ date, go }) {
     const { t } = useT();
     const st = useStore();
     const [sel, setSel] = useState(null); // id otevřeného zápisku (akordeon)
@@ -343,7 +343,7 @@ export function createPracticeUI(deps) {
     );
 
     return (
-      <div ref={sectionRef} tabIndex={-1} aria-label={L("Deník dne", "Journal for this day")} role="region" data-practice-journal style={{ marginTop: 14, paddingTop: 12 }}>
+      <div aria-label={L("Deník dne", "Journal for this day")} role="region" data-practice-journal style={{ marginTop: 14, paddingTop: 12 }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
           <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><PenIcon size={12} /></span>} label={L("Otevřít deník", "Open journal")} onClick={() => go("denik")} />
         </div>
@@ -1034,7 +1034,6 @@ export function createPracticeUI(deps) {
     const { t } = useT();
     const st = useStore();
     const [editingHabits, setEditingHabits] = useState(false);
-    const journalSection = React.useRef(null);
     const journalAvailable = st.journalAvailable !== false && (st.caps || caps)?.journal !== false;
     // POJISTKA · kdyby sem někdy přišlo jméno, které tahle karta nezná, vykreslí
     // se Den. Prázdná karta je horší než špatná sekce: vypadá jako ztracená data.
@@ -1107,7 +1106,6 @@ export function createPracticeUI(deps) {
 
         {calOpen && <HabitCalendar />}
 
-        {prah === "vecer" && journalAvailable && <button type="button" className="tm-monly" onClick={() => { journalSection.current?.focus({ preventScroll: true }); journalSection.current?.scrollIntoView({ block: "start" }); }} style={{ display: "none", alignItems: "center", gap: 8, minHeight: 44, border: 0, background: "transparent", color: t.accentInk || t.accent, cursor: "pointer" }}><PenIcon size={14} />{L("Přejít na zápis dne", "Go to this day’s journal")}</button>}
 
         {/* RÁNO · jedno slovo, než se den rozjede */}
         {prah === "rano" && <RanniZamer date={date} go={go} />}
@@ -1196,7 +1194,7 @@ export function createPracticeUI(deps) {
             {/* Deník dne · v klientském domě je Deník volitelný a soukromý.
                 Když ho člověk nemá otevřený, tenhle pruh v kartě nevzniká —
                 ne že by se schoval. */}
-            {journalAvailable && <JournalOfDay date={date} go={go} sectionRef={journalSection} />}
+            {journalAvailable && <JournalOfDay date={date} go={go} />}
           </div>
         )}
       </div>
