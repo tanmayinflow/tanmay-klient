@@ -2,6 +2,10 @@
 // Exact old values protect custom edits. This module is pure: it never persists
 // data, adds exercises or touches logs, plans, history or collection flags.
 // Sources: Reviews/muscle-map-2026-10-02/library-{text,links}-*.json.
+// 2026-11-24: the collection pass ends with the plain-copy layer (plainCopy.js).
+// `applyLibraryReview` itself stays the exact reviewed correction.
+
+import { applyPlainCopy } from './plainCopy.js';
 
 function freezeData(value) {
   if (value && typeof value === "object") {
@@ -518,7 +522,7 @@ export function reviewLibraryCollection(coll) {
   if (!coll || typeof coll !== "object" || Array.isArray(coll) || !Array.isArray(coll.tEx)) return coll;
   let changed = false;
   const exercises = coll.tEx.map(ex => {
-    const reviewed = applyLibraryReview(ex);
+    const reviewed = applyPlainCopy(applyLibraryReview(ex));
     if (reviewed !== ex) changed = true;
     return reviewed;
   });
