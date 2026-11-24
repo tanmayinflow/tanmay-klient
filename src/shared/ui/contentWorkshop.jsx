@@ -38,9 +38,17 @@ function SocRychly({ onNew }) {
   const { t } = useT();
   const st = useStore();
   const [v, setV] = useState("");
-  const pridej = () => { const n = v.trim(); if (!n) return; st.addEntry("socItems", socNovy(n)); setV(""); };
-  const rovnou = () => { const n = socNovy(v.trim()); st.addEntry("socItems", n); setV(""); if (onNew) onNew(n.id); };
-  return (
+  const [capturedId, setCapturedId] = useState(null);
+  const captured = st.coll.socItems?.find(item => item.id === capturedId && !item.arch && item.status === "napad");
+  const pridej = () => {
+    if (!v.trim()) return;
+    const item = socNovy(v.trim());
+    st.addEntry("socItems", item);
+    setCapturedId(item.id);
+    setV("");
+  };
+  const rovnou = () => { setCapturedId(null); const n = socNovy(v.trim()); st.addEntry("socItems", n); setV(""); if (onNew) onNew(n.id); };
+  return (<>
     <div style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid transparent`, borderRadius: 10, padding: "5px 10px 5px 5px", margin: "4px 0 6px" }}>
       <button onClick={rovnou} title={L("Nový kus obsahu: rovnou otevřít", "New piece of content: open right away")}
         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, background: "transparent", border: "none", borderRight: `1px solid transparent`, cursor: "pointer", color: t.sand, fontSize: 17, flexShrink: 0 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
@@ -49,10 +57,13 @@ function SocRychly({ onNew }) {
         style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: t.text, fontFamily: FONT_BODY, fontSize: 15 }} />
       {v.trim() && <button onClick={pridej} style={{ background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.textSec, cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12, padding: "7px 11px", minHeight: 32 }}>{L("zachytit", "capture")}</button>}
     </div>
-  );
+    <div role="status" style={{color:t.textSec,fontSize:13}}>
+      {captured && <>{L("Uloženo do Nápadů", "Saved to Ideas")} · {captured.title} <button type="button" style={{...iconBtn(t),width:"auto",padding:"4px 8px"}} onClick={()=>onNew(captured.id)}>{L("Otevřít", "Open")}</button></>}
+    </div>
+  </>);
 }
 
-function SocRadek({ i, onOpen }) {
+function SocRadek({ i, onOpen, onAdvance }) {
   const { t, tags } = useT();
   const st = useStore();
   const pil = (st.coll.socPillars || []).find((p) => p.id === i.pillar);
@@ -68,8 +79,8 @@ function SocRadek({ i, onOpen }) {
       </button>
       {datum && <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, flexShrink: 0 }}>{datum.slice(8, 10)}. {+datum.slice(5, 7)}.</span>}
       {dalsi && !i.arch && (
-        <button onClick={() => st.updateEntry("socItems", i.id, { status: dalsi.k })} aria-label={L("Posunout: ","Move: ")+(i.title||L("bez názvu","untitled"))+" · "+L(dalsi.cz,dalsi.en)} title={L("Posunout · ", "Move on · ") + L(dalsi.cz, dalsi.en)}
-          style={{ background: "transparent", border: "none", color: t.sand, cursor: "pointer", fontSize: 15, width: 44, height: 44, flexShrink: 0, borderRadius: 8 }}><FamilyIcon id="forward" size={12} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+        <button onClick={() => onAdvance(i, dalsi.k)} aria-label={L("Posunout: ","Move: ")+(i.title||L("bez názvu","untitled"))+" · "+L(dalsi.cz,dalsi.en)} title={L("Posunout · ", "Move on · ") + L(dalsi.cz, dalsi.en)}
+          style={{ background: "transparent", border: "none", color: t.sand, cursor: "pointer", fontSize: 12, minHeight: 44, maxWidth:"36%", borderRadius: 8 }}>{L("Posunout","Move")} → {L(dalsi.cz,dalsi.en)}</button>
       )}
     </div>
   );
@@ -237,6 +248,12 @@ function SocDilna({ items, onOpen, selectedPhase="all" }) {
   const { t } = useT();
   const st = useStore();
   const [query,setQuery]=useState("");
+  const [lastMove,setLastMove]=useState(null);
+  const moved=lastMove && items.find(item=>item.id===lastMove.id && !item.arch && item.status===lastMove.to);
+  const advance=(item,to)=>{
+    setLastMove({id:item.id,from:item.status,to});
+    st.updateEntry("socItems",item.id,{status:to});
+  };
   const meta = st.pageMetaOf("socsite");
   const pohled = meta.view || "list";
   const fKanal = meta.fKanal || "Vše";
@@ -284,7 +301,10 @@ function SocDilna({ items, onOpen, selectedPhase="all" }) {
         <Select small value={fFormat} onChange={(v) => setM({ fFormat: v })} style={{ flex: "1 1 0", minWidth: 0, maxWidth: 140 }} options={[{ v: "Vše", label: L("Formát · vše", "Format · all") }, ...Object.keys(SOC_FORMATY).map((k) => ({ v: k, label: L(SOC_FORMATY[k].cz, SOC_FORMATY[k].en) }))]} />
         <Select small value={sortBy} onChange={(v) => setM({ sort: v })} style={{ flex: "1 1 0", minWidth: 0, maxWidth: 170 }} options={[{ v: "postAsc", label: L("publikace ↑", "publish ↑") }, { v: "doAsc", label: L("natáčení ↑", "filming ↑") }, { v: "name", label: "A–Z" }, { v: "nove", label: L("nejnovější", "newest") }]} />
       </div>
-      {pohled === "list" ? <div>{rows.map(i=><SocRadek key={i.id} i={i} onOpen={onOpen}/>)}{!rows.length&&<p style={{...pProse(t),fontSize:14,padding:"20px 0"}}>{L("V tomhle výběru zatím žádný příspěvek není.","There are no pieces in this selection yet.")}</p>}</div> : <SocBoard groups={groups} onOpen={onOpen} onMove={(id, patch) => st.updateEntry("socItems", id, patch)} />}
+      <div role="status" style={{color:t.textSec,fontSize:13}}>
+        {moved && <>{moved.title || L("Bez názvu","Untitled")} → {L(socStav(moved.status).cz,socStav(moved.status).en)} <button type="button" style={{...iconBtn(t),width:"auto",padding:"4px 8px"}} onClick={()=>{st.updateEntry("socItems",moved.id,{status:lastMove.from});setLastMove(null);}}>{L("Vrátit přesun","Undo move")}</button></>}
+      </div>
+      {pohled === "list" ? <div>{rows.map(i=><SocRadek key={i.id} i={i} onOpen={onOpen} onAdvance={advance}/>)}{!rows.length&&<p style={{...pProse(t),fontSize:14,padding:"20px 0"}}>{L("V tomhle výběru zatím žádný příspěvek není.","There are no pieces in this selection yet.")}</p>}</div> : <SocBoard groups={groups} onOpen={onOpen} onMove={(id, patch) => st.updateEntry("socItems", id, patch)} />}
     </>
   );
 }

@@ -5,6 +5,7 @@ import { TmIcon as FamilyIcon } from "./icons.jsx";
 import { FONT_BODY, FONT_TAG, FONT_DISPLAY_EN as FONT_DISPLAY } from "./type.js";
 import { fieldStyle, subLabel } from "./components.js";
 import { todayISO } from "../product/practice.js";
+import { dateAllowed } from "../product/dateField.js";
 import { MEMENTO_QUOTES } from "../product/mementoQuotes.js";
 
 export function createMementoUI({ useT, useStore, L }) {
@@ -19,6 +20,9 @@ return function PageMemento({ go }) {
   const [editing, setEditing] = useState(!mem.birth);
   const [birthDraft, setBirthDraft] = useState(mem.birth || "");
   const [spanDraft, setSpanDraft] = useState(String(mem.span || 76));
+  const birthId = React.useId();
+  const today = todayISO();
+  const canSave = dateAllowed(birthDraft, undefined, today);
   const birth = mem.birth || "";
   const span = Math.max(30, Math.min(120, +(mem.span || 76)));
   const total = Math.round(span * 365.25);
@@ -27,7 +31,7 @@ return function PageMemento({ go }) {
   const q = MEMENTO_QUOTES[qi];
   const saveCfg = () => {
     const b = (birthDraft || "").trim();
-    if (!b) return;
+    if (!canSave) return;
     st.setMemento({ birth: b, span: Math.max(30, Math.min(120, +spanDraft || 76)) });
     setEditing(false);
   };
@@ -48,17 +52,18 @@ return function PageMemento({ go }) {
         <div style={{ width: 44, height: 1, background: t.accent, opacity: 0.7, margin: "26px auto" }} />
       </div>
       {editing ? (
-        <div style={{ maxWidth: 380, margin: "0 auto", background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "18px 20px" }}>
+        <form onSubmit={e => { e.preventDefault(); saveCfg(); }} style={{ maxWidth: 380, margin: "0 auto", background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "18px 20px" }}>
           <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec, lineHeight: 1.65, marginBottom: 14 }}>{L("Aby místnost věděla, kolik dní neseš.", "So the room knows how many days you carry.")}</div>
-          <div style={{ ...subLabel(t), marginBottom: 4 }}>{L("Datum narození", "Date of birth")}</div>
-          <DateField type="date" value={birthDraft} onChange={(e) => setBirthDraft(e.target.value)} style={{ ...fieldStyle(t), width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", WebkitAppearance: "none", appearance: "none", padding: "7px 10px", fontSize: 13, marginBottom: 12 }} />
+          <label htmlFor={birthId} style={{ ...subLabel(t), display: "block", marginBottom: 4 }}>{L("Datum narození", "Date of birth")}</label>
+          <DateField type="date" id={birthId} aria-label={L("Datum narození", "Date of birth")} max={today} required value={birthDraft} onChange={(e) => setBirthDraft(e.target.value)} style={{ ...fieldStyle(t), width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", WebkitAppearance: "none", appearance: "none", padding: "7px 10px", fontSize: 13, marginBottom: 12 }} />
+          {!canSave && <p style={{ color: t.textSec, margin: "0 0 12px", fontSize: 13 }}>{L("Pro uložení vyplň datum narození do dnešního dne.", "To save, enter a date of birth on or before today.")}</p>}
           <div style={{ ...subLabel(t), marginBottom: 4 }}>{L("Délka života · roky", "Life span · years")}</div>
           <input type="number" min={30} max={120} value={spanDraft} onChange={(e) => setSpanDraft(e.target.value)} style={{ ...fieldStyle(t), width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "7px 10px", fontSize: 13, marginBottom: 16 }} />
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            {birth && <button onClick={() => setEditing(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Zrušit", "Cancel")}</button>}
-            <button onClick={saveCfg} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500 }}>{L("Uložit", "Save")}</button>
+            {birth && <button type="button" onClick={() => setEditing(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Zrušit", "Cancel")}</button>}
+            <button type="submit" disabled={!canSave} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "7px 16px", cursor: canSave ? "pointer" : "default", opacity: canSave ? 1 : .55, fontFamily: FONT_BODY, fontSize: 13, fontWeight: 500 }}>{L("Uložit", "Save")}</button>
           </div>
-        </div>
+        </form>
       ) : (
         <div>
           <LifeDots total={total} lived={lived} t={t} L={L} />

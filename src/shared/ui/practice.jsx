@@ -320,7 +320,7 @@ export function createPracticeUI(deps) {
   }
 
   // ---- Journal of the day · read-through from Journal card ----
-  function JournalOfDay({ date, go }) {
+  function JournalOfDay({ date, go, sectionRef }) {
     const { t } = useT();
     const st = useStore();
     const [sel, setSel] = useState(null); // id otevřeného zápisku (akordeon)
@@ -343,7 +343,7 @@ export function createPracticeUI(deps) {
     );
 
     return (
-      <div data-practice-journal style={{ marginTop: 14, paddingTop: 12 }}>
+      <div ref={sectionRef} tabIndex={-1} aria-label={L("Deník dne", "Journal for this day")} role="region" data-practice-journal style={{ marginTop: 14, paddingTop: 12 }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
           <LinkPill icon={<span style={{ color: t.sand, display: "inline-flex" }}><PenIcon size={12} /></span>} label={L("Otevřít deník", "Open journal")} onClick={() => go("denik")} />
         </div>
@@ -359,8 +359,9 @@ export function createPracticeUI(deps) {
           sel === e.id,
           () => setSel(sel === e.id ? null : e.id),
           <>
-            <RichArea value={e.text || ""} onChange={(v) => st.updateEntry("journal", e.id, { text: v })} />
-            <AttachmentStrip att={e.att} onRemove={st.editMode ? ((id) => st.updateEntry("journal", e.id, { att: (e.att || []).filter((x) => x.id !== id) })) : undefined} />
+            {e.zamek && <p>{L("Text je zamčený.", "This entry is locked.")}</p>}
+            <RichArea zamek={!!e.zamek} value={e.text || ""} onChange={(v) => st.updateEntry("journal", e.id, current => current.zamek ? {} : { text: v })} />
+            <AttachmentStrip att={e.att} onRemove={st.editMode && !e.zamek ? ((id) => st.updateEntry("journal", e.id, { att: (e.att || []).filter((x) => x.id !== id) })) : undefined} />
           </>
         ))}
         {archive.map((e, i) => row(
@@ -1033,6 +1034,8 @@ export function createPracticeUI(deps) {
     const { t } = useT();
     const st = useStore();
     const [editingHabits, setEditingHabits] = useState(false);
+    const journalSection = React.useRef(null);
+    const journalAvailable = st.journalAvailable !== false && (st.caps || caps)?.journal !== false;
     // POJISTKA · kdyby sem někdy přišlo jméno, které tahle karta nezná, vykreslí
     // se Den. Prázdná karta je horší než špatná sekce: vypadá jako ztracená data.
     const prah = TM_PRAHY.indexOf(prahIn) >= 0 ? prahIn : "den";
@@ -1104,6 +1107,8 @@ export function createPracticeUI(deps) {
 
         {calOpen && <HabitCalendar />}
 
+        {prah === "vecer" && journalAvailable && <button type="button" className="tm-monly" onClick={() => { journalSection.current?.focus({ preventScroll: true }); journalSection.current?.scrollIntoView({ block: "start" }); }} style={{ display: "none", alignItems: "center", gap: 8, minHeight: 44, border: 0, background: "transparent", color: t.accentInk || t.accent, cursor: "pointer" }}><PenIcon size={14} />{L("Přejít na zápis dne", "Go to this day’s journal")}</button>}
+
         {/* RÁNO · jedno slovo, než se den rozjede */}
         {prah === "rano" && <RanniZamer date={date} go={go} />}
         {/* NÁVYKY · páteř dne — stojí ve všech třech prazích, protože odškrtnout
@@ -1119,7 +1124,7 @@ export function createPracticeUI(deps) {
         ) : (
         <div className="tm-habitgrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px,1fr))", gap: 8, marginTop: prah === "rano" ? 4 : 0 }}>
           {st.activeHabits().map(({ icon, iconId, name, slot: j }, habitIndex) => (
-            <button data-guide={habitIndex===0?"praxe.habits":undefined} key={j} onClick={() => toggle(j)} onPointerDown={() => dolu(j)} onPointerUp={pust} onPointerLeave={pust} onPointerCancel={pust}
+            <button data-guide={habitIndex===0?"praxe.habits":undefined} key={j} aria-pressed={day.h[j] === 1} aria-label={day.h[j] === 2 ? name + L(" · odloženo", " · set aside") : name} onClick={() => toggle(j)} onPointerDown={() => dolu(j)} onPointerUp={pust} onPointerLeave={pust} onPointerCancel={pust}
               onContextMenu={(e) => e.preventDefault()} className="tm-nav-item tm-hbtn"
               title={day.h[j] === 2 ? L("Dnes ne, schválně · podrž a vrátí se", "Not today, on purpose · hold to undo") : L("Klepni · drž a odlož na dnešek", "Tap · hold to set aside for today")}
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", minHeight: 48, borderRadius: 8, background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}>
@@ -1137,6 +1142,13 @@ export function createPracticeUI(deps) {
           ))}
         </div>
         )}
+
+        {!st.editMode && !editingHabits && HTOT > 0 && <details key={date} style={{ margin: "6px 0", color: t.textSec, fontSize: 13 }}>
+          <summary style={{ padding: "8px 0", cursor: "pointer" }}>{L("Odložit nebo vrátit návyk", "Set aside or restore a habit")}</summary>
+          {st.activeHabits().map(({ slot, name }) => <button type="button" key={slot} onClick={() => uloz(slot, day.h[slot] === 2 ? 0 : 2)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", minHeight: 44, background: "transparent", border: 0, color: t.text, cursor: "pointer" }}>
+            <span>{name}</span><span>{day.h[slot] === 2 ? L("Vrátit", "Restore") : L("Odložit", "Set aside")}</span>
+          </button>)}
+        </details>}
 
         {/* TICHÝ UKAZATEL · postup jako záznam dole, ne měřidlo u dveří. */}
         {/* JEDNA ČÁRA, NE DVĚ.
@@ -1191,7 +1203,7 @@ export function createPracticeUI(deps) {
             {/* Deník dne · v klientském domě je Deník volitelný a soukromý.
                 Když ho člověk nemá otevřený, tenhle pruh v kartě nevzniká —
                 ne že by se schoval. */}
-            {(() => { const c = (st && st.caps) || caps; return st.journalAvailable !== false && (!c || c.journal !== false) ? <JournalOfDay date={date} go={go} /> : null; })()}
+            {journalAvailable && <JournalOfDay date={date} go={go} sectionRef={journalSection} />}
           </div>
         )}
       </div>

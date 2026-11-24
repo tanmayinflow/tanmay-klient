@@ -3,6 +3,13 @@ import {cyclePhase,cycleViewForDate} from "./togetherGuidance.js";
 import {dateKey,validDate,dayNumber,cycleSummary} from './togetherCycleData.js';
 export {dateKey,validDate,dayNumber,addDays,cycleSummary} from './togetherCycleData.js';
 export const TOGETHER_SCOPES = ["cycle", "wellbeing", "support", "phase", "cycle-note", "pain", "flow"];
+// The check-in form describes the saved outgoing grant. Legacy "scopes" belongs to the link owner.
+export function checkInAudience(link, scope, canTrack) {
+  const grants = link?.myScopes ?? (link?.owner ? link.scopes : []);
+  if (link?.status !== "active" || !grants?.includes(scope)) return "private";
+  if (scope === "wellbeing" || scope === "support") return "today";
+  return canTrack && ["flow", "pain", "cycle-note"].includes(scope) ? "by-date" : "private";
+}
 export const emptyTogether = () => ({ periods: [], mode: "estimate", modeChosen: false, usualLength: 28, days: {} });
 // Older accounts inherited records-only before estimates were the default.
 // Adapt reads without rewriting history or advancing the saved revision.

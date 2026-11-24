@@ -322,6 +322,18 @@ export function createSourcesUI(deps) {
     const holdActC = React.useRef({});
     const holdingC = useHoldSelect({ rootRef: listRefC, attr: "data-pick", tabAttr: "data-cstat", stateRef: holdStateC, actionsRef: holdActC });
 
+    const closeSearch = () => { setQ(""); setQOpen(false); };
+    const filters = [
+      q.trim() && '„' + q.trim() + '“',
+      view !== "Vše" && (C_TYPES.includes(view) ? C_TYPE_LABEL(view) : LV(view)),
+      fProg !== "Vše" && C_PROG_LABEL(fProg),
+      fCat !== "Vše" && C_CAT_LABEL(fCat),
+      offlineOnly && L("Pouze offline", "Offline only"),
+    ].filter(Boolean);
+    const clearFilters = () => {
+      setQ(""); setView("Vše"); setFProg("Vše"); setFCat("Vše"); setOfflineOnly(false);
+      exitSelectC();
+    };
     const TABS = ["Vše", ...C_TYPES];
     const live = all.filter((e) => !e.archive);
     let shown = view === "Archiv" ? all.filter((e) => e.archive) : view === "Vše" ? live : live.filter((e) => e.type === view);
@@ -438,9 +450,9 @@ export function createSourcesUI(deps) {
     return (
       <>
         <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><TmIcPrameny size={38} /></span>} pageKey="prameny" kicker={L("Co si nést dál", "What to carry forward")}
-          right={<HdrIcon on={qOpen || !!q} title={L("Hledat v pramenech", "Search the sources")} onClick={() => setQOpen((x) => !x)}><TmIcLupa size={17} /></HdrIcon>}>{L("Prameny", "Sources")}</PageTitle>
+          right={<HdrIcon on={qOpen || !!q} title={L("Hledat v pramenech", "Search the sources")} onClick={() => qOpen ? closeSearch() : setQOpen(true)}><TmIcLupa size={17} /></HdrIcon>}>{L("Prameny", "Sources")}</PageTitle>
 
-        {qOpen && <HdrSearch value={q} onChange={setQ} onClose={() => setQOpen(false)} placeholder={L("Hledat v pramenech…", "Search the sources…")} />}
+        {qOpen && <HdrSearch value={q} onChange={setQ} onClose={closeSearch} placeholder={L("Hledat v pramenech…", "Search the sources…")} />}
 
         <div data-guide="prameny.filters" className="tm-tabsrow" style={{ borderBottom: `1px solid ${t.border}`, marginBottom: 12 }}>
           <div className="tm-typerow" style={{ display: "flex", gap: 2, alignItems: "center", flex: 1, minWidth: 0 }}>
@@ -503,7 +515,16 @@ export function createSourcesUI(deps) {
             {vw !== "rows" && shown.length > 0 && (
               <RoomView view={vw} items={shown.map(cItem)} selecting={selecting} selIds={selIds} onToggleSel={toggleSelC} onOpen={setSel} />
             )}
-            {shown.length === 0 && (
+            {shown.length === 0 && filters.length > 0 && (
+              <div style={{ textAlign: "center", padding: "24px 14px" }}>
+                <p role="status">{L("Žádný odpovídající pramen", "No matching sources")} · {filters.join(" · ")}</p>
+                <button type="button" style={{...fieldStyle(t), width:"auto", minHeight:44, cursor:"pointer"}} onClick={clearFilters}>{L("Zrušit filtry", "Clear filters")}</button>
+              </div>
+            )}
+            {shown.length === 0 && !filters.length && all.length > 0 && (
+              <button type="button" style={{...fieldStyle(t), minHeight:44, cursor:"pointer"}} onClick={()=>setView("Archiv")}>{L("Otevřít archiv", "Open archive")} · {counts["Archiv"]}</button>
+            )}
+            {shown.length === 0 && !filters.length && !all.length && (
               <div style={{ textAlign: "center", padding: "30px 14px 26px", animation: "tmsettle .4s ease-out" }}>
                 <TmArtKapka size={130} color={t.sand} />
                 <Prazdno kind="prvni"

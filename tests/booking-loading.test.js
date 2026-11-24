@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
+import { shiftDateISO } from '../src/booking/time.js';
 
 const source = fs.readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('App.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const client = source.includes('function useBkc(');
 const hookName = client ? 'useBkc' : 'useBkLoad';
-const selected = new Set([hookName, 'BkcRezervace', 'BkcKrok', 'BkcKniha', 'PageTerminy']);
+const selected = new Set([hookName, 'BkcRezervace', 'BkcSloty', 'BkcKrok', 'BkcKniha', 'PageTerminy']);
 const code = ast.statements.filter(n => ts.isFunctionDeclaration(n) && selected.has(n.name?.text))
   .map(n => n.getText(ast)).join('\n');
 
@@ -43,7 +44,8 @@ function harness(fetcher = () => new Promise(() => {})) {
     React, useState, useT: () => ({ t: {} }), bkcFetch: fetcher, bkFetch: fetcher,
     L: cs => cs, LANG: 'cs', FONT_TAG: '', FONT_BODY: '', FONT_DISPLAY: '', hexA: () => '',
     FamilyIcon() {}, BkcSloty() {}, BkcHlaska() {}, bkcBtn: () => ({}), bkcName: x => x?.nameCs,
-    bkcCredits: x => x, bkcWhen: () => 'termín', BK: { CONFIRMATION_COPY: { AUTO: { cs: '' } } },
+    todayISO: () => '2026-11-23', bkcDay: String, bkcTime: String,
+    bkcCredits: x => x, bkcWhen: () => 'termín', BK: { shiftDateISO, CONFIRMATION_COPY: { AUTO: { cs: '' } } },
     useGuideAction() {}, PageTitle() {}, TmIcTerminy() {}, Prazdno() {}, EmptyRoomArt() {},
     BkcTermin() {}, BkcKniha() {}, BkcDetail() {}, pProse: () => ({}),
   };
@@ -71,6 +73,50 @@ function renderedText(node) {
   if (node && typeof node === 'object') return renderedText(node.children);
   return typeof node === 'string' || typeof node === 'number' ? String(node) : '';
 }
+
+test('moving to another appointment day or period clears the previous selection', async () => {
+  const { reads, fetcher } = deferredReads();
+  const h = harness(fetcher);
+  let selectedSlot = null;
+  const view = revision => h.render('BkcSloty', {
+    serviceId: 'training', revision, vybrany: selectedSlot, onPick: slot => { selectedSlot = slot; },
+  });
+  view(0);
+  reads[0].resolve({ timezone: 'Europe/Prague', days: [
+    { date: '2026-11-23', slots: [{ startsAt: 1 }] },
+    { date: '2026-11-24', slots: [{ startsAt: 2 }] },
+  ] });
+  await tick();
+  const buttons = () => findNodes(view(0), 'button');
+  buttons().find(b => b.props.key === 1).props.onClick();
+  assert.equal(selectedSlot.startsAt, 1);
+  buttons().find(b => b.props.key === '2026-11-24').props.onClick();
+  assert.equal(selectedSlot, null);
+  buttons().find(b => b.props.key === 2).props.onClick();
+  assert.equal(selectedSlot.startsAt, 2);
+  buttons().find(b => renderedText(b) === 'Další dny').props.onClick();
+  assert.equal(selectedSlot, null);
+  view(0);
+  assert.match(reads[1].path, /from=2026-12-14/);
+  view(1);
+  assert.equal(reads[2].path, reads[1].path, 'a slot conflict refreshes the current dates');
+  h.unmount();
+});
+
+test('a taken appointment clears the summary and triggers a fresh offer', async () => {
+  const h = harness(async () => { throw Object.assign(new Error('unavailable'), { code: 'SLOT_TAKEN' }); });
+  const props = { ctx: { services: [{ id: 'training', locations: [], confirmationMode: 'AUTO' }] } };
+  const view = () => h.render('BkcRezervace', props);
+  view();
+  const offer = findNodes(view(), h.context.BkcSloty)[0];
+  offer.props.onPick({ startsAt: 1, timezone: 'Europe/Prague' });
+  findNodes(view(), 'button').find(b => renderedText(b) === 'Rezervovat').props.onClick();
+  await tick();
+  const refreshed = findNodes(view(), h.context.BkcSloty)[0];
+  assert.equal(refreshed.props.vybrany, null);
+  assert.equal(refreshed.props.revision, offer.props.revision + 1);
+  assert.equal(findNodes(view(), 'button').some(b => renderedText(b) === 'Rezervovat'), false);
+});
 
 if (client) test('open credit history reloads after a booking mutation and remains open', async () => {
   const { reads, fetcher } = deferredReads();

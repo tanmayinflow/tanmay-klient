@@ -210,11 +210,11 @@ export function createCompassUI(deps) {
   }
 
   // ---- nový cíl -----------------------------------------------------------
-  function AddGoalForm() {
+  function AddGoalForm({ initiallyOpen = false, onDone } = {}) {
     const { t } = useT();
     const st = useStore();
     const areas = st.listAreas();
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(initiallyOpen);
     const [name, setName] = useState("");
     const [area, setArea] = useState(areas[0] ? areas[0].name : "");
     const [prio, setPrio] = useState("Normal");
@@ -224,7 +224,7 @@ export function createCompassUI(deps) {
     const ulozit = () => {
       if (!name.trim()) return;
       st.addGoal({ id: uid(), name: name.trim(), area, areas: [area], status: "Not started", prio, ach: "", target });
-      setName(""); setTarget(""); setOpen(false);
+      setName(""); setTarget(""); setOpen(false); onDone?.();
     };
     if (!open) return <button onClick={() => setOpen(true)} style={{ background: "transparent", border: `1px solid transparent`, borderRadius: "var(--tm-r-sm)", padding: "10px 14px", cursor: "pointer", color: t.inkSand || t.sand, fontFamily: "var(--tm-font-body)", fontSize: 13, width: "100%", textAlign: "left", marginBottom: 12 }}><FamilyIcon id="add" size={16} label={L("Přidat","Add")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Nový cíl", "New goal")}</button>;
     return (
@@ -247,7 +247,7 @@ export function createCompassUI(deps) {
         )}
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={ulozit} style={{ background: t.accent, color: t.onAccent || t.bg, border: "none", borderRadius: "var(--tm-r-sm)", padding: "8px 16px", cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13, fontWeight: 500 }}>{L("Uložit", "Save")}</button>
-          <button onClick={() => setOpen(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "8px 16px", cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{L("Zrušit", "Cancel")}</button>
+          <button onClick={() => { setOpen(false); onDone?.(); }} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: "var(--tm-r-sm)", padding: "8px 16px", cursor: "pointer", fontFamily: "var(--tm-font-body)", fontSize: 13 }}>{L("Zrušit", "Cancel")}</button>
         </div>
       </div>
     );
@@ -852,6 +852,7 @@ export function createCompassUI(deps) {
     const { t } = useT();
     const st = useStore();
     const [dilna, setDilna] = useState(false);
+    const [addingFirstGoal, setAddingFirstGoal] = useState(false);
     useGuideAction("kompas",()=>{setDilna(false);setSel(null);});
     const [sel, setSel] = useState(null); // {type:'goal'|'area', id}
     const [addingArea, setAddingArea] = useState(false);
@@ -883,12 +884,12 @@ export function createCompassUI(deps) {
         </div>
         <span style={{ display: "block", height: 30 }} />
         <Eyebrow>{L("V pohybu", "In motion")}</Eyebrow>
-        {shown.length === 0 && waiting.length === 0 ? (
+        {addingFirstGoal ? <AddGoalForm initiallyOpen onDone={() => setAddingFirstGoal(false)} /> : shown.length === 0 && waiting.length === 0 ? (
           <Prazdno kind="prvni" mark={<EmptyRoomArt room="kompas" color={t.textMuted} />}
             fakt={L("Kompas zatím nikam neukazuje.", "The compass doesn't point anywhere yet.")}
             pozvani={L("Napiš jednu věc, ke které se chceš vracet.", "Write one thing you want to keep returning to.")}
             uvolneni={L("Nemusí to být velké. Musí to být tvoje.", "It doesn't have to be big. It has to be yours.")}
-            action={() => setDilna(true)} actionLabel={L("Otevřít dílnu", "Open the workshop")} />
+            action={() => setAddingFirstGoal(true)} actionLabel={live.length ? L("Přidat cíl", "Add a goal") : L("Přidat první cíl", "Add your first goal")} />
         ) : (
           <>
             {shown.length > 0 && (

@@ -91,6 +91,7 @@ import { PersonalSettingsBridge, PersonalSettingsSections } from "./shared/ui/pe
 import { trainingSourceMetadata } from "./shared/product/sourceMetadata.js";
 import { CLIENT_ROOMS, navigationRooms, roomPlacement, navigationLabel } from "./shared/product/navigation.js";
 import { ClientTrainingCalendar } from "./shared/ui/clientTrainingCalendar.jsx";
+import { suggestPlanDates, applyPlanDates } from "./training/clientSchedule.js";
 import { TrainingGoals } from "./shared/ui/trainingGoals.jsx";
 import { editorInk, editorHighlight, EDITOR_INKS, EDITOR_CHOICES, EDITOR_NAMES, EDITOR_LABELS } from "./shared/ui/editorPalette.js";
 import { SidebarLines } from "./shared/ui/sidebarLines.jsx";
@@ -903,7 +904,7 @@ function PageAtomic() {
   return (
     <>
       <PageTitle icon={<span style={{ color: t.sand, display: "inline-flex" }}><BookIcon size={34} /></span>} pageKey="atomic" kicker={L("Výpisek · James Clear", "Notes · James Clear")}>Atomic Habits</PageTitle>
-      <p style={{ ...pProse(t), fontSize: 14 }}>{L("Rychlá referenční karta o tom, jak zvyky fungují.", "A quick reference. How habits work.")} <span style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", color: t.sand }}>Malé zisky, které se skládají.</span></p>
+      <p style={{ ...pProse(t), fontSize: 14 }}>{L("Rychlá referenční karta o tom, jak zvyky fungují.", "A quick reference. How habits work.")} <span style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", color: t.sand }}>{L("Malé zisky, které se skládají.","Small gains that add up.")}</span></p>
 
       <Eyebrow>{L("Smyčka zvyku", "The habit loop")}</Eyebrow>
       <div data-guide="atomic.overview" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 20 }}>
@@ -917,8 +918,8 @@ function PageAtomic() {
 
       <Callout icon={<span style={{ color: t.sand, display: "inline-flex" }}><PenIcon size={16} /></span>} title={L("Recept na zvyk", "The habit recipe")}>
         <div style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.textSec, lineHeight: 1.7 }}>
-          <div><span style={{ color: t.accent }}>I will</span> [behaviour] <span style={{ color: t.accent }}>at</span> [time] <span style={{ color: t.accent }}>in</span> [location].</div>
-          <div style={{ marginTop: 4 }}><span style={{ color: t.accent }}>After</span> [current habit], <span style={{ color: t.accent }}>I will</span> [new habit].</div>
+          <div>{L("V [čas] udělám [co] na [místě].", "I will [behaviour] at [time] in [location].")}</div>
+          <div style={{ marginTop: 4 }}>{L("Až dokončím [současný zvyk], udělám [nový zvyk].","After [current habit], I will [new habit].")}</div>
         </div>
       </Callout>
 
@@ -939,8 +940,8 @@ function PageAtomic() {
       <Toggle summary={L("1 · Udělej to zřejmé", "1 · Make It Obvious")} color="orange">
         <p style={{ margin: "0 0 6px" }}>Habit Scorecard: {L("výpis denních zvyků a jejich vědomé ohodnocení", "list your daily habits and rate them")} (+ / − / =).</p>
         <ul style={li}>
-          <li>Implementation intention: „I will meditate for 5 mins at 7am on the balcony."</li>
-          <li>Habit stacking: „After [current habit], I will [new habit]."</li>
+          <li>{L("V sedm ráno budu pět minut meditovat na balkoně.", "I will meditate for five minutes at 7 am on the balcony.")}</li>
+          <li>{L("Po čištění zubů si sednu k meditaci.", "After brushing my teeth, I will sit down to meditate.")}</li>
           <li>{L("Prostředí: malé změny prostředí → velké změny chování v čase.", "Environment: small changes of place → big changes of behaviour over time.")}</li>
         </ul>
       </Toggle>
@@ -5243,7 +5244,7 @@ function PageNotebook({ koren, korenNazev }) {
               <input ref={draftFile} type="file" multiple hidden onChange={attachToDraft} />
               <HdrIcon title={L("Přiložit soubor", "Attach file")} onClick={() => draftFile.current?.click()}><ClipIcon size={14} /></HdrIcon>
               {(draft.text?.trim() || draft.att?.length > 0) && <button onClick={() => st.updateEntry("notebook", draft.id, { notebookDraft: false })} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "4px 14px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 12 }}>{L("Uložit", "Save")}</button>}
-              <HdrIcon title={L("Otevřít jako stránku", "Open as page")} onClick={() => { st.updateEntry("notebook", draft.id, { notebookDraft: false }); otevri(draft.id); }}>⤢</HdrIcon>
+              <HdrIcon title={L("Otevřít jako stránku", "Open as page")} onClick={() => otevri(draft.id)}>⤢</HdrIcon>
               <HdrIcon title={L("Zahodit poznámku", "Discard note")} onClick={() => st.ask(L("Přesunout rozepsanou poznámku do koše?", "Move this draft to trash?"), () => st.removeEntry("notebook", draft.id))}><TrashIcon size={13} /></HdrIcon>
             </>}
           </div>
@@ -5443,14 +5444,14 @@ function PageJournal() {
   const today = todayISO();
   const todayEntry = all.find((e) => e.date === today) || (draftId ? all.find((e) => e.id === draftId) : null);
   const writeToday = (v) => {
-    if (todayEntry) { st.updateEntry("journal", todayEntry.id, { text: v }); return; }
+    if (todayEntry) { st.updateEntry("journal", todayEntry.id, current => current.zamek ? {} : { text: v }); return; }
     if (!v || !v.trim()) return;
     const id = uid();
     st.addEntry("journal", { id, date: today, title: "", tag: "Den", text: v });
     setDraftId(id);
   };
-  const composerOpen = !todayEntry || !todayEntry.committed || editingToday;
-  const attachToday = async (fl) => { if (!todayEntry || !fl || !fl.length) return; const added = await filesToAtts(fl, st.ask); if (added.length) st.updateEntry("journal", todayEntry.id, current => ({ att: [...(current.att || []), ...added] })); if (todayFileRef.current) todayFileRef.current.value = ""; };
+  const composerOpen = !todayEntry?.zamek && (!todayEntry || !todayEntry.committed || editingToday);
+  const attachToday = async (fl) => { if (!todayEntry || todayEntry.zamek || !fl || !fl.length) return; const added = await filesToAtts(fl, st.ask); if (added.length) st.updateEntry("journal", todayEntry.id, current => current.zamek ? {} : { att: [...(current.att || []), ...added] }); if (todayFileRef.current) todayFileRef.current.value = ""; };
 
   // ---- Na tento den · návrat na stejné místo v jiném roce ----
   const md = today.slice(5);
@@ -5658,9 +5659,9 @@ function PageJournal() {
       {!selecting && !composerOpen && todayEntry && (
         <div data-tm-surface="row" style={{ display: "flex", alignItems: "center", gap: 10, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: "10px 14px", margin: "12px 0 6px", boxShadow: t.shadow }}>
           <span style={{ color: t.sand, display: "inline-flex" }}><PenIcon size={12} /></span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{L("Dnešní zápis uložen", "Today's entry saved")} · {fmtCZ(today)}</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>{todayEntry.zamek ? L("Dnešní zápis je zamčený", "Today’s entry is locked") : L("Dnešní zápis uložen", "Today's entry saved")} · {fmtCZ(today)}</span>
           <span style={{ flex: 1 }} />
-          <button onClick={() => setEditingToday(true)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "4px 14px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12 }}>{L("Upravit", "Edit")}</button>
+          <button onClick={() => todayEntry.zamek ? otevri(todayEntry.id) : setEditingToday(true)} style={{ background: "transparent", border: `1px solid ${t.border}`, borderRadius: 8, padding: "4px 14px", cursor: "pointer", color: t.textSec, fontFamily: FONT_BODY, fontSize: 12 }}>{todayEntry.zamek ? L("Číst", "Read") : L("Upravit", "Edit")}</button>
         </div>
       )}
 
@@ -13419,7 +13420,7 @@ function TvClientRunner({ sessionId, onClose, onOpenEx }) {
   const [view, setView] = useState(() => ses?.state === "done" ? "summary" : ses && TV.countSets(ses).completed > 0 ? "guide" : "plan");
   const done = view === "summary";
   const setDone = (value) => { setRest(null); setView(value ? "summary" : "guide"); };
-  const [eff, setEff] = useState(ses?.effort ?? 85);
+  const [eff, setEff] = useState(ses?.effort ?? null);
   const [pain,setPain]=useState(!!ses?.painJoints?.length);
   const [technique,setTechnique]=useState((ses?.blocks||[]).filter(b=>b.techniqueFlagged).map(b=>b.id));
   const [note, setNote] = useState(ses?.note || "");
@@ -13427,6 +13428,7 @@ function TvClientRunner({ sessionId, onClose, onOpenEx }) {
   useTrainingRunnerEscape(onClose, tmEscVrstva);
   if (!ses) return null;
   const counts = TV.countSets(ses);
+  const noSets = counts.completed === 0 && ses.state !== "done";
   const patch = (fn) => st.tvEditSession(sessionId, fn);
   const finish = () => {
     st.tvEditSession(sessionId, (x) => TV.finishSession({...x,blocks:x.blocks.map(b=>({...b,techniqueFlagged:technique.includes(b.id)}))}, { effort: eff, note, painJoints: pain ? ["reported"] : [], now: ses.state === "done" && ses.endedAt ? ses.endedAt : Date.now() }));
@@ -13479,8 +13481,9 @@ function TvClientRunner({ sessionId, onClose, onOpenEx }) {
               ? L("Sdílení tréninku máš zapnuté. Po synchronizaci trenér uvidí i tuto poznámku.", "Workout sharing is on. Your coach will also see this note after syncing.")
               : L("Poznámka zůstává u tebe. Sdílení tréninku můžeš změnit v Nastavení → Sdílení s trenérem.", "This note stays with you. You can change workout sharing in Settings → Sharing with your coach.")}</p>
             <button onClick={finish} className="tm-cta" style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 12, padding: "14px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 50 }}>
-              {L("Hotovo", "Done")}
+              {noSets ? L("Dokončit bez zapsaných sérií", "Finish without logged sets") : L("Hotovo", "Done")}
             </button>
+            {noSets && <button onClick={onClose} style={tvQuiet(t)}>{L("Nechat rozpracované", "Keep in progress")}</button>}
           </div>
         ) : (
           <>
@@ -13512,6 +13515,8 @@ function TvClientPlan({ onRun }) {
   const [open, setOpen] = useState(null);
   const [weekOpen, setWeekOpen] = useState({}); // týdny plánu · otevřený je ten, kde právě jsi
   const [detailEx, setDetailEx] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [receipt, setReceipt] = useState(null);
 
   if (!del || !plans.length) {
     return (
@@ -13528,16 +13533,17 @@ function TvClientPlan({ onRun }) {
   const dateOf = (p, s) => recordFor(p, s)?.date || (((sched[p.id] || {})[s.id]) ?? s.date ?? "");
   const recordFor = (p, s) => sessions.find((x) => x.planId === p.id && x.planSessionId === s.id) || null;
 
-  // Rozvrhne všechny ještě neodcvičené lekce od dneška podle počtu tréninků
-  // v týdnu. Klient nemusí vybírat datum u každé lekce zvlášť; jednotlivé
-  // dny si pak může dál přepsat.
-  const autoSchedule = (p) => {
-    const ss = p.sessions || [];
-    const firstWeek = (ss[0] || {}).w || 1;
-    const perWeek = Math.max(1, ss.filter((s) => (s.w || 1) === firstWeek).length);
-    const OFF = ({ 1: [0], 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 4, 5], 6: [0, 1, 2, 3, 4, 5] })[Math.min(6, perWeek)] || [0, 2, 4];
-    ss.filter((s) => !recordFor(p, s)).forEach((s, i) => st.tvSetSched(p.id, s.id, shiftISO(todayISO(), Math.floor(i / OFF.length) * 7 + OFF[i % OFF.length])));
+  const calendar = {plans, sessions, schedule: sched};
+  const propose = (planId, replace) => {
+    const changes = suggestPlanDates({...calendar, planId, start: todayISO(), replace});
+    setPreview({planId, changes});
   };
+  const apply = (proposal, undo = false) => {
+    st.tvApplyPlanDates(proposal, undo);
+    setReceipt(undo ? null : proposal);
+    setPreview(null);
+  };
+  const shortDate = date => date ? new Date(date + "T12:00:00").toLocaleDateString(L("cs-CZ", "en-GB")) : L("bez termínu", "no date");
 
   const start = (p, s) => {
     const existing = recordFor(p, s);
@@ -13562,7 +13568,25 @@ function TvClientPlan({ onRun }) {
               <div style={{ flex: 1 }}><ProgressBar value={ss.length ? done / ss.length : 0} /></div>
               <span style={{ fontFamily: FONT_TAG, fontSize: 11, color: t.textMuted }}>{done}/{ss.length}</span>
             </div>
-            {ss.some((s) => !recordFor(p, s)) ? <div style={{ marginTop: 10 }}><button data-tv-autoschedule onClick={() => autoSchedule(p)} style={tvQuiet(t)}>{L("Rozvrhnout zbytek od dneška", "Schedule the rest from today")}</button></div> : null}
+            {ss.some(s => !recordFor(p, s)) && <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {ss.some(s => !recordFor(p, s) && !dateOf(p, s)) && <button data-tv-autoschedule onClick={() => propose(p.id, false)} style={tvQuiet(t)}>{L("Doplnit chybějící termíny", "Fill missing dates")}</button>}
+              {ss.some(s => !recordFor(p, s) && dateOf(p, s)) && <button onClick={() => propose(p.id, true)} style={tvQuiet(t)}>{L("Přeplánovat od dneška", "Reschedule from today")}</button>}
+            </div>}
+            {preview?.planId === p.id && <div style={{margin: "12px 0"}}>
+              <p role="status">{preview.changes.length ? L(`Navržené změny (${preview.changes.length})`, `Proposed changes (${preview.changes.length})`) : L("Termíny už odpovídají rozvrhu.", "The dates already match this schedule.")}</p>
+              {!!preview.changes.length && <ul style={{maxHeight: 220, overflow: "auto"}}>{preview.changes.map(change => {
+                const planned = ss.find(s => s.id === change.id);
+                const template = planned && st.tvTemplateOf(planned.templateId);
+                return <li key={change.id}>{L(template?.cz, template?.en) || L("Trénink", "Workout")} · {shortDate(change.before)} → {shortDate(change.after)}</li>;
+              })}</ul>}
+              {preview.changes.length > 0 && (applyPlanDates(calendar, preview)
+                ? <button onClick={() => apply(preview)} style={tvQuiet(t)}>{L("Použít termíny", "Apply dates")}</button>
+                : <span role="status">{L("Plán se mezitím změnil. Otevři nový návrh.", "The plan changed. Open a fresh preview.")}</span>)}
+              <button onClick={() => setPreview(null)} style={tvQuiet(t)}>{L("Zavřít", "Close")}</button>
+            </div>}
+            {receipt?.planId === p.id && !preview && (applyPlanDates(calendar, receipt, true)
+              ? <div role="status">{L("Termíny uloženy.", "Dates saved.")} <button onClick={() => apply(receipt, true)} style={tvQuiet(t)}>{L("Vrátit termíny", "Undo date changes")}</button></div>
+              : <p role="status">{L("Rozvrh se mezitím změnil.", "The schedule has since changed.")}</p>)}
             <div style={{ marginTop: 10 }}>
               {ss.map((s, i) => {
                 // Dvanáct týdnů naráz je zeď řádků. Vidět je týden, ve kterém právě jsi; ostatní se rozbalí klepnutím.
@@ -13772,11 +13796,11 @@ function PageTrenink() {
         {L("Trénink", "Training")}
       </PageTitle>
 
-      {st.syncPending ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: hexA(t.sage, 0.12), border: `1px solid ${hexA(t.sage, 0.35)}`, borderRadius: 10, padding: "8px 12px", marginBottom: 12 }}>
+      {st.trainingSyncMessage ? (
+        <div role="status" style={{ display: "flex", alignItems: "center", gap: 8, background: hexA(t.sage, 0.12), border: `1px solid ${hexA(t.sage, 0.35)}`, borderRadius: 10, padding: "8px 12px", marginBottom: 12 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.sage }} />
           <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.textSec }}>
-            {L("Zapsáno v telefonu. Odejde samo, až bude signál.", "Written down on this phone. It will send itself when there is a signal.")}
+            {st.trainingSyncMessage}
           </span>
         </div>
       ) : null}
@@ -14482,6 +14506,7 @@ function BkcRezervace({ ctx, onClose, onDone }) {
   const [cas, setCas] = useState(null);
   const [chyba, setChyba] = useState(null);
   const [posilam, setPosilam] = useState(false);
+  const [slotRevision, setSlotRevision] = useState(0);
   const klic = React.useRef("bk_" + Math.random().toString(36).slice(2));
   const sluzba = sluzby.find((s) => s.id === sid) || null;
   const mista = sluzba ? (sluzba.locations || []) : [];
@@ -14499,7 +14524,11 @@ function BkcRezervace({ ctx, onClose, onDone }) {
         setPosilam(false); setChyba(e);
         // Když čas mezitím zmizel, nabídne se rovnou nový výběr — a klíč se
         // vymění, aby další pokus nebyl pochopený jako opakování toho prvního.
-        if (e.code === "SLOT_TAKEN") { setCas(null); klic.current = "bk_" + Math.random().toString(36).slice(2); }
+        if (e.code === "SLOT_TAKEN") {
+          setCas(null);
+          setSlotRevision(value => value + 1);
+          klic.current = "bk_" + Math.random().toString(36).slice(2);
+        }
       });
   };
 
@@ -14540,7 +14569,7 @@ function BkcRezervace({ ctx, onClose, onDone }) {
 
       {sid && (mista.length <= 1 || lid) && (
         <BkcKrok n={mista.length > 1 ? "3" : "2"} label={L("Kdy", "When")} hotovo={!!cas}>
-          <BkcSloty serviceId={sid} locationId={misto ? misto.id : null} vybrany={cas} onPick={setCas} />
+          <BkcSloty serviceId={sid} locationId={misto ? misto.id : null} revision={slotRevision} vybrany={cas} onPick={slot => { setCas(slot); setChyba(null); }} />
         </BkcKrok>
       )}
 
@@ -14574,27 +14603,35 @@ function BkcRezervace({ ctx, onClose, onDone }) {
 /* ---- sloty --------------------------------------------------------------
    Nejdřív dny, které něco mají. Potom časy. Žádná mřížka měsíce plná
    zašedlých buněk, které nikomu nic neřeknou. */
-function BkcSloty({ serviceId, locationId, vybrany, onPick, excludeBooking }) {
+function BkcSloty({ serviceId, locationId, vybrany, onPick, excludeBooking, revision = 0 }) {
   const { t } = useT();
   const [from, setFrom] = useState(() => todayISO());
   const q = "/booking/slots?serviceId=" + encodeURIComponent(serviceId)
     + (locationId ? "&locationId=" + encodeURIComponent(locationId) : "")
     + "&from=" + from + "&days=21" + (excludeBooking ? "&reschedule=" + encodeURIComponent(excludeBooking) : "");
-  const { data, err, loading, reload } = useBkc(q, [q]);
+  const { data, err, loading, reload } = useBkc(q, [revision]);
   const [den, setDen] = useState(null);
   const dny = (data && data.days) || [];
   const aktivni = dny.find((d) => d.date === den) || dny[0] || null;
+  const changePeriod = days => {
+    onPick(null);
+    setDen(null);
+    setFrom(BK.shiftDateISO(from, days));
+  };
+  const periodButtons = <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+    {from > todayISO() && <button onClick={() => changePeriod(-21)} style={bkcBtn(t)}>{L("Předchozí dny", "Previous days")}</button>}
+    <button onClick={() => changePeriod(21)} style={bkcBtn(t)}>{L("Další dny", "Next days")}</button>
+  </div>;
 
-  if (loading && !data) return <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, fontStyle: "italic" }}>{L("Hledám volný čas…", "Looking for free time…")}</p>;
+  if (loading) return <p role="status" style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, fontStyle: "italic" }}>{L("Hledám volný čas…", "Looking for free time…")}</p>;
   if (err) return <BkcHlaska e={err} onRetry={reload} />;
   if (!dny.length) {
     return (
       <div>
         <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.textMuted, lineHeight: 1.6 }}>
-          {L("V nejbližších třech týdnech není volný čas. Zkus se podívat dál, nebo napiš Kryštofovi.",
-             "There is no free time in the next three weeks. Look further ahead, or message Kryštof.")}
+          {bkcDay(from)} – {bkcDay(BK.shiftDateISO(from, 20))}: {L("V tomto období není volný čas.", "No appointments are available in this period.")}
         </p>
-        <button onClick={() => setFrom(BK.shiftDateISO(from, 21))} style={bkcBtn(t)}>{L("Načíst další dny", "Load more days")}</button>
+        {periodButtons}
       </div>
     );
   }
@@ -14604,7 +14641,7 @@ function BkcSloty({ serviceId, locationId, vybrany, onPick, excludeBooking }) {
         {dny.map((d) => {
           const je = aktivni && aktivni.date === d.date;
           return (
-            <button key={d.date} onClick={() => setDen(d.date)} aria-pressed={je}
+            <button key={d.date} onClick={() => { if (!je) { onPick(null); setDen(d.date); } }} aria-pressed={je}
               style={{ flexShrink: 0, minWidth: 66, minHeight: 62, padding: "8px 10px", borderRadius: 14, cursor: "pointer",
                 background: je ? hexA(t.accent, 0.12) : "transparent", border: `1px solid ${je ? t.accent : t.borderSoft}`,
                 color: je ? (t.accentInk || t.accent) : t.textSec, fontFamily: FONT_BODY }}>
@@ -14618,7 +14655,7 @@ function BkcSloty({ serviceId, locationId, vybrany, onPick, excludeBooking }) {
         {(aktivni ? aktivni.slots : []).map((s) => {
           const je = vybrany && vybrany.startsAt === s.startsAt;
           return (
-            <button key={s.startsAt} onClick={() => onPick({ ...s, timezone: data.timezone })}
+            <button key={s.startsAt} aria-pressed={!!je} onClick={() => onPick({ ...s, timezone: data.timezone })}
               aria-label={bkcDay(aktivni.date) + " " + bkcTime(s.startsAt, data.timezone)}
               style={{ background: je ? hexA(t.accent, 0.14) : "transparent", border: `1px solid ${je ? t.accent : t.border}`,
                 borderRadius: 12, padding: "12px 16px", cursor: "pointer", color: je ? (t.accentInk || t.accent) : t.text,
@@ -14629,7 +14666,7 @@ function BkcSloty({ serviceId, locationId, vybrany, onPick, excludeBooking }) {
           );
         })}
       </div>
-      <button onClick={() => setFrom(BK.shiftDateISO(from, 21))} style={{ ...bkcBtn(t), marginTop: 14 }}>{L("Načíst další dny", "Load more days")}</button>
+      {periodButtons}
     </>
   );
 }
@@ -14640,6 +14677,7 @@ function BkcDetail({ b, onClose, onChanged, canReschedule = true }) {
   const [presun, setPresun] = useState(false);
   const [cas, setCas] = useState(null);
   const [rusim, setRusim] = useState(null);   // náhled zrušení
+  const [slotRevision, setSlotRevision] = useState(0);
   const [chyba, setChyba] = useState(null);
   const [prace, setPrace] = useState(false);
   const zavreno = BK.isClosedStatus(b.status);
@@ -14659,7 +14697,10 @@ function BkcDetail({ b, onClose, onChanged, canReschedule = true }) {
     setPrace(true); setChyba(null);
     bkcFetch("/bookings/" + b.id + "/reschedule", { method: "POST", body: { startsAt: cas.startsAt } }).then(
       () => { setPrace(false); onChanged(); },
-      (e) => { setPrace(false); setChyba(e); if (e.code === "SLOT_TAKEN") setCas(null); });
+      (e) => {
+        setPrace(false); setChyba(e);
+        if (e.code === "SLOT_TAKEN") { setCas(null); setSlotRevision(value => value + 1); }
+      });
   };
   const doKalendare = () => {
     const stamp = (ms) => new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -14726,7 +14767,7 @@ function BkcDetail({ b, onClose, onChanged, canReschedule = true }) {
       {presun && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.16em", fontSize: 12, color: t.sage, marginBottom: 10 }}>{L("Nový čas", "A new time")}</div>
-          <BkcSloty serviceId={sluzba.id} locationId={misto ? misto.id : null} vybrany={cas} onPick={setCas} excludeBooking={b.id} />
+          <BkcSloty serviceId={sluzba.id} locationId={misto ? misto.id : null} revision={slotRevision} vybrany={cas} onPick={slot => { setCas(slot); setChyba(null); }} excludeBooking={b.id} />
           {cas && (
             <button disabled={prace} onClick={presunNa} style={{ ...bkcBtn(t, true), marginTop: 14 }}>
               {L("Přesunout na ", "Move to ") + bkcWhen(cas.startsAt, cas.timezone)}
@@ -14862,15 +14903,20 @@ function InviteGate() {
   const { t } = useT();
   const [word, setWord] = useState("");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(false);
+  const [err, setErr] = useState("");
   const submit = async () => {
     if (!word.trim() || busy) return;
-    setBusy(true); setErr(false);
+    setBusy(true); setErr("");
     try {
       const r = await fetch("/api/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ word }) });
-      if (r.ok) { window.location.reload(); return; }
-    } catch (e) {}
-    setErr(true); setBusy(false);
+      const body = await r.json().catch(() => null);
+      if (r.ok && body?.ok === true) { window.location.reload(); return; }
+      if (r.status === 403 && body?.error === "wrong word") setErr("word");
+      else if (r.status === 401 || r.redirected) setErr("session");
+      else if (r.status === 409) setErr("account");
+      else setErr("unavailable");
+    } catch { setErr("unavailable"); }
+    finally { setBusy(false); }
   };
   return (
     <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 400, background: t.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -14882,26 +14928,30 @@ function InviteGate() {
           {L("Vstup do praxe", "Entering the practice")}
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: t.textSec, lineHeight: 1.7, margin: "16px auto 28px", maxWidth: "26em" }}>
-          {L("Tento prostor se otevírá slovem, které dostaneš ode mě. Pokud ho ještě nemáš, ozvi se. Začíná to rozhovorem.",
-             "This space opens with a word you receive from me. If you don't have it yet, reach out. It begins with a conversation.")}
+          {L("Zadej slovo z pozvánky. Pokud ho ještě nemáš, ", "Enter the word from your invitation. If you need one, ")}
+          <a href="mailto:tanmay.in.flow@gmail.com" style={{ color: t.accentInk || t.accent }}>{L("napiš mi", "email me")}</a>.
         </div>
         <input
           value={word}
-          onChange={(e) => { setWord(e.target.value); setErr(false); }}
+          onChange={(e) => { setWord(e.target.value); setErr(""); }}
           onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           placeholder={L("vstupní slovo", "the word")}
           autoFocus
           aria-label={L("Vstupní slovo", "The word")}
-          aria-invalid={err ? "true" : undefined}
+          aria-invalid={err === "word" || undefined}
+          aria-describedby={err ? "invite-feedback" : undefined}
           style={{ width: "100%", boxSizing: "border-box", background: t.sheet, border: `1px solid ${err ? t.accent : t.border}`, borderRadius: 10, padding: "14px 18px", color: t.text, fontFamily: FONT_BODY, fontSize: 16, textAlign: "center", outline: "none" }}
         />
         {err && (
-          <div role="status" style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.accentInk || t.accent, marginTop: 10 }}>
-            {L("To není ono. Zkus to znovu, nebo mi napiš.", "Not quite. Try again, or write to me.")}
+          <div id="invite-feedback" role="status" style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.accentInk || t.accent, marginTop: 10 }}>
+            {err === "word" ? L("Slovo nesouhlasí. Zkontroluj ho v pozvánce.", "The word does not match. Check your invitation.")
+              : err === "session" ? L("Přihlášení vypršelo. Přihlas se znovu.", "Your session expired. Sign in again.")
+              : err === "account" ? L("Tento prostor je spojený s jiným e-mailem. Zkontroluj přihlášený účet.", "This space is linked to a different email. Check which account you are using.")
+              : L("Pozvánku se nepodařilo ověřit. Zkus to prosím znovu.", "We couldn't verify the invitation. Please try again.")}
           </div>
         )}
-        <button onClick={submit} disabled={busy} style={{ marginTop: 22, background: t.accent, color: t.onAccent, border: "none", borderRadius: 100, minHeight: 48, padding: "13px 42px", cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12.5 }}>
-          {busy ? L("Otevírám…", "Opening…") : L("Vstoupit", "Enter")}
+        <button onClick={err === "session" ? () => window.location.reload() : submit} disabled={busy || !word.trim()} style={{ marginTop: 22, background: t.accent, color: t.onAccent, border: "none", borderRadius: 100, minHeight: 48, padding: "13px 42px", cursor: busy ? "default" : "pointer", opacity: busy || !word.trim() ? 0.6 : 1, fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12.5 }}>
+          {busy ? L("Otevírám…", "Opening…") : err === "session" ? L("Přihlásit znovu", "Sign in again") : err === "unavailable" ? L("Zkusit znovu", "Try again") : L("Vstoupit", "Enter")}
         </button>
         <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, marginTop: 30 }}>
           Trust the body. Hold the practice. Listen to the wild.
@@ -14918,6 +14968,7 @@ function InviteGate() {
  *  Motiv se bere z tokenů, ne z pevných barev — jinak by uvítání svítilo
  *  tmavě i v Linen a bylo by to první, co člověk v domě uvidí jinak. */
 function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled, onConfirm, onClose }) {
+  const [customize, setCustomize] = useState(false);
   const [sel, setSel] = useState(() => current || []);
   const [name, setName] = useState(initialName || "");
   const [share, setShare] = useState(() => ({ habits: false, goals: false, training: false, ...(initialShare || {}) }));
@@ -14948,11 +14999,8 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
           {firstRun ? L("Vítej ve svém prostoru", "Welcome to your space") : L("Soukromé místnosti a sdílení", "Private rooms and sharing")}
         </div>
         <div style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: t.textSec, lineHeight: 1.7, maxWidth: "34em", margin: "14px auto 20px" }}>
-          {firstRun
-            ? L("Tichý dům pro tvé tělo, praxi a směr. Praxe, Trénink, Termíny a Kompas jsou tu od začátku. Zbytek si otevíráš podle sebe a všechno zůstává u tebe.",
-                "A quiet house for your body, practice and direction. Practice, Training, Sessions and Compass are here from the start. The rest you open yourself, and everything stays with you.")
-            : L("Otevři si jen to, co teď žiješ. Data zavřených místností zůstávají uložená.",
-                "Open only what you live right now. Data of closed rooms stays saved.")}
+          {L("Začít můžeš bez sdílení s trenérem. Další místnosti i sdílení najdeš kdykoli v Nastavení.",
+             "You can start without sharing with your coach. Add rooms and manage sharing in Settings at any time.")}
         </div>
         <div style={{ textAlign: "left", marginBottom: 18 }}>
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 10.5, color: t.sage, marginBottom: 6 }}>
@@ -14970,11 +15018,14 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
           </div>
           <input
             value={name}
+            aria-label={L("Tvoje jméno", "Your name")}
             onChange={(e) => setName(e.target.value)}
             placeholder={L("jméno", "name")}
             style={{ width: "100%", boxSizing: "border-box", background: t.sheet, border: `1px solid ${t.border}`, borderRadius: 10, padding: "12px 16px", color: t.text, fontFamily: FONT_BODY, fontSize: 16, outline: "none" }}
           />
         </div>
+        {!customize && <button onClick={() => setCustomize(true)} style={tmButton(t)}>{L("Vybrat místnosti a sdílení", "Choose rooms and sharing")}</button>}
+        {customize && <>
         <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 10.5, color: t.sage, marginBottom: 8, textAlign: "left" }}>
           {L("Soukromé místnosti", "Private rooms")}
         </div>
@@ -14994,13 +15045,15 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
           })}
         </div>
         </>}
+        </>}
+        {(!firstRun || customize) && <>
         <div style={{ textAlign: "left", marginTop: firstRun ? 24 : 0 }}>
           {firstRun && <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 10.5, color: t.sage, marginBottom: 4 }}>
             {L("Sdílení s trenérem", "Sharing with your coach")}
           </div>}
           <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginBottom: 12 }}>
-            {L("Trenér uvidí jen to, co tady zapneš. Rozsah je popsaný u každé volby. Vypnutím se dosavadní souhrn zneplatní. Změny potvrď tlačítkem Uložit.",
-               "Your coach sees only what you enable here. Each option explains its scope. Turning sharing off invalidates the previous summary. Confirm changes with Save.")}
+            {L("Trenér uvidí jen to, co tady zapneš. Vypnutím se dosavadní souhrn zneplatní.",
+               "Your coach sees only what you enable here. Turning sharing off invalidates the previous summary.")}
           </div>
           <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, lineHeight: 1.55, marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 8 }}>
             <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: t.accent, flexShrink: 0, marginTop: 6 }} />
@@ -15058,9 +15111,10 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
             </div>
           )}
         </div>
+        </>}
         <div style={{ marginTop: 28, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => onConfirm(ordered, name, { habits: !!share.habits, goals: !!share.goals, training: !!share.training })} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 100, minHeight: 48, padding: "13px 38px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12.5 }}>
-            {firstRun ? L("Vstoupit", "Enter") : L("Uložit", "Save")}
+          <button onClick={() => onConfirm(ordered, name, firstRun && !customize ? { habits: false, goals: false, training: false } : { habits: !!share.habits, goals: !!share.goals, training: !!share.training })} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 100, minHeight: 48, padding: "13px 38px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12.5 }}>
+            {firstRun && !customize ? L("Vstoupit bez sdílení", "Enter without sharing") : firstRun ? L("Vstoupit", "Enter") : L("Uložit", "Save")}
           </button>
           {!firstRun && (
             <button onClick={onClose} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 100, minHeight: 48, padding: "13px 30px", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12.5 }}>
@@ -16613,6 +16667,11 @@ export default function App() {
   // Vlastní termín, který si klient posunul. Předpis se tím nemění — mění se jen
   // datum, a to je jediné, co produkt klientovi dovoluje.
   const tvSched = () => (TV.trainingOf(coll) || {}).sched || {};
+  const tvApplyPlanDates = (proposal, undo) => persistColl(c => {
+    const training = TV.trainingOf(c) || {};
+    const schedule = applyPlanDates({plans: training.delivered?.plans || [], sessions: TV.sessionsOf(c), schedule: training.sched || {}}, proposal, undo);
+    return schedule ? TV.patchTraining(c, {sched: schedule}) : c;
+  });
   const tvSetSched = (planId, sessionId, date) => persistColl((c) => {
     const cur = (TV.trainingOf(c) || {}).sched || {};
     const forPlan = { ...(cur[planId] || {}) };
@@ -17167,7 +17226,7 @@ export default function App() {
     error: syncErr ? syncHlaska(syncErr.druh, L, syncErr) : "",
     sending: L("Ověřuji a odesílám změny…", "Checking and sending changes…"),
     loading: L("Načítám data účtu…", "Loading account data…"),
-    pending: L("Změny čekají na odeslání.", "Changes are waiting to send."),
+    pending: L("Změny jsou v tomto zařízení a čekají na odeslání.", "Changes are on this device and waiting to send."),
     saved: L("Změny jsou uložené i na serveru.", "Changes are saved on the server too."),
   }[syncStatus];
   const manualSync = async () => {
@@ -17261,7 +17320,8 @@ export default function App() {
   };
   const store = { loadContentLibrary, contentLibraryReady:stateHydrated && !conflict && member === true, nbTagsFor, contentAvailable, journalAvailable: isEnabled("denik") && !roomPlacement(navConfig,"denik",navDefaults).hidden, readScale, setReadScale, uiCfg, setUiCfg, recentIds, pushRecent, nbFolders, addNbFolder, renameNbFolder, removeNbFolder, moveNbFolder, setEntriesFolder, restoreEntries, persistColl, undo, redo, canUndo: () => histRef.current.past.length > 0, canRedo: () => histRef.current.future.length > 0, caps, selDate, setSelDate, getDay, updateDay, has, edits, coll, addEntry, updateEntry, removeEntry, reorderEntry, allGoals, addGoal, removeUserGoal, trashBuiltinGoal, editGoal, pushGoalToDay, pullGoalFromDay, hasCoachGoals, listAreas, allSources, updateSourceNote, hasCoachSources, orphanSourceNotes, keepOrphanNote, forkCoachSource, addArea, removeArea, nbTags, addNbTag, renameNbTag, reorderNbTag, removeNbTag, importNotebook, importPractices, importContent, migrateContentSchema, jTags, addJTag, renameJTag, reorderJTag, removeJTag, importJournal, migrateCzJournal, migrateCzNotebook, removeEntries, setEntriesTag, trashList, restoreTrash, purgeTrash, purgeAllTrash, pomoSettings, setPomoSettings, pomoStats, addPomoTree, addPomoBlocks, monthsOf, setAreaMonth, goalNotes, addGoalNote, removeGoalNote, editMode, ask, setFinCfg, calCfg, setCalCfg, getCalendarDay, updateCalendarDays, setCalState, setCalendarAllDay, setMemento, setMandala, malaList, malaAdd, malaAddDeity, malaRemoveDeity, setKlCfg, goalMetaOf, setGoalMeta, areaMetaOf, setAreaMeta, areaVlqOf, setAreaVlq, openTarget, setOpenTarget, orderGoals, dragGoal, habitDefs, activeHabits, setHabitDefs, dayStatusLabels, setDayStatusLabel, areaIcon, setAreaIcon, setAreaIconId, reorderArea, renameArea, pageMetaOf, setPageMeta, seedTraining, tDayOf, setTDay, tRefs, removeTraining, removeTrainings,
     tvSessions, tvSessionOf, tvPutSession, tvEditSession, tvDropSession, tvPrefs, tvSetPrefs,
-    tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, getClientTrainingCalendar, updateClientTrainingCalendar, syncPending,
+    tvDelivered, tvSetDelivered, tvTemplateOf, tvPlanOf, tvExerciseOf, tvSched, tvSetSched, tvApplyPlanDates, getClientTrainingCalendar, updateClientTrainingCalendar,
+    trainingSyncMessage: !saveErr && !conflict && (!syncErr || syncOdlozeno) && (dataPending || manualSyncBusy) ? syncStatusText : "",
     tmCfg, setTmCfg, tmSpecOf, setTmSpec,
     setSore, unsetSore, soreNow, tSaidBump };
 
@@ -17767,8 +17827,9 @@ export default function App() {
                   const nf = FAVORITES.find((f) => f.key === k) || { cz: k, en: k };
                   const lbl = ((coll.pageMeta || {})[k] || {}).title || L(nf.cz, nf.en);
                   const act = page === k || (page === "atomic" && k === "praxe") || ((page === "oblasti" || page === "cile") && k === "kompas");
+                  const visualCopy = dockTabs.length > 3 && copy !== 1;
                   return (
-                    <button key={copy + "-" + k} aria-current={act ? "page" : undefined} onClick={() => go(k)} style={{ flex: dockTabs.length > 3 ? `0 0 calc(100% / ${3 * dockTabs.length})` : "1 1 0%", scrollSnapAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "transparent", border: "none", cursor: "pointer", padding: "4px 2px", minHeight: 48, color: act ? t.navAccent : t.navMuted, transition: "color .25s ease", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.07em", fontSize: 9.5 }}>
+                    <button key={copy + "-" + k} aria-hidden={visualCopy || undefined} tabIndex={visualCopy ? -1 : undefined} onMouseDown={visualCopy ? e => e.preventDefault() : undefined} aria-current={act ? "page" : undefined} onClick={() => go(k)} style={{ flex: dockTabs.length > 3 ? `0 0 calc(100% / ${3 * dockTabs.length})` : "1 1 0%", scrollSnapAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "transparent", border: "none", cursor: "pointer", padding: "4px 2px", minHeight: 48, color: act ? t.navAccent : t.navMuted, transition: "color .25s ease", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.07em", fontSize: 9.5 }}>
                       <span style={{ display: "inline-flex", height: 21, alignItems: "center", transform: act ? "scale(1.16) translateY(-1px)" : "none", transition: "transform .28s cubic-bezier(.23,.62,.22,.99)" }}>{NAV_ICONS[k] ? React.createElement(NAV_ICONS[k], { size: 19 }) : null}</span>
                       <span style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lbl}</span>
                     </button>

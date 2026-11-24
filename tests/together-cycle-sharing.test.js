@@ -2,7 +2,30 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {handleTogether} from '../src/shared/product/togetherApi.js';
-import {emptyTogether} from '../src/shared/product/together.js';
+import {emptyTogether,checkInAudience} from '../src/shared/product/together.js';
+
+test('check-in labels follow the committed outgoing grant and distinguish daily and dated fields',async()=>{
+  const {call,pair,doc}=fixture();
+  await call('client:a','self',{revision:0,doc});
+  await pair(['wellbeing','pain','cycle-note']);
+  const owner=await call('client:a'), partner=await call('coach:tanmay','',undefined,'2026-09-08');
+  assert.equal(checkInAudience(owner.link,'wellbeing',owner.canTrack),'today');
+  assert.equal(checkInAudience(owner.link,'support',owner.canTrack),'private');
+  assert.equal(checkInAudience(owner.link,'pain',owner.canTrack),'by-date');
+  assert.equal(checkInAudience(owner.link,'cycle-note',owner.canTrack),'by-date');
+  assert.equal(checkInAudience(owner.link,'flow',owner.canTrack),'private');
+  assert.equal(checkInAudience(owner.link,'note',owner.canTrack),'private');
+  assert.equal(checkInAudience(partner.link,'wellbeing',partner.canTrack),'private');
+  assert.equal(partner.cycleView.pain.value,'mild');
+  assert.equal(partner.cycleView.cycleNote.text,'Warmth helped');
+  assert.equal(partner.cycleView.wellbeing,undefined);
+  assert.equal(partner.cycleView.flow,undefined);
+  for(const status of ['invited','pending']) assert.equal(checkInAudience({...owner.link,status},'pain',true),'private');
+  assert.equal(checkInAudience({...owner.link,myScopes:[]},'wellbeing',true),'private');
+  assert.equal(checkInAudience({status:'active',owner:false,scopes:['support']},'support',false),'private');
+  assert.equal(checkInAudience({status:'active',owner:true,scopes:['support']},'support',false),'today');
+  assert.equal(checkInAudience(owner.link,'pain',false),'private');
+});
 
 function fixture(){
   const sql=new DatabaseSync(':memory:');

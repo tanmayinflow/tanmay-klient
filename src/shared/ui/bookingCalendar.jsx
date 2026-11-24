@@ -89,10 +89,18 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
     const label = { display: "grid", gap: 5, minWidth: 0, fontSize: 12, color: t.textSec };
     const notice = { fontSize: 12, lineHeight: 1.55, color: t.textSec, margin: "9px 0" };
     const openEditor = value => { setEditError(""); setMessage(""); setEditor(value); };
+    const leaveWorkEditor = next => {
+      if (editor?.type === "work" && JSON.stringify(editor.windows) !== editor.initialWindows) {
+        setEditor(current => ({ ...current, pendingExit: { next } }));
+      } else {
+        openEditor(next);
+      }
+    };
     const editWork = (d, weekly = false) => {
+      if (!data || loading || (editor?.type === "work" && editor.date === d && editor.weekly === weekly)) return;
       const wd = B.weekdayOfDateISO(d);
       const windows = weekly ? (data.rules || []).filter(r => genericWeekly(r, wd) && r.active !== 0).map(r => ({ start_minute: r.start_minute, end_minute: r.end_minute })) : editableDayWindows(d, data);
-      openEditor({ type: "work", date: d, weekly, windows, baseline: JSON.stringify(data.rules || []), expectedIds: genericDayOverrides(data.overrides, d).map(o => o.id) });
+      leaveWorkEditor({ type: "work", date: d, weekly, windows, initialWindows: JSON.stringify(windows), baseline: JSON.stringify(data.rules || []), expectedIds: genericDayOverrides(data.overrides, d).map(o => o.id) });
     };
     const selectTime = (d, start, end, startsAt, endsAt) => openEditor({ type: "time", date: d, start, end, startsAt, endsAt, note: "" });
     const timeOptions = useMemo(() => {
@@ -239,7 +247,7 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
       </div>
       {service && <div style={{ ...row, margin: "10px 0 16px", fontSize: 12, color: t.textSec }}><span>{L("Sezení", "Session")} {service.duration_min} min · {L("začátky po", "starts every")} {service.slot_interval_min} min</span><button type="button" style={btn} onClick={editService} data-tm-surface="control">{L("Upravit délku", "Edit duration")}</button></div>}
       </details>
-      <div style={{ ...row, margin: "8px 0" }}><button type="button" style={btn} onClick={() => selectTime(date, 540, 600)}>{L("Přidat volno", "Add time off")}</button><button type="button" style={btn} onClick={() => editWork(date)}>{L("Pracovní doba", "Working hours")}</button></div>
+      <div style={{ ...row, margin: "8px 0" }}><button type="button" style={btn} onClick={() => selectTime(date, 540, 600)}>{L("Přidat volno", "Add time off")}</button><button type="button" style={btn} disabled={!data || loading} onClick={() => editWork(date)}>{L("Pracovní doba", "Working hours")}</button></div>
       <p style={notice}>{compact ? L("Klepnutím rezervuj, podržením přesuň.", "Tap to book, hold to move.") : L("Klepni na volný začátek a přidej klienta. Pracovní dobu upravíš v záhlaví dne. Přesun potvrdíš po přetažení.", "Tap a free start to add a client. Edit working hours in the day header. Confirm moves after dragging.")}</p>
       <div style={{ ...row, fontSize: 11, marginBottom: 10, color: t.textSec }}><span><span aria-hidden="true" style={{ color: t.sage }}>● </span>{L("K rezervaci", "Bookable")}</span><span><span aria-hidden="true" style={{ color: t.accent }}>● </span>{L("Rezervace", "Booking")}</span><span>▧ {L("Volno · blokace", "Time off · blocked")}</span><span style={{ marginLeft: "auto" }}>{L("Praha", "Prague")}</span></div>
       {message && <div role="status" aria-live="polite" style={notice}>{message}</div>}
@@ -330,8 +338,8 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
         {data.googleConnected && data.googleBusyKnown === false && <p role="alert" style={{ ...notice, color: t.accentInk || t.accent }}>{L("Obsazenost z Google kalendáře se nepodařilo ověřit. Zobrazená volná místa mohou být obsazená; před uložením rezervace se dostupnost ověří znovu.", "Google Calendar availability could not be verified. Displayed free times may be busy; availability is checked again before saving a booking.")}</p>}
       </>}
       {!service && catalog && onServices && <button type="button" style={btn} onClick={onServices}>{L("Nastavit službu", "Set up a service")}</button>}
-      {editor && <CenterSheet title={editor.type === "new" ? L("Nový termín", "New session") : editor.type === "booking" ? L("Rezervace", "Booking") : editor.type === "block" ? L("Volno", "Time off") : L("Úprava kalendáře", "Calendar editor")} onClose={() => { if (!saving) setEditor(null); }}><fieldset ref={editorRef} tabIndex={-1} disabled={saving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, fontFamily: BODY_FONT }}>
-        {editor.type !== "new" && <div style={{ ...row, justifyContent: "space-between", marginBottom: 12 }}><h3 style={{ fontFamily: DISPLAY_FONT, fontWeight: 400, fontSize: 23, margin: 0 }}>{editor.type === "work" ? L("Pracovní doba", "Working hours") : editor.type === "service" ? L("Délka sezení a začátky", "Duration and start times") : L("Čas v kalendáři", "Calendar time")}{editor.date ? ` · ${dayLabel(editor.date)}` : ""}</h3><button type="button" aria-label={L("Zavřít úpravy", "Close editor")} style={btn} disabled={saving} onClick={() => setEditor(null)}><TmIcon id="close" size={16}/></button></div>}
+      {editor && <CenterSheet title={editor.type === "new" ? L("Nový termín", "New session") : editor.type === "booking" ? L("Rezervace", "Booking") : editor.type === "block" ? L("Volno", "Time off") : L("Úprava kalendáře", "Calendar editor")} onClose={() => { if (!saving) leaveWorkEditor(null); }}><fieldset ref={editorRef} tabIndex={-1} disabled={saving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, fontFamily: BODY_FONT }}>
+        {editor.type !== "new" && <div style={{ ...row, justifyContent: "space-between", marginBottom: 12 }}><h3 style={{ fontFamily: DISPLAY_FONT, fontWeight: 400, fontSize: 23, margin: 0 }}>{editor.type === "work" ? L("Pracovní doba", "Working hours") : editor.type === "service" ? L("Délka sezení a začátky", "Duration and start times") : L("Čas v kalendáři", "Calendar time")}{editor.date ? ` · ${dayLabel(editor.date)}` : ""}</h3><button type="button" aria-label={L("Zavřít úpravy", "Close editor")} style={btn} disabled={saving} onClick={() => leaveWorkEditor(null)}><TmIcon id="close" size={16}/></button></div>}
         {editor.type === "new" && renderNewBooking?.(editor.seed, { onClose: () => setEditor(null), onDone: () => { setMessage(L("Termín uložen.", "Appointment saved.")); refresh(); } })}
         {["booking", "block"].includes(editor.type) && <>
           {editor.type === "booking" && <>
@@ -369,6 +377,13 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
           </div>
         </>}
         {editor.type === "work" && <>
+          {editor.pendingExit && <div role="alert" style={{ marginBottom: 12 }}>
+            <p style={notice}>{L("Pracovní doba má neuložené změny.", "Your working hours have unsaved changes.")}</p>
+            <div style={row}>
+              <button type="button" style={primary} onClick={() => setEditor(current => ({ ...current, pendingExit: null }))}>{L("Pokračovat v úpravě", "Keep editing")}</button>
+              <button type="button" style={btn} onClick={() => openEditor(editor.pendingExit.next)}>{L("Zahodit rozpracované změny", "Discard changes")}</button>
+            </div>
+          </div>}
           <div style={{ ...row, marginBottom: 12 }}><button type="button" style={btn} disabled={saving} aria-pressed={!editor.weekly} onClick={() => editWork(editor.date, false)}>{L("Jen tento den", "Only this date")}</button><button type="button" style={btn} disabled={saving} aria-pressed={editor.weekly} onClick={() => editWork(editor.date, true)}>{L("Každý tento den v týdnu", "Every same weekday")}</button></div>
           {editor.weekly && <div role="group" aria-label={L("Den pravidelného týdne", "Regular weekday")} style={{ ...row, marginBottom: 16 }}>
             {Array.from({ length: 7 }, (_, i) => B.shiftDateISO(B.startOfISOWeek(editor.date), i)).map(d => <button key={d} type="button" style={{ ...btn, borderColor: d === editor.date ? t.accent : t.borderSoft, flex: 1, padding: "6px 3px", fontSize: 12 }} disabled={saving} aria-pressed={d === editor.date} onClick={() => editWork(d, true)}>{new Date(`${d}T12:00:00Z`).toLocaleDateString(language === "cs" ? "cs-CZ" : "en-GB", { weekday: "short", timeZone: "UTC" })}</button>)}

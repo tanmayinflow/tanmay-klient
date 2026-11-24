@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calendarDays, clientSchedule } from '../src/training/clientSchedule.js';
+import { applyPlanDates, calendarDays, clientSchedule, suggestPlanDates } from '../src/training/clientSchedule.js';
 
 const template = { id: 't', cz: 'Původní zadání', blocks: [] };
 const plan = { id: 'p', sessions: [{ id: 's', templateId: 't', date: '2026-10-04' }] };
@@ -60,4 +60,32 @@ test('missing template leaves a visible scheduled item, never a fabricated worko
   assert.equal(row.template, undefined);
   assert.equal(row.record, undefined);
   assert.deepEqual(clientSchedule(), []);
+});
+
+test('new dates respect existing bookings, started sessions and the weekly rhythm', () => {
+  const input = {
+    planId: 'p', start: '2026-11-24', schedule: {p: {b: '2026-12-09'}},
+    plans: [{id: 'p', sessions: [{id:'a'}, {id:'b'}, {id:'c'}]},
+      {id: 'other', sessions: [{id:'outside', date:'2026-11-24'}]}],
+    sessions: [{id:'actual', planId:'p', planSessionId:'a', date:'2026-11-26'}],
+  };
+  const changes = suggestPlanDates(input);
+  assert.deepEqual(changes.map(c => [c.id, c.after]), [['c','2026-11-28']]);
+  const moved = suggestPlanDates({...input, replace:true});
+  assert.deepEqual(moved.map(c => [c.id, c.before, c.after]), [['b','2026-12-09','2026-11-28'], ['c','','2026-12-01']]);
+  const proposal = {planId:'p', changes:moved};
+  const updated = applyPlanDates(input, proposal);
+  assert.deepEqual(updated, {p:{b:'2026-11-28', c:'2026-12-01'}});
+  assert.deepEqual(applyPlanDates({...input, schedule:updated}, proposal, true), input.schedule);
+  assert.equal(applyPlanDates({...input, schedule:{p:{b:'2026-12-10'}}}, proposal), null);
+  assert.equal(applyPlanDates({...input, sessions:[...input.sessions,{id:'new',date:'2026-11-28'}]}, proposal), null);
+  assert.equal(applyPlanDates({...input, schedule:updated, sessions:[...input.sessions,{id:'new',planId:'p',planSessionId:'c'}]}, proposal, true), null);
+});
+
+test('undo restores inherited dates and intentional blank overrides without changing a coach prescription', () => {
+  const input = {planId:'p', start:'2026-11-24', plans:[{id:'p',sessions:[{id:'a',date:'2026-11-27'}, {id:'b',date:'2026-12-02'}]}], schedule:{p:{b:''}}, sessions:[]};
+  const proposal = {planId:'p', changes:suggestPlanDates({...input, replace:true})};
+  const moved = applyPlanDates(input, proposal);
+  assert.deepEqual(moved, {p:{a:'2026-11-24', b:'2026-11-27'}});
+  assert.deepEqual(applyPlanDates({...input, schedule:moved}, proposal, true), input.schedule);
 });

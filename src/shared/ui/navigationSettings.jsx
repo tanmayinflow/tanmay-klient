@@ -29,6 +29,12 @@ function PlacementChoice({label,value,onChange,L,t}) {
 export function NavigationSettings({t,lang,config,keys,dockKeys=keys,defaults,onChange,onOpen,enabled=()=>true,onEnable,icons={}}) {
   const L=(cs,en)=>lang==="en"?en:cs;
   const availableDockKeys=dockKeys.filter(enabled),dock=navigationRooms(config,availableDockKeys,defaults,'dock');
+  const [previousLayout,setPreviousLayout]=React.useState(null);
+  const customLayout=Object.keys(config || {}).length>0;
+  const resetLayout=()=>{
+    setPreviousLayout(config);
+    onChange({});
+  };
   return <div className="tm-navigation-settings" style={{fontFamily:FONT_BODY,color:t.text,minWidth:0}}>
     <style>{`.tm-navigation-room{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,48%);align-items:start;gap:8px;padding:11px 0}.tm-placement-choice{min-width:0}.tm-placement-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:8px 0;background:transparent;border:0;border-radius:4px;font:inherit;font-size:14px;text-align:left;cursor:pointer}.tm-placement-trigger svg{flex-shrink:0}.tm-placement-options{border-left:1px solid;padding:3px 0;margin:2px 0 8px}.tm-placement-options>button{display:flex;gap:10px;width:100%;min-height:52px;padding:8px 10px;border:0;background:transparent;text-align:left;font:inherit;font-size:14px;cursor:pointer}.tm-placement-options small{display:block;font-size:12px;line-height:1.5;margin-top:2px}.tm-placement-mark{display:inline-flex;width:16px;flex-shrink:0;padding-top:3px}@media(max-width:420px){.tm-navigation-room{grid-template-columns:minmax(0,1fr);gap:0;padding:10px 0}.tm-placement-trigger{padding-left:30px}.tm-placement-options{margin-left:30px}}`}</style>
     <p style={{color:t.textSec,fontSize:13,lineHeight:1.6}}>{L("Vyber, kde chceš mít jednotlivé stránky. Skrytím se jejich obsah ani sdílení nesmaže. Nastavení zůstává vždy dostupné přes Vše.","Choose where each page appears. Hiding does not delete its content or stop sharing. Settings remain available under All.")}</p>
@@ -43,6 +49,10 @@ export function NavigationSettings({t,lang,config,keys,dockKeys=keys,defaults,on
         <PlacementChoice label={`${navigationLabel(key,lang)} · ${L("umístění","placement")}`} value={value} L={L} t={t} onChange={v=>{if(v!=="hidden"&&!available)onEnable?.(key);onChange(updatePlacement(config,key,{hidden:v==="hidden",sidebar:v==="both"||v==="sidebar",dock:v==="both"||v==="dock"},keys,defaults));}} />
       </div>;
     })}
-    <button type="button" onClick={()=>onChange({})} style={{marginTop:18,minHeight:44,padding:"8px 12px",background:"transparent",border:`1px solid ${t.border}`,borderRadius:8,color:t.text,font:"inherit"}}>{L("Obnovit rozmístění","Reset placement")}</button>
+    <button type="button" disabled={!customLayout} onClick={resetLayout} style={{marginTop:18,minHeight:44,padding:"8px 12px",background:"transparent",border:`1px solid ${t.border}`,borderRadius:8,color:t.text,font:"inherit"}}>{L("Obnovit výchozí rozmístění","Restore default layout")}</button>
+    {previousLayout && !customLayout && <div role="status" style={{marginTop:8,color:t.textSec,fontSize:14}}>
+      {L("Výchozí rozmístění je obnovené.","Default layout restored.")}
+      <button type="button" onClick={()=>{onChange(previousLayout);setPreviousLayout(null);}} style={{minHeight:44,background:"transparent",border:0,color:t.accentInk||t.accent,font:"inherit",cursor:"pointer"}}>{L("Vrátit moje rozmístění","Restore my layout")}</button>
+    </div>}
   </div>;
 }

@@ -19,6 +19,24 @@ function initializer(owner, name) {
   return found;
 }
 const handler = (name, context) => vm.runInNewContext('(' + initializer('RichArea', name) + ')', context);
+
+test('the daily journal respects a lock even when an open editor receives a late write', () => {
+  const draft = { id: 'test', text: 'original', committed: false };
+  const stored = { ...draft, zamek: true };
+  const editor = { todayEntry: stored, editingToday: true };
+  assert.equal(vm.runInNewContext(initializer('PageJournal', 'composerOpen'), editor), false);
+  const st = { updateEntry(kind, id, update) {
+    assert.equal(kind, 'journal');
+    assert.equal(id, stored.id);
+    Object.assign(stored, update(stored));
+  } };
+  const write = vm.runInNewContext('(' + initializer('PageJournal', 'writeToday') + ')', { todayEntry: draft, st });
+  write('late edit');
+  assert.equal(stored.text, 'original');
+  stored.zamek = false;
+  write('new text');
+  assert.equal(stored.text, 'new text');
+});
 function event(target) { return { target, prevented: false, preventDefault() { this.prevented = true; }, stopPropagation() {} }; }
 
 test('locked checklist and image controls leave DOM and persisted content unchanged', () => {

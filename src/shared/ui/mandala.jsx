@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
-import { createAspectImageUI } from "./aspectImages.jsx";
+import { createAspectImageUI, uploadAspectImages } from "./aspectImages.jsx";
 import { LANDSCAPE_DIRECTION_INKS } from "./landscape.js";
 import { FONT_BODY, FONT_TAG, FONT_DISPLAY_EN as FONT_DISPLAY } from "./type.js";
 import { hexA } from "./color.js";
 import { iconBtn, fieldStyle } from "./components.js";
-import { tmEscVrstva, tmZamkniStranku, tmOdemkniStranku } from "./overlay.js";
+import { useVrstva } from "./overlay.jsx";
 import { useGuideAction } from "./guideNavigation.jsx";
 
 // Shared visual and study content; all images, notes and counts use role-local storage.
@@ -164,7 +164,10 @@ function TmMandalaWheel({ onPick, onCore }) {
   const svgRef = React.useRef(null);
   const drag = React.useRef(null);
   const artRef = React.useRef(null);
+  const latestStore = React.useRef(st);
+  latestStore.current = st;
   const pendKey = React.useRef(null);
+  const [artError, setArtError] = useState(false);
   const S = 440, C = S / 2, R = 205, Z = 1.4;
   const quad = (mid) => {
     const a0 = (mid - 45) * Math.PI / 180, a1 = (mid + 45) * Math.PI / 180;
@@ -196,15 +199,22 @@ function TmMandalaWheel({ onPick, onCore }) {
     window.addEventListener("pointerup", onUp);
   };
   const clickQuad = (key) => (e) => { if (drag.current && drag.current.moved) { e.stopPropagation(); return; } onPick(key); };
+  const activateKey = (action) => (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    if (!e.repeat) action();
+  };
+  const openCenter = () => { setCoreHov(true); setTimeout(onCore, 360); };
   const pickArt = async (file) => {
     const key = pendKey.current; if (!file || !key) return;
+    setArtError(false);
     try {
       const blob = await resizeImageToBlob(file, 900);
       const gid = uid() + "m";
       await r2Put(gid, blob, file.name);
-      if (key === "center") st.setMandala({ center: { ...(mand.center || {}), art: { r2id: gid } } });
-      else { const data = mand[key] || {}; st.setMandala({ [key]: { ...data, art: { r2id: gid }, pos: data.pos || { x: 0.5, y: 0.5 } } }); }
-    } catch (err) {}
+      const data = latestStore.current.coll.mandala?.[key] || {};
+      latestStore.current.setMandala({ [key]: { ...data, art: { r2id: gid }, ...(key !== "center" && !data.pos ? { pos: { x: 0.5, y: 0.5 } } : {}) } });
+    } catch { setArtError(true); }
     if (artRef.current) artRef.current.value = "";
   };
   const startPick = (key) => { pendKey.current = key; if (artRef.current) artRef.current.click(); };
@@ -222,7 +232,7 @@ function TmMandalaWheel({ onPick, onCore }) {
   return (
     <div>
       <input ref={artRef} type="file" accept="image/*" onChange={(e) => pickArt(e.target.files && e.target.files[0])} style={{ display: "none" }} />
-      <svg ref={svgRef} viewBox={`0 0 ${S} ${S}`} style={{ display: "block", width: "100%", maxWidth: 560, margin: "0 auto", touchAction: edit ? "none" : "auto" }} role="img" aria-label={L("Mandala aspektů self", "Mandala of the aspects of self")}>
+      <svg ref={svgRef} viewBox={`0 0 ${S} ${S}`} style={{ display: "block", width: "100%", maxWidth: 560, margin: "0 auto", touchAction: edit ? "none" : "auto" }} role="group" aria-label={L("Mandala aspektů Já", "Mandala of the aspects of self")}>
         <defs>
           {MANDALA_ASPECTS.map((a) => (
             <clipPath key={a.key} id={`tmq-${a.key}`}><path d={quad(a.angle)} /></clipPath>
@@ -241,7 +251,9 @@ function TmMandalaWheel({ onPick, onCore }) {
           const im = imgFor(asp.key);
           const hasArt = !!(mand[asp.key] || {}).art;
           return (
-            <g key={asp.key} onClick={clickQuad(asp.key)} onPointerDown={onDown(asp.key)} onMouseEnter={() => setHk(asp.key)} onMouseLeave={() => setHk(null)} style={{ cursor: edit && hasArt ? "grab" : "pointer" }}>
+            <g key={asp.key} role="button" tabIndex={0} aria-label={L(asp.cz, asp.en) + " · " + L(asp.subCz, asp.subEn)}
+              onKeyDown={activateKey(() => onPick(asp.key))} onFocus={() => setHk(asp.key)} onBlur={() => setHk(null)}
+              onClick={clickQuad(asp.key)} onPointerDown={onDown(asp.key)} onMouseEnter={() => setHk(asp.key)} onMouseLeave={() => setHk(null)} style={{ cursor: edit && hasArt ? "grab" : "pointer" }}>
               {/* bez vlastního obrázku je kvadrant plocha v tónu své strany */}
               {im
                 ? <image href={im.href} x={im.x} y={im.y} width={im.w} height={im.h} preserveAspectRatio="xMidYMid slice" clipPath={`url(#tmq-${asp.key})`} opacity={on ? 1 : 0.82} style={{ transition: drag.current ? "none" : "opacity .5s ease" }} />
@@ -274,12 +286,15 @@ function TmMandalaWheel({ onPick, onCore }) {
             </g>
           );
         })()}
-        <g data-guide="mandala.overview" onClick={() => { setCoreHov(true); setTimeout(() => onCore(), 360); }} onMouseEnter={() => setCoreHov(true)} onMouseLeave={() => setCoreHov(false)} style={{ cursor: "pointer" }}>
+        <g data-guide="mandala.overview" role="button" tabIndex={0} aria-label={L("Střed mandaly", "Mandala center")}
+          onKeyDown={activateKey(openCenter)} onFocus={() => setCoreHov(true)} onBlur={() => setCoreHov(false)}
+          onClick={openCenter} onMouseEnter={() => setCoreHov(true)} onMouseLeave={() => setCoreHov(false)} style={{ cursor: "pointer" }}>
           <circle cx={C} cy={C} r="70" fill="transparent" />
           <path d={chakana} fill="transparent" stroke={coreHov ? t.accent : lineCol} strokeWidth="1" strokeLinejoin="miter" style={{ transition: "stroke .3s ease" }} />
           <circle cx={C} cy={C} r="5" fill={coreHov ? t.accent : lineCol} style={{ transition: "fill .3s ease" }} />
         </g>
       </svg>
+      {artError && <p role="alert" style={{ color: t.textSec, textAlign: "center" }}>{L("Obrázek se nepodařilo uložit. Vyber ho znovu a zkus to ještě jednou.", "The image could not be saved. Choose it again to retry.")}</p>}
       {edit && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 14 }}>
           {MANDALA_ASPECTS.map((a) => (
@@ -305,14 +320,11 @@ function TmGalVeil({ aspKey, onClose, onDeeper }) {
   const imgs = ((st.coll.mandala || {})[aspKey] || {}).imgs || [];
   const col = MANDALA_HUE(t, asp.hue);
   const [out, setOut] = useState(false);
+  const veilRef = React.useRef(null);
   const leave = (fn) => { setOut(true); setTimeout(fn, 400); };
-  React.useEffect(() => {
-    const odhlas = tmEscVrstva(() => leave(onClose));
-    tmZamkniStranku();
-    return () => { odhlas(); tmOdemkniStranku(); };
-  }, []);
+  useVrstva({ close: () => leave(onClose), ref: veilRef, historie: false });
   return createPortal(
-    <div onClick={() => leave(onDeeper)} className={"tm-veil" + (out ? " tm-veil-out" : "")} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(28,28,26,0.95)", overflowY: "auto", cursor: "pointer", WebkitBackdropFilter: "blur(4px)", backdropFilter: "blur(4px)" }}>
+    <div ref={veilRef} role="dialog" aria-modal="true" aria-label={L(asp.cz, asp.en)} onClick={() => leave(onDeeper)} className={"tm-veil" + (out ? " tm-veil-out" : "")} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(28,28,26,0.95)", overflowY: "auto", cursor: "pointer", WebkitBackdropFilter: "blur(4px)", backdropFilter: "blur(4px)" }}>
       <button onClick={(e) => { e.stopPropagation(); leave(onClose); }} title={L("Zpět na mandalu", "Back to the mandala")} style={{ position: "fixed", top: 18, right: 20, zIndex: 2, width: 36, height: 36, borderRadius: "50%", border: "1px solid rgba(244,240,235,0.25)", background: "rgba(28,28,26,0.42)", color: BRAND.linen, cursor: "pointer", fontSize: 17, lineHeight: 1 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "54px 22px 80px" }}>
         <div style={{ textAlign: "center", marginBottom: 26 }}>
@@ -332,7 +344,7 @@ function TmGalVeil({ aspKey, onClose, onDeeper }) {
           </div>
         )}
         <AspectImageAdd aspKey={aspKey} />
-        <div className="tm-veil-img" style={{ textAlign: "center", marginTop: 42, animationDelay: "600ms", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12, color: "rgba(244,240,235,0.55)" }}>{L("klikni a vstup do aspektu ›", "click to enter the aspect ›")}</div>
+        <button type="button" className="tm-veil-img" onClick={e => { e.stopPropagation(); leave(onDeeper); }} style={{ display: "block", margin: "42px auto 0", minHeight: 44, border: 0, background: "transparent", cursor: "pointer", animationDelay: "600ms", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12, color: BRAND.linen }}>{L("Vstoupit do aspektu", "Enter the aspect")}</button>
       </div>
     </div>,
     document.body
@@ -350,20 +362,21 @@ function TmAspectStudy({ aspKey, onBack }) {
   const data = isCore ? null : ((st.coll.mandala || {})[aspKey] || { note: "", imgs: [] });
   const imgs = data ? (data.imgs || []) : [];
   const [busy, setBusy] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const latestStore = React.useRef(st);
+  latestStore.current = st;
   const addImages = async (fileList) => {
+    if (!fileList?.length || busy) return;
     setBusy(true);
-    const added = [];
-    for (const f of Array.from(fileList || [])) {
-      if (!(f.type || "").startsWith("image/")) continue;
-      try {
-        const id = uid() + "m";
-        const blob = await resizeImageToBlob(f, 900);
-        await r2Put(id, blob, f.name);
-        added.push({ id, r2id: id });
-      } catch (e) {}
-    }
-    if (added.length) st.setMandala({ [aspKey]: { ...data, imgs: [...imgs, ...added] } });
-    setBusy(false);
+    setImageError(false);
+    try {
+      const {added, failed} = await uploadAspectImages(fileList, { resize: resizeImageToBlob, put: r2Put, uid });
+      if (added.length) {
+        const current = latestStore.current.coll.mandala?.[aspKey] || {};
+        latestStore.current.setMandala({ [aspKey]: { ...current, imgs: [...(current.imgs || []), ...added] } });
+      }
+      setImageError(failed > 0);
+    } finally { setBusy(false); }
   };
   const delImg = (id) => st.ask(L("Odebrat obrázek z mandaly?", "Remove image from the mandala?"), () => {
     const im = imgs.find((x) => x.id === id);
@@ -405,6 +418,7 @@ function TmAspectStudy({ aspKey, onBack }) {
       {!isCore && (
         <div style={{ marginTop: 22 }}>
           <Eyebrow>{L("Galerie aspektu", "The aspect's gallery")}</Eyebrow>
+          {imageError && <p role="alert">{L("Některé obrázky se nepodařilo nahrát. Zkus to znovu.", "Some images could not be uploaded. Please try again.")}</p>}
           <textarea value={data.note || ""} onChange={(e) => st.setMandala({ [aspKey]: { ...data, note: e.target.value } })} placeholder={L("Alter ega, kvality, mýty, na které se ladím…", "Alter egos, qualities, myths I tune into…")} rows={2} style={{ width: "100%", background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6, padding: "10px 12px", outline: "none", resize: "vertical", margin: "10px 0 14px" }} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
             {imgs.map((im) => (
