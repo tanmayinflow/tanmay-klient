@@ -15,6 +15,16 @@ export const STORAGE_SCHEMA = [
   `CREATE TABLE IF NOT EXISTS storage_budget_objects (bucket TEXT NOT NULL, key TEXT NOT NULL, user_id TEXT NOT NULL, bytes INTEGER NOT NULL, PRIMARY KEY(bucket,key))`,
   `CREATE TABLE IF NOT EXISTS storage_budget_reservations (bucket TEXT NOT NULL, key TEXT NOT NULL, user_id TEXT NOT NULL, bytes INTEGER NOT NULL, token TEXT NOT NULL, PRIMARY KEY(bucket,key))`,
   `CREATE TABLE IF NOT EXISTS storage_budget_ops (day TEXT PRIMARY KEY, a INTEGER NOT NULL DEFAULT 0, b INTEGER NOT NULL DEFAULT 0)`,
+  `CREATE TABLE IF NOT EXISTS storage_budget_actor_ops (actor TEXT PRIMARY KEY, day TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL)`,
+  ...['INSERT', 'UPDATE'].map(event => {
+    // Existing global usage is retained on rollout. The global debit and the
+    // actor debit commit in the same statement, including at the UTC rollover.
+    const delta = column => event === 'INSERT' ? `NEW.${column}` :
+      `NEW.${column} - CASE WHEN OLD.day=NEW.day THEN OLD.${column} ELSE 0 END`;
+    return `CREATE TRIGGER IF NOT EXISTS storage_actor_ops_${event} AFTER ${event} ON storage_budget_actor_ops BEGIN
+      INSERT INTO storage_budget_ops(day,a,b) VALUES(NEW.day,${delta('a')},${delta('b')})
+      ON CONFLICT(day) DO UPDATE SET a=a+excluded.a, b=b+excluded.b; END`;
+  }),
   ...['objects', 'reservations'].flatMap(table => {
     const field = table === 'objects' ? 'used' : 'reserved';
     return [
@@ -35,11 +45,24 @@ export async function ensureStorageBudget(db) {
 async function ensureUser(db, id) {
   await db.prepare(`INSERT OR IGNORE INTO storage_budget_users(id,ceiling) SELECT ?, CASE WHEN ?='main:primary' THEN 5000000000 ELSE client_default END FROM storage_budget_pool WHERE id=1`).bind(id, id).run();
 }
-async function consume(db, kind) {
+async function consume(db, kind, actor) {
   await ensureStorageBudget(db);
-  const date = day(), cap = kind === 'a' ? STORAGE_LIMITS.dailyA : STORAGE_LIMITS.dailyB;
-  const result = await db.prepare(`INSERT INTO storage_budget_ops(day,${kind}) VALUES(?,1) ON CONFLICT(day) DO UPDATE SET ${kind}=${kind}+1 WHERE ${kind}<?`).bind(date, cap).run();
-  if (result.meta.changes !== 1) throw fail('storage-operations', 429);
+  const cap = kind === 'a' ? STORAGE_LIMITS.dailyA : STORAGE_LIMITS.dailyB;
+  const client = actor.startsWith('client:');
+  const diagnostic = actor.startsWith('health:');
+  const actorCap = diagnostic ? 2880 : client ? Math.floor(cap / 4) : cap;
+  // Reserve the last tenth for the owner and inventory, even if many different
+  // clients have used their own individual allowances.
+  const poolCap = client || diagnostic ? Math.floor(cap * 0.9) : cap;
+  const date = day();
+  const result = await db.prepare(`INSERT INTO storage_budget_actor_ops(actor,day,a,b)
+    SELECT ?,?,?,? WHERE COALESCE((SELECT ${kind} FROM storage_budget_ops WHERE day=?),0) < ?
+    ON CONFLICT(actor) DO UPDATE SET day=excluded.day,
+      a=excluded.a + CASE WHEN day=excluded.day THEN a ELSE 0 END,
+      b=excluded.b + CASE WHEN day=excluded.day THEN b ELSE 0 END
+    WHERE day<>excluded.day OR ${kind} < ?`)
+    .bind(actor,date,kind==='a'?1:0,kind==='b'?1:0,date,poolCap,actorCap).run();
+  if (!result.meta.changes) throw fail('storage-operations', 429);
 }
 const objectUser = (bucket, key) => {
   const match = /^files\/([^/]+)\//.exec(key);
@@ -58,7 +81,7 @@ async function bootstrap(db, bucket, raw) {
   // If any operation fails, release only the inventory lock. No writes were
   // allowed while initializing, so rereading this page cannot lose new objects.
   try {
-    await consume(db, 'a');
+    await consume(db, 'a', 'inventory:' + bucket);
     const page = await raw.list({ limit: 500, cursor: row.cursor || undefined });
     if (!Array.isArray(page.objects) || (page.truncated && (!page.cursor || page.cursor === row.cursor))) throw fail('storage-inventory');
     const records = page.objects.map(o => {
@@ -106,20 +129,26 @@ async function complete(db, bucket, key, user, bytes, token, remove = false) {
   statements.push(db.prepare('DELETE FROM storage_budget_reservations WHERE bucket=? AND key=? AND token=?').bind(bucket,key,token));
   await db.batch(statements);
 }
-export function guardedStorage({ db, raw, bucket, request }) {
+export function guardedStorage({ db, raw, bucket, request, actor }) {
   let initialized;
   const init = () => initialized ||= bootstrap(db, bucket, raw);
+  const charge = (kind, key) => consume(db, kind, actor || objectUser(bucket, key));
   return {
     async initialize() { await init(); },
-    async list(options) { await init(); await consume(db, 'a'); return raw.list(options); },
-    async get(key, options) { await init(); await consume(db, 'b'); return raw.get(key, options); },
-    async head(key) { await init(); await consume(db, 'b'); return raw.head(key); },
+    async list(options) { await init(); await charge('a', options?.prefix); return raw.list(options); },
+    async get(key, options) { await init(); await charge('b', key); return raw.get(key, options); },
+    async head(key) {
+      await init();
+      if (key === '__healthcheck__') await consume(db, 'b', 'health:' + bucket);
+      else await charge('b', key);
+      return raw.head(key);
+    },
     async put(key, body, options) {
       await init();
       const size = body === request?.body ? Number(request.headers.get('Content-Length')) : typeof body === 'string' ? new TextEncoder().encode(body).length : body?.byteLength ?? body?.size;
       if (!Number.isSafeInteger(size) || size < 1) throw fail('media-length-required', 411);
       const user = objectUser(bucket,key);
-      await consume(db, 'a');
+      await charge('a', key);
       const token = await reserve(db,bucket,key,user,size);
       const result = await raw.put(key,body,{...options,storageClass:'Standard'});
       if (!result) throw fail('storage-write-unconfirmed');

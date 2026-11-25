@@ -115,7 +115,7 @@ async function startUpload(db, userId, body, options) {
   const baseVersion = body.baseVersion === undefined ? current.version : body.baseVersion;
   if (!Number.isSafeInteger(baseVersion) || baseVersion < 0) throw fail('transport-version');
   if (baseVersion !== current.version || (options.checkRev && current.version > 0 && body.rev <= current.rev)) throw fail('conflict', 409);
-  const metadata = JSON.stringify(options.prepareMetadata ? options.prepareMetadata(body) : {});
+  const metadata = JSON.stringify(options.prepareMetadata ? await options.prepareMetadata(body) : {});
   if (encoder.encode(metadata).byteLength > 200_000) throw fail('transport-metadata', 413);
   const token = crypto.randomUUID(), now = Date.now();
   const results = await db.batch([
@@ -180,7 +180,7 @@ async function commitUpload(db, userId, body, options) {
       .bind(now, commitToken, userId, body.uploadId, age, userId, userId),
     db.prepare(`DELETE FROM state_chunks WHERE user_id=? AND ${guard}`).bind(userId, userId, commitToken),
     db.prepare(`INSERT INTO state_chunks(user_id,part,data) SELECT user_id,part,data FROM state_upload_parts WHERE user_id=? AND token=? AND ${guard}`).bind(userId, body.uploadId, userId, commitToken),
-    ...(options.extraStatements?.(metadata, guard, userId, commitToken) || []),
+    ...(await options.extraStatements?.(metadata, guard, userId, commitToken) || []),
     db.prepare(`INSERT INTO state_transport_receipts(user_id,upload_id,version,updated_at,bytes)
       SELECT user_id,?,version,updated_at,bytes FROM state_documents WHERE user_id=? AND write_token=?
       ON CONFLICT(user_id) DO UPDATE SET upload_id=excluded.upload_id,version=excluded.version,updated_at=excluded.updated_at,bytes=excluded.bytes`).bind(body.uploadId, userId, commitToken),
