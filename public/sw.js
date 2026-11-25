@@ -14,10 +14,18 @@ self.addEventListener("activate", (event) => {
     // "pinned" drží připnutá média přihlášeného člověka. Nesmaže ho výměna
     // verze (offline přílohy by zmizely), ale při střídání účtu na jednom
     // zařízení ho ruší aplikace sama — viz ownerQuarantine v App.tsx.
-    await Promise.all(keys.filter((k) => !k.endsWith(VERSION) && k !== "pinned" && !k.startsWith("pinned__owner_")).map((k) => caches.delete(k)));
+    await Promise.all(keys.filter((k) => !k.endsWith(VERSION) && k !== "tm-device-access-v1" && k !== "pinned" && !k.startsWith("pinned__owner_")).map((k) => caches.delete(k)));
     await self.clients.claim();
   })());
 });
+
+// Only a recently verified account can restore sensitive content offline.
+async function offlineOwner() {
+  try {
+    const grant = await (await caches.open("tm-device-access-v1")).match("/__tm_offline_grant");
+    return grant ? await grant.text() : "";
+  } catch { return ""; }
+}
 
 function cacheable(res) { return res && res.ok && res.status === 200 && !res.redirected; }
 function isHtml(res) { return (res.headers.get("content-type") || "").includes("text/html"); }
@@ -52,7 +60,7 @@ self.addEventListener("fetch", (event) => {
   // must reach Cloudflare Access directly, not through the cache.
   if (url.origin === location.origin && url.pathname === "/manifest.webmanifest") return;
 
-  if (url.origin !== location.origin) return;
+  if (url.origin !== location.origin || url.pathname.startsWith("/cdn-cgi/")) return;
 
   // Motion is on demand. Let native HTTP byte ranges work; never pin videos
   // in the generic unbounded asset cache, including cached full responses.
@@ -78,8 +86,9 @@ async function privateFile(req) {
   }
   headers.set("X-Tanmay-Owner", owner);
   try {
-    return await fetch(new Request(req, { headers, mode: "same-origin", redirect: "manual" }));
+    return await fetch(new Request(req, { headers, mode: "same-origin", redirect: "manual", cache: "no-store" }));
   } catch (error) {
+    if (await offlineOwner() !== owner) throw error;
     const cache = await caches.open("pinned");
     const hit = await cache.match(req);
     if (hit && ulozitelne(hit)) return hit;

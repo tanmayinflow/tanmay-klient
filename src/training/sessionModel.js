@@ -189,6 +189,7 @@ export function makeSession(o) {
     effort: opt.effort == null || !Number.isFinite(Number(opt.effort)) ? null : Math.max(0, Math.min(100, Number(opt.effort))),
     note: opt.note || "",
     painJoints: Array.isArray(opt.painJoints) ? opt.painJoints.slice() : [],
+    ...(typeof opt.coachMessage === "string" && opt.coachMessage ? { coachMessage: opt.coachMessage } : {}),
     // Whose record this is. "" is the owner; a client id namespaces it.
     who: opt.who || "",
     // Set by the client app's outbox once the server has acknowledged it.

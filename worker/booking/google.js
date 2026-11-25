@@ -200,8 +200,8 @@ export async function completeAuth(db, env, params) {
   if (!state || !code) throw new GoogleError("BAD_CALLBACK", 400);
   const row = await db.prepare("SELECT * FROM google_oauth_states WHERE state = ?").bind(state).first();
   // Single use, whatever happens next.
-  await db.prepare("DELETE FROM google_oauth_states WHERE state = ?").bind(state).run();
-  if (!row) throw new GoogleError("BAD_STATE", 400);
+  const consumed=await db.prepare("DELETE FROM google_oauth_states WHERE state = ?").bind(state).run();
+  if (!row || !Number(consumed?.meta?.changes ?? consumed?.changes)) throw new GoogleError("BAD_STATE", 400);
   if (Number(row.expires_at) < Date.now()) throw new GoogleError("STATE_EXPIRED", 400);
 
   const tok = await tokenRequest(env, {
@@ -218,10 +218,11 @@ export async function completeAuth(db, env, params) {
   const now = Date.now();
   const existing = await getConnection(db);
   if (existing) {
-    await db.prepare(`UPDATE google_connections SET token_ciphertext = ?, token_iv = ?, token_version = ?,
+    await db.batch([db.prepare(`UPDATE google_connections SET token_ciphertext = ?, token_iv = ?, token_version = ?,
                         granted_scopes = ?, status = 'CONNECTED', last_error = '', updated_at = ?
                       WHERE owner_id = ?`)
-      .bind(sealed.ciphertext, sealed.iv, sealed.version, String(tok.scope || ""), now, OWNER_ID).run();
+      .bind(sealed.ciphertext, sealed.iv, sealed.version, String(tok.scope || ""), now, OWNER_ID),
+      db.prepare("DELETE FROM booking_blocks WHERE source='GOOGLE'")]);
   } else {
     await db.prepare(`INSERT INTO google_connections
         (id, owner_id, google_account, token_ciphertext, token_iv, token_version, granted_scopes,
@@ -239,10 +240,10 @@ export async function completeAuth(db, env, params) {
 const accessCache = new Map();
 
 export async function accessToken(db, env, opts = {}) {
-  const hit = accessCache.get(OWNER_ID);
-  if (!opts.force && hit && hit.exp > Date.now() + 60000) return hit.token;
   const row = await getConnection(db);
   if (!row || row.status !== "CONNECTED") throw new GoogleError("NOT_CONNECTED", 401);
+  const hit = accessCache.get(OWNER_ID);
+  if (!opts.force && hit?.grant===row.token_ciphertext && hit.exp > Date.now() + 60000) return hit.token;
   const refresh = await openToken(env, { ciphertext: row.token_ciphertext, iv: row.token_iv });
   if (!refresh) throw new GoogleError("NOT_CONNECTED", 401);
   let tok;
@@ -257,13 +258,15 @@ export async function accessToken(db, env, opts = {}) {
     // A revoked grant is not a transient failure. Say so once, clearly, and
     // keep every booking exactly where it is.
     if (e.status === 400 || e.status === 401) {
-      await db.prepare("UPDATE google_connections SET status = 'REVOKED', last_error = 'grant revoked', updated_at = ? WHERE owner_id = ?")
-        .bind(Date.now(), OWNER_ID).run();
+      await db.prepare("UPDATE google_connections SET status = 'REVOKED', last_error = 'grant revoked', updated_at = ? WHERE owner_id = ? AND token_ciphertext=?")
+        .bind(Date.now(), OWNER_ID,row.token_ciphertext).run();
     }
     throw e;
   }
   const token = tok.access_token;
-  accessCache.set(OWNER_ID, { token, exp: Date.now() + (Number(tok.expires_in) || 3600) * 1000 });
+  const current=await getConnection(db);
+  if(current?.status!=="CONNECTED" || current.token_ciphertext!==row.token_ciphertext)throw new GoogleError("NOT_CONNECTED",401);
+  accessCache.set(OWNER_ID, { token, grant:row.token_ciphertext, exp: Date.now() + (Number(tok.expires_in) || 3600) * 1000 });
   return token;
 }
 
@@ -323,13 +326,23 @@ export async function freeBusy(db, env, fromMs, toMs, calendarIds) {
       items: ids.map((id) => ({ id })),
     },
   });
-  const windows = [];
-  for (const id of Object.keys(out.calendars || {})) {
-    for (const b of (out.calendars[id].busy || [])) {
-      windows.push({ s: Date.parse(b.start), e: Date.parse(b.end) });
+  const windows = [], expected=new Set();
+  for (const id of ids) {
+    const group=out.groups?.[id];
+    if(!group){expected.add(id);continue;}
+    if(group.errors?.length || !Array.isArray(group.calendars))throw new GoogleError("INCOMPLETE_BUSY",503);
+    for(const member of group.calendars)expected.add(member);
+  }
+  for (const id of expected) {
+    const calendar = out.calendars?.[id];
+    if (!calendar || calendar.errors?.length || !Array.isArray(calendar.busy)) throw new GoogleError("INCOMPLETE_BUSY",503);
+    for (const b of calendar.busy) {
+      const s=Date.parse(b.start), e=Date.parse(b.end);
+      if (!Number.isFinite(s) || !Number.isFinite(e) || e<=s) throw new GoogleError("INCOMPLETE_BUSY",503);
+      windows.push({s,e});
     }
   }
-  return windows.filter((w) => Number.isFinite(w.s) && Number.isFinite(w.e) && w.e > w.s);
+  return windows;
 }
 
 /**

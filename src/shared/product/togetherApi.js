@@ -4,6 +4,7 @@ import {cycleViewForDate} from "./togetherGuidance.js";
 import {readPersonalProfile,personalProfileAccountKey} from './personalProfile.js';
 import {DAILY_CONNECTION_PROMPTS} from './togetherConnectionContent.js';
 import {handleTogetherCalendar} from './togetherCalendarApi.js';
+import {protectRevokedSharing} from './clientIdentityServer.js';
 
 import {cleanReflection, reflectionWeek, conversationHistory, dailyQuestion, legacyQuestion, readQuestionSnapshot} from "./togetherJournal.js";
 
@@ -23,6 +24,7 @@ export async function ensureTogether(db) {
   await db.prepare("CREATE TABLE IF NOT EXISTS together_questions (link_id TEXT NOT NULL, day TEXT NOT NULL, question_id TEXT NOT NULL, doc TEXT NOT NULL, PRIMARY KEY(link_id,day))").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_reflections (link_id TEXT NOT NULL, week TEXT NOT NULL, actor TEXT NOT NULL, doc TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(link_id,week,actor))").run();
   await db.prepare("CREATE TABLE IF NOT EXISTS together_pages (link_id TEXT PRIMARY KEY, rooms TEXT NOT NULL DEFAULT '[]', doc TEXT NOT NULL DEFAULT '{}', revision INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL DEFAULT 0)").run();
+  await protectRevokedSharing(db);
 }
 const linkFor=(db,actor)=>db.prepare("SELECT * FROM together_links WHERE (owner = ? OR partner = ?) AND status != 'revoked'").bind(actor,actor).first();
 async function pagesFor(db,link){

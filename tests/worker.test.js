@@ -110,6 +110,7 @@ test("klient A se nedostane k příloze klienta B ani přes její identifikátor
   const steal = await worker.fetch(req("/api/files/sdileny-id", { email: A }), env);
   assert.equal(steal.status, 404, "stejné id pod cizí identitou nesmí nic vrátit");
   const mine = await worker.fetch(req("/api/files/sdileny-id", { email: B }), env);
+  assert.equal(mine.headers.get("Cache-Control"), "private, no-store");
   assert.equal(mine.status, 200);
   const list = await (await worker.fetch(req("/api/files", { email: A }), env)).json();
   assert.deepEqual(list.files, [], "výpis souborů nesmí ukázat cizí objekty");
@@ -233,7 +234,8 @@ test("členství vznikne i na úplně prázdné databázi", async () => {
 test("share se uloží k tomu, kdo ho poslal, a nikomu jinému", async () => {
   const env = makeEnv();
   await joined(env, A); await joined(env, B);
-  const share = { training: { v: 2, at: 1, sessions: [{ id: "ses1", date: "2026-08-21", blocks: [] }], sched: {} } };
+  await napisDoc(env, "klient-a-example-test", "plans", { plans: [{ id: "plan", sessions: [{ id: "slot", templateId: "tpl" }] }], templates: [{ id: "tpl", blocks: [] }] });
+  const share = { training: { v: 2, at: 1, sessions: [{ id: "ses1", planId: "plan", planSessionId: "slot", templateId: "tpl", date: "2026-08-21", blocks: [] }], sched: {} } };
   const put = await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: { coll: { tv2: { v: 2 } } }, share } }), env);
   assert.equal(put.status, 200, await put.text());
   const rowA = await env.DB.prepare("SELECT share FROM members WHERE user_id = ?").bind("klient-a-example-test").first();
@@ -245,8 +247,9 @@ test("share se uloží k tomu, kdo ho poslal, a nikomu jinému", async () => {
 test("stejný záznam poslaný dvakrát se přepíše, ne zdvojí", async () => {
   const env = makeEnv();
   await joined(env, A);
-  const one = { training: { v: 2, at: 1, sessions: [{ id: "ses1", effort: 85 }], sched: {} } };
-  const again = { training: { v: 2, at: 2, sessions: [{ id: "ses1", effort: 100 }], sched: {} } };
+  await napisDoc(env, "klient-a-example-test", "plans", { plans: [{ id: "plan", sessions: [{ id: "slot", templateId: "tpl" }] }], templates: [{ id: "tpl", blocks: [] }] });
+  const one = { training: { v: 2, at: 1, sessions: [{ id: "ses1", planId: "plan", planSessionId: "slot", templateId: "tpl", effort: 85 }], sched: {} } };
+  const again = { training: { v: 2, at: 2, sessions: [{ id: "ses1", planId: "plan", planSessionId: "slot", templateId: "tpl", effort: 100 }], sched: {} } };
   await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: { coll: {} }, share: one } }), env);
   await worker.fetch(req("/api/state", { email: A, method: "PUT", body: { doc: { coll: {} }, share: again } }), env);
   const row = await env.DB.prepare("SELECT share FROM members WHERE user_id = ?").bind("klient-a-example-test").first();

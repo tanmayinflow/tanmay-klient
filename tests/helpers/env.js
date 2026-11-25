@@ -119,6 +119,7 @@ export function makeEnv(extra = {}) {
 // Požadavek s identitou od Cloudflare Access (nebo bez ní).
 export function req(path, { email, method = "GET", body, headers = {} } = {}) {
   const h = new Headers(headers);
+  if(!["GET","HEAD"].includes(method) && !h.has("Origin")) h.set("Origin","https://klient.example.test");
   if (email) h.set("cf-access-authenticated-user-email", email);
   const init = { method, headers: h };
   if (body !== undefined) {

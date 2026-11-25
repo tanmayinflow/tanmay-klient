@@ -148,6 +148,21 @@ function idsFor(input,previous) {
   if(!ids.length || new Set(ids).size!==ids.length) fail(ERR.VALIDATION_ERROR,'clientIds');
   return ids;
 }
+
+// The earlier availability read gives a useful message, but another session
+// can claim the last daily/weekly opening before this write reaches D1.
+function serviceQuota(db,session,excludeId) {
+  if(session.override)return {guard:'',args:[],reason:async()=>null};
+  const week=startOfISOWeek(session.date);
+  const sql=`SELECT CASE
+    WHEN s.daily_limit>0 AND (SELECT COUNT(*) FROM bookings b WHERE b.service_id=s.id AND b.id<>?
+      AND b.status IN ('REQUESTED','CONFIRMED') AND b.local_date=?)>=s.daily_limit THEN 'DAILY_LIMIT'
+    WHEN s.weekly_limit>0 AND (SELECT COUNT(*) FROM bookings b WHERE b.service_id=s.id AND b.id<>?
+      AND b.status IN ('REQUESTED','CONFIRMED') AND b.starts_at_utc>=? AND b.starts_at_utc<?)>=s.weekly_limit THEN 'WEEKLY_LIMIT'
+    ELSE '' END AS reason FROM booking_services s WHERE s.id=?`;
+  const args=[excludeId,session.date,excludeId,startOfLocalDay(week,session.tz),startOfLocalDay(shiftDateISO(week,7),session.tz),session.service.id];
+  return {guard:` AND (${sql})=''`,args,reason:async()=> (await db.prepare(sql).bind(...args).first())?.reason};
+}
 export async function createManagedBooking(db,input) {
   await assertClientAccess(db,input);
   if(input.groupBookingId) return joinGroup(db,input);
@@ -162,12 +177,12 @@ export async function createManagedBooking(db,input) {
     status:x.service.confirmation_mode==='AUTO'&&ids.length>=(Number(x.service.min_participants)||1)?S.CONFIRMED:S.REQUESTED,confirmation_mode:x.service.confirmation_mode,
     client_note:p.client_note,coach_note_private:x.actor===ACTOR.COACH?String(input.coachNote||'').slice(0,4000):'',meeting_url:x.location?.online_url||'',
     plan_id:input.planId||null,workout_template_id:input.workoutTemplateId||null,sync_status:'PENDING',version:1,mutation_token:R.newId('mutation'),created_by:x.actor,created_at:at,updated_at:at};
-  const g=moneyGuards(plans,input),keys=Object.keys(b);
+  const g=moneyGuards(plans,input),quota=serviceQuota(db,x,b.id),keys=Object.keys(b);
   const stmts=[db.prepare(`INSERT INTO bookings (${keys.join(',')}) SELECT ${placeholders(keys)} WHERE NOT EXISTS
-    (SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?)${g.sql}`).bind(...keys.map(k=>b[k]),prot.s,prot.e,...g.args),...await changesAfter(db,b,plans,[],x.actor)];
+    (SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?)${g.sql}${quota.guard}`).bind(...keys.map(k=>b[k]),prot.s,prot.e,...g.args,...quota.args),...await changesAfter(db,b,plans,[],x.actor)];
   if(x.override) stmts.push(R.stInsertEventIfState(db,{id:R.newId('ev'),booking_id:b.id,type:'ADMIN_OVERRIDE',actor_type:x.actor,actor_id:input.actorId||'',created_at:at,payload:{reason:String(input.overrideReason).slice(0,300)}},b.version,b.status,b.mutation_token));
   let result;try {stmts.splice(1,0,db.prepare("SELECT changes() AS changed"),db.prepare("SELECT EXISTS(SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?) AS blocked").bind(prot.s,prot.e)); result=await db.batch(stmts);} catch(e){if(isSlotConflict(e)) fail(ERR.SLOT_TAKEN);throw e;}
-  if(!result[1]?.results?.[0]?.changed){await assertClientAccess(db,input);fail(result[2]?.results?.[0]?.blocked ? ERR.SLOT_TAKEN : ERR.INSUFFICIENT_CREDIT);}
+  if(!result[1]?.results?.[0]?.changed){await assertClientAccess(db,input);fail(result[2]?.results?.[0]?.blocked ? ERR.SLOT_TAKEN : await quota.reason() || ERR.INSUFFICIENT_CREDIT);}
   return R.getBooking(db,b.id);
 }
 export async function rescheduleManagedBooking(db,id,input) {
@@ -197,12 +212,12 @@ export async function rescheduleManagedBooking(db,id,input) {
   const b={...old,mutation_token:R.newId('mutation'),...primaryFields(plans[0]),service_id:x.service.id,location_id:x.locationId,starts_at_utc:x.startsAt,ends_at_utc:x.endsAt,
     client_note:plans[0].client_note||'',local_date:x.date,timezone:x.tz,meeting_url:x.location?.online_url||old.meeting_url,sync_status:'PENDING',version:Number(old.version)+1,updated_at:Math.max(x.now,Number(old.updated_at)+1)};
   const keys=['client_id','credit_cost_units','client_package_id','price_minor','currency','payment_status','payment_method','service_id','location_id','starts_at_utc','ends_at_utc','client_note','local_date','timezone','meeting_url','sync_status','version','updated_at','mutation_token'];
-  const g=moneyGuards(plans,input),stmts=[db.prepare(`UPDATE bookings SET ${keys.map(k=>k+'=?').join(',')} WHERE id=? AND version=? AND updated_at=? AND status=?
-    AND NOT EXISTS(SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?)${g.sql}`).bind(...keys.map(k=>b[k]),id,old.version,old.updated_at,old.status,prot.s,prot.e,...g.args),
+  const g=moneyGuards(plans,input),quota=serviceQuota(db,x,id),stmts=[db.prepare(`UPDATE bookings SET ${keys.map(k=>k+'=?').join(',')} WHERE id=? AND version=? AND updated_at=? AND status=?
+    AND NOT EXISTS(SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?)${g.sql}${quota.guard}`).bind(...keys.map(k=>b[k]),id,old.version,old.updated_at,old.status,prot.s,prot.e,...g.args,...quota.args),
     db.prepare(`DELETE FROM booking_slot_locks WHERE booking_id=? AND ${guard}`).bind(id,id,b.version,b.updated_at,b.mutation_token),...await changesAfter(db,b,plans,participants,actor)];
   if(x.override)stmts.push(R.stInsertEventIfState(db,{id:R.newId('ev'),booking_id:id,type:'ADMIN_OVERRIDE',actor_type:actor,created_at:b.updated_at,payload:{reason:String(input.overrideReason).slice(0,300)}},b.version,b.status,b.mutation_token));
   let result;try{stmts.splice(1,0,db.prepare("SELECT changes() AS changed"),db.prepare("SELECT EXISTS(SELECT 1 FROM booking_blocks WHERE ends_at_utc>? AND starts_at_utc<?) AS blocked").bind(prot.s,prot.e)); result=await db.batch(stmts);}catch(e){if(isSlotConflict(e))fail(ERR.SLOT_TAKEN);throw e;}
-  if(!result[1]?.results?.[0]?.changed){await assertClientAccess(db,input);const current=await R.getBooking(db,id);if(current.version!==old.version||current.updated_at!==old.updated_at)fail(ERR.BOOKING_CHANGED);fail(result[2]?.results?.[0]?.blocked ? ERR.SLOT_TAKEN : ERR.INSUFFICIENT_CREDIT);}
+  if(!result[1]?.results?.[0]?.changed){await assertClientAccess(db,input);const current=await R.getBooking(db,id);if(current.version!==old.version||current.updated_at!==old.updated_at)fail(ERR.BOOKING_CHANGED);fail(result[2]?.results?.[0]?.blocked ? ERR.SLOT_TAKEN : await quota.reason() || ERR.INSUFFICIENT_CREDIT);}
   return R.getBooking(db,id);
 }
 

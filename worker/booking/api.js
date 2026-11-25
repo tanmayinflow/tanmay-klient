@@ -29,6 +29,8 @@ import * as G from "./google.js";
 import { migrateLegacy, migrationState, seedDefaults } from "./migrate.js";
 import { replaceDayAvailability, replaceWeekAvailability } from "./dayAvailability.js";
 import { groupSlots } from "./managedBookings.js";
+import { receiptOnly } from "../../src/booking/attendance.js";
+import { boundedRequestText } from "../../src/shared/product/boundedRequestText.js";
 import { seedPublicOffer, REGULAR_PACKAGE_ID } from "./publicOffer.js";
 import { calendarMonthExpiry } from "./packageValidity.js";
 
@@ -43,6 +45,7 @@ export function bad(code, detail, status) {
 const methodNotAllowed = () => Response.json({ ok: false, error: "method not allowed" }, { status: 405 });
 
 function fromError(e) {
+  if(e instanceof BookingInputError)return bad(ERR.VALIDATION_ERROR,e.message,e.status);
   if (e && e.name === "BookingError") return bad(e.code, e.detail);
   if (e && e.name === "GoogleError") {
     if (e.code === "NOT_CONNECTED" || e.code === "NOT_CONFIGURED") return bad(ERR.GOOGLE_UNAVAILABLE, e.code, 503);
@@ -55,12 +58,28 @@ function fromError(e) {
 }
 
 async function readBody(request) {
-  const len = Number(request.headers.get("content-length") || 0);
-  if (len > MAX_BODY) return { tooBig: true };
-  const text = await request.text();
-  if (text.length > MAX_BODY) return { tooBig: true };
+  const text = await boundedRequestText(request,MAX_BODY);
+  if (text===null) throw new BookingInputError("body too large",413);
   if (!text) return { body: {} };
-  try { return { body: JSON.parse(text) }; } catch (e) { return { invalid: true }; }
+  let body;
+  try { body=JSON.parse(text); } catch {throw new BookingInputError("json",400);}
+  if(!body || typeof body!=="object" || Array.isArray(body))throw new BookingInputError("json",400);
+  return {body};
+}
+
+class BookingInputError extends Error {
+  constructor(message,status){super(message);this.status=status;}
+}
+
+function guardBookingWrite(request,url) {
+  if(["GET","HEAD","OPTIONS"].includes(request.method))return null;
+  const origin=request.headers.get("Origin"),site=request.headers.get("Sec-Fetch-Site");
+  const json=(request.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase()==="application/json";
+  if ((origin!==null && origin!==url.origin) || (site!==null && site!=="same-origin"))return bad(ERR.NOT_AUTHORIZED,"origin",403);
+  if (!origin && !site && request.method==="POST" && !json)return bad(ERR.NOT_AUTHORIZED,"origin",403);
+  if (request.body && !json)return bad(ERR.VALIDATION_ERROR,"content type",415);
+  if (Number(request.headers.get("Content-Length") || 0)>MAX_BODY)return bad(ERR.VALIDATION_ERROR,"body too large",413);
+  return null;
 }
 
 // ---- Validation ------------------------------------------------------------
@@ -138,10 +157,16 @@ function validateLocation(b) {
 async function bookingView(db, b, opts = {}) {
   const participants = await R.participantsForBooking(db, b);
   const mine = opts.clientId ? participants.find(p => p.client_id === opts.clientId) : null;
+  if(opts.clientId && !mine)throw new E.BookingError(ERR.NOT_AUTHORIZED);
+  const service = await R.getService(db,b.service_id);
+  if(receiptOnly(mine,b,participants.length>1 || Number(service?.capacity)>1)) {
+    return {id:b.id,status:mine.status,historyOnly:true,participationEndedAt:mine.updated_at,
+      creditUnits:mine.credit_cost_units,priceMinor:mine.price_minor,currency:mine.currency,
+      paymentStatus:mine.payment_status,paymentMethod:mine.payment_method,clientNote:mine.client_note || ''};
+  }
   if (mine) b = {...b, status:mine.status, credit_cost_units:mine.credit_cost_units, client_package_id:mine.client_package_id,
     price_minor:mine.price_minor, payment_status:mine.payment_status, payment_method:mine.payment_method, client_note:mine.client_note};
-  const [service, location, client] = await Promise.all([
-    R.getService(db, b.service_id),
+  const [location, client] = await Promise.all([
     b.location_id ? R.getLocation(db, b.location_id) : Promise.resolve(null),
     opts.withClient ? R.getClient(db, b.client_id) : Promise.resolve(null),
   ]);
@@ -215,6 +240,8 @@ function drainSoon(ctx, db, env) {
 // COACH
 // ===========================================================================
 export async function handleCoach(request, env, url, ctx) {
+  const rejected=guardBookingWrite(request,url);
+  if(rejected)return rejected;
   const db = env.KLIENT_DB || env.DB;
   if (!db) return bad(ERR.VALIDATION_ERROR, "no database binding", 500);
   await ensureBookingSchema(db);
@@ -295,7 +322,7 @@ export async function handleCoach(request, env, url, ctx) {
       return ok({
         timezone: av.timezone, from: av.from, to: av.to,
         days: av.days.map((d) => ({ date: d.date, slots: d.slots.map((s2) => ({ startsAt: s2.start, endsAt: s2.end })) })),
-        googleChecked: !!busy.connected,
+        googleChecked: !!busy.connected && !busy.stale,
       });
     }
 
@@ -899,6 +926,9 @@ p{max-width:28rem}</style><p>${cs}<br><span style="opacity:.6">${en}</span></p>
  * out of a request body or a query string, so there is no id to forge.
  */
 export async function handleClient(request, env, url, accountUserId, ctx) {
+  if(!url.pathname.startsWith('/api/client/booking') && url.pathname!=='/api/client/credits')return null;
+  const rejected=guardBookingWrite(request,url);
+  if(rejected)return rejected;
   const db = env.DB;
   if (!db) return bad(ERR.VALIDATION_ERROR, "no database binding", 500);
   if (!accountUserId) return bad(ERR.NOT_AUTHORIZED);
@@ -1010,13 +1040,13 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       return ok({
         timezone: av.timezone, from: av.from, to: av.to,
         days: av.days.map((d) => ({ date: d.date, slots: d.slots.map((s2) => ({ startsAt: s2.start, endsAt: s2.end, ...(s2.groupBookingId ? {groupBookingId:s2.groupBookingId,remainingCapacity:s2.remainingCapacity} : {}) })) })),
-        googleChecked: !!busy.connected,
+        googleChecked: !!busy.connected && !busy.stale,
       });
     }
 
     // ---- my bookings ------------------------------------------------------
     if (path === "/api/client/bookings" && method === "GET") {
-      const list = await R.bookingsForClient(db, client.id, { desc: true, limit: 100 });
+      const list = await R.bookingsForClient(db, client.id, { desc: true, limit: 100, personalHistory:true });
       const upcoming = [], past = [];
       for (const b of list) {
         const v = await bookingView(db, b, {clientId:client.id});
@@ -1035,7 +1065,11 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       if (invalid) return bad(ERR.VALIDATION_ERROR, "json");
       const key = str(request.headers.get("idempotency-key") || body.idempotencyKey, 120);
       const seen = await R.recallIdempotent(db, key, "client:create:" + accountUserId);
-      if (seen) return ok(seen);
+      if (seen) {
+        const original=await R.getBooking(db,seen.booking?.id);
+        if(!original)return bad(ERR.NOT_FOUND);
+        return ok({booking:await bookingView(db,original,{clientId:client.id})});
+      }
       const startsAt = Number(body.startsAt);
       if (!Number.isFinite(startsAt)) return bad(ERR.VALIDATION_ERROR, "startsAt");
       // The last check before committing is live, and if Google cannot answer
@@ -1086,6 +1120,8 @@ export async function handleClient(request, env, url, accountUserId, ctx) {
       }
 
       if (action === "cancel-preview" && method === "GET") {
+        const mine=(await R.participantsForBooking(db,b)).find(p=>p.client_id===client.id);
+        if(!mine || ![BOOKING_STATUS.REQUESTED,BOOKING_STATUS.CONFIRMED].includes(mine.status))return bad(ERR.INVALID_TRANSITION);
         return ok({ preview: await E.cancelPreview(db, id, { now, byCoach: false, clientId:client.id }) });
       }
 

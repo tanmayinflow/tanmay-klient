@@ -37,7 +37,7 @@ test('denied access, account changes and redirects never expose a cached file', 
 });
 test('only the exact owner pin is available during a transport failure', async () => {
   const path = `/api/files/voice?owner=${owner}`;
-  const w = worker(async () => { throw new TypeError('offline'); }, new Map([[origin + path, new Response('mine')], [origin + '/api/files/legacy', new Response('unscoped')]]));
+  const w = worker(async () => { throw new TypeError('offline'); }, new Map([['/__tm_offline_grant', new Response(owner)], [origin + path, new Response('mine')], [origin + '/api/files/legacy', new Response('unscoped')]]));
   assert.equal(await (await w.get(path)).text(), 'mine');
   await assert.rejects(w.get('/api/files/voice?owner=fedcba9876543210'));
   await assert.rejects(w.get('/api/files/legacy'));
@@ -51,4 +51,10 @@ test('service worker updates preserve current and archived private media', async
   const w = worker(async () => new Response(''));
   await w.activate();
   assert.deepEqual(w.deleted, ['shell-tanmay-v3']);
+});
+
+test('a signed-out profile cannot use a private offline pin', async () => {
+  const path = '/api/files/voice?owner=' + owner;
+  const w = worker(async () => { throw new TypeError('offline'); }, new Map([[origin + path, new Response('mine')]]));
+  await assert.rejects(w.get(path));
 });

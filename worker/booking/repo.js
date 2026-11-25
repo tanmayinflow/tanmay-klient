@@ -69,11 +69,15 @@ export const activeBookingsBetween = (db, fromMs, toMs) => rows(db,
     WHERE b.status IN (${ACTIVE_IN}) AND b.ends_at_utc > ? AND b.starts_at_utc < ?
     ORDER BY b.starts_at_utc`, [...ACTIVE_STATUSES, fromMs, toMs]);
 
-export const bookingsForClient = (db, clientId, opts = {}) => rows(db,
-  `SELECT b.* FROM bookings b WHERE (b.client_id = ? OR EXISTS (SELECT 1 FROM booking_participants p WHERE p.booking_id=b.id AND p.client_id=?))` +
-  (opts.fromMs != null ? " AND starts_at_utc >= ?" : "") +
-  ` ORDER BY starts_at_utc ${opts.desc ? "DESC" : "ASC"} LIMIT ?`,
-  opts.fromMs != null ? [clientId, clientId, opts.fromMs, opts.limit || 200] : [clientId, clientId, opts.limit || 200]);
+export function bookingsForClient(db, clientId, opts={}) {
+  const order=opts.personalHistory
+    ? "CASE WHEN p.status IN ('CANCELLED_CLIENT','CANCELLED_COACH','LATE_CANCEL') THEN p.updated_at ELSE b.starts_at_utc END"
+    : "b.starts_at_utc";
+  return rows(db,`SELECT b.* FROM bookings b LEFT JOIN booking_participants p ON p.booking_id=b.id AND p.client_id=?
+    WHERE (b.client_id=? OR p.client_id IS NOT NULL) ${opts.fromMs!=null?'AND '+order+' >= ?':''}
+    ORDER BY ${order} ${opts.desc?'DESC':'ASC'}, b.id LIMIT ?`,
+    [clientId,clientId,...(opts.fromMs!=null?[opts.fromMs]:[]),opts.limit||200]);
+}
 
 export const bookingsBetween = (db, fromMs, toMs) => rows(db,
   `SELECT * FROM bookings WHERE ends_at_utc > ? AND starts_at_utc < ? ORDER BY starts_at_utc`, [fromMs, toMs]);
@@ -303,15 +307,14 @@ export async function recallIdempotent(db, key, scope) {
  */
 export async function rateLimit(db, bucket, limit, windowMs) {
   const now = Date.now();
-  const row = await one(db, "SELECT count, window_at FROM booking_rate WHERE bucket = ?", [bucket]);
-  if (!row || now - Number(row.window_at) > windowMs) {
-    await db.prepare("INSERT INTO booking_rate (bucket, count, window_at) VALUES (?, 1, ?) ON CONFLICT(bucket) DO UPDATE SET count = 1, window_at = excluded.window_at")
-      .bind(bucket, now).run();
-    return { ok: true, remaining: limit - 1 };
-  }
-  const n = Number(row.count) + 1;
-  await db.prepare("UPDATE booking_rate SET count = ? WHERE bucket = ?").bind(n, bucket).run();
-  return { ok: n <= limit, remaining: Math.max(0, limit - n) };
+  const [,state]=await db.batch([db.prepare(`INSERT INTO booking_rate (bucket,count,window_at) VALUES (?,1,?)
+    ON CONFLICT(bucket) DO UPDATE SET
+      count=CASE WHEN window_at<=? THEN 1 ELSE count+1 END,
+      window_at=CASE WHEN window_at<=? THEN excluded.window_at ELSE window_at END
+    WHERE window_at<=? OR count<?`).bind(bucket,now,now-windowMs,now-windowMs,now-windowMs,limit),
+    db.prepare("SELECT changes() AS accepted,count FROM booking_rate WHERE bucket=?").bind(bucket)]);
+  const row=state.results[0];
+  return { ok: !!row?.accepted, remaining: row ? Math.max(0,limit-Number(row.count)) : 0 };
 }
 
 export async function participantsForBooking(db, booking) {

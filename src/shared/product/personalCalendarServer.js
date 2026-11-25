@@ -1,6 +1,7 @@
 // Personal Calendar authorization. Refresh tokens stay in this Worker's D1,
 // encrypted with a Worker-only key. Booking's single-owner grant is separate.
 import {personalProfileAccountKey} from './personalProfile.js';
+import {boundedRequestText} from './boundedRequestText.js';
 import {ensureClientIdentities} from './clientIdentityServer.js';
 
 const API='https://www.googleapis.com/calendar/v3';
@@ -18,6 +19,14 @@ const b64=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes)));
 const unb64=text=>Uint8Array.from(atob(text),v=>v.charCodeAt(0));
 const random=()=>b64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const hash=async value=>b64(await crypto.subtle.digest('SHA-256',encode(value)));
+const urlBase64=value=>value.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+// Reconstruct a one-time server-only verifier without storing it in a browser
+// or migrating a live nonce table. A new random state is issued for each grant.
+async function redirectVerifier(env,actor,origin,nonce) {
+  const key=await crypto.subtle.importKey('raw',encode(env.GOOGLE_CALENDAR_CLIENT_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const data=encode(JSON.stringify(['personal-calendar-pkce-v1',actor,origin,nonce]));
+  return urlBase64(b64(await crypto.subtle.sign('HMAC',key,data)));
+}
 const json=(value,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store, private','Vary':'Cookie','X-Content-Type-Options':'nosniff'}});
 const failure=(code,status=400)=>json({ok:false,error:code},status);
 const problem=(code,status=400)=>Object.assign(new Error(code),{code,status});
@@ -156,14 +165,15 @@ async function start(db,env,actor,origin,body,now) {
   const scopes=cleanScopes(body.scopes);
   await db.prepare(`INSERT INTO personal_calendar_connections (actor,origin,client_id,generation,created_at,updated_at)
     VALUES (?,?,?,?,?,?) ON CONFLICT(actor) DO NOTHING`).bind(actor,origin,env.GOOGLE_CALENDAR_CLIENT_ID,random(),now(),now()).run();
-  const current=await rowFor(db,actor),nonce=(body.mode==='redirect'?'r.':'')+random(),expiresAt=now()+TTL;
+  const current=await rowFor(db,actor),nonce=(body.mode==='redirect'?'r.2.':'')+random(),expiresAt=now()+TTL;
   await db.prepare('DELETE FROM personal_calendar_nonces WHERE expires_at < ?').bind(now()).run();
   await db.prepare(`INSERT INTO personal_calendar_nonces (nonce_hash,actor,origin,client_id,generation,scopes_json,expires_at) VALUES (?,?,?,?,?,?,?)`)
     .bind(await hash(nonce),actor,origin,env.GOOGLE_CALENDAR_CLIENT_ID,current.generation,JSON.stringify(scopes),expiresAt).run();
   const authorization=new URL('https://accounts.google.com/o/oauth2/v2/auth');
   if(body.mode==='redirect'){
     authorization.search=new URLSearchParams({client_id:env.GOOGLE_CALENDAR_CLIENT_ID,redirect_uri:origin+'/api/calendar/callback',
-      response_type:'code',scope:scopes.join(' '),state:nonce,access_type:'offline',prompt:'consent',include_granted_scopes:'false'}).toString();
+      response_type:'code',scope:scopes.join(' '),state:nonce,access_type:'offline',prompt:'consent',include_granted_scopes:'false',
+      code_challenge_method:'S256',code_challenge:urlBase64(await hash(await redirectVerifier(env,actor,origin,nonce)))}).toString();
   }
   return json({ok:true,nonce,clientId:env.GOOGLE_CALENDAR_CLIENT_ID,scopes,expiresAt,...(body.mode==='redirect'?{authorizationUrl:authorization.href}:{})});
 }
@@ -177,7 +187,8 @@ async function connect(db,env,actor,origin,body,accountKey,options) {
   if(!changed(used))throw problem('calendar-invalid-nonce');
   const current=await rowFor(db,actor);
   if(current?.generation!==nonce.generation)throw problem('calendar-account-changed',409);
-  const result=await tokenCall(env,{code:body.code,grant_type:'authorization_code',redirect_uri:body.nonce.startsWith('r.')?origin+'/api/calendar/callback':origin},options.fetchImpl);
+  const result=await tokenCall(env,{code:body.code,grant_type:'authorization_code',redirect_uri:body.nonce.startsWith('r.')?origin+'/api/calendar/callback':origin,
+    ...(body.nonce.startsWith('r.2.')?{code_verifier:await redirectVerifier(env,actor,origin,body.nonce)}:{})},options.fetchImpl);
   const scopes=granted(result.scope);
   if(!list(nonce.scopes_json).every(scope=>scopes.includes(scope)))throw problem('calendar-permission-required',403);
   // Never combine a new Google account's access token with an older account's refresh token.
@@ -317,8 +328,7 @@ export async function handlePersonalCalendar(request,db,actor,env,options={}) {
   if(request.headers.get('X-Requested-With')!=='XmlHttpRequest')return failure('csrf',403);
   if(accountHeader!==accountKey)return failure('calendar-account-changed',409);
   if(!request.headers.get('Content-Type')?.toLowerCase().startsWith('application/json'))return failure('content-type',415);
-  if(Number(request.headers.get('Content-Length')||0)>MAX_BODY)return failure('too-large',413);
-  const raw=await request.text();if(raw.length>MAX_BODY)return failure('too-large',413);
+  const raw=await boundedRequestText(request,MAX_BODY);if(raw===null)return failure('too-large',413);
   let body;try{body=JSON.parse(raw);}catch{return failure('invalid-json');}
   if(!body||typeof body!=='object'||Array.isArray(body))return failure('invalid-json');
   const context={fetchImpl:options.fetchImpl||((...args)=>fetch(...args)),now:options.now||Date.now};

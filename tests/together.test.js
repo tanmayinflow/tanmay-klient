@@ -259,7 +259,7 @@ test('navigation allows an empty dock and every available room, with preserved p
 });
 test('real Worker route requires authenticated membership/owner before pairing',async()=>{
   const env=makeEnv({OWNER_EMAIL:'owner@example.test'}),db=env.DB;
-  const request=email=>new Request('https://test.local/api/together',{headers:email?{'cf-access-authenticated-user-email':email}:{}});
+  const request=email=>new Request('https://app.example.test/api/together',{headers:email?{'cf-access-authenticated-user-email':email}:{}});
   assert.equal((await worker.fetch(request(),env,{})).status,401);
   assert.equal((await worker.fetch(request('unknown@example.test'),env,{})).status,403);
   // Main requires OWNER_EMAIL; Client requires membership. Neither accepts a guessed actor.

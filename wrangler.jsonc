@@ -2,14 +2,17 @@
   "name": "tanmay-klient",
   "compatibility_date": "2026-07-04",
   "workers_dev": false,
+  "preview_urls": false,
   "vars": {
+    "ACCESS_TEAM_DOMAIN": "https://tanmaypractice.cloudflareaccess.com",
+    "ACCESS_AUDIENCE": "9bcde3ca86367832a591196ef7c4ea79b43ca96cd19112f2be2c7e03d0466b4f",
     "GOOGLE_CALENDAR_CLIENT_ID": "1044384794752-qlgg6m33pb3mfcouedsgdmq79ld9lobl.apps.googleusercontent.com"
   },
   "main": "./worker/index.js",
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/exercise-motion/*"],
+    "run_worker_first": ["/api/*", "/exercise-motion/*", "/market-chart.html", "/market-chart"],
     "binding": "ASSETS"
   },
   "routes": [

@@ -5,6 +5,9 @@ import {makeEnv,makeD1,req} from './helpers/env.js';
 import {seedBooking,givePackage,at,FIXED_NOW} from './helpers/seed.js';
 import {createBooking,rescheduleBooking,transitionBooking,creditSummary,availability} from '../worker/booking/engine.js';
 import {groupSlots} from '../worker/booking/managedBookings.js';
+import {handleClient,handleCoach} from '../worker/booking/api.js';
+import {rateLimit} from '../worker/booking/repo.js';
+import {boundedRequestText} from '../src/shared/product/boundedRequestText.js';
 import worker from '../worker/index.js';
 const main=JSON.parse(readFileSync(new URL('../package.json',import.meta.url))).name==='tanmay-web';
 const day='2025-08-18',start=at(day,'10:00'),now=FIXED_NOW;
@@ -18,6 +21,48 @@ async function setup(){
 }
 const input=(extra={})=>({clientId:'cl_a',serviceId:'svc_pt',locationId:'loc_studio',startsAt:start,now,actor:'COACH',...extra});
 const snapshot=async db=>{const out={};for(const table of ['bookings','booking_participants','credit_ledger','booking_events','calendar_outbox'])out[table]=(await db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).results;return out;};
+
+test('booking request budget counts each call, including overlapping calls',async()=>{
+ const db=await setup();
+ const decisions=await Promise.all(Array.from({length:7},()=>rateLimit(db,'synthetic:window',3,60000)));
+ assert.equal(decisions.filter(d=>d.ok).length,3);
+ assert.equal((await db.prepare('SELECT count FROM booking_rate WHERE bucket=?').bind('synthetic:window').first()).count,3);
+});
+
+test('separate non-overlapping times share the daily and weekly service capacity inside the write',async()=>{
+ for(const period of ['daily_limit','weekly_limit']){
+   const db=await setup();await db.prepare(`UPDATE booking_services SET ${period}=1 WHERE id='svc_pt'`).run();
+   const results=await Promise.allSettled([createBooking(db,input()),createBooking(db,input({clientId:'cl_b',startsAt:at(day,'12:00')}))]);
+   assert.equal(results.filter(x=>x.status==='fulfilled').length,1);
+   assert.equal(results.find(x=>x.status==='rejected').reason.code,period==='daily_limit'?'DAILY_LIMIT':'WEEKLY_LIMIT');
+ }
+});
+
+test('former group attendee gets a receipt from list and detail while active member sees the rescheduled time',async()=>{
+ const db=await setup();
+ await db.prepare("UPDATE booking_services SET capacity=2,price_minor=50000 WHERE id='svc_pt'").run();
+ const old=await createBooking(db,input({clientIds:['cl_a','cl_b']}));
+ const newTime=at(day,'12:00');
+ await rescheduleBooking(db,old.id,input({clientIds:['cl_b'],startsAt:newTime}));
+ const read=async(actor,suffix)=>{
+   const url=new URL('https://example.test/api/client/bookings'+suffix);
+   return handleClient(new Request(url),{DB:db},url,actor,{});
+ };
+ const detail=await(await read('a-example-test','/'+old.id)).json();
+ assert.equal(detail.booking.historyOnly,true);assert.equal(detail.booking.status,'CANCELLED_COACH');
+ for(const field of ['startsAt','meetingUrl','service','location','participantCount'])assert.equal(field in detail.booking,false,field);
+ const list=await(await read('a-example-test','')).json();assert.deepEqual(list.past,[detail.booking]);
+ assert.equal((await read('a-example-test','/'+old.id+'/cancel-preview')).status,409);
+ assert.equal((await(await read('b-example-test','/'+old.id)).json()).booking.startsAt,newTime);
+});
+
+test('calendar writes require same-origin browser context and streamed text is bounded by byte count',async()=>{
+ const url=new URL('https://example.test/api/booking/google/connect');
+ const request=new Request(url,{method:'POST',headers:{Origin:'https://other.example.test'}});
+ assert.equal((await handleCoach(request,{},url,{})).status,403);
+ assert.equal(await boundedRequestText(new Request(url,{method:'POST',body:'žž'}),3),null);
+ assert.equal(await boundedRequestText(new Request(url,{method:'POST',body:'žž'}),4),'žž');
+});
 
 test('editing a confirmed appointment below the new service minimum preserves booking and credits',async()=>{
  const db=await setup(),old=await createBooking(db,input()),before=await snapshot(db);
