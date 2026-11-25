@@ -1,0 +1,13 @@
+# Matching static responses are served ahead of the Worker in production.
+# The isolated market chart supplies its own document policy in the Worker.
+/*
+  Content-Security-Policy: base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'sha256-68n5SX0hl/KF+/MmM4A1r+Dj5fpzXP2g18kZtqUzIbg=' 'wasm-unsafe-eval' https://accounts.google.com https://static.cloudflareinsights.com; worker-src 'self' blob:
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: no-referrer
+  Strict-Transport-Security: max-age=31536000
+
+# The owner bundle includes private writing. Its offline copy is managed by
+# the account-gated service worker, separately from the ordinary HTTP cache.
+https://app.tanmaypractice.com/assets/*
+  Cache-Control: private, no-store
