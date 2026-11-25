@@ -1,4 +1,5 @@
 import { AppNotices } from "./shared/ui/AppNotices.jsx";
+import { DEVICE_ACCESS_KEY, readDeviceAccess, grantDeviceAccess, finishOfflineLogout, lockDeviceAccess } from "./shared/product/devicePrivacy.js";
 import { TextSelectionActions } from "./shared/ui/TextSelectionActions.jsx";
 import { beginNavigationSwipe, navigationSwipeBlocked, navigationSwipeDirection, hasTextSelection, watchNavigationSelection } from "./shared/ui/navigationGesture.js";
 import { createScreenWakeController, observeReadingScreen } from "./shared/ui/screenWake.js";
@@ -127,6 +128,7 @@ import {
   CLIENT_ALWAYS, CLIENT_OPTIONAL, migrateClientModules,
 } from "./shared/product/roles.js";
 import { applyClientModuleCommands, moduleCommandRevisions } from "./shared/product/clientModules.js";
+import { assignedTrainingShare, isCoachAssignedSession } from "./training/coachShare.js";
 import { habitSummary, goalSummary, validateShareSnapshot, SHARE_WINDOW_DAYS } from "./shared/product/visibility.js";
 
 import { useVrstva, createOverlay } from "./shared/ui/overlay.jsx";
@@ -178,7 +180,7 @@ import { createClientSession } from "./clientSession.js";
 import { prepareClientAccountExit, navigateClientAccountExit } from "./clientAccountExit.js";
 import { clientDataAccess, clientSyncStatus, buildClientBackup, readPracticeRecovery, changeClientPractice } from "./clientData.js";
 import { createClientStartupNavigation, clientHabitDefinitions, prepareClientUnusedHabitAdoption } from "./clientPreferences.js";
-import { scopeLegacyClientPins } from "./clientPinned.js";
+import { bindClientWorkspaceOwner, clientWorkspaceScreen, clientDraftDestination } from "./clientWorkspaceOwner.js";
 import {createFinanceExperience} from "./shared/ui/financeExperience.jsx";
 import { personalNotebookRoom } from "./shared/product/personalRooms.js";
 import { createDocumentSyncQueue } from "./shared/product/documentSyncQueue.js";
@@ -250,12 +252,12 @@ const tmSaveState = failure => { TM_SAVE_STATE = failure; try { TM_ON_SAVE_FAIL?
 const tmSaveFailed = (where, error) => tmSaveState({ where, name: error?.name || "Error", kind: "unknown" });
 const TM_LOCAL_WRITER = createLocalDocumentWriter({ getStorage: () => window.localStorage, onChange: tmSaveState });
 function loadEdits() { try { const r = window.localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : {}; } catch (e) { return {}; } }
-function saveEdits(e) { return TM_LOCAL_WRITER.write(LS_KEY, e, "edits"); }
+function saveEdits(e) { return saveClientDocument(LS_KEY, e, "edits"); }
 const LS_COLL = "tanmay_coll_v1";
 
 
 function loadColl() { try { const r = window.localStorage.getItem(LS_COLL); return r ? JSON.parse(r) : { goals: {}, journal: [], notebook: [] }; } catch (e) { return { goals: {}, journal: [], notebook: [] }; } }
-function saveColl(c) { return TM_LOCAL_WRITER.write(LS_COLL, c, "coll"); }
+function saveColl(c) { return saveClientDocument(LS_COLL, c, "coll"); }
 const COLL_EMPTY = () => ({ goals: {}, journal: [], notebook: [] });
 
 // ————————————————————————————————————————————————————————————
@@ -269,7 +271,7 @@ const COLL_EMPTY = () => ({ goals: {}, journal: [], notebook: [] });
 // ————————————————————————————————————————————————————————————
 const LS_OWNER = "tm_owner_v1";
 function ownerLoad() { try { return window.localStorage.getItem(LS_OWNER) || ""; } catch (e) { return ""; } }
-function ownerSave(tag) { try { window.localStorage.setItem(LS_OWNER, tag); } catch (e) {} }
+
 async function ownerQuarantine(prevTag) {
   if (TM_LOCAL_WRITER.currentFailure()) throw new Error("UnsavedLocalChanges");
   const suffix = "__owner_" + (prevTag || "neznamy") + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
@@ -301,7 +303,20 @@ async function ownerQuarantine(prevTag) {
   TM_LOCAL_WRITER.clearPending();
 }
 
-const clientAccount = createClientSession();
+const clientAccount = createClientSession(undefined, {
+  revision: () => readDeviceAccess().revision,
+  permits: owner => { const state = readDeviceAccess(); return !state.locked && state.owner === owner; },
+  offlineOwner: () => { const state = readDeviceAccess(); return !state.locked && state.owner === ownerLoad() ? state.owner : ''; },
+  grant: grantDeviceAccess, lock: lockDeviceAccess, finishLogout: finishOfflineLogout,
+});
+const recoveryTab = Date.now().toString(36) + Math.random().toString(36).slice(2);
+function saveClientDocument(key, value, kind) {
+  const owner = clientAccount.documentOwner();
+  // An editor may commit on blur after another tab has switched accounts.
+  // Preserve that draft under its original owner instead of the active slot.
+  const destination = clientDraftDestination(key, owner, ownerLoad(), recoveryTab);
+  return TM_LOCAL_WRITER.write(destination, value, kind);
+}
 const clientFetch = (url, init) => clientAccount.request(url, init);
 async function syncFetch(path, init) {
   let res = null, telo = null, error = null;
@@ -1160,6 +1175,7 @@ function AttachmentStrip({ att, onRemove }) {
       )}
       {drives.map((a) => {
         const g = tmGdEmbed(a.url);
+        if (!g) return <span key={a.id}>{a.name || L("Neplatný odkaz na Disk Google", "Invalid Google Drive link")}</span>;
         return (
           <div key={a.id} style={{ position: "relative", marginTop: 8, maxWidth: 680 }}>
             {g
@@ -1167,7 +1183,7 @@ function AttachmentStrip({ att, onRemove }) {
               : <a href={a.url} target="_blank" rel="noreferrer" style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.sand }}>{a.url}</a>}
             <span style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
               <button title={L("Sdílet odkaz", "Share the link")} onClick={async () => { if (tmLzeSdilet()) { try { await navigator.share({ url: a.url, title: a.name || "Google Drive" }); return; } catch (e) { if (/abort/i.test(String(e && e.name))) return; } } tmDoSchranky(a.url); }} style={{ ...iconBtn(t), background: t.bg }}><TmIcSdilet size={13} /></button>
-              <button title={L("Otevřít v Drive", "Open in Drive")} onClick={() => window.open(a.url, "_blank", "noopener,noreferrer")} style={{ ...iconBtn(t), background: t.bg }}><FamilyIcon id="arrow-out" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
+              <button title={L("Otevřít v Drive", "Open in Drive")} onClick={() => window.open(new URL(/^https:\/\//i.test(a.url.trim()) ? a.url.trim() : "https://" + a.url.trim()).href, "_blank", "noopener,noreferrer")} style={{ ...iconBtn(t), background: t.bg }}><FamilyIcon id="arrow-out" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
               {onRemove && <button title={L("Odebrat", "Remove")} onClick={() => onRemove(a.id)} style={{ ...iconBtn(t), background: t.bg }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
             </span>
           </div>
@@ -13475,11 +13491,13 @@ function TvClientRunner({ sessionId, onClose, onOpenEx }) {
             <label style={{fontFamily:FONT_BODY,color:t.textSec}}><input type="checkbox" checked={pain} onChange={e=>{const value=e.target.checked;setPain(value);patch(s=>({...s,painJoints:value?["reported"]:[]}));}}/>{L("Při cvičení se objevila bolest", "I experienced pain while exercising")}</label>
             {pain?<p>{L("Bolestivý cvik neopakuj. Do poznámky napiš, kde a při čem se bolest objevila, a domluv úpravu s trenérem.", "Do not repeat the painful exercise. Note where and when it occurred and agree on an adjustment with your coach.")}</p>:null}
             <details><summary>{L("Technika k probrání", "Technique to discuss")}</summary>{ses.blocks.map(b=><label key={b.id} style={{display:"block",padding:"7px 0"}}><input type="checkbox" checked={technique.includes(b.id)} onChange={()=>{const next=technique.includes(b.id)?technique.filter(id=>id!==b.id):[...technique,b.id];setTechnique(next);patch(s=>({...s,blocks:s.blocks.map(x=>({...x,techniqueFlagged:next.includes(x.id)}))}));}}/>{tvName(tvClientRec(st, b.exId)) || TL(b.name)}</label>)}</details>
-            <textarea value={note} onChange={(e) => {const value=e.target.value;setNote(value);patch(s=>({...s,note:value}));}} rows={2} aria-label={L("Poznámka k tréninku", "Workout note")} aria-describedby="tv-client-note-sharing" placeholder={L("Poznámka k tréninku", "Workout note")}
+            <textarea value={note} onChange={(e) => {const value=e.target.value;setNote(value);patch(s=>({...s,note:value}));}} rows={2} aria-label={L("Moje soukromá poznámka", "My private note")} placeholder={L("Moje soukromá poznámka", "My private note")}
               style={{ width: "100%", background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 10, color: t.textSec, fontFamily: FONT_BODY, fontSize: 14 }} />
-            <p id="tv-client-note-sharing" style={{ margin: 0, color: t.textMuted, fontFamily: FONT_BODY, fontSize: 12.5, lineHeight: 1.6 }}>{st.coll.share?.training
-              ? L("Sdílení tréninku máš zapnuté. Po synchronizaci trenér uvidí i tuto poznámku.", "Workout sharing is on. Your coach will also see this note after syncing.")
-              : L("Poznámka zůstává u tebe. Sdílení tréninku můžeš změnit v Nastavení → Sdílení s trenérem.", "This note stays with you. You can change workout sharing in Settings → Sharing with your coach.")}</p>
+            {st.coll.share?.training && isCoachAssignedSession(ses, st.tvDelivered()) && <label style={{ display: "grid", gap: 5, color: t.textSec, fontFamily: FONT_BODY, fontSize: 14 }}>
+              {L("Vzkaz trenérovi", "Message to your coach")}
+              <textarea value={ses.coachMessage || ""} onChange={e => { const coachMessage = e.target.value; patch(s => ({ ...s, coachMessage })); }} rows={2}
+                style={{ width: "100%", background: "transparent", border: `1px solid ${t.borderSoft}`, borderRadius: 10, padding: 10, color: t.text, font: "inherit" }} />
+            </label>}
             <button onClick={finish} className="tm-cta" style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 12, padding: "14px 22px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 16, minHeight: 50 }}>
               {noSets ? L("Dokončit bez zapsaných sérií", "Finish without logged sets") : L("Hotovo", "Done")}
             </button>
@@ -14314,6 +14332,7 @@ const bkcName = (x) => (!x ? "" : (LANG === "cs" ? (x.nameCs || x.nameEn) : (x.n
 const bkcDay = (iso) => { const d = new Date(iso + "T12:00:00Z"); return isNaN(d) ? iso : d.toLocaleDateString(LANG === "cs" ? "cs-CZ" : "en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); };
 const bkcTime = (ms, tz) => BK.hhmm(ms, tz || bkcTz());
 const bkcWhen = (ms, tz) => bkcDay(BK.localDateISO(ms, tz || bkcTz())) + " · " + bkcTime(ms, tz);
+const bkcBookingDate = (b) => b.historyOnly ? L("Účast ukončena", "Attendance ended") + (b.participationEndedAt ? " · " + bkcWhen(b.participationEndedAt, bkcTz()) : "") : bkcWhen(b.startsAt, b.timezone);
 const bkcCredits = (n) => BK.credits(n, LANG);
 
 function useBkc(path, deps, opts) {
@@ -14373,7 +14392,7 @@ function BkcTermin({ b, onOpen, tlumene }) {
         border: `1px solid ${t.borderSoft}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10,
         cursor: onOpen ? "pointer" : "default", color: t.text, fontFamily: FONT_BODY, opacity: tlumene ? 0.75 : 1 }}>
       <span style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading }}>{bkcWhen(b.startsAt, b.timezone)}</span>
+        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, color: t.heading }}>{bkcBookingDate(b)}</span>
         <BkcStav status={b.status} />
       </span>
       <span style={{ display: "block", fontSize: 13.5, color: t.textMuted }}>
@@ -14721,7 +14740,7 @@ function BkcDetail({ b, onClose, onChanged, canReschedule = true }) {
   };
 
   return (
-    <CenterSheet title={bkcWhen(b.startsAt, b.timezone)} onClose={onClose}>
+    <CenterSheet title={bkcBookingDate(b)} onClose={onClose}>
       <div style={{ marginBottom: 16 }}><BkcStav status={b.status} /></div>
 
       <div style={{ fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.9, color: t.text, marginBottom: 18 }}>
@@ -14912,6 +14931,8 @@ function InviteGate() {
       const body = await r.json().catch(() => null);
       if (r.ok && body?.ok === true) { window.location.reload(); return; }
       if (r.status === 403 && body?.error === "wrong word") setErr("word");
+      else if (r.status === 403 && body?.code === "access-revoked") setErr("revoked");
+      else if (r.status === 429) setErr("limited");
       else if (r.status === 401 || r.redirected) setErr("session");
       else if (r.status === 409) setErr("account");
       else setErr("unavailable");
@@ -14946,6 +14967,8 @@ function InviteGate() {
           <div id="invite-feedback" role="status" style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.accentInk || t.accent, marginTop: 10 }}>
             {err === "word" ? L("Slovo nesouhlasí. Zkontroluj ho v pozvánce.", "The word does not match. Check your invitation.")
               : err === "session" ? L("Přihlášení vypršelo. Přihlas se znovu.", "Your session expired. Sign in again.")
+              : err === "revoked" ? L("Přístup k tomuto účtu byl odebrán. Pro obnovení kontaktuj trenéra.", "Access to this account has been revoked. Contact your coach to restore it.")
+              : err === "limited" ? L("Příliš mnoho pokusů. Zkus to za 15 minut.", "Too many attempts. Try again in 15 minutes.")
               : err === "account" ? L("Tento prostor je spojený s jiným e-mailem. Zkontroluj přihlášený účet.", "This space is linked to a different email. Check which account you are using.")
               : L("Pozvánku se nepodařilo ověřit. Zkus to prosím znovu.", "We couldn't verify the invitation. Please try again.")}
           </div>
@@ -15062,7 +15085,7 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
           </div>
           {shareRow("habits", "Návyky", "Habits", "Posledních 30 dní zaškrtnutí a jména návyků. Bez poznámek a bez textu.", "Last 30 days of checkmarks and habit names. No notes, no text.")}
           {shareRow("goals", "Cíle", "Goals", "Názvy cílů a jejich stav. Ne příští krok, ne poznámka.", "Goal names and their status. Not the next step, not the note.")}
-          {shareRow("training", "Trénink", "Training", "Odcvičené části plánu, datum, RIR a tvoje poznámky pro trenéra.", "What you trained from the plan, when, at what RIR, and what you wrote to him about it.")}
+          {shareRow("training", "Trénink", "Training", "U plánu od trenéra sdílíš termíny, průběh sérií, úsilí a vzkazy, které mu napíšeš.", "For your coach’s plan, share scheduled dates, set results, effort and messages you write to your coach.")}
         </div>
         <div style={{ textAlign: "left", marginTop: 14 }}>
           <button onClick={() => setNahledOtevren((x) => !x)} aria-expanded={nahledOtevren}
@@ -15095,7 +15118,7 @@ function ModulePicker({ t, firstRun, current, initialName, initialShare, nahled,
                   {snimek.training && (
                     <div style={{ marginBottom: 10 }}>
                       <div style={{ fontFamily: FONT_BODY, fontSize: 13, color: t.text }}>{L("Trénink", "Training")} · {Array.isArray(snimek.training.sessions) ? snimek.training.sessions.length : (snimek.training.sessions || 0)} {L("záznamů z plánu", "records from the plan")}</div>
-                      <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, paddingLeft: 12 }}>{L("série, opakování, RIR a tvoje poznámky k tréninku pro trenéra", "sets, reps, RIR and what you wrote to him about the session")}</div>
+                      <div style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: t.textMuted, paddingLeft: 12 }}>{L("termíny, výsledky sérií, úsilí a vzkazy trenérovi", "scheduled dates, set results, effort and messages to your coach")}</div>
                     </div>
                   )}
                   <details style={{ marginTop: 8 }}>
@@ -15228,27 +15251,22 @@ export default function App() {
   const [stateHydrated, setStateHydrated] = useState(false);
   React.useEffect(() => {
     let dead = false;
-    clientAccount.initializeWith(async data => {
-      const prev = ownerLoad(), tag = data.owner;
-      if (prev && prev !== tag) {
-        await ownerQuarantine(prev);
-        window.localStorage.setItem("tm_files_namespace", "tanmay_files_" + tag);
+    clientAccount.initializeWith(data => bindClientWorkspaceOwner({
+      tag: data.owner, storage: window.localStorage, cacheStorage: globalThis.caches,
+      locks: navigator.locks, quarantine: ownerQuarantine,
+      resetDocument: notice => {
         setColl(COLL_EMPTY()); setEdits({});
         _collRef.current = COLL_EMPTY(); _editsRef.current = {};
         histRef.current = { past: [], future: [], last: 0 };
-        setOwnerSwitched(true);
-      }
-      if (prev === tag && typeof caches !== "undefined") {
-        // This compatibility copy is optional; a full cache keeps the old
-        // originals intact and must not prevent opening the verified account.
-        await scopeLegacyClientPins(caches, tag, () => ownerLoad() === tag).catch(() => {});
-      }
-      if (ownerLoad() !== prev) throw new Error("account changed during local recovery");
-      ownerSave(tag);
-      if (ownerLoad() !== tag) throw new Error("owner storage unavailable");
-    });
+        setOwnerSwitched(notice);
+      },
+    }));
     const reflect = state => {
       if (dead) return;
+      if (["changed", "signed-out", "sign-in", "membership"].includes(state.status)) {
+        const focused = document.activeElement;
+        if (focused?.matches('textarea,input:not([type="password"]),[contenteditable="true"]')) focused.blur();
+      }
       setAccountStatus(state.status);
       setAccountEmail(state.email || "");
       if (typeof state.member === "boolean") { setMember(state.member); setMemberName(state.name); }
@@ -15257,7 +15275,10 @@ export default function App() {
     const unsubscribe = clientAccount.subscribe(reflect);
     reflect(clientAccount.getSnapshot());
     const verify = () => { if (document.visibilityState !== "hidden") clientAccount.verify(); };
-    const storage = event => { if (event.key === LS_OWNER) clientAccount.localOwnerChanged(event.newValue); };
+    const storage = event => {
+      if (event.key === LS_OWNER) clientAccount.localOwnerChanged(event.newValue);
+      if ((event.key === DEVICE_ACCESS_KEY || event.key === null) && readDeviceAccess().locked) clientAccount.beginSignOut();
+    };
     verify();
     window.addEventListener("online", verify); window.addEventListener("focus", verify); window.addEventListener("pageshow", verify);
     window.addEventListener("storage", storage); document.addEventListener("visibilitychange", verify);
@@ -15599,7 +15620,8 @@ export default function App() {
     // takže dvojí odeslání po výpadku sítě nevyrobí druhý trénink.
     if (sh.training) {
       const done = TV.sessionsOf(c).filter((x) => x.state === "done");
-      snap.training = { ...TV.fulfilmentFrom(done, { now: Date.now() }), sched: (TV.trainingOf(c) || {}).sched || {} };
+      const training = TV.trainingOf(c);
+      snap.training = assignedTrainingShare({ ...TV.fulfilmentFrom(done, { now: Date.now() }), sched: training?.sched }, training?.delivered);
     }
     // NÁVYKY · jen počty za posledních 30 dní a jména návyků. Žádná poznámka,
     // žádný text, žádný stav dne.
@@ -17263,7 +17285,15 @@ export default function App() {
           await _retrySyncRef.current();
         },
       });
-      if (result === "ready") { navigateClientAccountExit({ win: window, session: clientAccount, switchAccount }); return; }
+      if (result === "ready") {
+        await lockDeviceAccess();
+        navigateClientAccountExit({ win: window, session: clientAccount, switchAccount }); return;
+      }
+      if (result === "offline") {
+        await lockDeviceAccess(true);
+        clientAccount.beginSignOut();
+        return;
+      }
       setAccountExitMessage({
         changed: L("Účet se mezitím změnil. Nejdřív aplikaci znovu načti.", "The account changed. Reload the app first."),
         recording: L("Nejdřív dokonči a ulož rozpracovanou nahrávku. Potom se můžeš odhlásit.", "Finish and save your recording before signing out."),
@@ -17370,6 +17400,18 @@ export default function App() {
     }
   };
 
+  const workspaceScreen = clientWorkspaceScreen({ status: accountStatus, member, owner: clientAccount.documentOwner(), localOwner: ownerLoad(), device: readDeviceAccess() });
+  if (workspaceScreen === "invite") return <ThemeCtx.Provider value={{t,tags}}><InviteGate /></ThemeCtx.Provider>;
+  if (workspaceScreen !== "open") {
+    const retry = workspaceScreen === "locked" || ["offline", "storage"].includes(accountStatus);
+    return <main data-client-access-gate={workspaceScreen} style={{position:"fixed",inset:0,background:t.bg,display:"grid",placeItems:"center",padding:24,color:t.text,fontFamily:FONT_BODY}}>
+      <div style={{maxWidth:440,lineHeight:1.6}}>
+        <h2 role="status" style={{fontFamily:FONT_DISPLAY,fontWeight:400}}>{accountStatus === "changed" ? L("V prohlížeči je přihlášen jiný účet", "A different account is signed in") : workspaceScreen === "locked" ? L("Uložená data jsou uzamčená", "Saved data is locked") : L("Ověřuji účet", "Checking your account")}</h2>
+        {retry && <><p>{L("Uložené záznamy zůstávají v tomto zařízení. Pro otevření svého účtu se připoj a znovu ho načti.", "Saved entries remain on this device. Connect and reload to open your account.")}</p>
+          <button type="button" onClick={()=>location.reload()} style={{...tmButton(t),minHeight:44}}>{L("Načíst přihlášený účet", "Load the signed-in account")}</button></>}
+      </div>
+    </main>;
+  }
   return (
     <ThemeCtx.Provider value={{ t, tags }}><DateFieldContext.Provider value={{t,L}}>
       <StoreCtx.Provider value={store}><GuideNavigationProvider request={guideRequest}>
@@ -17635,7 +17677,7 @@ export default function App() {
 `}</style>
 
         <TmNovaVerze />
-        {member === false && <InviteGate />}
+
         <TextSelectionActions t={t} L={L}/>
         <AppNotices>
         {saveErr && (
@@ -17671,32 +17713,15 @@ export default function App() {
             <button onClick={keepMine} style={{ background: "transparent", color: t.text, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Nechat moji", "Keep mine")}</button>
           </div>
         )}
-        {["changed", "signed-out"].includes(accountStatus) && createPortal(
-          <div role="alertdialog" aria-modal="true" aria-labelledby="tm-account-changed-title" style={{ position:"fixed", inset:0, zIndex:10010, background:t.bg, display:"grid", placeItems:"center", padding:24 }}>
-            <div style={{maxWidth:440,color:t.text,fontFamily:FONT_BODY,lineHeight:1.6}}>
-              <h2 id="tm-account-changed-title" style={{fontFamily:FONT_DISPLAY,fontWeight:400}}>{accountStatus === "signed-out" ? L("Přihlášení bylo ukončeno", "Your session has ended") : L("V prohlížeči je přihlášen jiný účet", "A different account is signed in")}</h2>
-              <p>{L("Původní zápisy zůstávají uložené v tomto zařízení. Aplikaci znovu načti, aby se otevřel prostor přihlášeného člověka.", "The original entries remain saved on this device. Reload to open the signed-in person's workspace.")}</p>
-              <button onClick={()=>location.reload()} style={{...tmButton(t),minHeight:44}}>{L("Načíst přihlášený účet", "Load the signed-in account")}</button>
-            </div>
-          </div>, document.body
-        )}
-        {ownerId === null && accountStatus === "offline" && ownerLoad() && (
+        {ownerId === null && accountStatus === "offline" && ownerLoad() && !readDeviceAccess().locked && (
           <div role="status" style={{position:"fixed",top:0,left:0,right:0,zIndex:399,background:t.card,color:t.text,borderBottom:`1px solid ${t.border}`,padding:"10px 14px",display:"flex",gap:12,alignItems:"center",fontFamily:FONT_BODY,fontSize:13}}>
             <span style={{flex:1}}>{L("Jsi offline. Otevíráš poslední obsah uložený na tomto zařízení. Změny počkají na ověření účtu a připojení.", "You are offline. This is the last content saved on this device. Changes will wait for account verification and a connection.")}</span>
             <button onClick={()=>clientAccount.verify()} style={{...tmButton(t),minHeight:44}}>{L("Zkusit znovu", "Try again")}</button>
           </div>
         )}
-        {ownerId === null && (accountStatus !== "offline" || !ownerLoad()) && accountStatus !== "changed" && createPortal(
-          <div role="status" style={{position:"fixed",inset:0,zIndex:10000,background:t.bg,display:"grid",placeItems:"center",padding:24,color:t.text,fontFamily:FONT_BODY}}>
-            <div>{accountStatus === "offline" ? L("Pro první otevření se připoj k internetu. Potom bude tvůj uložený obsah dostupný i offline.", "Connect to the internet to open your workspace for the first time. After that, saved content will also be available offline.") : accountStatus === "storage" ? L("Místní úložiště se nepodařilo připravit. Původní zápisy zůstávají zachované.", "Local storage could not be prepared. The original entries have been preserved.") : accountStatus === "sign-in" ? L("Přihlas se znovu ke svému účtu.", "Sign in to your account again.") : L("Otevírám tvůj prostor…", "Opening your workspace…")}
-              {accountStatus === "sign-in" && <button onClick={()=>location.reload()} style={{...tmButton(t),display:"block",marginTop:16}}>{L("Načíst a přihlásit", "Reload and sign in")}</button>}
-              {["storage", "offline"].includes(accountStatus) && <button onClick={()=>clientAccount.verify()} style={{...tmButton(t),display:"block",marginTop:16}}>{L("Zkusit znovu", "Try again")}</button>}
-            </div>
-          </div>,document.body
-        )}
         {ownerSwitched && (
           <div role="status" aria-live="polite" style={{ position: "fixed", top: saveErr ? 44 : 0, left: 0, right: 0, zIndex: 399, background: t.card, color: t.text, borderBottom: `1px solid ${t.border}`, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontFamily: FONT_BODY, fontSize: 13 }}>
-            <span style={{ flex: 1, minWidth: 200 }}>{L("Tohle zařízení naposledy použil někdo jiný. Jeho obsah je odložený stranou, tvůj prostor je prázdný.", "Someone else used this device last. Their content is set aside; your space starts empty.")}</span>
+            <span style={{ flex: 1, minWidth: 200 }}>{ownerSwitched === "unclaimed" ? L("Dříve uložené záznamy neměly ověřeného vlastníka. Jsou uchované odděleně od tohoto účtu.", "Previously saved records had no verified owner. They are preserved separately from this account.") : L("Tohle zařízení naposledy použil někdo jiný. Jeho obsah je odložený stranou, tvůj prostor je prázdný.", "Someone else used this device last. Their content is set aside; your space starts empty.")}</span>
             <button onClick={() => setOwnerSwitched(false)} style={{ background: "transparent", color: t.textSec, border: `1px solid ${t.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Rozumím", "Understood")}</button>
           </div>
         )}
