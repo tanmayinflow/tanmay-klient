@@ -1,6 +1,8 @@
 import { handleExercisePolicy, handleCustomExercises } from "../src/shared/product/exercisePolicyServer.js";
-import { ensureClientIdentities, clientIdentityConflict, registerClientIdentity } from "../src/shared/product/clientIdentityServer.js";
+import { ensureClientIdentities, clientIdentityConflict, registerClientIdentity, clientAccessRevoked, allowJoinAttempt } from "../src/shared/product/clientIdentityServer.js";
+import { boundedRequestText } from "../src/shared/product/boundedRequestText.js";
 import { handleClientModules, ensureClientModuleCommands, moduleCommandAckStatements } from "../src/shared/product/clientModulesServer.js";
+import { verifiedAccessEmail } from "../src/shared/product/accessIdentity.js";
 import { moduleCommandRevisions } from "../src/shared/product/clientModules.js";
 import { mediaUploadLimit, audioPlaybackMime } from "../src/shared/product/mediaLimits.js";
 import { guardedStorage, handleStorageBudget, storageBudgetFailure } from "../src/shared/product/storageBudgetServer.js";
@@ -38,6 +40,7 @@ import { handleClient } from "./booking/api.js";
 // klient může poslat cokoliv a prohlížeč není hranice. Sdílené jádro drží
 // tentýž kontrakt, jaký používá aplikace při skládání souhrnu.
 import { validateShareSnapshot } from "../src/shared/product/visibility.js";
+import { coachShareSnapshot } from "../src/shared/product/coachShare.js";
 import { coachGoalsForClient } from "../src/shared/product/compass.js";
 import { CLIENT_OPTIONAL } from "../src/shared/product/roles.js";
 
@@ -191,8 +194,12 @@ async function handleJoin(request, env, userId) {
   if (request.method !== "POST") {
     return Response.json({ ok: false, error: "method not allowed" }, { status: 405 });
   }
+  if (await clientAccessRevoked(env.DB,userId)) return Response.json({ok:false,code:"access-revoked"},{status:403,headers:{"Cache-Control":"no-store"}});
+  if (!await allowJoinAttempt(env.DB,userId)) return Response.json({ok:false,code:"invite-rate-limited"},{status:429,headers:{"Retry-After":"900","Cache-Control":"no-store"}});
+  const input=await boundedRequestText(request,4096);
+  if(input===null)return new Response(null,{status:413});
   let body;
-  try { body = await request.json(); } catch { body = {}; }
+  try { body = JSON.parse(input) || {}; } catch { body = {}; }
   const expected = normWord(env.INVITE_WORD);
   if (!expected) {
     return Response.json({ ok: false, error: "INVITE_WORD is not configured" }, { status: 500 });
@@ -209,15 +216,17 @@ async function handleJoin(request, env, userId) {
 }
 
 // Documents are stored in atomic UTF-8 chunks; legacy rows remain available for recovery.
-function transportClientMetadata(body) {
+async function shareForCoach(db, userId, snapshot) {
+  if (snapshot == null) return null;
+  const check = validateShareSnapshot(snapshot);
+  if (!check.ok) throw Object.assign(new Error("share summary refused"), { code: "share-summary-refused", status: 400 });
+  const plan = snapshot.training && await db.prepare("SELECT doc FROM plans WHERE user_id = ?").bind(userId).first();
+  const share = coachShareSnapshot(snapshot, plan?.doc ? JSON.parse(plan.doc) : null);
+  return share ? JSON.stringify(share) : null;
+}
+async function transportClientMetadata(body, db, userId) {
   const hasShare = Object.prototype.hasOwnProperty.call(body, "share");
-  let shareValue = null;
-  if (hasShare && body.share != null) {
-    const check = validateShareSnapshot(body.share);
-    if (!check.ok) throw Object.assign(new Error("share summary refused"), { code: "share-summary-refused", status: 400 });
-    const raw = JSON.stringify(body.share);
-    if (raw.length <= 100000) shareValue = raw;
-  }
+  const shareValue = await shareForCoach(db, userId, body.share);
   const modules = Array.isArray(body.modules) ? [...new Set(body.modules.filter(key => CLIENT_OPTIONAL.includes(key) || key === "memento"))] : null;
   return { hasShare, shareValue, modulesValue: modules ? JSON.stringify(modules) : null, moduleCommands: moduleCommandRevisions(body.moduleCommands) };
 }
@@ -229,9 +238,10 @@ async function handleState(request, env, userId) {
     await ensureClientModuleCommands(env.DB);
     if (new URL(request.url).searchParams.get("transport") === "chunks") {
       return handleStateTransport(request, {
-        db: env.DB, userId, checkRev: false, prepareMetadata: transportClientMetadata,
-        extraStatements: (metadata, guard, id, token) => [
-          ...(metadata.hasShare ? [env.DB.prepare("UPDATE members SET share=? WHERE user_id=? AND " + guard).bind(metadata.shareValue, userId, id, token)] : []),
+        db: env.DB, userId, checkRev: false, prepareMetadata: body => transportClientMetadata(body, env.DB, userId),
+        // Recheck in-flight uploads created before this release or before a plan was withdrawn.
+        extraStatements: async (metadata, guard, id, token) => [
+          ...(metadata.hasShare ? [env.DB.prepare("UPDATE members SET share=? WHERE user_id=? AND " + guard).bind(await shareForCoach(env.DB, userId, metadata.shareValue ? JSON.parse(metadata.shareValue) : null), userId, id, token)] : []),
           env.DB.prepare("UPDATE members SET modules=? WHERE user_id=? AND " + guard).bind(metadata.modulesValue, userId, id, token),
           ...moduleCommandAckStatements(env.DB, userId, metadata.moduleCommands, guard, id, token),
         ],
@@ -251,20 +261,8 @@ async function handleState(request, env, userId) {
     // Vědomé sdílení: klientská aplikace přibaluje snímek (nebo null = vypnuto).
     // Tvar se ověřuje tady. Když souhrn neprojde, sdílení se zneplatní —
     // radši ať trenér nevidí nic, než aby uviděl něco, co vidět nemá.
-    let shareValue;
+    const shareValue = body && "share" in body ? await shareForCoach(env.DB, userId, body.share) : undefined;
     let modulesValue = null;
-    if (body && "share" in body) {
-      let s = null;
-      if (body.share != null) {
-        const check = validateShareSnapshot(body.share);
-        if (!check.ok) {
-          return Response.json({ ok: false, error: "share summary refused", detail: check.errors.slice(0, 8) }, { status: 400 });
-        }
-        const raw = JSON.stringify(body.share);
-        if (raw.length <= 100000) s = raw; // pojistka velikosti
-      }
-      shareValue = s;
-    }
     // Zapnuté soukromé místnosti do vlastního sloupce. Jen jména z povoleného
     // seznamu — nic jiného se odsud k trenérovi nedostane.
     {
@@ -410,7 +408,7 @@ async function handleFiles(request, env, userId, id) {
     headers.set("ETag", object.httpEtag);
     headers.set("X-Tanmay-File", id);
     if (Number.isFinite(object.size)) headers.set("Content-Length", String(object.size));
-    headers.set("Cache-Control", "private, max-age=604800, immutable");
+    headers.set("Cache-Control", "private, no-store");
     return new Response(object.body, { headers });
   }
 
@@ -440,7 +438,11 @@ async function handleFilesList(request, env, userId) {
 const worker = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    env = { ...env, FILES: guardedStorage({ db: env.DB, raw: env.FILES, bucket: "client", request }) };
+    if (url.pathname.startsWith("/api/")) {
+      const identity = await verifiedAccessEmail(request,env);
+      if (identity.error) return identity.error;
+    }
+    env = { ...env, FILES: guardedStorage({ db: env.DB, raw: env.FILES, bucket: "client", request, actor: "client:" + (userIdFrom(request) || "guest") }) };
 
     if (url.pathname === "/api/health") {
       if (!userIdFrom(request)) return unauthorized();
@@ -562,7 +564,7 @@ const worker = {
       return Response.json({ ok: false, error: "not found" }, { status: 404 });
     }
 
-    if (url.pathname === "/market-chart.html") return marketFrameResponse(withSecurityHeaders(await env.ASSETS.fetch(request)));
+    if (url.pathname === "/market-chart.html" || url.pathname === "/market-chart") return marketFrameResponse(withSecurityHeaders(await env.ASSETS.fetch(request)));
     const motion = await exerciseMotionAsset(request, env.ASSETS);
     if (motion) return withSecurityHeaders(motion);
     return withSecurityHeaders(await env.ASSETS.fetch(request));
