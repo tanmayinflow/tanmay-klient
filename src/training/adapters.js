@@ -260,6 +260,7 @@ export function fulfilmentFrom(sessions, opts) {
       .map((s) => ({
         id: s.id, date: s.date, planId: s.planId, planSessionId: s.planSessionId, templateId: s.templateId,
         startedAt: s.startedAt, endedAt: s.endedAt, effort: s.effort, note: s.note, painJoints: s.painJoints || [],
+        ...(typeof s.coachMessage === "string" && s.coachMessage ? { coachMessage: s.coachMessage } : {}),
         blocks: (s.blocks || []).map((b) => ({
           id: b.id, exId: b.exId, measurementType: b.measurementType, ...publicLandingRecording(b),
           ...(Object.prototype.hasOwnProperty.call(b,"variant") ? {variant:b.variant} : {}),
