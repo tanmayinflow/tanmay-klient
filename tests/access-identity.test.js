@@ -45,3 +45,35 @@ test('configured Access identity accepts a signed owner only for its designated 
   assert.equal((await verifiedAccessEmail(empty,env)).error.status,401);
   assert.equal((await verifiedAccessEmail(empty,{ACCESS_AUDIENCE:'without-issuer'})).error.status,503);
 });
+
+test('default Access key loading uses Workers redirect handling and only accepts a complete 200 response', async t => {
+  const pair = await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
+  const key = { ...await crypto.subtle.exportKey('jwk',pair.publicKey), kid:'worker-key' };
+  const claims = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const calls = [];
+  const statuses = [200, 302, 206];
+  t.mock.method(globalThis,'fetch', async (url,init) => {
+    const redirect = init?.redirect;
+    calls.push({url,redirect});
+    // The Workers Request constructor rejects the Fetch standard's "error" mode.
+    if (!['follow','manual'].includes(redirect)) throw new TypeError('Unsupported Workers redirect mode');
+    const status = statuses[calls.length-1];
+    return Response.json({keys:[key]}, {status, headers:status === 302 ? {Location:'https://elsewhere.invalid/keys'} : {}});
+  });
+  for (const [i,status] of statuses.entries()) {
+    const issuer = 'https://runtime-fixture-'+status+'.cloudflareaccess.com';
+    const email = 'member@example.test';
+    const tokenBody = claims({alg:'RS256',kid:key.kid})+'.'+claims({iss:issuer,aud:['fixture-aud'],email,exp:120,nbf:80});
+    const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5',pair.privateKey,new TextEncoder().encode(tokenBody));
+    const request = new Request('https://fixture.test/api/me',{headers:{
+      'cf-access-jwt-assertion':tokenBody+'.'+Buffer.from(signature).toString('base64url'),
+      'cf-access-authenticated-user-email':email,
+    }});
+    const env = {ACCESS_TEAM_DOMAIN:issuer,ACCESS_AUDIENCE:'fixture-aud'};
+    const result = await verifiedAccessEmail(request,env,{now:()=>100000});
+    if (status === 200) assert.deepEqual(result,{email});
+    else assert.equal(result.error?.status,401);
+    assert.deepEqual(calls[i],{url:issuer+'/cdn-cgi/access/certs',redirect:'manual'});
+  }
+  assert.equal(calls.length,statuses.length);
+});
