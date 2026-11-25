@@ -14,11 +14,15 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css
 
 export const state = { me: { member: true, name: "Test", owner: "aaaaaaaaaaaaaaaa" }, doc: null, version: 0, files: new Map(), plan: null, share: null, goals: null, sources: null , force: { kod: "", metoda: "" } };
 
-export function createServer({ bookingFactory = createBookingFixture } = {}) {
+export function createServer({ bookingFactory = createBookingFixture, accountFixture } = {}) {
   const bookingFixtures = new Map();
   const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, "http://x");
     const send = (code, body, type) => { res.writeHead(code, { "Content-Type": type || "application/json" }); res.end(body); };
+    if (accountFixture) {
+      const response = await accountFixture.handle(u, req);
+      if (response) return send(response.status, await response.text(), response.headers.get('content-type'));
+    }
     // řídicí cesty jen pro zkoušku — v nasazení neexistují
     if (u.pathname === "/__owner") { state.me = { ...state.me, owner: u.searchParams.get("tag") || "" }; state.doc = null; state.version = 0; return send(200, JSON.stringify(state.me)); }
     // VYNUCENÉ SELHÁNÍ · aby šlo v prohlížeči vyzkoušet, co aplikace udělá,
@@ -132,6 +136,7 @@ export function createServer({ bookingFactory = createBookingFixture } = {}) {
     } catch { send(404, "no", "text/plain"); }
   });
   server.on("close", () => { for (const fixture of bookingFixtures.values()) fixture.then(value => value.close(), () => {}); });
+  if (accountFixture) server.on("close", () => accountFixture.close());
   return server;
 }
 
