@@ -10,8 +10,8 @@ async function signingKeys(issuer) {
   if (cached && cached.until > Date.now()) return cached.pending;
   // Share in-flight requests; arbitrary key IDs cannot force per-request downloads.
   const pending = (async()=>{
-    const response = await fetch(issuer+"/cdn-cgi/access/certs", {redirect:"error"});
-    if (!response.ok) throw new Error("Access signing keys unavailable");
+    const response = await fetch(issuer+"/cdn-cgi/access/certs", {redirect:"manual"});
+    if (response.status !== 200) throw new Error("Access signing keys unavailable");
     const {keys} = await response.json();
     if (!Array.isArray(keys) || !keys.length) throw new Error("Access signing keys unavailable");
     return keys;
