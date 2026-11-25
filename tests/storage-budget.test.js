@@ -90,3 +90,29 @@ test('missing ledger fails closed and 32 UTC days stay under monthly free operat
  await assert.rejects(ensureStorageBudget(null),{code:'storage-unavailable'});
  assert.ok(STORAGE_LIMITS.dailyA*32<1_000_000);assert.ok(STORAGE_LIMITS.dailyB*32<10_000_000);
 });
+
+test('daily quotas isolate clients, diagnostics and the reserved owner budget', async () => {
+  const {db, main, rawClient} = await setup();
+  const client = id => guardedStorage({db, raw:rawClient, bucket:'client', actor:'client:' + id});
+  const date = new Date().toISOString().slice(0,10);
+  await db.prepare('INSERT INTO storage_budget_actor_ops(actor,day,a,b) VALUES(?,?,0,?)')
+    .bind('client:alice', date, STORAGE_LIMITS.dailyB / 4).run();
+  await assert.rejects(client('alice').get('content-library/snapshot'), {code:'storage-operations'});
+  await client('bob').get('content-library/snapshot');
+  await client('alice').head('__healthcheck__');
+  await db.prepare('UPDATE storage_budget_ops SET b=? WHERE day=?').bind(Math.floor(STORAGE_LIMITS.dailyB * 0.9), date).run();
+  await assert.rejects(client('bob').head('files/bob/test'), {code:'storage-operations'});
+  await main.head('files/primary/test');
+});
+
+test('a new UTC day resets actor usage and debits only the current day', async () => {
+  const {db, client} = await setup();
+  await db.prepare('INSERT INTO storage_budget_actor_ops(actor,day,a,b) VALUES(?,?,?,?)')
+    .bind('client:alice','2000-01-01',100,STORAGE_LIMITS.dailyB / 4).run();
+  await client.get('files/alice/test');
+  const current=await db.prepare('SELECT day,a,b FROM storage_budget_actor_ops WHERE actor=?').bind('client:alice').first();
+  assert.equal(current.day, new Date().toISOString().slice(0,10));
+  assert.equal(current.a, 0);
+  assert.equal(current.b, 1);
+  assert.equal((await db.prepare('SELECT b FROM storage_budget_ops WHERE day=?').bind(current.day).first()).b, 1);
+});

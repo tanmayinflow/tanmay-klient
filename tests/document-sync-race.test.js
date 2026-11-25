@@ -9,7 +9,7 @@ import { bootstrapSyncDecision, acknowledgedServerSnapshot } from '../src/shared
 import { createLocalDocumentWriter } from '../src/shared/product/localPersistence.js';
 
 const source = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-const client = source.includes('const clientAccount = createClientSession()');
+const client = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).name === 'tanmay-klient';
 const email = 'sync-review@example.test';
 const noop = () => {};
 async function harness({ metaFailure = false, fullReadFailure = false, lostAcknowledgement = false } = {}) {

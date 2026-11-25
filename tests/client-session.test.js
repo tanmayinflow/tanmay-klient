@@ -102,3 +102,31 @@ test('nonmembers and HTML sign-in responses cannot load account state', async ()
     assert.equal(requests.length, 0);
   }
 });
+
+test('a workspace opened offline retains its document owner until a page reload after an account change', async () => {
+  let reply = () => { throw Error('offline'); }, resets = 0, locks = 0;
+  const session = createClientSession(async () => reply(), {
+    offlineOwner: () => A, permits: id => id === A, lock: async () => { locks++; },
+  });
+  session.initializeWith(async () => { resets++; });
+  await session.verify();
+  assert.equal(session.documentOwner(), A);
+  assert.equal(session.getSnapshot().owner, null);
+  reply = () => response(B);
+  await session.verify();
+  assert.equal(session.getSnapshot().status, 'changed');
+  assert.equal(session.documentOwner(), A);
+  assert.equal(resets, 0);
+  assert.equal(locks, 1);
+});
+
+test('a membership denial on a protected request closes the previously mounted workspace', async () => {
+  const { session, respond } = fixture();
+  await bind(session, respond);
+  const read = session.request('/api/state');
+  respond(response()); await new Promise(resolve => setImmediate(resolve));
+  respond(Response.json({ error: 'not a member' }, { status: 403 }));
+  assert.equal((await read).status, 403);
+  assert.equal(session.getSnapshot().status, 'membership');
+  assert.equal(session.getSnapshot().member, false);
+});

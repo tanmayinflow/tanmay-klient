@@ -3,13 +3,40 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import worker from '../worker/index.js';
 import {makeD1,makeEnv,req} from './helpers/env.js';
-import {ensureClientIdentities,clientIdentityConflict,registerClientIdentity} from '../src/shared/product/clientIdentityServer.js';
+import {ensureClientIdentities,clientIdentityConflict,registerClientIdentity,restoreClientAccess} from '../src/shared/product/clientIdentityServer.js';
 import {removeClientCalendarMembership} from '../src/shared/product/personalCalendarServer.js';
 import {handleExercisePolicy} from '../src/shared/product/exercisePolicyServer.js';
+import {ensureTogether} from '../src/shared/product/togetherApi.js';
 
 const main=JSON.parse(readFileSync(new URL('../package.json',import.meta.url))).name==='tanmay-web';
 const first='a.b@example.test',collision='a+b@example.test',uid='a-b-example-test';
 const join=(env,email)=>worker.fetch(req('/api/join',{email,method:'POST',body:{word:'enter'}}),env,{});
+
+test('invite attempts are capped per authenticated account and oversized bodies are rejected',{skip:main},async()=>{
+  const env=makeEnv({INVITE_WORD:'enter'});
+  const wrong=()=>worker.fetch(req('/api/join',{email:first,method:'POST',body:{word:'incorrect'}}),env,{});
+  for(let i=0;i<10;i++)assert.equal((await wrong()).status,403);
+  assert.equal((await join(env,first)).status,429);
+  assert.equal((await join(env,'second@example.test')).status,200);
+  await env.DB.prepare('UPDATE client_join_attempts SET until_ms=0').run();
+  assert.equal((await join(env,first)).status,200);
+  assert.equal((await worker.fetch(req('/api/join',{email:first,method:'POST',body:{word:'a'.repeat(5000)}}),env,{})).status,413);
+});
+
+test('revocation closes both directions of a Spolu grant and restoration requires fresh consent',async()=>{
+  const db=await legacyDB(), actor='client:'+uid;
+  await registerClientIdentity(db,uid,first);
+  await ensureTogether(db);
+  await db.prepare(`INSERT INTO together_links(id,owner,partner,status,expires,scopes,partner_scopes)
+    VALUES('first-link','coach:tanmay',?,'active',0,'["practice"]','["cycle"]')`).bind(actor).run();
+  await removeClientCalendarMembership(db,uid);
+  const row=await db.prepare("SELECT status,scopes,partner,partner_scopes FROM together_links WHERE id='first-link'").first();
+  assert.deepEqual({...row},{status:'revoked',scopes:'[]',partner:null,partner_scopes:'[]'});
+  await assert.rejects(db.prepare("UPDATE together_links SET status='active',partner=? WHERE id='first-link'").bind(actor).run(),/client_access_revoked/);
+  assert.equal(await restoreClientAccess(db,uid),true);
+  assert.equal(await registerClientIdentity(db,uid,first),true);
+  assert.equal((await db.prepare("SELECT status FROM together_links WHERE id='first-link'").first()).status,'revoked');
+});
 async function legacyDB(){
   const db=makeD1();
   await db.prepare('CREATE TABLE members(user_id TEXT PRIMARY KEY,email TEXT NOT NULL,joined_at INTEGER,name TEXT)').run();
@@ -25,10 +52,14 @@ test('legacy member binding survives removal and older-worker delete/insert path
   assert.equal(await clientIdentityConflict(db,uid,collision),true);
   assert.equal(await registerClientIdentity(db,uid,collision),false);
   assert.equal(await db.prepare('SELECT * FROM members WHERE user_id=?').bind(uid).first(),null);
-  await assert.rejects(db.prepare('INSERT INTO members(user_id,email,joined_at) VALUES(?,?,1)').bind(uid,collision).run(),/client_identity_conflict/);
+  await assert.rejects(db.prepare('INSERT INTO members(user_id,email,joined_at) VALUES(?,?,1)').bind(uid,collision).run(),/client_identity_conflict|client_access_revoked/);
+  assert.equal(await registerClientIdentity(db,uid,first),false);
+  assert.equal(await restoreClientAccess(db,uid),true);
   assert.equal(await registerClientIdentity(db,uid,first),true);
   await db.prepare('DELETE FROM members WHERE user_id=?').bind(uid).run();
   assert.equal(await clientIdentityConflict(db,uid,collision),true);
+  assert.equal(await registerClientIdentity(db,uid,first),false);
+  assert.equal(await restoreClientAccess(db,uid),true);
   assert.equal(await registerClientIdentity(db,uid,first),true);
   await assert.rejects(db.prepare('UPDATE members SET email=? WHERE user_id=?').bind(collision,uid).run(),/client_identity_conflict/);
   await db.prepare("UPDATE members SET name='A safe display-name edit' WHERE user_id=?").bind(uid).run();
@@ -66,10 +97,15 @@ test('real coach removal preserves address binding and retained private data',{s
   assert.equal((await db.prepare('SELECT email FROM client_identity_bindings WHERE user_id=?').bind(uid).first()).email,first);
   assert.equal((await db.prepare('SELECT doc FROM state WHERE user_id=?').bind(uid).first()).doc,'PRIVATE ORIGINAL');
   assert.equal(await registerClientIdentity(db,uid,collision),false);
+  assert.equal(await registerClientIdentity(db,uid,first),false);
+  const restore=()=>worker.fetch(req(`/api/klienti/${uid}/restore-access`,{email:owner,method:'POST'}),env,{});
+  assert.equal((await worker.fetch(req(`/api/klienti/${uid}/restore-access`,{email:owner,method:'POST',headers:{Origin:'https://other.example.test'}}),env,{})).status,403);
+  assert.equal((await worker.fetch(req(`/api/klienti/${uid}/restore-access`,{email:first,method:'POST'}),env,{})).status,403);
+  assert.equal((await restore()).status,200);
   assert.equal(await registerClientIdentity(db,uid,first),true);
 });
 
-test('real client cannot inherit removed-account state, exercises, files or backup; original email can rejoin',{skip:main},async()=>{
+test('real client cannot inherit removed-account state, exercises, files or backup; only explicit restoration permits rejoining',{skip:main},async()=>{
   const env=makeEnv({INVITE_WORD:'enter'});
   assert.equal((await join(env,first)).status,200);
   const doc={coll:{journal:[{id:'private-note',text:'ORIGINAL PRIVATE JOURNAL'}]},edits:{}};
@@ -86,6 +122,8 @@ test('real client cannot inherit removed-account state, exercises, files or back
   assert.equal((await join(env,collision)).status,409);
   assert.equal((await(await worker.fetch(req('/api/me',{email:first}),env,{})).json()).member,false);
   assert.equal((await worker.fetch(req('/api/backup',{email:first}),env,{})).status,403);
+  assert.equal((await join(env,first)).status,403);
+  await restoreClientAccess(env.DB,uid);
   assert.equal((await join(env,' A.B@EXAMPLE.TEST ')).status,200);
   assert.deepEqual((await(await worker.fetch(req('/api/state',{email:first}),env,{})).json()).doc,doc);
   assert.deepEqual((await(await worker.fetch(req('/api/custom-exercises',{email:first}),env,{})).json()).exercises,[exercise]);

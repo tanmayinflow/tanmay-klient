@@ -42,6 +42,11 @@ test('callback exchanges once using its exact registered redirect and restores o
   assert.equal(response.status,303);assert.equal(response.headers.get('Location'),ORIGIN+'/?calendar=connected');
   assert.equal(response.headers.get('Referrer-Policy'),'no-referrer');assert.match(response.headers.get('Cache-Control'),/no-store/);
   assert.equal(f.exchanges[0].get('redirect_uri'),ORIGIN+'/api/calendar/callback');
+  const google=new URL(start.authorizationUrl),verifier=f.exchanges[0].get('code_verifier');
+  assert.equal(google.searchParams.get('code_challenge_method'),'S256');
+  assert.match(verifier,/^[A-Za-z0-9_-]{43}$/);
+  assert.equal(google.searchParams.get('code_challenge'),Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier))).toString('base64url'));
+  assert.equal(JSON.stringify(start).includes(verifier),false);
   assert.equal((await f.request(callback(start.nonce))).headers.get('Location'),ORIGIN+'/?calendar=failed&calendarReason=expired');
   assert.equal(f.exchanges.length,1);
   await f.adapter.prepare(SCOPES);assert.equal(f.adapter.ready(SCOPES),true);assert.equal(f.navigations.length,0);

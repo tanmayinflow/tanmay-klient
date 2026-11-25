@@ -93,7 +93,7 @@ test('booking backup uses the real schema and never exports a coach private note
   assert.equal(coach.sections.bookings.length,2); assert.match(JSON.stringify(coach),/PRIVATE COACH a/);
 });
 
-test('group backup projects only own participant fields and includes shared service',async()=>{
+test('group backup keeps a former participant receipt and exposes the current service only to active attendees',async()=>{
  const db=makeD1();await ensureBookingSchema(db);
  for(const id of ['a','b'])await db.prepare('INSERT INTO booking_clients(id,account_user_id,name,created_at,updated_at) VALUES(?,?,?,1,1)').bind(id,id,'Client '+id).run();
  await db.prepare("INSERT INTO booking_services(id,name_cs,capacity,created_at,updated_at) VALUES('group','Group',2,1,1)").run();
@@ -101,6 +101,8 @@ test('group backup projects only own participant fields and includes shared serv
  await db.prepare("INSERT INTO booking_participants(booking_id,client_id,status,credit_cost_units,client_note,updated_at) VALUES('shared','b','CANCELLED_CLIENT',0,'B own note',1)").run();
  const own=await exportAccountRecords({db,actor:'client:b',userId:'b',role:'client'});
  assert.equal(own.sections.bookings.length,1);assert.equal(own.sections.bookings[0].client_id,'b');assert.equal(own.sections.bookings[0].client_note,'B own note');assert.equal(own.sections.bookings[0].status,'CANCELLED_CLIENT');
- assert.equal(own.sections.booking_services[0].id,'group');assert.doesNotMatch(JSON.stringify(own),/A private|COACH PRIVATE|Client a/);
+ assert.deepEqual(own.sections.booking_services,[]);assert.equal(own.sections.bookings[0].starts_at_utc,null);assert.equal(own.sections.bookings[0].meeting_url,null);
+ assert.doesNotMatch(JSON.stringify(own),/A private|COACH PRIVATE|Client a/);
+ const active=await exportAccountRecords({db,actor:'client:a',userId:'a',role:'client'});assert.equal(active.sections.booking_services[0].id,'group');
  const coach=await exportAccountRecords({db,actor:'coach:tanmay',userId:'primary',role:'main'});assert.equal(coach.sections.booking_participants.length,2);
 });
