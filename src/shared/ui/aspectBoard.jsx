@@ -15,6 +15,10 @@ export function useAspectBoard(key) {
     async function load() {
       try {
         const response = await fetch(base + "/index.json", { signal: controller.signal });
+        if (response.status === 404) {
+          if (!controller.signal.aborted) setResult({ key, entries: [] });
+          return;
+        }
         if (!response.ok) throw new Error("index unavailable");
         const { images } = await response.json();
         if (!Array.isArray(images) || !images.every(id => typeof id === "string" && /^[0-9]{3}$/.test(id))) {
