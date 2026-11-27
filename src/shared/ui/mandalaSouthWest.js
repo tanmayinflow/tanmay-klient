@@ -44,8 +44,8 @@ const courting = {
 export const SOUTH_WEST_STUDY = {
   south: {
     reading: {
-      cz: "Divoká mysl (Maitrea, 2016). Kapitola 3 od s. 53 probírá tělesné prožívání emocí, jižní procházky a rozhovory s mimolidským světem. Kapitola 7 od s. 157 sleduje zraněné děti a vztahové role sirotka. Procházka ke zraněnému místu předchází náročnějšímu tématu, jak může zkušenost zranění ovlivnit životní povolání.",
-      en: "Wild Mind (2013). Chapter 3, from p. 51, covers emotional assimilation, South walks, and conversations with the other-than-human world. Chapter 7, from p. 153, explores Wounded Children and the interpersonal Orphan roles. The wound walk precedes a more demanding discussion of how a wound can shape a life calling.",
+      cz: "Začni tím, co dnes cítíš v těle. Můžeš jít na procházku, zaposlouchat se do okolí nebo dát slovo mladší části sebe, která se cítí odstrčená.",
+      en: "Start with what you feel in your body today. You might go for a walk, listen to the life around you, or give a younger part of you that feels left out a chance to speak.",
     },
     sources: [wildOne, children, czechEdition, companion, fieldNotes, summer],
     practices: [
@@ -308,8 +308,8 @@ export const SOUTH_WEST_STUDY = {
   },
   west: {
     reading: {
-      cz: "Divoká mysl (Maitrea, 2016). V kapitole 5 od s. 99 najdeš oslovení Múzy, procházky s vnitřním Milovaným a tvorbu. Kapitola 9 od s. 213 se věnuje stínu, projekci a přenosu. Končí autorovou osobní zkušeností s náročnou snovou postavou. Své pojetí práce se sny rozvádí také v Soulcraft (2003), s. 129–145.",
-      en: "Wild Mind (2013). Chapter 5, from p. 97, explores calling on the Muse, walking with the Inner Beloved, and creating art. Chapter 9, from p. 207, covers Shadow, projection, and transference. It closes with the author’s personal account of a challenging dream figure. For more on his approach to dreams, see Soulcraft (2003), pp. 129–145.",
+      cz: "Začni obrazem, který se ti vrací ve snu nebo během dne. Můžeš ho nakreslit, promluvit k němu nebo si vybavit, kdy v tobě podobnou odezvu vyvolal skutečný člověk.",
+      en: "Start with an image that returns in your dreams or during the day. You might draw it, speak to it, or recall a time when someone you met stirred a similar response.",
     },
     sources: [muse, shadow, czechEdition, companion, fieldNotes, courting],
     practices: [
@@ -409,7 +409,7 @@ export const SOUTH_WEST_STUDY = {
         id: "west-shadow-dream", source: "chapter-9", kind: "adaptation", group: "protector",
         cz: {
           title: "Stínová postava a náprava",
-          when: "Plotkin v deváté kapitole popisuje vracející se protivníky ve svých snech. Zkus si jeho otázku na drobném příkladu.",
+          when: "Když ti po probuzení zůstane v hlavě snová postava, která tě svým chováním rozčilovala.",
           steps: [
             "Vyber snovou postavu, která tě dráždila. Napiš přesné sloveso pro její jednání, třeba „skáče druhým do řeči“. Dej téhle domněnce o sobě zatím otazník.",
             "Hledej jediný příklad z bdělého života, kde jsi jednal podobně. Jestli žádný nenajdeš, nech zápis otevřený. Jsou i jiné důvody, proč se určitá postava vrací.",
@@ -419,7 +419,7 @@ export const SOUTH_WEST_STUDY = {
         },
         en: {
           title: "A shadow figure and a repair",
-          when: "In chapter nine Plotkin describes recurring dream adversaries. Try one question from his account with an everyday example.",
+          when: "When you wake up still thinking about a dream figure whose behaviour got under your skin.",
           steps: [
             "Choose an irritating dream figure. Find a precise verb for its behaviour, perhaps “interrupts”. Put a question mark beside the idea that this might also describe you.",
             "Look for a single waking example when you acted similarly. If you find none, leave the entry open. A recurring figure could have other meanings.",

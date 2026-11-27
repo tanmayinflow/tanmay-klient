@@ -5,8 +5,8 @@ const book = "https://newworldlibrary.com/product/wild-mind";
 
 export const CENTER_STUDY = {
   reading: {
-    cz: "Představ si, že tě přítel požádá o pomoc právě ve chvíli, kdy ji sám potřebuješ. Sever ví, jak pečovat. Jih cítí únavu. Východ možná uvidí třetí možnost a Západ si všimne obrazu, který se ti v takových chvílích vrací. Uprostřed stojíš ty. Odpověď příteli dáš vlastními slovy. Plotkin označuje střed jako ego a čtyři směry jako různé stránky jednoho Self. Čtyři formy praxe z dodatku ke knize můžeš zkoušet znovu, pokaždé s jinou otázkou.",
-    en: "Imagine a friend asking for help just as you need some yourself. North knows how to care. South feels the tiredness. East might see a third option. West notices an image that keeps coming back at moments like this. You stand in the middle. The answer you give your friend will be yours. Plotkin places the ego at the center and describes the four directions as facets of one Self. You can revisit the four methods from the appendix with a different question each time.",
+    cz: "Představ si, že tě přítel požádá o pomoc právě ve chvíli, kdy ji sám potřebuješ. Sever ví, jak pečovat. Jih cítí únavu. Východ možná uvidí třetí možnost a Západ si všimne obrazu, který se ti v takových chvílích vrací. Uprostřed stojíš ty. Odpověď příteli dáš vlastními slovy. Plotkin označuje střed jako ego a čtyři směry jako různé stránky jednoho Self. Ke stejnému cvičení se můžeš vrátit pokaždé, když řešíš novou otázku.",
+    en: "Imagine a friend asking for help just as you need some yourself. North knows how to care. South feels the tiredness. East might see a third option. West notices an image that keeps coming back at moments like this. You stand in the middle. The answer you give your friend will be yours. Plotkin places the ego at the center and describes the four directions as facets of one Self. You can return to the same exercise whenever a new question comes up.",
   },
   sources: [
     { id: "map", title: "Wild Mind (2013) · 1 · The Center / How the Ego Operates", url: chapter },
