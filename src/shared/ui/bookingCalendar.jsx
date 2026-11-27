@@ -4,7 +4,7 @@ import { ChoiceField } from "./ChoiceField.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { TmIcon } from "./icons.jsx";
 import * as B from "../../booking/index.js";
-import { COACH_CALENDAR_ZONE as ZONE, calendarTime, parseCalendarTime, validCalendarWindows,
+import { ACTIVE_CALENDAR_STATUSES, COACH_CALENDAR_ZONE as ZONE, calendarTime, parseCalendarTime, validCalendarWindows,
   genericDayOverrides, calendarDayWindows, editableDayWindows, calendarDayItems,
   calendarEventLanes, calendarWallInstants, calendarSelectionInstant, calendarServiceLocations,
   calendarWallRange, calendarWeekRange, calendarWeekLanes, calendarSlotCells, calendarWorkingCells } from "../../booking/calendar.js";
@@ -88,6 +88,14 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
     const row = { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" };
     const label = { display: "grid", gap: 5, minWidth: 0, fontSize: 12, color: t.textSec };
     const notice = { fontSize: 12, lineHeight: 1.55, color: t.textSec, margin: "9px 0" };
+    const timeOffClock = (field, instantField, caption) => <input
+      type="time" step="60" aria-label={caption} style={input} data-tm-surface="control"
+      value={Number.isInteger(editor[field]) ? calendarTime(editor[field]) : ""}
+      onChange={e => {
+        const minute = parseCalendarTime(e.target.value);
+        setEditor(current => ({ ...current, [field]: minute, [instantField]: undefined }));
+      }}
+    />;
     const openEditor = value => { setEditError(""); setMessage(""); setEditor(value); };
     const leaveWorkEditor = next => {
       if (editor?.type === "work" && JSON.stringify(editor.windows) !== editor.initialWindows) {
@@ -102,13 +110,17 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
       const windows = weekly ? (data.rules || []).filter(r => genericWeekly(r, wd) && r.active !== 0).map(r => ({ start_minute: r.start_minute, end_minute: r.end_minute })) : editableDayWindows(d, data);
       leaveWorkEditor({ type: "work", date: d, weekly, windows, initialWindows: JSON.stringify(windows), baseline: JSON.stringify(data.rules || []), expectedIds: genericDayOverrides(data.overrides, d).map(o => o.id) });
     };
-    const selectTime = (d, start, end, startsAt, endsAt) => openEditor({ type: "time", date: d, start, end, startsAt, endsAt, note: "" });
+    const selectTime = (date, start, end, startsAt, endsAt) => openEditor({
+      type: "time", date, start, startsAt, endsAt, note: "",
+      endDate: end === 1440 ? B.shiftDateISO(date, 1) : date,
+      end: end === 1440 ? 0 : end,
+    });
     const timeOptions = useMemo(() => {
       const step = service?.slot_interval_min || 60;
       return Array.from({ length: Math.floor(1440 / step) + 1 }, (_, i) => calendarTime(i * step));
     }, [service?.slot_interval_min]);
     const selectedStart = ["time", "booking", "block"].includes(editor?.type) ? calendarSelectionInstant(editor.date, editor.start, editor.startsAt) : null;
-    const selectedEnd = ["time", "block"].includes(editor?.type) ? calendarSelectionInstant(editor.endDate || editor.date, editor.end, editor.endsAt) : null;
+    const selectedEnd = ["time", "block"].includes(editor?.type) ? calendarSelectionInstant(editor.endDate, editor.end, editor.endsAt) : null;
     const offsetLabel = instant => new Intl.DateTimeFormat(language === "cs" ? "cs-CZ" : "en-GB", { timeZone: ZONE, timeZoneName: "shortOffset", hour: "2-digit", minute: "2-digit" }).format(instant);
     const perform = async action => {
       if (saving) return;
@@ -131,7 +143,7 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
     });
     const saveTimeOff = () => perform(async () => {
       const start = selectedStart, end = selectedEnd;
-      if (start == null || end == null || end <= start) invalid(L("Zkontroluj časy. Konec musí být později ve stejném dni. Při změně času vyber konkrétní výskyt opakované hodiny; neexistující čas nelze uložit.", "Check the times. End must be later on the same day. When clocks change, select the occurrence of the repeated hour; nonexistent times cannot be saved."));
+      if (start == null || end == null || end <= start) invalid(L("Zkontroluj časy. Konec volna musí být po začátku. Při změně času vyber konkrétní výskyt opakované hodiny; neexistující čas nelze uložit.", "Check the times. Time off must end after it starts. When clocks change, select the occurrence of the repeated hour; nonexistent times cannot be saved."));
       await fetchBooking("/blocks", { method: "POST", body: { startsAt: start, endsAt: end, note: editor.note } });
     });
     const editService = () => openEditor({ type: "service", duration: service.duration_min, interval: service.slot_interval_min, baseline: service.updated_at, serviceId: service.id });
@@ -161,12 +173,12 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
       const startsAt = proposed ? calendarSelectionInstant(d, start, proposed.startsAt) : item.startsAt;
       const duration = (item.endsAt - item.startsAt) / 60000;
       const endsAt = startsAt == null ? undefined : startsAt + duration * 60000;
-      const midnightEnd = endsAt === B.endOfLocalDay(d, ZONE);
+
       openEditor({ type: item.kind, item, date: d, start, startText: calendarTime(start), startsAt,
         duration, serviceId: item.service?.id,
         clientIds: item.participants?.filter(p => ["REQUESTED", "CONFIRMED"].includes(p.status)).map(p => p.clientId) || (item.clientId ? [item.clientId] : []),
-        endDate: endsAt ? (midnightEnd ? d : B.localDateISO(endsAt, ZONE)) : d,
-        end: endsAt ? (midnightEnd ? 1440 : B.localMinuteOfDay(endsAt, ZONE)) : Math.min(1440, start + duration),
+        endDate: endsAt != null ? B.localDateISO(endsAt, ZONE) : d,
+        end: endsAt != null ? B.localMinuteOfDay(endsAt, ZONE) : null,
         endsAt, note: item.note || "", proposed: !!proposed });
     };
     const saveMove = () => perform(async () => {
@@ -360,13 +372,13 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
           {editor.proposed && <p style={notice}>{L("Zkontroluj nový čas a potvrď přesun.", "Check the new time and confirm the move.")}</p>}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <label style={label}>{L("Datum", "Date")}<DateField aria-label={L("Datum přesunu", "Move date")} type="date" value={editor.date} style={input} onChange={e => setEditor(x => ({ ...x, date: e.target.value, startsAt: undefined }))}/></label>
-            <label style={label}>{L("Začátek", "Start")}<ChoiceField theme={t} L={L} editable label={L("Čas přesunu", "Move time")} inputMode="text" options={timeOptions.filter(v => v !== "24:00")} style={input} value={editor.startText ?? calendarTime(editor.start)} onChange={value => setEditor(x => ({ ...x, start: parseCalendarTime(value), startText: value, startsAt: undefined }))}/></label>
+            <label style={label}>{L("Začátek", "Start")}{editor.type === "block" ? timeOffClock("start", "startsAt", L("Začátek volna", "Time-off start")) : <ChoiceField theme={t} L={L} editable label={L("Čas přesunu", "Move time")} inputMode="text" options={timeOptions.filter(v => v !== "24:00")} style={input} value={editor.startText ?? calendarTime(editor.start)} onChange={value => setEditor(x => ({ ...x, start: parseCalendarTime(value), startText: value, startsAt: undefined }))}/>}</label>
           </div>
           {calendarWallInstants(editor.date, editor.start).length > 1 && <div style={{ ...row, marginTop: 10 }}>{calendarWallInstants(editor.date, editor.start).map(instant => <button type="button" key={instant} style={btn} aria-pressed={selectedStart === instant} onClick={() => setEditor(x => ({ ...x, startsAt: instant }))}>{offsetLabel(instant)}</button>)}</div>}
           {editor.type === "booking" ? <><label style={{ ...label, marginTop: 10 }}>{L("Délka v minutách", "Duration in minutes")}<NumberField theme={t} L={L} aria-label={L("Délka rezervace", "Booking duration")} min="1" max="720" step="1" style={input} value={editor.duration} onChange={e => setEditor(x => ({ ...x, duration: Number(e.target.value) }))}/></label><p style={notice}>{selectedStart != null && `${L("Nový konec", "New end")}: ${dayLabel(B.localDateISO(selectedStart + editor.duration * 60000, ZONE))} ${B.hhmm(selectedStart + editor.duration * 60000, ZONE)}`}</p></> : <>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
               <label style={label}>{L("Datum konce", "End date")}<DateField aria-label={L("Datum konce volna", "Time-off end date")} type="date" value={editor.endDate} style={input} onChange={e => setEditor(x => ({ ...x, endDate: e.target.value, endsAt: undefined }))}/></label>
-              <label style={label}>{L("Konec", "End")}<ChoiceField theme={t} L={L} editable label={L("Konec volna", "Time-off end")} inputMode="text" options={timeOptions} style={input} value={editor.endText ?? calendarTime(editor.end)} onChange={value => setEditor(x => ({ ...x, end: parseCalendarTime(value), endText: value, endsAt: undefined }))}/></label>
+              <label style={label}>{L("Konec", "End")}{timeOffClock("end", "endsAt", L("Konec volna", "Time-off end"))}</label>
             </div>
             {calendarWallInstants(editor.endDate, editor.end).length > 1 && <div style={{ ...row, marginTop: 10 }}>{calendarWallInstants(editor.endDate, editor.end).map(instant => <button type="button" key={instant} style={btn} aria-pressed={selectedEnd === instant} onClick={() => setEditor(x => ({ ...x, endsAt: instant }))}>{offsetLabel(instant)}</button>)}</div>}
             <label style={{ ...label, marginTop: 10 }}>{L("Poznámka jen pro tebe", "Private note")}<input maxLength={200} style={input} value={editor.note} onChange={e => setEditor(x => ({ ...x, note: e.target.value }))}/></label>
@@ -397,14 +409,19 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
         {editor.type === "work" && renderWeekly && <details style={{ marginTop: 24 }}><summary style={{ cursor: "pointer", color: t.accentInk || t.accent, minHeight: 44 }}>{L("Upravit celý pravidelný týden", "Edit the whole recurring week")}</summary>{renderWeekly(() => { setEditor(null); refresh(); })}</details>}
         {editor.type === "work" && renderExceptions && <details style={{ marginTop: 24 }}><summary style={{ cursor: "pointer", color: t.accentInk || t.accent, minHeight: 44 }}>{L("Volno a změny pro více dnů", "Time off and changes over several days")}</summary>{renderExceptions(() => { setEditor(null); refresh(); })}</details>}
         {editor.type === "time" && <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}><label style={label}>{L("Od", "From")}<ChoiceField theme={t} L={L} editable label={L("Od", "From")} inputMode="text" options={timeOptions.filter(v => v !== "24:00")} style={input} value={editor.startText ?? calendarTime(editor.start)} onChange={value => setEditor(x => ({ ...x, start: parseCalendarTime(value), startText: value, startsAt: undefined }))}/></label><label style={label}>{L("Do", "To")}<ChoiceField theme={t} L={L} editable label={L("Do", "To")} inputMode="text" options={timeOptions} style={input} value={editor.endText ?? calendarTime(editor.end)} onChange={value => setEditor(x => ({ ...x, end: parseCalendarTime(value), endText: value, endsAt: undefined }))}/></label></div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+            <label style={label}>{L("Datum", "Date")}<DateField aria-label={L("Datum volna", "Time-off date")} type="date" value={editor.date} style={input} onChange={e => { const date = e.target.value; setEditor(x => ({ ...x, date, startsAt: undefined, ...(x.endDate === x.date ? { endDate: date, endsAt: undefined } : {}) })); }}/></label>
+            <label style={label}>{L("Od", "From")}{timeOffClock("start", "startsAt", L("Začátek volna", "Time-off start"))}</label>
+            <label style={label}>{L("Datum konce", "End date")}<DateField aria-label={L("Datum konce volna", "Time-off end date")} type="date" value={editor.endDate} style={input} onChange={e => setEditor(x => ({ ...x, endDate: e.target.value, endsAt: undefined }))}/></label>
+            <label style={label}>{L("Do", "To")}{timeOffClock("end", "endsAt", L("Konec volna", "Time-off end"))}</label>
+          </div>
           {[["start", "startsAt", selectedStart, L("Začátek při změně času", "Start when clocks change")], ["end", "endsAt", selectedEnd, L("Konec při změně času", "End when clocks change")]].map(([field, raw, selected, caption]) => {
-            const choices = calendarWallInstants(editor.date, editor[field]);
+            const choices = calendarWallInstants(field === "end" ? editor.endDate : editor.date, editor[field]);
             return choices.length > 1 ? <div key={field} role="group" aria-label={caption} style={{ marginTop: 10 }}><p style={notice}>{caption}</p><div style={row}>{choices.map(instant => <button type="button" key={instant} style={{ ...btn, borderColor: selected === instant ? t.accent : t.borderSoft }} aria-pressed={selected === instant} onClick={() => setEditor(x => ({ ...x, [raw]: instant }))}>{offsetLabel(instant)}</button>)}</div></div> : null;
           })}
           <label style={{ ...label, marginTop: 10 }}>{L("Poznámka k volnu, jen pro tebe", "Time-off note, only for you")}<input style={input} data-tm-surface="control" maxLength={200} value={editor.note} onChange={e => setEditor(x => ({ ...x, note: e.target.value }))}/></label>
           <p style={notice}>{L("Volno zablokuje tento čas pro všechny služby. Existující rezervace neruší a poznámka se klientům neukáže.", "Time off blocks all services. Existing bookings are not cancelled and clients cannot see the note.")}</p>
-          {data && calendarDayItems(editor.date, data).some(b => b.kind === "booking" && b.startsAt < selectedEnd && b.endsAt > selectedStart) && <p role="status" style={{ ...notice, color: t.accentInk || t.accent }}>{L("V tomto čase už je rezervace. Pokud potřebuješ volno i místo ní, otevři a přesuň termín zvlášť.", "A booking already occupies this time. Open and move that booking separately if needed.")}</p>}
+          {data && data.bookings?.some(b => ACTIVE_CALENDAR_STATUSES.has(b.status) && b.startsAt < selectedEnd && b.endsAt > selectedStart) && <p role="status" style={{ ...notice, color: t.accentInk || t.accent }}>{L("V tomto čase už je rezervace. Pokud potřebuješ volno i místo ní, otevři a přesuň termín zvlášť.", "A booking already occupies this time. Open and move that booking separately if needed.")}</p>}
           <div style={row}><button type="button" style={primary} disabled={saving} onClick={saveTimeOff}>{L("Uložit volno", "Save time off")}</button>{(renderNewBooking || onNew) && <button type="button" style={btn} disabled={saving || selectedStart == null} onClick={() => { const seed = { dateISO: editor.date, startsAt: selectedStart, serviceId, locationId: effectiveLocationId || null, timeZone: ZONE }; if (renderNewBooking) openEditor({ type: "new", seed }); else onNew(seed); }}>{L("Nový termín", "New appointment")}</button>}</div>
         </>}
         {editor.type === "busy" && <><p style={notice}>{B.hhmm(editor.item.startsAt, ZONE)}–{B.hhmm(editor.item.endsAt, ZONE)} · {editor.item.kind === "google" ? L("Obsazeno v Google kalendáři. Změnu proveď tam.", "Busy in Google Calendar. Change it there.") : editor.item.note || L("Volno", "Time off")}</p>{editor.item.kind === "block" && <button type="button" style={btn} disabled={saving} onClick={() => perform(() => fetchBooking(`/blocks/${encodeURIComponent(editor.item.id)}`, { method: "DELETE" }))}>{L("Znovu nabídnout tento čas", "Make this time available again")}</button>}</>}
