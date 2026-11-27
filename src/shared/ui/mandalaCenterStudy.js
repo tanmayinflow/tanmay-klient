@@ -1,7 +1,7 @@
-// The four methods are named in the appendix. The situations and prompts below
-// are original, short ways to try them, not transcriptions of the book.
+// Source locations follow the 2013 EPUB. The linked PDF expands the appendix.
 const chapter = "https://www.wildmindbook.com/wp-content/uploads/Wild-Mind-Excerpts.pdf";
 const appendix = "https://learningforchange.net/wp-content/uploads/2018/08/Four-Practices-for-Wholing-and-Self-Healing.pdf";
+const book = "https://newworldlibrary.com/product/wild-mind";
 
 export const CENTER_STUDY = {
   reading: {
@@ -9,22 +9,23 @@ export const CENTER_STUDY = {
     en: "Imagine a friend asking for help just as you need some yourself. North knows how to care. South feels the tiredness. East might see a third option. West notices an image that keeps coming back at moments like this. You stand in the middle. The answer you give your friend will be yours. Plotkin places the ego at the center and describes the four directions as facets of one Self. You can revisit the four methods from the appendix with a different question each time.",
   },
   sources: [
-    { id: "map", title: "Bill Plotkin · Wild Mind · 1 (2013), pp. 11–29", url: chapter },
-    { id: "voices", title: "Bill Plotkin · Four Practices · Voice Dialogue (pp. 1–9)", url: appendix + "#page=1" },
-    { id: "circle", title: "Bill Plotkin · Four Practices · Four Directions Circles (pp. 9–13)", url: appendix + "#page=9" },
-    { id: "dream", title: "Bill Plotkin · Four Practices · Dreamwork (pp. 13–15)", url: appendix + "#page=13" },
-    { id: "imagery", title: "Bill Plotkin · Four Practices · Deep Imagery (pp. 15–18)", url: appendix + "#page=15" },
+    { id: "map", title: "Wild Mind (2013) · 1 · The Center / How the Ego Operates", url: chapter },
+    { id: "wheel", title: "Wild Mind · Coda · The Self as a Turning Wheel", url: book },
+    { id: "voices", title: "Wild Mind · Appendix · Voice Dialogue", url: appendix + "#page=1" },
+    { id: "circle", title: "Wild Mind · Appendix · Four-Directions Circles", url: appendix + "#page=9" },
+    { id: "dream", title: "Wild Mind · Appendix · Dreamwork with the Facets of the Self", url: appendix + "#page=13" },
+    { id: "imagery", title: "Wild Mind · Appendix · Deep Imagery", url: appendix + "#page=15" },
   ],
   practices: [
     {
-      id: "center-voices", kind: "method", source: "voices",
+      id: "center-voices", group: "method", kind: "method", source: "voices",
       cz: {
         title: "Rozhovor hlasů",
         when: "Když tě jedna část táhne odpovědět hned a druhá se chce stáhnout. Metodu Voice Dialogue vytvořili Hal a Sidra Stoneovi. Plotkin popisuje také způsob vedení od Geneen Marie Haugen.",
         steps: [
-          "Vezmi jednu dnešní situaci. Z jednoho místa vyslov nahlas větu hlasu, který při ní obvykle promluví první.",
+          "Vyber si nenáročnou situaci ze dneška. Všimni si postoje svého těla. V první osobě vyslov, co chce udělat hlas, který se obvykle ozve nejdřív.",
           "Přesuň se o kousek. Dej slovo tomu, kdo se ke slovu dostává zřídka. Třeba co by zaznělo, kdyby mohl mluvit tvůj humor?",
-          "Vrať se na své místo a odpověz oběma. Kterou jejich připomínku skutečně použiješ při příštím rozhovoru?",
+          "Vrať se na své místo a poděkuj oběma hlasům. Rozhodni, co řekneš vlastními slovy. Při nejbližším rozhovoru si všimni, zda můžeš čerpat i z tiššího hlasu.",
         ],
         reflect: "Co jsem slyšel až ve chvíli, kdy jsem dal druhému hlasu čas domluvit?",
       },
@@ -32,22 +33,22 @@ export const CENTER_STUDY = {
         title: "Voice dialogue",
         when: "When part of you wants to answer at once and another part wants to withdraw. Hal and Sidra Stone developed Voice Dialogue. Plotkin also describes a facilitation approach by Geneen Marie Haugen.",
         steps: [
-          "Choose one situation from today. From one spot, say aloud what the voice that usually speaks first would say.",
+          "Choose an ordinary situation from today. Notice your posture. Speak in the first person as the voice that usually responds first, and say what you want to do.",
           "Shift position. Give a quieter voice a turn. For instance, what would your sense of humor say if it could speak?",
-          "Return to your own spot and answer both voices. Choose one thing you heard to take into your next conversation.",
+          "Return to your seat and thank both voices. Decide what you will say in your own words. In your next conversation, see whether the quieter voice is available to you.",
         ],
         reflect: "What could I hear only after I let the quieter voice finish?",
       },
     },
     {
-      id: "center-circle", kind: "method", source: "circle",
+      id: "center-circle", group: "method", kind: "method", source: "circle",
       cz: {
         title: "Kruh čtyř směrů",
         when: "Když se rozhoduješ mezi dvěma možnostmi a u obou se vracíš ke stejnému argumentu.",
         steps: [
-          "Vyznač kolem sebe čtyři směry. Venku poslouží čtyři místa, doma čtyři lístky na stole. Z prostředku polož jednu otázku.",
-          "U Severu hledej, co potřebuje péči. U Východu se podívej na širší obraz. Na Jihu si všimni tělesné reakce. Na Západě si počkej na obraz nebo přirovnání.",
-          "Vrať se doprostřed. Vyslov rozhodnutí, které můžeš uskutečnit, a pojmenuj pohled, jenž je změnil.",
+          "Najdi místo venku a vyznač čtyři směry. Doma mohou posloužit čtyři židle. Ze středu si všimni, jak se okolí v každém směru liší. Vyber jednu otázku a směr, jehož schopnost potřebuješ.",
+          "Připomeň si člověka nebo příběhovou postavu, u které tuto schopnost znáš. Přejdi na obvod a přijmi postoj těla, který jí odpovídá. Vrať se do středu a vlastními slovy vyslov svou otázku.",
+          "Vrať se na vybrané místo, otoč se ke středu a odpověz nahlas. Ze středu rozhodni, kterou část odpovědi uskutečníš. Než odejdeš, poděkuj místu.",
         ],
         reflect: "Ze kterého místa se moje původní otázka začala jevit jinak?",
       },
@@ -55,21 +56,21 @@ export const CENTER_STUDY = {
         title: "Four directions circle",
         when: "When you keep making the same argument for or against a decision.",
         steps: [
-          "Mark the directions around you. Use four places outdoors or four slips of paper on a table. Ask one question from the middle.",
-          "In North, consider what needs care. In East, widen the frame. In South, notice your bodily response. In West, allow an image or comparison to emerge.",
-          "Come back to the middle. Say what you can do and name the perspective that changed your decision.",
+          "Mark the four directions outdoors, or use four chairs indoors. From the middle, notice how your surroundings differ in each direction. Choose a question and one direction whose capacity it calls for.",
+          "Remember a person or story character in whom you recognize this capacity. Walk to that point on the circle and try a posture that expresses it. Come back to the middle and put your question into your own words.",
+          "Return to the chosen spot, turn toward the center and answer aloud. From the middle, decide which part of the response you can act on. Thank the place before leaving.",
         ],
         reflect: "From which position did my original question start to look different?",
       },
     },
     {
-      id: "center-dream", kind: "method", source: "dream",
+      id: "center-dream", group: "method", kind: "method", source: "dream",
       cz: {
         title: "Návrat k obrazu ze snu",
         when: "Když ti po probuzení utkvěla přesná scéna, třeba zvíře stojící na prahu.",
         steps: [
           "Zapiš jedinou scénu v přítomném čase. Doplň detail, podle kterého bys ji znovu poznal.",
-          "Pokud si scénu živě vybavuješ, chvíli v ní pobuď. Čeho si postava nebo zvíře všímá? Co zůstává tobě skryté?",
+          "Pokračuj, jen pokud si dokážeš scénu znovu živě vybavit. Oslov jednu bytost nebo místo, které tě oslovilo svou přítomností. Počkej, jestli přijde odpověď. Pokud ti obraz dovolí podívat se na scénu jeho očima, všimni si, jak odsud působíš ty.",
           "Vrať pozornost do místnosti. Zaznamenej si zvlášť, co se skutečně zdálo a co tě napadlo teprve po probuzení.",
         ],
         reflect: "Co ve snu zůstává živé, i když mu zatím nerozumím?",
@@ -79,20 +80,20 @@ export const CENTER_STUDY = {
         when: "When you wake with one precise scene in mind, perhaps an animal standing in a doorway.",
         steps: [
           "Write down one scene in the present tense. Add the detail you would recognize it by.",
-          "If you can vividly recall the scene, stay with it for a moment. What does the figure or creature notice? What is outside your own view?",
+          "Continue only if you can vividly re-enter the scene. Address one being or place whose presence caught your attention, and leave room for a response. If the image lets you see the scene through its eyes, notice how your dreaming self looks from there.",
           "Bring your attention back to the room. Record what actually appeared in the dream separately from what occurred to you after waking.",
         ],
         reflect: "What still feels alive in this dream even though I cannot explain it?",
       },
     },
     {
-      id: "center-imagery", kind: "method", source: "imagery",
+      id: "center-imagery", group: "method", kind: "method", source: "imagery",
       cz: {
         title: "Zvíře v představě",
         when: "Když chceš některý směr poznat v obrazech. Tato práce s představivostí vychází také z přístupu Stephena Gallegose.",
         steps: [
-          "Vyber si směr, který dnes skoro nedostal prostor. Na chvíli si představ krajinu, kde by ses mohl setkat se zvířetem.",
-          "Jestli se nějaké objeví, pozoruj jeho pohyb a vzdálenost. Můžeš zůstat opodál. Když se nic neobjeví, i tím může dnešní pokus skončit.",
+          "Vyber si jeden směr a pohodlně se posaď. V představě se k němu obrať a pozvi zvíře, které by ti mohlo přiblížit jeho kvalitu. Počkej, co se samo objeví jako obraz, zvuk nebo pohyb.",
+          "Jestli se nějaké zvíře objeví, pověz mu, proč jsi přišel. Co ti ukazuje? Co by od tebe potřebovalo? Dopřej setkání čas. Když se nic neobjeví, můžeš u toho dnes skončit.",
           "Podívej se zpět kolem sebe. Nakresli malý detail, který tě překvapil, a nech vedle něj místo pro příští setkání.",
         ],
         reflect: "Jak se vyvíjela moje zvědavost, když jsem nechal obraz chvíli být?",
@@ -101,15 +102,15 @@ export const CENTER_STUDY = {
         title: "Meet an animal in imagination",
         when: "When you want to meet a direction through imagery. This form of deep imagery also draws on the work of Stephen Gallegos.",
         steps: [
-          "Choose a direction that has had little room today. Picture a landscape where you might encounter an animal.",
-          "If one appears, notice its movement and distance. You can stay where you are. If nothing appears, that can be the whole encounter today.",
+          "Sit comfortably and choose one direction. In imagination, turn toward it and invite an animal that could help you explore its quality. Wait for a spontaneous image, sound or movement.",
+          "If an animal appears, tell it why you came. What might it show you? What might it need from you? Give the encounter time. If nothing appears, that can be the whole encounter today.",
           "Look around the room again. Sketch one surprising detail, leaving a little space beside it for another visit.",
         ],
         reflect: "How did my curiosity change when I let the image take its own time?",
       },
     },
     {
-      id: "center-decision", kind: "adaptation", source: "map",
+      id: "center-decision", group: "application", kind: "adaptation", source: "map",
       cz: {
         title: "Odpověď na skutečnou prosbu",
         when: "Když už máš na jazyku automatické ano. Stačí poslední prosba, kterou ti někdo poslal.",
@@ -132,24 +133,24 @@ export const CENTER_STUDY = {
       },
     },
     {
-      id: "center-return", kind: "adaptation", source: "map",
+      id: "center-return", group: "application", kind: "adaptation", source: "wheel",
       cz: {
-        title: "Ohlédnutí po jednom dni",
+        title: "Jeden večer, čtyři pohledy",
         when: "Večer po chvíli, kdy jsi jednal jinak, než jsi ráno zamýšlel.",
         steps: [
-          "Vyber jednu událost. Popiš jen to, co by ve stejné místnosti mohl vidět nebo slyšet také někdo další.",
-          "Doplň, co jsi chtěl ochránit. Která schopnost ti tehdy pomohla a kterou bys rád přizval příště?",
-          "Připrav jeden konkrétní začátek pro příště, třeba první otázku, již položíš, než nabídneš řešení.",
+          "Vyber dnešní událost, třeba chvíli, kdy někdo nechal plnou práci na tobě. Začni na Východě. Jednou větou popiš, co by viděl další člověk. Na Jihu doplň, co se v tu chvíli ozvalo v těle.",
+          "Na Západě dej prostor nečekané možnosti. Jak by šla situace rozehrát jinak? Na Severu vyber první proveditelný krok a pojmenuj, komu prospěje.",
+          "Až krok vyzkoušíš, vrať se k Východu. Čeho si teď můžeš všimnout, když víš, jak na to ostatní reagovali?",
         ],
         reflect: "Podle čeho zítra poznám, že jsem si nechal prostor k volbě?",
       },
       en: {
-        title: "Look back on one day",
+        title: "One evening, four perspectives",
         when: "In the evening after a moment when you acted differently from what you intended that morning.",
         steps: [
-          "Choose one event. Describe only what another person in the same room could have seen or heard.",
-          "Add what you wanted to protect. Which capacity helped you and which would you invite next time?",
-          "Prepare one specific opening for next time, perhaps the first question you will ask before offering a solution.",
+          "Choose one event, perhaps a moment when someone left you to do all the work. Start in East: describe what another person could have observed. From South, add what you felt in your body.",
+          "In West, make room for an unexpected possibility. How else might the situation unfold? From North, choose one feasible action and name who might benefit.",
+          "After you try it, return to East. What can you now see in light of how others responded?",
         ],
         reflect: "What would tell me tomorrow that I left myself room to choose?",
       },

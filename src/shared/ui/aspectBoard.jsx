@@ -55,12 +55,11 @@ export function BoardLightbox({ src, label, closeLabel, onClose }) {
   const ref = useRef(null);
   useVrstva({ close: onClose, ref });
   return createPortal(
-    <div ref={ref} role="dialog" aria-modal="true" aria-label={label}
+    <div ref={ref} role="dialog" className="tm-aspect-viewport" aria-modal="true" aria-label={label}
       onClick={e => { e.stopPropagation(); onClose(); }}
-      style={{ position: "fixed", inset: 0, zIndex: 400, background: "#171716", display: "grid", placeItems: "center", padding: "min(3vw, 20px)", cursor: "zoom-out" }}>
+      style={{ zIndex: 400, background: "#171716", display: "grid", placeItems: "center", padding: "min(3vw, 20px)", cursor: "zoom-out" }}>
       <img src={src} alt={label} decoding="async" style={{ width: "100%", height: "100%", minHeight: 0, objectFit: "contain" }} />
-      <button type="button" aria-label={closeLabel}
-        style={{ position: "absolute", right: "max(12px, env(safe-area-inset-right))", top: "max(12px, env(safe-area-inset-top))", display: "grid", placeItems: "center", width: 44, height: 44, background: "#171716dd", borderRadius: "50%", border: 0, color: "#F4F0EB", cursor: "pointer" }}>
+      <button type="button" aria-label={closeLabel} className="tm-aspect-close">
         <TmIcon id="close" size={20} />
       </button>
     </div>, document.body

@@ -1,9 +1,3 @@
-const book = {
-  id: "book",
-  title: "Bill Plotkin · Wild Mind (2013)",
-  url: "https://www.wildmindbook.com/wp-content/uploads/Wild-Mind-Excerpts.pdf",
-};
-
 const czechEdition = {
   id: "czech-edition",
   title: "Bill Plotkin · Divoká mysl (Maitrea, 2016)",
@@ -22,11 +16,18 @@ const fieldNotes = {
   url: "https://www.animas.org/wp-content/uploads/21SEPWMI-LGBTQ_Prep-Letter.pdf",
 };
 
-const interview = {
-  id: "interview",
-  title: "Bill Plotkin · Warrior Films, Rites of Passage (1:18–1:25)",
-  url: "https://warriorfilms.org/wp-content/uploads/2016/04/Bill-Plotkin-Interview_Warrior-Films_Rites-of-Passage.pdf",
-};
+function bookChapter(number, title, page) {
+  return {
+    id: `chapter-${number}`,
+    title: `Bill Plotkin · Wild Mind (2013), ${number}. ${title}`,
+    url: `https://books.google.com/books?id=OczmHOQi5zsC&pg=PA${page}`,
+  };
+}
+
+const wildOne = bookChapter(3, "The Wild Indigenous One", 51);
+const muse = bookChapter(5, "The Muse-Beloved", 97);
+const children = bookChapter(7, "Wounded Children", 153);
+const shadow = bookChapter(9, "The Shadow and Shadow Selves", 207);
 
 const summer = {
   id: "summer",
@@ -43,13 +44,105 @@ const courting = {
 export const SOUTH_WEST_STUDY = {
   south: {
     reading: {
-      cz: "Divoká mysl, české vydání 2016. Kapitola 3 od s. 53 představuje divokého domorodce, kapitola 7 od s. 157 zraněné děti. Autorův doprovodný text rozvíjí hlas Jihu na s. 3 a práci v kruhu na s. 11–13.",
-      en: "Wild Mind, 2013 edition. Chapter 3 begins on p. 51 with the Wild Indigenous One. Chapter 7 turns to Wounded Children on p. 153. In the companion text, see p. 3 for the voice of South and pp. 11–13 for the directions circle.",
+      cz: "Divoká mysl (Maitrea, 2016). Kapitola 3 od s. 53 probírá tělesné prožívání emocí, jižní procházky a rozhovory s mimolidským světem. Kapitola 7 od s. 157 sleduje zraněné děti a vztahové role sirotka. Procházka ke zraněnému místu předchází náročnějšímu tématu, jak může zkušenost zranění ovlivnit životní povolání.",
+      en: "Wild Mind (2013). Chapter 3, from p. 51, covers emotional assimilation, South walks, and conversations with the other-than-human world. Chapter 7, from p. 153, explores Wounded Children and the interpersonal Orphan roles. The wound walk precedes a more demanding discussion of how a wound can shape a life calling.",
     },
-    sources: [book, czechEdition, companion, fieldNotes, interview, summer],
+    sources: [wildOne, children, czechEdition, companion, fieldNotes, summer],
     practices: [
       {
-        id: "south-circle", source: "companion", kind: "method",
+        id: "south-walk", source: "chapter-3", kind: "method", group: "facet",
+        cz: {
+          title: "Procházka smysly Jihu",
+          when: "Když projdeš známou cestu a pak si sotva vybavíš, co se kolem tebe dělo.",
+          steps: [
+            "Na přístupné cestě venku zpomal u něčeho, co právě zaujalo tvé smysly. Může to být bzučení nad záhonem nebo chlad přicházející od vody.",
+            "Zkus chvíli sledovat, jak se s proměnou okolí mění tvoje tělo. Kam se samy otočí oči? Při kterém zvuku povolí ramena?",
+            "Při návratu zachyť okamžik, kdy ses tu cítil doma nebo jako host. Zapiš jeden detail přímo z toho místa.",
+          ],
+          reflect: "Kterou část cesty bys příště chtěl projít pomaleji?",
+        },
+        en: {
+          title: "A South walk through the senses",
+          when: "When you cross familiar ground and can barely remember what was happening around you.",
+          steps: [
+            "Slow down on an accessible outdoor route when something catches your senses. Perhaps bees hum above a flower bed, or cool air rises off the water.",
+            "Follow the way your body responds as the surroundings change. Where do your eyes turn? At which sound do your shoulders drop?",
+            "On your way back, recall a moment when you felt at home here, or felt yourself a guest. Write down a detail from that place.",
+          ],
+          reflect: "Which stretch would you like to travel more slowly next time?",
+        },
+      },
+      {
+        id: "south-conversation", source: "chapter-3", kind: "method", group: "facet",
+        cz: {
+          title: "Rozhovor s živým světem",
+          when: "Když si chceš vytvořit vztah ke konkrétnímu místu nebo bytosti.",
+          steps: [
+            "Zastav se tam, kde tě přirozeně něco přitahuje. Rostlině, kusu skály nebo proudu vody věnuj pár minut a podívej se, co se u nich skutečně děje.",
+            "Oslov svůj protějšek nahlas. Co ti na něm připadá zvláštní? Pak mlč a naslouchej. Všímej si zvuku, změny světla i představ, které se objevují.",
+            "Pokud chceš, vezmi si znovu slovo. Než odejdeš, poděkuj. Do zápisníku dej vedle sebe dvě věci: čeho sis všiml v okolí a co sis přitom představil.",
+          ],
+          reflect: "Čím tě tenhle soused překvapil a co o něm chceš ještě poznat?",
+        },
+        en: {
+          title: "A wild conversation",
+          when: "When you want to get to know a particular being or place.",
+          steps: [
+            "Pause where something catches your interest. Give a plant, rock face, or stream a few minutes of attention. What is actually happening there?",
+            "Address it aloud. What strikes you about it? Then listen. Notice sounds and changes in light, and give any image that occurs to you time to develop.",
+            "Speak again if you wish. Before leaving, offer thanks. In your notes distinguish one detail you observed from something you imagined in response.",
+          ],
+          reflect: "How did this neighbour surprise you, and what would you like to know about it?",
+        },
+      },
+      {
+        id: "south-wound-walk", source: "chapter-7", kind: "method", group: "protector",
+        cz: {
+          title: "Procházka ke zraněnému místu",
+          when: "Pro klidný den, kdy máš přístup k vnitřní opoře a můžeš si zvolit, čemu se věnovat.",
+          steps: [
+            "Vyjdi ven a připomeň si zdroje ze všech čtyř stran. Zastav se u něčeho, co v tobě budí soucit. Může to být letitá jizva na kmeni nebo místo poničené stavbou.",
+            "Pojmenuj, co na místě vidíš. Máš-li chuť, pověz mu o vlastní snesitelné zkušenosti. Naslouchej s péčí, jakou bys věnoval někomu blízkému.",
+            "Jakou péči díky této zkušenosti dnes dovedeš nabídnout? Odpověď může zůstat otevřená. Před návratem si všimni něčeho v okolí, co tě vrací do přítomnosti.",
+          ],
+          reflect: "Co zaslouží péči teď a co si přeješ ponechat na jindy?",
+        },
+        en: {
+          title: "A wound walk",
+          when: "For a settled day when you can draw on inner support and choose what to explore.",
+          steps: [
+            "Outdoors, recall a resource from each direction. Pause at something that evokes compassion, perhaps an old scar in a trunk or a clearing damaged by construction.",
+            "Name what you see there. If you wish, tell the place about a manageable experience of your own. Listen with the care you would extend to someone close.",
+            "What care can you offer today in light of that experience? Leave the question open if you wish. Notice something around you that brings you back to the present.",
+          ],
+          reflect: "What needs care now, and what would you like to leave for another day?",
+        },
+      },
+      {
+        id: "south-orphan-need", source: "chapter-7", kind: "method", group: "protector",
+        cz: {
+          title: "Najít potřebu za rolí sirotka",
+          when: "Když například přistihneš sebe sama, jak souhlasíš jen ze strachu, že vypadneš z party.",
+          steps: [
+            "Popiš jeden okamžik. Co jsi udělal, co sis přál a čeho ses obával? Plotkinův sirotek je pojmenování pro osvojovaný způsob, jak si zajistit potřeby.",
+            "Vybav si dospělého, kterému bys s tím věřil. Jak by vzal tvoji potřebu přijetí vážně? Napiš vlastní slova, kterými by sis o ni mohl říct.",
+            "Vyzkoušej malý krok. Můžeš například navrhnout příští setkání a zároveň poctivě říct, že ti dnešní program nevyhovuje.",
+          ],
+          reflect: "Jaké jednání ti dovolilo zůstat v kontaktu a přitom vyslovit vlastní přání?",
+        },
+        en: {
+          title: "Find the need behind an Orphan role",
+          when: "When you catch yourself going along with something for fear of losing your place in a group.",
+          steps: [
+            "Describe one moment. What did you do, want, and fear? Plotkin uses Orphan for a learned way of trying to meet a need.",
+            "Imagine an adult you could trust with this. What would taking your need to belong seriously sound like? Write a request you could actually make.",
+            "Try one small action. You might suggest another meeting while honestly saying that today’s plans do not suit you.",
+          ],
+          reflect: "What helped you stay in touch and express your own wish?",
+        },
+      },
+      {
+        id: "south-circle", source: "companion", kind: "method", group: "facet",
         cz: {
           title: "Jižní místo v kruhu",
           when: "Když už víš, co si o určité věci myslíš, ale nevíš, co cítíš.",
@@ -72,7 +165,7 @@ export const SOUTH_WEST_STUDY = {
         },
       },
       {
-        id: "south-neighbours", source: "field-notes", kind: "method",
+        id: "south-neighbours", source: "field-notes", kind: "method", group: "facet",
         cz: {
           title: "Poznat živého souseda",
           when: "Cestou domů, u otevřeného okna nebo na místě, kam se můžeš vrátit.",
@@ -95,7 +188,7 @@ export const SOUTH_WEST_STUDY = {
         },
       },
       {
-        id: "south-reciprocity", source: "summer", kind: "method",
+        id: "south-reciprocity", source: "summer", kind: "method", group: "facet",
         cz: {
           title: "Kdo si všímá mě?",
           when: "Venku, když tě na chvíli zaujme jiné živé stvoření.",
@@ -118,30 +211,32 @@ export const SOUTH_WEST_STUDY = {
         },
       },
       {
-        id: "south-emotion", source: "interview", kind: "adaptation",
+        id: "south-emotion", source: "chapter-3", kind: "method", group: "facet",
         cz: {
-          title: "Co mi říká tenhle pocit?",
+          title: "Čtyři kroky zpracování emoce",
           when: "Ve chvíli, kdy můžeš v klidu prozkoumat podráždění, radost nebo smutek.",
           steps: [
-            "Vybav si drobnou událost z dneška. Popiš první tělesný vjem. „Sevřela se mi čelist“ je dobré východisko.",
-            "Zkus k vjemu přiřadit pocit. Zeptej se, na čem ti v té chvíli záleželo. Pod hněvem kvůli přerušení může být přání dokončit větu.",
-            "Vymysli dvě možné odpovědi. Zvaž jejich dopad a jednu si vyber, případně se rozhodni vyčkat.",
+            "Jih. Dej pocitu tělesný tvar. Co udělají ruce, hlas nebo dech, když smíš na chvíli zůstat u toho, co se stalo?",
+            "Západ. Co tvoje reakce prozrazuje o tvém očekávání nebo přání? Třeba tě při přerušení rozhovoru píchlo u srdce, protože ti záleželo na tom přiznat chybu.",
+            "Sever. Co chceš sdělit nebo udělat ve vztahu k druhým? Můžeš požádat o pár nerušených minut, omluvit se nebo dát najevo radost.",
+            "Východ. S odstupem se podívej na celý příběh. Co se při podobných příležitostech opakuje? Objevil se tentokrát prostor i pro lehkost?",
           ],
           reflect: "Co sis o sobě díky pocitu uvědomil a co s tím chceš udělat?",
         },
         en: {
-          title: "What does this feeling tell me?",
+          title: "Four steps of emotional assimilation",
           when: "When you have a quiet moment with irritation, joy, or sadness.",
           steps: [
-            "Recall a small event from today. Describe the first bodily sensation. “My jaw tightened” is a good starting point.",
-            "Try a feeling word. Ask what mattered to you at the time. Anger about an interruption might point to wanting to finish a sentence.",
-            "Think of two possible responses. Consider their effects and choose one, including the option to wait.",
+            "South. Let the feeling take bodily form. What do your hands, voice, or breath do if you stay with what happened for a moment?",
+            "West. What wish or expectation does your response reveal? An interruption might sting because you were just about to admit a mistake.",
+            "North. What might you say or do in the relationship? You could ask for a few uninterrupted minutes, offer an apology, or express delight.",
+            "East. Later, look back at the whole exchange. Does it belong to a familiar pattern, and is there room for a little lightness this time?",
           ],
           reflect: "What did the feeling tell you about yourself, and what do you want to do with that?",
         },
       },
       {
-        id: "south-play", source: "book", kind: "adaptation",
+        id: "south-play", source: "chapter-3", kind: "adaptation", group: "application",
         cz: {
           title: "Nechat rytmus přejít do těla",
           when: "Když se pohyb proměnil hlavně ve výkon nebo v povinnost.",
@@ -164,7 +259,7 @@ export const SOUTH_WEST_STUDY = {
         },
       },
       {
-        id: "south-desire", source: "book", kind: "adaptation",
+        id: "south-desire", source: "chapter-3", kind: "adaptation", group: "application",
         cz: {
           title: "Všimnout si vlastní touhy",
           when: "Když při běžném rozhodování automaticky vyhovíš druhým.",
@@ -187,7 +282,7 @@ export const SOUTH_WEST_STUDY = {
         },
       },
       {
-        id: "south-younger-voice", source: "companion", kind: "method",
+        id: "south-younger-voice", source: "companion", kind: "method", group: "protector",
         cz: {
           title: "Odpovědět mladší části ze Severu",
           when: "Když tě v obyčejné situaci zabolelo, že tě někdo přehlédl.",
@@ -213,13 +308,128 @@ export const SOUTH_WEST_STUDY = {
   },
   west: {
     reading: {
-      cz: "Divoká mysl, české vydání 2016. Kapitola 5 od s. 99 zkoumá Múzu a Milovaného, kapitola 9 od s. 213 stín a stínová já. Pro práci se sny odkazuje Plotkin také na Soulcraft, anglické vydání 2003, s. 129–145.",
-      en: "Wild Mind, 2013 edition. Chapter 5 begins on p. 97 with the Muse-Beloved. Chapter 9 explores the Shadow and shadow selves from p. 207. For his approach to dreams, Plotkin also points to Soulcraft (2003), pp. 129–145.",
+      cz: "Divoká mysl (Maitrea, 2016). V kapitole 5 od s. 99 najdeš oslovení Múzy, procházky s vnitřním Milovaným a tvorbu. Kapitola 9 od s. 213 se věnuje stínu, projekci a přenosu. Končí autorovou osobní zkušeností s náročnou snovou postavou. Své pojetí práce se sny rozvádí také v Soulcraft (2003), s. 129–145.",
+      en: "Wild Mind (2013). Chapter 5, from p. 97, explores calling on the Muse, walking with the Inner Beloved, and creating art. Chapter 9, from p. 207, covers Shadow, projection, and transference. It closes with the author’s personal account of a challenging dream figure. For more on his approach to dreams, see Soulcraft (2003), pp. 129–145.",
     },
-    sources: [book, czechEdition, companion, fieldNotes, courting],
+    sources: [muse, shadow, czechEdition, companion, fieldNotes, courting],
     practices: [
       {
-        id: "west-dream", source: "field-notes", kind: "method",
+        id: "west-ask-muse", source: "chapter-5", kind: "method", group: "facet",
+        cz: {
+          title: "Přinést otázku Múze",
+          when: "Když dvě rozumné možnosti dávají podobně dobrý smysl a rozhodnutí přesto zůstává živé.",
+          steps: [
+            "Pojmenuj své dilema jako otevřenou otázku. Jakou práci bys třeba chtěl dělat, kdybys měl vedle svých dovedností vzít vážně i svou zvídavost?",
+            "Na chvíli se ztiš a vybav si prostředí, kde bys v představě mohl oslovit Múzu. Polož tam svou otázku. Zůstaň u obrazu, rytmu nebo jediného slova, které přijde.",
+            "Poznamenej si, jak by se proměnilo rozhodování, kdybys obrazu věnoval pozornost. K otázce se můžeš vrátit i příští den.",
+          ],
+          reflect: "Co bys potřeboval prozkoumat ve skutečném světě?",
+        },
+        en: {
+          title: "Bring a question to the Muse",
+          when: "When two reasonable options make sense and the choice still feels alive.",
+          steps: [
+            "Give your dilemma the shape of an open question. What work might you choose if curiosity mattered alongside your existing skills?",
+            "Find a little quiet and imagine a place where you could address the Muse. Offer your question there. Stay with any image, rhythm, or single word that arrives.",
+            "Note how the image might change the way you approach the decision. You can return another day if all is quiet.",
+          ],
+          reflect: "What would you like to investigate in the world?",
+        },
+      },
+      {
+        id: "west-walk", source: "chapter-5", kind: "method", group: "facet",
+        cz: {
+          title: "Západní procházka za Milovaným",
+          when: "Na známé cestě v podvečer, když tě láká prozkoumat vlastní touhu.",
+          steps: [
+            "Nech svou pozornost zabloudit k něčemu, co na tebe působí podivně přitažlivě. Hladina lomu nebo silueta opuštěného stromu ti může stačit i z dálky.",
+            "Řekni tomu místu, co tě tam přivedlo a jakou vlastnost v něm potkáváš. Jaká slova bys zvolil, kdybys mu mohl vyznat náklonnost?",
+            "Nabídni mu vlastní krátký verš, melodii nebo pohyb. Zapiš si, co po tomto oslovení vidíš jinak.",
+          ],
+          reflect: "Která část téhle touhy patří k životu, do kterého teprve dorůstáš?",
+        },
+        en: {
+          title: "A West walk to the Beloved",
+          when: "On a familiar route in the early evening when you feel curious about a longing.",
+          steps: [
+            "Let your attention settle on something strangely compelling. A quarry pool or the silhouette of a lone tree can draw you even at a distance.",
+            "Tell the place what brought you there and which quality you encounter in it. How might you express affection for this place in your own words?",
+            "Offer a short verse, tune, or movement. Record one thing you see differently after addressing it.",
+          ],
+          reflect: "What part of this longing belongs to a life you are still growing into?",
+        },
+      },
+      {
+        id: "west-anima-animus", source: "chapter-5", kind: "adaptation", group: "facet",
+        cz: {
+          title: "Procházka s animou či animem",
+          when: "Plotkin zkoumá vnitřní protějšek pomocí ženskosti a mužskosti. Tady si můžeš vybrat kvalitu, která je pro tebe osobně málo známá.",
+          steps: [
+            "Představ si sebe s určitým málo prozkoumaným rysem. Jak se pohybuješ, když dáš víc místa třeba jemnosti, přímosti nebo smělosti?",
+            "Projdi krátký úsek jako tahle verze sebe. Co vyhledávají oči, jak držíš ruce a kde se ti chce zastavit? Nech změnu vyplynout z vlastního prožitku.",
+            "Vrať se ke své obvyklé chůzi a porovnej obě zkušenosti. Vyber situaci, kde bys chtěl nově poznanou kvalitu zkusit.",
+          ],
+          reflect: "Co tě na této podobě sebe překvapilo?",
+        },
+        en: {
+          title: "An anima or animus walk",
+          when: "Plotkin explores inner counterparts through masculinity and femininity. This adaptation lets you choose a quality personally unfamiliar to you.",
+          steps: [
+            "Imagine a version of yourself with a trait you have barely explored. What happens to your movement when you give tenderness, directness, or boldness more room?",
+            "Walk a short stretch as this version of yourself. Where do you look, how do you hold your hands, and where do you want to pause? Let your experience shape the movement.",
+            "Return to your usual walk and compare the two. Pick an occasion when you might try out the quality you discovered.",
+          ],
+          reflect: "What surprised you about this version of yourself?",
+        },
+      },
+      {
+        id: "west-muse-art", source: "chapter-5", kind: "method", group: "facet",
+        cz: {
+          title: "Nechat Múzu vést ruku",
+          when: "Když máš po ruce papír a kreslicí potřeby a nevíš, co tvořit.",
+          steps: [
+            "Začni na prázdném místě a polož první barvu nebo čáru tam, kam tě přitahuje. Zatím si nemusíš volit námět.",
+            "Pozoruj, jakou odpověď si tah vyžádá. Zkus druhou barvu, nečekanou zatáčku nebo kousek prázdného papíru.",
+            "Až budeš chtít skončit, pootoč obrázek. Napiš si titulek, který tě napadá teď, když už dílo vidíš.",
+          ],
+          reflect: "Který prvek tě při tvoření skutečně překvapil?",
+        },
+        en: {
+          title: "Let the Muse guide your hand",
+          when: "When you have drawing materials and no subject in mind.",
+          steps: [
+            "Choose an empty patch of paper. Put down a first colour or stroke wherever you feel drawn. A subject can wait.",
+            "Notice the response that mark invites. Try a second colour, an unexpected curve, or a stretch of untouched paper.",
+            "When you want to finish, turn the page around. Give it a title that suggests itself now that you can see what you made.",
+          ],
+          reflect: "Which element actually surprised you during the making?",
+        },
+      },
+      {
+        id: "west-shadow-dream", source: "chapter-9", kind: "adaptation", group: "protector",
+        cz: {
+          title: "Stínová postava a náprava",
+          when: "Plotkin v deváté kapitole popisuje vracející se protivníky ve svých snech. Zkus si jeho otázku na drobném příkladu.",
+          steps: [
+            "Vyber snovou postavu, která tě dráždila. Napiš přesné sloveso pro její jednání, třeba „skáče druhým do řeči“. Dej téhle domněnce o sobě zatím otazník.",
+            "Hledej jediný příklad z bdělého života, kde jsi jednal podobně. Jestli žádný nenajdeš, nech zápis otevřený. Jsou i jiné důvody, proč se určitá postava vrací.",
+            "Pokud poznáváš vlastní konkrétní skutek, zvaž malou nápravu. Třeba se vrátit k přerušenému rozhovoru a nechat druhého domluvit.",
+          ],
+          reflect: "Co se může v příštím skutečném setkání změnit?",
+        },
+        en: {
+          title: "A shadow figure and a repair",
+          when: "In chapter nine Plotkin describes recurring dream adversaries. Try one question from his account with an everyday example.",
+          steps: [
+            "Choose an irritating dream figure. Find a precise verb for its behaviour, perhaps “interrupts”. Put a question mark beside the idea that this might also describe you.",
+            "Look for a single waking example when you acted similarly. If you find none, leave the entry open. A recurring figure could have other meanings.",
+            "If you recognise something specific you did, consider a small repair. You might resume an interrupted conversation and give the other person time to finish.",
+          ],
+          reflect: "What might change in your next actual encounter?",
+        },
+      },
+      {
+        id: "west-dream", source: "field-notes", kind: "method", group: "facet",
         cz: {
           title: "Udržet sen v paměti",
           when: "Po probuzení, když zůstala třeba jen barva, místo nebo gesto.",
@@ -242,7 +452,7 @@ export const SOUTH_WEST_STUDY = {
         },
       },
       {
-        id: "west-dream-encounter", source: "companion", kind: "method",
+        id: "west-dream-encounter", source: "companion", kind: "method", group: "facet",
         cz: {
           title: "Setkat se s postavou ze snu",
           when: "Když si dobře vybavuješ snovou scénu a chceš se k ní dobrovolně vrátit.",
@@ -265,7 +475,7 @@ export const SOUTH_WEST_STUDY = {
         },
       },
       {
-        id: "west-courting", source: "courting", kind: "adaptation",
+        id: "west-courting", source: "courting", kind: "adaptation", group: "application",
         cz: {
           title: "Dopis vnitřnímu Milovanému",
           when: "Když tě opakovaně přitahuje hlas, obraz nebo kvalita, pro kterou dosud nemáš jméno.",
@@ -288,30 +498,32 @@ export const SOUTH_WEST_STUDY = {
         },
       },
       {
-        id: "west-projection", source: "courting", kind: "adaptation",
+        id: "west-projection", source: "chapter-9", kind: "method", group: "protector",
         cz: {
           title: "Prozkoumat obdiv nebo odpor",
-          when: "Když v tobě někdo opakovaně vyvolává neobyčejně silnou odezvu.",
+          when: "Pro snesitelnou každodenní situaci, kdy v tobě někdo opakovaně vyvolává silnou odezvu. Plotkin při hlubší práci se stínem zdůrazňuje oporu všech čtyř směrů i hodnotu zkušeného průvodce.",
           steps: [
             "Popiš jednu pozorovatelnou věc, kterou člověk udělal. Na jiný řádek napiš, jakou vlastnost jsi mu přiřkl. „Vstoupila do hovoru“ a „je nebojácná“ jsou dva různé údaje.",
-            "Zkus najít okamžik, kdy se podobná vlastnost projevila u tebe nebo kdy bys ji rád uplatnil. Pokud příklad nenajdeš, nech otázku otevřenou.",
+            "Při zkoumání projekce hledej vlastní konkrétní příklad. Kdy ses sám odvážil vstoupit do hovoru? Možná také obdivuješ člověka, který skutečně jednal odvážně.",
+            "Při zkoumání přenosu se ptej na vztah. Připomíná ti výměna starší zkušenost, kdy ti někdo brával slovo? Co dnes můžeš říct nebo udělat, co tehdy nešlo?",
             "Rozliš, co si můžeš vyzkoušet sám a jakou hranici chceš vůči druhému člověku zachovat. Pro oboje může být dobrý důvod.",
           ],
           reflect: "Co přibylo k tvému pohledu na sebe a co stále platí o té konkrétní události?",
         },
         en: {
           title: "Explore admiration or aversion",
-          when: "When someone repeatedly brings out an unusually strong response in you.",
+          when: "For a manageable everyday situation that repeatedly stirs a strong response. For deeper shadow work, Plotkin stresses access to the resources of all four directions and the value of an experienced guide.",
           steps: [
             "Describe one observable action. On another line put the quality you attributed to the person. “She entered the conversation” and “she is fearless” are different kinds of information.",
-            "Look for a time when you expressed a similar quality or wished you could. If you find no example, leave the question open.",
+            "To explore projection, look for a concrete example in your own life. When did you enter a conversation boldly? You may also admire someone who genuinely acted with courage.",
+            "To explore transference, ask about the relationship. Did this exchange recall a time when someone used to talk over you? What can you say or do now that was beyond your reach then?",
             "Distinguish what you might explore in yourself from any boundary you want to keep with the other person. There may be good reasons for both.",
           ],
           reflect: "What have you learned about yourself, and what remains true about the event?",
         },
       },
       {
-        id: "west-image-form", source: "courting", kind: "adaptation",
+        id: "west-image-form", source: "chapter-5", kind: "adaptation", group: "application",
         cz: {
           title: "Dát vnitřnímu obrazu tvar",
           when: "Když tě pronásleduje útržek snu nebo nápad, který zatím neumíš vysvětlit.",
@@ -334,7 +546,7 @@ export const SOUTH_WEST_STUDY = {
         },
       },
       {
-        id: "west-shadow-circle", source: "companion", kind: "method",
+        id: "west-shadow-circle", source: "companion", kind: "method", group: "protector",
         cz: {
           title: "Přizvat ke stínu východního Mudrce",
           when: "Když máš konkrétní tušení o vlastnosti, kterou u sebe těžko rozpoznáváš.",
@@ -357,7 +569,7 @@ export const SOUTH_WEST_STUDY = {
         },
       },
       {
-        id: "west-dusk", source: "companion", kind: "method",
+        id: "west-dusk", source: "companion", kind: "method", group: "facet",
         cz: {
           title: "Položit otázku za soumraku",
           when: "Večer, když se ti nějaké rozhodnutí pořád vrací ve stejné podobě.",

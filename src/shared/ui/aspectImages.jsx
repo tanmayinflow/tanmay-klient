@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { TmIcon } from "./icons.jsx";
 import { attachHoldSelection } from "./holdSelection.js";
 
 export function useAspectImageReorder(images, move, L) {
@@ -75,36 +74,4 @@ export async function uploadAspectImages(files, { resize, put, uid }) {
     } catch { failed++; }
   }
   return { added, failed };
-}
-
-export function createAspectImageUI({ useStore, L, resizeImageToBlob, r2Put, uid }) {
-  return function AspectImageAdd({ aspKey }) {
-    const st = useStore();
-    const latest = useRef(st);
-    latest.current = st;
-    const input = useRef(null);
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState("");
-    const add = async (files) => {
-      if (!files?.length || busy) return;
-      setBusy(true); setError("");
-      try {
-        const { added, failed } = await uploadAspectImages(files, { resize: resizeImageToBlob, put: r2Put, uid });
-        if (added.length) {
-          const data = (latest.current.coll.mandala || {})[aspKey] || {};
-          latest.current.setMandala({ [aspKey]: { ...data, imgs: [...(data.imgs || []), ...added] } });
-        }
-        if (failed) setError(L("Některé obrázky se nepodařilo nahrát. Zkus to znovu.", "Some images could not be uploaded. Please try again."));
-      } finally { setBusy(false); }
-    };
-    return <div className="tm-aspect-add" onClick={e => e.stopPropagation()} style={{ textAlign: "center", color: "#F4F0EB" }}>
-      <button type="button" aria-label={L("Přidat obrázky k aspektu", "Add images to this aspect")} disabled={busy} aria-busy={busy}
-        onClick={() => input.current?.click()} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, border: "none", background: "transparent", color: "inherit", cursor: busy ? "wait" : "pointer", opacity: busy ? .5 : .8 }}>
-        <TmIcon id="add" size={18} />
-      </button>
-      <input ref={input} type="file" accept="image/*" multiple hidden onChange={e => { add(e.target.files); e.target.value = ""; }} />
-      {busy && <div role="status">{L("Nahrávám…", "Uploading…")}</div>}
-      {error && <p role="alert">{error}</p>}
-    </div>;
-  };
 }
