@@ -39,7 +39,7 @@ export function createSourcesUI(deps) {
     C_TYPES, C_TYPE_LABEL, C_TYPE_COLOR, C_PROGRESS, C_PROG_LABEL, C_PROG_COLOR,
     C_CATS, C_CATS_BY_TYPE, C_CAT_LABEL, tmDocPramene,
     // volitelné · osobní aplikace je má, klientská zatím ne
-    ExportBtn = null, gdEmbed = null, NotesReader = null,
+    ExportBtn = null, gdEmbed = null, NotesReader = null, RecentEntries = null,
   } = deps;
 
   const tmGdEmbed = gdEmbed || (() => null);
@@ -293,6 +293,9 @@ export function createSourcesUI(deps) {
     const sortBy = meta.sort || "manual";
     const setSortBy = (v) => st.setPageMeta("prameny", { sort: v });
     const [sel, setSel] = useState(null);   // drawer id
+    React.useEffect(() => {
+      if (RecentEntries && sel && all.some((entry) => entry.id === sel)) st.pushRecent(sel, "content");
+    }, [sel]);
     const [full, setFull] = useState(null); // full-page id
     const [study,setStudy] = useState(false);
     React.useEffect(() => { if (full) tmToTop(); }, [full]);
@@ -493,6 +496,7 @@ export function createSourcesUI(deps) {
             <FiltrPill on={view === "Archiv"} onClick={() => setView(view === "Archiv" ? "Vše" : "Archiv")}>{LV("Archiv")} {counts["Archiv"] || 0}</FiltrPill>
             <HdrLbl>{L("Nastavení", "Settings")}</HdrLbl>
             <FiltrPill on={selecting} onClick={() => selecting ? exitSelectC() : setSelecting(true)}>{selecting ? L("Zrušit výběr", "Cancel selection") : L("☑ Vybrat", "☑ Select")}</FiltrPill>
+            {RecentEntries && !selecting && <RecentEntries items={live} kind="content" onOpen={setSel} inFilters />}
           </div>
         )}
 
