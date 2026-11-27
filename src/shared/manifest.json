@@ -467,7 +467,7 @@
     "tests/balance-audit.test.js": "6cdc01cdcae82cdf0eb7655ce5c2b3bf3c2d7d099a3cab476c9ee32d97dfaafa",
     "tests/booking-access-regressions.test.js": "512e80dfff6ddf9166ad8c1beb7b1d21333819cccda71b2f5b2ee44d2ed9539a",
     "tests/booking-calendar-editor.test.js": "8534c22174d9d42382ebe9c1faee500e686f32bc03aadd1671616e917f7a9cff",
-    "tests/booking-calendar-mutations.test.js": "137ee8f44dd4cf8dc50304914192af6c7970e28c009ba85adea5f9fe1eeae0ed",
+    "tests/booking-calendar-mutations.test.js": "ecc2440805261a300949d4f49c28bc9c793057f9ac6ab7e0c26847c121a28365",
     "tests/booking-concurrency.test.js": "0bd338cd3b745d24a67111396d0b37a11c7ea3f7a6cd69d9abf5e88fb60fb553",
     "tests/booking-managed-groups.test.js": "b99229869ef4b8314704d2551ef33b83218a59e34f7af363cad9993e97805d4b",
     "tests/booking-regressions.test.js": "47f3724a9421b367eaf84a32ae5c32c2de8be7bec8618fec794b02dc8a648a53",
