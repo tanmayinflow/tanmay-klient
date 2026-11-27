@@ -61,7 +61,8 @@ export function useAspectImageReorder(images, move, L) {
 }
 
 // Role-local storage is injected by each application; no shared gallery data.
-export async function uploadAspectImages(files, { resize, put, uid }) {
+export async function uploadAspectImages(files, deps) {
+  const { resize, put, uid } = deps;
   const added = [];
   let failed = 0;
   for (const file of Array.from(files || [])) {
