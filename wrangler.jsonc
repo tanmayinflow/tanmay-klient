@@ -9,6 +9,9 @@
     "GOOGLE_CALENDAR_CLIENT_ID": "1044384794752-qlgg6m33pb3mfcouedsgdmq79ld9lobl.apps.googleusercontent.com"
   },
   "main": "./worker/index.js",
+  "services": [
+    { "binding": "ASPECT_BOARDS", "service": "tanmay-web", "entrypoint": "AspectBoards" }
+  ],
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",
