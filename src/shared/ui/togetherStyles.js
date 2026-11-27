@@ -185,6 +185,11 @@ export const togetherStyles=`
 @keyframes tg-history-arrive{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:520px){.tm-together .tg-history-perspectives{grid-template-columns:1fr;gap:32px}}
 @media(prefers-reduced-motion:reduce){.tm-together .tg-history-perspectives{animation:none}}
+@media(max-width:360px){
+  .tm-together .tg-header .tm-page-title h1{padding-inline-end:100px}
+  .tm-together .tg-header button.tg-moon{max-width:96px}
+  .tm-together .tg-header button.tg-moon svg{max-width:100%;height:auto}
+}
 @media(max-width:380px){.tm-together .fields{grid-template-columns:1fr}.tm-together .tm-page-title h1{font-size:38px}.tm-together .tabs button{letter-spacing:.08em}.tm-together .tg-sharing-trigger{flex-basis:108px}.tm-together .tg-intro-row{gap:12px}}
 @media(prefers-reduced-motion:reduce){.tm-together *, .tg-moon svg{transition:none!important}.tg-moon:hover svg{transform:none}}
 `;
