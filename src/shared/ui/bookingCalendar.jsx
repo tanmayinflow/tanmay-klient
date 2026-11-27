@@ -122,10 +122,10 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
     const selectedStart = ["time", "booking", "block"].includes(editor?.type) ? calendarSelectionInstant(editor.date, editor.start, editor.startsAt) : null;
     const selectedEnd = ["time", "block"].includes(editor?.type) ? calendarSelectionInstant(editor.endDate, editor.end, editor.endsAt) : null;
     const offsetLabel = instant => new Intl.DateTimeFormat(language === "cs" ? "cs-CZ" : "en-GB", { timeZone: ZONE, timeZoneName: "shortOffset", hour: "2-digit", minute: "2-digit" }).format(instant);
-    const perform = async action => {
+    const perform = async (action, successMessage = L("Uloženo. Dostupnost klientů je aktualizovaná.", "Saved. Client availability is updated.")) => {
       if (saving) return;
       setSaving(true); setEditError("");
-      try { await action(); setEditor(null); setMessage(L("Uloženo. Dostupnost klientů je aktualizovaná.", "Saved. Client availability is updated.")); refresh(); }
+      try { await action(); setEditor(null); setMessage(successMessage); refresh(); }
       catch (e) { setEditError(e.messageText || describeError(e)); }
       finally { setSaving(false); }
     };
@@ -352,6 +352,11 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
       {!service && catalog && onServices && <button type="button" style={btn} onClick={onServices}>{L("Nastavit službu", "Set up a service")}</button>}
       {editor && <CenterSheet title={editor.type === "new" ? L("Nový termín", "New session") : editor.type === "booking" ? L("Rezervace", "Booking") : editor.type === "block" ? L("Volno", "Time off") : L("Úprava kalendáře", "Calendar editor")} onClose={() => { if (!saving) leaveWorkEditor(null); }}><fieldset ref={editorRef} tabIndex={-1} disabled={saving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, fontFamily: BODY_FONT }}>
         {editor.type !== "new" && <div style={{ ...row, justifyContent: "space-between", marginBottom: 12 }}><h3 style={{ fontFamily: DISPLAY_FONT, fontWeight: 400, fontSize: 23, margin: 0 }}>{editor.type === "work" ? L("Pracovní doba", "Working hours") : editor.type === "service" ? L("Délka sezení a začátky", "Duration and start times") : L("Čas v kalendáři", "Calendar time")}{editor.date ? ` · ${dayLabel(editor.date)}` : ""}</h3><button type="button" aria-label={L("Zavřít úpravy", "Close editor")} style={btn} disabled={saving} onClick={() => leaveWorkEditor(null)}><TmIcon id="close" size={16}/></button></div>}
+        {editor.type === "block" && <button type="button" style={{ ...btn, marginBottom: 16, color: t.danger }} disabled={saving}
+          onClick={() => perform(
+            () => fetchBooking(`/blocks/${encodeURIComponent(editor.item.id)}`, { method: "DELETE" }),
+            L("Volno bylo odstraněno.", "Time off removed.")
+          )}>{L("Odstranit volno", "Remove time off")}</button>}
         {editor.type === "new" && renderNewBooking?.(editor.seed, { onClose: () => setEditor(null), onDone: () => { setMessage(L("Termín uložen.", "Appointment saved.")); refresh(); } })}
         {["booking", "block"].includes(editor.type) && <>
           {editor.type === "booking" && <>
@@ -385,7 +390,6 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
             <p style={notice}>{L("Volno zablokuje nové rezervace klientů. Stávající rezervace zůstávají zachované.", "Time off blocks new client bookings. Existing bookings remain.")}</p>
           </>}
           <div style={{ ...row, marginTop: 18 }}><button type="button" style={primary} disabled={saving} onClick={saveMove}>{editor.type === "booking" ? L("Uložit rezervaci", "Save booking") : L("Uložit volno", "Save time off")}</button>
-            {editor.type === "block" && <button type="button" style={btn} disabled={saving} onClick={() => perform(() => fetchBooking(`/blocks/${encodeURIComponent(editor.item.id)}`, { method: "DELETE" }))}>{L("Znovu nabídnout tento čas", "Make this time available again")}</button>}
           </div>
         </>}
         {editor.type === "work" && <>
@@ -424,7 +428,7 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
           {data && data.bookings?.some(b => ACTIVE_CALENDAR_STATUSES.has(b.status) && b.startsAt < selectedEnd && b.endsAt > selectedStart) && <p role="status" style={{ ...notice, color: t.accentInk || t.accent }}>{L("V tomto čase už je rezervace. Pokud potřebuješ volno i místo ní, otevři a přesuň termín zvlášť.", "A booking already occupies this time. Open and move that booking separately if needed.")}</p>}
           <div style={row}><button type="button" style={primary} disabled={saving} onClick={saveTimeOff}>{L("Uložit volno", "Save time off")}</button>{(renderNewBooking || onNew) && <button type="button" style={btn} disabled={saving || selectedStart == null} onClick={() => { const seed = { dateISO: editor.date, startsAt: selectedStart, serviceId, locationId: effectiveLocationId || null, timeZone: ZONE }; if (renderNewBooking) openEditor({ type: "new", seed }); else onNew(seed); }}>{L("Nový termín", "New appointment")}</button>}</div>
         </>}
-        {editor.type === "busy" && <><p style={notice}>{B.hhmm(editor.item.startsAt, ZONE)}–{B.hhmm(editor.item.endsAt, ZONE)} · {editor.item.kind === "google" ? L("Obsazeno v Google kalendáři. Změnu proveď tam.", "Busy in Google Calendar. Change it there.") : editor.item.note || L("Volno", "Time off")}</p>{editor.item.kind === "block" && <button type="button" style={btn} disabled={saving} onClick={() => perform(() => fetchBooking(`/blocks/${encodeURIComponent(editor.item.id)}`, { method: "DELETE" }))}>{L("Znovu nabídnout tento čas", "Make this time available again")}</button>}</>}
+        {editor.type === "busy" && <><p style={notice}>{B.hhmm(editor.item.startsAt, ZONE)}–{B.hhmm(editor.item.endsAt, ZONE)} · {editor.item.kind === "google" ? L("Obsazeno v Google kalendáři. Změnu proveď tam.", "Busy in Google Calendar. Change it there.") : editor.item.note || L("Volno", "Time off")}</p></>}
         {editor.type === "service" && <><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}><label style={label}>{L("Délka sezení v minutách", "Session duration in minutes")}<NumberField theme={t} L={L} min="5" max="480" step="5" style={input} data-tm-surface="control" value={editor.duration} onChange={e => setEditor(x => ({ ...x, duration: Number(e.target.value) }))}/></label><label style={label}>{L("Nabízet začátek každých minut", "Offer a start every minutes")}<NumberField theme={t} L={L} min="5" max="480" step="5" style={input} data-tm-surface="control" value={editor.interval} onChange={e => setEditor(x => ({ ...x, interval: Number(e.target.value) }))}/></label></div><p style={notice}>{L("Například sezení trvá 60 minut, začátky můžeš nabízet po 30 minutách. Změna platí pro budoucí nové rezervace této služby. Existující termíny se nezkrátí.", "For example, a 60-minute session can start every 30 minutes. This applies to new bookings of this service. Existing sessions keep their duration.")}</p><button type="button" disabled={saving} style={primary} onClick={saveService}>{L("Uložit délku", "Save duration")}</button></>}
         {saving && <p role="status" style={notice}>{L("Ukládám…", "Saving…")}</p>}
         {editError && <div role="alert" style={{ ...notice, color: t.danger }}>{editError}<div style={{ ...row, marginTop: 8 }}><button type="button" style={btn} disabled={saving} onClick={() => { setEditor(null); refresh(); }}>{L("Obnovit kalendář", "Reload calendar")}</button></div></div>}
