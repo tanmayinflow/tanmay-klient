@@ -5,6 +5,7 @@ import { NORTH_EAST_STUDY } from "../src/shared/ui/mandalaNorthEast.js";
 import { SOUTH_WEST_STUDY } from "../src/shared/ui/mandalaSouthWest.js";
 
 const studies = { ...NORTH_EAST_STUDY, ...SOUTH_WEST_STUDY, center: CENTER_STUDY };
+const bookLocator = /https?:\/\/|\b(?:str\.|pp?\.|pages?|chapter)\s*\d|\d+\.\s*kapitol|kapitol\w*\s+\d/iu;
 
 for (const [aspect, study] of Object.entries(studies)) {
   test(`${aspect} practice cards all have a visible group, an identifiable source and both languages`, () => {
@@ -18,6 +19,16 @@ for (const [aspect, study] of Object.entries(studies)) {
       assert.ok(["method", "adaptation"].includes(card.kind), card.id);
       for (const copy of [card.cz, card.en]) {
         assert.ok(copy.title && copy.when && copy.reflect && copy.steps.length, card.id);
+      }
+    }
+  });
+
+  test(`${aspect} keeps URLs and book locations out of the practice instructions`, () => {
+    for (const language of ["cz", "en"]) {
+      assert.doesNotMatch(study.reading[language], bookLocator);
+      for (const card of study.practices) {
+        const { title, when, steps, reflect } = card[language];
+        assert.doesNotMatch([title, when, ...steps, reflect].join("\n"), bookLocator, card.id);
       }
     }
   });

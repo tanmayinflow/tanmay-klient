@@ -33,8 +33,8 @@ const eastParts = { id: "ch8", title: "Bill Plotkin · Wild Mind, 8 · Addicts a
 export const NORTH_EAST_STUDY = {
   north: {
     reading: {
-      cz: "V Divoké mysli otevři 2. kapitolu na str. 33, pro práci s věrnými vojáky 6. kapitolu na str. 129. Sever se učíš poznat podle toho, komu tvoje péče dává víc prostoru jednat.",
-      en: "In Wild Mind, chapter 2 starts on p. 33 and chapter 6 on Loyal Soldiers starts on p. 127. Watch for the kind of care that leaves someone more able to act for themselves.",
+      cz: "Vybav si, kdy ti někdo pomohl tak, že ses příště uměl rozhodnout sám. Co z jeho způsobu péče chceš předat dál?",
+      en: "Recall a time someone helped you in a way that left you able to decide for yourself next time. What about their care would you like to pass on?",
     },
     sources: [northFacet, northParts, appendix, czechBook, animas, essay],
     practices: [
@@ -237,8 +237,8 @@ export const NORTH_EAST_STUDY = {
   },
   east: {
     reading: {
-      cz: "V Divoké mysli začíná Východ ve 4. kapitole na str. 79. Osmá kapitola od str. 187 se věnuje únikovým hlasům. Při zkoumání sleduj, zda ti nadhled pomohl něco skutečně uvidět a vrátit se k tomu.",
-      en: "In Wild Mind, chapter 4 starts on p. 77. Chapter 8, on escape and addiction in the map, begins on p. 181. Notice whether taking a wider view helps you return to something you can now see more clearly.",
+      cz: "Vybav si, kdy ti odstup pomohl vrátit se k těžkému rozhovoru. Co jsi napodruhé viděl nebo slyšel, co ti předtím uniklo?",
+      en: "Recall a time when stepping back helped you return to a difficult conversation. What did you see or hear the second time that you had missed before?",
     },
     sources: [eastFacet, eastParts, appendix, czechBook, map, essay, animas],
     practices: [
