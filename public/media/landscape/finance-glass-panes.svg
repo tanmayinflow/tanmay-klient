@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" preserveAspectRatio="none">
+  <!-- Four 256 by 64 alpha masks. A translucent interior reveals the page
+       texture, while the narrow, continuous edge holds each pane together. -->
+  <g fill="white" fill-opacity=".31" stroke="white" stroke-opacity=".88"
+     stroke-width="1.3" stroke-linejoin="round">
+    <path d="M2 39 Q14 34 25 23 C49 4 68 5 97 10 S146 14 167 10
+             C190 5 209 6 223 14 Q238 22 253 25 Q244 29 233 38
+             C207 57 182 53 156 55 S118 61 90 54 C65 47 47 51 29 47
+             Q12 43 2 39Z"/>
+    <path transform="translate(0 64)" d="M3 29 Q21 25 41 14 C68 3 89 4 115 9
+             C140 14 152 12 174 11 C196 9 209 15 224 23 Q239 32 253 34
+             Q239 38 223 44 C203 53 177 57 156 54 C133 51 116 55 98 58
+             C71 62 50 55 34 46 Q18 37 3 29Z"/>
+    <path transform="translate(0 128)" d="M2 35 Q17 18 38 15 C54 13 68 15 82 10
+             C102 3 128 5 150 11 C171 16 186 11 201 12 Q220 13 253 22
+             Q238 32 222 42 C196 58 169 55 148 53 C127 51 102 60 81 58
+             C62 57 47 49 30 45 Q13 41 2 35Z"/>
+    <path transform="translate(0 192)" d="M3 29 Q20 27 39 17 C58 6 78 4 100 9
+             C121 14 141 8 162 6 C186 4 207 10 225 21 Q242 32 253 40
+             Q239 41 223 46 C202 54 182 59 155 56 C131 53 117 50 94 54
+             C67 59 49 52 34 45 Q17 36 3 29Z"/>
+  </g>
+</svg>
