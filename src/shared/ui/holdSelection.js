@@ -9,6 +9,33 @@ export function attachHoldSelection({ root, attr, tabAttr, stateRef, actionsRef,
   const stopEdge = () => { if (edgeTimer != null) win.clearInterval(edgeTimer); edgeTimer = null; edgeDir = 0; };
   const claim = () => { if (!claimed) { claimed = true; doc.body.classList.add('tm-nosel'); onGesture(true); } };
   const point = (event, ending = false) => session?.mouse ? event : Array.from((ending ? event.changedTouches : event.touches) || []).find(touch => touch.identifier === session?.touchId);
+  const markRow = (x, y) => {
+    clearTargets();
+    const row = rowAt(x, y);
+    if (!row || !root.contains(row) || row.getAttribute(attr) === session?.id) return null;
+    row.classList.add('tm-drop');
+    return row.getAttribute(attr);
+  };
+  // Image grids can extend beyond a phone screen, inside either a panel or the page.
+  const scrollRows = (s, x, y) => {
+    if (!s.scroller) {
+      let parent = root.parentElement;
+      while (parent && !(parent.scrollHeight > parent.clientHeight && /auto|scroll/.test(win.getComputedStyle(parent).overflowY))) parent = parent.parentElement;
+      s.scroller = parent || doc.scrollingElement;
+    }
+    const scroller = s.scroller;
+    if (!scroller) return;
+    const box = scroller === doc.scrollingElement ? { top: 0, bottom: win.innerHeight } : scroller.getBoundingClientRect();
+    const top = Math.max(0, box.top), bottom = Math.min(win.innerHeight, box.bottom);
+    const dir = y < top + 46 ? -1 : y > bottom - 46 ? 1 : 0;
+    s.lastX = x; s.lastY = y;
+    if (dir === edgeDir) return;
+    stopEdge(); edgeDir = dir;
+    if (dir) edgeTimer = win.setInterval(() => {
+      scroller.scrollTop += dir * 10;
+      markRow(s.lastX, s.lastY);
+    }, 24);
+  };
   const edgeScroll = (x, y) => {
     const strip = doc.querySelector('.tm-typerow');
     if (!strip) return stopEdge();
@@ -30,8 +57,10 @@ export function attachHoldSelection({ root, attr, tabAttr, stateRef, actionsRef,
     win.removeEventListener('keydown', keydown, true);
     doc.removeEventListener('visibilitychange', visibility);
   };
-  const finish = (commit = false) => {
+  const finish = (commit = false, dropPoint) => {
     const done = session;
+    const destination = commit && done?.moving && actionsRef.current.dropRow && dropPoint
+      ? markRow(dropPoint.clientX, dropPoint.clientY) : null;
     session = null;
     if (done?.timer != null) win.clearTimeout(done.timer);
     unbind(); stopEdge(); clearTargets();
@@ -41,6 +70,7 @@ export function attachHoldSelection({ root, attr, tabAttr, stateRef, actionsRef,
     onDragging(null);
     // Cancellation never files a note into the last hovered category.
     if (commit && done?.moving && done.mode === 'drag' && done.overTab != null) actionsRef.current.dropTab(done.ids, done.overTab);
+    if (destination != null) actionsRef.current.dropRow(done.id, destination);
   };
   function cancel() { finish(false); }
   function visibility() { if (doc.hidden) cancel(); }
@@ -51,7 +81,8 @@ export function attachHoldSelection({ root, attr, tabAttr, stateRef, actionsRef,
     s.armed = true; claim();
     const current = stateRef.current || {}, selected = current.sel || [];
     s.ids = current.selecting && selected.includes(s.id) ? [...selected] : [s.id];
-    s.mode = mouseMove || (current.selecting && selected.includes(s.id)) ? 'drag' : 'paint';
+    s.mode = actionsRef.current.dropRow || mouseMove || (current.selecting && selected.includes(s.id)) ? 'drag' : 'paint';
+    if (actionsRef.current.dropRow) onDragging(s.id);
     if (s.mode === 'paint') {
       s.add = true; s.last = s.id;
       if (current.selecting) actionsRef.current.paint(s.id, true);
@@ -116,6 +147,11 @@ export function attachHoldSelection({ root, attr, tabAttr, stateRef, actionsRef,
     if (!s.moving && dx <= 8 && dy <= 8) return;
     if (!s.moving) { s.moving = true; ghost = makeGhost?.(actionsRef.current.label(s.id), s.ids.length, p.clientX, p.clientY); onDragging(s.id); }
     if (ghost) { ghost.style.left = p.clientX + 'px'; ghost.style.top = p.clientY + 'px'; }
+    if (actionsRef.current.dropRow) {
+      scrollRows(s, p.clientX, p.clientY);
+      markRow(p.clientX, p.clientY);
+      return;
+    }
     clearTargets();
     if (tabAttr) edgeScroll(p.clientX, p.clientY);
     const tab = tabAttr && rowAt(p.clientX, p.clientY, '[' + tabAttr + ']');
@@ -126,13 +162,16 @@ export function attachHoldSelection({ root, attr, tabAttr, stateRef, actionsRef,
     const row = rowAt(p.clientX, p.clientY), over = row && root.contains(row) && row.getAttribute(attr);
     if (over && over !== s.id) actionsRef.current.reorder(s.id, over);
   }
-  function end(event) { if (session && point(event, true)) finish(true); }
+  function end(event) { const p = point(event, true); if (session && p) finish(true, p); }
   function click(event) {
     if (!suppressed) return;
     const row = event.target?.closest?.(selector), same = row?.getAttribute(attr) === suppressed.id;
     if (Date.now() >= suppressed.until) { suppressed = null; return; }
     // Suppress only the synthetic click for this hold. The next note stays tappable.
-    if (same) { suppressed = null; event.preventDefault(); event.stopPropagation(); }
+    // A release can synthesize a click on either tile or their common grid.
+    // A keyboard activation has no pointer detail and is a separate intent.
+    if (actionsRef.current.dropRow && event.detail === 0 && !event.pointerType) return;
+    if (same || actionsRef.current.dropRow) { suppressed = null; event.preventDefault(); event.stopPropagation(); }
   }
   function contextmenu(event) { if (session) event.preventDefault(); }
   function dragstart(event) { if (session) event.preventDefault(); }

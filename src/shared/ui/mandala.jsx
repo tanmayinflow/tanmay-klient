@@ -1,18 +1,20 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
-import { createAspectImageUI, uploadAspectImages } from "./aspectImages.jsx";
+import { createAspectImageUI, uploadAspectImages, useAspectImageReorder } from "./aspectImages.jsx";
+import { movedAspectImageOrder, orderedAspectImages } from "./aspectImageOrder.js";
 import { useAspectBoard, BoardThumbnail, BoardLightbox } from "./aspectBoard.jsx";
 import "./aspectGallery.css";
+import { AspectDisclosure, AspectStudyHeader } from "./aspectStudy.jsx";
+import { MandalaPracticeGuide } from "./mandalaPracticeGuide.jsx";
 import { LANDSCAPE_DIRECTION_INKS } from "./landscape.js";
 import { FONT_BODY, FONT_TAG, FONT_DISPLAY_EN as FONT_DISPLAY } from "./type.js";
-import { hexA } from "./color.js";
-import { iconBtn, fieldStyle } from "./components.js";
+import { createPracticeFiguresUI } from "./practiceFigures.jsx";
 import { useVrstva } from "./overlay.jsx";
 import { useGuideAction } from "./guideNavigation.jsx";
 
 // Shared visual and study content; all images, notes and counts use role-local storage.
-export function createMandalaUI({ useT, useStore, L, uid, resizeImageToBlob, r2Put, r2Del, imgSrc, Toggle, Eyebrow, BRAND }) {
+export function createMandalaUI({ useT, useStore, L, uid, resizeImageToBlob, r2Put, r2Del, imgSrc, Eyebrow, BRAND }) {
 const MANDALA_ASPECTS = [
   { key: "north", dir: "S", angle: -90, hue: "sage",
     cz: "Sever", en: "North", subCz: "Pečující dospělý", subEn: "Nurturing Generative Adult",
@@ -25,7 +27,7 @@ const MANDALA_ASPECTS = [
     promptCz: "Kdo ve mně se směje a vidí celek? Obrazy úsvitu, nevinnosti a nadhledu.",
     promptEn: "Who in me laughs and sees the whole? Images of dawn, innocence and perspective." },
   { key: "south", dir: "J", angle: 90, hue: "accent",
-    cz: "Jih", en: "South", subCz: "Divoký domorodý", subEn: "Wild Indigenous One",
+    cz: "Jih", en: "South", subCz: "Divoký domorodec", subEn: "Wild Indigenous One",
     glyphCz: "tělo, emoce, smysly, Erós", glyphEn: "body, emotion, senses, Eros",
     promptCz: "Kdo ve mně cítí a touží? Obrazy divokosti, vášně a plně vtěleného života.",
     promptEn: "Who in me feels and desires? Images of wildness, passion and embodied life." },
@@ -49,108 +51,90 @@ const MANDALA_HUE = (t, h) => {
 const MANDALA_CONTEXT = {
   north: [
     { tCz: "Esence · Pečující dospělý", tEn: "Essence · Nurturing Generative Adult", body: [
-      { pCz: "Severní faseta Self je vnitřní zralý dospělý: ten, kdo umí pečovat o sebe i o druhé bez podmínek a bez sebeobětování. Je empatický, soucitný a zároveň kompetentní — umí věci dotáhnout, vést, nést odpovědnost. Sever je poledne a dospělost: plodná síla, která dává život věcem větším, než jsme my sami.", pEn: "The North facet of the Self is the inner mature adult: the one able to care for self and others without conditions and without self-sacrifice. Empathic, compassionate, and competent — able to finish things, to lead, to carry responsibility. North is noon and adulthood: generative strength that gives life to things larger than ourselves." },
-      { ulCz: ["soucit a empatie — k druhým i k sobě", "kompetence: schopnost konat, dokončovat, vést", "plodnost (generativity): tvořit, co slouží životu", "zdravé hranice — péče, která nepohlcuje", "vnitřní rodič pro vlastní zraněné části"], ulEn: ["compassion and empathy — for others and for oneself", "competence: to act, complete, lead", "generativity: creating what serves life", "healthy boundaries — care that does not devour", "an inner parent for one's own wounded parts"] },
+      { pCz: "Když se na cestě ztratí dítě, někdo ho vyslechne, zapne mu bundu a pomůže mu najít rodiče. Plotkinův Sever spojuje vnímavost k druhému s dovedností udělat, co je zapotřebí. Patří sem i schopnost něco vypěstovat, naučit nebo postavit tak, aby to dál sloužilo druhým. V mapě Severu odpovídá zima a půlnoc.", pEn: "A child gets lost on a walk. Someone listens, fastens their coat and helps them find their parent. Plotkin's North brings sensitivity together with the practical skill to see a task through. It can also grow, teach or build something that others can draw on long afterwards. Winter and midnight correspond to the North in this map." },
+      { pCz: "Zkus si vybavit člověka, od něhož ses něco důležitého naučil. Co udělal ve chvíli, kdy na tebe čekal nejtěžší krok? Právě ten detail může napovědět, jak chceš svou péči dávat dál.", pEn: "Remember someone who helped you learn something that mattered. What did they do just as you faced the hardest step? That detail might tell you what kind of care you want to pass on." },
     ]},
-    { tCz: "Subosobnosti · Věrní vojáci", tEn: "Subpersonalities · Loyal Soldiers", body: [
-      { pCz: "Severní subosobnosti Plotkin nazývá Věrní vojáci: části, které v dětství vznikly, aby nás udržely v bezpečí a přijatelné pro okolí — tím, že nás zmenšily. Slouží dál i dávno po válce, jako japonský voják, který desítky let po kapitulaci stále brání svůj ostrov.", pEn: "Plotkin calls the North subpersonalities Loyal Soldiers: parts formed in childhood to keep us safe and acceptable — by shrinking us. They serve on long after the war, like the Japanese soldier still defending his island decades after surrender." },
-      { ulCz: ["Vnitřní kritik — útočí první, aby nás nikdo nepředběhl", "Perfekcionista — bezpečí skrze bezchybnost", "Konformista — splynout, nevyčnívat", "Pečovatel/kodependent — láska výměnou za sebeopuštění", "Poháněč (taskmaster) — hodnota jen skrze výkon"], ulEn: ["Inner Critic — strikes first so no one else can", "Perfectionist — safety through flawlessness", "Conformist — blend in, never stand out", "Caretaker/codependent — love traded for self-abandonment", "Taskmaster — worth only through performance"] },
-      { pCz: "Klíč Wild Mind: nejsou to nepřátelé. Jsou to vysloužilí strážci, kteří si zaslouží poděkování, uvítání doma — a novou, menší práci.", pEn: "The Wild Mind key: they are not enemies. They are veteran guardians who deserve thanks, a welcome home — and a new, smaller job." },
+    { tCz: "Rozpoznat věrné vojáky", tEn: "Recognize the Loyal Soldiers", body: [
+      { pCz: "Věrný voják je Plotkinovo označení pro naučený způsob ochrany. Vnitřní kritik může předvídat posměch a každou novou věc raději zavrhnout předem. Jiný hlas může naopak tvrdit, že už všechno víš, aby tě uchránil před rozpaky z učení. Ten, kdo všechno zařizuje za druhé, může doufat, že tak zůstane potřebný.", pEn: "A Loyal Soldier is Plotkin's name for a learned way of seeking protection. An inner critic might anticipate ridicule and dismiss every new idea in advance. Another voice might insist you already know everything to spare you the embarrassment of learning. A habitual rescuer may hope to stay indispensable by taking over." },
+      { pCz: "V reálné situaci se zeptej, před čím tě daná věta chrání a jakou cenu za poslušnost platíš. Zvenčí může tvoje přebírání práce vypadat jako velkorysost. Zeptej se také druhého, jak je prožívá on.", pEn: "In a particular situation, ask what that familiar sentence protects you from and what obedience costs. Taking over can look generous from the outside. Ask the other person how it feels to them." },
     ]},
-    { tCz: "Znaky · kdy vládne faseta, kdy voják", tEn: "Signs · facet present vs. soldier in charge", body: [
-      { ulCz: ["Faseta: klidná vřelost; konám, co slouží životu, bez potřeby pochvaly; hranice bez viny", "Voják: tvrdá samomluva; nadodpovědnost za všechny; vyhoření z péče; strach zklamat"], ulEn: ["Facet: calm warmth; doing what serves life without needing praise; boundaries without guilt", "Soldier: harsh self-talk; over-responsibility for everyone; caretaker burnout; fear of disappointing"] },
+    { tCz: "Rozpoznat péči v běžném dni", tEn: "Recognize care in everyday life", body: [
+      { ulCz: ["Někdo odmítne tvou pomoc. Dokážeš být dál v kontaktu a respektovat jeho rozhodnutí?", "Učedník něco pokazí. Dokážeš jeho chybu pojmenovat a nechat mu nástroj v ruce?", "Došly ti síly. Umíš požádat o pomoc stejně přímo, jako ji umíš nabídnout?"], ulEn: ["Someone declines your help. Can you stay in contact and respect their decision?", "An apprentice makes a mistake. Can you name it and leave the tool in their hands?", "You are stretched thin. Can you ask for help as directly as you offer it?"] },
     ]},
-    { tCz: "Praktiky kultivace", tEn: "Practices of cultivation", body: [
-      { ulCz: ["denní vděčnost — večer pojmenuj, co dnes dostalo péči", "soucit se sebou: mluv k sobě jako k milovanému dítěti", "mentoruj, služ, pečuj o místo či bytost — bez nároku na dík", "rozlišuj: pravá péče vs. kodependence (komu tím sloužím?)", "obřad uvítání vojáka: poděkuj, propusť ze služby, dej novou roli", "buď rodičem svým zraněným dětem z Jihu — Sever je drží"], ulEn: ["daily gratitude — each evening, name what received care today", "self-compassion: speak to yourself as to a beloved child", "mentor, serve, tend a place or being — expecting no thanks", "discern: true care vs. codependence (whom does this serve?)", "a soldier's welcome rite: thank, discharge, assign a new role", "parent your wounded children of the South — the North holds them"] },
-    ]},
-    { tCz: "Práce s vojáky", tEn: "Working with the Soldiers", body: [
-      { pCz: "Když se ozve kritik či poháněč: 1) zastav se a pojmenuj ho („mluví voják“), 2) poděkuj mu za dlouhou službu, 3) zeptej se, před čím mě tehdy chránil, 4) řekni mu pravdu dospělého: válka skončila, přežili jsme, 5) nabídni mu novou práci (korektor detailů, strážce spánku…). Vojáka nevyháníme — faseta Severa ho zaměstná.", pEn: "When the critic or taskmaster speaks: 1) pause and name it (\"a soldier speaking\"), 2) thank it for long service, 3) ask what it protected me from back then, 4) tell it the adult's truth: the war is over, we survived, 5) offer a new job (proofreader of details, guardian of sleep…). We never banish a soldier — the North facet employs him." },
-    ]},
-    { tCz: "Místo v celku", tEn: "Place in the whole", body: [
-      { pCz: "Sever stojí naproti Jihu: zralá péče drží divoké dítě, aby smělo cítit vše. Bez Severa se Jih topí v ranách; bez Jihu Sever tuhne v povinnost. Plodný dospělý je ten, kdo připraví ego na sestup k duši — celistvost předchází povolání.", pEn: "North faces South: mature care holds the wild child so it may feel everything. Without North, South drowns in its wounds; without South, North hardens into duty. The generative adult readies the ego for the descent to soul — wholeness precedes vocation." },
+    { tCz: "Formy praxe pro Sever", tEn: "Practices for the North", body: [{ practiceGuide: true }] },
+    { tCz: "Sever v celém kruhu", tEn: "North in the whole circle", body: [
+      { pCz: "Sever umí naslouchat i ostatním stranám. Pocit smutku z Jihu může upozornit, co někdo ztratil. Východ může položit otázku, která všem unikla. Západ může nabídnout obraz, pro který zatím nebyla slova. Na Severu můžeš z těhle podnětů udělat včasnou nabídku pomoci.", pEn: "North can listen to the other directions. Grief in the South may bring someone's loss to notice. East may ask a question everyone missed. West may supply an image for something that has been hard to put into words. North can turn what it hears into a timely offer of help." },
     ]},
   ],
   east: [
-    { tCz: "Esence · Nevinný mudrc", tEn: "Essence · The Innocent / Sage", body: [
-      { pCz: "Východní faseta je paradox: nevinné dítě a mudrc v jedné postavě. Lehkost, humor, úžas, jednoduchost — a zároveň jasná mysl, která vidí celek z výšky. Východ je úsvit a jaro: důvěra Blázna, který vykročí z útesu, a smích, který rozpouští těžkost. Skrze Východ se dotýkáme ducha, světla, Jednoho.", pEn: "The East facet is a paradox: innocent child and sage in one figure. Lightness, humor, wonder, simplicity — and a clear mind seeing the whole from above. East is dawn and spring: the Fool's trust stepping off the cliff, laughter dissolving heaviness. Through the East we touch spirit, light, the One." },
-      { ulCz: ["úžas a zvědavost prvního pohledu", "humor a hravost jako moudrost", "nadhled: vidět velký obraz, netonout v detailu", "prostá důvěra v život", "spojení vzhůru — duch, světlo, ticho"], ulEn: ["the wonder and curiosity of first sight", "humor and play as wisdom", "perspective: seeing the big picture, not drowning in detail", "simple trust in life", "connection upward — spirit, light, silence"] },
+    { tCz: "Esence · Nevinný mudrc", tEn: "Essence · The Innocent/Sage", body: [
+      { pCz: "Návštěvník města se zeptá, proč se dva sousedé zdraví jen přes plot. Místní si toho už dávno přestali všímat. Podobně pracuje Plotkinův Východ. Nevinnost dovolí podívat se na věc čerstvýma očima. Mudrc ji zasadí do širších souvislostí. V krajině tomu odpovídá první světlo a jaro.", pEn: "A visitor asks why two neighbors only ever greet each other across a fence. The locals stopped noticing long ago. Plotkin's East works something like this. Innocence lets you see something freshly. The Sage sees it against a wider horizon. In the landscape the associations are first light and spring." },
+      { pCz: "Šibal a Posvátný blázen jsou u Plotkina dvě další podoby Východu. Dovedou narušit vážnost, s níž skupina přijímá své zvyky. Zda vtip dodá rozhovoru prostor, můžeš poznat podle toho, kdo po něm dostane slovo.", pEn: "The Trickster and Sacred Fool are two other Eastern figures in Plotkin's account. They can interrupt the solemnity with which a group observes its customs. One clue to whether a joke opened a conversation is who gets to speak next." },
     ]},
-    { tCz: "Subosobnosti · Uprchlíci a závislí", tEn: "Subpersonalities · Escapists & Addicts", body: [
-      { pCz: "Východ zraněný utíká vzhůru a pryč: do blaženosti, rozptýlení, závislostí. Plotkin sem řadí všechny podoby úniku před tíhou vtěleného života.", pEn: "The wounded East flees upward and away: into bliss, distraction, addiction. Plotkin places here every form of escape from the weight of embodied life." },
-      { ulCz: ["Věčný mladík / dívka (puer, puella) — nikdy nepřistát, nezavázat se", "Duchovní obcházeč — meditací a světlem se vyhýbat bolesti", "Závislý — látky, obrazovky, práce, cokoliv, co odnese", "Blažený snílek — pořád jinde, nikdy tady"], ulEn: ["Eternal youth (puer, puella) — never landing, never committing", "Spiritual bypasser — using meditation and light to avoid pain", "The Addict — substances, screens, work, anything that carries away", "Blissed dreamer — always elsewhere, never here"] },
+    { tCz: "Rozpoznat únik", tEn: "Recognize escape", body: [
+      { pCz: "K ochranným hlasům Východu Plotkin řadí ty, které hledají úlevu v odchodu od přítomnosti. V jeho mapě sem patří i člověk, který mluví o duchovním nadhledu pokaždé, když přijde na řadu nepříjemný slib. Při zkoumání stačí pozorovat jednu vlastní situaci, například co se stalo minutu před tím, než jsi změnil téma.", pEn: "Plotkin locates voices that seek relief by leaving the present in the East. His examples include turning repeatedly to spiritual detachment when an inconvenient promise comes up. To explore the pattern, observe one ordinary situation of your own, such as what happened just before you changed the subject." },
     ]},
-    { tCz: "Znaky", tEn: "Signs", body: [
-      { ulCz: ["Faseta: lehké srdce, prostor kolem myšlenek, smích, který léčí; důvěra", "Uprchlík: chronické rozptýlení, honba za stavy, neschopnost dokončit a vtělit; disociace"], ulEn: ["Facet: a light heart, space around thoughts, healing laughter; trust", "Escapist: chronic distraction, state-chasing, inability to finish and incarnate; dissociation"] },
+    { tCz: "Rozpoznat nadhled v běžném dni", tEn: "Recognize perspective in everyday life", body: [
+      { ulCz: ["Při poradě se zasmějete. Vrátí se skupina k původní těžkosti s větší lehkostí?", "Máš na věc hotový názor. Který skutečný detail by tě ještě mohl překvapit?", "Při tichém sezení ses uklidnil. Co teď můžeš slyšet od člověka, který s tebou nesouhlasí?"], ulEn: ["A meeting breaks into laughter. Does the group return to its difficulty with a little more ease?", "Your opinion is settled. Which observable detail could still surprise you?", "Sitting quietly has helped you settle. What can you now hear from the person who disagrees with you?"] },
     ]},
-    { tCz: "Praktiky kultivace", tEn: "Practices of cultivation", body: [
-      { ulCz: ["ticho a dech — denní sezení beze snahy něco získat", "procházky úžasu: jdi ven a nech se překvapit jako poprvé", "smích a hra — vědomě, s druhými, bez účelu", "zjednodušuj: jednou týdně něco pusť (věc, úkol, názor)", "modlitba či dík celku — jakoukoli řečí, která je tvá", "pozorovatel: sleduj myšlenky jako počasí, nehodnoť"], ulEn: ["silence and breath — daily sitting with nothing to gain", "wonder walks: go out and be surprised as if for the first time", "laughter and play — deliberately, with others, purposeless", "simplify: once a week release something (an object, task, opinion)", "prayer or thanks to the whole — in whatever tongue is yours", "the witness: watch thoughts like weather, without judging"] },
-    ]},
-    { tCz: "Práce s uprchlíky", tEn: "Working with the Escapists", body: [
-      { pCz: "Závislost se neporáží válkou, ale přistáním. Když ucítíš tah pryč: 1) pojmenuj („uprchlík chce odletět“), 2) zeptej se, před jakou bolestí právě prchá, 3) dej bolesti minutu plné přítomnosti v těle (Jih pomáhá), 4) pak vědomě zvol malý pozemský čin — sklenice vody, dopsaná věta. Mudrc neutíká z světa; směje se uprostřed něj.", pEn: "Addiction is not defeated by war but by landing. When you feel the pull away: 1) name it (\"the escapist wants to fly\"), 2) ask what pain it is fleeing right now, 3) give that pain one minute of full bodily presence (the South helps), 4) then choose a small earthly act — a glass of water, a finished sentence. The sage does not flee the world; he laughs in the middle of it." },
-    ]},
-    { tCz: "Místo v celku", tEn: "Place in the whole", body: [
-      { pCz: "Východ stojí naproti Západu: světlo nadhledu vyvažuje temnou hlubinu duše. Bez Východu se Západ utopí ve vážnosti a stínu; bez Západu je Východ jen únik do světla. Mudrc dává sestupu k duši lehkost — a nevinnost je to, co se vrací z hlubin očištěné.", pEn: "East faces West: the light of perspective balances the dark depth of soul. Without East, the West drowns in gravity and shadow; without West, the East is mere flight into light. The sage lends lightness to the descent — and innocence is what returns from the depths, washed clean." },
+    { tCz: "Formy praxe pro Východ", tEn: "Practices for the East", body: [{ practiceGuide: true }] },
+    { tCz: "Východ v celém kruhu", tEn: "East in the whole circle", body: [
+      { pCz: "Na opačné straně kruhu pracuje Západ s konkrétním snem nebo obrazem. Východ dovede na okamžik pustit oblíbený výklad a všimnout si, co má právě před sebou. V témže rozhovoru tak může mít místo obraz, kterému nerozumíš, i obyčejná otázka, co se skutečně stalo.", pEn: "Across the circle, the West can stay with a particular dream or image. East can put down a favorite explanation long enough to notice what is present. A single conversation can have room for an image you do not understand and a plain question about what actually happened." },
     ]},
   ],
   south: [
-    { tCz: "Esence · Divoký domorodý", tEn: "Essence · Wild Indigenous One", body: [
-      { pCz: "Jižní faseta je naše plně vtělená, emocionální, smyslová přirozenost — bytost, která je doma v těle a v divoké zemi. Cítí naplno a nestydí se za to; zná Erós, instinkt, rytmus. Jih je léto a dětství v nejlepším smyslu: přítomná, pulzující živost, příbuznost se vším živým.", pEn: "The South facet is our fully embodied, emotive, sensuous nature — the being at home in the body and the wild earth. It feels fully and without shame; it knows Eros, instinct, rhythm. South is summer and childhood in the best sense: present, pulsing aliveness, kinship with all that lives." },
-      { ulCz: ["plné prožívání emocí — vztek, žal, radost i strach mají průtok", "smyslovost: chuť, dotek, vůně, pohyb", "instinkt a tělesná moudrost", "Erós — touha jako životní síla", "domorodost: patřím zemi, země patří mně"], ulEn: ["full feeling of emotions — anger, grief, joy and fear all flow", "sensuousness: taste, touch, scent, movement", "instinct and bodily wisdom", "Eros — desire as life force", "indigeneity: I belong to the earth, the earth belongs to me"] },
+    { tCz: "Esence · Divoký domorodec", tEn: "Essence · Wild Indigenous One", body: [
+      { pCz: "Na Jihu si můžeš všimnout, jak se tě svět dotýká dřív, než o něm začneš přemýšlet. Vůně deště tě vytáhne ke dveřím. Při pohledu na prázdné ptačí hnízdo tě píchne smutek. V Plotkinově mapě patří k Jihu poledne a léto. Slovo „domorodý“ tu pojmenovává lidskou zkušenost příslušnosti k živému světu. Příslušnost ke konkrétnímu původnímu národu má vlastní historii a význam.", pEn: "In the South you can notice the world reaching you before you have thought it through. The smell of rain draws you to the door. An empty bird’s nest brings a sudden pang. Plotkin associates South with midday and summer. Here, “indigenous” names a human capacity to feel at home among other living beings. Belonging to a particular Indigenous nation has its own history and meaning." },
+      { ulCz: ["Vjem. Co v tuto chvíli doslova cítíš na kůži nebo slyšíš?", "Emoce. Co se v tobě ozvalo a na čem ti záleží?", "Erós a hravost. Co tě přitahuje, těší nebo vybízí k pohybu?", "Příbuzenství. Kdo další tady žije a jak s ním sdílíš místo?"], ulEn: ["Sensation. What can you actually feel on your skin or hear right now?", "Feeling. What moved you, and what matters to you?", "Eros and play. What draws you closer, delights you, or sets you moving?", "Kinship. Who else lives here, and how do you share this place?"] },
     ]},
     { tCz: "Subosobnosti · Zraněné děti", tEn: "Subpersonalities · Wounded Children", body: [
-      { pCz: "Jižní subosobnosti jsou naše zraněné děti: části, které nesou původní rány — opuštění, zahanbení, strach. Nezmizely; čekají, až je někdo konečně uvidí. Když je nikdo nedrží, přebírají vládu skrze emoční záplavy.", pEn: "The South subpersonalities are our wounded children: the parts carrying the original wounds — abandonment, shame, fear. They never vanished; they wait to be finally seen. Unheld, they seize the throne through emotional floods." },
-      { ulCz: ["Opuštěné dítě — paniku blízkosti řeší přilnutím, nebo útěkem", "Zahanbené dítě — „se mnou je něco špatně“", "Vystrašené dítě — svět je nebezpečný, raději zmrznout", "Oběť — bezmoc jako jediný známý jazyk", "Rebel — vzdor místo hranice"], ulEn: ["Abandoned child — solves the panic of closeness by clinging, or fleeing", "Shamed child — \"something is wrong with me\"", "Frightened child — the world is dangerous, better to freeze", "Victim — helplessness as the only known tongue", "Rebel — defiance in place of a boundary"] },
+      { pCz: "Plotkin umisťuje na Jih také zraněné děti. Rozlišuje mimo jiné část, která se cítí odstrčená, a část, která prožívá opuštění. Jejich hlasy se mohou ozvat dnes, například když pro tebe u stolu nikdo neudělá místo.", pEn: "Plotkin also places Wounded Children in the South. Among them he distinguishes parts that experience being cast out and parts that feel orphaned. You might hear those voices today if no one makes room for you at a table." },
+      { ulCz: ["Co se teď opravdu stalo? Možná jsi přišel pozdě a všechny židle už byly obsazené.", "Co tomu chvíle přidala v tvém prožitku? Třeba pocit „zase se se mnou nepočítá“.", "Co bys od druhých potřeboval teď? Můžeš se zeptat, zda by se někdo neposunul."], ulEn: ["What actually happened? Perhaps you arrived late and all the chairs were taken.", "What did that moment bring up? Perhaps a familiar feeling of being left out again.", "What do you need from others now? You might ask someone to make room."] },
     ]},
-    { tCz: "Znaky", tEn: "Signs", body: [
-      { ulCz: ["Faseta: živé smysly, emoce tečou a odezní, tělo je domov; spřízněnost s divočinou", "Dítě u vlády: otupělost nebo zaplavení; sebelítostné smyčky; hledání zachránce; výbuchy"], ulEn: ["Facet: vivid senses, emotions flow and pass, the body is home; kinship with the wild", "Child on the throne: numbness or flooding; self-pity loops; rescuer-seeking; outbursts"] },
+    { tCz: "Jak poznat hlas Jihu", tEn: "Recognising the voice of South", body: [
+      { pCz: "Kamarád odřekne společný večer. Můžeš pocítit sevření v břiše a říct mu, že ses na něj těšil. Může se také ozvat obava, že se s tebou už nechce vídat. Zkus ty dvě věty vyslovit zvlášť. Co víš o svém pocitu a na co se potřebuješ zeptat jeho?", pEn: "A friend cancels an evening together. Your stomach tightens and you tell them you were looking forward to it. A fear that they no longer want to see you might surface too. Try saying the two things separately. What do you know about your own feeling, and what would you have to ask your friend?" },
     ]},
-    { tCz: "Praktiky kultivace", tEn: "Practices of cultivation", body: [
-      { ulCz: ["cíť emoce v těle: kde přesně sedí vztek? dej mu dech a zvuk", "toulky krajinou beze smyslu a cíle; bosé nohy na zemi", "smyslové ponoření: jez pomalu, dotýkej se kůry, plav v řece", "tancuj a hýbej se jako zvíře — bez zrcadla, bez formy", "rada s víc-než-lidským světem: mluv se stromem, s řekou, poslouchej", "tvoř z těla: hlína, rytmus, hlas — ne z hlavy"], ulEn: ["feel emotions in the body: where exactly does anger sit? give it breath and sound", "aimless wandering on the land; bare feet on the ground", "sensuous immersion: eat slowly, touch bark, swim the river", "dance and move like an animal — no mirror, no form", "council with the more-than-human world: speak to a tree, a river, and listen", "create from the body: clay, rhythm, voice — not from the head"] },
+    { tCz: "Praxe pro Jih", tEn: "South practices", body: [{ practiceGuide: true }] },
+    { tCz: "Jak odpovědět zraněnému dítěti", tEn: "Responding to a Wounded Child", body: [
+      { pCz: "Při práci s mladší částí doporučuje Plotkin přizvat ze Severu pečujícího dospělého. Můžeš dát oběma hlasům místo na papíře. První řádek nech části, která se bojí. Na druhý napiš odpověď dospělého, který slyšel přesně to, co řekla. Nakonec se vrať k tomu, co se děje kolem tebe a co můžeš ovlivnit dnes.", pEn: "When meeting a younger part, Plotkin particularly invites the Nurturing Adult from the North. You can give both voices a place on paper. Leave the first line to the part that feels afraid. On the second line write back as an adult who heard exactly what it said. End by noticing what is happening around you and what you can influence today." },
     ]},
-    { tCz: "Práce se zraněnými dětmi", tEn: "Working with the Wounded Children", body: [
-      { pCz: "Dítě se neléčí radou, ale náručí. Když emoce zaplaví: 1) poznej záplavu („to mluví dítě, ne dnešek“), 2) polož ruku na místo v těle, kde to žije, 3) řekni mu: vidím tě, jsi se mnou, už nejsi samo, 4) nech Sever (Pečujícího dospělého) držet a rozhodovat. Dítěti nevládne se — dítě se drží v náruči.", pEn: "A child is healed not by advice but by arms. When emotion floods: 1) recognize the flood (\"a child speaks, not this day\"), 2) place a hand where it lives in the body, 3) tell it: I see you, you are with me, you are no longer alone, 4) let the North (Nurturing Adult) hold and decide. A child is not to be ruled — a child is to be held." },
-    ]},
-    { tCz: "Místo v celku", tEn: "Place in the whole", body: [
-      { pCz: "Jih stojí naproti Severu: divoká živost dává zralé péči šťávu a pravdivost; péče dává divokosti bezpečný břeh. Bez Jihu je život správný, ale mrtvý. A právě jižní plné cítění je branou, kterou později prochází i setkání s duší na Západě.", pEn: "South faces North: wild aliveness gives mature care its sap and truth; care gives wildness a safe shore. Without the South, life is correct but dead. And it is the South's full feeling that later becomes the gate through which the West's encounter with soul must pass." },
+    { tCz: "Místo Jihu v celku", tEn: "South in the whole map", body: [
+      { pCz: "Když tě zasáhne, že na sídlišti zmizel starý strom, Jih ti dovolí pocítit ztrátu. Sever pak může zjistit, kdo se o výsadbu stará. První zkušenost dává druhému kroku osobní důvod. Ke stejné situaci může Západ přinést obraz a Východ otázku, která rozšíří tvůj pohled.", pEn: "When an old tree disappears from your street, South lets you feel the loss. North can find out who looks after the planting. The feeling gives the practical step a personal reason. West might bring an image to the same event, and East a question that widens your view." },
     ]},
   ],
   west: [
     { tCz: "Esence · Múza a Milovaný", tEn: "Essence · Muse-Beloved", body: [
-      { pCz: "Západní faseta je tvůrčí temnota: obraznost, sny, vize, romance s mystériem. Múza přináší obrazy z hlubin; vnitřní Milovaný nás vábí dál, než je pohodlné — směrem k duši. Západ je soumrak a podzim: čas sestupu, poezie, magie a významů, které rostou potmě.", pEn: "The West facet is creative darkness: imagination, dreams, visions, the romance with mystery. The Muse brings images up from the depths; the inner Beloved lures us further than is comfortable — toward soul. West is dusk and autumn: the time of descent, of poetry, magic, and meanings that grow in the dark." },
-      { ulCz: ["obraznost a snění — jazyk duše", "přitažlivost mystéria: co mě volá, i když nevím proč", "poetické vědomí: svět mluví v obrazech", "průvodce sestupu k duši a povolání", "plodná samota a noc"], ulEn: ["imagination and dreaming — the language of soul", "the pull of mystery: what calls me though I don't know why", "poetic consciousness: the world speaks in images", "guide of the descent to soul and vocation", "fertile solitude and night"] },
+      { pCz: "Někdy ti obraz zůstane v hlavě ještě dlouho poté, co se rozplyne zbytek snu. Plotkin takovou obraznost spojuje se Západem, soumrakem a podzimem. Jako Múza dává tato stránka člověka tvar něčemu, co ještě nedokázal vyslovit. Jako vnitřní Milovaný ho přitahuje k vlastnostem, které v sobě teprve objevuje.", pEn: "Sometimes an image stays with you long after the rest of a dream has gone. Plotkin links this kind of imagination to the West, dusk, and autumn. As Muse, this facet gives form to something you have yet to put into words. As Inner Beloved, it draws you toward qualities you are still discovering in yourself." },
+      { ulCz: ["Sen. Který detail přetrval až do rána?", "Touha. Co tě přitahuje, i když zatím nevíš proč?", "Tvorba. V jaké podobě se chce nápad objevit ve světě?", "Pomíjivost. Co se právě uzavírá a jaký obraz to v tobě vyvolává?"], ulEn: ["Dream. Which detail lasted into morning?", "Longing. What draws you before you know why?", "Creativity. What form might let an idea enter the world?", "Impermanence. What is ending, and what image does that bring to mind?"] },
     ]},
-    { tCz: "Subosobnosti · Stín a posedlá Múza", tEn: "Subpersonalities · Shadow & the possessed Muse", body: [
-      { pCz: "Na Západě žijí zapřené části — Stín. Vše, co jsme o sobě odmítli (temné i zlaté), nezmizelo: promítá se ven na druhé, nebo sabotuje zevnitř. A když je Múza zraněná, obraznost se obrací proti nám.", pEn: "In the West live the disowned parts — the Shadow. All we refused about ourselves (dark and golden alike) never vanished: it projects outward onto others, or sabotages from within. And when the Muse is wounded, imagination turns against us." },
-      { ulCz: ["Temný stín — co mě na druhých rozčiluje, nosím v sobě", "Zlatý stín — velikost, kterou obdivuji jinde, protože ji u sebe nesnesu", "Posedlý milenec — závislá zamilovanost, fantazie místo vztahu", "Katastrofista — obraznost unesená strachem", "Sabotér — vyhnaná část, která si bere slovo skrytě"], ulEn: ["Dark shadow — what enrages me in others, I carry myself", "Golden shadow — the greatness I admire elsewhere because I can't bear it in me", "Possessed lover — addictive infatuation, fantasy in place of relationship", "Catastrophizer — imagination hijacked by fear", "Saboteur — an exiled part that takes the floor in secret"] },
+    { tCz: "Subosobnosti · Stín a stínová já", tEn: "Subpersonalities · Shadow and shadow selves", body: [
+      { pCz: "Stín v Plotkinově mapě zahrnuje to, co o sobě obtížně vidíme. Může v něm být závist i odvaha, kterou přisuzujeme výhradně druhým. Obdiv nebo odpor nabízí důvod podívat se blíž. O tom, co za reakcí je, rozhoduje až konkrétní zkušenost.", pEn: "On Plotkin’s map the Shadow holds what is difficult to recognise in ourselves. That can include envy or a courage we attribute entirely to other people. Admiration or aversion gives us a reason to look closer. What lies behind the reaction is a question to explore in a particular situation." },
+      { pCz: "Když tě uchvátí, jak někdo bez zaváhání zpívá před lidmi, může jít zároveň o radost z jeho hlasu a o tvoji vlastní chuť zpívat. Když tě někdo skutečně shodí, můžeš pojmenovat jeho jednání a chránit si hranici.", pEn: "If someone sings easily in front of a crowd, your delight in their voice might sit alongside a wish of your own to sing. When someone actually belittles you, you can name what they did and protect your boundary." },
     ]},
-    { tCz: "Znaky", tEn: "Signs", body: [
-      { ulCz: ["Faseta: živé sny, obrazy, které táhnou; tvůrčí tah; snesitelná, plodná temnota", "Stín u vlády: opakované bitvy s týmiž typy lidí; tajné posedlosti; sebesabotáž v rozhodné chvíli"], ulEn: ["Facet: vivid dreams, images that pull; creative traction; bearable, fertile darkness", "Shadow in charge: repeated battles with the same kinds of people; secret obsessions; self-sabotage at the decisive hour"] },
+    { tCz: "Jak poznat hlas Západu", tEn: "Recognising the voice of West", body: [
+      { pCz: "Na otázku „Kam dál?“ může jako první přijít obraz přístavu za odlivu. Zkus u něj chvíli zůstat. Je v něm čekání na vodu, něco uvízlého na dně, nebo úleva, že je vidět na břeh? Vlastní asociace ukážou víc než slovníkové heslo o přístavech.", pEn: "In response to “Where next?” you might picture a harbour at low tide. Stay there a moment. Does it hold a wait for water, a boat stranded on the bottom, or relief at seeing the shore? Your own associations can tell you why this particular harbour has stayed with you." },
     ]},
-    { tCz: "Praktiky kultivace", tEn: "Practices of cultivation", body: [
-      { ulCz: ["snový deník: zapiš sen hned po probuzení, bez výkladu; vracej se do něj imaginací", "hlubinné obrazné cesty: nech obraz vést, nekontroluj děj", "lov projekcí: koho nesnáším / zbožňuji? co z toho je moje?", "psaní a umění z hlubin — poezie, kresba, bez cenzury", "noční chůze a sezení potmě; rozhovor s vnitřním Milovaným", "samoty v divočině: nech krajinu zrcadlit duši (zrcadlo divočiny)"], ulEn: ["dream journal: record on waking, no interpretation; re-enter by imagination", "deep imagery journeys: let the image lead, don't steer the plot", "projection hunting: whom do I despise / adore? what of that is mine?", "writing and art from the depths — poetry, drawing, uncensored", "night walking and sitting in the dark; conversing with the inner Beloved", "wilderness solitude: let the land mirror the soul (the wild as mirror)"] },
+    { tCz: "Praxe pro Západ", tEn: "West practices", body: [{ practiceGuide: true }] },
+    { tCz: "Jak zkoumat stín", tEn: "Exploring a possible shadow", body: [
+      { pCz: "Když máš podezření na projekci, pozvi si podle Plotkina i východního Mudrce. Ten se může zeptat, co víš, co si domýšlíš a co by situaci vysvětlilo ještě jinak. Pak zkus najít jeden doklad ve vlastním jednání. Tím zůstane otázka otevřená a zároveň zakotvená ve skutečnosti.", pEn: "When you suspect a projection, Plotkin also invites the Innocent/Sage from the East. It can ask what you know, what you have inferred, and what else might explain the scene. Then look for one example from your own behaviour. This keeps the question open and grounded in what happened." },
     ]},
-    { tCz: "Práce se Stínem", tEn: "Working with the Shadow", body: [
-      { pCz: "Stín se nesbírá silou, ale zvědavostí: 1) chyť projekci za ocas (silná reakce = stopa), 2) zeptej se: jak je tohle pravda o mně?, 3) najdi, kdy ta část musela do vyhnanství a co tehdy chránila, 4) dej jí tvar — postavu, jméno, obraz do galerie, 5) vrať jí místo u ohně: zlaté stíny se žijí, temné se drží za ruku. Co je přijato, přestává sabotovat a začíná sloužit.", pEn: "Shadow is gathered not by force but by curiosity: 1) catch the projection by the tail (a strong reaction = a trail), 2) ask: how is this true of me?, 3) find when that part was exiled and what it protected then, 4) give it a shape — a figure, a name, an image for the gallery, 5) return it a seat by the fire: golden shadows are to be lived, dark ones held by the hand. What is accepted stops sabotaging and begins to serve." },
-    ]},
-    { tCz: "Místo v celku", tEn: "Place in the whole", body: [
-      { pCz: "Západ stojí naproti Východu: hlubina proti světlu, sen proti smíchu. Západ je průvodce celé cesty k duši — právě tady se rodí obrazy povolání. Ale sestupovat smí jen ego, které drží i ostatní tři strany; jinak hlubina bere. Proto: celistvost nejdřív, pak sestup.", pEn: "West faces East: depth against light, dream against laughter. The West guides the whole journey to soul — it is here that the images of vocation are born. But only an ego held by the other three directions may descend; otherwise the deep takes. Hence: wholeness first, then descent." },
+    { tCz: "Místo Západu v celku", tEn: "West in the whole map", body: [
+      { pCz: "Západ přináší do středu obraz a s ním novou možnost. Východ pomůže podívat se na ni s odstupem. Jih pozná, co při tom cítíš, Sever dokáže udělat malý pokus ve skutečném světě. Třeba písnička ze snu tak postupně najde člověka, kterému ji můžeš zazpívat.", pEn: "West brings the center an image and a new possibility. East helps you see it in perspective. South notices what you feel and North can try something in the world. A song from a dream may eventually find someone you would like to sing it to." },
     ]},
   ],
   center: [
-    { tCz: "Mapa celku · čtyři fasety a střed", tEn: "The whole map · four facets and the center", body: [
-      { pCz: "Wild Mind kreslí psýché jako kruh čtyř světových stran. V každé bydlí jedna faseta celistvého Self — Pečující dospělý (S), Nevinný mudrc (V), Divoký domorodý (J), Múza a Milovaný (Z) — a vedle ní zraněné subosobnosti téhož směru. Uprostřed stojí ego: to, kdo říká „já“.", pEn: "Wild Mind draws the psyche as a circle of the four directions. In each lives one facet of the whole Self — Nurturing Adult (N), Innocent/Sage (E), Wild Indigenous One (S), Muse-Beloved (W) — and beside it the wounded subpersonalities of that same direction. In the center stands the ego: the one who says \"I\"." },
+    { tCz: "Kdo stojí uprostřed", tEn: "Who stands in the center", body: [
+      { pCz: "V Plotkinově mapě tvoří čtyři světové strany různé stránky jednoho Self. Uprostřed stojí ego, které říká „já“, vnímá, rozhoduje se a jedná. Když kupříkladu uvažuješ, zda přijmout další závazek, můžeš vyslechnout svou starost o druhé i vlastní únavu. Rozhodnutí uděláš ze středu.", pEn: "In Plotkin's map, the four directions are facets of one Self. The ego stands in the center. It says “I,” perceives, decides and acts. When considering another commitment, you can hear both your care for others and your own tiredness. You make the decision from the center." },
     ]},
-    { tCz: "Ego a Self", tEn: "Ego and Self", body: [
-      { pCz: "Cílem není ego zrušit, ale nechat ho dozrát: ego zakotvené ve všech čtyřech fasetách Plotkin nazývá trojrozměrným. Takové ego umí pečovat, smát se, cítit i snít — a proto unese setkání s duší.", pEn: "The aim is not to abolish the ego but to let it mature: an ego rooted in all four facets Plotkin calls three-dimensional. Such an ego can care, laugh, feel, and dream — and can therefore bear the encounter with soul." },
+    { tCz: "Co znamená trojrozměrné ego", tEn: "What makes the ego three-dimensional", body: [
+      { pCz: "Čtyři směry tvoří vodorovnou rovinu mapy. Svislá osa přidává nahoře Ducha, sounáležitost se vším, a dole Duši, jedinečný způsob, jakým tento člověk patří do světa. Těmto slovům dává Plotkin vlastní význam. O trojrozměrném egu mluví tam, kde člověk v běžném životě čerpá ze vztahu k Self, Duši i Duchu.", pEn: "The four directions form the horizontal plane. On the vertical axis, Spirit above concerns belonging to the whole. Soul below concerns a person's particular way of belonging to the world. Plotkin uses these terms in a specific sense. His three-dimensional ego draws on a relationship with Self, Soul and Spirit in everyday life." },
     ]},
-    { tCz: "Subosobnosti nejsou nepřátelé", tEn: "Subpersonalities are not enemies", body: [
-      { pCz: "Vojáci, děti, uprchlíci i stíny kdysi zachraňovali život. Neléčí se vyhnáním, ale uvítáním: faseta téhož směru je drží. Sever drží děti Jihu, Východ přistává s uprchlíky, Západ vítá stíny, Sever propouští vojáky ze služby.", pEn: "Soldiers, children, escapists and shadows once saved a life. They are healed not by exile but by welcome: the facet of the same direction holds them. North holds the children of the South, East lands with the escapists, West welcomes the shadows, North discharges the soldiers from duty." },
+    { tCz: "Jak naslouchat ochranným hlasům", tEn: "How to listen to protective voices", body: [
+      { pCz: "Podle Plotkina stojí za to zkoumat, před čím tě jednotlivé části chrání a co se pro tebe snaží uchovat. Když se po chybě ozve ostrý kritik, dej si chvíli na otázku, co si od té přísnosti slibuje. Pak vyzkoušej dostupné schopnosti z jiných míst kruhu. Při odpovědi můžeš potřebovat laskavost i pevnou hranici.", pEn: "Plotkin invites you to consider what different parts are trying to protect or preserve. When a sharp inner critic speaks after a mistake, ask what it hopes to accomplish by being so strict. Try the resources available elsewhere in the circle. An answer may call for both kindness and a firm boundary." },
     ]},
-    { tCz: "Rytmus praxe", tEn: "The rhythm of practice", body: [
-      { ulCz: ["ráno se nalaď: kterou fasetu dnes den potřebuje? („Dnes jsem…“)", "přes den zachytávej převraty: kdo právě mluví — faseta, nebo subosobnost?", "večer krátce poděkuj té straně, která nesla den", "obrazy v galeriích živí fasety — vracej se k nim, obměňuj je"], ulEn: ["tune in each morning: which facet does this day need? (\"Today I am…\")", "through the day, catch the coups: who is speaking — a facet, or a subpersonality?", "each evening, briefly thank the direction that carried the day", "the gallery images feed the facets — return to them, let them change"] },
-    ]},
-    { tCz: "Celistvost před duší", tEn: "Wholeness before soul", body: [
-      { pCz: "Celá mandala slouží jednomu: připravit člověka na rozhovor s vlastní duší a jejím povoláním. Divoká příroda je při tom zrcadlem. Kruh se neučí v knihovně, ale v krajině.", pEn: "The whole mandala serves one thing: to ready a person for the conversation with their own soul and its calling. Wild nature is the mirror in that in this — the circle is learned not in a library but on the land." },
+    { tCz: "Formy praxe pro Střed", tEn: "Practices for the Center", body: [{ practiceGuide: true }] },
+    { tCz: "Přenést kruh do obyčejného dne", tEn: "Carry the circle into an ordinary day", body: [
+      { ulCz: ["Ráno si vyber situaci, která dnes pravděpodobně nastane. Jakou schopnost v ní budeš potřebovat?", "Až situace přijde, všimni si, který hlas zareaguje první. Nech si čas na druhou odpověď.", "Večer si připomeň jeden přesný okamžik, kdy se ti výběr podařil. Co ti pomohlo? Vlastní odpověď si můžeš zapsat do Deníku."], ulEn: ["In the morning, choose a situation likely to come up today. Which capacity might it call for?", "When it arises, notice which voice responds first. Give a second response time to form.", "In the evening recall one precise moment when you were able to choose. What made that possible? You can record your own answer in the Journal."] },
     ]},
   ],
 };
@@ -320,36 +304,45 @@ function useGallery(aspKey, st) {
   const board = useAspectBoard(aspKey);
   const [zoom, setZoom] = useState(null);
   const data = st.coll.mandala?.[aspKey] || {};
-  const hidden = new Set(data.hiddenBoardImages || []);
-  const imgs = [...(data.imgs || []), ...board.entries.filter(im => !hidden.has(im.id))];
+  const imgs = orderedAspectImages(data, board.entries);
   const latestStore = React.useRef(st);
   latestStore.current = st;
+  const sort = useAspectImageReorder(imgs, (source, target) => {
+    const store = latestStore.current;
+    const current = store.coll.mandala?.[aspKey] || {};
+    const imageOrder = movedAspectImageOrder(current.imageOrder, orderedAspectImages(current, board.entries), source, target);
+    if (!imageOrder) return false;
+    store.setMandala({ [aspKey]: { ...current, imageOrder } });
+    return true;
+  }, L);
 
   const remove = im => st.ask(L("Odebrat obrázek z mandaly?", "Remove image from the mandala?"), () => {
     const store = latestStore.current;
     const current = store.coll.mandala?.[aspKey] || {};
+    const orderPatch = Array.isArray(current.imageOrder) ? { imageOrder: current.imageOrder.filter(id => id !== im.id) } : {};
     if (im.full) {
       const hiddenBoardImages = [...new Set([...(current.hiddenBoardImages || []), im.id])];
-      store.setMandala({ [aspKey]: { ...current, hiddenBoardImages } });
+      store.setMandala({ [aspKey]: { ...current, ...orderPatch, hiddenBoardImages } });
     } else {
-      store.setMandala({ [aspKey]: { ...current, imgs: (current.imgs || []).filter(x => x.id !== im.id) } });
+      store.setMandala({ [aspKey]: { ...current, ...orderPatch, imgs: (current.imgs || []).filter(x => x.id !== im.id) } });
       if (im.r2id) r2Del(im.r2id);
     }
   });
   const thumbnail = (im, index) => {
-    const label = L("Zvětšit obrázek", "Enlarge image") + " " + (index + 1);
-    return <BoardThumbnail src={im.thumb || imgSrc(im)} label={label} onOpen={() => setZoom({ src: im.full || imgSrc(im), label })} />;
+    const label = (sort.arranging ? L("Obrázek", "Image") : L("Zvětšit obrázek", "Enlarge image")) + " " + (index + 1);
+    return <BoardThumbnail src={im.thumb || imgSrc(im)} label={label} selected={sort.arranging ? sort.picked === im.id : undefined}
+      onOpen={() => sort.choose(im.id, () => setZoom({ src: im.full || imgSrc(im), label }))} />;
   };
   const lightbox = zoom && <BoardLightbox {...zoom} closeLabel={L("Zavřít obrázek", "Close image")} onClose={() => setZoom(null)} />;
   const retry = board.error && <button type="button" className="tm-text-btn" style={{ color: "inherit" }} onClick={e => { e.stopPropagation(); board.retry(); }}>{L("Načíst obrázky znovu", "Reload images")}</button>;
-  return { imgs, remove, thumbnail, lightbox, retry };
+  return { imgs, remove, thumbnail, lightbox, retry, sort };
 }
 
 function TmGalVeil({ aspKey, onClose, onDeeper }) {
   const { t } = useT();
   const st = useStore();
   const asp = MANDALA_ASPECTS.find((a) => a.key === aspKey);
-  const { imgs, remove, thumbnail, lightbox, retry } = useGallery(aspKey, st);
+  const { imgs, remove, thumbnail, lightbox, retry, sort } = useGallery(aspKey, st);
   const col = MANDALA_HUE(t, asp.hue);
   const [out, setOut] = useState(false);
   const veilRef = React.useRef(null);
@@ -366,14 +359,16 @@ function TmGalVeil({ aspKey, onClose, onDeeper }) {
         {retry && <div style={{ textAlign: "center", color: BRAND.linen }}>{retry}</div>}
         <div className="tm-aspect-actions">
           <AspectImageAdd aspKey={aspKey} />
+          {sort.toggle}
           <button type="button" className="tm-aspect-enter tm-veil-img" onClick={e => { e.stopPropagation(); leave(onDeeper); }} style={{ display: "block", minHeight: 44, border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12, color: BRAND.linen }}>{L("Vstoupit do aspektu", "Enter the aspect")}</button>
         </div>
+        {sort.feedback}
         {imgs.length === 0 ? (
           <div className="tm-veil-img" style={{ textAlign: "center", fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 15, color: "rgba(244,240,235,0.75)", maxWidth: 460, margin: "60px auto", lineHeight: 1.7 }}>{L(asp.promptCz, asp.promptEn)}</div>
         ) : (
-          <div className="tm-aspect-grid">
+          <div ref={sort.grid} className="tm-aspect-grid" onClick={e => e.stopPropagation()}>
             {imgs.map((im, i) => (
-              <div key={im.id} className="tm-veil-img" style={{ animationDelay: `${Math.min(i * 55, 500)}ms` }}>
+              <div key={im.id} {...sort.tileProps(im.id)} className="tm-veil-img" style={{ animationDelay: `${Math.min(i * 55, 500)}ms` }}>
                 {thumbnail(im, i)}
                 {st.editMode && <button aria-label={L("Odebrat obrázek", "Remove image")} onClick={e => { e.stopPropagation(); remove(im); }} style={{ position: "absolute", top: 7, right: 7, width: 32, height: 32, borderRadius: "50%", border: "none", background: "rgba(28,28,26,0.64)", color: BRAND.linen, cursor: "pointer" }}><FamilyIcon id="close" size={16} /></button>}
               </div>
@@ -396,7 +391,7 @@ function TmAspectStudy({ aspKey, onBack }) {
   const col = isCore ? t.accent : MANDALA_HUE(t, asp.hue);
   const sections = MANDALA_CONTEXT[aspKey] || [];
   const data = isCore ? null : ((st.coll.mandala || {})[aspKey] || { note: "", imgs: [] });
-  const { imgs, remove, thumbnail, lightbox, retry } = useGallery(aspKey, st);
+  const { imgs, remove, thumbnail, lightbox, retry, sort } = useGallery(aspKey, st);
   const [busy, setBusy] = useState(false);
   const [imageError, setImageError] = useState(false);
   const latestStore = React.useRef(st);
@@ -415,47 +410,29 @@ function TmAspectStudy({ aspKey, onBack }) {
     } finally { setBusy(false); }
   };
   return (
-    <div className="tm-view" style={{ maxWidth: 720, margin: "0 auto", animation: "tmfade .45s ease-out" }}>
-      <button onClick={onBack} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13, padding: "0 0 12px" }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Mandala", "Mandala")}</button>
-      {isCore ? (
-        <div style={{ margin: "6px 0 18px" }}>
-          <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.3em", fontSize: 12, color: col }}>{L("střed", "center")}</div>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: t.heading, marginTop: 5 }}>{L("Celistvé Self", "The whole Self")}</div>
-        </div>
-      ) : (
-        /* Práh aspektu · plné pole domu s tichou stopou své světové strany.
-           Dřív tu ležela přibalená fotografie a přes ni ztmavovací přechod,
-           aby na ní šel přečíst text. Ani jedno tu nemá co dělat. */
-        <div className="tm-aspect-hero" style={{ position: "relative", borderRadius: 14, overflow: "hidden", height: 150, marginBottom: 18, background: t.hero, border: `1px solid ${t.borderSoft}` }}>
-          <div style={{ position: "absolute", inset: 0, background: hexA(MANDALA_HUE(t, asp.hue), 0.14) }} />
-          <div style={{ position: "absolute", left: 20, top: 18, width: 34, height: 1, background: t.heroLine }} />
-          <div style={{ position: "absolute", left: 20, right: 20, bottom: 16 }}>
-            <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.3em", fontSize: 12, color: t.heroInkSoft }}>{L(asp.cz, asp.en)} · {asp.dir}</div>
-            <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 28, color: t.heroInk, marginTop: 3 }}>{L(asp.subCz, asp.subEn)}</div>
-            <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.heroInkSoft, marginTop: 2 }}>{L(asp.glyphCz, asp.glyphEn)}</div>
-          </div>
-        </div>
-      )}
+    <div className="tm-view tm-study" style={{ animation: "tmfade .45s ease-out" }}>
+      <AspectStudyHeader aspect={asp} onBack={onBack} L={L} />
       {sections.map((sec, i) => (
-        <Toggle key={i} summary={L(sec.tCz, sec.tEn)} color="orange" open={i === 0}>
-          {sec.body.map((b, j) => (
-            b.pCz != null
-              ? <p key={j} style={{ margin: "0 0 10px", lineHeight: 1.75 }}>{L(b.pCz, b.pEn)}</p>
-              : <ul key={j} style={{ margin: "0 0 10px", paddingLeft: 20, lineHeight: 1.75 }}>{(L(b.ulCz, b.ulEn) || []).map((li, k) => <li key={k} style={{ marginBottom: 3 }}>{li}</li>)}</ul>
-          ))}
-        </Toggle>
+        <AspectDisclosure key={aspKey + i} title={L(sec.tCz, sec.tEn)}>
+          {sec.body.map((b, j) => {
+            if (b.practiceGuide) return <MandalaPracticeGuide key={j} aspect={aspKey} L={L} />;
+            if (b.pCz != null) return <p key={j} style={{ margin: "0 0 10px", lineHeight: 1.75 }}>{L(b.pCz, b.pEn)}</p>;
+            return <ul key={j} style={{ margin: "0 0 10px", paddingLeft: 20, lineHeight: 1.75 }}>{(L(b.ulCz, b.ulEn) || []).map((li, k) => <li key={k} style={{ marginBottom: 3 }}>{li}</li>)}</ul>;
+          })}
+        </AspectDisclosure>
       ))}
-      {isCore && <div style={{ marginTop: 18 }}><MalaCounter /></div>}
+      {isCore && <PracticeFigures />}
       {!isCore && (
         <div style={{ marginTop: 22 }}>
-          <Eyebrow>{L("Galerie aspektu", "The aspect's gallery")}</Eyebrow>
+          <div className="tm-aspect-study-tools"><Eyebrow>{L("Galerie aspektu", "The aspect's gallery")}</Eyebrow>{sort.toggle}</div>
           {retry}
           {lightbox}
           {imageError && <p role="alert">{L("Některé obrázky se nepodařilo nahrát. Zkus to znovu.", "Some images could not be uploaded. Please try again.")}</p>}
           <textarea value={data.note || ""} onChange={(e) => st.setMandala({ [aspKey]: { ...data, note: e.target.value } })} placeholder={L("Alter ega, kvality, mýty, na které se ladím…", "Alter egos, qualities, myths I tune into…")} rows={2} style={{ width: "100%", background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6, padding: "10px 12px", outline: "none", resize: "vertical", margin: "10px 0 14px" }} />
-          <div className="tm-aspect-grid">
+          {sort.feedback}
+          <div ref={sort.grid} className="tm-aspect-grid">
             {imgs.map((im, i) => (
-              <div key={im.id} className="tm-mand-card" style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: `1px solid ${t.borderSoft}`, background: t.card, boxShadow: t.shadow }}>
+              <div key={im.id} {...sort.tileProps(im.id)} className="tm-mand-card" style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: `1px solid ${t.borderSoft}`, background: t.card, boxShadow: t.shadow }}>
                 {thumbnail(im, i)}
                 {st.editMode && <button onClick={() => remove(im)} aria-label={L("Odebrat obrázek", "Remove image")} style={{ position: "absolute", top: 6, right: 6, width: 32, height: 32, borderRadius: "50%", border: "none", background: "rgba(28,28,26,0.58)", color: BRAND.linen, cursor: "pointer" }}><FamilyIcon id="close" size={16} /></button>}
               </div>
@@ -472,45 +449,8 @@ function TmAspectStudy({ aspKey, onBack }) {
   );
 }
 
-// Recitation counts remain private to the current account.
+const PracticeFigures = createPracticeFiguresUI({ useT, useStore, L, uid });
 
-function MalaCounter({ onBack }) {
-  const { t } = useT();
-  const st = useStore();
-  const list = st.malaList();
-  const [name, setName] = useState("");
-  const total = list.reduce((s, m) => s + (m.count || 0), 0);
-  const addD = () => { const v = name.trim(); if (!v) return; st.malaAddDeity(v); setName(""); };
-  return (
-    <div className="tm-view" style={{ maxWidth: 620, margin: "0 auto" }}>
-      {onBack && <button onClick={onBack} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13, padding: "0 0 8px" }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Mandala", "Mandala")}</button>}
-      <div style={{ textAlign: "center", margin: "10px 0 22px" }}>
-        <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.34em", fontSize: 12, color: t.sage }}>{L("recitace", "recitation")}</div>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: t.heading, marginTop: 6 }}>{L("Malá", "Mala")}</div>
-        <div style={{ fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 12, color: t.textMuted, marginTop: 4 }}>{L("Jedno ťuknutí · jedna dokončená malá (108).", "One tap · one completed mala (108).")}</div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {list.map((m) => (
-          <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, background: t.card, border: `1px solid ${t.borderSoft}`, borderRadius: 12, padding: "14px 16px", boxShadow: t.shadow }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, color: t.heading, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted }}>{m.count || 0} {L("malá", "malas")} · {(m.count || 0) * 108} {L("recitací", "recitations")}</div>
-            </div>
-            <button onClick={() => st.malaAdd(m.id, -1)} title={L("Opravit −1", "Correct −1")} style={{ ...iconBtn(t), width: 30, height: 30, fontSize: 15, border: "none", color: t.textMuted }}>−</button>
-            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 28, color: t.heading, minWidth: 38, textAlign: "center" }}>{m.count || 0}</span>
-            <button onClick={() => st.malaAdd(m.id, 1)} title={L("Přidat malá", "Add a mala")} style={{ width: 46, height: 46, border: "none", background: "transparent", color: t.accentInk || t.accent, cursor: "pointer", fontSize: 22, lineHeight: 1, flexShrink: 0 }}><FamilyIcon id="add" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
-            {st.editMode && <button onClick={() => st.ask(L(`Odebrat ${m.name}?`, `Remove ${m.name}?`), () => st.malaRemoveDeity(m.id))} style={{ ...iconBtn(t), border: "none", color: t.textMuted }}><FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
-          </div>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addD(); }} placeholder={L("Přidat božstvo…", "Add a deity…")} style={{ ...fieldStyle(t), flex: 1 }} />
-        {name.trim() && <button onClick={addD} style={{ background: t.accent, color: t.onAccent, border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: FONT_BODY, fontSize: 13 }}>{L("Přidat", "Add")}</button>}
-      </div>
-      {total > 0 && <div style={{ fontFamily: FONT_BODY, fontSize: 12, color: t.textMuted, textAlign: "center", marginTop: 16 }}>{L("Celkem", "Total")}: {total} {L("malá", "malas")} · {total * 108} {L("recitací", "recitations")}</div>}
-    </div>
-  );
-}
 function PageMandala({ go }) {
   const { t } = useT();
   const [stage, setStage] = useState({ v: "wheel" }); // wheel | gal | study | mala
