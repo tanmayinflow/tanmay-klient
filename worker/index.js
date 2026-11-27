@@ -317,7 +317,7 @@ const CSP = [
   "script-src 'self' '" + INDEX_INLINE_SCRIPT_HASH + "' https://accounts.google.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: blob: https://covers.openlibrary.org https://m.media-amazon.com https://tanmaypractice.com/apple-touch-icon.png https://tanmaypractice.com/icon-192.png https://tanmaypractice.com/icon-512.png https://tanmaypractice.com/icon-maskable-512.png https://app.notion.com/images/page-cover/nasa_orion_nebula.jpg https://app.notion.com/images/page-cover/gradients_2.png",
+  "img-src 'self' data: blob: https://covers.openlibrary.org https://m.media-amazon.com https://tanmaypractice.com/apple-touch-icon.png https://tanmaypractice.com/icon-192.png https://tanmaypractice.com/icon-512.png https://tanmaypractice.com/icon-maskable-512.png",
   "media-src 'self' data: blob:",
   "connect-src 'self' https://openlibrary.org https://www.omdbapi.com https://www.googleapis.com https://accounts.google.com https://photon.komoot.io",
   "worker-src 'self'",
