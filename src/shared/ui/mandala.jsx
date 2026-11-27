@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
 import { createAspectImageUI, uploadAspectImages } from "./aspectImages.jsx";
+import { useAspectBoard, BoardThumbnail, BoardLightbox } from "./aspectBoard.jsx";
 import { LANDSCAPE_DIRECTION_INKS } from "./landscape.js";
 import { FONT_BODY, FONT_TAG, FONT_DISPLAY_EN as FONT_DISPLAY } from "./type.js";
 import { hexA } from "./color.js";
@@ -313,11 +314,41 @@ function TmMandalaWheel({ onPick, onCore }) {
 // Závoj · the world falls into shadow; only the aspect's images remain.
 // One click anywhere goes deeper into the hall; × or Escape returns.
 const AspectImageAdd = createAspectImageUI({ useStore, L, resizeImageToBlob, r2Put, uid });
+
+function useGallery(aspKey, st) {
+  const board = useAspectBoard(aspKey);
+  const [zoom, setZoom] = useState(null);
+  const data = st.coll.mandala?.[aspKey] || {};
+  const hidden = new Set(data.hiddenBoardImages || []);
+  const imgs = [...(data.imgs || []), ...board.entries.filter(im => !hidden.has(im.id))];
+  const latestStore = React.useRef(st);
+  latestStore.current = st;
+
+  const remove = im => st.ask(L("Odebrat obrázek z mandaly?", "Remove image from the mandala?"), () => {
+    const store = latestStore.current;
+    const current = store.coll.mandala?.[aspKey] || {};
+    if (im.full) {
+      const hiddenBoardImages = [...new Set([...(current.hiddenBoardImages || []), im.id])];
+      store.setMandala({ [aspKey]: { ...current, hiddenBoardImages } });
+    } else {
+      store.setMandala({ [aspKey]: { ...current, imgs: (current.imgs || []).filter(x => x.id !== im.id) } });
+      if (im.r2id) r2Del(im.r2id);
+    }
+  });
+  const thumbnail = (im, index) => {
+    const label = L("Zvětšit obrázek", "Enlarge image") + " " + (index + 1);
+    return <BoardThumbnail src={im.thumb || imgSrc(im)} label={label} onOpen={() => setZoom({ src: im.full || imgSrc(im), label })} />;
+  };
+  const lightbox = zoom && <BoardLightbox {...zoom} closeLabel={L("Zavřít obrázek", "Close image")} onClose={() => setZoom(null)} />;
+  const retry = board.error && <button type="button" className="tm-text-btn" style={{ color: "inherit" }} onClick={e => { e.stopPropagation(); board.retry(); }}>{L("Načíst obrázky znovu", "Reload images")}</button>;
+  return { imgs, remove, thumbnail, lightbox, retry };
+}
+
 function TmGalVeil({ aspKey, onClose, onDeeper }) {
   const { t } = useT();
   const st = useStore();
   const asp = MANDALA_ASPECTS.find((a) => a.key === aspKey);
-  const imgs = ((st.coll.mandala || {})[aspKey] || {}).imgs || [];
+  const { imgs, remove, thumbnail, lightbox, retry } = useGallery(aspKey, st);
   const col = MANDALA_HUE(t, asp.hue);
   const [out, setOut] = useState(false);
   const veilRef = React.useRef(null);
@@ -331,20 +362,22 @@ function TmGalVeil({ aspKey, onClose, onDeeper }) {
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.34em", fontSize: 12, color: col }}>{L(asp.cz, asp.en)} · {asp.dir}</div>
           <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 22, color: BRAND.linen, marginTop: 7 }}>{L(asp.subCz, asp.subEn)}</div>
         </div>
+        {retry && <div style={{ textAlign: "center", color: BRAND.linen }}>{retry}</div>}
+        <AspectImageAdd aspKey={aspKey} />
+        <button type="button" className="tm-veil-img" onClick={e => { e.stopPropagation(); leave(onDeeper); }} style={{ display: "block", margin: "12px auto 24px", minHeight: 44, border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12, color: BRAND.linen }}>{L("Vstoupit do aspektu", "Enter the aspect")}</button>
         {imgs.length === 0 ? (
           <div className="tm-veil-img" style={{ textAlign: "center", fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 15, color: "rgba(244,240,235,0.75)", maxWidth: 460, margin: "60px auto", lineHeight: 1.7 }}>{L(asp.promptCz, asp.promptEn)}</div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 16 }}>
             {imgs.map((im, i) => (
               <div key={im.id} className="tm-veil-img" style={{ position: "relative", borderRadius: 12, overflow: "hidden", boxShadow: "0 20px 44px -16px rgba(0,0,0,0.75)", animationDelay: `${Math.min(i * 55, 500)}ms`, transform: i % 3 === 1 ? "translateY(14px)" : "none" }}>
-                <img src={imgSrc(im)} alt="" style={{ width: "100%", aspectRatio: "3 / 4", objectFit: "cover", display: "block" }} />
-                {st.editMode && <button onClick={(e) => { e.stopPropagation(); st.ask(L("Odebrat obrázek z mandaly?", "Remove image from the mandala?"), () => { if (im.r2id) r2Del(im.r2id); const data = (st.coll.mandala || {})[aspKey] || {}; st.setMandala({ [aspKey]: { ...data, imgs: (data.imgs || []).filter((x) => x.id !== im.id) } }); }); }} style={{ position: "absolute", top: 7, right: 7, width: 24, height: 24, borderRadius: "50%", border: "none", background: "rgba(28,28,26,0.64)", color: BRAND.linen, cursor: "pointer", fontSize: 13, lineHeight: 1 }}><FamilyIcon id="close" size={16} label={L("Zavřít","Close")} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+                {thumbnail(im, i)}
+                {st.editMode && <button aria-label={L("Odebrat obrázek", "Remove image")} onClick={e => { e.stopPropagation(); remove(im); }} style={{ position: "absolute", top: 7, right: 7, width: 32, height: 32, borderRadius: "50%", border: "none", background: "rgba(28,28,26,0.64)", color: BRAND.linen, cursor: "pointer" }}><FamilyIcon id="close" size={16} /></button>}
               </div>
             ))}
           </div>
         )}
-        <AspectImageAdd aspKey={aspKey} />
-        <button type="button" className="tm-veil-img" onClick={e => { e.stopPropagation(); leave(onDeeper); }} style={{ display: "block", margin: "42px auto 0", minHeight: 44, border: 0, background: "transparent", cursor: "pointer", animationDelay: "600ms", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12, color: BRAND.linen }}>{L("Vstoupit do aspektu", "Enter the aspect")}</button>
+        {lightbox}
       </div>
     </div>,
     document.body
@@ -360,7 +393,7 @@ function TmAspectStudy({ aspKey, onBack }) {
   const col = isCore ? t.accent : MANDALA_HUE(t, asp.hue);
   const sections = MANDALA_CONTEXT[aspKey] || [];
   const data = isCore ? null : ((st.coll.mandala || {})[aspKey] || { note: "", imgs: [] });
-  const imgs = data ? (data.imgs || []) : [];
+  const { imgs, remove, thumbnail, lightbox, retry } = useGallery(aspKey, st);
   const [busy, setBusy] = useState(false);
   const [imageError, setImageError] = useState(false);
   const latestStore = React.useRef(st);
@@ -378,11 +411,6 @@ function TmAspectStudy({ aspKey, onBack }) {
       setImageError(failed > 0);
     } finally { setBusy(false); }
   };
-  const delImg = (id) => st.ask(L("Odebrat obrázek z mandaly?", "Remove image from the mandala?"), () => {
-    const im = imgs.find((x) => x.id === id);
-    if (im && im.r2id) r2Del(im.r2id);
-    st.setMandala({ [aspKey]: { ...data, imgs: imgs.filter((x) => x.id !== id) } });
-  });
   return (
     <div className="tm-view" style={{ maxWidth: 720, margin: "0 auto", animation: "tmfade .45s ease-out" }}>
       <button onClick={onBack} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted, fontFamily: FONT_BODY, fontSize: 13, padding: "0 0 12px" }}><FamilyIcon id="back" size={12} label={L("Zpět","Back")} style={{ display: "inline-block", verticalAlign: "middle" }} />{L("Mandala", "Mandala")}</button>
@@ -418,13 +446,15 @@ function TmAspectStudy({ aspKey, onBack }) {
       {!isCore && (
         <div style={{ marginTop: 22 }}>
           <Eyebrow>{L("Galerie aspektu", "The aspect's gallery")}</Eyebrow>
+          {retry}
+          {lightbox}
           {imageError && <p role="alert">{L("Některé obrázky se nepodařilo nahrát. Zkus to znovu.", "Some images could not be uploaded. Please try again.")}</p>}
           <textarea value={data.note || ""} onChange={(e) => st.setMandala({ [aspKey]: { ...data, note: e.target.value } })} placeholder={L("Alter ega, kvality, mýty, na které se ladím…", "Alter egos, qualities, myths I tune into…")} rows={2} style={{ width: "100%", background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6, padding: "10px 12px", outline: "none", resize: "vertical", margin: "10px 0 14px" }} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
-            {imgs.map((im) => (
+            {imgs.map((im, i) => (
               <div key={im.id} className="tm-mand-card" style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: `1px solid ${t.borderSoft}`, background: t.card, boxShadow: t.shadow }}>
-                <img src={imgSrc(im)} alt="" style={{ width: "100%", aspectRatio: "3 / 4", objectFit: "cover", display: "block" }} />
-                {st.editMode && <button onClick={() => delImg(im.id)} title={L("Odebrat", "Remove")} style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: "50%", border: "none", background: "rgba(28,28,26,0.58)", color: BRAND.linen, cursor: "pointer", fontSize: 13, lineHeight: 1 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>}
+                {thumbnail(im, i)}
+                {st.editMode && <button onClick={() => remove(im)} aria-label={L("Odebrat obrázek", "Remove image")} style={{ position: "absolute", top: 6, right: 6, width: 32, height: 32, borderRadius: "50%", border: "none", background: "rgba(28,28,26,0.58)", color: BRAND.linen, cursor: "pointer" }}><FamilyIcon id="close" size={16} /></button>}
               </div>
             ))}
             <label className="tm-mand-add" style={{ borderRadius: 10, border: `1px solid transparent`, background: "transparent", cursor: busy ? "default" : "pointer", aspectRatio: "3 / 4", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, color: t.textMuted, transition: "border-color .2s ease, color .2s ease" }}>
