@@ -28,7 +28,7 @@ async function client(db,path,body,account='a-example-test',method='POST'){
  return response?{status:response.status,...await response.json()}:null;
 }
 const book=(db,time='10:00',extra={})=>E.createBooking(db,{clientId:'cl_a',serviceId:'svc_pt',locationId:'loc_studio',startsAt:at(DATE,time),now:Date.now(),actor:'CLIENT',...extra});
-const slots=async db=>(await client(db,`/booking/slots?serviceId=svc_pt&locationId=loc_studio&from=${DATE}&days=1`,undefined,'a-example-test','GET')).days[0].slots.map(s=>hhmm(s.startsAt,TZ));
+const slots=async db=>(await client(db,`/booking/slots?serviceId=svc_pt&locationId=loc_studio&from=${DATE}&days=1`,undefined,'a-example-test','GET')).days.flatMap(day=>day.slots.map(s=>hhmm(s.startsAt,TZ)));
 const count=async(db,table)=>(await db.prepare(`SELECT COUNT(*) n FROM ${table}`).first()).n;
 
 test('reschedule slots preserve booked duration and do not count the moved booking against its own limits',async()=>{
@@ -128,6 +128,28 @@ test('two time-off edits from the same revision leave exactly one complete resul
  const saved=await db.prepare('SELECT * FROM booking_blocks WHERE id=?').bind(made.id).first();
  assert.equal(saved.starts_at_utc,results.find(r=>r.status===200).block.startsAt);
  assert.equal(saved.ends_at_utc-saved.starts_at_utc,3600000);
+});
+
+test('removing a multi-day block restores client slots and rejects stale, missing and Google rows',async()=>{
+ const db=await setup(), startsAt=at(DATE,'09:00');
+ const made=await coach(db,'/blocks',{startsAt,endsAt:startsAt+48*3600000});
+ const path=`/blocks/${made.id}`;
+ const initial=await coach(db,`/calendar?from=${DATE}&days=2`,undefined,'GET');
+ const block=initial.blocks.find(item=>item.id===made.id);
+ assert.ok(!(await slots(db)).includes('10:00'));
+ const edited=await coach(db,path,{note:'Edited in another window',expectedUpdatedAt:block.updatedAt},'PATCH');
+ const remove=revision=>coach(db,`${path}?expectedUpdatedAt=${revision}`,undefined,'DELETE');
+ assert.equal((await remove(block.updatedAt)).error,'BLOCK_CHANGED');
+ assert.equal((await remove('invalid')).status,400);
+ assert.equal((await remove(edited.block.updatedAt)).removed,true);
+ const updated=await coach(db,`/calendar?from=${DATE}&days=2`,undefined,'GET');
+ assert.equal(updated.blocks.some(item=>item.id===made.id),false);
+ assert.ok((await slots(db)).includes('10:00'));
+ assert.equal((await remove(edited.block.updatedAt)).status,404);
+ const google=await coach(db,'/blocks',{startsAt,endsAt:startsAt+3600000});
+ await db.prepare("UPDATE booking_blocks SET source='GOOGLE' WHERE id=?").bind(google.id).run();
+ assert.equal((await coach(db,`/blocks/${google.id}`,undefined,'DELETE')).status,404);
+ assert.ok(await db.prepare('SELECT id FROM booking_blocks WHERE id=?').bind(google.id).first());
 });
 
 test('editing time off immediately changes client slots without leaking its note',async()=>{

@@ -9,7 +9,7 @@ export const togetherStyles=`
 .tm-together{width:100%;min-width:0;color:var(--tg-text);font-family:var(--tm-font-body);overflow-wrap:anywhere}
 .tm-together .tm-page-title{min-height:106px;padding-top:16px}
 .tm-together .tm-page-title::before{content:none!important}
-.tm-together .tm-page-title h1{padding-right:112px}
+.tm-together .tg-header .tm-page-title h1{padding-inline-end:112px}
 .tm-together h2{font-family:var(--tm-font-tag);font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;line-height:1.5;margin:0 0 12px;color:var(--tg-accent)}
 .tm-together h3{font-family:var(--tm-font-display);font-size:21px;font-weight:400;line-height:1.3;color:var(--tg-heading);margin:20px 0 8px}
 .tm-together p{font-size:14px;line-height:1.65;color:var(--tg-muted);margin:8px 0 16px;max-width:70ch}
