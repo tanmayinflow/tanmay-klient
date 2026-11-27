@@ -37,7 +37,7 @@ export function createAspectImageUI({ useStore, L, resizeImageToBlob, r2Put, uid
         if (failed) setError(L("Některé obrázky se nepodařilo nahrát. Zkus to znovu.", "Some images could not be uploaded. Please try again."));
       } finally { setBusy(false); }
     };
-    return <div onClick={e => e.stopPropagation()} style={{ textAlign: "center", margin: "20px 0", color: "#F4F0EB" }}>
+    return <div className="tm-aspect-add" onClick={e => e.stopPropagation()} style={{ textAlign: "center", color: "#F4F0EB" }}>
       <button type="button" aria-label={L("Přidat obrázky k aspektu", "Add images to this aspect")} disabled={busy} aria-busy={busy}
         onClick={() => input.current?.click()} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, border: "none", background: "transparent", color: "inherit", cursor: busy ? "wait" : "pointer", opacity: busy ? .5 : .8 }}>
         <TmIcon id="add" size={18} />

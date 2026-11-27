@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { TmIcon as FamilyIcon } from "./icons.jsx";
 import { createAspectImageUI, uploadAspectImages } from "./aspectImages.jsx";
 import { useAspectBoard, BoardThumbnail, BoardLightbox } from "./aspectBoard.jsx";
+import "./aspectGallery.css";
 import { LANDSCAPE_DIRECTION_INKS } from "./landscape.js";
 import { FONT_BODY, FONT_TAG, FONT_DISPLAY_EN as FONT_DISPLAY } from "./type.js";
 import { hexA } from "./color.js";
@@ -357,20 +358,22 @@ function TmGalVeil({ aspKey, onClose, onDeeper }) {
   return createPortal(
     <div ref={veilRef} role="dialog" aria-modal="true" aria-label={L(asp.cz, asp.en)} onClick={() => leave(onDeeper)} className={"tm-veil" + (out ? " tm-veil-out" : "")} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(28,28,26,0.95)", overflowY: "auto", cursor: "pointer", WebkitBackdropFilter: "blur(4px)", backdropFilter: "blur(4px)" }}>
       <button onClick={(e) => { e.stopPropagation(); leave(onClose); }} title={L("Zpět na mandalu", "Back to the mandala")} style={{ position: "fixed", top: 18, right: 20, zIndex: 2, width: 36, height: 36, borderRadius: "50%", border: "1px solid rgba(244,240,235,0.25)", background: "rgba(28,28,26,0.42)", color: BRAND.linen, cursor: "pointer", fontSize: 17, lineHeight: 1 }}><FamilyIcon id="close" size={16} style={{ display: "inline-block", verticalAlign: "middle" }} /></button>
-      <div style={{ maxWidth: 880, margin: "0 auto", padding: "54px 22px 80px" }}>
-        <div style={{ textAlign: "center", marginBottom: 26 }}>
+      <div className="tm-aspect-preview">
+        <div className="tm-aspect-preview-heading">
           <div style={{ fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.34em", fontSize: 12, color: col }}>{L(asp.cz, asp.en)} · {asp.dir}</div>
           <div style={{ fontFamily: FONT_DISPLAY, fontStyle: "italic", fontSize: 22, color: BRAND.linen, marginTop: 7 }}>{L(asp.subCz, asp.subEn)}</div>
         </div>
         {retry && <div style={{ textAlign: "center", color: BRAND.linen }}>{retry}</div>}
-        <AspectImageAdd aspKey={aspKey} />
-        <button type="button" className="tm-veil-img" onClick={e => { e.stopPropagation(); leave(onDeeper); }} style={{ display: "block", margin: "12px auto 24px", minHeight: 44, border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12, color: BRAND.linen }}>{L("Vstoupit do aspektu", "Enter the aspect")}</button>
+        <div className="tm-aspect-actions">
+          <AspectImageAdd aspKey={aspKey} />
+          <button type="button" className="tm-aspect-enter tm-veil-img" onClick={e => { e.stopPropagation(); leave(onDeeper); }} style={{ display: "block", minHeight: 44, border: 0, background: "transparent", cursor: "pointer", fontFamily: FONT_TAG, textTransform: "uppercase", letterSpacing: "0.24em", fontSize: 12, color: BRAND.linen }}>{L("Vstoupit do aspektu", "Enter the aspect")}</button>
+        </div>
         {imgs.length === 0 ? (
           <div className="tm-veil-img" style={{ textAlign: "center", fontFamily: FONT_BODY, fontStyle: "italic", fontSize: 15, color: "rgba(244,240,235,0.75)", maxWidth: 460, margin: "60px auto", lineHeight: 1.7 }}>{L(asp.promptCz, asp.promptEn)}</div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 16 }}>
+          <div className="tm-aspect-grid">
             {imgs.map((im, i) => (
-              <div key={im.id} className="tm-veil-img" style={{ position: "relative", borderRadius: 12, overflow: "hidden", boxShadow: "0 20px 44px -16px rgba(0,0,0,0.75)", animationDelay: `${Math.min(i * 55, 500)}ms`, transform: i % 3 === 1 ? "translateY(14px)" : "none" }}>
+              <div key={im.id} className="tm-veil-img" style={{ animationDelay: `${Math.min(i * 55, 500)}ms` }}>
                 {thumbnail(im, i)}
                 {st.editMode && <button aria-label={L("Odebrat obrázek", "Remove image")} onClick={e => { e.stopPropagation(); remove(im); }} style={{ position: "absolute", top: 7, right: 7, width: 32, height: 32, borderRadius: "50%", border: "none", background: "rgba(28,28,26,0.64)", color: BRAND.linen, cursor: "pointer" }}><FamilyIcon id="close" size={16} /></button>}
               </div>
@@ -450,7 +453,7 @@ function TmAspectStudy({ aspKey, onBack }) {
           {lightbox}
           {imageError && <p role="alert">{L("Některé obrázky se nepodařilo nahrát. Zkus to znovu.", "Some images could not be uploaded. Please try again.")}</p>}
           <textarea value={data.note || ""} onChange={(e) => st.setMandala({ [aspKey]: { ...data, note: e.target.value } })} placeholder={L("Alter ega, kvality, mýty, na které se ladím…", "Alter egos, qualities, myths I tune into…")} rows={2} style={{ width: "100%", background: t.sheet, border: `1px solid ${t.borderSoft}`, borderRadius: 8, color: t.text, fontFamily: FONT_BODY, fontSize: 13, lineHeight: 1.6, padding: "10px 12px", outline: "none", resize: "vertical", margin: "10px 0 14px" }} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
+          <div className="tm-aspect-grid">
             {imgs.map((im, i) => (
               <div key={im.id} className="tm-mand-card" style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: `1px solid ${t.borderSoft}`, background: t.card, boxShadow: t.shadow }}>
                 {thumbnail(im, i)}
