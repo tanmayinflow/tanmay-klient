@@ -14,6 +14,22 @@ const BODY_FONT = 'var(--tm-font-body, var(--ff-body, "DM Sans", sans-serif))';
 const DISPLAY_FONT = 'var(--tm-font-display, var(--ff-display, "EB Garamond", Georgia, serif))';
 const genericWeekly = (r, wd) => Number(r.weekday) === wd && !r.service_id && !r.location_id && !r.valid_from && !r.valid_until;
 
+export function writeTimeOff(fetchBooking, block, changes) {
+  const path = `/blocks/${encodeURIComponent(block.id)}`;
+  if (changes) return fetchBooking(path, { method: "PATCH", body: {
+    ...changes, expectedStartsAt: block.startsAt, expectedUpdatedAt: block.updatedAt,
+  } });
+  const revision = Number.isFinite(block.updatedAt) ? `?expectedUpdatedAt=${block.updatedAt}` : "";
+  return fetchBooking(path + revision, { method: "DELETE" });
+}
+
+export function TimeOffActions({ L, primary, secondary, onSave, onRemove, disabled, saveDisabled }) {
+  return <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 18 }}>
+    <button type="button" style={primary} disabled={disabled || saveDisabled} onClick={onSave}>{L("Uložit volno", "Save time off")}</button>
+    <button type="button" style={secondary} disabled={disabled} onClick={onRemove}>{L("Odstranit volno", "Remove time off")}</button>
+  </div>;
+}
+
 // Coach only. Authentication stays in the existing owner Worker routes.
 // Inject the existing fetch/error/theme functions, never account or seed data.
 export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorCopy, CenterSheet, renderNewBooking, renderExceptions, renderWeekly }) {
@@ -126,7 +142,9 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
       if (saving) return;
       setSaving(true); setEditError("");
       try { await action(); setEditor(null); setMessage(successMessage); refresh(); }
-      catch (e) { setEditError(e.messageText || describeError(e)); }
+      catch (e) { setEditError(editor?.type === "block" && e.code === "NOT_FOUND"
+        ? L("Toto volno už v kalendáři není.", "This time off is no longer on the calendar.")
+        : e.messageText || describeError(e)); }
       finally { setSaving(false); }
     };
     const invalid = text => { const e = new Error(text); e.messageText = text; throw e; };
@@ -190,7 +208,7 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
         await fetchBooking(`/bookings/${encodeURIComponent(item.id)}/reschedule`, { method: "POST", body: { startsAt: selectedStart, durationMin: editor.duration, serviceId: editor.serviceId, clientIds: editor.clientIds, adminOverride: true, overrideReason: L("Úprava rezervace trenérem", "Booking edited by coach"), expectedVersion: item.version, expectedStartsAt: item.startsAt, expectedUpdatedAt: item.updatedAt } });
       } else {
         if (selectedEnd == null || selectedEnd <= selectedStart) invalid(L("Konec volna musí být později než začátek.", "Time off must end after it starts."));
-        await fetchBooking(`/blocks/${encodeURIComponent(item.id)}`, { method: "PATCH", body: { startsAt: selectedStart, endsAt: selectedEnd, note: editor.note, expectedStartsAt: item.startsAt, expectedUpdatedAt: item.updatedAt } });
+        await writeTimeOff(fetchBooking, item, { startsAt: selectedStart, endsAt: selectedEnd, note: editor.note });
       }
     });
     actions.current = { openItem };
@@ -352,11 +370,6 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
       {!service && catalog && onServices && <button type="button" style={btn} onClick={onServices}>{L("Nastavit službu", "Set up a service")}</button>}
       {editor && <CenterSheet title={editor.type === "new" ? L("Nový termín", "New session") : editor.type === "booking" ? L("Rezervace", "Booking") : editor.type === "block" ? L("Volno", "Time off") : L("Úprava kalendáře", "Calendar editor")} onClose={() => { if (!saving) leaveWorkEditor(null); }}><fieldset ref={editorRef} tabIndex={-1} disabled={saving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, fontFamily: BODY_FONT }}>
         {editor.type !== "new" && <div style={{ ...row, justifyContent: "space-between", marginBottom: 12 }}><h3 style={{ fontFamily: DISPLAY_FONT, fontWeight: 400, fontSize: 23, margin: 0 }}>{editor.type === "work" ? L("Pracovní doba", "Working hours") : editor.type === "service" ? L("Délka sezení a začátky", "Duration and start times") : L("Čas v kalendáři", "Calendar time")}{editor.date ? ` · ${dayLabel(editor.date)}` : ""}</h3><button type="button" aria-label={L("Zavřít úpravy", "Close editor")} style={btn} disabled={saving} onClick={() => leaveWorkEditor(null)}><TmIcon id="close" size={16}/></button></div>}
-        {editor.type === "block" && <button type="button" style={{ ...btn, marginBottom: 16, color: t.danger }} disabled={saving}
-          onClick={() => perform(
-            () => fetchBooking(`/blocks/${encodeURIComponent(editor.item.id)}`, { method: "DELETE" }),
-            L("Volno bylo odstraněno.", "Time off removed.")
-          )}>{L("Odstranit volno", "Remove time off")}</button>}
         {editor.type === "new" && renderNewBooking?.(editor.seed, { onClose: () => setEditor(null), onDone: () => { setMessage(L("Termín uložen.", "Appointment saved.")); refresh(); } })}
         {["booking", "block"].includes(editor.type) && <>
           {editor.type === "booking" && <>
@@ -389,8 +402,9 @@ export function createBookingCalendarUI({ useT, L, getLang, fetchBooking, errorC
             <label style={{ ...label, marginTop: 10 }}>{L("Poznámka jen pro tebe", "Private note")}<input maxLength={200} style={input} value={editor.note} onChange={e => setEditor(x => ({ ...x, note: e.target.value }))}/></label>
             <p style={notice}>{L("Volno zablokuje nové rezervace klientů. Stávající rezervace zůstávají zachované.", "Time off blocks new client bookings. Existing bookings remain.")}</p>
           </>}
-          <div style={{ ...row, marginTop: 18 }}><button type="button" style={primary} disabled={saving} onClick={saveMove}>{editor.type === "booking" ? L("Uložit rezervaci", "Save booking") : L("Uložit volno", "Save time off")}</button>
-          </div>
+          {editor.type === "block" ? <TimeOffActions L={L} primary={primary} secondary={{ ...btn, color: t.danger }}
+            disabled={saving} onSave={saveMove} onRemove={() => perform(() => writeTimeOff(fetchBooking, editor.item), L("Volno bylo odstraněno.", "Time off removed."))} />
+            : <button type="button" style={{ ...primary, marginTop: 18 }} disabled={saving} onClick={saveMove}>{L("Uložit rezervaci", "Save booking")}</button>}
         </>}
         {editor.type === "work" && <>
           {editor.pendingExit && <div role="alert" style={{ marginBottom: 12 }}>
