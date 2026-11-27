@@ -697,7 +697,14 @@ export async function handleCoach(request, env, url, ctx) {
       return ok({ block: { id: current.id, startsAt: start, endsAt: end, source: current.source, note, updatedAt: revision } });
     }
     if (mBlock && method === "DELETE") {
-      await db.prepare("DELETE FROM booking_blocks WHERE id = ? AND source != 'GOOGLE'").bind(mBlock[1]).run();
+      const revision = url.searchParams.get("expectedUpdatedAt");
+      if (revision !== null && !/^\d{1,16}$/.test(revision)) return bad(ERR.VALIDATION_ERROR, "expectedUpdatedAt");
+      const deletion = db.prepare(`DELETE FROM booking_blocks WHERE id = ? AND source != 'GOOGLE'${revision === null ? "" : " AND updated_at = ?"}`);
+      const result = await (revision === null ? deletion.bind(mBlock[1]) : deletion.bind(mBlock[1], Number(revision))).run();
+      if (!result.meta?.changes) {
+        const exists = await db.prepare("SELECT id FROM booking_blocks WHERE id = ? AND source != 'GOOGLE'").bind(mBlock[1]).first();
+        return exists ? bad(ERR.BLOCK_CHANGED, "reload block") : bad(ERR.NOT_FOUND);
+      }
       return ok({ removed: true });
     }
 
