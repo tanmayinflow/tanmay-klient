@@ -15,7 +15,7 @@ class Element extends Events {
   contains(node) { return node === this || !!node?.parent && this.contains(node.parent); }
   closest(query) { const match = query.split(',').some(part => { part = part.trim(); if (part.startsWith('.')) return this.classList.contains(part.slice(1)); if (part.startsWith('[')) { const [key, value] = part.slice(1, -1).split('='); return value ? this.attrs[key] === value.replaceAll('"', '') : key in this.attrs; } return part === this.tag; }); return match ? this : this.parent?.closest(query); }
 }
-function fixture(selected = false) {
+function fixture(selected = false, grid = false) {
   const win = new Events(), doc = new Events(), body = new Element(), root = new Element('div', {}, body);
   const a = new Element('button', { 'data-pick': 'a' }, root), b = new Element('button', { 'data-pick': 'b' }, root), tab = new Element('button', { 'data-tab': 'B' }, body);
   const mark = new Element('span', {}, a); mark.classList.add('tm-selmark');
@@ -30,6 +30,7 @@ function fixture(selected = false) {
     paint(id, add) { calls.paint.push([id, add]); const prev = stateRef.current.sel; stateRef.current.sel = add ? [...new Set([...prev, id])] : prev.filter(x => x !== id); },
     dropTab: (ids, dest) => calls.dropped.push([ids, dest]), reorder: (...args) => calls.reordered.push(args),
   } };
+  if (grid) actionsRef.current.dropRow = (...args) => calls.dropped.push(args);
   const dispose = attachHoldSelection({ root, attr: 'data-pick', tabAttr: 'data-tab', stateRef, actionsRef,
     makeGhost: () => { ghostCount++; return { style: {}, remove() { removed++; } }; },
     onGesture: value => calls.gesture.push(value), onDragging: value => calls.dragging.push(value),
@@ -112,4 +113,30 @@ test('a new physical tap of the same note is not swallowed when the browser emit
   const f = fixture(); f.hold(); f.end();
   f.root.emit('touchstart', { target: f.a, touches: [f.touch()] }); f.end();
   assert.equal(f.root.emit('click', { target: f.a }).defaultPrevented, false); f.dispose();
+});
+
+test('a held gallery thumbnail commits once on release, without entering note selection', () => {
+  const f = fixture(false, true);
+  f.hold();
+  assert.deepEqual(f.calls.entered, []);
+  assert.deepEqual(f.calls.dragging, ['a']);
+  assert.equal(f.move(10, 80).defaultPrevented, true);
+  assert.equal(f.b.classList.contains('tm-drop'), true);
+  assert.deepEqual(f.calls.dropped, []);
+  f.win.emit('touchend', { changedTouches: [f.touch(10, 80)] });
+  assert.deepEqual(f.calls.dropped, [['a', 'b']]);
+  assert.equal(f.b.classList.contains('tm-drop'), false);
+  assert.equal(f.root.emit('click', { target: f.b, detail: 0 }).defaultPrevented, false);
+  assert.equal(f.root.emit('click', { target: f.root }).defaultPrevented, true);
+  f.dispose();
+});
+
+test('cancel or release outside the image grid leaves its original order intact', () => {
+  const f = fixture(false, true);
+  f.hold(); f.move(10, 80); f.win.emit('blur');
+  f.hold(); f.move(10, 80);
+  f.win.emit('touchend', { changedTouches: [f.touch(250, 10)] });
+  assert.deepEqual(f.calls.dropped, []);
+  assert.equal(f.b.classList.contains('tm-drop'), false);
+  f.dispose();
 });
