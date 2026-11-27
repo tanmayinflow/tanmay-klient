@@ -34,10 +34,6 @@ html[data-appearance] .tm-sidebar .tm-nav-active { background: transparent !impo
 html[data-appearance] .tm-sidebar .tm-nav-active > span:first-child { color: var(--tm-earth-nav-ink) !important; }
 html[data-appearance] .tm-tabbar button[aria-current="page"] { color: var(--tm-earth-nav-ink) !important; background: transparent !important; box-shadow: none !important; border-color: transparent !important; }
 html[data-appearance] .tm-tabbar button[aria-current="page"] > span:first-child { color: var(--tm-earth-nav-ink) !important; transform: none !important; }
-.tm-aspect-hero { background: var(--tm-earth) !important; color: var(--tm-on-earth); }
-.tm-aspect-hero * { color: var(--tm-on-earth) !important; }
-.tm-aspect-hero > div:first-child { background: none !important; }
-.tm-aspect-hero > div:nth-child(2) { background: var(--tm-on-earth) !important; }
 .tm-page-icon { display: inline-flex; flex: 0 0 auto; align-items: center; }
 .tm-page-icon [data-tm-icon] { width: calc(48px * var(--tm-read, 1)) !important; height: calc(48px * var(--tm-read, 1)) !important; }
 .tm-page-icon svg[data-tm-icon] { stroke-width: .5; }

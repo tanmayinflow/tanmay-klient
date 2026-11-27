@@ -41,12 +41,12 @@ export function useAspectBoard(key) {
   return { entries: current?.entries || [], error: current?.error, retry: () => setAttempt(n => n + 1) };
 }
 
-export function BoardThumbnail({ src, label, onOpen }) {
+export function BoardThumbnail({ src, label, onOpen, selected }) {
   return (
-    <button type="button" aria-label={label}
+    <button type="button" data-pickmain="" aria-label={label} aria-pressed={selected}
       onClick={e => { e.stopPropagation(); onOpen(); }}
       style={{ display: "block", width: "100%", border: 0, padding: 0, background: "transparent", cursor: "zoom-in" }}>
-      <img src={src} alt="" loading="lazy" decoding="async" style={{ display: "block", width: "100%", aspectRatio: "3 / 4", objectFit: "cover" }} />
+      <img src={src} alt="" draggable={false} loading="lazy" decoding="async" style={{ display: "block", width: "100%", aspectRatio: "3 / 4", objectFit: "cover" }} />
     </button>
   );
 }
