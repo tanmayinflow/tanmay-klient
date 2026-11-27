@@ -515,6 +515,9 @@ const worker = {
       if (!(await isMember(env, userId, accessEmail(request)))) {
         return Response.json({ ok: false, error: "not a member" }, { status: 403 });
       }
+      if (url.pathname.startsWith("/api/aspect-boards/")) {
+        return env.ASPECT_BOARDS.read(url.pathname, request.method);
+      }
       if(url.pathname==="/api/exercise-policy")return handleExercisePolicy(request,{db:env.DB,userId});
       if(url.pathname==="/api/custom-exercises")return handleCustomExercises(request,{db:env.DB,userId});
       if(url.pathname.startsWith("/api/custom-exercises/"))return handleCustomExercises(request,{db:env.DB,userId,id:decodePathId(url.pathname.slice("/api/custom-exercises/".length))});
